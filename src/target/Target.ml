@@ -39,9 +39,12 @@ type t = {
 (*****************************************************************************)
 
 let pp_debug f (t : t) =
+  (*
   Format.fprintf f "target file: %s (%s)"
     (t.path.internal_path_to_content |> Fpath.to_string)
     (t.analyzer |> Analyzer.to_string)
+*)
+  pp f t
 
 (* needed because of some deriving yojson in Targeting_stat.ml *)
 let to_yojson (x : t) : Yojson.Safe.t =
@@ -73,37 +76,49 @@ let tempfile_of_git_blob sha =
 
 let path_of_origin (origin : Origin.t) : path =
   match origin with
-  | File file -> { origin; internal_path_to_content = file }
-  | GitBlob { sha; _ } ->
+  | Unfilterable_target_file file -> { origin; internal_path_to_content = file }
+  | Target_file fppath -> { origin; internal_path_to_content = fppath.fpath }
+  | Git_blob { sha; _ } ->
       { origin; internal_path_to_content = tempfile_of_git_blob sha }
 
 (*****************************************************************************)
 (* Builders *)
 (*****************************************************************************)
 
-let mk_target_origin ?dependency_source analyzer products (origin : Origin.t) :
-    t =
+let mk_target_from_origin ?dependency_source analyzer products
+    (origin : Origin.t) : t =
   { path = path_of_origin origin; analyzer; products; dependency_source }
 
-(* useful in test context *)
-let mk_target_fpath (analyzer : Analyzer.t) (file : Fpath.t) : t =
+(* useful in test context (?) *)
+let mk_target_gen (analyzer : Analyzer.t) (origin : Origin.t) : t =
   let all = Product.all in
+  mk_target_from_origin analyzer all origin
+
+let mk_target (analyzer : Analyzer.t) (file : Fppath.t) : t =
   (* TODO: should do the check in the other mk_xxx ? *)
-  assert (UFile.is_reg ~follow_symlinks:true file);
-  mk_target_origin analyzer all (Origin.File file)
+  assert (UFile.is_reg ~follow_symlinks:true file.fpath);
+  mk_target_gen analyzer (Origin.Target_file file)
+
+let mk_unfilterable_target analyzer fpath =
+  assert (UFile.is_reg ~follow_symlinks:true fpath);
+  mk_target_gen analyzer (Origin.Unfilterable_target_file fpath)
 
 (* useful in test context or DeepScan context *)
-let mk_lang_target (lang : Lang.t) (file : Fpath.t) : t =
-  mk_target_fpath (Analyzer.of_lang lang) file
+let mk_unfilterable_lang_target (lang : Lang.t) (file : Fpath.t) : t =
+  mk_unfilterable_target (Analyzer.of_lang lang) file
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)
 (*****************************************************************************)
 (* old: used to be Input_to_core.target -> Target.t *)
 
+let fppath_of_atd_fppath (x : Out.fppath) : Fppath.t =
+  { fpath = x.fpath; ppath = x.ppath }
+
 let target_location_of_input_to_core
     ({ path; analyzer; products; dependency_source } : Out.code_target) : t =
-  mk_target_origin ?dependency_source analyzer products (File path)
+  let path = fppath_of_atd_fppath path in
+  mk_target_from_origin ?dependency_source analyzer products (Target_file path)
 
 let target_of_target (input : Out.target) : t =
   match input with

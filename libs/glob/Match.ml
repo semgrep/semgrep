@@ -41,9 +41,9 @@ type loc = {
   line_contents : string;
 }
 
-type conf = { glob_period : bool }
+type conf = { glob_period : bool; right_anchored : bool } [@@deriving show]
 
-let default_conf = { glob_period = false }
+let default_conf = { glob_period = false; right_anchored = true }
 
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
@@ -96,40 +96,99 @@ let translate_frag conf buf pos (frag : Pattern.segment_fragment) =
 
 let translate_seg conf buf (seg : segment_fragment list) =
   match seg with
-  | [] -> ()
+  | [] -> (* leading slash (of an absolute path) *) ()
   | _nonempty_segment ->
+      (* ensure we're not already in the middle of a segment
+         = there is no character on the left that's not a slash *)
+      add buf {|(?<![^/])|};
       (* lookahead assertion that checks that the path segment is not empty,
          because pattern 'a/*' should not match path 'a/' which has an
          empty trailing segment. *)
       add buf "(?=[^/])";
       List.iteri (translate_frag conf buf) seg
 
+(* generic regexp language
+   TODO: put this into a reusable regexp module
+*)
+let sequence xs = String.concat " " xs
+let _choice xs = Printf.sprintf "(?:%s)" (String.concat " | " xs)
+let repeat x = Printf.sprintf "(?:%s)*" x
+let _repeat1 x = Printf.sprintf "(?:%s)*" x
+let optional x = Printf.sprintf "(?:%s)?" x
+
 (* beginning of string *)
 let bos = {|\A|}
 
-(* end of string *)
-let eos = {|\z|}
+(* end of path (tolerates trailing slashes) *)
+let end_of_path = {|/*\z|}
+let segment_separator = {|/+|}
 
-let rec translate conf buf pat =
+(* possibly empty segment *)
+let segment = {|[^/]*|}
+
+(* possibly empty segment not starting with a dot *)
+let nodot_segment = {|(?:[^/.][^/]*)?|}
+
+(* Match 0, 1, or more segments *)
+let any_subpath ~segment =
+  (* separator = one or more consecutive slashes *)
+  let separator = {|/+|} in
+  optional (sequence [ segment; repeat (sequence [ separator; segment ]) ])
+
+(* The current position is not in the middle of a segment.
+   = there's no previous character that's not a slash
+     or there's no current character that's not slash *)
+let segment_boundary = {|(?: (?<![^/]) | (?![^/]) )|}
+
+(* end of path segment optionally followed by a subpath.
+   There may or may not be a slash before this position.
+   We need to ensure we're not in the middle of a segment. *)
+let end_with_optional_subpath = segment_boundary
+
+(*
+   is_start and is_end indicate the position in the pattern for the purpose
+   of inserting separators.
+*)
+let rec translate ?(is_start = false) conf buf pat =
+  let is_end =
+    match pat with
+    | [] -> true
+    | _ -> false
+  in
+  if (not is_start) && not is_end then
+    (* must match a separator *)
+    add buf segment_separator;
   match pat with
-  | [ Segment seg ] ->
-      translate_seg conf buf seg;
-      add buf eos
-  | [ Any_subpath ] -> ()
   | Segment seg :: pat ->
       translate_seg conf buf seg;
-      add buf "/+";
       translate conf buf pat
   | Any_subpath :: pat ->
-      add buf "/*(?:[^/]+/+)*";
-      translate conf buf pat
-  | [] -> add buf eos
+      (* 0, 1, or more segments *)
+      if conf.glob_period then add buf (any_subpath ~segment)
+      else add buf (any_subpath ~segment:nodot_segment);
+      (* The slash after a '**' doesn't have to match a slash in the path.
+         is_start:true ensures this. *)
+      translate ~is_start:true conf buf pat
+  | [] ->
+      if conf.right_anchored then
+        (* anchored right end *)
+        add buf end_of_path
+      else
+        (* end path or continue with /... *)
+        add buf end_with_optional_subpath
 
 (* Create a pattern that's left-anchored and right-anchored *)
 let translate_root conf pat =
   let buf = Buffer.create 128 in
   add buf bos;
-  translate conf buf pat;
+  translate ~is_start:true conf buf pat;
+  (* Uncomment to print a readable version of the glob AST.
+     It's too much to log in debug level even in tests. *)
+  (*
+  Logs.info (fun m ->
+    m "translate %s" (Pattern.show pat)
+  );
+  *)
   Buffer.contents buf
 
 (*****************************************************************************)
@@ -139,22 +198,27 @@ let translate_root conf pat =
 (* Compile a pattern into an ocaml-re regexp for fast matching *)
 let compile ?(conf = default_conf) ~source pat =
   let pcre = translate_root conf pat in
-  let re = Pcre2_.regexp pcre in
+  (* EXTENDED: needed to ignore the whitespace we put into the PCRE pattern
+     for readability *)
+  let re = Pcre2_.regexp ~flags:[ `EXTENDED ] pcre in
   { source; re }
 [@@profiling "Glob.Match.compile"]
 
 let run matcher path =
   let res = Pcre2_.pmatch_noerr ~rex:matcher.re path in
-  (* perf: this gets called a lot. The match-with is expected to make things
-     faster by creating a closure for the anonymous function only in debug
-     mode. *)
-  (* nosemgrep: no-logs-in-library *)
-  (match Logs.level () with
-  | Some Debug ->
-      Log.debug (fun m ->
-          m "glob: %S  pcre: %s  path: %S  matches: %B"
-            matcher.source.line_contents matcher.re.pattern path res)
-  | _ -> ());
+  (* Uncomment to print something in tests when debugging.
+     Why not have a permanent log instruction:
+     1. This logs a lot for any basic semgrep operation so it's useless
+        outside of unit tests.
+     2. It's still too much for some tests e.g. in Unit_gitignore.
+     3. The Logs_ module is broken at the moment
+        (tags are required for Log.debug to do anything).
+   *)
+  (*
+  Logs.info (fun m ->
+     m "glob: %S  pcre: %s  path: %S  matches: %B"
+       matcher.source.line_contents matcher.re.pattern path res);
+  *)
   res
 [@@profiling "Glob.Match.run"]
 

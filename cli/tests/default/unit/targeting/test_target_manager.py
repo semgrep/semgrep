@@ -18,24 +18,27 @@ from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import SECRETS_PRODUCT
 from semgrep.target_manager import TargetManager
+from semgrep.types import fpaths_of_targets
+from semgrep.types import Target
 
 
 def assert_path_sets_equal(
-    *, actual: Collection[Path], expected: Collection[Path], msg: Optional[str] = None
+    *, actual: Collection[Target], expected: Collection[Path], msg: Optional[str] = None
 ):
     """
-    Assert that two sets of path contain the same paths
+    Assert that two sets of paths contain the same paths
     """
+    actual_p = [target.fpath for target in actual]
     if msg is not None:
         prefix = f"{msg}: "
     else:
         prefix = ""
 
-    for elem in (*actual, *expected):
+    for elem in (*actual_p, *expected):
         assert (
             not elem.is_symlink()
         ), f"{prefix}{elem} is a symlink so we cannot determine if it's the same as its counterpart in the other set"
-    actual_paths = {elem.resolve() for elem in actual}
+    actual_paths = {elem.resolve() for elem in actual_p}
     expected_paths = {elem.resolve() for elem in expected}
     assert (
         actual_paths == expected_paths
@@ -301,7 +304,7 @@ def test_explicit_path(tmp_path, monkeypatch):
             allow_unknown_extensions=True,
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets
+        .fpaths()
     )
     assert (
         foo_a
@@ -309,7 +312,7 @@ def test_explicit_path(tmp_path, monkeypatch):
             scanning_root_strings=frozenset([Path("foo/a.py")]),
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets
+        .fpaths()
     )
 
     # Should exclude discovered python file even if it is in excludes
@@ -321,7 +324,7 @@ def test_explicit_path(tmp_path, monkeypatch):
             excludes={SAST_PRODUCT: ["foo/a.py"]},
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets
+        .fpaths()
     )
 
     # Should include explicitly passed python file even if it is in excludes
@@ -333,7 +336,7 @@ def test_explicit_path(tmp_path, monkeypatch):
             excludes={SAST_PRODUCT: ["foo/a.py"]},
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets
+        .fpaths()
     )
 
     # Should ignore explicitly passed .go file when requesting python
@@ -342,7 +345,7 @@ def test_explicit_path(tmp_path, monkeypatch):
             scanning_root_strings=frozenset([Path("foo/a.go")]),
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets
+        .fpaths()
         == frozenset()
     )
 
@@ -538,18 +541,22 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path):
 
     # Call get_files_for_language with ignore_baseline_handler=False
     # Should only return lockfiles in dir_b and dir_c as they were changed after base_commit
-    diff_files = target_manager.get_files_for_language(
-        lang=Ecosystem(Pypi()), product=SCA_PRODUCT, ignore_baseline_handler=False
-    ).kept
+    diff_files = fpaths_of_targets(
+        target_manager.get_files_for_language(
+            lang=Ecosystem(Pypi()), product=SCA_PRODUCT, ignore_baseline_handler=False
+        ).kept
+    )
     assert {str(dir_b_poetry), str(dir_c_poetry)} == {
         str(path) for path in diff_files
     }, "Should only include modified lockfiles"
 
     # Call get_files_for_language with ignore_baseline_handler=True
     # Should return all three lockfiles
-    all_files = target_manager.get_files_for_language(
-        lang=Ecosystem(Pypi()), product=SCA_PRODUCT, ignore_baseline_handler=True
-    ).kept
+    all_files = fpaths_of_targets(
+        target_manager.get_files_for_language(
+            lang=Ecosystem(Pypi()), product=SCA_PRODUCT, ignore_baseline_handler=True
+        ).kept
+    )
     assert {str(dir_a_poetry), str(dir_b_poetry), str(dir_c_poetry)} == {
         str(path) for path in all_files
     }, "Should include unchanged lockfiles as well"

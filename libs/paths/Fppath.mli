@@ -7,11 +7,43 @@
    in error messages while fpath for actual file content access).
 *)
 
-type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show]
+type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show, eq]
+(** A file system path that is expected to be valid accompanied with
+    its ppath, the normalized path of the file relative to its project root.
 
-(* Compare based on the original fpath *)
+    TODO: make the ppath optional so as to prevent the target file
+    from being filtered out with path filters. For now, we use a hack
+    based on special file path that indicates our desire to not filter.
+*)
+
+val to_fpath : t -> Fpath.t
+
 val compare : t -> t -> int
+(** Compare based on the original fpath *)
 
-(* Append a relative fpath to an existing root path.
-   Raise Invalid_argument is the provided fpath isn't relative. *)
 val append_relative_fpath : t -> Fpath.t -> t
+(** Append a relative fpath to an existing root path.
+    Raise Invalid_argument is the provided fpath isn't relative. *)
+
+val of_relative_fpath_exn : Fpath.t -> t
+(** Create an fppath from a relative fpath.
+    Raises Invalid_argument if the input is not a relative path. *)
+
+val fake_from_fpath_DEPRECATED : Fpath.t -> t
+(** Safe alternative to [of_relative_fpath]. Using this function is a sign
+    that something's modeled incorrectly!
+    Correct fppaths are returned by target discovery as done by
+    the [Find_targets] module.
+*)
+
+val unfilterable_DEPRECATED : Fpath.t -> t
+(** Deprecated: rely on the Target module if you need to bypass path filtering.
+
+    Leave the ppath unset to ensure this path won't be filtered out
+    with path filters.
+    TODO: get rid of this hack. See Target.mli for an alternative.
+*)
+
+val is_filterable_DEPRECATED : t -> bool
+(** Is the ppath set correctly?
+    TODO: make ppath optional rather than requiring this function. *)

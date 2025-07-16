@@ -44,7 +44,7 @@ type func = {
     conf ->
     Find_targets.conf ->
     Rule_error.rules_and_invalid ->
-    Fpath.t list ->
+    Fppath.t list ->
     Core_result.result_or_exn;
 }
 

@@ -77,6 +77,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
             | None -> Legacy_session.targets session
             | Some targets -> targets)
           |> Profiler.record profiler ~name:"session_targets"
+          |> List_.map Fppath.fake_from_fpath_DEPRECATED
         in
         Logs.info (fun m -> m "Scanning %d targets" (List.length targets));
         let runner_conf = Legacy_session.runner_conf session in
@@ -95,7 +96,12 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                  want to create a way to pass them directly as "target files"
                  rather than "scanning roots".
               *)
-              let roots = List_.map Scanning_root.of_fpath targets in
+              let roots =
+                List_.map
+                  (fun (fppath : Fppath.t) ->
+                    Scanning_root.of_fpath fppath.fpath)
+                  targets
+              in
               (* TODO: maybe be smarter about this?*)
               (* if we've already called this function then we don't want extra *)
               (* languages as the parsers are already registered. This is a bit *)
@@ -206,7 +212,7 @@ let run_core_search xconf (rule : Rule.search_rule) (file : Fpath.t) =
   if Filter_target.filter_target_for_analyzer analyzer file then
     let xtarget =
       Xtarget.resolve parse_and_resolve_name
-        (Target.mk_target_fpath analyzer file)
+        (Target.mk_unfilterable_target analyzer file)
     in
     try
       let `Relevant rules, _ =

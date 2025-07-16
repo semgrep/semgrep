@@ -180,8 +180,8 @@ let product_selection ~(includes_token : bool) (rules_src : Rules_source.t)
 
 (* not in pysemgrep and currently enabled only via SEMGREP_LOG_SRCS=targeting*)
 let targets (roots : Scanning_root.t list)
-    (skipped : Semgrep_output_v1_t.skipped_target list) (targets : Fpath.t list)
-    : string =
+    (skipped : Semgrep_output_v1_t.skipped_target list)
+    (targets : Fppath.t list) : string =
   Buffer_.with_buffer_to_string (fun buf ->
       let prf fmt = Printf.bprintf buf fmt in
       prf "target roots: [\n";
@@ -194,7 +194,8 @@ let targets (roots : Scanning_root.t list)
              prf "  %s" (Semgrep_output_v1_t.show_skipped_target x));
       prf "]\n";
       prf "selected targets: [\n";
-      targets |> List.iter (fun file -> prf "target = %s\n" !!file);
+      targets
+      |> List.iter (fun (file : Fppath.t) -> prf "target = %s\n" !!(file.fpath));
       prf "]\n";
       (* more info about skipped targets *)
       skipped

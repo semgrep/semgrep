@@ -11,6 +11,7 @@ from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_subprojects import find_subprojects
 from semgrep.subproject import DependencyResolutionConfig
+from semgrep.types import fake_targets_of_paths
 
 
 @pytest.mark.quick
@@ -181,7 +182,7 @@ def test_find_subprojects(
     matchers: List[SubprojectMatcher],
     expected_subprojects: List[out.Subproject],
 ) -> None:
-    result = find_subprojects(frozenset(file_paths), matchers)
+    result = find_subprojects(fake_targets_of_paths(file_paths), matchers)
     assert sorted(result, key=lambda s: s.root_dir) == sorted(
         expected_subprojects, key=lambda s: s.root_dir
     )

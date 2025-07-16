@@ -55,20 +55,33 @@ let rec contains_nontrailing_slash (pat : Glob.Pattern.t) =
   | _nonempty1 :: _nonempty2 :: _ -> true
 
 (* anchored pattern = relative to the work directory only, as opposed to
-   being relative to any folder in the subtree. *)
-let is_anchored_pattern (pat : Glob.Pattern.t) =
+   being relative to any folder in the subtree.
+
+   middle_slash_anchors_left = Gitignore's standard behavior that makes 'a/b'
+   left-anchored just like '/a/b' but not 'a/'.
+*)
+let is_anchored_pattern ~middle_slash_anchors_left (pat : Glob.Pattern.t) =
   match pat with
   (* /... *)
   | Segment [] :: _ -> true
   (* **/ *)
   | Any_subpath :: _ -> true
-  | pat -> contains_nontrailing_slash pat
+  | pat ->
+      if middle_slash_anchors_left then contains_nontrailing_slash pat
+      else false
 
 let gitignore_glob_conf : M.conf =
   {
     (* Gitignore allows '*' to match dot files unlike e.g. Bash *)
     glob_period = true;
+    (* We only match full paths (some of which may be directory paths) *)
+    right_anchored = true;
   }
+
+type parse_pattern_result = {
+  compiled_pattern : M.compiled_pattern;
+  is_affected_by_middle_slash_option : bool;
+}
 
 (*
    Parse and compile a gitignore pattern.
@@ -76,19 +89,35 @@ let gitignore_glob_conf : M.conf =
    The resulting matcher matches a git path, i.e. a file path relative
    to the git project root.
 
-   anchor: path of the gitignore file's directory relative to the git project
-   root. For example, if the gitignore path is '/foo/.gitignore',
+   left anchor: path of the gitignore file's directory relative to the git
+   project root. For example, if the gitignore path is '/foo/.gitignore',
    then the pattern '/bar' will be expanded into '/foo/bar'.
    However a non-anchored pattern such as '*.c' will be expanded into
    '/foo/**/*.c'.
 *)
-let parse_pattern ~source ~anchor str : M.compiled_pattern =
+let parse_pattern ?(middle_slash_anchors_left = true) ?(right_anchored = true)
+    ~source ~left_anchor str : parse_pattern_result =
   let pat = Glob.Parse.parse_string ~deprecated_absolute_dotslash:true str in
-  let absolute_pattern =
-    if is_anchored_pattern pat then Glob.Pattern.append anchor pat
-    else Glob.Pattern.append anchor (Any_subpath :: pat)
+  let is_anchored = is_anchored_pattern ~middle_slash_anchors_left pat in
+  let is_anchored_alt =
+    is_anchored_pattern
+      ~middle_slash_anchors_left:(not middle_slash_anchors_left)
+      pat
   in
-  M.compile ~conf:gitignore_glob_conf ~source absolute_pattern
+  let is_affected_by_middle_slash_option = is_anchored <> is_anchored_alt in
+  let absolute_pattern =
+    if is_anchored then
+      (* /foo -> /ppath/to/subdir/foo *)
+      Glob.Pattern.append left_anchor pat
+    else
+      (* foo -> /ppath/to/subdir/**/foo *)
+      Glob.Pattern.append left_anchor (Any_subpath :: pat)
+  in
+  let conf = { gitignore_glob_conf with right_anchored } in
+  {
+    compiled_pattern = M.compile ~conf ~source absolute_pattern;
+    is_affected_by_middle_slash_option;
+  }
 
 let parse_line ~anchor source_name source_kind line_number line_contents =
   if is_ignored_line line_contents then None
@@ -106,9 +135,11 @@ let parse_line ~anchor source_name source_kind line_number line_contents =
       | None -> (false, line_contents)
       | Some s -> (true, s)
     in
-    let pattern = parse_pattern ~source:loc ~anchor pattern_str in
+    let { compiled_pattern; _ } =
+      parse_pattern ~source:loc ~left_anchor:anchor pattern_str
+    in
     let matcher (ppath : Ppath.t) =
-      match M.run pattern (Ppath.to_string_fast ppath) with
+      match M.run compiled_pattern (Ppath.to_string_fast ppath) with
       | true ->
           if is_negated then Some (Deselected loc) else Some (Selected loc)
       | false -> None

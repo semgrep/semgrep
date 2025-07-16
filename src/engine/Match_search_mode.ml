@@ -222,7 +222,7 @@ let debug_semgrep config mini_rules file lang ast =
            Match_patterns.check
              ~hook:(fun _ -> ())
              config [ mr ]
-             (file, File file, lang, ast)
+             (file, Unfilterable_target_file file, lang, ast)
          in
          if !debug_matches then
            (* TODO
@@ -499,18 +499,19 @@ let apply_as_on_ranges ranges as_ =
              | None -> (
                  let tokens = Lazy.force range.origin.tokens in
                  match (range.origin.path.origin, tokens) with
-                 | File _, [] ->
+                 | (Unfilterable_target_file _ | Target_file _), [] ->
                      Log.warn (fun m ->
                          m "Got empty tokens when using as-metavariable");
                      range.mvars
-                 | File fpath, fst_tok :: _ ->
+                 | ( (Unfilterable_target_file fpath | Target_file { fpath; _ }),
+                     fst_tok :: _ ) ->
                      ( as_,
                        Text
                          ( Range.content_at_range fpath range.r,
                            fst_tok,
                            Common2.list_last tokens ) )
                      :: range.mvars
-                 | _ ->
+                 | Git_blob _, _ ->
                      Log.debug (fun m ->
                          m "unable to apply as operator to gitblob match");
                      range.mvars));

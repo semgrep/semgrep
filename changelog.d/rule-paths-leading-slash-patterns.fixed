@@ -1,0 +1,6 @@
+In-rule path filters (`paths.exclude`, `paths.include`) now apply to
+normalized file paths relative to the project root. This makes rule selection
+independent from the current work folder.
+Patterns with a leading slash such as `/src` are now anchored instead
+of being floating. For example, `exclude: [ "/src" ]` will exclude the target
+file `src/main.c` but no longer excludes `misc/src/main.c`.

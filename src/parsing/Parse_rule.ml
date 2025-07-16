@@ -140,13 +140,54 @@ let parse_fix_regex (env : env) (key : key) fields =
   let/ count = take_opt fix_regex_dict env parse_int_strict "count" in
   Ok Rule.{ regexp; count; replacement }
 
+(*
+   paths.include and paths.exclude globs are applied on normalized
+   file paths relative to the project root (Ppath.t).
+
+   Patterns are matched according the Semgrepignore specification which
+   obeys the Gitignore specification.
+
+   coupling: legacy_rule_filtering: true for now, will become false after a
+   deprecation period. See the variable of the same name in pysemgrep
+   (target_manager.py) where this behavior is duplicated.
+*)
+let make_glob ~rule_name ~is_include source_pattern : Rule.glob =
+  let source = Glob.Match.string_loc ~source_kind:None source_pattern in
+  let legacy_rule_filtering = true in
+  let { compiled_pattern; is_affected_by_middle_slash_option } :
+      Parse_gitignore.parse_pattern_result =
+    (* This takes care of modifying the pattern depending on whether
+       it is anchored or not. For example, 'a/b' is treated as
+       anchored due to a slash in the middle which is a weird thing
+       in the Gitignore specification we need to honor. *)
+    Parse_gitignore.parse_pattern ~source
+      ~middle_slash_anchors_left:(not legacy_rule_filtering)
+      ~left_anchor:Glob.Pattern.root_pattern ~right_anchored:false
+      source_pattern
+  in
+  let res : Rule.glob = { source_pattern; compiled_pattern } in
+  if legacy_rule_filtering && is_affected_by_middle_slash_option then
+    Log.warn (fun m ->
+        let include_or_exclude = if is_include then "include" else "exclude" in
+        m
+          "Rule %s contains an %s pattern %s' that will soon be interpreted as \
+           '/%s' to comply with the Semgrepignore v2 and Gitignore \
+           specifications. To make this pattern permanently unanchored, edit \
+           rule %s and change it to '**/%s'. To confirm the anchored behavior \
+           and avoid this warning, change it to '/%s'."
+          rule_name include_or_exclude source_pattern source_pattern rule_name
+          source_pattern source_pattern);
+  Log.debug (fun m -> m "glob pattern found in rule: %s" (Rule.show_glob res));
+  res
+
 let parse_paths env key value =
   let/ paths_dict = parse_dict env key value in
   (* TODO: should imitate parse_string_wrap_list *)
-  let parse_glob_list env (key : key) e =
+  let rule_name = Rule_ID.show env.id in
+  let parse_glob_list ~is_include env (key : key) e =
     let extract_string env = function
-      | { G.e = G.L (String (_, (value, _), _)); _ } -> (
-          try Ok (value, Glob.Parse.parse_string value) with
+      | { G.e = G.L (String (_, (source_pattern, _), _)); _ } -> (
+          try Ok (make_glob ~rule_name ~is_include source_pattern) with
           | Glob.Lexer.Syntax_error _ ->
               error_at_key env.id key ("Invalid glob for " ^ fst key))
       | _ ->
@@ -155,8 +196,12 @@ let parse_paths env key value =
     in
     parse_list env key extract_string e
   in
-  let/ inc_opt = take_opt paths_dict env parse_glob_list "include" in
-  let/ exc_opt = take_opt paths_dict env parse_glob_list "exclude" in
+  let/ inc_opt =
+    take_opt paths_dict env (parse_glob_list ~is_include:true) "include"
+  in
+  let/ exc_opt =
+    take_opt paths_dict env (parse_glob_list ~is_include:false) "exclude"
+  in
   (* alt: we could use H.warn_if_remaining_unparsed_fields() but better to
    * raise an error for now to be compatible with pysemgrep.
    *)

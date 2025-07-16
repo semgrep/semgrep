@@ -25,8 +25,9 @@
  * keep both the fpath and ppath for each target file as we walked
  * down the filesystem hierarchy.
  *)
-type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show]
+type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show, eq]
 
+let to_fpath x = x.fpath
 let compare a b = Fpath.compare a.fpath b.fpath
 
 let append_relative_fpath root fpath =
@@ -41,3 +42,15 @@ let append_relative_fpath root fpath =
     fpath = fpath_append root.fpath fpath;
     ppath = Ppath.append_fpath root.ppath fpath;
   }
+
+let of_relative_fpath_exn fpath =
+  { fpath; ppath = Ppath.of_relative_fpath_exn fpath }
+
+(* Use the fpath as ppath, which sort of works for some filtering purposes
+   in tests. It's best to not use it. *)
+let fake_from_fpath_DEPRECATED fpath =
+  { fpath; ppath = Ppath.fake_from_fpath_DEPRECATED fpath }
+
+let unfilterable_ppath = Ppath.create [ ""; "__UNFILTERABLE_TARGET__" ]
+let unfilterable_DEPRECATED fpath = { fpath; ppath = unfilterable_ppath }
+let is_filterable_DEPRECATED x = x.ppath <> unfilterable_ppath

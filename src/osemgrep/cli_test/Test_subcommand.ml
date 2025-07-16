@@ -66,6 +66,7 @@ type scan_caps = < Core_scan.caps ; Cap.tmp >
  *)
 type tests = (Fpath.t (* rule file *) * Fpath.t list (* targets *)) list
 
+(* TODO: use a record please and a better name for the type *)
 type tests_result =
   (Fpath.t (* rule file *) * test_result list * fixtest_result list) list
 
@@ -81,7 +82,7 @@ type tests_result =
 and test_result = Rule_ID.t * Out.rule_result
 
 (* TODO? add diff between .fixed and actual for error management? *)
-and fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
+and fixtest_result = Fppath.t (* target name *) * Out.fixtest_result
 
 (* TODO: define clearly in semgrep_output_v1.atd config_with_errors type
  * and also the errors in rule_result.
@@ -98,7 +99,7 @@ type error =
 type env = {
   (* currently processed rule and targets files *)
   rule_file : Fpath.t;
-  target_files : Fpath.t list;
+  target_files : Fppath.t list;
   engine : A.engine;
   (* use a ref so easy to store all the errors returned by different functions.
    * alt: get each functions returning different kind of errors
@@ -216,10 +217,15 @@ let rules_and_targets (caps : < Cap.readdir ; .. >)
 (*****************************************************************************)
 
 (* TODO? Move to Rule_tests.ml? *)
-let fixtest_of_target_opt (target : Fpath.t) : Fpath.t option =
-  let stem, ext = Fpath_.split_ext ~multi:true target in
+let fixtest_of_target_opt (target : Fppath.t) : Fppath.t option =
+  let orig_ppath = target.ppath in
+  let stem, ext = Fpath_.split_ext ~multi:true target.fpath in
   let fixtest = stem |> Fpath.add_ext (".fixed" ^ ext) in
-  if Sys_.Fpath.exists fixtest then Some fixtest else None
+  if Sys_.Fpath.exists fixtest then
+    (* The original ppath is for filtering purposes. It's probably not useful
+       in this context, though. *)
+    Some { fpath = fixtest; ppath = orig_ppath }
+  else None
 
 (* TODO use capability and cleanup Test_parsing.ml and remove
  * Common2.unix_diff
@@ -229,19 +235,21 @@ let unix_diff (str1 : string) (str2 : string) : string list =
       UTmp.with_temp_file ~contents:str2 ~suffix:".x" (fun file2 ->
           Common2.unix_diff !!file1 !!file2))
 
-let fixtest_result_for_target (_env : env) (target : Fpath.t)
-    (fixtest_target : Fpath.t) (pms : Core_match.t list) : fixtest_result =
-  Logs.info (fun m -> m "Using %s for fixtest" !!fixtest_target);
+let fixtest_result_for_target (_env : env) (target : Fppath.t)
+    (fixtest_target : Fppath.t) (pms : Core_match.t list) : fixtest_result =
+  Logs.info (fun m -> m "Using %s for fixtest" !!(fixtest_target.fpath));
   let (textedits : Textedit.t list) =
     pms |> List.concat_map (fun pm -> Autofix.render_fix pm |> Option.to_list)
   in
   (* stricter? *)
   if List_.null textedits then
-    Logs.warn (fun m -> m "no autofix generated for %s" !!target);
+    Logs.warn (fun m -> m "no autofix generated for %s" !!(target.fpath));
 
-  let expected_content = UFile.read_file fixtest_target in
+  let expected_content = UFile.read_file fixtest_target.fpath in
   let actual_res =
-    Textedit.apply_edits_to_text target (UFile.read_file target) textedits
+    Textedit.apply_edits_to_text target.fpath
+      (UFile.read_file target.fpath)
+      textedits
   in
   let passed =
     match actual_res with
@@ -250,11 +258,11 @@ let fixtest_result_for_target (_env : env) (target : Fpath.t)
         (if not passed then
            let diff = unix_diff expected_content actual_content in
            Logs.err (fun m ->
-               m "fixtest failed for %s, diff =\n%s" !!fixtest_target
+               m "fixtest failed for %s, diff =\n%s" !!(fixtest_target.fpath)
                  (String.concat "\n" diff)));
         passed
     | Overlap _ ->
-        Logs.err (fun m -> m "fixes overlap for %s" !!target);
+        Logs.err (fun m -> m "fixes overlap for %s" !!(target.fpath));
         (* TODO? return an error instead ?*)
         false
   in
@@ -293,43 +301,43 @@ let report_diagnosis print (res : Out.tests_result) : unit =
 (* Reporting *)
 (*****************************************************************************)
 
+(* TODO: use a helpful function name, use records *)
 let tests_result_of_tests_result (results : tests_result) (errors : error list)
     : Out.tests_result =
-  Out.
-    {
-      results =
-        results
-        |> List_.map (fun (rule_file, checks, _fix) ->
-               ( !!rule_file,
-                 {
-                   checks =
-                     checks
-                     |> List_.map (fun (id, xs) -> (Rule_ID.to_string id, xs));
-                 } ));
-      fixtest_results =
-        results
-        |> List.concat_map (fun (_rule_file, _checks, fixtest_results) ->
-               fixtest_results
-               |> List_.map (fun (target_file, passed) ->
-                      (!!target_file, passed)));
-      (* TODO: change the schema and use an enum instead of those fields *)
-      config_missing_tests =
-        errors
-        |> List_.filter_map (function
-             | MissingTest rule_file -> Some rule_file
-             | _else_ -> None)
-        |> List.sort Fpath.compare;
-      config_missing_fixtests =
-        errors
-        |> List_.filter_map (function
-             | MissingFixtest rule_file -> Some rule_file
-             | _else_ -> None)
-        |> List.sort Fpath.compare;
-      (* TODO: rename to just 'errors' and put the missing_tests and missing
-       * fixtests here as a kind of error.
-       *)
-      config_with_errors = [];
-    }
+  {
+    Out.results =
+      results
+      |> List_.map (fun (rule_file, checks, _fix) ->
+             ( !!rule_file,
+               {
+                 Out.checks =
+                   checks
+                   |> List_.map (fun (id, xs) -> (Rule_ID.to_string id, xs));
+               } ));
+    fixtest_results =
+      results
+      |> List.concat_map (fun (_rule_file, _checks, fixtest_results) ->
+             fixtest_results
+             |> List_.map (fun ((target_file, passed) : fixtest_result) ->
+                    (!!(target_file.fpath), passed)));
+    (* TODO: change the schema and use an enum instead of those fields *)
+    config_missing_tests =
+      errors
+      |> List_.filter_map (function
+           | MissingTest rule_file -> Some rule_file
+           | _else_ -> None)
+      |> List.sort Fpath.compare;
+    config_missing_fixtests =
+      errors
+      |> List_.filter_map (function
+           | MissingFixtest rule_file -> Some rule_file
+           | _else_ -> None)
+      |> List.sort Fpath.compare;
+    (* TODO: rename to just 'errors' and put the missing_tests and missing
+     * fixtests here as a kind of error.
+     *)
+    config_with_errors = [];
+  }
 
 let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
     (res : Out.tests_result) : unit =
@@ -667,7 +675,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
 let compare_for_autofix (env : env) (rules : Rule.t list)
     (matches : Core_match.t list) : fixtest_result list =
   env.target_files
-  |> List_.filter_map (fun target ->
+  |> List_.filter_map (fun (target : Fppath.t) ->
          match
            ( fixtest_of_target_opt target,
              rules |> List.exists rule_contain_fix_or_fix_regex )
@@ -676,7 +684,7 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
              (* stricter: (reported in JSON at least via config_missing_fixtests) *)
              Logs.warn (fun m ->
                  m "no fixtest for test %s but the rule file %s uses autofix"
-                   !!target !!(env.rule_file));
+                   !!(target.fpath) !!(env.rule_file));
              Stack_.push (MissingFixtest env.rule_file) env.errors;
              None
          | Some fixtest, false ->
@@ -685,14 +693,14 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
                  m
                    "found the fixtest %s but the rule file %s does not contain \
                     autofix"
-                   !!fixtest !!(env.rule_file));
+                   !!(fixtest.fpath) !!(env.rule_file));
              None
          | None, false -> None
          | Some fixtest_target, true ->
              let matches =
                matches
                |> List.filter (fun (pm : Core_match.t) ->
-                      Fpath.equal pm.path.internal_path_to_content target)
+                      Fpath.equal pm.path.internal_path_to_content target.fpath)
              in
              Some (fixtest_result_for_target env target fixtest_target matches))
 
@@ -739,16 +747,28 @@ let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
 
 (* run one test using the different engines if --pro *)
 let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
-    (rule_file : Fpath.t) (rules : Rule.t list) (target_files : Fpath.t list)
+    (rule_file : Fpath.t) (rules : Rule.t list) (target_fpaths : Fpath.t list)
     (errors : error list ref) : test_result list * fixtest_result list =
   (* note that even one target file can result in different targets
    * if the rules contain multiple analyzers.
    *)
+  let target_files =
+    (* We need to provide a ppath as requested by the interface. The ppath
+       is used to filter targets based on the rule's paths.include and
+       paths.exclude.
+       Alternatively, we could use Origin.Unfilterable_target_file but
+       it would require more changes.
+    *)
+    List_.map Fppath.unfilterable_DEPRECATED target_fpaths
+  in
   let targets : Target.t list =
     Core_targeting.targets_for_files_and_rules target_files rules
   in
   let files_and_annots : (Fpath.t * A.annotations) list =
-    target_files |> List_.map (fun file -> (file, A.annotations file))
+    target_files
+    |> List_.map (fun (file : Fppath.t) ->
+           let fpath = file.fpath in
+           (fpath, A.annotations fpath))
   in
 
   let env = { rule_file; target_files; engine = A.OSS; conf; errors } in

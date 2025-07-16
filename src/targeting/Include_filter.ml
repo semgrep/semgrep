@@ -22,11 +22,12 @@ let create ~project_root patterns =
   let glob_matchers =
     List_.map
       (fun pat ->
-        Parse_gitignore.parse_pattern
-          ~source:
-            (Glob.Match.string_loc ~source_name:"include pattern"
-               ~source_kind:(Some "include") pat)
-          ~anchor:Glob.Pattern.root_pattern pat)
+        (Parse_gitignore.parse_pattern
+           ~source:
+             (Glob.Match.string_loc ~source_name:"include pattern"
+                ~source_kind:(Some "include") pat)
+           ~left_anchor:Glob.Pattern.root_pattern pat)
+          .compiled_pattern)
       patterns
   in
   let no_match_loc =

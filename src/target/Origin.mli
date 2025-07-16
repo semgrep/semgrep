@@ -34,8 +34,16 @@
 (** The type for origins.
 
     {ul
-      {- [File path] origins are for files, and should have as [path] the
-        relative path from the scanned project root.}
+      {- [Target_file fppath] origins are for target files. A target file
+         is a file subject to Semgrepignore path filtering
+         (--exclude/--include, .semgrepignore files, and in-rule
+         paths.exclude/include). Path filtering operates on the ppath
+         which is included in the fppath. }
+      {- [Unfilterable_target_file path] origins are for temporary
+         files whose name isn't known to the user and therefore should not
+         be subject to path-filtering with glob patterns (include/exclude).
+         TODO: find a more generic name indicating the issue is that
+         it doesn't have a path relative to the project root.}
       {- [GitBlob { sha; paths }] sources are for {{:
         https://git-scm.com/book/en/v2/Git-Internals-Git-Objects } git blob
         objects}, and have the blob's [sha] alongside relevant commit hashes
@@ -51,19 +59,25 @@
     }
  *)
 type t =
-  | File of Fpath.t
-  (* TODO: Evaluate futher using Ppath.t instead of Fpath.t, since it documents
-     we want this to be a relative path from the project root. *)
-  | GitBlob of {
+  | Target_file of Fppath.t
+      (** a target file that was discovered by listing the contents of
+          a project starting from a scan root. It includes the ppath which
+          is the normalized path of the file within its project. It's
+          necessary for selecting applicable rules that contains
+          paths.include or paths.exclude filters. *)
+  | Unfilterable_target_file of Fpath.t
+      (** such a file cannot be filtered out with path filters because it's
+          not associated with a ppath! *)
+  | Git_blob of {
       sha : Git_wrapper.hash;
           (** The sha of the {e blob}. Used for git operations and to
               identify the object. *)
-      paths : (Git_wrapper.commit * Fpath.t) list;
+      paths : (Git_wrapper.commit * Fppath.t) list;
           (** The paths corresponding to this blob for whichever commits are of
               interest. This is stored since it is not efficient to calculate
               given only the blob's sha, and requires additional information
-              like what commits we care about, if not all. These are relative
-              to the git root.
+              like what commits we care about, if not all. The fpaths
+              are relative to the git root like the corresponding ppaths.
 
               This is used for e.g., a rule's path-based include & excludes. *)
     }

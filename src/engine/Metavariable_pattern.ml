@@ -318,7 +318,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                             {
                               path =
                                 {
-                                  origin = File mval_file;
+                                  origin = Unfilterable_target_file mval_file;
                                   internal_path_to_content = file;
                                 };
                               analyzer;

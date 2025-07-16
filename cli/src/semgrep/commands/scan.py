@@ -55,7 +55,7 @@ from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.types import FilteredMatches
-from semgrep.types import TargetAccumulator
+from semgrep.types import TargetInfoAccumulator
 from semgrep.util import abort
 from semgrep.util import is_truthy
 from semgrep.util import with_color
@@ -521,7 +521,7 @@ class ScanResult:
     filtered_matches_by_rule: RuleMatchMap
     semgrep_errors: List[SemgrepError]
     filtered_rules: List[Rule]
-    all_targets: TargetAccumulator
+    all_targets: TargetInfoAccumulator
 
 
 # Those are the scan-only options (not reused in ci.py)
@@ -905,7 +905,7 @@ def scan(
                         output_handler.handle_semgrep_errors(config_errors)
                         output_handler.output(
                             {},
-                            all_targets_acc=TargetAccumulator(),
+                            all_targets_acc=TargetInfoAccumulator(),
                             filtered_rules=[],
                         )
                         raise SemgrepError("Please fix the above errors and try again.")
@@ -978,7 +978,7 @@ def scan(
                     output_handler.handle_semgrep_errors([e])
                     output_handler.output(
                         {},
-                        all_targets_acc=TargetAccumulator(),
+                        all_targets_acc=TargetInfoAccumulator(),
                         filtered_rules=[],
                     )
                     raise e
