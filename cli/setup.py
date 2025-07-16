@@ -135,6 +135,7 @@ setuptools.setup(
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,
+    license="LGPL-2.1-or-later",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
