@@ -9,7 +9,7 @@
 *)
 
 (* All project paths are *absolute* and *normalized* *)
-type t [@@deriving show]
+type t [@@deriving show, eq]
 
 (*
    Returns an absolute, normalized path relative to the project root.
@@ -64,7 +64,7 @@ val to_fpath : ?root:Fpath.t -> t -> Fpath.t
 
 (* Convert to the string-based representation for regexp-matching purposes.
    The resulting path uses '/' as a separator and starts with a '/'.
-   Do not use function this for other purposes regexp matching.
+   Do not use this function for other purposes than regexp matching.
    - for testing and logging, use 'to_string_for_tests';
    - for conversion to system paths, use 'to_fpath'.
 *)
@@ -99,7 +99,10 @@ val append_fpath : t -> Fpath.t -> t
 
 (* Create a ppath from a relative fpath.
    Raises Invalid_argument if the input is not a relative path. *)
-val of_relative_fpath : Fpath.t -> t
+val of_relative_fpath_exn : Fpath.t -> t
+
+(* Safe alternative to of_relative_fpath_exn. *)
+val fake_from_fpath_DEPRECATED : Fpath.t -> t
 
 (* Express a ppath relatively to another. The result is relative fpath.
    It can't be a ppath because ppaths can't be relative to one another.
@@ -129,3 +132,7 @@ val of_string_for_tests : string -> t
    path in the file system.
 *)
 val to_string_for_tests : t -> string
+
+(* For ATD serialization using 'string wrap' *)
+val wrap : string -> t
+val unwrap : t -> string

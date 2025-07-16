@@ -12,6 +12,8 @@ from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
 from semdep.subproject_matchers import MATCHERS
+from semgrep.types import fake_targets_of_paths
+from semgrep.types import fpaths_of_targets
 
 
 class TestExactLockfileMatcher:
@@ -69,7 +71,7 @@ class TestExactLockfileMatcher:
         files = frozenset(
             [lockfile_path] + ([manifest_path] if create_manifest else [])
         )
-        subprojects, used_files = matcher.make_subprojects(files)
+        subprojects, used_files = matcher.make_subprojects(fake_targets_of_paths(files))
         assert used_files == files
         assert len(subprojects) == 1
         subproject = subprojects[0]
@@ -142,7 +144,7 @@ class TestPatternManifestStaticLockfileMatcher:
         )
         lockfiles = [lockfile for lockfile in test_data]
         files = frozenset(manifests + lockfiles)
-        subprojects, used_files = matcher.make_subprojects(files)
+        subprojects, used_files = matcher.make_subprojects(fake_targets_of_paths(files))
         assert used_files == files
         assert len(subprojects) == 2
         for subproject in subprojects:
@@ -183,7 +185,7 @@ class TestPatternManifestStaticLockfileMatcher:
         )
 
         files = frozenset([Path("test_proj.csproj")])
-        subprojects, used_files = matcher.make_subprojects(files)
+        subprojects, used_files = matcher.make_subprojects(fake_targets_of_paths(files))
         assert used_files == files
         assert len(subprojects) == 1
         subproject = subprojects[0]
@@ -628,7 +630,9 @@ class TestRequirementsLockfileMatcher:
         source_files_set = frozenset(source_files)
 
         # when we make subprojects from the provided source files
-        subprojects, used_files = matcher.make_subprojects(source_files_set)
+        subprojects, used_files = matcher.make_subprojects(
+            fake_targets_of_paths(source_files_set)
+        )
 
         # expect all files to be used
         assert used_files == source_files_set
@@ -929,7 +933,9 @@ class TestGradleMatcher:
         source_files_set = frozenset(source_files)
 
         # when we make subprojects from the provided source files
-        subprojects, used_files = matcher.make_subprojects(source_files_set)
+        subprojects, used_files = matcher.make_subprojects(
+            fake_targets_of_paths(source_files_set)
+        )
 
         # expect all files to be used except those in unused_files
         assert used_files == (source_files_set - set(unused_files))
@@ -1029,7 +1035,7 @@ class TestDefaultMatchers:
     def test_make_subprojects(
         self, source_files: List[Path], expected_subprojects: List[out.Subproject]
     ):
-        source_files_set = frozenset(source_files)
+        source_files_set = fake_targets_of_paths(source_files)
 
         first_match: Tuple[List[out.Subproject], FrozenSet[Path]] = ([], frozenset())
         for matcher in MATCHERS:
@@ -1041,7 +1047,7 @@ class TestDefaultMatchers:
         subprojects, used_files = first_match
 
         # expect all files to be used
-        assert used_files == source_files_set
+        assert used_files == fpaths_of_targets(source_files_set)
 
         assert len(subprojects) == len(expected_subprojects)
         assert subprojects.sort() == expected_subprojects.sort()
@@ -1049,10 +1055,12 @@ class TestDefaultMatchers:
 
 @pytest.mark.quick
 def test_filter_dependency_source_files():
-    valid_paths = {Path("Pipfile.lock"), Path("requirements.txt")}
-    invalid_paths = {Path("unknown.lock")}
+    valid_paths = fake_targets_of_paths(
+        {Path("Pipfile.lock"), Path("requirements.txt")}
+    )
+    invalid_paths = fake_targets_of_paths({Path("unknown.lock")})
     candidates = valid_paths | invalid_paths
 
-    filtered_paths = filter_dependency_source_files(frozenset(candidates))
+    filtered_paths = filter_dependency_source_files(candidates)
 
     assert filtered_paths == valid_paths

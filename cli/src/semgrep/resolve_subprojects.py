@@ -19,6 +19,7 @@ from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.console import console
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.rule import Rule
+from semgrep.safe_set import intersection
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.subproject import DependencyResolutionConfig
@@ -27,6 +28,8 @@ from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_all_source_files
 from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import TargetManager
+from semgrep.types import fpaths_of_targets
+from semgrep.types import Target
 from semgrep.verbose_logging import getLogger
 
 
@@ -70,7 +73,7 @@ class HashableSubproject:
 
 
 def find_subprojects(
-    dependency_source_files: FrozenSet[Path], matchers: List[SubprojectMatcher]
+    dependency_source_files: FrozenSet[Target], matchers: List[SubprojectMatcher]
 ) -> List[out.Subproject]:
     """
     Using the given dependency source files and the given list of matchers,
@@ -79,14 +82,18 @@ def find_subprojects(
     attempted in the order that the matchers are provided.
     """
     unresolved_subprojects: List[out.Subproject] = []
-    used_files: Set[Path] = set()
+    remaining_dep_source_files: FrozenSet[Target] = dependency_source_files
     for matcher in matchers:
         # for each matcher, pass only those files that have not yet been used
         # by another matcher.
         new_subprojects, new_used_files = matcher.make_subprojects(
-            dependency_source_files - used_files
+            remaining_dep_source_files
         )
-        used_files |= new_used_files
+        remaining_dep_source_files = frozenset(
+            target
+            for target in dependency_source_files
+            if target.fpath not in new_used_files
+        )
         unresolved_subprojects.extend(new_subprojects)
     return unresolved_subprojects
 
@@ -118,7 +125,14 @@ def filter_changed_subprojects(
     )
     for subproject in subprojects:
         source_file_set = set(get_all_source_files(subproject.dependency_source))
-        if len(all_dependency_source_targets.intersection(source_file_set)) > 0:
+        if (
+            len(
+                intersection(
+                    fpaths_of_targets(all_dependency_source_targets), source_file_set
+                )
+            )
+            > 0
+        ):
             # one of the source files for this subproject changed, so we should keep it
             relevant_subprojects.add(HashableSubproject(subproject))
 

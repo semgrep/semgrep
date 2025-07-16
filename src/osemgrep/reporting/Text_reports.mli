@@ -24,7 +24,7 @@ val rules : too_many_entries:int -> Rules_source.t -> Rule.t list -> string
 val targets :
   Scanning_root.t list ->
   Semgrep_output_v1_t.skipped_target list ->
-  Fpath.t list ->
+  Fppath.t list ->
   string
 
 val scan_status :

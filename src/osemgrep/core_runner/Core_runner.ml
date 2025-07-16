@@ -77,7 +77,7 @@ type func = {
     (* LATER? alt: use Config_resolve.rules_and_origin instead? *)
     Rule_error.rules_and_invalid ->
     (* Takes a list of target files, not scanning roots. *)
-    Fpath.t list ->
+    Fppath.t list ->
     Core_result.result_or_exn;
 }
 
@@ -129,8 +129,8 @@ let hook_pro_git_remote_scan_setup : (func -> func) option Hook.t =
 (* Metrics and reporting *)
 (*************************************************************************)
 let report_status_and_add_metrics_languages ~respect_gitignore
-    (lang_jobs : Lang_job.t list) (rules : Rule.t list) (targets : Fpath.t list)
-    =
+    (lang_jobs : Lang_job.t list) (rules : Rule.t list)
+    (targets : Fppath.t list) =
   Logs.app (fun m ->
       m "%s"
         (* TODO: validate if target is actually within a git repo and
@@ -225,7 +225,7 @@ let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
 let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
   let run ?file_match_hook (conf : conf) (targeting_conf : Find_targets.conf)
       (rules_and_invalid : Rule_error.rules_and_invalid)
-      (target_paths : Fpath.t list) : Core_result.result_or_exn =
+      (target_paths : Fppath.t list) : Core_result.result_or_exn =
     (*
        At this point, we already have the full list of targets. These targets
        will populate the 'target_source' field of the config object

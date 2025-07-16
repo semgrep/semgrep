@@ -37,7 +37,7 @@ let test_filter (files : F.t list) () =
       files |> F.flatten
       |> List.iter (fun path ->
              assert (Fpath.is_rel path);
-             let path = Ppath.of_relative_fpath path in
+             let path = Ppath.of_relative_fpath_exn path in
              let status, selection_events =
                (* Glob.Match.run is supposed to print detailed logs on which
                   path is matched against which pattern. Requires Debug

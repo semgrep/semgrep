@@ -55,7 +55,7 @@ from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.types import FilteredMatches
-from semgrep.types import TargetAccumulator
+from semgrep.types import TargetInfoAccumulator
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -735,7 +735,7 @@ def ci(
             output_handler.handle_semgrep_errors([e])
             output_handler.output(
                 {},
-                all_targets_acc=TargetAccumulator(),
+                all_targets_acc=TargetInfoAccumulator(),
                 filtered_rules=[],
             )
             logger.info(f"Encountered error when running rules: {e}")

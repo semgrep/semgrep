@@ -530,11 +530,15 @@ type validator =
 (* Paths *)
 (*****************************************************************************)
 
-(* TODO? store also the compiled glob directly? but we preprocess the pattern
- * in Filter_target.filter_paths, so we would need to recompile it anyway,
- * or call Filter_target.filter_paths preprocessing in Parse_rule.ml
- *)
-type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
+(*
+   Gitignore/Semgrepignore-compliant glob matching. The compiled pattern
+   is not right-anchored e.g. pattern 'a' will match path 'a' but also 'a/b'.
+   The patterns are left-anchored or not based on Gitignore conventions.
+*)
+type glob = {
+  source_pattern : string;
+  compiled_pattern : Glob.Match.compiled_pattern;
+}
 [@@deriving show]
 
 (* TODO? should we provide a pattern-filename: Xpattern to combine
@@ -542,7 +546,7 @@ type glob = string (* original string *) * Glob.Pattern.t (* parsed glob *)
  * TODO? should we remove this field and opt for a more powerful and general
  * Target_selector.t type?
  *)
-type paths = {
+type path_filter = {
   (* If not empty, list of file path patterns (globs) that
    * the file path must at least match once to be considered for the rule.
    * Called 'include' in our doc but really it is a 'require'.
@@ -595,7 +599,7 @@ and step = {
   step_mode : mode_for_step;
   step_selector : Target_selector.t option;
   step_analyzer : Analyzer.t;
-  step_paths : paths option;
+  step_paths : path_filter option;
 }
 
 and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
@@ -692,7 +696,7 @@ type 'mode rule_info = {
   (* TODO: we should get rid of this and instead provide a more general
    * Xpattern.Filename feature that integrates well with the xpatterns.
    *)
-  paths : paths option;
+  paths : path_filter option;
   (* This is not a concrete field in the rule, but it's derived from
    * other fields (e.g., metadata, mode) in Parse_rule.ml
    *)

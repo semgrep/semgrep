@@ -36,6 +36,8 @@ from semgrep.subproject import (
 )
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.types import FilteredMatches
+from semgrep.types import Target
+from semgrep.types import TargetInfo
 from semgrep.verbose_logging import getLogger
 
 if TYPE_CHECKING:
@@ -391,9 +393,9 @@ class ScanHandler:
         *,
         matches_by_rule: FilteredMatches,
         rules: List[Rule],
-        targets: Set[Path],
+        targets: Set[TargetInfo],
         renamed_targets: Set[Path],
-        ignored_targets: FrozenSet[Path],
+        ignored_targets: FrozenSet[Target],
         cli_suggested_exit_code: int,
         parse_rate: ParsingData,
         total_time: float,
@@ -461,7 +463,9 @@ class ScanHandler:
             token=token,
             findings=findings,
             ignores=ignores,
-            searched_paths=[out.Fpath(str(t)) for t in sorted(targets)],
+            searched_paths=[
+                out.Fpath(str(t.fpath)) for t in sorted(targets, key=lambda x: x.fpath)
+            ],
             renamed_paths=[out.Fpath(str(rt)) for rt in sorted(renamed_targets)],
             rule_ids=rule_ids,
             contributions=contributions,
@@ -480,7 +484,7 @@ class ScanHandler:
             logger.info("Some experimental rules were run during execution.")
 
         ignored_ext_freqs = Counter(
-            [os.path.splitext(path)[1] for path in ignored_targets]
+            [os.path.splitext(target.fpath)[1] for target in ignored_targets]
         )
         ignored_ext_freqs.pop("", None)  # don't count files with no extension
 
