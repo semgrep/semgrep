@@ -56,7 +56,7 @@ type t = {
      and starts with one. *)
   string : string;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 let string_of_segments segments = String.concat "/" segments
 
@@ -208,14 +208,24 @@ let to_fpath ?root path =
 (*
    Represent Ppaths as strings using '/' as the separator regardless
    of the platform. These are not valid file system paths in general.
+
+   This function isn't exposed under this name to avoid misuse.
+*)
+let of_string string = create (String.split_on_char '/' string)
+
+(*
    They may be used only in tests and in internal assertions
    (assert or invalid_arg).
 *)
-let of_string_for_tests string = create (String.split_on_char '/' string)
+let of_string_for_tests = of_string
 
 (* Show the ppath in string form. Doesn't need to be fast.
    We use a different name to distinguish use cases more clearly. *)
 let to_string_for_tests = to_string_fast
+
+(* For ATD serialization *)
+let wrap = of_string
+let unwrap = to_string_fast
 
 let relativize ~root:orig_root orig_ppath =
   let rec aux root ppath =
@@ -300,9 +310,18 @@ let remove_prefix root path =
 (* Builder entry points *)
 (*****************************************************************************)
 
-let of_relative_fpath (fpath : Fpath.t) =
+(* best effort to get a ppath without knowing the project root
+   and without raising an exception *)
+let fake_from_fpath_DEPRECATED (fpath : Fpath.t) =
+  (* First, remove leading "./" and such *)
+  let fpath = Fpath.normalize fpath in
   if Fpath.is_rel fpath then create ("" :: Fpath.segs fpath)
-  else invalid_arg ("Ppath.of_relative_fpath: " ^ !!fpath)
+  else create (Fpath.segs fpath)
+
+let of_relative_fpath_exn (fpath : Fpath.t) =
+  let fpath = Fpath.normalize fpath in
+  if Fpath.is_rel fpath then create ("" :: Fpath.segs fpath)
+  else invalid_arg ("Ppath.of_relative_fpath_exn: " ^ !!fpath)
 
 (*
    This assumes the input paths are physical paths.
@@ -321,7 +340,7 @@ let in_project_unsafe ~(phys_root : Fpath.t) (phys_path : Fpath.t) =
            !!phys_path !!phys_root (Sys.getcwd ())
            (Rfpath.of_string_exn "." |> Rfpath.show)
            (Sys.argv |> Array.to_list |> String.concat " "))
-  | Some rel_path -> Ok (of_relative_fpath rel_path)
+  | Some rel_path -> Ok (of_relative_fpath_exn rel_path)
 
 let in_project ~(root : Rfpath.t) (path : Rfpath.t) =
   in_project_unsafe

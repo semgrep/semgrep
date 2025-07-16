@@ -202,12 +202,13 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpTargets (scanning_root, target_conf, config_str_opt) -> (
       (* coupling: similar to parts of Core_scan.targets_of_config *)
       let target_paths, _errors, skipped =
-        Find_targets.get_target_fpaths caps target_conf [ scanning_root ]
+        Find_targets.get_targets caps target_conf [ scanning_root ]
       in
       match config_str_opt with
       | None ->
           target_paths
-          |> List.iter (fun path -> print (spf "target = %s" !!path));
+          |> List.iter (fun ({ fpath; _ } : Fppath.t) ->
+                 print (spf "target = %s" !!fpath));
           skipped
           |> List.iter (fun (skip : Out.skipped_target) ->
                  print (spf "skipped = %s" (Out.show_skipped_target skip)));

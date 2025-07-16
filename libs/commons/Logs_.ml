@@ -168,7 +168,12 @@ let mk_reporter ?(additional_reporters : Logs.reporter list = []) ~dst
     | Some tags -> tags
     | None -> require_one_of_these_tags
   in
-  (* Each debug message is implicitly tagged with "all". *)
+  (* Each debug message is implicitly tagged with "all".
+     TODO: the default tag is "default", not "all"! In the present state,
+     all debug logging is silent unless a nonempty list of tags is provided.
+     Suggestion: remove support for tags entirely since selection by
+     sources has been working well.
+  *)
   let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
 
   let report src level ~over k msgf =
@@ -397,3 +402,59 @@ let option to_string opt =
   match opt with
   | None -> "None"
   | Some x -> Printf.sprintf "Some %s" (to_string x)
+
+(*****************************************************************************)
+(* Wishlist *)
+(*****************************************************************************)
+
+(*
+   I want 'with_log_level' to be available for turning on debugging
+   for specific sources for specific tests when writing test suites.
+
+   This should result in tests logging exactly what's relevant to them.
+
+   I made this during debugging. It works at the time of writing but
+   I no longer need it for the specific tests I was working on.
+   Feel free to resurrect or to throw away.
+   (we also have issues with tags being incompatible with log srcs at this
+   time; we might want to remove tag support completely before we can use
+   this effectively)
+*)
+(*
+let select_srcs (src_strings : string list) : Logs.Src.t list =
+  let all_srcs = Logs.Src.list () in
+  let all_srcs_by_name = Hashtbl.create 100 in
+  List.iter (fun src -> Hashtbl.add all_srcs_by_name (Logs.Src.name src) src)
+    all_srcs;
+  List.filter_map (fun str ->
+    (* TODO: warn/fail if not found? *)
+    Hashtbl.find_opt all_srcs_by_name str
+  ) src_strings
+
+(*
+   Override log level temporarily for the specified list of log sources.
+   The list of available sources is shown when running
+   for example 'semgrep --experimental --debug'.
+*)
+let with_log_level ?(level = Some Logs.Debug) ?srcs func =
+  let srcs =
+    match srcs with
+    | None -> Logs.Src.list ()
+    | Some srcs -> select_srcs srcs
+  in
+  let orig_level = Logs.level () in
+  let orig_levels = List_.map (fun src -> (src, Logs.Src.level src)) srcs in
+  Fun.protect (fun () ->
+    Logs.set_level level;
+    List.iter (fun src ->
+      Logs.Src.set_level src level
+    ) srcs;
+    func ()
+  )
+    ~finally:(fun () ->
+      Logs.set_level orig_level;
+      List.iter (fun (src, orig_level) ->
+        Logs.Src.set_level src orig_level
+      ) orig_levels
+    )
+*)

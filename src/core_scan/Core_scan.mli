@@ -81,7 +81,7 @@ val rules_for_analyzer :
   combine_js_with_ts:bool -> Analyzer.t -> Rule.t list -> Rule.t list
 
 (* exposed for SCA_scan *)
-val origin_satisfy_paths_filter : Origin.t -> Rule.paths -> bool
+val origin_satisfy_paths_filter : Origin.t -> Rule.path_filter -> bool
 
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar if the output_format is Json true.

@@ -1,5 +1,6 @@
 import copy
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -8,10 +9,10 @@ from dataclasses import dataclass
 from functools import lru_cache
 from functools import partial
 from pathlib import Path
+from pathlib import PurePosixPath
 from re import search
 from typing import Any
 from typing import Callable
-from typing import cast
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
@@ -45,8 +46,7 @@ from attrs import define
 from attrs import field
 import click
 from attrs import Factory, frozen
-from wcmatch import glob as wcglob
-from boltons.iterutils import partition
+from wcmatch import glob
 
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
@@ -56,7 +56,7 @@ from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Shebang
-from semgrep.types import FilteredFiles, SelectedTargets
+from semgrep.types import FilteredFiles, SelectedTargets, Target
 from semgrep.util import (
     line_count_of_path,
     path_has_permissions,
@@ -185,12 +185,12 @@ class FileTargetingLog:
     # Indicates which files were NOT scanned by each language
     # e.g. for python, should be a list of all non-python-compatible files
     by_language: Dict[
-        Union[Language, Literal["dependency_source_files"]], Set[Path]
+        Union[Language, Literal["dependency_source_files"]], Set[Target]
     ] = Factory(lambda: defaultdict(set))
-    rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
-    rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
+    rule_includes: Dict[str, Set[Target]] = Factory(lambda: defaultdict(set))
+    rule_excludes: Dict[str, Set[Target]] = Factory(lambda: defaultdict(set))
 
-    def unsupported_lang_paths(self, *, product: out.Product) -> FrozenSet[Path]:
+    def unsupported_lang_paths(self, *, product: out.Product) -> FrozenSet[Target]:
         """
         RETURNS: paths of all files that were ignored by ALL non-generic langs
 
@@ -541,7 +541,7 @@ def copy_and_update_targeting_conf(
 
 @dataclass
 class TargetScanResult:
-    selected_files: FrozenSet[Path]
+    selected_files: FrozenSet[Target]
     # legacy semgrepignore v1 only:
     files_with_insufficient_permissions: FrozenSet[Path]
     # semgrepignore v2 only:
@@ -658,24 +658,6 @@ class ScanningRoot:
         deleted = self._parse_git_output_nulsep(deleted_output)
         return frozenset(tracked | untracked_unignored - deleted)
 
-    def files_from_filesystem(
-        self,
-    ) -> TargetScanResult:
-        all = frozenset(match for match in self.path.glob("**/*"))
-        # We need to check for access permission before checking file kind
-        insufficient_permissions = frozenset(
-            match for match in all if not os.access(match, os.R_OK)
-        )
-        access_ok = all - insufficient_permissions
-        regular_files = frozenset(
-            match for match in access_ok if match.is_file() and not match.is_symlink()
-        )
-        return TargetScanResult(
-            selected_files=regular_files,
-            files_with_insufficient_permissions=insufficient_permissions,
-            skipped_targets=[],
-        )
-
     @lru_cache(maxsize=None)
     def target_files_full(
         self, *, product: out.Product, ignore_baseline_handler: bool = False
@@ -698,7 +680,16 @@ class ScanningRoot:
             root_paths=[out.Fpath(str(self.path))], targeting_conf=targeting_conf
         )
         res: out.TargetDiscoveryResult = semgrep.rpc_call.get_targets(arg)
-        target_paths = frozenset([Path(fpath.value) for fpath in res.target_paths])
+        # Wrap Targets into a better type where strings are wrapped into Path.
+        # The original Target will be passed to semgrep-core.
+        target_paths = frozenset(
+            Target(
+                fpath=Path(x.fpath.value),
+                ppath=PurePosixPath(x.ppath.value),
+                original=x,
+            )
+            for x in res.target_paths
+        )
         # TODO: check for errors?
         return TargetScanResult(
             selected_files=target_paths,
@@ -709,11 +700,37 @@ class ScanningRoot:
     # cached (see _target_files())
     def target_files(
         self, *, product: out.Product, ignore_baseline_handler: bool = False
-    ) -> FrozenSet[Path]:
+    ) -> FrozenSet[Target]:
         """Discover target files from the scanning root and cache the result"""
         return self.target_files_full(
             product=product, ignore_baseline_handler=ignore_baseline_handler
         ).selected_files
+
+
+@dataclass
+class PatternInfo:
+    """Pattern info used to provide deprecation warning for patterns
+    that are now anchored but we keep unanchored for some time."""
+
+    is_anchored: bool
+    is_anchored_legacy: bool
+
+
+def is_anchored_glob_pattern(pattern: str) -> PatternInfo:
+    """Determine if a glob pattern is anchored according to the Gitignore spec.
+    A glob pattern is left-anchored iff it contains at least one
+    non-trailing slash.
+    """
+    is_anchored = re.match(".*/[^/]+", pattern) is not None
+    is_anchored_legacy = is_anchored
+
+    if is_anchored:
+        starts_with_slash = pattern.startswith("/")
+        starts_with_ellipsis = pattern.startswith("**/")
+        if not starts_with_slash and not starts_with_ellipsis:
+            is_anchored_legacy = False
+
+    return PatternInfo(is_anchored=is_anchored, is_anchored_legacy=is_anchored_legacy)
 
 
 def _is_shebang_pattern_for_executable(line: str, executable_name: str) -> bool:
@@ -774,6 +791,8 @@ class TargetManager:
     respect_semgrepignore: bool = True
     semgrepignore_filename: Optional[str] = None
     targeting_conf: Mapping[out.Product, out.TargetingConf] = field(init=False)
+    # coupling: must match the value of 'legacy_rule_filtering' in the OCaml code base
+    legacy_rule_filtering: bool = True
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
@@ -835,7 +854,13 @@ class TargetManager:
         return None
 
     @staticmethod
-    def preprocess_path_patterns(patterns: Sequence[str]) -> List[str]:
+    def preprocess_path_patterns(
+        *,
+        rule_id: str,
+        patterns: Sequence[str],
+        is_include: bool,
+        legacy_rule_filtering: bool,
+    ) -> List[str]:
         """Convert semgrep's path include/exclude patterns to wcmatch's glob patterns.
 
         In semgrep, pattern "foo/bar" should match paths "x/foo/bar", "foo/bar/x", and
@@ -847,14 +872,42 @@ class TargetManager:
         """
         result = []
         for pattern in patterns:
-            result.append("**/" + pattern)
-            result.append("**/" + pattern + "/**")
+            # Follow Gitignore spec for left-anchoring patterns
+            pat_info = is_anchored_glob_pattern(pattern)
+            # show deprecation warning only if the legacy behavior is requested
+            if legacy_rule_filtering:
+                if pat_info.is_anchored and not pat_info.is_anchored_legacy:
+                    include_or_exclude = "include" if is_include else "exclude"
+                    logger.warning(
+                        f"Rule {rule_id} contains an {include_or_exclude} pattern '{pattern}' that will soon be interpreted as '/{pattern}' "
+                        f"to comply with the Semgrepignore v2 and Gitignore specifications. "
+                        f"To make this pattern permanently unanchored, edit rule {rule_id} and change it to '**/{pattern}'. "
+                        f"To confirm the anchored behavior and avoid this warning, change it to '/{pattern}'."
+                    )
+            # legacy behavior: some anchored patterns were treated as unanchored
+            if not pat_info.is_anchored or (
+                legacy_rule_filtering and not pat_info.is_anchored_legacy
+            ):
+                if not pattern.startswith("**/"):
+                    pattern = "**/" + pattern
+                result.append(pattern)
+                result.append(pattern + ("**" if pattern.endswith("/") else "/**"))
+            else:
+                # ppaths all start with a slash
+                if not pattern.startswith("/"):
+                    pattern = "/" + pattern
+                result.append(pattern)
+                result.append(pattern + ("**" if pattern.endswith("/") else "/**"))
+
         return result
 
-    def executes_with_shebang(self, path: Path, shebangs: Collection[Shebang]) -> bool:
+    def executes_with_shebang(
+        self, target: Target, shebangs: Collection[Shebang]
+    ) -> bool:
         """
         Returns if a path is executable and executes with one of a set of programs
         """
+        path = target.fpath
         if not path.is_file():
             return False
         try:
@@ -881,18 +934,27 @@ class TargetManager:
         with path.open() as f:
             return f.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
 
+    @staticmethod
+    def _globmatch(path: str, pattern: str) -> bool:
+        res: bool = glob.globmatch(path, pattern, flags=glob.GLOBSTAR | glob.DOTGLOB)
+        # for debugging:
+        # print(f"globmatch pattern={pattern} path={path} result={res}")
+        return res
+
     @lru_cache(maxsize=10_000)  # size aims to be 100x of fully caching this repo
-    def globfilter(self, candidates: Iterable[Path], pattern: str) -> List[Path]:
-        result = wcglob.globfilter(
-            candidates, pattern, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB
-        )
-        return cast(List[Path], result)
+    def globfilter(self, candidates: Iterable[Target], pattern: str) -> List[Target]:
+        """This is still used to filter applicable rules based on
+        paths.include/exclude. We'd like to get rid of it since the same
+        filtering is done in OCaml at least for osemgrep."""
+        return [
+            path for path in candidates if self._globmatch(str(path.ppath), pattern)
+        ]
 
     def filter_by_language(
         self,
         language: Union[None, Language],
         *,
-        candidates: FrozenSet[Path],
+        candidates: FrozenSet[Target],
     ) -> FilteredFiles:
         """
         Returns only paths that have the correct extension or shebang
@@ -905,42 +967,54 @@ class TargetManager:
             kept = frozenset(
                 path
                 for path in candidates
-                if any(str(path).endswith(ext) for ext in language.definition.exts)
+                if any(
+                    path.original.ppath.value.endswith(ext)
+                    for ext in language.definition.exts
+                )
                 or self.executes_with_shebang(path, language.definition.shebangs)
             )
         else:
             kept = frozenset(candidates)
         return FilteredFiles(kept, frozenset(candidates - kept))
 
-    def filter_known_extensions(self, *, candidates: FrozenSet[Path]) -> FilteredFiles:
+    def filter_known_extensions(
+        self, *, candidates: FrozenSet[Target]
+    ) -> FilteredFiles:
         """
         Returns only paths that have an extension we don't recognize.
         """
         kept = frozenset(
             path
             for path in candidates
-            if not any(path.match(f"*{ext}") for ext in ALL_EXTENSIONS)
+            if not any(
+                path.original.ppath.value.endswith(ext) for ext in ALL_EXTENSIONS
+            )
         )
         return FilteredFiles(kept, frozenset(candidates - kept))
 
     def filter_includes(
-        self, includes: Sequence[str], *, candidates: FrozenSet[Path]
+        self, *, rule_id: str, includes: Sequence[str], candidates: FrozenSet[Target]
     ) -> FilteredFiles:
         """
         Returns all elements in candidates that match any includes pattern
 
-        If includes is empty, returns candidates unchanged
+        If includes is empty, returns candidates unchanged (not the empty set!)
         """
         if not includes:
             return FilteredFiles(candidates)
 
         kept = set()
-        for pattern in TargetManager.preprocess_path_patterns(includes):
+        for pattern in TargetManager.preprocess_path_patterns(
+            rule_id=rule_id,
+            patterns=includes,
+            is_include=True,
+            legacy_rule_filtering=self.legacy_rule_filtering,
+        ):
             kept.update(self.globfilter(candidates, pattern))
         return FilteredFiles(frozenset(kept), frozenset(candidates - kept))
 
     def filter_excludes(
-        self, excludes: Sequence[str], *, candidates: FrozenSet[Path]
+        self, *, rule_id: str, excludes: Sequence[str], candidates: FrozenSet[Target]
     ) -> FilteredFiles:
         """
         Returns all elements in candidates that do not match any excludes pattern
@@ -951,49 +1025,15 @@ class TargetManager:
             return FilteredFiles(candidates)
 
         removed = set()
-        for pattern in TargetManager.preprocess_path_patterns(excludes):
+        for pattern in TargetManager.preprocess_path_patterns(
+            rule_id=rule_id,
+            patterns=excludes,
+            is_include=False,
+            legacy_rule_filtering=self.legacy_rule_filtering,
+        ):
             removed.update(self.globfilter(candidates, pattern))
 
         return FilteredFiles(frozenset(candidates - removed), frozenset(removed))
-
-    @staticmethod
-    def filter_by_permission(candidates: FrozenSet[Path]) -> FilteredFiles:
-        """
-        Exclude files we can't read
-        """
-        # TODO: os.access() returns True if the user is root, even if the
-        # effective user ID is unpriviledged and results in the file
-        # being not readable!
-        # This is a problem when running pysemgrep as root but only if the
-        # euid is different from the uid.
-        kept, removed = partition(
-            candidates,
-            lambda path: os.access(path, os.R_OK),
-        )
-
-        return FilteredFiles(frozenset(kept), frozenset(removed))
-
-    @staticmethod
-    def filter_by_size(
-        max_target_bytes: int, *, candidates: FrozenSet[Path]
-    ) -> FilteredFiles:
-        """
-        Return all the files whose size doesn't exceed the limit.
-
-        If max_target_bytes is zero or negative, all paths are returned.
-        If some paths are invalid, they may or may not be included in the
-        result.
-        """
-        if max_target_bytes <= 0:
-            return FilteredFiles(candidates)
-
-        kept, removed = partition(
-            candidates,
-            lambda path: os.path.isfile(path)
-            and os.path.getsize(path) <= max_target_bytes,
-        )
-
-        return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
     def get_all_files(
@@ -1001,7 +1041,7 @@ class TargetManager:
         *,
         product: out.Product,
         ignore_baseline_handler: bool = False,
-    ) -> FrozenSet[Path]:
+    ) -> FrozenSet[Target]:
         scanning_roots = self.scanning_roots
         return frozenset(
             selected_file
@@ -1057,7 +1097,6 @@ class TargetManager:
             ignore_baseline_handler=ignore_baseline_handler,
             product=product,
         )
-
         if isinstance(lang, Language):
             files = self.filter_by_language(lang, candidates=all_files)
             self.ignore_log.by_language[lang].update(files.removed)
@@ -1121,26 +1160,26 @@ class TargetManager:
         self.ignore_log.size_limit.update(size_limit)
         self.ignore_log.semgrepignored.update(semgrepignored)
 
+        # Targets with the standard extension for the language
         kept_files = files.kept
 
-        explicit_files = frozenset(
-            t.path
-            for t in self.scanning_roots
-            if not t.path.is_dir() and t.path.is_file()
-        )
-
-        ####################################################################
-        # language-specific target filtering
-        ####################################################################
-        explicit_files_for_lang = self.filter_by_language(
-            lang if isinstance(lang, Language) else None, candidates=explicit_files
-        )
-        kept_files |= explicit_files_for_lang.kept
+        # '--scan-unknown-extensions' or input target is '-' (stdin):
+        # Don't exclude explicit targets i.e. files specified on the
+        # command line that don't have the standard extension for the
+        # requested language.
+        # Don't do so when searching for dependency source information.
         if self.allow_unknown_extensions and lang != "dependency_source_files":
-            # add unknown extensions back in for languages. Don't do so when searching
-            # for dependency source information
+            # Get the subset of scan roots that are regular files
+            # as a proper list of targets (with ppath). Includes files that
+            # don't have the standard extension.
+            # This is not super efficient, could be cached.
+            explicit_targets = frozenset(
+                target
+                for target in all_files
+                if target.fpath in self.scanning_root_strings
+            )
             explicit_files_of_unknown_lang = self.filter_known_extensions(
-                candidates=explicit_files
+                candidates=explicit_targets
             )
             kept_files |= explicit_files_of_unknown_lang.kept
 
@@ -1167,16 +1206,15 @@ class TargetManager:
         """
         paths = self.get_files_for_language(lang=lang, product=rule_product)
 
-        # TODO: this filtering is incorrect wrt Semgrepignore v2
-        #  because it should apply to the paths relative to the project root
-        #  (ppath) rather than paths relative to cwd or worse, absolute paths.
-        #  Obtaining a ppath for each target can and should be done with
-        #  the RPC to semgrep-core.
         if self.respect_rule_paths:
-            paths = self.filter_includes(rule_includes, candidates=paths.kept)
+            paths = self.filter_includes(
+                rule_id=rule_id, includes=rule_includes, candidates=paths.kept
+            )
             self.ignore_log.rule_includes[rule_id].update(paths.removed)
 
-            paths = self.filter_excludes(rule_excludes, candidates=paths.kept)
+            paths = self.filter_excludes(
+                rule_id=rule_id, excludes=rule_excludes, candidates=paths.kept
+            )
             self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
         return SelectedTargets(paths.kept)
@@ -1184,7 +1222,7 @@ class TargetManager:
     def get_all_dependency_source_files(
         self,
         ignore_baseline_handler: bool = False,
-    ) -> FrozenSet[Path]:
+    ) -> FrozenSet[Target]:
         """
         Return all files that might be used as a source of dependency information
         """

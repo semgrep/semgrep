@@ -84,23 +84,24 @@ let add_typescript_to_javascript_rules_hack (rules : Rule.t list) : Rule.t list
              { r with Rule.target_analyzer = L (l, lset |> Set_.elements) })
 
 let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
-    (targets : Fpath.t list) : Lang_job.t list =
+    (targets : Fppath.t list) : Lang_job.t list =
   let rules = add_typescript_to_javascript_rules_hack rules in
   let extract_languages = detect_extract_languages rules in
   rules |> group_rules_by_target_language
   |> List_.filter_map (fun (analyzer, rules) ->
          let targets =
            targets
-           |> List.filter (fun path ->
+           |> List.filter (fun (fppath : Fppath.t) ->
                   (* bypass normal analyzer detection for explicit targets with
                      '--scan-unknown-extensions' *)
                   let bypass_language_detection =
                     conf.always_select_explicit_targets
                     && Find_targets.Explicit_targets.mem conf.explicit_targets
-                         path
+                         fppath.fpath
                   in
                   bypass_language_detection
-                  || Filter_target.filter_target_for_analyzer analyzer path)
+                  || Filter_target.filter_target_for_analyzer analyzer
+                       fppath.fpath)
          in
          if
            List_.null targets
@@ -110,8 +111,8 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
 
 let targets_of_lang_job (x : Lang_job.t) : Target.t list =
   x.targets
-  |> List_.map (fun (path : Fpath.t) : Target.t ->
-         Target.mk_target_fpath x.analyzer path)
+  |> List_.map (fun (path : Fppath.t) : Target.t ->
+         Target.mk_target x.analyzer path)
 
 let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
     Target.t list * Rule.t list =
@@ -126,7 +127,7 @@ let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
   (* TODO: deduplicate rules? *)
   (targets, rules)
 
-let targets_for_files_and_rules (files : Fpath.t list) (rules : Rule.t list) :
+let targets_for_files_and_rules (files : Fppath.t list) (rules : Rule.t list) :
     Target.t list =
   let conf = Find_targets.default_conf in
   let lang_jobs = split_jobs_by_language conf rules files in

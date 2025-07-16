@@ -23,10 +23,11 @@
 (*****************************************************************************)
 
 type t =
-  | File of Fpath.t
-  | GitBlob of {
+  | Target_file of Fppath.t
+  | Unfilterable_target_file of Fpath.t
+  | Git_blob of {
       sha : Git_wrapper.hash;
-      paths : (Git_wrapper.commit * Fpath.t) list;
+      paths : (Git_wrapper.commit * Fppath.t) list;
     }
 [@@deriving show, eq, ord]
 
@@ -36,8 +37,9 @@ type t =
 
 let to_string (s : t) =
   match s with
-  | File path -> Fpath.to_string path
-  | GitBlob { sha; _ } -> sha |> Git_wrapper.hex_of_hash
+  | Unfilterable_target_file path -> Fpath.to_string path
+  | Target_file path -> Fpath.to_string path.fpath
+  | Git_blob { sha; _ } -> sha |> Git_wrapper.hex_of_hash
 
 let to_string_opt ?(unspecified = "unknown") (s : t option) =
   match s with

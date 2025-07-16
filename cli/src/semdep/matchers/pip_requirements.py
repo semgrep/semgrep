@@ -12,6 +12,7 @@ from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
+from semgrep.types import Target
 
 
 @dataclass(frozen=True)
@@ -106,7 +107,7 @@ class PipRequirementsMatcher(SubprojectMatcher):
             return requirements_path.parent
 
     def _filter_manifest_requirements(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[Set[Path], Set[Path]]:
         """
         Classifies the provided source files as requirements files, manifests, or neither.
@@ -115,7 +116,8 @@ class PipRequirementsMatcher(SubprojectMatcher):
         """
         requirements_files: Set[Path] = set()
         manifests: Set[Path] = set()
-        for path in dep_source_files:
+        for target in dep_source_files:
+            path = target.fpath
             if self._is_requirements_match(path):
                 requirements_files.add(path)
             if self._is_manifest_match(path):
@@ -123,7 +125,7 @@ class PipRequirementsMatcher(SubprojectMatcher):
         return (manifests, requirements_files)
 
     def make_subprojects(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         # find all manifests and requirements files that we will use to build subprojects
         manifests, requirements_files = self._filter_manifest_requirements(
@@ -160,8 +162,9 @@ class PipRequirementsMatcher(SubprojectMatcher):
             for req_path in sorted(
                 local_requirements_paths
             ):  # sorting so that there is a deterministic order in tests
+                candidates = frozenset(target.fpath for target in dep_source_files)
                 matching_manifest_path = self._lockfile_to_manifest(
-                    req_path, dep_source_files
+                    req_path, candidates
                 )
                 if matching_manifest_path is not None:
                     paired_manifests.add(matching_manifest_path)

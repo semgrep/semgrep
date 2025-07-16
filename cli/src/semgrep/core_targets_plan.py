@@ -15,7 +15,6 @@ from typing import Tuple
 from typing import Union
 
 from attr import define
-from attr import field
 from attr import frozen
 from boltons.iterutils import get_path
 from rich import box
@@ -30,6 +29,7 @@ from semgrep.state import get_state
 from semgrep.subproject import count_resolved_dependencies
 from semgrep.subproject import get_display_paths
 from semgrep.subproject import subproject_sort_key
+from semgrep.types import Target
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -40,7 +40,7 @@ logger = getLogger(__name__)
 ##############################################################################
 @frozen
 class Task:
-    path: str = field(converter=str)
+    path: Target
     analyzer: Language  # Analyzer; see Analyzer.mli
     products: Tuple[out.Product, ...]
     # semgrep-core no longer uses the rule_nums field.
@@ -63,7 +63,7 @@ class Task:
         return out.Target(
             out.CodeTarget_(
                 out.CodeTarget(
-                    path=out.Fpath(self.path),
+                    path=self.path.original,
                     analyzer=out.Analyzer(self.analyzer),
                     products=list(self.products),
                 )

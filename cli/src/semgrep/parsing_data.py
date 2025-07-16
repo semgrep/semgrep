@@ -33,12 +33,12 @@ class ParsingData:
         for task in plan.target_mappings:
             if not task.analyzer.definition.is_target_language:
                 continue
-            self._file_info[task.path] = (task.analyzer, True)
+            self._file_info[task.path.original.fpath.value] = (task.analyzer, True)
             entry = self._parse_errors_by_lang.get(
                 task.analyzer, LanguageParseData(0, 0, 0, 0)
             )
             try:
-                entry.num_bytes += os.path.getsize(task.path)
+                entry.num_bytes += os.path.getsize(task.path.fpath)
                 entry.num_targets += 1
             except OSError:
                 # Don't count the target if the path doesn't exist

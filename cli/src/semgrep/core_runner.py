@@ -51,6 +51,8 @@ from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.types import Target
+from semgrep.types import target_info_acc_of_target_acc
 from semgrep.types import TargetAccumulator
 from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
@@ -735,7 +737,7 @@ class CoreRunner:
         # The range of target_info is (index into rules x product as json)
         # Using product as JSON because we want structural equality of products instead of object equality.
         target_info: Dict[
-            Tuple[Path, Language], Tuple[List[int], Set[str]]
+            Tuple[Target, Language], Tuple[List[int], Set[str]]
         ] = collections.defaultdict(lambda: (list(), set()))
 
         unused_rules = []
@@ -1064,9 +1066,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             errors.extend(parsed_errors)
 
         output_extra = OutputExtra(
-            core_output,
-            all_targets,
-            parsing_data,
+            core=core_output,
+            all_targets=target_info_acc_of_target_acc(all_targets),
+            parsing_data=parsing_data,
         )
 
         return (

@@ -11,6 +11,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.types import Target
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,7 @@ class SubprojectMatcher(ABC):
 
     @abstractmethod
     def make_subprojects(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         """
         Use the files given in `dep_source_files` to make as many subprojects
@@ -99,7 +100,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
         return self._is_manifest_match(path) or self._is_lockfile_match(path)
 
     def _filter_manifest_lockfiles(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[Set[Path], Set[Path]]:
         """
         Classifies the provided source files as lockfiles, manifests, or neither.
@@ -108,7 +109,8 @@ class LockfileManifestMatcher(SubprojectMatcher):
         """
         lockfiles: Set[Path] = set()
         manifests: Set[Path] = set()
-        for path in dep_source_files:
+        for target in dep_source_files:
+            path = target.fpath
             if self._is_lockfile_match(path):
                 lockfiles.add(path)
             if self._is_manifest_match(path):
@@ -116,7 +118,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
         return (manifests, lockfiles)
 
     def make_subprojects(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         """
         Use the files given in `dep_source_files` to make as many subprojects
@@ -134,8 +136,9 @@ class LockfileManifestMatcher(SubprojectMatcher):
 
         # first, handle cases where the lockfile exists and manifest may or may not
         for lockfile_path in lockfiles:
+            candidates = frozenset(target.fpath for target in dep_source_files)
             matching_manifest_path = self._lockfile_to_manifest(
-                lockfile_path, dep_source_files
+                lockfile_path, candidates
             )
             if matching_manifest_path is not None:
                 root_dir = self._get_subproject_root(
@@ -312,15 +315,17 @@ class ManifestOnlyMatcher(SubprojectMatcher):
         return self._is_manifest_match(path)
 
     def _filter_matching_manifests(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> FrozenSet[Path]:
         """
         Return only the matching manifests from the set of dependency source files.
         """
-        return frozenset(p for p in dep_source_files if self._is_manifest_match(p))
+        return frozenset(
+            p.fpath for p in dep_source_files if self._is_manifest_match(p.fpath)
+        )
 
     def make_subprojects(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         manifests = self._filter_matching_manifests(dep_source_files)
 

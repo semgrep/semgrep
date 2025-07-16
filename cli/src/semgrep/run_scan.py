@@ -93,6 +93,7 @@ from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.types import FilteredMatches
+from semgrep.types import TargetInfo
 from semgrep.util import flatten
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
@@ -123,11 +124,12 @@ def list_targets_and_exit(
     target_manager: TargetManager, product: out.Product, long_format: bool = False
 ) -> None:
     targets = target_manager.get_files_for_language(lang=None, product=product)
-    for path in sorted(targets.kept):
+    kept_targets = sorted(targets.kept, key=lambda x: x.fpath)
+    for target in kept_targets:
         if long_format:
-            print(f"selected {path}")
+            print(f"selected {target.fpath}")
         else:
-            print(str(path))
+            print(f"{target.fpath}")
     if long_format:
         for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
             print(f"ignored {path} [{reason}]")
@@ -800,7 +802,11 @@ def adjust_matches_for_sca_rules(
                     )
                 ].append(dep)
 
-    for target in sca_dependency_targets:
+    for fpath in sca_dependency_targets:
+        target = TargetInfo(
+            fpath=fpath,
+            original=None,
+        )
         output_extra.all_targets.targets.add(target)
 
     return deps_by_lockfile

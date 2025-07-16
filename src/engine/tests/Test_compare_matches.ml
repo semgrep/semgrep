@@ -37,8 +37,8 @@ let (expected_error_lines_of_files :
       (Fpath.t * int) (* line *) list) =
  fun ?(regexp = default_error_regexp) ?ok_regexp test_files ->
   test_files
-  |> List.concat_map (fun file ->
-         UFile.cat file |> List_.index_list_1
+  |> List.concat_map (fun path ->
+         UFile.cat path |> List_.index_list_1
          |> List_.filter_map (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
                  * don't check if they match. We are just happy to check for
@@ -52,7 +52,7 @@ let (expected_error_lines_of_files :
                        ~some:(fun ok_regexp -> not (s =~ ok_regexp))
                        ok_regexp
                   (* + 1 because the comment is one line before *)
-                then Some (file, idx + 1)
+                then Some (path, idx + 1)
                 else None))
 
 (*****************************************************************************)
@@ -63,7 +63,9 @@ let plural n = if n >= 2 then "s" else ""
 
 let compare_actual_to_expected ~to_location actual_findings
     expected_findings_lines =
-  let actual_findings = List_.map to_location actual_findings in
+  let actual_findings : (Fpath.t * int) list =
+    List_.map to_location actual_findings
+  in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
     Common2.diff_set_eff expected_findings_lines actual_findings

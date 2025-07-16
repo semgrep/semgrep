@@ -85,7 +85,7 @@ let xtarget_of_file (analyzer : Analyzer.t) (target : Fpath.t) : Xtarget.t =
     in
     (ast, skipped_tokens)
   in
-  Xtarget.resolve parser (Target.mk_target_fpath analyzer target)
+  Xtarget.resolve parser (Target.mk_unfilterable_target analyzer target)
 
 (*****************************************************************************)
 (* target helpers *)
