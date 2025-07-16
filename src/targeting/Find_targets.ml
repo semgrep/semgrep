@@ -738,6 +738,11 @@ let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
         | S_BLK
         | S_SOCK ->
             ([], [])
+        | exception Unix.Unix_error (_, _, info) ->
+            Log.warn (fun m ->
+                m "get_targets_from_filesystem: Unix_error %s on stat %s" info
+                  !!phys_path);
+            ([], [])
       in
       ( Fppath_set.union selected (Fppath_set.of_list selected2),
         List.rev_append skipped2 skipped ))

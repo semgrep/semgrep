@@ -1,0 +1,2 @@
+Fixed a bug where a `Unix.Unix_error` would occasionally crash the experimental language server
+on startup.
