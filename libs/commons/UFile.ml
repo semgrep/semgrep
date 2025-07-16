@@ -275,9 +275,12 @@ let is_dir_or_lnk_or_reg path =
   | exception Unix.Unix_error _ -> false
 
 let is_executable file =
-  let stat = Unix.stat !!file in
-  let perms = stat.st_perm in
-  stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
+  try
+    let stat = Unix.stat !!file in
+    let perms = stat.st_perm in
+    stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
+  with
+  | Unix.Unix_error _ -> false
 
 let rec make_directories dir =
   try Unix.mkdir !!dir 0o755 with
