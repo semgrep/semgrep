@@ -783,7 +783,12 @@ def adjust_for_docker() -> None:
             # check if there's at least one file in /src
             next(env.src_directory.iterdir())
         except (NotADirectoryError, StopIteration):
-            raise SemgrepError(
+            # This used to raise a SemgrepError but it was resulting
+            # in a silent 'exit 2'. Raising a generic Exception
+            # avoids the silence.
+            # TODO: fix the problem at the root: the SemgrepError exception
+            #  shouldn't be silent.
+            raise Exception(
                 f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{env.src_directory}\"'"
             )
         else:
