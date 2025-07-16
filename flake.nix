@@ -250,8 +250,7 @@
 
           devShells = import ./devShells.nix {
             inherit pkgs;
-            # TODO add pysmgrepAttrs when I fix it
-            devAttrs = [ semgrepAttrs ];
+            devAttrs = [ semgrepAttrs pysemgrepAttrs ];
           };
 
         in {
