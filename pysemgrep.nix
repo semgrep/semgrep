@@ -36,6 +36,9 @@ let
     inherit (semgrep) version;
     inherit src;
 
+    pyproject = true;
+    build-system = [ pythonPkgs.setuptools ];
+
     propagatedBuildInputs = pythonInputs ++ [ semgrep ];
     # Stops weird long step when entering shell
     dontUseSetuptoolsShellHook = true;
