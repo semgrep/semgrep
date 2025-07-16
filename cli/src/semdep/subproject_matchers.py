@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import FrozenSet
 from typing import List
 
@@ -9,6 +8,7 @@ from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.base import SubprojectMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
+from semgrep.types import Target
 
 # NOTE: the order that these matchers are defined in matters. In find_subprojects, we
 # use each dependency source file for at most one matcher, running the matchers in the
@@ -186,15 +186,15 @@ MATCHERS: List[SubprojectMatcher] = [
 ]
 
 
-def filter_dependency_source_files(candidates: FrozenSet[Path]) -> FrozenSet[Path]:
+def filter_dependency_source_files(candidates: FrozenSet[Target]) -> FrozenSet[Target]:
     """
     Returns the paths in `candidates` that are dependency source files.
     """
     return frozenset(path for path in candidates if _is_dependency_source_file(path))
 
 
-def _is_dependency_source_file(path: Path) -> bool:
+def _is_dependency_source_file(path: Target) -> bool:
     """
     Check if a path is a valid dependency source file (lockfile, manifest, SBOM, etc)
     """
-    return any(matcher.is_match(path) for matcher in MATCHERS)
+    return any(matcher.is_match(path.fpath) for matcher in MATCHERS)

@@ -10,6 +10,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.types import Target
 
 
 @dataclass(frozen=True)
@@ -234,7 +235,7 @@ def subproject_to_cli_output_info(
 
 
 def find_closest_subproject(
-    path: Path, ecosystem: out.Ecosystem, candidates: List[out.Subproject]
+    path: Target, ecosystem: out.Ecosystem, candidates: List[out.Subproject]
 ) -> Optional[out.Subproject]:
     """
     Attempt to find the best SCA project for the given match by looking at the
@@ -252,7 +253,7 @@ def find_closest_subproject(
     the directory tree
 
     Args:
-        path (Path): The path to search for the closest subproject.
+        path (Target): The path to search for the closest subproject.
         ecosystem (Ecosystem): The ecosystem to consider subprojects for
         candidates (List[Subproject]): List of candidate subprojects.
     """
@@ -263,7 +264,7 @@ def find_closest_subproject(
     )
 
     for candidate in sorted_candidates:
-        for parent in [path, *path.parents]:
+        for parent in [path, *path.fpath.parents]:
             if (
                 Path(candidate.root_dir.value) == parent
                 and candidate.ecosystem == ecosystem

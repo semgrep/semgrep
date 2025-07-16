@@ -8,6 +8,7 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
+from semgrep.types import Target
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,7 @@ class GradleMatcher(SubprojectMatcher):
         return settings_path, build_path
 
     def _sort_source_files(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[Set[Path], Set[Path], Set[Path]]:
         """
         Classifies the provided source files as settings.gradle, build.gradle, and lockfiles
@@ -76,7 +77,8 @@ class GradleMatcher(SubprojectMatcher):
         build_files: Set[Path] = set()
         lockfiles: Set[Path] = set()
 
-        for path in dep_source_files:
+        for target in dep_source_files:
+            path = target.fpath
             if path.name in self.BUILD_FILENAMES:
                 build_files.add(path)
             elif path.name in self.SETTINGS_FILENAMES:
@@ -86,7 +88,7 @@ class GradleMatcher(SubprojectMatcher):
         return settings_files, build_files, lockfiles
 
     def make_subprojects(
-        self, dep_source_files: FrozenSet[Path]
+        self, dep_source_files: FrozenSet[Target]
     ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         settings_files, build_files, lockfiles = self._sort_source_files(
             dep_source_files
@@ -101,11 +103,12 @@ class GradleMatcher(SubprojectMatcher):
         used_build_paths: Set[Path] = set()
 
         # first, make subprojects from any lockfiles---any accompanying build.gradle and settings.gradle
+        candidates = frozenset(target.fpath for target in dep_source_files)
         for lockfile_path in lockfiles:
             project_root = lockfile_path.parent
             root_dirs.add(project_root)
             settings_path, build_path = self._lockfile_to_settings_and_build(
-                lockfile_path, dep_source_files
+                lockfile_path, candidates
             )
 
             lockfile = out.Lockfile(
@@ -164,7 +167,7 @@ class GradleMatcher(SubprojectMatcher):
                 continue
 
             project_root = settings_path.parent
-            build_paths = dep_source_files.intersection(
+            build_paths = candidates.intersection(
                 settings_path.parent / x for x in self.BUILD_FILENAMES
             )
             if len(build_paths) > 0:

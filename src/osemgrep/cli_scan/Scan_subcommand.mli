@@ -39,7 +39,7 @@ val check_targets_with_rules :
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->
-  Fpath.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list ->
+  Fppath.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list ->
   ( Rule.rule list * Core_runner.result * Semgrep_output_v1_t.cli_output,
     Exit_code.t )
   result

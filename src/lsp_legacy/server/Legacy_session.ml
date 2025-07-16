@@ -272,7 +272,7 @@ let cache_workspace_targets session =
 
 (* This is dynamic so if the targets file is updated we don't have to restart
  *)
-let targets session =
+let targets session : Fpath.t list =
   (* These are "dirty paths" because they may not necessarily be files. They may also be folders.
    *)
   let dirty_paths_by_workspace =

@@ -319,7 +319,8 @@ let path_and_historical (path : Target.path) ~(min_loc : Tok.location)
      if possible. Not if it's fake, though.
      In other languages, this should hopefully not happen.
   *)
-  | File path ->
+  | Unfilterable_target_file path
+  | Target_file { fpath = path; _ } ->
       if
         (path <> min_loc.pos.file || path <> max_loc.pos.file)
         && not (Fpath_.is_fake_file min_loc.pos.file)
@@ -327,7 +328,7 @@ let path_and_historical (path : Target.path) ~(min_loc : Tok.location)
       else (path, None)
   (* TODO(cooper): if we can have a uri or something more general than a
    * file path here then we can stop doing this hack. *)
-  | GitBlob { sha; paths } -> (
+  | Git_blob { sha; paths } -> (
       match paths with
       | [] -> (path.internal_path_to_content (* no better path *), None)
       | (commit, path) :: _ ->
@@ -337,7 +338,7 @@ let path_and_historical (path : Target.path) ~(min_loc : Tok.location)
             Option.value offset
               ~default:{ sign = `Plus; hours = 0; minutes = 0 }
           in
-          ( path,
+          ( path.fpath,
             Some
               ({
                  git_commit;

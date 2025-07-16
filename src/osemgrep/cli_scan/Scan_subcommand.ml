@@ -443,7 +443,7 @@ let check_targets_with_rules
       ; .. >) (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     ((targets, errors, skipped) :
-      Fpath.t list * Core_error.t list * Out.skipped_target list) :
+      Fppath.t list * Core_error.t list * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
 
@@ -708,8 +708,7 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
       (* step2: getting the targets (part1) *)
       Logs.info (fun m -> m "Computing the target candidates");
       let targets_and_skipped =
-        Find_targets.get_target_fpaths caps conf.targeting_conf
-          conf.target_roots
+        Find_targets.get_targets caps conf.targeting_conf conf.target_roots
       in
 
       (* step3: let's go (no need for network caps from now on) *)

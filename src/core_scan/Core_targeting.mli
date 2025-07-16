@@ -8,7 +8,7 @@
 
 (* reused for Git_remote.ml in pro *)
 val split_jobs_by_language :
-  Find_targets.conf -> Rule.t list -> Fpath.t list -> Lang_job.t list
+  Find_targets.conf -> Rule.t list -> Fppath.t list -> Lang_job.t list
 
 val targets_and_rules_of_lang_jobs :
   Lang_job.t list -> Target.t list * Rule.t list
@@ -17,4 +17,4 @@ val targets_and_rules_of_lang_jobs :
    discover targets in semgrep-core rather than in pysemgrep.
    Used also by `semgrep show dump-targets <dir> <rules_config>`
 *)
-val targets_for_files_and_rules : Fpath.t list -> Rule.t list -> Target.t list
+val targets_for_files_and_rules : Fppath.t list -> Rule.t list -> Target.t list

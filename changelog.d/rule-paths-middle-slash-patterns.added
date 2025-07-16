@@ -1,0 +1,13 @@
+A warning is now printed for each exclude or include pattern found in rules
+that is considered ambiguous (`paths.exclude`, `paths.include`).
+
+Currently, a pattern that contains a middle slash such as `src/*.c`
+is considered floating or unanchored by our implementation. In order to
+be compliant with Gitignore and Semgrepignore, `src/*.c`
+should be treated as anchored. Since many programmers are unaware of this
+subtlety in the Gitignore specification, Semgrep now prints a warning asking
+the user to lift the ambiguity. A user will now be asked to
+change their pattern `src/*.c` into either `/src/*.c` (anchored) or
+`**/src/*.c` (floating). This clarifies the expected behavior for readers
+of Semgrep rules and will avoid problems when Semgrep rules adopt
+the Gitignore/Semgrepignore behavior.

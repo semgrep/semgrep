@@ -7,7 +7,6 @@ from collections import defaultdict
 from datetime import datetime
 from enum import auto
 from enum import Enum
-from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
@@ -52,6 +51,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import Value
 from semgrep.semgrep_types import get_frozen_id
 from semgrep.types import FilteredMatches
+from semgrep.types import TargetInfo
 from semgrep.verbose_logging import getLogger
 
 if TYPE_CHECKING:
@@ -332,7 +332,9 @@ class Metrics:
         except Exception as e:
             self.log_exception("add_findings", e)
 
-    def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
+    def add_targets(
+        self, targets: Set[TargetInfo], profile: Optional[out.Profile]
+    ) -> None:
         try:
             if profile:
                 self.payload.performance.fileStats = [
@@ -358,7 +360,7 @@ class Metrics:
                     self.payload.performance.fileStats, key=lambda fs: fs.size
                 )
             # TODO: fit the data in profile?
-            total_bytes_scanned = sum(t.stat().st_size for t in targets)
+            total_bytes_scanned = sum(t.fpath.stat().st_size for t in targets)
             self.payload.performance.totalBytesScanned = total_bytes_scanned
             self.payload.performance.numTargets = len(targets)
         except Exception as e:
