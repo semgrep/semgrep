@@ -46,6 +46,14 @@ let append_relative_fpath root fpath =
 let of_relative_fpath_exn fpath =
   { fpath; ppath = Ppath.of_relative_fpath_exn fpath }
 
+let of_file_basename fpath =
+  let ppath =
+    match Fpath.basename fpath with
+    | "" (* / *) -> Ppath.root
+    | name -> Ppath.add_seg Ppath.root name
+  in
+  { fpath; ppath }
+
 (* Use the fpath as ppath, which sort of works for some filtering purposes
    in tests. It's best to not use it. *)
 let fake_from_fpath_DEPRECATED fpath =

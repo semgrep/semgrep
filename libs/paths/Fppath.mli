@@ -29,6 +29,15 @@ val of_relative_fpath_exn : Fpath.t -> t
 (** Create an fppath from a relative fpath.
     Raises Invalid_argument if the input is not a relative path. *)
 
+val of_file_basename : Fpath.t -> t
+(** Assumes that the project root is the folder containing this file.
+    For example, the ppath of /a/b/c is /c and the ppath of a/b/c
+    is also /c. This function is useful to represent single target files that
+    are not associated with a particular project.
+    This function is intended for paths representing files, not folders,
+    but doesn't check the file type.
+*)
+
 val fake_from_fpath_DEPRECATED : Fpath.t -> t
 (** Safe alternative to [of_relative_fpath]. Using this function is a sign
     that something's modeled incorrectly!
