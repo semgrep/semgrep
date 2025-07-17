@@ -137,12 +137,11 @@ let find_targets_rules (caps : < caps ; .. >) ~(strict : bool) ~token_opt
     |> List_.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
            match x.origin with
            | Local_file path ->
-               (* Any target should be expressed relative to the project
-                  root so it can be subject to path filtering (Semgrepignore,
-                  CLI exclude/include and in-rule paths.exclude/include).
-                  This may be incorrect but for now, we'll
-                  be using a fake ppath. *)
-               Some (Fppath.of_relative_fpath_exn path)
+               (* For the sake of honoring include/exclude paths filters
+                  found in rules, we need to provide a path that's relative
+                  to the project root (a ppath). Here, we assume the project
+                  root is the folder containing the file. *)
+               Some (Fppath.of_file_basename path)
            | CLI_argument
            | Registry
            | App
