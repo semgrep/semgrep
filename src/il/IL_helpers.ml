@@ -87,6 +87,13 @@ let rlvals_of_instr x =
 (* Public *)
 (*****************************************************************************)
 
+let loc_of_name fpath name =
+  let var_loc =
+    let* name = name in
+    Tok.loc_of_tok (snd name.ident) |> Result.to_option
+  in
+  var_loc ||| Loc.first_loc_of_file fpath
+
 let is_pro_resolved_global name =
   match !(name.id_info.id_resolved) with
   | Some (GlobalName _, _sid) -> true

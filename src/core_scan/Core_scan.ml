@@ -586,7 +586,7 @@ let core_error_to_match_result (target : Target.t) (core_error : Core_error.t) =
   let noprof = Core_profiling.empty_partial_profiling internal_path in
   let errors = ESet.singleton core_error in
   let match_result = Core_result.mk_match_result [] errors noprof in
-  (Core_result.add_run_time 0.0 match_result, Some target)
+  (Core_result.add_run_time internal_path None match_result, Some target)
 
 (** [exception_to_core_error target exn] turns a target and the exception it
  triggered to a [Core_error.t]; this will be used by [Domains.map] to transform
@@ -725,7 +725,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
               (Core_result.mk_match_result [] errors noprof, true))
     in
     let scanned_target = if was_scanned then Some target else None in
-    (Core_result.add_run_time run_time res, scanned_target)
+    (Core_result.add_run_time internal_path (Some run_time) res, scanned_target)
   in
   let xs =
     if config.use_eio then
