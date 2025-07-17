@@ -981,16 +981,25 @@ and pattern env (p : AST_python.pattern) =
   | PatTuple (l, ps, r) ->
       let ps = list (pattern env) ps in
       G.PatTuple (l, ps, r)
-  | PatDict (l, ps, r) ->
-      let ps =
-        list
-          (fun p ->
-            match pattern env p with
-            | PatKeyVal (PatId (id, _), p2) -> ([ id ], p2)
+  | PatDict (l, ps, r) -> (
+      (* splitting the entries in the dictionary depending on whether
+         their keys are identifiers or other anomalous values *)
+      let id_ps, other_ps =
+        List_.fold_right
+          (fun p (id_ps, other_ps) ->
+            let p = pattern env p in
+            match p with
+            | PatKeyVal (PatId (id, _), p2) -> (([ id ], p2) :: id_ps, other_ps)
+            | PatKeyVal (PatLiteral _, _)
+            | PatKeyVal (OtherPat (("PatInterpolatedString", _), _), _)
+            | PatKeyVal (OtherPat (("PatComplex", _), _), _) ->
+                (id_ps, p :: other_ps)
             | _ -> raise Impossible)
-          ps
+          ps ([], [])
       in
-      G.PatRecord (l, ps, r)
+      match other_ps with
+      | [] -> G.PatRecord (l, id_ps, r)
+      | _ -> G.PatTuple (l, other_ps, r))
   | PatLiteral l -> G.PatLiteral (literal env l)
   | PatAs (p, _t, n) ->
       let p = pattern env p in
