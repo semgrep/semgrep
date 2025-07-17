@@ -21,7 +21,7 @@ type rule_profiling = {
 (* Save time information as we run each file *)
 type file_profiling = {
   file : Fpath.t;
-  rule_times : rule_profiling list;
+  rule_times : rule_profiling list option;  (** only for -json_time *)
   run_time : float;
 }
 [@@deriving show]
@@ -33,7 +33,7 @@ type partial_profiling = {
 [@@deriving show]
 
 type t = {
-  rules : Rule.rule list;
+  rules : Rule.rule list option;  (** only for -json_time *)
   rules_parse_time : float;
   file_times : file_profiling list;
   max_memory_bytes : int;

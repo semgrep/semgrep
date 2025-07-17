@@ -18,6 +18,7 @@ open AST_generic
 module J = JSON
 module E = Core_error
 module MV = Metavariable
+module QProf = Core_quick_profiling
 module Out = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 module Log = Log_reporting.Log
@@ -548,25 +549,69 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     extra = Option.map extra_to_extra extra;
   }
 
-let stats_to_stats (stats : Summary_stats.t) : Out.summary_stats =
-  let std_dev =
-    if stats.count < 2 then 0.0 else stats.m2 /. float_of_int stats.count
-  in
-  { mean = stats.mean; std_dev }
-
-let quick_profiling_to_parsing_time (quick_profiling : Core_quick_profiling.t) :
+let quick_profiling_to_parsing_time (quick_profiling : QProf.t) :
     Out.parsing_time =
   let parsing_stats = quick_profiling.parsing_stats in
+  let per_file_time, very_slow_stats, very_slow_files =
+    parsing_stats
+    |> QProf.Parsing_stats.to_output_v1 ~to_out_time:Summary_stats.to_file_time
+  in
   {
     total_time = parsing_stats.sum;
-    per_file_time = stats_to_stats parsing_stats;
-    very_slow_files = parsing_stats.very_slow;
+    per_file_time;
+    very_slow_stats = Some very_slow_stats;
+    very_slow_files;
   }
 
-let profiling_to_profiling (opt_quick_profiling : Core_quick_profiling.t option)
+let quick_profiling_to_scanning_time (quick_profiling : QProf.t) :
+    Out.scanning_time =
+  let scanning_stats = quick_profiling.scanning_stats in
+  let per_file_time, very_slow_stats, very_slow_files =
+    scanning_stats
+    |> QProf.Scanning_stats.to_output_v1 ~to_out_time:Summary_stats.to_file_time
+  in
+  {
+    total_time = scanning_stats.sum;
+    per_file_time;
+    very_slow_stats;
+    very_slow_files;
+  }
+
+let quick_profiling_to_matching_time (quick_profiling : QProf.t) :
+    Out.matching_time =
+  let matching_stats = quick_profiling.matching_stats in
+  let per_file_and_rule_time, very_slow_stats, very_slow_rules_on_files =
+    matching_stats
+    |> QProf.Matching_stats.to_output_v1
+         ~to_out_time:Summary_stats.to_file_rule_time
+  in
+  {
+    total_time = matching_stats.sum;
+    per_file_and_rule_time;
+    very_slow_stats;
+    very_slow_rules_on_files;
+  }
+
+let quick_profiling_to_tainting_time (quick_profiling : QProf.t) :
+    Out.tainting_time =
+  let tainting_stats = quick_profiling.tainting_stats in
+  let per_def_and_rule_time, very_slow_stats, very_slow_rules_on_defs =
+    tainting_stats
+    |> QProf.Tainting_stats.to_output_v1
+         ~to_out_time:Summary_stats.to_def_rule_time
+  in
+  {
+    total_time = tainting_stats.sum;
+    per_def_and_rule_time;
+    very_slow_stats;
+    very_slow_rules_on_defs;
+  }
+
+let profiling_to_profiling (opt_quick_profiling : QProf.t option)
     (profiling_data : Core_profiling.t) : Out.profile =
   let rule_ids : Rule_ID.t list =
-    profiling_data.rules |> List_.map (fun (rule : Rule.t) -> fst rule.id)
+    profiling_data.rules ||| []
+    |> List_.map (fun (rule : Rule.t) -> fst rule.id)
   in
   {
     targets =
@@ -575,7 +620,7 @@ let profiling_to_profiling (opt_quick_profiling : Core_quick_profiling.t option)
            (fun { Core_profiling.file = target; rule_times; run_time } ->
              let (rule_id_to_rule_prof
                    : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
-               rule_times
+               rule_times ||| []
                |> List_.map (fun (rp : Core_profiling.rule_profiling) ->
                       (rp.rule_id, rp))
                |> Hashtbl_.hash_of_list
@@ -626,6 +671,12 @@ let profiling_to_profiling (opt_quick_profiling : Core_quick_profiling.t option)
     profiling_times = [];
     parsing_time =
       opt_quick_profiling |> Option.map quick_profiling_to_parsing_time;
+    scanning_time =
+      opt_quick_profiling |> Option.map quick_profiling_to_scanning_time;
+    matching_time =
+      opt_quick_profiling |> Option.map quick_profiling_to_matching_time;
+    tainting_time =
+      opt_quick_profiling |> Option.map quick_profiling_to_tainting_time;
   }
 
 (* TODO: We used to return some stats, should we generalize

@@ -287,6 +287,8 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
         { Core_profiling.parse_time = parse_time ||| 0.0; match_time }
       |> Core_result.quick_add_parse_time_opt internal_path_to_content
            parse_time
+      |> Core_result.quick_add_match_time internal_path_to_content (fst rule.id)
+           match_time
   | _ -> Core_result.empty_match_result
 
 (*****************************************************************************)

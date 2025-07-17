@@ -1,3 +1,5 @@
+val loc_of_name : Fpath.t -> IL.name option -> Loc.t
+
 val is_pro_resolved_global : IL.name -> bool
 (** Test whether a name is global and has been resolved by Pro-naming. *)
 

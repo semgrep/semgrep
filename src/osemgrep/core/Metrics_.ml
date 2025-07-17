@@ -443,14 +443,18 @@ let add_targets_stats (targets : Fpath.t Set_.t)
              match Hashtbl.find_opt hprof path with
              | Some (fprof : Core_profiling.file_profiling) ->
                  ( Some fprof.run_time,
-                   Some
-                     (fprof.rule_times
-                     |> List_.map (fun rt -> rt.Core_profiling.rule_parse_time)
-                     |> Common2.sum_float),
-                   Some
-                     (fprof.rule_times
-                     |> List_.map (fun rt -> rt.Core_profiling.rule_match_time)
-                     |> Common2.sum_float) )
+                   fprof.rule_times
+                   |> Option.map (fun rule_times ->
+                          rule_times
+                          |> List_.map (fun rt ->
+                                 rt.Core_profiling.rule_parse_time)
+                          |> Common2.sum_float),
+                   fprof.rule_times
+                   |> Option.map (fun rule_times ->
+                          rule_times
+                          |> List_.map (fun rt ->
+                                 rt.Core_profiling.rule_match_time)
+                          |> Common2.sum_float) )
              | None -> (None, None, None)
            in
            {
@@ -458,7 +462,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
              numTimesScanned =
                (match Hashtbl.find_opt hprof path with
                | None -> 0
-               | Some fprof -> List.length fprof.rule_times);
+               | Some fprof -> Option.map List.length fprof.rule_times ||| 0);
              parseTime;
              matchTime;
              runTime;
