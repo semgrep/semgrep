@@ -1,0 +1,4 @@
+When running `semgrep scan` in a docker container without an argument
+and no target project was mounted under `/src`,
+instead of a silent exit with code 2, a helpful error message is
+now printed before exiting.
