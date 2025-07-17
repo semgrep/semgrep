@@ -60,6 +60,8 @@ let fmt_errors fmt errors =
 type 'a match_result = {
   matches : Core_match.t list;
   errors : E.ErrorSet.t; [@printer fmt_errors]
+  (* It is just convinient to have 'quick_profiling' and 'profiling' as optional,
+    but we may want to reconsider this if we clean up profiling code. *)
   quick_profiling : Core_quick_profiling.t option;
   profiling : 'a option;
   explanations : Matching_explanation.t list;
@@ -167,7 +169,16 @@ let mk_match_result matches errors profiling =
     matches;
     errors;
     quick_profiling = None;
-    profiling = Core_profiling.profiling_opt profiling;
+    profiling =
+      (* NOTE "Discarding profiling info":
+
+        Previously we used 'Core_profiling.profiling_opt' here, but now we keep
+        most of the 'profiling' data around, even without `-json_time`. This is
+        because files 'run_time' collected in 'profiling' are later used to
+        calculate whole-program scanning times. Instead, we selectively discard
+        expensive data such as 'Core_profiling.rule_times' e.g. in 'add_run_time',
+        'collate_rule_results', and 'mk_result'. *)
+      Some profiling;
     explanations = [];
   }
 
@@ -175,27 +186,59 @@ let mk_match_result matches errors profiling =
 (* Augment reported information with profiling info *)
 (*****************************************************************************)
 
-let quick_add_parse_time_opt file opt_parse_time (x : _ match_result) :
-    _ match_result =
-  match opt_parse_time with
-  | None -> x
+let map_quick_profiling (f : Core_quick_profiling.t -> Core_quick_profiling.t)
+    (x : 'a match_result) : 'a match_result =
+  {
+    x with
+    quick_profiling = x.quick_profiling |> Core_quick_profiling.map_opt f;
+  }
+
+let quick_add_parse_time_opt file (parse_time : float option)
+    (match_result : _ match_result) : _ match_result =
+  match parse_time with
+  | None -> match_result
   | Some parse_time ->
-      {
-        x with
-        quick_profiling =
-          x.quick_profiling
-          |> Core_quick_profiling.map_opt
-               (Core_quick_profiling.add_parse_time file parse_time);
-      }
+      match_result
+      |> map_quick_profiling
+           (Core_quick_profiling.add_parse_time file parse_time)
+
+let quick_add_match_time file rule_id match_time (match_result : _ match_result)
+    : _ match_result =
+  match_result
+  |> map_quick_profiling
+       (Core_quick_profiling.add_match_time file rule_id match_time)
+
+let quick_add_taint_stats tainting_stats (match_result : _ match_result) :
+    _ match_result =
+  match_result
+  |> map_quick_profiling (fun (quick_profiling : Core_quick_profiling.t) ->
+         {
+           quick_profiling with
+           tainting_stats =
+             Core_quick_profiling.Tainting_stats.combine
+               quick_profiling.tainting_stats tainting_stats;
+         })
 
 let map_profiling (f : 'a -> 'b) (x : 'a match_result) : 'b match_result =
   { x with profiling = Option.map f x.profiling }
 
-let add_run_time (run_time : float) (match_result : matches_single_file) :
-    matches_single_file_with_time =
-  match_result
-  |> map_profiling (fun { Core_profiling.p_file; p_rule_times } ->
-         { Core_profiling.file = p_file; rule_times = p_rule_times; run_time })
+let add_run_time file (run_time : float option)
+    (match_result : matches_single_file) : matches_single_file_with_time =
+  let match_result =
+    match_result
+    |> map_profiling (fun { Core_profiling.p_file; p_rule_times } ->
+           {
+             Core_profiling.file = p_file;
+             rule_times = Core_profiling.profiling_opt p_rule_times;
+             run_time = run_time ||| 0.0;
+           })
+  in
+  match run_time with
+  | None -> match_result
+  | Some run_time ->
+      (* TODO: If we merged 'profiling' and 'quick_profiling' we could take 'p_file'. *)
+      match_result
+      |> map_quick_profiling (Core_quick_profiling.add_run_time file run_time)
 
 let add_rule (rule : Rule.rule)
     (match_result : Core_profiling.times match_result) :
@@ -265,7 +308,7 @@ let collate_pattern_results (results : Core_profiling.times match_result list) :
     | None -> all_profiling
     | Some profiling -> Core_profiling.add_times profiling all_profiling
   in
-  let final = Core_profiling.profiling_opt in
+  let final = Option.some in
   collate_results init combine final results
 
 (* Aggregate a list of rule results into one result for the target *)
@@ -280,9 +323,15 @@ let collate_rule_results (file : Fpath.t)
   in
   let final profiling =
     let (p : Core_profiling.partial_profiling) =
-      { p_file = file; p_rule_times = profiling }
+      {
+        p_file = file;
+        p_rule_times =
+          (* Don't want to keep rule times without `-json_time` *)
+          Core_profiling.if_profiling ~default:[] (fun () -> profiling);
+      }
     in
-    Core_profiling.profiling_opt p
+    (* See NOTE "Discarding profiling info". *)
+    Some p
   in
   collate_results init combine final results
 
@@ -322,8 +371,8 @@ let mk_result (results : matches_single_file_with_time list)
     in
     {
       rules =
-        Core_profiling.if_profiling ~default:[] (fun () ->
-            List_.map fst rules_with_engine);
+        Core_profiling.if_profiling ~default:None (fun () ->
+            Some (List_.map fst rules_with_engine));
       rules_parse_time;
       file_times;
       (* Notably, using the `top_heap_words` does not measure cumulative

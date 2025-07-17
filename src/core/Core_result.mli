@@ -32,6 +32,8 @@ type t = {
   valid_rules : Rule.rule list;
   rules_with_targets : Rule.rule list;
   quick_profiling : Core_quick_profiling.t option;
+  (* THINK(iago): If we deprecated `-json_time` we could perhaps merge
+      'quick_profiling' with 'profiling'. *)
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
@@ -60,6 +62,8 @@ val mk_processed_match : Core_match.t -> processed_match
 type 'a match_result = {
   matches : Core_match.t list;
   errors : Core_error.ErrorSet.t;
+  (* THINK: We could merge 'quick_profiling' and 'profiling', having a record type
+    like: type 'a t = { parsing_stats : ...; ...; extra : 'a option; } ??? *)
   quick_profiling : Core_quick_profiling.t option;
   profiling : 'a option;
   explanations : Matching_explanation.t list;
@@ -100,9 +104,20 @@ val mk_match_result :
 val quick_add_parse_time_opt :
   Fpath.t -> float option -> 'a match_result -> 'a match_result
 
+val quick_add_match_time :
+  Fpath.t -> Rule_ID.t -> float -> 'a match_result -> 'a match_result
+
+val quick_add_taint_stats :
+  Core_quick_profiling.Tainting_stats.t -> 'a match_result -> 'a match_result
+
 (* match results profiling adjustment helpers *)
 val map_profiling : ('a -> 'b) -> 'a match_result -> 'b match_result
-val add_run_time : float -> matches_single_file -> matches_single_file_with_time
+
+val add_run_time :
+  Fpath.t ->
+  float option ->
+  matches_single_file ->
+  matches_single_file_with_time
 
 val add_rule :
   Rule.rule ->

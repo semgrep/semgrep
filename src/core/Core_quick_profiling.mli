@@ -12,10 +12,50 @@
 
  *)
 
-type t = { parsing_stats : Summary_stats.t } [@@deriving show]
+module Parsing_stats : Summary_stats.S with type key = Fpath.t
+(** Parsing time per-file. *)
+
+module Scanning_stats : Summary_stats.S with type key = Fpath.t
+(** Scanning time per-file. For CE and `--pro-intrafile` this includes
+  parsing time; it's just simpler that way given that the file is parsed
+  lazily by the 'target_handler'. For `--pro` this does not include
+  parsing time. *)
+
+module Matching_stats : Summary_stats.S with type key = Fpath.t * Rule_ID.t
+(** Matching time per-file and per-rule. Included in the "scanning time";
+  it shows the cost of matching a rule against a file. This also includes
+  the matching performed as part of evaluating a taint rule, see
+  'Match_taint_spec.taint_config_of_rule'. *)
+
+module Tainting_stats :
+  Summary_stats.S with type key = Fpath.t * Pos.t * Rule_ID.t
+(** Tainting time per-def and per-rule. Included in the "scanning time";
+  it shows the cost of running the dataflow analysis. To respect our
+  privacy policy, we only record the position of the definition within
+  the file, but we do not record its name.
+
+  This also includes the analysis of object initializers and the analysis of
+  the top-level statements of a file. *)
+
+type t = {
+  parsing_stats : Parsing_stats.t;
+  scanning_stats : Scanning_stats.t;
+  matching_stats : Matching_stats.t;
+  tainting_stats : Tainting_stats.t;
+}
+[@@deriving show]
 
 val zero : t
 val combine : t -> t -> t
 val combine_opt : t option -> t option -> t option
 val map_opt : (t -> 'a) -> t option -> 'a option
 val add_parse_time : Fpath.t -> float -> t -> t
+
+val add_run_time : Fpath.t -> float -> t -> t
+(** Add the scanning time for a file. *)
+
+val add_match_time : Fpath.t -> Rule_ID.t -> float -> t -> t
+(** Add the matching time for a file and rule. *)
+
+val add_taint_time : Fpath.t -> Pos.t -> Rule_ID.t -> float -> t -> t
+(** Add the tainting time for a definition and rule. *)

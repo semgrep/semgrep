@@ -107,11 +107,7 @@ let check_timeouts_and_warn ~interfile file : unit =
   file.timeouts
   |> Hashtbl.iter (fun opt_name stats ->
          (* TODO: Hash 'opt_name' and show it *)
-         let var_loc =
-           let* name = opt_name in
-           Tok.loc_of_tok (snd name.IL.ident) |> Result.to_option
-         in
-         let loc = var_loc ||| Loc.first_loc_of_file file.path in
+         let loc = IL_helpers.loc_of_name file.path opt_name in
          (* nosemgrep: no-logs-in-library *)
          Logs.warn (fun m ->
              m
