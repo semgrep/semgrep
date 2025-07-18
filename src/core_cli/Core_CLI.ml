@@ -738,7 +738,8 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
 
   (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
   Log_semgrep.setup ~log_to_otel:!trace ?log_to_file:!log_to_file
-    ?require_one_of_these_tags:None ~force_color:true ~level ();
+    ?require_one_of_these_tags:None ~quiet_log_setup:is_rpc_call
+    ~force_color:true ~level ();
 
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m "Version: %s" Version.version);

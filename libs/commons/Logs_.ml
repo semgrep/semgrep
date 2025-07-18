@@ -275,7 +275,8 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
     ?(require_one_of_these_tags = default_tags)
     ?(read_level_from_env_vars = [ "LOG_LEVEL" ])
     ?(read_srcs_from_env_vars = [ "LOG_SRCS" ])
-    ?(read_tags_from_env_vars = [ "LOG_TAGS" ]) ~level () =
+    ?(read_tags_from_env_vars = [ "LOG_TAGS" ]) ?(quiet_log_setup = false)
+    ~level () =
   (* Override the log level if it's provided by an environment variable!
      This is for debugging a command that gets called by some wrapper. *)
   let level : Logs.level option =
@@ -322,10 +323,11 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
            | x -> show_srcs |> List.exists (fun re -> Re.execp re x)
          in
          if not show_log then Logs.Src.set_level src None;
-         Logs.debug (fun m ->
-             m "%s logs for %s"
-               (if show_log then "Showing" else "Skipping")
-               src_name))
+         if not quiet_log_setup then
+           Logs.debug (fun m ->
+               m "%s logs for %s"
+                 (if show_log then "Showing" else "Skipping")
+                 src_name))
 
 (*****************************************************************************)
 (* Poor's man tracing *)

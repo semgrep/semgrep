@@ -101,6 +101,7 @@ val setup :
   ?read_level_from_env_vars:string list ->
   ?read_srcs_from_env_vars:string list ->
   ?read_tags_from_env_vars:string list ->
+  ?quiet_log_setup:bool ->
   level:Logs.level option ->
   unit ->
   unit
