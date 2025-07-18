@@ -458,6 +458,19 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-sarif_sort",
       " <JSON file>",
       Arg_.mk_action_1_conv Fpath.v Core_actions.sarif_sort );
+    ( "-rpc",
+      " don't use this unless you already know",
+      Arg_.mk_action_0_arg (fun () ->
+          RPC.main
+            (caps
+              :> < Cap.exec
+                 ; Cap.tmp
+                 ; Cap.network
+                 ; Cap.readdir
+                 ; Cap.random
+                 ; Cap.chdir
+                 ; Core_scan.caps >);
+          Core_exit_code.(exit_semgrep caps#exit Success)) );
   ]
   @ Test_analyze_generic.actions
       (caps :> < Cap.exec ; Cap.tmp >)
@@ -595,20 +608,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
             CapConsole.print caps#stdout version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  The version of OCaml that was used to build this binary" );
-      ( "-rpc",
-        Arg.Unit
-          (fun () ->
-            RPC.main
-              (caps
-                :> < Cap.exec
-                   ; Cap.tmp
-                   ; Cap.network
-                   ; Cap.readdir
-                   ; Cap.random
-                   ; Cap.chdir
-                   ; Core_scan.caps >);
-            Core_exit_code.(exit_semgrep caps#exit Success)),
-        " don't use this unless you already know" );
     ]
   @ [
       ( "-use_eio",
@@ -722,13 +721,24 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       usage_msg (Array.of_list argv)
   in
 
+  let is_rpc_call = !action = "-rpc" in
+
+  (* Duplicated in Pro_core_CLI.ml *)
+  let level : Logs.level option =
+    if !debug then Some Debug
+      (* TODO(sal): temporary until we fix the existing warnings being printed.
+       * Once fixed, we can remove this else if branch and adhere to the following:
+       * - default: Some Warning
+       * - `-debug` -> Some Debug
+       * - `-verbose` -> Some Info
+       *)
+    else if is_rpc_call then None
+    else Some Info
+  in
+
   (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
   Log_semgrep.setup ~log_to_otel:!trace ?log_to_file:!log_to_file
-    ?require_one_of_these_tags:None ~force_color:true
-    ~level:
-      (* TODO: command-line option or env variable to choose the log level *)
-      (if !debug then Some Debug else Some Info)
-    ();
+    ?require_one_of_these_tags:None ~force_color:true ~level ();
 
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m "Version: %s" Version.version);
