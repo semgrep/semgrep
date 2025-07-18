@@ -1,2 +1,0 @@
-Secrets: Validation for AWS credentials which failed due to possibly transient
-reasons is now retried (3 attempts max).
