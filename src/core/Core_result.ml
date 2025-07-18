@@ -358,8 +358,11 @@ let mk_result (results : matches_single_file_with_time list)
   in
   let errors =
     results
-    |> List.concat_map (fun (x : _ match_result) ->
-           x.errors |> E.ErrorSet.elements)
+    |> List.fold_left
+         (fun errors (x : _ match_result) ->
+           errors |> E.ErrorSet.union x.errors)
+         E.ErrorSet.empty
+    |> E.ErrorSet.elements
   in
 
   let (prof : Core_profiling.t) =
