@@ -276,16 +276,17 @@ module type Instrument_kind = sig
   type data_point
   type value
 
-  val metric_value_of_value : value -> metric_value
-
   val make_data_point :
     ?start_time_unix_nano:int64 ->
     ?now:int64 ->
     ?exemplars:exemplar list ->
     ?attributes:Otel.Proto.Common.key_value list ->
     ?flags:int32 ->
-    metric_value ->
+    value ->
     data_point
+
+  val make_exemplar :
+    ?now:int64 -> ?filtered_attrs:(string * user_data) list -> value -> exemplar
 
   val report_data_points :
     name:string ->
@@ -302,8 +303,14 @@ let make_gauge_kind (type a) (metric_value_of_value : a -> metric_value) :
     type data_point = Otel.Proto.Metrics.number_data_point
     type value = a
 
-    let metric_value_of_value = metric_value_of_value
-    let make_data_point = number_datapoint_of_metric_value
+    let make_data_point ?start_time_unix_nano ?now ?exemplars ?attributes ?flags
+        v =
+      number_datapoint_of_metric_value ?start_time_unix_nano ?now ?exemplars
+        ?attributes ?flags (metric_value_of_value v)
+
+    let make_exemplar ?now ?filtered_attrs v =
+      exemplar_of_metric_value ?now ?filtered_attrs (metric_value_of_value v)
+
     let report_data_points = Otel.Metrics.gauge
   end)
 
@@ -324,8 +331,13 @@ let make_sum_kind (type a) ?is_monotonic
     type data_point = Otel.Proto.Metrics.number_data_point
     type value = a
 
-    let make_data_point = number_datapoint_of_metric_value
-    let metric_value_of_value = metric_value_of_value
+    let make_data_point ?start_time_unix_nano ?now ?exemplars ?attributes ?flags
+        v =
+      number_datapoint_of_metric_value ?start_time_unix_nano ?now ?exemplars
+        ?attributes ?flags (metric_value_of_value v)
+
+    let make_exemplar ?now ?filtered_attrs v =
+      exemplar_of_metric_value ?now ?filtered_attrs (metric_value_of_value v)
 
     let report_data_points =
       Otel.Metrics.sum ~aggregation_temporality ?is_monotonic
@@ -411,7 +423,7 @@ module Make_meter
       K.report_data_points ~name:instrument_meta.name
         ?description:instrument_meta.description ?unit_:instrument_meta.unit_
 
-    let emit ?exemplar ?(attrs = []) ?now (x : metric_value) : unit =
+    let emit ?exemplar ?(attrs = []) ?now (x : value) : unit =
       (* Always include some attrs on all metrics such as semgrep's version. See module level comment for
          why *)
       let attrs = attrs @ default_metric_attributes () in
@@ -423,13 +435,11 @@ module Make_meter
       let metric = report_data_points [ data_point ] in
       P.emit ?service_name:meter_meta.name ~attrs:meter_meta.attrs [ metric ]
 
-    let record ?(attrs = []) (x : value) : unit =
-      x |> K.metric_value_of_value |> emit ~attrs
+    let record ?(attrs = []) (x : value) : unit = x |> emit ~attrs
 
     let record_exemplar ?attrs ?filtered_attrs (value : value) : unit =
       let now = now () in
-      let value = K.metric_value_of_value value in
-      let exemplar = exemplar_of_metric_value ~now ?filtered_attrs value in
+      let exemplar = K.make_exemplar ~now ?filtered_attrs value in
       emit ?attrs ~exemplar ~now value
   end
 
