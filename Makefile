@@ -417,12 +417,6 @@ install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
 	dune build @install # Generate the treesitter stubs for below
 	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
 
-# Run perf benchmarks
-# Running this will reset your `semgrep` command to point to your local version
-# For more information, see "Reproducing the CI benchmarks" in perf/README.md
-.PHONY: perf-bench
-perf-bench:
-	scripts/run-benchmarks.sh
 
 ###############################################################################
 # Dogfood!
