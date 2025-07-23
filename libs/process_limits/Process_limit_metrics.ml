@@ -37,8 +37,8 @@ module Time_limit_duration =
             ~description:"How long Semgrep has spent in exceeded timeouts"
             ~unit_:"ms" ()))
 
-let time_limit_trigger_table = SharedCounterTable.create 10
-let time_limit_time_spent_table = SharedCounterTable.create 10
+let time_limit_trigger_table = SharedCounterTable.create_int_table 10
+let time_limit_time_spent_table = SharedCounterTable.create_int_table 10
 
 let record_time_limit ~name ~duration ~exceeded =
   let ms_of_s x = x *. 1000.0 in
