@@ -1,4 +1,6 @@
 open Cohttp
+open Common
+open Lwt.Infix
 
 (*****************************************************************************)
 (* Prelude *)
@@ -126,7 +128,8 @@ let default_resp_handler_eio (response, body) =
    library, who may or may not know about this requirement. *)
 (* coupling(eio-port): if you change this you must change the eio version *)
 let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
-    ?(chunked = false) ?(resp_handler = default_resp_handler) meth url =
+    ?(chunked = false) ?(resp_handler = default_resp_handler)
+    ?(timeout_secs = 10.0) meth url =
   let module Client : Cohttp_lwt.S.Client =
     (val match !client_ref with
          | Some client -> client
@@ -141,10 +144,22 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
     | _ -> Lwt.return []
   in
   let headers = Header.of_list (content_length_header @ headers) in
-  match%lwt Client.call ~headers ~body ~chunked meth url with
-  | response, response_body ->
-      let%lwt resp = resp_handler (response, response_body) in
-      Lwt.return_ok resp
+
+  let resp =
+    Client.call ~headers ~body ~chunked meth url
+    >>= resp_handler >>= Lwt.return_ok
+  in
+
+  let timeout =
+    Lwt_unix.sleep timeout_secs >>= fun () ->
+    Lwt.return_error
+      (spf "HTTP %s to %s timed out after %.1f seconds" (string_of_meth meth)
+         (Uri.to_string url) timeout_secs)
+  in
+
+  match%lwt Lwt.pick [ resp; timeout ] with
+  | Ok resp -> Lwt.return_ok resp
+  | Error e -> Lwt.return_error e
   | exception Cohttp_lwt.Connection.Retry ->
       Lwt.return_error "Error in request: maybe the server hung up prematurely?"
   | exception exn ->

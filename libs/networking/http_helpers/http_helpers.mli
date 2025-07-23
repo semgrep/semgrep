@@ -31,6 +31,7 @@ val call_client :
   ?resp_handler:
     (Cohttp.Response.t * Cohttp_lwt.Body.t ->
     (Cohttp.Response.t * string) Lwt.t) ->
+  ?timeout_secs:float ->
   Cohttp.Code.meth ->
   Uri.t ->
   (Cohttp.Response.t * string, string) result Lwt.t
