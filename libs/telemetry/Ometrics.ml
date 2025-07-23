@@ -120,6 +120,20 @@ type exemplar = Otel.Proto.Metrics.exemplar
 type metric_value = Otel.Proto.Metrics.number_data_point_value
 type exemplar_value = Otel.Proto.Metrics.exemplar_value
 
+(* Needed so we can keep track of our histogram data *)
+type histogram_data = {
+  (* a list of buckets as described in
+     https://opentelemetry.io/docs/specs/otel/metrics/sdk/#explicit-bucket-histogram-aggregation,
+     with the second item in the tuple being a count for that bucket *)
+  bounds_and_buckets : (float * int64) list option;
+  (* We could derive the below from the above, but let's keep track of it
+     separately for perf reasons I guess *)
+  count : int64;
+  (* Similar here for sum and max. Let's just be explicit for perf reasons *)
+  sum : float option;
+  min_max : (float * float) option;
+}
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -172,6 +186,26 @@ let default_meter_meta =
     attrs = [];
   }
 
+let create_histogram_data (explicit_bounds : float list option) =
+  let bounds_and_buckets =
+    explicit_bounds
+    |> Option.map (fun bounds ->
+           let bounds_and_buckets =
+             List_.map (fun bound -> (bound, 0L)) bounds
+           in
+           (* We add infinity so there's an upper bound, which makes insertion a
+              bit easier *)
+           let bounds_and_buckets_with_inf =
+             bounds_and_buckets @ [ (Float.infinity, 0L) ]
+           in
+           (* Sort bounds/buckets so it's easy to insert *)
+           List.sort
+             (fun (bound_a, _count_a) (bound_b, _count_b) ->
+               Float.compare bound_a bound_b)
+             bounds_and_buckets_with_inf)
+  in
+  { bounds_and_buckets; count = 0L; sum = None; min_max = None }
+
 let metric_value_of_float (f : float) : metric_value = As_double f
 let metric_value_of_int (i : int) : metric_value = As_int (Int64.of_int i)
 let metric_value_of_int64 (i : int64) : metric_value = As_int i
@@ -182,6 +216,72 @@ let number_datapoint_of_metric_value ?(start_time_unix_nano = _program_start)
     : Otel.Proto.Metrics.number_data_point =
   Otel.Proto.Metrics.default_number_data_point ~start_time_unix_nano
     ~time_unix_nano:now ?exemplars ?flags ~attributes ~value ()
+
+let explicit_bounds_of_histogram (histogram : histogram_data) =
+  match histogram.bounds_and_buckets with
+  | None -> None
+  | Some bounds_and_buckets ->
+      let explicit_bounds =
+        bounds_and_buckets |> List_.map fst
+        (* we don't want to include infinite in our bounds, but it is there for convenience *)
+        (* See otel link above bounds_and_buckets in histogram_data for more info *)
+        |> List.filter (fun b -> not (Float.is_infinite b))
+      in
+      Some explicit_bounds
+
+let buckets_of_histogram (histogram : histogram_data) =
+  match histogram.bounds_and_buckets with
+  | None -> []
+  | Some bounds_and_buckets -> List_.map snd bounds_and_buckets
+
+(* See otel link above bounds_and_buckets in histogram_data for more info *)
+let increment_bucket_count (value : float)
+    (bounds_and_buckets : (float * int64) list) : (float * int64) list =
+  let rec aux acc = function
+    | [] -> List.rev acc
+    | (bound, count) :: rest when value <= bound ->
+        List.rev ((bound, Int64.succ count) :: acc) @ rest
+    | (bound, count) :: rest -> aux ((bound, count) :: acc) rest
+  in
+  aux [] bounds_and_buckets
+
+(* Add a value to a histogram data, updating the min, max, and sum as needed *)
+let add_value_to_histogram_data (histogram : histogram_data) value =
+  let bounds_and_buckets =
+    Option.map (increment_bucket_count value) histogram.bounds_and_buckets
+  in
+  let min_max =
+    match histogram.min_max with
+    | None -> Some (value, value) (* first value is both min and max *)
+    | Some (min, max) when value < min -> Some (value, max) (* new min *)
+    | Some (min, max) when value > max -> Some (min, value) (* new max *)
+    | Some min_max -> Some min_max
+  in
+  let count = Int64.succ histogram.count in
+  let sum =
+    match histogram.sum with
+    | None -> Some value (* first value is the sum *)
+    | Some s -> Some (s +. value)
+    (* add to the sum *)
+  in
+  { bounds_and_buckets; count; sum; min_max }
+
+let histogram_datapoint_of_histogram_data
+    ?(start_time_unix_nano = _program_start) ?(now = now ()) ?exemplars
+    ?(attributes = []) ?flags histogram_data :
+    Otel.Proto.Metrics.histogram_data_point =
+  let count = histogram_data.count in
+  let sum = histogram_data.sum in
+  let bucket_counts = buckets_of_histogram histogram_data in
+  let explicit_bounds = explicit_bounds_of_histogram histogram_data in
+  let min, max =
+    match histogram_data.min_max with
+    | None -> (None, None)
+    | Some (min, max) -> (Some min, Some max)
+  in
+  Otel.Proto.Metrics.default_histogram_data_point ~start_time_unix_nano
+    ~time_unix_nano:now ~count ~sum ~bucket_counts ?explicit_bounds ?exemplars
+    ?flags ~attributes ~min ~max ()
 
 let exemplar_value_of_metric_value (value : metric_value) : exemplar_value =
   match value with
@@ -343,7 +443,84 @@ let make_sum_kind (type a) ?is_monotonic
       Otel.Metrics.sum ~aggregation_temporality ?is_monotonic
   end)
 
-(* TODO: make_histogram_kind  *)
+(* default boundaries as described by the otel spec:
+   https://opentelemetry.io/docs/specs/otel/metrics/sdk/#histogram-aggregations
+ *)
+let default_boundaries =
+  [
+    0.0;
+    5.0;
+    10.0;
+    25.0;
+    50.0;
+    75.0;
+    100.0;
+    250.0;
+    500.0;
+    750.0;
+    1000.0;
+    2500.0;
+    5000.0;
+    7500.0;
+    10000.0;
+  ]
+
+(* TODO: base2 exponential bucket histogram:
+   https://opentelemetry.io/docs/specs/otel/metrics/sdk/#base2-exponential-bucket-histogram-aggregation
+ *)
+(* A histogram records data about a population of recorded measurements. It's
+   useful for when you have a high cardinality + size population, and so want to
+   avoid creating a label for each possible type. A bucket will provide the
+   counts per bucket, and then a total sum and count of the population.
+   Optionally it will also record the min and max.
+
+
+   Boundaries define the buckets into which data points are recorded, and
+   buckets are lower bound exclusive, and upper bound inclusive. A histogram
+   without buckets will only record sum, count, and optionally min/max of the
+   entire population.
+
+   An example may be wanting to record the distribution of file sizes. We
+   wouldn't want to create a new metric for each possible size, but we do want
+   to see the shape of the population, so histograms are a good fit.
+ *)
+let make_histogram_kind ?(explicit_boundaries = Some default_boundaries) () :
+    (module Instrument_kind with type value = float list) =
+  (* TODO: We cannot use delta aggregation as we load balance our metric endpoints,
+     leading to the metrics to be split in half, as the endpoint is what keeps the running total *)
+  let delta_aggregation = false in
+  let aggregation_temporality =
+    if delta_aggregation then Otel.Metrics.Aggregation_temporality_delta
+    else Otel.Metrics.Aggregation_temporality_cumulative
+  in
+  (module struct
+    type data_point = Otel.Proto.Metrics.histogram_data_point
+    type value = float list
+
+    let make_data_point ?start_time_unix_nano ?now ?exemplars ?attributes ?flags
+        value =
+      (* Create a default empty histogram *)
+      (* THINK: Do we want to allow people to change bounds after creating the
+         metric? Otel spec wasn't clear to me *)
+      let empty_histogram = create_histogram_data explicit_boundaries in
+      let histogram_data =
+        List.fold_left add_value_to_histogram_data empty_histogram value
+      in
+      histogram_datapoint_of_histogram_data ?start_time_unix_nano ?now
+        ?exemplars ?attributes ?flags histogram_data
+
+    let make_exemplar ?now ?filtered_attrs v =
+      (* exemplars for histograms will be a little broken because of this :/ But
+         they're already experimental so *)
+      let v =
+        match v with
+        | [] -> 0.0 (* no values, use 0.0 as the exemplar value *)
+        | v :: _ -> v
+      in
+      exemplar_of_metric_value ?now ?filtered_attrs (metric_value_of_float v)
+
+    let report_data_points = Otel.Metrics.histogram ~aggregation_temporality
+  end)
 
 (* https://opentelemetry.io/docs/specs/otel/metrics/api/#instrument *)
 (* TODO: async option *)
@@ -400,6 +577,10 @@ module type Meter = sig
     instrument_meta -> (module Instrument with type value = float)
   (* TODO: histograms... *)
 
+  val make_histogram :
+    ?explicit_bounds:float list option ->
+    instrument_meta ->
+    (module Instrument with type value = float list)
   (* TODO: async variants *)
 end
 
@@ -478,6 +659,10 @@ module Make_meter
   let make_int_gauge = make_base_gauge metric_value_of_int
   let make_int64_gauge = make_base_gauge metric_value_of_int64
   let make_float_gauge = make_base_gauge metric_value_of_float
+
+  let make_histogram ?explicit_bounds =
+    make_instrument
+      (make_histogram_kind ?explicit_boundaries:explicit_bounds ())
 end
 
 let make_meter ?(provider = (module Simple_meter_provider : Meter_provider))
