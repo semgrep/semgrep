@@ -55,30 +55,6 @@ rules:
     message: "possibly useless comparison but in eq function"
     languages: [javascript]
     severity: ERROR
-  - id: ambiguous-paths-excluded
-    # Test glob patterns that are unanchored in the legacy
-    # implementation and anchored in the standard Gitignore-compliant
-    # implementation.
-    paths:
-      exclude:
-        - "excluded/excluded.*"
-    patterns:
-      - pattern: "$X == $X"
-    message: "possibly useless comparison but in eq function"
-    languages: [javascript]
-    severity: ERROR
-  - id: ambiguous-paths-included
-    # Test glob patterns that are unanchored in the legacy
-    # implementation and anchored in the standard Gitignore-compliant
-    # implementation.
-    paths:
-      include:
-        - "included/included.*"
-    patterns:
-      - pattern: "$X == $X"
-    message: "possibly useless comparison but in eq function"
-    languages: [javascript]
-    severity: ERROR
   - id: file-excluded-directory-included
     paths:
       exclude:
