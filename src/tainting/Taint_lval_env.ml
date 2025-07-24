@@ -45,7 +45,7 @@ type t = {
       (** Lvalues that are tainted, it is only meant to track l-values of the form x.a_1. ... . a_N. *)
   control : T.taints;
       (** Taints propagated via the flow of control (rather than the flow of data). *)
-  taints_to_propagate : T.taints VarMap.t;
+  taints_waiting_to_be_propagated : T.taints VarMap.t;
       (** Taint that is propagated via taint propagators (internally represented by
     unique propagator variables), this is the taint going into the 'from's.. *)
   pending_propagation_dests : VarSet.t;
@@ -68,7 +68,7 @@ let empty =
   {
     tainted = NameMap.empty;
     control = Taints.empty;
-    taints_to_propagate = VarMap.empty;
+    taints_waiting_to_be_propagated = VarMap.empty;
     pending_propagation_dests = VarSet.empty;
     var_was_touched = None;
   }
@@ -144,9 +144,9 @@ let union le1 le2 =
   {
     tainted;
     control = Taints.union le1.control le2.control;
-    taints_to_propagate =
-      Var_env.varmap_union Taints.union le1.taints_to_propagate
-        le2.taints_to_propagate;
+    taints_waiting_to_be_propagated =
+      Var_env.varmap_union Taints.union le1.taints_waiting_to_be_propagated
+        le2.taints_waiting_to_be_propagated;
     pending_propagation_dests =
       (* THINK: Pending propagation is just meant to deal with right-to-left
        * propagation between call arguments, so for now we just kill them all
@@ -206,7 +206,7 @@ let add_shape var offset new_taints new_shape
     ({
        tainted;
        control;
-       taints_to_propagate;
+       taints_waiting_to_be_propagated;
        pending_propagation_dests;
        var_was_touched;
      } as lval_env) =
@@ -239,7 +239,7 @@ let add_shape var offset new_taints new_shape
                 opt_var_ref)
             tainted;
         control;
-        taints_to_propagate;
+        taints_waiting_to_be_propagated;
         pending_propagation_dests;
         var_was_touched;
       }
@@ -258,26 +258,26 @@ let add var offset new_taints lval_env =
 let add_lval lval new_taints lval_env =
   add_lval_shape lval new_taints Bot lval_env
 
-let propagate_to prop_var taints env =
-  (* THINK: Should we record empty propagations anyways so that we can always
-      match 'from' and 'to' ? We may be keeping around "pending" propagations
-      that will never take place. *)
-  if Taints.is_empty taints then (env, `Recorded)
-  else if VarSet.mem prop_var env.pending_propagation_dests then
+let check_if_can_propagate_to_dest prop_var taints env =
+  if VarSet.mem prop_var env.pending_propagation_dests then
     (* We already visited the "to" and there is a pending propagation
        to make. (Pro-only) *)
     let pending_propagation_dests =
       VarSet.remove prop_var env.pending_propagation_dests
     in
     let env = { env with pending_propagation_dests } in
-    (env, `Pending)
+    (env, `Ready)
   else
     (* We have not yet visited the "to", so we just record the propagation
-       that has to be made. *)
+       that has to be made.
+
+       We also record empty taint here, so we can always match a `$FROM` with
+       a `$TO` and we avoid "dangling" propagation metavariables. *)
     let env =
       {
         env with
-        taints_to_propagate = VarMap.add prop_var taints env.taints_to_propagate;
+        taints_waiting_to_be_propagated =
+          VarMap.add prop_var taints env.taints_waiting_to_be_propagated;
       }
     in
     (env, `Recorded)
@@ -313,13 +313,16 @@ let pending_propagation prop_var env =
       VarSet.add prop_var env.pending_propagation_dests;
   }
 
-let propagate_from prop_var env =
-  let opt_taints = VarMap.find_opt prop_var env.taints_to_propagate in
+let find_taint_to_be_propagated prop_var env =
+  let opt_taints =
+    VarMap.find_opt prop_var env.taints_waiting_to_be_propagated
+  in
   let env =
     if Option.is_some opt_taints then
       {
         env with
-        taints_to_propagate = VarMap.remove prop_var env.taints_to_propagate;
+        taints_waiting_to_be_propagated =
+          VarMap.remove prop_var env.taints_waiting_to_be_propagated;
       }
     else env
   in
@@ -345,7 +348,7 @@ let clean
     ({
        tainted;
        control;
-       taints_to_propagate;
+       taints_waiting_to_be_propagated;
        pending_propagation_dests;
        var_was_touched;
      } as lval_env) lval =
@@ -364,7 +367,7 @@ let clean
               | Some var_ref -> Some (Shape.clean_cell offsets var_ref))
             tainted;
         control;
-        taints_to_propagate;
+        taints_waiting_to_be_propagated;
         pending_propagation_dests;
         (* THINK: Should we clean propagations before they are executed? *)
         var_was_touched;
@@ -384,17 +387,19 @@ let subst ~subst_taints ~subst_cell
     {
       tainted;
       control;
-      taints_to_propagate;
+      taints_waiting_to_be_propagated;
       pending_propagation_dests;
       var_was_touched;
     } =
   let tainted = tainted |> NameMap.filter_map_endo subst_cell in
   let control = control |> subst_taints in
-  let taints_to_propagate = taints_to_propagate |> VarMap.map subst_taints in
+  let taints_waiting_to_be_propagated =
+    taints_waiting_to_be_propagated |> VarMap.map subst_taints
+  in
   {
     tainted;
     control;
-    taints_to_propagate;
+    taints_waiting_to_be_propagated;
     pending_propagation_dests;
     var_was_touched;
   }
@@ -403,19 +408,19 @@ let equal
     {
       tainted = tainted1;
       control = control1;
-      taints_to_propagate = _;
+      taints_waiting_to_be_propagated = _;
       pending_propagation_dests = _;
       var_was_touched = _;
     }
     {
       tainted = tainted2;
       control = control2;
-      taints_to_propagate = _;
+      taints_waiting_to_be_propagated = _;
       pending_propagation_dests = _;
       var_was_touched = _;
     } =
   NameMap.equal equal_cell tainted1 tainted2
-  (* NOTE: We ignore 'taints_to_propagate' and 'pending_propagation_dests',
+  (* NOTE: We ignore 'taints_waiting_to_be_propagated' and 'pending_propagation_dests',
    * we just care how they affect 'tainted'. *)
   && Taints.equal control1 control2
 
@@ -442,7 +447,7 @@ let to_string
     {
       tainted;
       control;
-      taints_to_propagate;
+      taints_waiting_to_be_propagated;
       pending_propagation_dests;
       var_was_touched = _;
     } =
@@ -454,11 +459,11 @@ let to_string
        tainted "[TAINTED]")
   ^ (if Taints.is_empty control then ""
      else "[CONTROL] " ^ T.show_taints control)
-  ^ (if VarMap.is_empty taints_to_propagate then ""
+  ^ (if VarMap.is_empty taints_waiting_to_be_propagated then ""
      else
        VarMap.fold
          (fun dn v s -> s ^ dn ^ "<-" ^ T.show_taints v ^ " ")
-         taints_to_propagate "[TAINT TO BE PROPAGATED]")
+         taints_waiting_to_be_propagated "[TAINT TO BE PROPAGATED]")
   ^
   if VarSet.is_empty pending_propagation_dests then ""
   else

@@ -10,6 +10,9 @@ val hash_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 val hkeys : ('a, 'b) Hashtbl.t -> 'a list
 val map : ('k -> 'v -> 'w) -> ('k, 'v) Hashtbl.t -> ('k, 'w) Hashtbl.t
 
+val sorted_iter :
+  cmp:('a -> 'a -> hash) -> ('a -> 'b -> unit) -> ('a, 'b) Hashtbl.t -> unit
+
 type 'a hashset = ('a, bool) Hashtbl.t
 
 val hashset_of_list : 'a list -> 'a hashset
