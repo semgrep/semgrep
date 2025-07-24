@@ -32,6 +32,7 @@ from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
+from semgrep.error import mark_semgrep_error_as_reported
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.emacs import EmacsFormatter
@@ -241,6 +242,15 @@ class OutputHandler:
 
             self._formatters[output_destination] = formatter
 
+    # TODO: move this function outside of this class so that we can call
+    #  it on any SemgrepError. Generally, we should avoid handling an exception
+    #  and re-raising it, otherwise, it will be reported again.
+    #  The pattern should be:
+    #  1. Accummulate errors.
+    #  2. Report errors and determine exit code.
+    #  3. Exit with the proper exit code.
+    #  If the error comes in the form of an exception, don't re-raise the exception
+    #  or at least use a different exception.
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
         missing_plugin_errors = []
@@ -331,6 +341,8 @@ class OutputHandler:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
+            # Prevent double reporting
+            mark_semgrep_error_as_reported(ex)
             if isinstance(ex.level.value, out.Error_) and not (
                 isinstance(ex, SemgrepCoreError)
                 and ex.is_special_interfile_analysis_error

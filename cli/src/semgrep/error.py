@@ -52,11 +52,18 @@ class SemgrepError(Exception):
     For pretty-printing, exceptions should override `__str__`.
     """
 
-    # In theory we should define those fields here:
+    # Please use @dataclass if you know how to make it work.
+    # Here, we would declare properties:
     # code: int
     # level: out.ErrorSeverity
-    # type_: out.CoreErrorKind
 
+    # @dataclasses and @attrs used in inherited classes override __init__,
+    # causing instance variables to not be inherited automatically.
+    # In those cases, __init__ should be inherited explicitly by calling it
+    # from one of these methods:
+    # - __post_init__ is an initialization method called by @dataclasses.
+    # - __attrs_post_init__ is an initialization method called by @attrs.
+    #
     def __init__(
         self,
         *args: object,
@@ -95,6 +102,24 @@ class SemgrepError(Exception):
         )
 
         return f"{level_tag} {self}"
+
+
+# Track which errors were already reported to ensure every SemgrepError is
+# reported exactly once. The problem is that some SemgrepErrors are caught and
+# reported somewhere else before being reraised. wrapper.py is where
+# all the exceptions are caught and where we check whether they were
+# reported, reporting them as needed.
+# This wouldn't be necessary if exceptions were not reraised once
+# handled.
+REPORTED_SEMGREP_ERRORS = set()
+
+
+def mark_semgrep_error_as_reported(e: SemgrepError) -> None:
+    REPORTED_SEMGREP_ERRORS.add(e)
+
+
+def is_semgrep_error_already_reported(e: SemgrepError) -> bool:
+    return e in REPORTED_SEMGREP_ERRORS
 
 
 # used in text and sarif output, and currently also stored in our metrics
@@ -320,6 +345,7 @@ class ErrorWithSpan(SemgrepError):
     spans: List[Span] = attr.ib(converter=span_list_to_tuple)
     help: Optional[str] = attr.ib(default=None)
 
+    # This is called by @attrs after the generated __init__ method
     def __attrs_post_init__(self) -> None:
         if not hasattr(self, "code"):
             raise ValueError("Inheritors of SemgrepError must define an exit code")
@@ -446,7 +472,7 @@ class ErrorWithSpan(SemgrepError):
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Colors.red, self.long_msg or '')}\n"
 
 
-@attr.s(frozen=True, eq=True)
+@attr.s(eq=True, frozen=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = RULE_PARSE_FAILURE_EXIT_CODE
     level = out.ErrorSeverity(out.Error_())
@@ -455,7 +481,7 @@ class InvalidRuleSchemaError(ErrorWithSpan):
         return out.ErrorType(out.InvalidRuleSchemaError())
 
 
-@attr.s(frozen=True, eq=True)
+@attr.s(eq=True, frozen=True)
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = out.ErrorSeverity(out.Error_())

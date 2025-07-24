@@ -1,0 +1,1 @@
+Print error details when a `SemgrepError` exception is raised and causes `semgrep` to fail.
