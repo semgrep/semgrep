@@ -92,7 +92,7 @@ let parse (str : string) : SCA_version.t =
         (not (Pcre2_.pmatch_noerr ~rex:other_version str))
         && not (Pcre2_.pmatch_noerr ~rex:almost_bailout_version str)
         (* nosemgrep: no-logs-in-library *)
-      then Logs.warn (fun m -> m "unrecognized version format for %s" str);
+      then Logs.debug (fun m -> m "unrecognized version format for %s" str);
       (* alt: raise (Error (spf "wrong version format for %s" str)) in *)
       SCA_version.Other str
 

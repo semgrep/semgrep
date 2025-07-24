@@ -83,6 +83,11 @@ class SemgrepState:
 def get_context() -> click.Context:
     """
     Get the current CLI invocation's click context.
+
+    !!! WARNING(sal): This is NOT thread-safe. Click context is not available
+    in threads, so you need to propagate it manually.
+
+    See `get_state` for more details.
     """
     ctx = click.get_current_context(silent=True)
     if ctx is None:
@@ -107,6 +112,17 @@ def get_config() -> List[str]:
 def get_state() -> SemgrepState:
     """
     Get the current CLI invocation's global state.
+
+    !!! WARNING(sal): This is NOT thread-safe. If you call this from a thread,
+    you will get a different SemgrepState object than the one you started with.
+    In fact, it'll re-configure the SemgrepState object, losing any state
+    that was set on it. You'll lose logging levels, and perhaps see weird
+    issues.
+
+    See `parse_config_string` in `config_resolver.py` details on how to
+    propagate the state to threads.
+
+    See https://pocoo-click.readthedocs.io/en/latest/advanced/#global-context-access
     """
     ctx = get_context()
     return ctx.ensure_object(SemgrepState)

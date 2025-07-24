@@ -6,7 +6,9 @@ type settings = {
   https_proxy : Uri.t option;
   all_proxy : Uri.t option;
   no_proxy : string option;
-  credentials : credentials option;
+  (* If we pass in proxy env vars like HTTP_PROXY="http://localhost:8000" PROXY_USER='sal' PROXY_PASSWORD='123',
+     they end up being logged. Using [@opaque] here avoids us logging proxy credentials. *)
+  credentials : credentials option; [@opaque]
 }
 [@@deriving show, eq]
 

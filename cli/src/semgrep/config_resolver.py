@@ -21,6 +21,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
+import click
 import requests
 from ruamel.yaml import YAMLError
 
@@ -444,6 +445,35 @@ def parse_config_files(
         concurrent.futures.Future[Tuple[Dict[str, YamlTree], List[SemgrepError]]],
         Tuple[str, str],
     ] = {}
+
+    ctx = click.get_current_context(silent=True)
+
+    def context_aware_parse_config_string(
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tuple[Dict[str, YamlTree[Any]], List[SemgrepError]]:
+        """
+        Wrapper to propagate Click context to ThreadPoolExecutor threads
+
+        Click context is not available in the ThreadPoolExecutor threads,
+        so we need to propagate it manually.
+
+        See https://pocoo-click.readthedocs.io/en/latest/advanced/#global-context-access
+        """
+        if ctx is not None:
+            with ctx.scope():
+                return parse_config_string(*args, **kwargs)
+        else:
+            return parse_config_string(*args, **kwargs)
+
+    # !WARNING(sal): ThreadPoolExecutor landmine!
+    # Click's context is thread-local. If you use ThreadPoolExecutor,
+    # any Click-dependent operations will fail or behave unexpectedly
+    # in the worker threads unless the context is explicitly propagated
+    # using `with ctx.scope():` as shown in `context_aware_parse_config_string`.
+    #
+    # TODO(sal): Abstract the use of threadpool with a context-aware wrapper
+    # to prevent this issue from recurring.
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for config_id, contents, config_path in loaded_config_infos:
             if not config_id:  # registry rules don't have config ids
@@ -469,7 +499,7 @@ def parse_config_files(
             else:
                 filename = config_path
             validation_future = executor.submit(
-                parse_config_string,
+                context_aware_parse_config_string,
                 config_id,
                 contents,
                 filename,
@@ -677,7 +707,7 @@ class Config:
 
     @staticmethod
     def _validate(
-        config_dict: Mapping[str, YamlTree]
+        config_dict: Mapping[str, YamlTree],
     ) -> Tuple[Mapping[str, Sequence[Rule]], List[SemgrepError], int]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
