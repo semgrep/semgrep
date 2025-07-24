@@ -721,20 +721,10 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       usage_msg (Array.of_list argv)
   in
 
-  let is_rpc_call = !action = "-rpc" in
-
   (* Duplicated in Pro_core_CLI.ml *)
-  let level : Logs.level option =
-    if !debug then Some Debug
-      (* TODO(sal): temporary until we fix the existing warnings being printed.
-       * Once fixed, we can remove this else if branch and adhere to the following:
-       * - default: Some Warning
-       * - `-debug` -> Some Debug
-       * - `-verbose` -> Some Info
-       *)
-    else if is_rpc_call then None
-    else Some Info
-  in
+  let level : Logs.level option = if !debug then Some Debug else Some Warning in
+
+  let is_rpc_call = !action = "-rpc" in
 
   (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
   Log_semgrep.setup ~log_to_otel:!trace ?log_to_file:!log_to_file
