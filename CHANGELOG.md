@@ -15,7 +15,7 @@
 - Fix the Python parser to correctly handle and parse valid structural dictionary patterns. (gh-11100)
 
 
-## [1.129.0](https://github.com/semgrep/semgrep/releases/tag/v1.129.0) - 2025-07-17
+## (CANCELED) [1.129.0](https://github.com/semgrep/semgrep/releases/tag/v1.129.0) - 2025-07-17
 
 
 ### Added
