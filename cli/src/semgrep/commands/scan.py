@@ -42,6 +42,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
+from semgrep.error import mark_semgrep_error_as_reported
 from semgrep.error import SemgrepError
 from semgrep.git import get_project_url
 from semgrep.metrics import MetricsState
@@ -981,6 +982,8 @@ def scan(
                         all_targets_acc=TargetInfoAccumulator(),
                         filtered_rules=[],
                     )
+                    # Avoid double reporting (ideally: don't reraise)
+                    mark_semgrep_error_as_reported(e)
                     raise e
 
                 output_handler.output(
