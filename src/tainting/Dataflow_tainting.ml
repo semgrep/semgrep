@@ -658,7 +658,9 @@ let sink_of_match lval_env (tm : TP.sink TM.t) =
                (fun (extra_req_acc, ok, lval_env) (var, precondition) ->
                  (* This is the destination/"to" point of the taints associated with the
                     metavariables in a "multi-requires". *)
-                 let taints, lval_env = Lval_env.propagate_from var lval_env in
+                 let taints, lval_env =
+                   Lval_env.find_taint_to_be_propagated var lval_env
+                 in
                  match
                    T.solve_precondition ~ignore_poly_taint:false ~taints
                      precondition
@@ -787,11 +789,11 @@ let handle_taint_propagators env thing taints shape =
   let propagate_froms, propagate_tos =
     List.partition (fun p -> p.TM.spec.TP.kind =*= `From) propagators
   in
-  let pending, lval_env =
+  let ready_to_propagate, lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
-      (fun (pending, lval_env) prop ->
+      (fun (ready, lval_env) prop ->
         (* Only propagate if the current set of taint labels can satisfy the
            propagator's requires precondition.
         *)
@@ -838,18 +840,19 @@ let handle_taint_propagators env thing taints shape =
                        label)
                     taints
             in
-            let lval_env, is_pending =
-              Lval_env.propagate_to prop.spec.var new_taints lval_env
+            let lval_env, is_ready =
+              Lval_env.check_if_can_propagate_to_dest prop.spec.var new_taints
+                lval_env
             in
-            let pending =
-              match is_pending with
-              | `Recorded -> pending
-              | `Pending -> VarMap.add prop.spec.var new_taints pending
+            let ready =
+              match is_ready with
+              | `Recorded -> ready
+              | `Ready -> VarMap.add prop.spec.var new_taints ready
             in
-            (pending, lval_env)
+            (ready, lval_env)
         | Some false
         | None (* THINK: Let the unsolvable pass ? *) ->
-            (pending, lval_env))
+            (ready, lval_env))
       (VarMap.empty, lval_env) propagate_froms
   in
   let lval_env =
@@ -857,7 +860,8 @@ let handle_taint_propagators env thing taints shape =
     | None -> lval_env
     | Some pro_hooks ->
         let lval_env, effects_acc =
-          pro_hooks.run_pending_propagators pending lval_env !(env.effects_acc)
+          pro_hooks.run_taint_propagations ready_to_propagate lval_env
+            !(env.effects_acc)
         in
         env.effects_acc := effects_acc;
         lval_env
@@ -868,7 +872,7 @@ let handle_taint_propagators env thing taints shape =
     List.fold_left
       (fun (taints_in_acc, lval_env) prop ->
         let taints_from_prop, lval_env =
-          Lval_env.propagate_from prop.TM.spec.TP.var lval_env
+          Lval_env.find_taint_to_be_propagated prop.TM.spec.TP.var lval_env
         in
         let lval_env =
           if prop.spec.TP.prop_by_side_effect then

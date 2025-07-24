@@ -94,6 +94,11 @@ let map (f : 'k -> 'v -> 'w) (h : ('k, 'v) Hashtbl.t) : ('k, 'w) Hashtbl.t =
          Hashtbl.add res k w);
   res
 
+let sorted_iter ~cmp f h =
+  h |> Hashtbl.to_seq |> List.of_seq
+  |> List.sort (fun (key1, _) (key2, _) -> cmp key1 key2)
+  |> List.iter (fun (key, data) -> f key data)
+
 let find_default key value_if_not_found h =
   try Hashtbl.find h key with
   | Not_found ->
