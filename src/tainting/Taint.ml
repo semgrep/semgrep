@@ -153,7 +153,7 @@ let compare_lval { base = base1; offset = offset1 }
   | other -> other
 
 let show_arg { name; index = i } =
-  Printf.sprintf "arg(%s#%d)" (IL.str_of_name name) i
+  Printf.sprintf "arg(%s@%d)" (IL.str_of_name name) i
 
 let show_base base =
   match base with

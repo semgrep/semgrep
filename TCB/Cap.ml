@@ -270,6 +270,7 @@ let exec_and_tmp_caps_UNSAFE () =
     method tmp = ()
   end
 
+(* !!DO NOT USE!! *)
 let readdir_UNSAFE () =
   object
     method readdir = ()
