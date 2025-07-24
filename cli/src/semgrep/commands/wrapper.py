@@ -7,6 +7,8 @@ from typing import Optional
 
 from semgrep import state
 from semgrep.error import FATAL_EXIT_CODE
+from semgrep.error import is_semgrep_error_already_reported
+from semgrep.error import mark_semgrep_error_as_reported
 from semgrep.error import SemgrepError
 from semgrep.verbose_logging import getLogger
 
@@ -37,6 +39,9 @@ def handle_command_errors(func: Callable) -> Callable:
             func(*args, **kwargs)
         # Catch custom exception, output the right message and exit
         except SemgrepError as e:
+            if not is_semgrep_error_already_reported(e):
+                logger.error(e.format_for_terminal())
+                mark_semgrep_error_as_reported(e)
             exit_code = e.code
             exc = e
         except Exception as e:  # noqa: W0718
