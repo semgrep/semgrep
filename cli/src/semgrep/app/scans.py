@@ -510,6 +510,7 @@ class ScanHandler:
         ]
 
         complete = out.CiScanComplete(
+            dependencies=out.CiScanDependencies(value=lockfile_dependencies),
             exit_code=cli_suggested_exit_code,
             dependency_parser_errors=dependency_parser_errors,
             stats=out.CiScanCompleteStats(
