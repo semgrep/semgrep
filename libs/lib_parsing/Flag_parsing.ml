@@ -6,6 +6,7 @@ let verbose_lexing = Hook.create false
 let verbose_parsing = Hook.create true
 
 (* see Parse_info.lexical_error helper and Lexical_error exn *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let exn_when_lexical_error = ref true
 
 (* Do not raise an exn when a parse error but use NotParsedCorrectly.

@@ -44,6 +44,7 @@ exception Timeout = Exception.Timeout
 let string_of_timeout_info { Exception.name; max_duration } =
   spf "%s:%g" name max_duration
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let current_timer = ref None
 
 (* it seems that the toplevel block such signals, even with this explicit

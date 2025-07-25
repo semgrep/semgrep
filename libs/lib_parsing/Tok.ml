@@ -127,6 +127,7 @@ exception NoTokenLocation of string
 (*****************************************************************************)
 
 (* see also -full_token_info in Meta_AST.ml *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let pp_full_token_info = ref false
 
 (* for ppx_deriving *)

@@ -24,6 +24,8 @@ let str = H.str
 (* This is used where we incorrectly support an ellipsis instead of
    just a metavariable. *)
 let _fresh_metavariable_name =
+  (* TODO: this is a false positive in the rule.  Why? *)
+  (* nosemgrep: no-ref-declarations-at-top-scope *)
   let counter = ref 0 in
   let get () =
     let n =

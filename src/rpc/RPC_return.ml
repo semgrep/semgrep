@@ -86,7 +86,14 @@ let validate (path : Out.fpath) : bool =
 (*****************************************************************************)
 (* Hooks for handlers defined in Pro_RPC_return.ml *)
 (*****************************************************************************)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_resolve_dependencies = ref None
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_dump_rule_partitions = ref None
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_transitive_reachability_filter = ref None
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_match_subprojects = ref None

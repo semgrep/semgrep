@@ -47,6 +47,7 @@
 (* Set by -json_time in semgrep-core or --time in pysemgrep/osemgrep to save
  * profiling info. Those profiling info found their way then in our metrics.
  *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let profiling = ref false
 let profiling_opt prof = if !profiling then Some prof else None
 let if_profiling ~default f = if !profiling then f () else default

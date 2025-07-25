@@ -63,6 +63,7 @@ let pp_do_in_zero_box f =
   f ();
   Format.close_box ()
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let before_exit = ref []
 
 let main_boilerplate f =

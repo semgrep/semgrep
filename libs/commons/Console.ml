@@ -93,7 +93,10 @@ type highlight_setting = Auto | On | Off [@@deriving show]
 type highlight = On | Off [@@deriving show]
 
 (* set by UConsole.setup() *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let highlight_setting : highlight_setting ref = ref Auto
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let highlight : highlight ref = ref (Off : highlight)
 
 (* accessors *)

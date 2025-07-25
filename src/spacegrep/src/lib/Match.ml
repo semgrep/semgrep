@@ -37,6 +37,7 @@
 open Doc_AST
 open Pattern_AST
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let debug = ref false
 let phys_eq = ( == )
 

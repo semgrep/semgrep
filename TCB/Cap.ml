@@ -280,6 +280,7 @@ let readdir_UNSAFE () =
 (* Entry point *)
 (**************************************************************************)
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let already_called_main = ref false
 
 (* TODO: in addition to the dynamic check below, we could also

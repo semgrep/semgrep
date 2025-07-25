@@ -45,6 +45,7 @@ type client_result = (server_response, string) result
    mechanism for a fibre-local or otherwise non-global networking client. Note
    that DLS is likely not appropriate due to Eio work-stealing and a global
    Mutex is likely not appropriate due to uses of with_client_ref. *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
 let set_client_ref v = client_ref := Some v
 

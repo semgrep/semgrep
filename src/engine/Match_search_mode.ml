@@ -30,6 +30,7 @@ open Match_env
 (* Debugging flags.
  * Note that semgrep-core -matching_explanations can also be useful to debug.
  *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let debug_matches = ref false
 
 (*****************************************************************************)
@@ -675,6 +676,7 @@ let hook_pro_entropy_analysis :
     (mode:Rule.entropy_analysis_mode -> string -> bool) option Hook.t =
   Hook.create None
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_pro_metavariable_name :
     (Lang.t -> G.expr -> Rule.metavar_cond_name -> bool) option ref =
   ref None

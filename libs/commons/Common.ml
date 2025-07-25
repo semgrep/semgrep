@@ -22,6 +22,7 @@ module Log = Log_commons.Log
  * do a try and finalize and instead just call the function, which
  * helps in ocamldebug and also in getting better backtraces.
  *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let debugger = ref false
 
 (*****************************************************************************)

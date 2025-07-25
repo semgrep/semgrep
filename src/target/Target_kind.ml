@@ -33,6 +33,7 @@ let pp_debug fmt t = Format.fprintf fmt "%s" (show t)
 (*****************************************************************************)
 (* Hooks for handlers defined in Sca_hooks.ml *)
 (*****************************************************************************)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_classify_target = ref None
 
 (*****************************************************************************)
