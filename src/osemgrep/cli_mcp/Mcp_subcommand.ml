@@ -12,7 +12,8 @@
 type caps =
   < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
-let hook_run_mcp : (Mcp_CLI.conf -> unit) option Hook.t = Hook.create None
+let hook_run_mcp : (caps -> Mcp_CLI.conf -> unit) option Hook.t =
+  Hook.create None
 
 (*****************************************************************************)
 (* Main logic *)
@@ -20,13 +21,13 @@ let hook_run_mcp : (Mcp_CLI.conf -> unit) option Hook.t = Hook.create None
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (_caps : < caps ; .. >) (conf : Mcp_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Mcp_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Starting semgrep-mcp");
   (* let's go! *)
   match Hook.get hook_run_mcp with
   | Some run_mcp ->
-      run_mcp conf;
+      run_mcp (caps :> caps) conf;
       Exit_code.ok ~__LOC__
   | None ->
       Logs.err (fun m ->
