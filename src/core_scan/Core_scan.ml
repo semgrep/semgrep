@@ -644,7 +644,8 @@ let iter_targets_and_get_matches_and_exn_to_errors
   let process_target (target : Target.t) =
     let internal_path = Target.internal_path target in
     let noprof = Core_profiling.empty_partial_profiling internal_path in
-    Logs.debug (fun m -> m "Core_scan analyzing %a" Target.pp_debug target);
+    Logs.debug (fun m ->
+        m "Core_scan analyzing %s" (Fpath.to_string internal_path));
 
     (* Coupling: if you update handle_target_maybe_with_trace here
      * it's very likely you'd need to update the same in Deep_scan.ml
