@@ -65,9 +65,9 @@ Semgrep analyzes code locally on your computer or in your build environment: **b
 
 Apex · Bash · C · C++ · C# · Clojure · Dart · Dockerfile · Elixir · HTML · Go · Java · JavaScript · JSX · JSON · Julia · Jsonnet · Kotlin · Lisp · Lua · OCaml · PHP · Python · R · Ruby · Rust · Scala · Scheme · Solidity · Swift · Terraform · TypeScript · TSX · YAML · XML · Generic (ERB, Jinja, etc.)
 
-**Semgrep Supply Chain** supports 12 languages across 15 package managers, including:
+**Semgrep Supply Chain** supports 14 languages across 19 package managers, including:
 
-C# (NuGet) · Dart (Pub) · Go (Go modules, `go mod`) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tool, Pipenv, Poetry) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM)
+C# (NuGet) · Dart (Pub) · Elixir (Hex) · Go (Go modules, `go mod`) · Java (Gradle, Maven) · Javascript/Typescript (npm, Yarn, Yarn 2, Yarn 3, pnpm) · Kotlin (Gradle, Maven) · PHP (Composer) · Python (pip, pip-tools, Pipenv, Poetry, uv) · Ruby (RubyGems) · Rust (Cargo) · Scala (Maven) · Swift (SwiftPM, CocoaPods)
 
 For more information, see [Supported languages](https://semgrep.dev/docs/supported-languages/).
 
