@@ -113,6 +113,9 @@ def transitive_reachability_filter(
     args: out.TransitiveReachabilityFilterParams,
 ) -> List[out.TransitiveFinding]:
     call = out.FunctionCall(out.CallTransitiveReachabilityFilter(args))
+    logger.warning(
+        f"transitive reachability filter request: {out.TransitiveReachabilityFilterParams.to_json_string(args)}"
+    )
     ret: Optional[out.RetTransitiveReachabilityFilter] = rpc_call(
         call, out.RetTransitiveReachabilityFilter
     )
