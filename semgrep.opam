@@ -82,7 +82,7 @@ depends: [
   "conf-libev" {os != "win32"}
   "integers_stubs_js"
   "git-unix"
-  "eio"
+  "eio" {= "1.2"}
   "eio_main"
   "tls-eio"
   "odoc" {with-doc}

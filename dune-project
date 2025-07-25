@@ -158,7 +158,8 @@ For more information see https://semgrep.dev
     ; packages that would avoid this effect.
     git-unix
     ; Eio
-    eio
+    ; eio 1.3 appears broken on Windows https://github.com/semgrep/semgrep-proprietary/pull/4322
+    (eio (= 1.2))
     eio_main ; Picks a suitable backend (i.e eio_{posix, linux, windows})
     tls-eio
   )
