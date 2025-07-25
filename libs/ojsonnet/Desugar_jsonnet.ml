@@ -82,6 +82,8 @@ and expr_or_null v : expr =
   | Some e -> e
 
 let freshvar =
+  (* TODO: false positive *)
+  (* nosemgrep: no-ref-declarations-at-top-scope *)
   let store = ref 0 in
   fun () ->
     incr store;

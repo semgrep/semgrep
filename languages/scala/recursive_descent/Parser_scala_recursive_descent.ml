@@ -1071,27 +1071,46 @@ let stableId in_ : stable_id = path ~thisOK:false ~typeOK:false in_
  * mutual dependencies by using forward references.
  * alt: have all functions mutually recursive
  *)
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let interpolatedString_ =
   ref (fun ~inPattern _ ->
       ignore inPattern;
       failwith "forward ref not set")
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let exprTypeArgs_ = ref (fun _ -> failwith "forward ref not set")
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let annotTypeRest_ = ref (fun _ -> failwith "forward ref not set")
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let template_ = ref (fun _ -> failwith "forward ref not set")
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let defOrDcl_ = ref (fun _ _ -> failwith "forward ref not set")
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let tmplDef_ = ref (fun _ -> failwith "forward ref not set")
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let blockStatSeq_ = ref (fun _ -> failwith "forward ref not set")
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let indentedExprOrBlockStatSeqUntil_ =
   ref (fun _ ~until:_ -> failwith "forward ref not set")
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let packageOrPackageObject_ = ref (fun _ _ -> failwith "forward ref not set")
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let typeCaseClauses_ = ref (fun _ -> failwith "forward ref not set")
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let paramClauseInner_ =
   ref (fun ~caseParam:_ ~endTok:_ _ _ -> failwith "forward ref not set")
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let paramType_ =
   ref (fun ?repeatedParameterOK _ ->
       ignore repeatedParameterOK;

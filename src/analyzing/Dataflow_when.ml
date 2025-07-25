@@ -65,6 +65,7 @@ type ctx = facts list
  * true. the functions in this file will only execute if both
  * -deep_intra_file and -path_sensitive are enabled.
  *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_path_sensitive = ref false
 
 (* this visitor is used for annotating an expression and its subexpressions

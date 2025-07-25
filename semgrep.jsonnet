@@ -258,6 +258,11 @@ local semgrep_rules = [
 // ----------------------------------------------------------------------------
 // TCB rules
 // ----------------------------------------------------------------------------
+local parallelism = import 'libs/parallelism/rules.jsonnet';
+
+// ----------------------------------------------------------------------------
+// TCB rules
+// ----------------------------------------------------------------------------
 local tcb = import 'TCB/forbid_everything.jsonnet';
 
 // ----------------------------------------------------------------------------
@@ -293,7 +298,7 @@ local override_messages = {
 // Entry point
 // ----------------------------------------------------------------------------
 
-local all = yml.rules + semgrep_rules + ocaml_rules + tcb.rules;
+local all = yml.rules + semgrep_rules + ocaml_rules + tcb.rules + parallelism.rules;
 
 {
   rules:

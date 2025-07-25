@@ -91,6 +91,7 @@ type spec_matches = {
 (* Hooks *)
 (*****************************************************************************)
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_mk_taint_spec_match_preds :
     (Rule.rule -> spec_matches -> TP.t) option ref =
   ref None

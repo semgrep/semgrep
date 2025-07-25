@@ -34,7 +34,10 @@ type prof = ProfAll | ProfNone | ProfSome of string list
 (* Globals *)
 (*****************************************************************************)
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let profile = ref ProfNone
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let show_trace_profile = ref false
 
 let check_profile category =
@@ -93,6 +96,7 @@ let profile_code category f =
     | Ok res -> res
     | Error e -> Exception.reraise e)
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let _is_in_exclusif = ref (None : string option)
 
 let profile_code_exclusif category f =

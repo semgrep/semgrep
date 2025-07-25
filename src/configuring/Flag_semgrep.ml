@@ -33,9 +33,11 @@ let pfff_only = Hook.create false
 let filter_irrelevant_patterns = Hook.create false
 
 (* Maximum number of tainted lvals to save. *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let max_tainted_vars = ref Limits_semgrep.taint_MAX_TAINTED_VARS
 
 (* Maximum size of the taints set for each lval *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
 
 (* Note that an important flag used during parsing is actually in pfff in

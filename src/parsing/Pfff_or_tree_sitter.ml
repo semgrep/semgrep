@@ -18,6 +18,7 @@ module Flag = Flag_semgrep
 module Log = Log_parsing.Log
 
 (* To get a better backtrace, to better debug parse errors *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let debug_exn = ref false
 
 (*****************************************************************************)

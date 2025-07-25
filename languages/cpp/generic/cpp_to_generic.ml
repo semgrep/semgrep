@@ -21,6 +21,7 @@ module G = AST_generic
 module Log = Log_parser_cpp.Log
 
 (* See Parse_cpp_tree_Sitter.recover_when_partial_error *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let recover_when_partial_error = ref true
 
 (*****************************************************************************)

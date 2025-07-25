@@ -38,6 +38,7 @@ module Resp = Semgrep_output_v1_t
 
 (* Global store, because I don't want to pass it through a bunch of func calls.
  *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let store = ref []
 
 (* This function just processes the exception backtrace to find the first instance where a function

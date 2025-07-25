@@ -122,6 +122,8 @@ let mk_file_env =
     end
   in
   fun taint_inst ast ->
+    (* TODO: false positive *)
+    (* nosemgrep: no-ref-declarations-at-top-scope *)
     let env = ref (Taint_lval_env.empty, Effects.empty) in
     visitor#visit_program (taint_inst, env) ast;
     !env
