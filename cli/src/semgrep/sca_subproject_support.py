@@ -50,6 +50,7 @@ TR_OCAML_RESOLVER_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.PoetryLock())),
     (None, out.LockfileKind(out.PipRequirementsTxt())),
+    (out.ManifestKind(out.Pipfile()), out.LockfileKind(out.PipfileLock())),
 ]
 
 # Subproject kinds that we use ocaml parsers for always.
@@ -67,4 +68,5 @@ TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.PoetryLock())),
     (None, out.LockfileKind(out.PipRequirementsTxt())),
+    (out.ManifestKind(out.Pipfile()), out.LockfileKind(out.PipfileLock())),
 ]
