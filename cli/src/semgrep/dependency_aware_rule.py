@@ -77,6 +77,7 @@ def generate_unreachable_sca_findings(
     already_reachable: Callable[[Path, out.FoundDependency], bool],
     resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
     x_tr: bool,
+    fips_mode: bool,
     write_to_tr_cache: bool = True,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
@@ -155,6 +156,7 @@ def generate_unreachable_sca_findings(
                     message=rule.message,
                     severity=rule.severity,
                     metadata=rule.metadata,
+                    fips_mode=fips_mode,
                 )
                 new_rule_match = evolve(
                     rule_match,

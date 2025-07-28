@@ -377,6 +377,7 @@ def baseline_run(
     allow_local_builds: bool,
     ptt_enabled: bool,
     dry_run: bool,
+    fips_mode: bool,
 ) -> RuleMatchMap:
     """
     Run baseline scan and return the updated rule_matches_by_rule with baseline matches removed.
@@ -492,6 +493,7 @@ def baseline_run(
                     allow_local_builds=allow_local_builds,
                     ptt_enabled=ptt_enabled,
                     dry_run=dry_run,
+                    fips_mode=fips_mode,
                 )
                 rule_matches_by_rule = remove_matches_in_baseline(
                     rule_matches_by_rule,
@@ -516,6 +518,7 @@ def adjust_matches_for_join_rules(
     allow_local_builds: bool,
     ptt_enabled: bool,
     output_handler: OutputHandler,
+    fips_mode: bool,
 ) -> None:
     import semgrep.join_rule as join_rule
 
@@ -525,6 +528,7 @@ def adjust_matches_for_join_rules(
             [scanning_root.path for scanning_root in target_manager.scanning_roots],
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
+            fips_mode=fips_mode,
         )
         join_rule_matches_set = RuleMatches(rule)
         for m in join_rule_matches:
@@ -679,6 +683,7 @@ def adjust_matches_for_sca_rules(
     sca_dependency_targets: List[Path],
     output_handler: OutputHandler,
     output_extra: OutputExtra,
+    fips_mode: bool,
     dry_run: bool = False,
     x_tr: bool = False,
 ) -> Dict[str, List[out.FoundDependency]]:
@@ -730,6 +735,7 @@ def adjust_matches_for_sca_rules(
                 rule,
                 already_reachable,
                 resolved_subprojects,
+                fips_mode=fips_mode,
                 x_tr=x_tr,
                 write_to_tr_cache=not dry_run,
             )
@@ -745,6 +751,7 @@ def adjust_matches_for_sca_rules(
                 rule,
                 lambda p, d: False,
                 resolved_subprojects,
+                fips_mode=fips_mode,
                 x_tr=False,
                 write_to_tr_cache=not dry_run,
             )
@@ -841,6 +848,7 @@ def run_rules(
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
     dry_run: bool = False,
+    fips_mode: bool,
     x_tr: bool = False,
     x_eio: bool = False,
 ) -> Tuple[
@@ -940,6 +948,7 @@ def run_rules(
             allow_local_builds,
             ptt_enabled,
             output_handler,
+            fips_mode,
         )
 
     if len(dependency_aware_rules) > 0:
@@ -952,6 +961,7 @@ def run_rules(
             output_extra=output_extra,
             dry_run=dry_run,
             x_tr=x_tr,
+            fips_mode=fips_mode,
         )
     else:
         logger.verbose("SCA findings adjustment: No SCA rules to adjust")
@@ -1236,6 +1246,7 @@ def run_scan(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
+        fips_mode=fips_mode,
         dry_run=dryrun,
         x_tr=x_tr,
         x_eio=x_eio,
@@ -1278,6 +1289,7 @@ def run_scan(
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
             dry_run=dryrun,
+            fips_mode=fips_mode,
         )
 
     # ---------------------------------

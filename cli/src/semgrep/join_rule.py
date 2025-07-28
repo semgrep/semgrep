@@ -364,7 +364,9 @@ def generate_recursive_cte(model: Type[BaseModel], column1: str, column2: str) -
 # For join mode, we get the final output of Semgrep and then need to construct
 # RuleMatches from that. Ideally something would be refactored so that we don't
 # need to move backwards in the pipeline like this.
-def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> RuleMatch:
+def json_to_rule_match(
+    join_rule: Dict[str, Any], match: Dict[str, Any], fips_mode: bool
+) -> RuleMatch:
     cli_match_extra = out.CliMatchExtra.from_json(match.get("extra", {}))
     extra = out.CoreMatchExtra(
         message=cli_match_extra.message,
@@ -392,12 +394,14 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
             join_rule.get("severity", match.get("severity", "INFO"))
         ),
         metadata=join_rule.get("metadata", match.get("extra", {}).get("metadata", {})),
+        fips_mode=fips_mode,
     )
 
 
 def run_join_rule(
     join_rule: Dict[str, Any],
     scanning_roots: List[Path],
+    fips_mode: bool,
     allow_local_builds: bool = False,
     ptt_enabled: bool = False,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
@@ -568,7 +572,9 @@ def run_join_rule(
             except AttributeError:
                 matches.append(json.loads(match.raw))
 
-    rule_matches = [json_to_rule_match(join_rule, match) for match in matches]
+    rule_matches = [
+        json_to_rule_match(join_rule, match, fips_mode) for match in matches
+    ]
 
     db.close()
     return rule_matches, parsed_errors
