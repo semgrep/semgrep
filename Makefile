@@ -401,10 +401,6 @@ install-semgrep-libs: semgrep.opam
 	dune build
 	dune install
 
-.PHONY: dump
-dump:
-	$(BUILD_DEFAULT)/tests/test.bc -dump_ast tests/lint/stupid.py
-
 # for ocamldebug
 core-bc:
 	dune build $(BUILD)/install/default/bin/semgrep-core.bc
