@@ -10,6 +10,7 @@ and invalid_rule_kind =
   | InvalidRegexp of string (* PCRE error message *)
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
+  | InvalidNotInOr
   | IncompatibleRule of
       Semver_.t (* this version of Semgrep *)
       * (Semver_.t option (* minimum version supported by this rule *)

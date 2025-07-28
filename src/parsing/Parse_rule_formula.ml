@@ -388,11 +388,24 @@ and parse_pair_old env ((key, value) : key * G.expr) :
             R.Anywhere (t, formula)
       in
       R.f formula
-  | "pattern-either" ->
-      let+ formulae =
+  | "pattern-either" -> (
+      let/ formulae =
         parse_listi env key (get_nested_formula_in_list env) value
       in
-      R.Or (t, formulae) |> R.f
+      let not_token =
+        List.find_map
+          (fun (f : Rule.formula) ->
+            match f.f with
+            | R.Not (t, _) -> Some t
+            | _ -> None)
+          formulae
+      in
+      match not_token with
+      | Some tok_ ->
+          Error
+            (Rule_error.mk_error ~rule_id:env.id
+               (InvalidRule (InvalidNotInOr, env.id, tok_)))
+      | None -> Ok (R.Or (t, formulae) |> R.f))
   | "patterns" ->
       let parse_pattern i expr =
         let/ pattern = parse_str_or_dict env expr in

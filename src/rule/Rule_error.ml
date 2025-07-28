@@ -51,6 +51,7 @@ and invalid_rule_kind =
   | InvalidRegexp of string (* PCRE error message *)
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
+  | InvalidNotInOr
   | IncompatibleRule of
       Semver_.t (* this version of Semgrep *)
       * (Semver_.t option (* minimum version supported by this rule *)
@@ -122,6 +123,8 @@ let string_of_invalid_rule_kind = function
         message pattern
   | MissingPositiveTermInAnd ->
       "you need at least one positive term (not just negations or conditions)"
+  | InvalidNotInOr ->
+      "you cannot negate in an Or; you can only negate inside an And"
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | IncompatibleRule (cur, (Some min_version, None)) ->
       spf "This rule requires upgrading Semgrep from version %s to at least %s"
@@ -177,6 +180,7 @@ let is_skippable_error (kind : invalid_rule_kind) : bool =
   | InvalidRegexp _
   | DeprecatedFeature _
   | MissingPositiveTermInAnd
+  | InvalidNotInOr
   | InvalidOther _ ->
       false
   | IncompatibleRule _

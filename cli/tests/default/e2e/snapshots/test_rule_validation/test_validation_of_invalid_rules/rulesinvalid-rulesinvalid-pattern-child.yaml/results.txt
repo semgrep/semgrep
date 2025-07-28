@@ -1,4 +1,4 @@
-Configuration is invalid - found 1 configuration error(s), and 0 rule(s).
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
   --> rules/invalid-rules/invalid-pattern-child.yaml:7
 7  |       - pattern-either:
@@ -7,3 +7,5 @@ semgrep error: Invalid rule schema
 
 Additional properties are not allowed ('pattern-not' was unexpected)
 
+[ERROR] Rule parse error in rule blah:
+ you cannot negate in an Or; you can only negate inside an And
