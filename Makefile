@@ -477,27 +477,3 @@ check_with_docker:
 dev:
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
-
-###############################################################################
-# Pad's targets
-###############################################################################
-
-pr:
-	git push origin `git rev-parse --abbrev-ref HEAD`
-	hub pull-request -b develop -r returntocorp/pa
-push:
-	git push origin `git rev-parse --abbrev-ref HEAD`
-merge:
-	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git pull && git branch -D $$A
-
-# see https://github.com/aryx/codegraph for information on codegraph_build
-index:
-	codegraph_build -lang cmt -derived_data .
-# see https://github.com/aryx/codecheck for information on codecheck
-check2:
-	codecheck -lang ml -with_graph_code graph_code.marshall -filter 3 .
-# see https://github.com/aryx/codemap for information on codemap
-visual:
-	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null .
-visual2:
-	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null src
