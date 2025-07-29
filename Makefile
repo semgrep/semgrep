@@ -371,17 +371,6 @@ rebuild:
 	-$(MAKE) clean
 	$(MAKE) build
 
-# Same as 'make clean' but may remove additional files, such as external
-# libraries installed locally.
-#
-# Specifically, this removes all files that are git-ignored. New source files
-# are preserved, so this command is considered safe.
-#
-.PHONY: gitclean
-gitclean:
-	git clean -dfX
-	git submodule foreach --recursive git clean -dfX
-
 # Prepare a release branch.
 # This is mainly called by .github/workflows/start-release.yml
 # It is safe to run it multiple times.
