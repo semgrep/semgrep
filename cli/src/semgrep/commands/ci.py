@@ -632,6 +632,21 @@ def ci(
         if subdir:
             scanning_root += f"/{subdir}"
 
+        # use the app's suggested git merge base if available, otherwise use the
+        # one we've calculated from the environment
+        final_baseline_commit: str | None = None
+        if not baseline_commit and scan_handler and scan_handler.project_merge_base:
+            logger.info(
+                f"\n  Using app provided merge base for diff scans: {scan_handler.project_merge_base}"
+            )
+            final_baseline_commit = scan_handler.project_merge_base
+        else:
+            if metadata.merge_base_ref:
+                logger.info(
+                    f"\n  Using git merge base detected from environment for diff scans: {metadata.merge_base_ref}"
+                )
+            final_baseline_commit = metadata.merge_base_ref
+
         # Base arguments for actually running the scan. This is done here so we can
         # re-use this in the event we need to perform a second scan. Currently the
         # only case for this is a separate "historical" scan, where we scan the git
@@ -673,14 +688,14 @@ def ci(
             "skip_unknown_extensions": (not scan_unknown_extensions),
             "allow_untrusted_validators": allow_untrusted_validators,
             "optimizations": optimizations,
-            "baseline_commit": metadata.merge_base_ref,
+            "baseline_commit": final_baseline_commit,
             "baseline_commit_is_mergebase": True,
             "capture_core_stderr": capture_core_stderr,
             "allow_local_builds": allow_local_builds,
             "x_eio": x_eio,
-            "x_tr": scan_handler.transitive_reachability_enabled
-            if scan_handler
-            else x_tr,
+            "x_tr": (
+                scan_handler.transitive_reachability_enabled if scan_handler else x_tr
+            ),
             "x_pro_naming": x_pro_naming,
             "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
@@ -717,7 +732,9 @@ def ci(
                 _executed_rule_count,
                 _missed_rule_count,
                 all_subprojects,
-            ) = semgrep.run_scan.run_scan(**run_scan_args)
+            ) = semgrep.run_scan.run_scan(
+                **run_scan_args  # type: ignore
+            )
         except SemgrepError as e:
             # We place output_handler calls after scan_handler calls
             # because the output handler may raise an exception further
@@ -785,7 +802,7 @@ def ci(
                     _missed_rule_count,
                     _historical_all_subprojects,
                 ) = semgrep.run_scan.run_scan(
-                    **run_scan_args,
+                    **run_scan_args,  # type: ignore
                     historical_secrets=True,
                 )
 

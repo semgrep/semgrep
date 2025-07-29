@@ -182,6 +182,15 @@ class ScanHandler:
         return False
 
     @property
+    def project_merge_base(self) -> Optional[str]:
+        """
+        If the app tells us a merge base let's use it.
+        """
+        if self.scan_response and self.scan_response.config.project_merge_base:
+            return self.scan_response.config.project_merge_base.value
+        return None
+
+    @property
     def ptt_enabled(self) -> bool:
         """
         Separate property for easy of mocking in test

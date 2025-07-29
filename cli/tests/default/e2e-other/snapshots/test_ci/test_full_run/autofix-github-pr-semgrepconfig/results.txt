@@ -19,6 +19,8 @@ Not on head ref: <MASKED>; checking that out now.
 Using <MASKED> as the merge-base of <MASKED> and <MASKED>
   Initializing scan (deployment=org_name, scan_id=12345)
   Enabled products: Code, Supply Chain
+  Using git merge base detected from environment for diff scans: <MASKED>
+
 
 ┌─────────────┐
 │ Scan Status │

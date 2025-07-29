@@ -425,16 +425,16 @@ class GithubMeta(GitMeta):
         return self.glom_event(T["pull_request"]["base"]["ref"])  # type:ignore
 
     @cachedproperty
-    def base_branch_hash(self) -> str:
+    def base_branch_hash(self) -> Optional[str]:
         """
         Latest commit hash of the base branch of PR is being merged to
-
-        Assumes we are in PR context
         """
-        base_branch_name = self._base_branch_ref
-        commit = self._get_latest_commit_hash_in_branch(base_branch_name)
-        logger.debug(f"base branch ({base_branch_name}) has latest commit {commit}")
-        return commit
+        if self.is_pull_request_event:
+            base_branch_name = self._base_branch_ref
+            commit = self._get_latest_commit_hash_in_branch(base_branch_name)
+            logger.debug(f"base branch ({base_branch_name}) has latest commit {commit}")
+            return commit
+        return None
 
     def _find_branchoff_point(self, attempt_count: int = 0) -> str:
         """
@@ -661,6 +661,7 @@ class GithubMeta(GitMeta):
         res.pull_request_author_image_url = uri_opt(
             self.glom_event(T["pull_request"]["user"]["avatar_url"])
         )
+        res.base_branch_head_commit = sha1_opt(self.base_branch_hash)
         repo_id = os.getenv("GITHUB_REPOSITORY_ID")
         org_id = os.getenv("GITHUB_REPOSITORY_OWNER_ID")
         if repo_id:
