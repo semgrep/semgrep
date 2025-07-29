@@ -170,6 +170,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
         pull_request_id = self#pr_id;
         pull_request_title = self#pr_title;
         scan_environment;
+        base_branch_head_commit = None;
         is_full_scan = self#is_full_scan;
         repo_id = None;
         org_id = None;
