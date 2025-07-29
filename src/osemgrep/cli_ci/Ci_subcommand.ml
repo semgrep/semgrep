@@ -962,6 +962,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         (* TODO: use ? *)
         triage_ignored_syntactic_ids = _;
         triage_ignored_match_based_ids = _;
+        project_merge_base = _;
         fips_mode;
       };
     (* TODO: lots of things to use there *)
