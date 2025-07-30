@@ -127,10 +127,7 @@ val with_client_ref : (module Cohttp_lwt.S.Client) -> ('a -> 'b) -> 'a -> 'b
 (** [with_client client f x] is a helper function that temporarily sets the client
     reference to the provided client module, runs the provided function, and
     then resets the client reference to its original value.
-
-    NOTE: This function is not thread-safe. We need to refactor this module to
-    require BYO client to support robust thread-safety (and/or just use
-    Eio-based networking). *)
+*)
 
 type eio_call_fn =
   sw:Eio.Switch.t ->

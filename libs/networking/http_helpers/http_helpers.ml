@@ -37,21 +37,17 @@ type client_result = (server_response, string) result
 (* Globals *)
 (*****************************************************************************)
 
-(* Create a client reference so we can swap it out with a testing version *)
+(* Create a client reference so we can swap it out with a testing version.  In
+ * order to not make relevant Testo tests serial, this is a domain-local value,
+ * though in practice it's a global singleton value. *)
+let client_ref : (module Cohttp_lwt.S.Client) option Domain.DLS.key =
+  Domain.DLS.new_key (Fun.const None)
 
-(* SAFETY: This value is currently only used in single-threaded contexts, and
-   relies on this for safety. If you need to use this in a multi-threaded
-   context you should evaluate switching to Eio-based networking or some other
-   mechanism for a fibre-local or otherwise non-global networking client. Note
-   that DLS is likely not appropriate due to Eio work-stealing and a global
-   Mutex is likely not appropriate due to uses of with_client_ref. *)
-(* nosemgrep: no-ref-declarations-at-top-scope *)
-let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
-let set_client_ref v = client_ref := Some v
+let set_client_ref r = Domain.DLS.set client_ref (Some r)
 
 let with_client_ref v f x =
-  let old = !client_ref in
-  Common.protect ~finally:(fun () -> client_ref := old) @@ fun () ->
+  let old = Domain.DLS.get client_ref in
+  Common.protect ~finally:(fun () -> Domain.DLS.set client_ref old) @@ fun () ->
   set_client_ref v;
   f x
 
@@ -129,7 +125,7 @@ let default_resp_handler_eio (response, body) =
 let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
     ?(chunked = false) ?(resp_handler = default_resp_handler) meth url =
   let module Client : Cohttp_lwt.S.Client =
-    (val match !client_ref with
+    (val match Domain.DLS.get client_ref with
          | Some client -> client
          | None -> failwith "HTTP client not initialized")
   in
