@@ -121,7 +121,7 @@ module Legacy = struct
      that mode. To make sure we won't run into problems opening the file, we
      add the [O_SHARE_DELETE] flag when opening all files. *)
   let win_safe_open_in_bin file : in_channel =
-    Unix.openfile file [ O_CREAT; O_RDONLY; O_SHARE_DELETE ] 0o666
+    Unix.openfile file [ O_RDONLY; O_SHARE_DELETE ] 0o666
     |> Unix.in_channel_of_descr
 
   let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
