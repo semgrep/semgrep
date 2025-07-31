@@ -434,6 +434,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--x-group-taint-rules",
+        "x_group_taint_rules",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -680,6 +686,7 @@ def scan(
     x_semgrepignore_filename: Optional[str],
     path_sensitive: bool,
     allow_local_builds: bool,
+    x_group_taint_rules: bool,
 ) -> Optional[ScanResult]:
     if version:
         print(__VERSION__)
@@ -890,6 +897,7 @@ def scan(
                                 optimizations=optimizations,
                                 allow_untrusted_validators=allow_untrusted_validators,
                                 path_sensitive=path_sensitive,
+                                group_taint_rules=x_group_taint_rules,
                             ).validate_configs(config)
                         except SemgrepError as e:
                             metacheck_errors = [e]
@@ -974,6 +982,7 @@ def scan(
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,
+                        x_group_taint_rules=x_group_taint_rules,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])

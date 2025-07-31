@@ -274,6 +274,7 @@ def ci(
     dump_rule_partitions_strategy: Optional[str],
     partial_config: Optional[Path],
     partial_output: Optional[Path],
+    x_group_taint_rules: bool,
 ) -> None:
     state = get_state()
 
@@ -705,6 +706,7 @@ def ci(
             "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
             "fips_mode": scan_handler.fips_mode if scan_handler else False,
             "semgrepignore_filename": x_semgrepignore_filename,
+            "x_group_taint_rules": x_group_taint_rules,
         }
 
         try:
