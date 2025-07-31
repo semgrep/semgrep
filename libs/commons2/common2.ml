@@ -252,6 +252,8 @@ type 'a nonempty = Nonempty of 'a * 'a list
 
 let ( @: ) x (Nonempty (y, xs)) = Nonempty (x, y :: xs)
 let nonempty_to_list (Nonempty (x, xs)) = x :: xs
+let nonempty_map f (Nonempty (x, xs)) = Nonempty (f x, List_.map f xs)
+let nonempty_length (Nonempty (_, xs)) = 1 + List.length xs
 
 (*x: common.ml *)
 (*****************************************************************************)

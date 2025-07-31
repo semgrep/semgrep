@@ -1044,6 +1044,7 @@ def run_scan(
     resolve_all_deps_in_diff_scan: bool = False,
     symbol_analysis: bool = False,
     fips_mode: bool = False,
+    x_group_taint_rules: bool = False,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1216,6 +1217,7 @@ def run_scan(
         symbol_analysis=symbol_analysis,
         fips_mode=fips_mode,
         use_pro_naming_for_intrafile=x_pro_naming,
+        group_taint_rules=x_group_taint_rules,
     )
     # TODO? why displayed here? why not closer to log_running_rules?
     log_rules(filtered_rules, too_many_entries)

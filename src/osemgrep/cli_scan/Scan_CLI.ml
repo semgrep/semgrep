@@ -1015,6 +1015,10 @@ let o_x_pro_naming : bool Term.t =
   let info = Arg.info [ "x-pro-naming" ] ~doc:"<internal, do not use>" in
   Arg.value (Arg.flag info)
 
+let o_x_group_taint_rules : bool Term.t =
+  let info = Arg.info [ "x-group-taint-rules" ] ~doc:"<internal, do not use>" in
+  Arg.value (Arg.flag info)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -1352,14 +1356,14 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
       use_git _use_semgrepignore_v2 validate version version_check vim
       vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long x_tr x_pro_naming
-      =
+      x_group_taint_rules =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
       x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr
-      ||
       (* common.CLI_common.x_eio || *)
-      x_pro_naming
+      || x_pro_naming
+      || x_group_taint_rules
     then
       Logs.warn (fun m ->
           m
@@ -1582,7 +1586,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_timeout_interfile $ o_timeout_threshold $ o_use_git
     $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
     $ o_vim_outputs $ o_x_ignore_semgrepignore_files $ o_x_ls $ o_x_ls_long
-    $ o_x_tr $ o_x_pro_naming)
+    $ o_x_tr $ o_x_pro_naming $ o_x_group_taint_rules)
 
 let doc = "run semgrep rules on files"
 
