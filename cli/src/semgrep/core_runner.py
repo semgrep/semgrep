@@ -526,6 +526,7 @@ class CoreRunner:
         symbol_analysis: bool = False,
         fips_mode: bool = False,
         use_pro_naming_for_intrafile: bool = False,
+        group_taint_rules: bool = False,
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs
@@ -544,6 +545,7 @@ class CoreRunner:
         self._symbol_analysis = symbol_analysis
         self._fips_mode = fips_mode
         self._use_pro_naming_for_intrafile = use_pro_naming_for_intrafile
+        self._group_taint_rules = group_taint_rules
 
     def _extract_core_output(
         self,
@@ -956,6 +958,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             # scans. So let's only add it if that's the case.
             if self._symbol_analysis and engine.is_interfile:
                 cmd.append("-symbol_analysis")
+
+            if self._group_taint_rules:
+                cmd += ["-group_taint_rules"]
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.

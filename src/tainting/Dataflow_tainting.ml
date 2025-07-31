@@ -561,9 +561,26 @@ let effects_of_tainted_sinks env taints sinks : Effect.poly list =
            (* This is where all taint effects start. If it's interproc,
               the call trace will be later augmented into the Call variant,
               but it starts out here as just a PM variant.
-           *)
+            *)
            let taints_with_traces =
-             taints |> Taints.elements
+             taints
+             |> Taints.elements
+                (* EXPERIMENT: Group taint rules
+
+                    Filter taints to only include those whose sources match the
+                    sink. This prevents the generation of effects like:
+
+                      rule-1/source-A ~~~> rule-2/sink-B
+
+                    or
+
+                      rule-2/source-B -> rule-1/sink-A
+
+                    in the first place.
+
+                    See 'Taint_rule_group.mli'.
+                  *)
+             |> List.filter (Taint.is_valid_taint_for_rule sink.pm.rule_id.id)
              |> List_.map (fun t ->
                     { Effect.taint = t; sink_trace = T.PM (sink.Effect.pm, ()) })
            in
@@ -2057,9 +2074,19 @@ and fixpoint_aux taint_inst func ?(needed_vars = IL.NameSet.empty)
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   let end_mapping, timeout =
-    DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
-      ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~fun_cfg)
-      ~forward:true ~flow
+    let fp_timeout =
+      match taint_inst.rule_or_group with
+      | `Rule _ -> Limits_semgrep.taint_FIXPOINT_TIMEOUT
+      | `Group group ->
+          (* EXPERIMENT: Group taint rules
+
+             Running fixpoint with a group of rules would cost more time to
+             converge, so we scale up the timeout. *)
+          float_of_int (Taint_rule_group.length group)
+          *. Limits_semgrep.taint_FIXPOINT_TIMEOUT
+    in
+    DataflowX.fixpoint ~timeout:fp_timeout ~eq_env:Lval_env.equal
+      ~init:init_mapping ~trans:(transfer env ~fun_cfg) ~forward:true ~flow
   in
   record_timeout taint_inst env.func.fname timeout;
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in
