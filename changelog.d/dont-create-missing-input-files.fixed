@@ -1,1 +1,0 @@
-Fix a possibility that an empty file be created in place of a missing input file. This bug had been introduced with Semgrep 1.115.0.
