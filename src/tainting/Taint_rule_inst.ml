@@ -69,7 +69,8 @@ type file = {
 
 type t = {
   file : file;
-  rule_id : Rule_ID.t;  (** Taint rule id, for Deep Semgrep. *)
+  rule_or_group : [ `Rule of Rule_ID.t | `Group of Taint_rule_group.t ];
+      (* EXPERIMENT: Group taint rules. *)
   options : Rule_options.t;
   track_control : bool;
       (** Whether the rule requires tracking "control taint". If it does not,
@@ -94,13 +95,22 @@ let mk_file ~lang ~path ~pro_hooks ~handle_effects =
   }
 
 let record_timeout t opt_name =
+  let num_rules =
+    match t.rule_or_group with
+    | `Rule _ -> 1
+    | `Group group -> Taint_rule_group.length group
+  in
   match Hashtbl.find_opt t.file.timeouts opt_name with
   | None ->
-      Hashtbl.add t.file.timeouts opt_name
-        { first_rule = t.rule_id; num_rules = 1 };
+      let first_rule =
+        match t.rule_or_group with
+        | `Rule rule_id -> rule_id
+        | `Group group -> fst (Taint_rule_group.first_rule group).id
+      in
+      Hashtbl.add t.file.timeouts opt_name { first_rule; num_rules };
       ()
   | Some stats ->
-      stats.num_rules <- stats.num_rules + 1;
+      stats.num_rules <- stats.num_rules + num_rules;
       ()
 
 let check_timeouts_and_warn ~interfile file : unit =

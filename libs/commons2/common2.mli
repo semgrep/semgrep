@@ -102,6 +102,8 @@ val nblines_eff : string -> int
 type 'a nonempty = Nonempty of 'a * 'a list
 
 val nonempty_to_list : 'a nonempty -> 'a list
+val nonempty_map : ('a -> 'b) -> 'a nonempty -> 'b nonempty
+val nonempty_length : 'a nonempty -> int
 
 (*****************************************************************************)
 (* List *)

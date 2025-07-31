@@ -107,6 +107,11 @@ let filter_map_warn_if_None ~warn f xs =
          if Option.is_none opt_y then Log.warn (fun m -> m "%s" warn);
          opt_y)
 
+let rule_needs_to_track_control_taint (rule : R.taint_rule) =
+  let (`Taint spec) = rule.mode in
+  spec.sources |> snd
+  |> List.exists (fun (src : R.taint_source) -> src.source_control)
+
 (*****************************************************************************)
 (* Finding matches for taint specs *)
 (*****************************************************************************)
@@ -247,6 +252,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
 (* Raw spec matches *)
 (*****************************************************************************)
 
+(* THINK(iago): Split into different functions for sources/sinks/etc ? *)
 let raw_spec_matches_of_taint_rule ~per_file_formula_cache xconf file
     ast_and_errors ({ mode = `Taint spec; _ } as rule : R.taint_rule) =
   let file = Fpath.v file in
@@ -633,29 +639,134 @@ let mk_taint_spec_match_preds rule matches =
   | Some hook -> hook rule matches
 
 (*****************************************************************************)
-(* Entry point *)
+(* Taint "configs" *)
 (*****************************************************************************)
 
-let taint_config_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file)
-    xconf ast_and_errors ({ mode = `Taint spec; _ } as rule : R.taint_rule) =
+let preds_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file) xconf
+    ast_and_errors rule =
   let raw_spec_matches, expls =
     raw_spec_matches_of_taint_rule ~per_file_formula_cache xconf !!(file.path)
       ast_and_errors rule
   in
+  let spec_matches = spec_matches_of_raw (rule :> Rule.rule) raw_spec_matches in
+  let preds = mk_taint_spec_match_preds (rule :> Rule.rule) spec_matches in
+  (preds, raw_spec_matches, expls)
+
+let taint_config_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file)
+    xconf ast_and_errors rule =
+  let preds, raw_spec_matches, expls =
+    preds_of_rule ~per_file_formula_cache ~file xconf ast_and_errors rule
+  in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   let options = xconf.config in
-  let spec_matches = spec_matches_of_raw rule raw_spec_matches in
-  let preds = mk_taint_spec_match_preds rule spec_matches in
   ( Taint_rule_inst.
       {
         file;
-        rule_id = fst rule.R.id;
+        rule_or_group = `Rule (fst rule.id);
         options;
-        track_control =
-          spec.sources |> snd
-          |> List.exists (fun (src : R.taint_source) -> src.source_control);
+        track_control = rule_needs_to_track_control_taint rule;
         preds;
       },
     raw_spec_matches,
     expls )
 [@@trace_trace]
+
+(*****************************************************************************)
+(* EXPERIMENT: Group taint rules *)
+(*****************************************************************************)
+
+(** This unions raw spec matches. Pre: all the raw spec matches come from the
+    same rule group. See Taint_rule_group.mli for more details.
+    *)
+let fold_raw_spec_matches raw_spec_matches_list =
+  (* TODO(Tean): This probably should be refactored to a better spot. Can't put
+   * it in Taint_rule_group due to dependency cycling issues. Can some of the
+   * types here be factored out? *)
+  let raw_propagators, raw_sanitizers =
+    match raw_spec_matches_list with
+    | [] ->
+        Log.err (fun m -> m "fold_raw_spec_matches: unexpected empty list");
+        ([], [])
+    | raw_spec_matches :: _ ->
+        (raw_spec_matches.raw_propagators, raw_spec_matches.raw_sanitizers)
+  in
+  let raw_sources =
+    raw_spec_matches_list
+    |> List.concat_map (fun raw_spec_matches -> raw_spec_matches.raw_sources)
+  in
+  let raw_sinks =
+    raw_spec_matches_list
+    |> List.concat_map (fun raw_spec_matches -> raw_spec_matches.raw_sinks)
+  in
+  { raw_sources; raw_propagators; raw_sanitizers; raw_sinks }
+
+let taint_config_of_group ~per_file_formula_cache ~(file : Taint_rule_inst.file)
+    xconf ast_and_errors group =
+  (* See Taint_rule_group.mli for more details. *)
+  let rules = Taint_rule_group.rules group in
+  let group_spec_matches =
+    (* HACK: For every rule except for the first one, we ignore their
+     * propagators and sanitizers when looking for matches, since it should
+     * be the same as the first rule. This saves on a huge memory spike
+     * because we don't need to allocate space for essentially the same
+     * matches between rules in the same group.
+     *
+     * NOTE(Tean): I've tried doing a similar thing with sources and sinks
+     * in the past, because findings will look for the pm associated with
+     * the match when assigning a rule_id. This can lead to missing findings.
+     *
+     * Also, sharing propagators like this can cause differences when dumping
+     * taint sigs, that's because they have slightly different pm match
+     * info, but in practice this doesn't seem to make a difference in findings. *)
+    match rules with
+    | [] ->
+        Log.err (fun m -> m "group_spec_matches: unexpected empty list");
+        []
+    | _ :: _ ->
+        rules
+        |> List_.map (fun (rule : Rule.taint_rule) ->
+               let (`Taint spec) = rule.mode in
+               let spec = { spec with propagators = []; sanitizers = None } in
+               let rule' = { rule with mode = `Taint spec } in
+               preds_of_rule ~per_file_formula_cache ~file xconf ast_and_errors
+                 rule')
+  in
+  (* TODO(iago): It may be better to just have a separate "preds_of_group" that
+    folds over the rules in the group and iterately constructs the 'preds',
+    'raw_spec_matches', and the 'expls'. *)
+  let raw_spec_matches =
+    group_spec_matches
+    |> List_.map (fun (_, raw_spec_matches, _) -> raw_spec_matches)
+    |> fold_raw_spec_matches
+  in
+  let expls =
+    group_spec_matches |> List.concat_map (fun (_, _, expls) -> expls)
+  in
+  let preds =
+    group_spec_matches
+    |> List_.map (fun (preds, _, _) -> preds)
+    |> Taint_rule_group.fold_preds
+  in
+  let rule_or_group = `Group group in
+  let xconf =
+    (* Using the first rule's options, but this is fine because groups must have
+    the same options. See 'Taint_rule_group.group_rules'. *)
+    let first_rule = Taint_rule_group.first_rule group in
+    Match_env.adjust_xconfig_with_rule_options xconf first_rule.options
+  in
+  let options = xconf.config in
+  let track_control = rules |> List.exists rule_needs_to_track_control_taint in
+  ( Taint_rule_inst.{ file; rule_or_group; options; track_control; preds },
+    raw_spec_matches,
+    expls )
+[@@trace_trace]
+
+let taint_config_of_rule_or_group ~per_file_formula_cache ~file xconf
+    ast_and_errors rule_or_group =
+  match rule_or_group with
+  | `Rule rule ->
+      taint_config_of_rule ~per_file_formula_cache ~file xconf ast_and_errors
+        rule
+  | `Group group ->
+      taint_config_of_group ~per_file_formula_cache ~file xconf ast_and_errors
+        group
