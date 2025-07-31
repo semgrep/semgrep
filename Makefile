@@ -110,7 +110,6 @@ copy-core-for-cli:
 core:
 	dune build $(BUILD)/install/default/bin/semgrep-core$(EXE)
 	dune build $(BUILD)/install/default/bin/osemgrep$(EXE)
-	dune build $(BUILD)/install/default/bin/semgrep$(EXE)
 # Remove all symbols with GNU strip. It saves 10-25% on the executable
 # size and it doesn't seem to reduce the functionality or
 # debuggability of OCaml executables.
