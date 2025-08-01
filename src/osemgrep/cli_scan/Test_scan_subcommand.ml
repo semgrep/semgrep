@@ -123,6 +123,7 @@ let test_basic_output (caps : Scan_subcommand.caps) () =
                   [|
                     "semgrep-scan";
                     "--experimental";
+                    "--x-eio";
                     (* explicitly turn metrics on to ensure debug text prints to console *)
                     "--metrics=on";
                     "--config";
@@ -158,6 +159,7 @@ let test_basic_verbose_output (caps : Scan_subcommand.caps) () =
                   [|
                     "semgrep-scan";
                     "--experimental";
+                    "--x-eio";
                     "--config";
                     "rules.yml";
                     "--verbose";
@@ -180,6 +182,7 @@ let test_basic_output_with_metrics_off (caps : Scan_subcommand.caps) () =
                   [|
                     "semgrep-scan";
                     "--experimental";
+                    "--x-eio";
                     "--metrics=off";
                     "--config";
                     "rules.yml";
@@ -203,6 +206,7 @@ let test_metrics_output_supressed_on_subsequent_runs
                   [|
                     "semgrep-scan";
                     "--experimental";
+                    "--x-eio";
                     "--metrics=on";
                     "--config";
                     "rules.yml";
