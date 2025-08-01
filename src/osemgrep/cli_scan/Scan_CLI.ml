@@ -1446,6 +1446,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         strict;
         time_flag;
         matching_explanations;
+        use_eio = common.CLI_common.x_eio;
         (* only relevant for CI scans, but must be here for when we make
            the `Core_runner_conf.t`
         *)

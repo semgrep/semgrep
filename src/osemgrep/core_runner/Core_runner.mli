@@ -19,6 +19,7 @@ type conf = {
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
+  use_eio : bool;
   (* extra scan-adjacent information: symbol_analysis and fips_mode
      are only set by the scan config received from the app
   *)
