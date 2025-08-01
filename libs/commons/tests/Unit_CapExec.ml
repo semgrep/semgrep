@@ -21,7 +21,7 @@ let tests caps =
                   Alcotest.(check string)
                     "it should exec with parent env and find FOO value" "bar"
                     str
-              | Error _err -> failwith "error"));
+              | Error (`Msg msg) -> failwith msg));
       t "string_of_run and passed env" (fun () ->
           Testutil_mock.with_setenv "FOO" "bar" (fun () ->
               let cmd = (Cmd.Name "sh", [ "-c"; "echo $FOO" ]) in
@@ -32,7 +32,7 @@ let tests caps =
                   Alcotest.(check string)
                     "it should exec with new env and find FOO overriden value"
                     "foo" str
-              | Error _err -> failwith "error"));
+              | Error (`Msg msg) -> failwith msg));
       t "string_of_run and passed env and inherited env " (fun () ->
           Testutil_mock.with_setenv "FOO" "bar" (fun () ->
               let cmd = (Cmd.Name "sh", [ "-c"; "echo $FOO" ]) in
@@ -42,7 +42,7 @@ let tests caps =
               | Ok (str, _status) ->
                   Alcotest.(check string)
                     "it should find FOO value from inherited env" "bar" str
-              | Error _err -> failwith "error"));
+              | Error (`Msg msg) -> failwith msg));
       t "string_of_run preserves parent env when passing new env" (fun () ->
           Testutil_mock.with_setenv "FOO" "bar" (fun () ->
               let cmd = (Cmd.Name "sh", [ "-c"; "echo $FOO:$BAR" ]) in
@@ -53,5 +53,5 @@ let tests caps =
                   Alcotest.(check string)
                     "it should have both parent FOO and passed BAR" "bar:foo"
                     str
-              | Error _err -> failwith "error"));
+              | Error (`Msg msg) -> failwith msg));
     ]
