@@ -43,6 +43,7 @@ type conf = {
    * even if it was not requested by the CLI
    *)
   dataflow_traces : bool;
+  use_eio : bool;
   (* symbol_analysis and fips_mode are set by the scan config from the app *)
   symbol_analysis : bool;
   fips_mode : bool;
@@ -94,6 +95,7 @@ let default_conf : conf =
     time_flag = false;
     nosem = true;
     strict = false;
+    use_eio = false;
     symbol_analysis = false;
     fips_mode = false;
   }
@@ -159,6 +161,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    nosem = _TODO;
    strict;
    time_flag;
+   use_eio;
    (* TODO *)
    dataflow_traces = _;
    symbol_analysis;
@@ -190,7 +193,11 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         telemetry = None;
         symbol_analysis;
         fips_mode;
-        use_eio = false;
+        use_eio;
+        (* XXX: careful!  Even though we are opting into eio with [use_eio],
+         * it still falls to the caller to set up the parallelism config
+         * (since Eio "so very helpfully" insists on everything being lexically-
+         * scoped) *)
         par_conf = None;
       }
 
@@ -277,6 +284,17 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
         target_source = Targets targets;
         rule_source = Rules applicable_rules;
       }
+    in
+
+    (* Lastly, wrap the core scan operation in an Eio loop.
+     * It's unfortunate that this has to happen here, but is a consequence of
+     * Eio being "lexically-scoped". *)
+    let core_scan_func =
+      if config.use_eio then fun config ->
+        Eio_main.run (fun env ->
+            let par_conf = Some (Parallelism_config.create env) in
+            core_scan_func { config with par_conf })
+      else core_scan_func
     in
 
     (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
