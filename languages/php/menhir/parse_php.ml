@@ -15,7 +15,6 @@
 open Fpath_.Operators
 module Ast = Cst_php
 module Flag = Flag_parsing
-module Flag_php = Flag_parsing_php
 module TH = Token_helpers_php
 module PS = Parsing_stat
 module Log = Log_lib_parsing.Log

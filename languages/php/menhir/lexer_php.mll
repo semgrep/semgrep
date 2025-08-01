@@ -20,7 +20,6 @@ open Parser_php
 
 module Ast = Cst_php
 module Flag = Flag_parsing
-module Flag_php = Flag_parsing_php
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,11 +57,6 @@ let tokinfo = Tok.tok_of_lexbuf
 
 let tokinfo_file_str_pos (file : Fpath.t) (str : string) (bytepos : int) : Tok.t
   = Tok.make ~str ~bytepos ~file
-
-let lang_ext_or_t_ident ii fii =
-  if !Flag_php.facebook_lang_extensions
-  then fii ii
-  else T_IDENT((Tok.content_of_tok ii), ii)
 
 let t_variable_or_metavar s info =
   (* sgrep-ext: we used to generate a T_IDENT here, so a metavariable
@@ -189,8 +183,8 @@ let keyword_table = Hashtbl_.hash_of_list [
   (* old: "__halt_compiler", (fun ii -> T_HALT_COMPILER ii); *)
 
   (* php-facebook-ext: *)
-  "await", (fun ii -> lang_ext_or_t_ident ii (fun x -> T_AWAIT x));
-  "type",    (fun ii -> lang_ext_or_t_ident ii (fun x -> T_TYPE x));
+  "await", (fun ii -> T_AWAIT ii);
+  "type",    (fun ii -> T_TYPE ii);
   (* for attribute declarations and Hack first class enums *)
   "enum", (fun ii -> T_ENUM ii);
 ]
@@ -325,10 +319,8 @@ let push_token tok =
  * be to not have those ugly lexing rules for cast, but this would
  * lead to some grammar ambiguities or require other parsing hacks anyway.
 *)
-let lang_ext_or_cast t lexbuf =
-  if !Flag_php.facebook_lang_extensions
-  then
-    (match !_last_non_whitespace_like_token with
+let lang_ext t lexbuf =
+    match !_last_non_whitespace_like_token with
     | Some (T_FUNCTION _) ->
       let s = tok lexbuf in
       (* just keep the open parenthesis *)
@@ -336,8 +328,6 @@ let lang_ext_or_cast t lexbuf =
       TOPAR (tokinfo lexbuf)
     | _ ->
       t
-    )
-  else t
 }
 
 (*****************************************************************************)
@@ -704,36 +694,36 @@ rule st_in_scripting = parse
      * string(). So what they have done if this ugly lexing hack.
      *)
     | "(" TABS_AND_SPACES ("int"|"integer") TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_INT_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_INT_CAST(tokinfo lexbuf)) lexbuf }
 
     | "(" TABS_AND_SPACES ("real"|"double"|"float") TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_DOUBLE_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_DOUBLE_CAST(tokinfo lexbuf)) lexbuf }
 
     | "(" TABS_AND_SPACES "string" TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_STRING_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_STRING_CAST(tokinfo lexbuf)) lexbuf }
 
     | "(" TABS_AND_SPACES "binary" TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_STRING_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_STRING_CAST(tokinfo lexbuf)) lexbuf }
 
     | "(" TABS_AND_SPACES "array" TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_ARRAY_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_ARRAY_CAST(tokinfo lexbuf)) lexbuf }
 
     | "(" TABS_AND_SPACES "object" TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_OBJECT_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_OBJECT_CAST(tokinfo lexbuf)) lexbuf }
 
     | "(" TABS_AND_SPACES ("bool"|"boolean") TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_BOOL_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_BOOL_CAST(tokinfo lexbuf)) lexbuf }
 
     (* PHP is case insensitive for many things *)
     | "(" TABS_AND_SPACES "Array" TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_ARRAY_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_ARRAY_CAST(tokinfo lexbuf)) lexbuf }
     | "(" TABS_AND_SPACES "Object" TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_OBJECT_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_OBJECT_CAST(tokinfo lexbuf)) lexbuf }
     | "(" TABS_AND_SPACES ("Bool"|"Boolean") TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_BOOL_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_BOOL_CAST(tokinfo lexbuf)) lexbuf }
 
     | "(" TABS_AND_SPACES ("unset") TABS_AND_SPACES ")"
-        { lang_ext_or_cast (T_UNSET_CAST(tokinfo lexbuf)) lexbuf }
+        { lang_ext (T_UNSET_CAST(tokinfo lexbuf)) lexbuf }
     | "?>"
         {
           (* because of XHP and my token merger:
