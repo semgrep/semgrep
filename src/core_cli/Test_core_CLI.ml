@@ -19,7 +19,7 @@ let t = Testo.create ?skipped:Testutil.skip_on_windows
 type exn_res = ExnExit of int
 
 let run_main (caps : Cap.all_caps) (cmd : string) : (unit, exn_res) result =
-  let args = String_.split ~sep:"[ \t]+" cmd in
+  let args = String_.split ~sep:"[ \t]+" cmd @ [ "-use_eio" ] in
   (* we run main_exn() below in a child process because it modifies many globals
    * and we don't want to write code to reset those globals between two
    * tests; simpler to just fork.
