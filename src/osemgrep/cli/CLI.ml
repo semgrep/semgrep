@@ -180,9 +180,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
       Metrics_.add_user_agent_tag "osemgrep";
       Metrics_.add_user_agent_tag (Printf.sprintf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> List_.exclude (fun x ->
-             (* TODO: don't use JaneStreet Base until we agree to do so *)
-             not (Base.String.is_prefix ~prefix:"-" x))
+      |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.

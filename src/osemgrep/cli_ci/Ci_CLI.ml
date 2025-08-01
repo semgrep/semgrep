@@ -280,6 +280,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         ~allow_local_builds ~x_tr
     in
     let rules_source = Rules_source.Configs config in
+    let use_eio = common.x_eio in
     let core_runner_conf =
       {
         Core_runner.num_jobs;
@@ -293,6 +294,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         strict = false;
         time_flag = false;
         matching_explanations;
+        use_eio;
         (* coupling: symbol_analysis and fips_mode will be set later by the scan config *)
         symbol_analysis = false;
         fips_mode = false;
