@@ -31,8 +31,15 @@ local
       WORKFLOW_FILE: workflow_file,
       REPO: repo,
     },
-    // get the most recent workflow run id from a specific commit sha
-    // This is not as hacky as it seems I promise
+    // Get the most recent workflow run id from a specific commit sha.
+    //
+    // This assumes that the workflows are sorted newest first and it
+    // appears to be the case in practice. But if for some unusual reason
+    // the latest workflow run attempt failed, it will be picked up here.
+    // In this case, an easy fix is to identify the failed
+    // workflow run on the GitHub website and right-click to delete it. It
+    // will then disappear from the list of workflow runs returned by
+    // the 'gh api' command below.
     run: |||
       workflow_run_id=$(gh api /repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs \
         --method GET -f head_sha=${SHA} \
