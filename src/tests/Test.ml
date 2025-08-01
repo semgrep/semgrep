@@ -119,6 +119,10 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
 let tests (caps : Cap.all_caps) =
   List_.flatten
     [
+      (* Tests that still fork via CapProcess.apply_in_child_process_promisei
+         must come before any that fork Domains.*)
+      Test_core_CLI.tests (caps :> Cap.all_caps);
+      (* And the rest... *)
       Commons_tests.tests;
       Collections_tests.tests;
       Unit_CapExec.tests (caps :> < Cap.exec >);
@@ -178,7 +182,6 @@ let tests (caps : Cap.all_caps) =
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       Unit_core_json_output.tests;
-      Test_core_CLI.tests (caps :> Cap.all_caps);
       (* Inline tests *)
       Testo.get_registered_tests ();
       (* Parallelism tests must come last, as previous tests require forking
