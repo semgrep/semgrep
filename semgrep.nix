@@ -155,7 +155,7 @@ in let
 
       # only needed for testing
       # TODO split out into separate derivation
-      ./cli/tests/default/e2e/targets/ls
+      ./cli/tests
       ./scripts/run-core-test
       ./scripts/make-symlinks
       ./test
