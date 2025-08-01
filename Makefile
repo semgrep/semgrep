@@ -93,7 +93,6 @@ all:
 	$(MAKE) copy-core-for-cli
 # Python setup
 	cd cli && pipenv install --dev
-	$(MAKE) -C cli build
 
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
