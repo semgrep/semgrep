@@ -62,7 +62,6 @@ and show_kind =
   | DumpCST of Fpath.t * Lang.t
   | DumpAST of Fpath.t * Lang.t
   | DumpConfig of Rules_config.config_string
-  | DumpRuleV2 of Fpath.t
   | DumpTargets of
       Scanning_root.t * Find_targets.conf * Rules_config.config_string option
   (* 'semgrep show ???'
@@ -241,22 +240,6 @@ let dump_config_cmd =
       const (fun config common json ->
           { common; json; show_kind = DumpConfig config })
       $ config_arg $ CLI_common.o_common $ o_json)
-  in
-  Cmd.v info term
-
-let dump_rule_v2_cmd =
-  let doc =
-    "Dump the internal representation of a rule using the new (v2) syntax"
-  in
-  let file_arg =
-    Arg.(required (pos 0 (some string) None (info [] ~docv:"FILE")))
-  in
-  let info = Cmd.info "dump-rule-v2" ~doc in
-  let term =
-    Term.(
-      const (fun file common json ->
-          { common; json; show_kind = DumpRuleV2 (Fpath.v file) })
-      $ file_arg $ CLI_common.o_common $ o_json)
   in
   Cmd.v info term
 
@@ -442,7 +425,6 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
         dump_cst_cmd;
         dump_ast_cmd;
         dump_config_cmd;
-        dump_rule_v2_cmd;
         dump_targets_cmd;
         debug_cmd caps;
         dump_lockfile_cmd;
