@@ -64,17 +64,6 @@ rules:
     severity: ERROR
 |}
 
-(* for dump-rule-v2 test *)
-let eqeq_basic_content_v2 =
-  {|
-rules:
-  - id: eqeq-bad
-    match: $X == $X
-    message: "useless comparison"
-    languages: [python]
-    severity: ERROR
-|}
-
 let foo_py_content = {|
 def foo():
     return 42
@@ -182,17 +171,6 @@ let test_dump_config (caps : < caps ; .. >) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_rule_v2 (caps : < caps ; .. >) : Testo.t =
-  t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
-      let files = [ F.File ("rule.yml", eqeq_basic_content_v2) ] in
-      let exit_code =
-        Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
-          (fun _cwd ->
-            Show_subcommand.main caps
-              [| "semgrep-show"; "dump-rule-v2"; "rule.yml" |])
-      in
-      Exit_code.Check.ok exit_code)
-
 (* less: could also test the dump-ast -json *)
 let test_dump_ast (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ())
@@ -279,6 +257,5 @@ let tests (caps : < caps ; .. >) =
       test_dump_ast caps;
       test_dump_ast_when_error caps;
       test_dump_config caps;
-      test_dump_rule_v2 caps;
       (* TODO? engine_path and command_for_core *)
     ]
