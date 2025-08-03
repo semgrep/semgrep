@@ -227,14 +227,11 @@ let rec expr env (x : expr) =
   | List (CompForIf (l, (v1, v2), r), _expr_ctx) ->
       let e1 = comprehension env expr v1 v2 in
       G.Comprehension (G.List, (l, e1, r)) |> G.e
-  | Subscript (v1, v2, _expr_ctx) ->
-      (let e = expr env v1 in
-       match v2 with
-       | l1, [ x ], l2 -> slice1 env e (l1, x, l2)
-       | l1, xs, _ ->
-           let xs = list (slice env e) xs in
-           G.OtherExpr (("Slices", l1), xs |> List_.map (fun x -> G.E x)))
-      |> G.e
+  | Subscript (v1, v2, _expr_ctx) -> (
+      let e = expr env v1 in
+      match v2 with
+      | l1, [ x ], l2 -> slice1 env e (l1, x, l2) |> G.e
+      | l1, xs, l2 -> slice env e (l1, xs, l2) |> G.e)
   | Attribute (v1, t, v2, _expr_ctx) ->
       let v1 = expr env v1 and t = info t and v2 = name env v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
@@ -448,15 +445,33 @@ and slice1 env e1 (t1, e2, t2) : G.expr_kind =
       and v3 = option (expr env) v3 in
       G.SliceAccess (e1, (t1, (v1, v2, v3), t2))
 
-and slice env e = function
-  | Index v1 ->
-      let v1 = expr env v1 in
-      G.ArrayAccess (e, fb v1) |> G.e
-  | Slice (v1, v2, v3) ->
-      let v1 = option (expr env) v1
-      and v2 = option (expr env) v2
-      and v3 = option (expr env) v3 in
-      G.SliceAccess (e, fb (v1, v2, v3)) |> G.e
+and slice env e1 (t1, e2, t2) : G.expr_kind =
+  let indices =
+    e2
+    |> List_.filter_map (function
+         | Index v1 -> Some v1
+         | Slice _ -> None)
+  in
+  (* e.g. tuple[str, int] *)
+  if Int.equal (List.length indices) (List.length e2) then
+    let v = bracket (list (expr env)) (t1, indices, t2) in
+    let container = G.Container (G.Tuple, v) |> G.e in
+    G.ArrayAccess (e1, (t1, container, t2))
+  (* this shouldn't occur but let's handle it gracefully *)
+    else
+    let e2' =
+      e2
+      |> List_.map (function
+           | Index v1 ->
+               let v1 = expr env v1 in
+               G.ArrayAccess (e1, fb v1) |> G.e
+           | Slice (v1, v2, v3) ->
+               let v1 = option (expr env) v1
+               and v2 = option (expr env) v2
+               and v3 = option (expr env) v3 in
+               G.SliceAccess (e1, fb (v1, v2, v3)) |> G.e)
+    in
+    G.OtherExpr (("Slices", t1), e2' |> List_.map (fun x -> G.E x))
 
 and param_pattern_pat env = function
   | PatternName n -> G.PatId (name env n, G.empty_id_info ())
