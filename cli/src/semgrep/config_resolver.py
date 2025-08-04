@@ -62,18 +62,6 @@ logger = getLogger(__name__)
 AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"
 
-DEFAULT_CONFIG = {
-    "rules": [
-        {
-            "id": "eqeq-is-bad",
-            "pattern": "$X == $X",
-            "message": "$X == $X is a useless equality check",
-            "languages": ["python"],
-            "severity": out.Error().to_json(),
-        },
-    ],
-}
-
 CLOUD_PLATFORM_CONFIG_ID = "semgrep-app-rules"
 REGISTRY_CONFIG_ID = "remote-registry"
 NON_REGISTRY_REMOTE_CONFIG_ID = "remote-url"
