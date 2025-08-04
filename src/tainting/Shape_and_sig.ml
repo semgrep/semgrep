@@ -795,8 +795,11 @@ module Instantiated_signature = struct
       In particular, there is no 'ToSinkInCall' effect, and 'ToLval' effects
       refer to specific 'IL.lval's rather than to 'Taint.lval's. *)
 
-  type t = effect_ list
+  type t = effect_ Seq.t
+  (** Using lazy sequences helps reducing peak memory usage, the instantiated
+    effects can be computed and consumed as they are needed, and then GCed
+    (hopefully) before getting promoted to the major heap. *)
 
   let show call_effects =
-    call_effects |> List_.map Effect.show |> String.concat "; "
+    call_effects |> Seq.map Effect.show |> List.of_seq |> String.concat "; "
 end
