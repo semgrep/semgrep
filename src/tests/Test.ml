@@ -119,9 +119,10 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
 let tests (caps : Cap.all_caps) =
   List_.flatten
     [
-      (* Tests that still fork via CapProcess.apply_in_child_process_promisei
-         must come before any that fork Domains.*)
+      (* Tests that still fork via CapProcess.apply_in_child_process_promise
+         or Bos.OS.Cmd.run must come before any that spawn Domains.*)
       Test_core_CLI.tests (caps :> Cap.all_caps);
+      Legacy_unit_ls.tests (caps :> Legacy_session.caps);
       (* And the rest... *)
       Commons_tests.tests;
       Collections_tests.tests;
@@ -160,7 +161,6 @@ let tests (caps : Cap.all_caps) =
       Unit_jsonnet.tests (caps :> < Cap.time_limit >);
       Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
       (* osemgrep unit tests *)
-      Legacy_unit_ls.tests (caps :> Legacy_session.caps);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
       Unit_reporting.tests (caps :> < >);
