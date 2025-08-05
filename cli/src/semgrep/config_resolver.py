@@ -18,7 +18,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from urllib.parse import urlencode
-from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
 import click
@@ -152,18 +151,6 @@ class ConfigLoader:
             return [self._fetch_semgrep_cloud_platform_scan_config()]
         else:
             return self._load_config_from_local_path()
-
-    def _nice_semgrep_url(self, url: str) -> str:
-        """
-        Alters semgrep.dev urls to let user
-        click through to the nice display page instead
-        of raw YAML.
-        Replaces '/c/' in semgrep urls with '/'.
-        """
-        parsed = urlparse(url)
-        if "semgrep.dev" in parsed.netloc and parsed.path.startswith("/c"):
-            return url.replace("/c/", "/")
-        return url
 
     def _download_config(self) -> ConfigFile:
         """
