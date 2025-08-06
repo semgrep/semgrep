@@ -51,11 +51,16 @@ type kind = Out.dependency_kind =
   | Unknown
 [@@deriving eq, ord, show]
 
+(* TODO: add other kinds of hashes as needed. The ATD interface is untyped
+   wrt hash names. *)
+type hashes = { sha512 : string list } [@@deriving eq, ord, show]
+
 type t = {
   package : Package.t;
   (* note that this is the parsed version of package.version *)
   version : SCA_version.t;
   ecosystem : Ecosystem.t;
+  allowed_hashes : hashes;
   transitivity : kind;
   url : Uri.t option;
   (* the location of the dependency source code, if it exists
@@ -108,6 +113,14 @@ let dependency_kind (pkg : Package.t) (direct_deps : Package.name list option) :
 (* Converters *)
 (*****************************************************************************)
 
+let convert_hashes ({ sha512 } : hashes) : (string * string list) list =
+  [ ("sha512", sha512) ]
+  |>
+  (* remove empty fields *)
+  List.filter (function
+    | _k, [] -> false
+    | _ -> true)
+
 let to_found_dependency ?(lockfile_path : Fpath.t option)
     ?(manifest_path : Fpath.t option) (dep : t) (children : t list option) :
     Out.found_dependency =
@@ -116,7 +129,7 @@ let to_found_dependency ?(lockfile_path : Fpath.t option)
       package = dep.package.name;
       version = dep.package.version;
       ecosystem = dep.ecosystem;
-      allowed_hashes = [];
+      allowed_hashes = convert_hashes dep.allowed_hashes;
       resolved_url = Option.map Uri.to_string dep.url;
       transitivity = dep.transitivity;
       lockfile_path =
