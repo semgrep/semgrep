@@ -13,7 +13,7 @@ children: [
 ]
 Unrecognized construct
 tolerated errors=
-skipped={ str = "function (";
-  pos = { Pos.bytepos = 0; line = 1; column = 0; file = error.js } }
+skipped={ pos = { Pos.file = error.js; bytepos = 0; line = 1; column = 0 };
+  str = "function (" }
 inserted=
 ASSERT exit code
