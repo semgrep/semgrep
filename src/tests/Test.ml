@@ -117,77 +117,84 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
    that call 'Common2.glob'.
 *)
 let tests (caps : Cap.all_caps) =
-  List_.flatten
-    [
-      (* Tests that still fork via CapProcess.apply_in_child_process_promise
-         or Bos.OS.Cmd.run must come before any that spawn Domains.*)
-      Test_core_CLI.tests (caps :> Cap.all_caps);
-      Legacy_unit_ls.tests (caps :> Legacy_session.caps);
-      (* And the rest... *)
-      Commons_tests.tests;
-      Collections_tests.tests;
-      Unit_CapExec.tests (caps :> < Cap.exec >);
-      Unit_list_files.tests (caps :> < Cap.readdir >);
-      Glob.Unit_glob.tests;
-      Unit_find_targets.tests (caps :> < Cap.readdir >);
-      Unit_semgrepignore.tests;
-      Unit_gitignore.tests;
-      Unit_include_filter.tests;
-      Unit_parsing.tests ();
-      Unit_entropy.tests;
-      Parser_regexp.Unit_parsing.tests;
-      Unit_ReDoS.tests;
-      Unit_guess_lang.tests;
-      Unit_cgroup_limits.tests;
-      Unit_memory_limit.tests (caps :> < Cap.memory_limit >);
-      Unit_tok.tests;
-      Unit_Ppath.tests;
-      Unit_Rpath.tests;
-      Unit_git_wrapper.tests;
-      Unit_ugly_print_AST.tests;
-      Unit_autofix.tests;
-      Unit_autofix_printer.tests;
-      Unit_dataflow.tests
-        (caps :> < Cap.time_limit >)
-        Parse_target.parse_program;
-      Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
-          Parse_pattern.parse_pattern lang file);
-      Unit_naming_generic.tests Parse_target.parse_program;
-      (* just expression vs expression testing for one language (Python) *)
-      Unit_matcher.tests ~any_gen_of_string;
-      (* TODO Unit_matcher.spatch_unittest ~xxx *)
-      (* TODO Unit_matcher_php.unittest; sgrep/spatch/refactoring/unparsing *)
-      Unit_engine.tests (caps :> < Cap.readdir >);
-      Unit_jsonnet.tests (caps :> < Cap.time_limit >);
-      Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
-      (* osemgrep unit tests *)
-      Unit_Login.tests caps;
-      Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
-      Unit_reporting.tests (caps :> < >);
-      Unit_ci.tests;
-      Test_is_blocking_helpers.tests;
-      (* osemgrep e2e subcommand tests *)
-      Test_login_subcommand.tests (caps :> Login_subcommand.caps);
-      Test_scan_subcommand.tests (caps :> Scan_subcommand.caps);
-      Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
-      Unit_test_subcommand.tests (caps :> Test_subcommand.caps);
-      Test_show_subcommand.tests (caps :> Show_subcommand.caps);
-      Test_osemgrep.tests (caps :> CLI.caps);
-      Test_target_selection.tests (caps :> CLI.caps);
-      (* Networking tests disabled as they will get rate limited sometimes *)
-      (* And the SSL issues they've been testing have been stable *)
-      (*Unit_Networking.tests;*)
-      Legacy_test_ls_e2e.tests (caps :> Lsp_subcommand.caps);
-      (* End osemgrep tests *)
-      Spacegrep_tests.Test.tests ();
-      Aliengrep.Unit_tests.tests;
-      Unit_core_json_output.tests;
-      (* Inline tests *)
-      Testo.get_registered_tests ();
-      (* Parallelism tests must come last, as previous tests require forking
-       * and an exception is raised if a fork follows a domain spawn *)
-      Parallelism_tests.tests;
-    ]
+  (* Tests that still fork via CapProcess.apply_in_child_process_promise,
+     Bos.OS.Cmd.run, or still run a scan with a default scan config (which
+     will use parmap) must come before any that spawn Domains. *)
+  let forking_tests =
+    List_.flatten
+      [
+        Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
+        Test_core_CLI.tests (caps :> Cap.all_caps);
+        Legacy_unit_ls.tests (caps :> Legacy_session.caps);
+      ]
+  in
+
+  forking_tests
+  @ List_.flatten
+      [
+        Commons_tests.tests;
+        Collections_tests.tests;
+        Unit_CapExec.tests (caps :> < Cap.exec >);
+        Unit_list_files.tests (caps :> < Cap.readdir >);
+        Glob.Unit_glob.tests;
+        Unit_find_targets.tests (caps :> < Cap.readdir >);
+        Unit_semgrepignore.tests;
+        Unit_gitignore.tests;
+        Unit_include_filter.tests;
+        Unit_parsing.tests ();
+        Unit_entropy.tests;
+        Parser_regexp.Unit_parsing.tests;
+        Unit_ReDoS.tests;
+        Unit_guess_lang.tests;
+        Unit_cgroup_limits.tests;
+        Unit_memory_limit.tests (caps :> < Cap.memory_limit >);
+        Unit_tok.tests;
+        Unit_Ppath.tests;
+        Unit_Rpath.tests;
+        Unit_git_wrapper.tests;
+        Unit_ugly_print_AST.tests;
+        Unit_autofix.tests;
+        Unit_autofix_printer.tests;
+        Unit_dataflow.tests
+          (caps :> < Cap.time_limit >)
+          Parse_target.parse_program;
+        Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
+            Parse_pattern.parse_pattern lang file);
+        Unit_naming_generic.tests Parse_target.parse_program;
+        (* just expression vs expression testing for one language (Python) *)
+        Unit_matcher.tests ~any_gen_of_string;
+        (* TODO Unit_matcher.spatch_unittest ~xxx *)
+        (* TODO Unit_matcher_php.unittest; sgrep/spatch/refactoring/unparsing *)
+        Unit_engine.tests (caps :> < Cap.readdir >);
+        Unit_jsonnet.tests (caps :> < Cap.time_limit >);
+        (* osemgrep unit tests *)
+        Unit_Login.tests caps;
+        Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
+        Unit_reporting.tests (caps :> < >);
+        Unit_ci.tests;
+        Test_is_blocking_helpers.tests;
+        (* osemgrep e2e subcommand tests *)
+        Test_login_subcommand.tests (caps :> Login_subcommand.caps);
+        Test_scan_subcommand.tests (caps :> Scan_subcommand.caps);
+        Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
+        Unit_test_subcommand.tests (caps :> Test_subcommand.caps);
+        Test_show_subcommand.tests (caps :> Show_subcommand.caps);
+        Test_osemgrep.tests (caps :> CLI.caps);
+        Test_target_selection.tests (caps :> CLI.caps);
+        (* Networking tests disabled as they will get rate limited sometimes *)
+        (* And the SSL issues they've been testing have been stable *)
+        (*Unit_Networking.tests;*)
+        Legacy_test_ls_e2e.tests (caps :> Lsp_subcommand.caps);
+        (* End osemgrep tests *)
+        Spacegrep_tests.Test.tests ();
+        Aliengrep.Unit_tests.tests;
+        Unit_core_json_output.tests;
+        (* Inline tests *)
+        Testo.get_registered_tests ();
+        (* Parallelism tests must come last, as previous tests require forking
+         * and an exception is raised if a fork follows a domain spawn *)
+        Parallelism_tests.tests;
+      ]
 
 (*****************************************************************************)
 (* Entry point *)

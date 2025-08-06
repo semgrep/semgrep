@@ -121,8 +121,9 @@ let desugar_ident env v : C.ident = (desugar_wrap desugar_string) env v
 let rec desugar_expr env v : C.expr =
   try desugar_expr_aux env v with
   | Failure "TODO" ->
+      let expr = show_expr v in
       (* nosemgrep: no-logs-in-library *)
-      Logs.debug (fun m -> m "construct not handled:\n %s" (show_expr v));
+      Logs.debug (fun m -> m "construct not handled:\n %s" expr);
       failwith "TODO:desugar"
 
 and desugar_expr_aux env v =
