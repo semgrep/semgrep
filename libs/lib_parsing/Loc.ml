@@ -33,10 +33,13 @@ open Sexplib.Std
    TODO: we should factorize some of those locations
 *)
 
-(* alias to the most common location type used in Semgrep *)
+(* alias to the most common location type used in Semgrep
+
+   The fields are ordered such that deriving a 'compare' function with
+   '@@deriving ord' works as expected (sort by file path first,
+   then by position within the file).
+*)
 type t = {
-  (* the content of the "token" *)
-  str : string;
   (* TODO? the content of Pos.t used to be inlined in this location type.
    * It is cleaner to factorize things in Pos.t, but this introduces
    * an extra pointer which actually can have real performance implication
@@ -44,6 +47,8 @@ type t = {
    * (and also reduce its number of fields).
    *)
   pos : Pos.t;
+  (* the content of the "token" *)
+  str : string;
 }
 [@@deriving show { with_path = false }, eq, ord, sexp]
 

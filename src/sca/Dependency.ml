@@ -102,6 +102,13 @@ type manifest_dependency = {
 (* Helpers *)
 (*****************************************************************************)
 
+let compare_source_location (a : t) (b : t) =
+  let c = Loc.compare (fst a.loc) (fst b.loc) in
+  (* fallback in case of dummy locations: compare by package name *)
+  if c <> 0 then c else Package.compare a.package b.package
+
+let compare = compare_source_location
+
 let dependency_kind (pkg : Package.t) (direct_deps : Package.name list option) :
     kind =
   match direct_deps with
