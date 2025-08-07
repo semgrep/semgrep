@@ -2,6 +2,7 @@ import asyncio
 import collections
 import contextlib
 import json
+import shutil
 import sys
 import tempfile
 from datetime import datetime
@@ -849,12 +850,19 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         """
                     )
                 sys.exit(2)
+
+            # check if ddprof is in PATH and if the trace flag is set.
+            # if yes, then we wrap the call to semgrep with ddprof for
+            # SMS profiling.
+            ddprof = shutil.which("ddprof") and self._trace
+
             cmd = [
                 # bugfix: self._binary_path is an Optional[Path]. The
                 # recommended way to convert a Path to a string is to use the
                 # str function. However, mypy allows the use of str to convert
                 # Optional values to strings. Make sure to check against None
                 # even though mypy won't warn you.
+                *(["ddprof"] if ddprof else []),
                 str(self._binary_path),
                 "-json",
             ]
