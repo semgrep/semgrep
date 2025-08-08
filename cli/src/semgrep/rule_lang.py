@@ -28,9 +28,13 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep import tracing
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+from semgrep.error import default_level
+from semgrep.error import FATAL_EXIT_CODE
+from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
+from semgrep.error import warning_level
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
 from semgrep.rpc_call import validate as rpc_validate
@@ -271,6 +275,7 @@ def parse_config_preserve_spans(
     contents: str,
     filename: Optional[str],
     force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
     rules_tmp_path: Optional[str] = None,
 ) -> Tuple[YamlTree, List[SemgrepError]]:
     data = parse_yaml_preserve_spans(contents, filename)
@@ -281,6 +286,7 @@ def parse_config_preserve_spans(
         filename,
         no_rewrite_rule_ids=False,
         force_jsonschema=force_jsonschema,
+        no_python_schema_validation=no_python_schema_validation,
         rules_tmp_path=rules_tmp_path,
     )
     return data, errors
@@ -473,6 +479,7 @@ def remove_incompatible_rules_based_on_version(
                             code=OK_EXIT_CODE,
                             level=out.ErrorSeverity(out.Info_()),
                             spans=None,
+                            show_details=False,
                             core=out.CoreError(
                                 error_type=out.ErrorType(
                                     out.IncompatibleRule_(
@@ -510,6 +517,7 @@ def remove_incompatible_rules_based_on_version(
                             code=OK_EXIT_CODE,
                             level=out.ErrorSeverity(out.Info_()),
                             spans=None,
+                            show_details=False,
                             core=out.CoreError(
                                 error_type=out.ErrorType(
                                     out.IncompatibleRule_(
@@ -543,14 +551,30 @@ class RpcValidationError(Exception):
 
 def run_rpc_validate(rules_tmp_path: str) -> Literal[True]:
     try:
-        valid = rpc_validate(out.Fpath(rules_tmp_path))
-        logger.debug(f"semgrep-core validation response: {valid=}")
-        if valid:
+        error = rpc_validate(out.Fpath(rules_tmp_path))
+        logger.debug(f"semgrep-core validation response: {error=}")
+        if error is None:
             logger.debug("semgrep-core validation succeeded")
             return True
         raise RpcValidationError("semgrep-core validation failed")
     except Exception as e:
         raise e
+
+
+def run_rpc_validate_exn(rules_path: str) -> None:
+    core_error = rpc_validate(out.Fpath(rules_path))
+    logger.debug(f"semgrep-core validation response: {core_error=}")
+    if core_error is None:
+        logger.debug("semgrep-core validation succeeded")
+        return
+    if core_error.severity in {default_level, warning_level}:
+        raise SemgrepCoreError(
+            code=FATAL_EXIT_CODE,
+            level=default_level,
+            spans=None,
+            show_details=True,
+            core=core_error,
+        )
 
 
 @tracing.trace()
@@ -559,6 +583,7 @@ def validate_yaml(
     filename: Optional[str] = None,
     no_rewrite_rule_ids: bool = False,
     force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
     rules_tmp_path: Optional[str] = None,
 ) -> List[SemgrepError]:
     from semgrep.error import InvalidRuleSchemaError
@@ -566,6 +591,21 @@ def validate_yaml(
     errors = remove_incompatible_rules_based_on_version(
         data, filename, no_rewrite_rule_ids=no_rewrite_rule_ids
     )
+
+    if no_python_schema_validation:
+        if filename and Path(filename).exists():
+            path = filename
+        elif rules_tmp_path and Path(rules_tmp_path).exists():
+            path = rules_tmp_path
+        else:
+            raise SemgrepError(
+                "Cannot execute RPC validation without a rules_tmp_path or filename",
+                code=MISSING_CONFIG_EXIT_CODE,
+            )
+
+        run_rpc_validate_exn(path)
+        return errors
+
     # If we specifically request jsonschema validation (or tmp_path of the rules was not successfully
     # set), we skip the RPC validation and go straight to jsonschema validation
     skip_rpc_validation = force_jsonschema or not rules_tmp_path

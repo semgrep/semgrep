@@ -13,10 +13,3 @@ Detected duplicate key name, one of ['metavariable', 'regex'].
 
 [ERROR] Rule parse error in rule boto3-internal-network:
  duplicate key 'metavariable' in dictionary. You should use multiple metavariable-regex
-  --> rules/invalid-rules/invalid-metavariable-regex.yaml:8
-   6 |         metavariable: $HOST
-   7 |         regex: '192.168\.\d{1,3}\.\d{1,3}'
-   8 |         metavariable: $MODULE
-     |         ^^^^^^^^^^^^
-   9 |         regex: (boto|boto3)
-  10 |   message: "Boto3 connection to internal network"

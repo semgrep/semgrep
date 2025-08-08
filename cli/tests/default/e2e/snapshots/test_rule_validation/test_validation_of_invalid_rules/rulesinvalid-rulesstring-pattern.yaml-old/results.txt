@@ -1,0 +1,10 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/string-pattern.yaml:4
+4 |     - "foo"
+  |       ^^^^^
+
+'foo' is not of type 'object'
+
+[ERROR] Rule parse error in rule eqeq:
+ Strings not allowed at this position, maybe try `pattern: foo`

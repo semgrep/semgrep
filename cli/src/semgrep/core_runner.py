@@ -1211,12 +1211,17 @@ Exception raised: `{e}`
             output_extra,
         )
 
-    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
+    def validate_configs(
+        self, configs: Tuple[str, ...], no_python_schema_validation: bool = False
+    ) -> Sequence[SemgrepError]:
         if self._binary_path is None:  # should never happen, doing this for mypy
             raise SemgrepError("semgrep engine not found.")
 
         metachecks = Config.from_config_list(
-            ["p/semgrep-rule-lints"], None, force_jsonschema=True
+            ["p/semgrep-rule-lints"],
+            None,
+            force_jsonschema=True,
+            no_python_schema_validation=no_python_schema_validation,
         )[0].get_rules(True)
 
         parsed_errors = []
@@ -1251,7 +1256,8 @@ Exception raised: `{e}`
             core_output = out.CoreOutput.from_json(output_json)
 
             parsed_errors += [
-                core_error_to_semgrep_error(e) for e in core_output.errors
+                core_error_to_semgrep_error(e, show_details=no_python_schema_validation)
+                for e in core_output.errors
             ]
 
         return dedup_errors(parsed_errors)

@@ -60,12 +60,16 @@ def contributions() -> out.Contributions:
 
 
 @tracing.trace()
-def validate(fp: out.Fpath) -> bool:
+def validate(fp: out.Fpath) -> Optional[out.CoreError]:
     call = out.FunctionCall(out.CallValidate(fp))
     ret: Optional[out.RetValidate] = rpc_call(call, out.RetValidate)
     if ret is None:
         logger.error("Failed to validate semgrep configuration")
-        return out.RetValidate(False).value
+        return out.CoreError(
+            error_type=out.ErrorType(out.SemgrepError()),
+            severity=out.ErrorSeverity(out.Error_()),
+            message=f"Failed to validate rule configuration at {fp.value}",
+        )
     return ret.value
 
 

@@ -408,6 +408,7 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
 def parse_config_files(
     loaded_config_infos: List[ConfigFile],
     force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     """
     Parse a list of config files into rules
@@ -478,6 +479,7 @@ def parse_config_files(
                 config_id,
                 contents,
                 filename,
+                no_python_schema_validation=no_python_schema_validation,
                 force_jsonschema=force_jsonschema,
             )
             future_to_config_id_and_path[validation_future] = config_id, config_path
@@ -511,12 +513,15 @@ def resolve_config(
     config_str: str,
     project_url: Optional[str] = None,
     force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     config_loader = ConfigLoader(config_str, project_url)
     config, errors = parse_config_files(
-        config_loader.load_config(), force_jsonschema=force_jsonschema
+        config_loader.load_config(),
+        force_jsonschema=force_jsonschema,
+        no_python_schema_validation=no_python_schema_validation,
     )
     if config:
         logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
@@ -561,6 +566,7 @@ class Config:
         config: str,
         no_rewrite_rule_ids: bool = False,
         force_jsonschema: bool = False,
+        no_python_schema_validation: bool = False,
     ) -> Tuple["Config", List[SemgrepError]]:
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
@@ -573,6 +579,7 @@ class Config:
                 filename=None,
                 no_rewrite_rule_ids=no_rewrite_rule_ids,
                 force_jsonschema=force_jsonschema,
+                no_python_schema_validation=no_python_schema_validation,
             )
             config_dict.update(config_data)
             errors.extend(config_errors)
@@ -590,6 +597,7 @@ class Config:
         configs: Sequence[str],
         project_url: Optional[str],
         force_jsonschema: bool = False,
+        no_python_schema_validation: bool = False,
     ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -608,7 +616,10 @@ class Config:
                 # Patch config_id to fix
                 # https://github.com/semgrep/semgrep/issues/1912
                 resolved_config, config_errors = resolve_config(
-                    config, project_url, force_jsonschema=force_jsonschema
+                    config,
+                    project_url,
+                    force_jsonschema=force_jsonschema,
+                    no_python_schema_validation=no_python_schema_validation,
                 )
                 errors.extend(config_errors)
                 if not resolved_config:
@@ -811,6 +822,7 @@ def parse_config_string(
     filename: Optional[str],
     no_rewrite_rule_ids: bool = False,
     force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     if not contents:
         raise SemgrepError(
@@ -838,6 +850,7 @@ def parse_config_string(
                 filename,
                 no_rewrite_rule_ids=no_rewrite_rule_ids,
                 force_jsonschema=force_jsonschema,
+                no_python_schema_validation=no_python_schema_validation,
                 rules_tmp_path=rules_tmp_path,
             )
         )
@@ -850,6 +863,7 @@ def parse_config_string(
             contents,
             filename,
             force_jsonschema=force_jsonschema,
+            no_python_schema_validation=no_python_schema_validation,
             rules_tmp_path=rules_tmp_path,
         )
         errors.extend(config_errors)
@@ -1003,6 +1017,7 @@ def get_config(
     replacement: Optional[str] = None,
     no_rewrite_rule_ids: bool = False,
     force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
 ) -> Tuple[Config, List[SemgrepError]]:
     if pattern:
         if not lang:
@@ -1013,6 +1028,7 @@ def get_config(
             config_strs[0],
             no_rewrite_rule_ids=no_rewrite_rule_ids,
             force_jsonschema=force_jsonschema,
+            no_python_schema_validation=no_python_schema_validation,
         )
     elif replacement:
         raise SemgrepError(
@@ -1020,7 +1036,10 @@ def get_config(
         )
     else:
         config, errors = Config.from_config_list(
-            config_strs, project_url, force_jsonschema=force_jsonschema
+            config_strs,
+            project_url,
+            force_jsonschema=force_jsonschema,
+            no_python_schema_validation=no_python_schema_validation,
         )
 
     return config, errors

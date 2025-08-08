@@ -78,6 +78,44 @@ let please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
    this by creating an issue at https://github.com/semgrep/semgrep"
 
+let get_error_details (loc : Tok.location) : string =
+  let { Loc.pos = { file; line; column = col_start; _ }; _ } = loc in
+  let line_end, col_end, _ = Loc.end_pos loc in
+
+  (* TODO: Cache the file contents for reuse *)
+  let lines =
+    (* We use UFile.read_file instead of UFile.cat since it uses the
+       O_SHARE_DELETE flag when opening the file, which is required when
+       opening NamedTemporaryFiles created from Python on Windows. See comment
+       in UFile.Legacy.read_file. *)
+    UFile.read_file file |> String.split_on_char '\n'
+    |> List_.map String_.trim_cr
+  in
+
+  let margin_width = String.length (spf "%4d" line) in
+  let caret_len = max 1 (col_end - col_start) in
+  let caret_line =
+    String.make margin_width ' '
+    ^ " | " ^ String.make col_start ' ' ^ String.make caret_len '^'
+  in
+
+  let ctx_lines_before = 2 in
+  let ctx_lines_after = 2 in
+  let start_ctx = max 1 (line - ctx_lines_before) in
+  let end_ctx = min (List.length lines) (line_end + ctx_lines_after) in
+
+  let snippet =
+    List.init
+      (end_ctx - start_ctx + 1)
+      (fun i ->
+        let ln = start_ctx + i in
+        let content = List.nth lines (ln - 1) in
+        let text = spf "%4d | %s" ln content in
+        if ln <> line then text else spf "%s\n%s" text caret_line)
+    |> String.concat "\n"
+  in
+  spf "  --> %s:%d\n%s" (Fpath.to_string file) line snippet
+
 let mk_error ?rule_id ?(msg = "") ?(loc : Tok.location option)
     (err : Out.error_type) : t =
   let msg =
@@ -111,7 +149,8 @@ let mk_error ?rule_id ?(msg = "") ?(loc : Tok.location option)
     | DependencyResolutionError _ ->
         msg
   in
-  { loc; typ = err; msg; details = None; rule_id }
+  let details = Option.map get_error_details loc in
+  { loc; typ = err; msg; details; rule_id }
 
 (* Why a file in addition to tok? Can't we just use Tok.file_of_tok on it?
  * Because in some cases this may be a fake tok with a wrong file,
