@@ -459,18 +459,7 @@ and slice env e1 (t1, e2, t2) : G.expr_kind =
     G.ArrayAccess (e1, (t1, container, t2))
   (* this shouldn't occur but let's handle it gracefully *)
     else
-    let e2' =
-      e2
-      |> List_.map (function
-           | Index v1 ->
-               let v1 = expr env v1 in
-               G.ArrayAccess (e1, fb v1) |> G.e
-           | Slice (v1, v2, v3) ->
-               let v1 = option (expr env) v1
-               and v2 = option (expr env) v2
-               and v3 = option (expr env) v3 in
-               G.SliceAccess (e1, fb (v1, v2, v3)) |> G.e)
-    in
+    let e2' = e2 |> List_.map (fun x -> slice1 env e1 (fb x) |> G.e) in
     G.OtherExpr (("Slices", t1), e2' |> List_.map (fun x -> G.E x))
 
 and param_pattern_pat env = function
