@@ -446,7 +446,7 @@ and single_index_or_slice env e1 (t1, e2, t2) : G.expr_kind =
       and v3 = option (expr env) v3 in
       G.SliceAccess (e1, (t1, (v1, v2, v3), t2))
 
-(* e.g. a_list[1, 2, 3], tuple[str, int], tuple[str, ...] *)
+(* e.g. some_obj[1, 2, 3], tuple[str, int], tuple[str, ...] *)
 and subscript env e1 (t1, e2, t2) : G.expr_kind =
   let indices =
     e2
@@ -459,8 +459,9 @@ and subscript env e1 (t1, e2, t2) : G.expr_kind =
     let v = bracket (list (expr env)) (t1, indices, t2) in
     let container = G.Container (G.Tuple, v) |> G.e in
     G.ArrayAccess (e1, (t1, container, t2))
-  (* if not, this is an expression like `a_list[1:2, 3]`,
-     which is a syntax error, but let's handle it gracefully
+  (* if not, this is an expression like `some_obj[1:2, 3]`,
+     which is not supported by the standard library's list class,
+     but other standard/non-standard classes may.
    *)
     else
     let e2' =
