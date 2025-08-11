@@ -1,0 +1,2 @@
+When performing secrets validation, the amount of time that the HTTP request
+took to complete will now be visible in the debug logs.
