@@ -493,7 +493,8 @@ let check_rules ~matches_hook
        Core_profiling.rule_profiling Core_result.match_result)
     (rules : R.taint_rule list) (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) :
-    Core_profiling.rule_profiling Core_result.match_result list =
+    Core_profiling.rule_profiling Core_result.match_result list
+    * Core_error.ErrorSet.t =
   (* We create a "formula cache" here, before dealing with individual rules, to
      permit sharing of matches for sources, sanitizers, propagators, and sinks
      between rules.
@@ -554,5 +555,7 @@ let check_rules ~matches_hook
                    check_rule per_file_formula_cache file_inst rule
                      ~matches_hook xconf xtarget)))
   in
-  Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst;
-  res
+  let to_errors =
+    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+  in
+  (res, to_errors)

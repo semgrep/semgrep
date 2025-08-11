@@ -649,7 +649,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
                lazy_ast_and_errors = lazy (ast, []);
              }
            in
-           let results =
+           let results, _errors =
              Match_tainting_mode.check_rules ~matches_hook:Fun.id
                ~per_rule_boilerplate_fn:(fun _rule f -> f ())
                [ rule ] xconf xtarget

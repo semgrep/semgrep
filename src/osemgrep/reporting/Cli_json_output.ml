@@ -125,6 +125,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | TooManyMatches
   | FatalError
   | Timeout
+  | FixpointTimeout
   | OutOfMemory
   | StackOverflow
   | TimeoutDuringInterfile
@@ -178,6 +179,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | TooManyMatches
         | FatalError
         | Timeout
+        | FixpointTimeout
         | OutOfMemory
         | StackOverflow
         | TimeoutDuringInterfile
@@ -208,6 +210,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | TooManyMatches
         | FatalError
         | Timeout
+        | FixpointTimeout
         | OutOfMemory
         | StackOverflow
         | TimeoutDuringInterfile

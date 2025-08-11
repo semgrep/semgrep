@@ -106,6 +106,7 @@ type t = {
   (* old: matches : Core_match.t list *)
   processed_matches : processed_match list;
   errors : Core_error.t list;
+  fixpoint_timeouts : Core_error.t list;
   (* A target is scanned when semgrep found some applicable rules.
    * The information is useful to return to pysemgrep/osemgrep to
    * display statistics.
@@ -146,8 +147,12 @@ let empty_match_result : Core_profiling.times match_result =
   }
 
 let mk_result_with_just_errors (errors : Core_error.t list) : t =
+  let errors, `Fixpoint_timeouts fixpoint_timeouts =
+    E.split_fixpoint_timeouts errors
+  in
   {
     errors;
+    fixpoint_timeouts;
     (* default values *)
     processed_matches = [];
     valid_rules = [];
@@ -356,13 +361,13 @@ let mk_result (results : matches_single_file_with_time list)
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
   in
-  let errors =
+  let errors, `Fixpoint_timeouts fixpoint_timeouts =
     results
     |> List.fold_left
          (fun errors (x : _ match_result) ->
            errors |> E.ErrorSet.union x.errors)
          E.ErrorSet.empty
-    |> E.ErrorSet.elements
+    |> E.ErrorSet.elements |> E.split_fixpoint_timeouts
   in
 
   let (prof : Core_profiling.t) =
@@ -401,6 +406,7 @@ let mk_result (results : matches_single_file_with_time list)
   {
     processed_matches = unprocessed_matches;
     errors;
+    fixpoint_timeouts;
     quick_profiling;
     profiling;
     scanned;

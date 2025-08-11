@@ -51,3 +51,10 @@ val string_of_error : t -> string
 
 val severity_of_error :
   Semgrep_output_v1_t.error_type -> Semgrep_output_v1_t.error_severity
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+val split_fixpoint_timeouts :
+  t list -> t list * [> `Fixpoint_timeouts of t list ]
