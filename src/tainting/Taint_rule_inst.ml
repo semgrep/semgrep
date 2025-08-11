@@ -28,7 +28,7 @@
  *)
 
 open Common
-module ErrorSet = Core_error.ErrorSet
+module E = Core_error
 
 type effects_handler =
   IL.name option (** name of the function definition ('None' if anonymous) *) ->
@@ -113,18 +113,22 @@ let record_timeout t opt_name =
       stats.num_rules <- stats.num_rules + num_rules;
       ()
 
-let check_timeouts_and_warn ~interfile file : unit =
-  file.timeouts
-  |> Hashtbl.iter (fun opt_name stats ->
-         (* TODO: Hash 'opt_name' and show it *)
-         let loc = IL_helpers.loc_of_name file.path opt_name in
-         (* nosemgrep: no-logs-in-library *)
-         Logs.warn (fun m ->
-             m
-               "Fixpoint timeout while performing%s taint analysis at %s \
-                [rules: %d, first: %s]"
-               (if interfile then " inter-file" else "")
-               (Pos.string_of_pos loc.pos)
-               stats.num_rules
-               (Rule_ID.to_string stats.first_rule)));
-  ()
+let check_timeouts_and_warn ~interfile file : E.ErrorSet.t =
+  Hashtbl.fold
+    (fun opt_name stats errors_acc ->
+      (* TODO: Hash 'opt_name' and show it *)
+      let loc = IL_helpers.loc_of_name file.path opt_name in
+      let msg =
+        spf
+          "Fixpoint timeout while performing%s taint analysis at %s [rules: \
+           %d, first: %s]"
+          (if interfile then " inter-file" else "")
+          (Pos.string_of_pos loc.pos)
+          stats.num_rules
+          (Rule_ID.to_string stats.first_rule)
+      in
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m -> m "%s" msg);
+      let err = E.mk_error ~msg ~loc Semgrep_output_v1_t.FixpointTimeout in
+      errors_acc |> E.ErrorSet.add err)
+    file.timeouts E.ErrorSet.empty

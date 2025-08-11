@@ -42,7 +42,10 @@ end
 module Make (F : Flow) : sig
   (* main entry point *)
   val fixpoint :
-    timeout:float ->
+    timeout:float
+      (** We set a "soft" timeout to guard against insanely complex/large functions,
+      and potential bugs. The timeout condition is checked only after each call to
+      the 'trans' function, so there is no strict time guarantee for completion. *) ->
     eq_env:('env -> 'env -> bool) ->
     init:'env mapping ->
     trans:'env transfn ->

@@ -23,6 +23,7 @@ val check_rules :
   Xtarget.t ->
   (* timeout function *)
   Core_profiling.rule_profiling Core_result.match_result list
+  * Core_error.ErrorSet.t
 (** Runs the engine on a group of taint rules, which should be for the
   * same language. Running on multiple rules at once enables inter-rule
   * optimizations.
