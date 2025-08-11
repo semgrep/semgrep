@@ -123,7 +123,6 @@ let tests (caps : Cap.all_caps) =
   let forking_tests =
     List_.flatten
       [
-        Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
         Test_core_CLI.tests (caps :> Cap.all_caps);
         Legacy_unit_ls.tests (caps :> Legacy_session.caps);
       ]
@@ -167,6 +166,7 @@ let tests (caps : Cap.all_caps) =
         (* TODO Unit_matcher_php.unittest; sgrep/spatch/refactoring/unparsing *)
         Unit_engine.tests (caps :> < Cap.readdir >);
         Unit_jsonnet.tests (caps :> < Cap.time_limit >);
+        Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
         (* osemgrep unit tests *)
         Unit_Login.tests caps;
         Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
@@ -191,8 +191,6 @@ let tests (caps : Cap.all_caps) =
         Unit_core_json_output.tests;
         (* Inline tests *)
         Testo.get_registered_tests ();
-        (* Parallelism tests must come last, as previous tests require forking
-         * and an exception is raised if a fork follows a domain spawn *)
         Parallelism_tests.tests;
       ]
 
