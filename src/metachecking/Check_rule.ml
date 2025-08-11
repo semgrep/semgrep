@@ -271,6 +271,8 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
     |> List_.map (fun file ->
            Target.mk_unfilterable_target (Analyzer.of_lang lang) file)
   in
+
+  Eio_main.run @@ fun env ->
   let (config : Core_scan_config.t) =
     {
       Core_scan_config.default with
@@ -278,6 +280,8 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
       target_source = Targets targets;
       (* we're used from pysemgrep --validate *)
       output_format = Json true;
+      use_eio = true;
+      par_conf = Some (Parallelism_config.create env);
     }
   in
   let res = Core_scan.scan caps config in
