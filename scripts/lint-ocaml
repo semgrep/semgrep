@@ -23,11 +23,6 @@ if [[ -v SKIP_OCAMLFORMAT ]]; then
   exit 0
 fi
 
-if [[ -v IN_NIX_SHELL ]]; then
-  ocamlformat --inplace --enable-outside-detected-project "$@"
-  exit 0
-fi
-
 eval $(opam env)
 
 #coupling: must be the same than in dev/required.opam
