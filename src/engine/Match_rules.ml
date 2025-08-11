@@ -203,7 +203,7 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
         let loc = Loc.first_loc_of_file file in
         let error = E.mk_error ~rule_id ~loc OutJ.Timeout in
         RP.mk_match_result []
-          (Core_error.ErrorSet.singleton error)
+          (E.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
 (*****************************************************************************)
@@ -243,11 +243,16 @@ let check ~matches_hook ~(timeout : timeout_config option)
   let taint_rules_groups, nontaint_rules, _skipped_rules =
     group_rules xconf rules xtarget
   in
-  let res_taint_rules =
+  let res_taint_rules, errors =
     taint_rules_groups
-    |> List.concat_map (fun taint_rules ->
-           Match_tainting_mode.check_rules ~matches_hook
-             ~per_rule_boilerplate_fn taint_rules xconf xtarget)
+    |> List.fold_left
+         (fun (res_acc, errors_acc) taint_rules ->
+           let res, errors =
+             Match_tainting_mode.check_rules ~matches_hook
+               ~per_rule_boilerplate_fn taint_rules xconf xtarget
+           in
+           (List.rev_append res res_acc, errors_acc |> E.ErrorSet.union errors))
+         ([], E.ErrorSet.empty)
   in
   let res_nontaint_rules =
     nontaint_rules
@@ -300,4 +305,7 @@ let check ~matches_hook ~(timeout : timeout_config option)
    * skipped_target is only in the Core_result.t (and not in the
    * intermediate match_result).
    *)
-  RP.collate_rule_results xtarget.path.internal_path_to_content res_total
+  let res =
+    RP.collate_rule_results xtarget.path.internal_path_to_content res_total
+  in
+  { res with errors = res.errors |> E.ErrorSet.union errors }

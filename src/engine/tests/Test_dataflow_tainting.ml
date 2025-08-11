@@ -113,7 +113,9 @@ let test_dfg_tainting rules_file file =
   in
   (* Check each function definition. *)
   v#visit_program () ast;
-  Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst;
+  let _errors =
+    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+  in
   ()
 
 let actions () =

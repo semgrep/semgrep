@@ -11,6 +11,11 @@ type processed_match = {
 type t = {
   processed_matches : processed_match list;
   errors : Core_error.t list;
+  (* Fixpoint timeouts happen more often than we would like, and it's mainly
+    Semgrep devs that will use this info for debugging, so for now we are
+    separating these timeouts and reporting them as profiling data instead.
+    See 'OSS/src/rule/semgrep_output_v1.atd'. *)
+  fixpoint_timeouts : Core_error.t list;
   (* The targets are all the files that were considered valid targets for the
    * semgrep scan. This excludes files that were filtered out on purpose
    * due to being in the wrong language, too big, etc.
