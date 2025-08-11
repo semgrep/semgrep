@@ -60,6 +60,49 @@ local wait_for_workflow_run(run_id, interval=3, repo='${{ github.repository }}')
   run: 'gh run watch "%s" --exit-status -i %s -R "%s"' % [run_id, interval, repo],
 };
 
+// Wait for a specific job within a workflow to complete on a given commit
+// Unlike wait_for_workflow_run above which waits for an entire workflow run to complete,
+// this utility finds the workflow run for a commit and waits for just one job within it
+local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, timeout_minutes=120) = {
+  name: 'Wait for %s job in %s workflow on commit' % [job_name, workflow_name],
+  'timeout-minutes': timeout_minutes,
+  run: |||
+    # Wait for the %(job_name)s job to complete on the given commit
+    COMMIT_SHA=%(commit_sha)s
+    echo "Waiting for %(job_name)s job to complete on commit: $COMMIT_SHA"
+
+    # Wait for the job to complete
+    while true; do
+      # Get the run ID for the %(workflow_name)s workflow on the given commit
+      RUN_ID=$(gh run list --commit "$COMMIT_SHA" --workflow="%(workflow_name)s" --json databaseId --jq ".[0].databaseId" || echo "")
+
+      if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+        # Check the status of the %(job_name)s job specifically
+        JOB_STATUS=$(gh api repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs --jq ".jobs[] | select(.name == \"%(job_name)s\") | .status" || echo "not_found")
+
+        if [ "$JOB_STATUS" = "completed" ]; then
+          echo "%(job_name)s job completed on commit"
+          break
+        elif [ "$JOB_STATUS" = "not_found" ]; then
+          echo "%(job_name)s job not found yet, waiting..."
+        else
+          echo "%(job_name)s job status: $JOB_STATUS, waiting..."
+        fi
+      else
+        echo "No %(workflow_name)s workflow run found yet for commit $COMMIT_SHA, waiting..."
+      fi
+      sleep 30
+    done
+  ||| % {
+    commit_sha: commit_sha,
+    workflow_name: workflow_name,
+    job_name: job_name,
+  },
+  env: {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+  },
+};
+
 local get_commit_with_message(sha, message, repo='${{ github.repository }}') = {
   name: 'Get commit from with message %s' % message,
   id: 'get_commit_with_message',
@@ -77,6 +120,21 @@ local get_commit_with_message(sha, message, repo='${{ github.repository }}') = {
   |||,
 };
 local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sha }}';
+
+// Find the merge-base commit between current commit and a base branch
+local find_merge_base_step(base_branch='develop') = {
+  name: 'Find merge-base with %s' % base_branch,
+  id: 'get-merge-base',
+  run: |||
+    merge_base=$(gh api repos/${{ github.repository }}/compare/%s...${{ github.sha }} --jq .merge_base_commit.sha)
+    echo "Merge base with %s: $merge_base"
+    echo "commit=$merge_base" >> $GITHUB_OUTPUT
+  ||| % [base_branch, base_branch],
+  env: {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+  },
+};
+local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
 
 {
   // ---------------------------------------------------------
@@ -177,8 +235,11 @@ local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sh
   get_workflow_run_id_step: get_workflow_run_id_step,
   workflow_run_id_output: workflow_run_id_output,
   wait_for_workflow_run: wait_for_workflow_run,
+  wait_for_workflow_job_on_commit_step: wait_for_workflow_job_on_commit_step,
   get_commit_with_message_step: get_commit_with_message,
   commit_with_message_output: commit_with_message_output,
+  find_merge_base_step: find_merge_base_step,
+  merge_base_output: merge_base_output,
   // See semgrep.libjsonnet cache_opam for inspiration here
   //
   guard_cache_hit: {
