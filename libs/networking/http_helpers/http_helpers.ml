@@ -266,8 +266,8 @@ let rec get_eio ?(headers = []) caps url =
     let server_response = server_response_of_response (response, body) `GET in
     match server_response.code with
     (* Automatically resolve redirects, in this case a 307 Temporary Redirect.
-         This is important for installing the Semgrep Pro Engine binary, which
-         receives a temporary redirect at the proper endpoint.
+       This is important for installing the Semgrep Pro Engine binary, which
+       receives a temporary redirect at the proper endpoint.
       *)
     | 301
     | 302
