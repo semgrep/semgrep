@@ -131,7 +131,23 @@ let mk_error ?rule_id ?(msg = "") ?(loc : Tok.location option)
     | RuleParseError
     | InvalidYaml
     | SemgrepMatchFound
+    (* 'Timeout': a rule failed to scan a target in time *)
     | Timeout
+    (* 'FixpointTimeout': a dataflow fixpoint could not be reached in time
+
+      Constant propagation or taint analysis of a function/method/etc is performed
+      by an iterative algorithm that runs until a fixpoint is reached.
+
+      A timeout could indicate a bug in the Dataflow transfer function, or a perf
+      problem. It could also happen if a function/method/etc is very large/complex.
+
+      We produce a single 'FixpointTimeout' error per function/method/etc, multiple
+      rules timing out on the same code still produce a single error.
+
+      This is a somewhat low-level error that is mainly interesting for Semgrep devs.
+
+      See 'Dataflow_core.fixpoint' and 'Limits_semgrep.*_FIXPOINT_TIMEOUT'. *)
+    | FixpointTimeout
     | OutOfMemory
     | StackOverflow
     | TimeoutDuringInterfile
@@ -362,6 +378,7 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | OtherParseError
   | InvalidYaml
   | Timeout
+  | FixpointTimeout
   | OutOfMemory
   | StackOverflow
   | SemgrepWarning ->
@@ -385,3 +402,12 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | MissingPlugin
   | DependencyResolutionError _ ->
       `Info
+
+let split_fixpoint_timeouts errors =
+  let errors, fixpoint_timeouts =
+    errors
+    |> List.partition (function
+         | { typ = FixpointTimeout; _ } -> false
+         | __else__ -> true)
+  in
+  (errors, `Fixpoint_timeouts fixpoint_timeouts)

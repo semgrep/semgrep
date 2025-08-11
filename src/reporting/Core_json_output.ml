@@ -608,7 +608,7 @@ let quick_profiling_to_tainting_time (quick_profiling : QProf.t) :
   }
 
 let profiling_to_profiling (opt_quick_profiling : QProf.t option)
-    (profiling_data : Core_profiling.t) : Out.profile =
+    ~fixpoint_timeouts (profiling_data : Core_profiling.t) : Out.profile =
   let rule_ids : Rule_ID.t list =
     profiling_data.rules ||| []
     |> List_.map (fun (rule : Rule.t) -> fst rule.id)
@@ -677,6 +677,7 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
       opt_quick_profiling |> Option.map quick_profiling_to_matching_time;
     tainting_time =
       opt_quick_profiling |> Option.map quick_profiling_to_tainting_time;
+    fixpoint_timeouts = Some fixpoint_timeouts;
   }
 
 (* TODO: We used to return some stats, should we generalize
@@ -709,9 +710,11 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     Result_.partition match_to_match res.processed_matches
   in
   let errs = new_errs @ res.errors in
+  let errors = errs |> List_.map error_to_error in
+  let fixpoint_timeouts = res.fixpoint_timeouts |> List_.map error_to_error in
   {
     results = matches |> dedup_and_sort;
-    errors = errs |> List_.map error_to_error;
+    errors;
     paths =
       {
         (* It seems that we have two separate paths, one for osemgrep
@@ -732,7 +735,9 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
                  position = OutUtils.position_of_token_location loc;
                });
     time =
-      res.profiling |> Option.map (profiling_to_profiling res.quick_profiling);
+      res.profiling
+      |> Option.map
+           (profiling_to_profiling res.quick_profiling ~fixpoint_timeouts);
     explanations =
       res.explanations |> Option.map (List_.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;
