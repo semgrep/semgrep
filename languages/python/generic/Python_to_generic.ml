@@ -448,14 +448,19 @@ and single_index_or_slice env e1 (t1, e2, t2) : G.expr_kind =
 
 (* e.g. some_obj[1, 2, 3], tuple[str, int], tuple[str, ...] *)
 and subscript env e1 (t1, e2, t2) : G.expr_kind =
-  let indices =
-    e2
-    |> List_.filter_map (function
-         | Index v1 -> Some v1
-         | Slice _ -> None)
-  in
   (* when all items are an Index, map to ArrayAccess *)
-  if Int.equal (List.length indices) (List.length e2) then
+  if
+    e2
+    |> List.for_all (function
+         | Index _ -> true
+         | _ -> false)
+  then
+    let indices =
+      e2
+      |> List_.filter_map (function
+           | Index v1 -> Some v1
+           | Slice _ -> None)
+    in
     let v = bracket (list (expr env)) (t1, indices, t2) in
     let container = G.Container (G.Tuple, v) |> G.e in
     G.ArrayAccess (e1, (t1, container, t2))
