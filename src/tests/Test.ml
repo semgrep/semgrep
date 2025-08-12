@@ -167,6 +167,7 @@ let tests (caps : Cap.all_caps) =
         Unit_engine.tests (caps :> < Cap.readdir >);
         Unit_jsonnet.tests (caps :> < Cap.time_limit >);
         Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
+        Unit_http_helpers.tests (caps :> < Cap.network >);
         (* osemgrep unit tests *)
         Unit_Login.tests caps;
         Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
