@@ -1109,9 +1109,14 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Choice_choice_print x ->
       let id = map_keyword_identifier env x in
       name_of_id id
-  | `Str x ->
+  | `Str x -> (
       let t1, s, t2 = map_string_ env x in
-      InterpolatedString (t1, s, t2)
+      let l = Tok.content_of_tok t1 in
+      if String.starts_with "f" l then InterpolatedString (t1, s, t2)
+      else
+        match s with
+        | [ x ] -> x
+        | _ -> raise Common.Impossible)
   | `Conc_str (v1, v2) ->
       let _, v1, _ = map_string_ env v1 in
       let v2 = List_.map (map_string_ env) v2 in
