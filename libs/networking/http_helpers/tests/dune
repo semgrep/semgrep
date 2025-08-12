@@ -1,0 +1,21 @@
+(library
+  (public_name networking.http_helpers.tests)
+  (name networking_http_helpers_tests)
+  (wrapped false)
+  (libraries
+    alcotest
+    testo
+    commons
+    lwt
+    lwt_platform
+    networking
+    networking.http_mock_client
+    networking.http_helpers
+    )
+
+  (preprocess
+    (pps
+      lwt_ppx
+    )
+  )
+)
