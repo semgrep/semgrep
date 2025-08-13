@@ -13,6 +13,7 @@ open Common
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
 let t = Testo.create ?skipped:Testutil.skip_on_windows
 
 (* Mostly a copy-paste of Test_pro_core_CLI.ml *)
@@ -20,21 +21,13 @@ type exn_res = ExnExit of int
 
 let run_main (caps : Cap.all_caps) (cmd : string) : (unit, exn_res) result =
   let args = String_.split ~sep:"[ \t]+" cmd @ [ "-use_eio" ] in
-  (* we run main_exn() below in a child process because it modifies many globals
-   * and we don't want to write code to reset those globals between two
-   * tests; simpler to just fork.
-   *)
-  CapProcess.apply_in_child_process
-    (caps :> < Cap.fork >)
-    (fun () ->
-      try
-        print_string (spf "executing: semgrep-core %s\n" cmd);
-        Ok (Core_CLI.main_exn caps (Array.of_list ("semgrep-core" :: args)))
-      with
-      | Common.UnixExit (n, msg) ->
-          Logs.err (fun m -> m "exn UnixExit(%d): %s" n msg);
-          Error (ExnExit n))
-    ()
+  try
+    print_string (spf "executing: semgrep-core %s\n" cmd);
+    Ok (Core_CLI.main_exn caps (Array.of_list ("semgrep-core" :: args)))
+  with
+  | Common.UnixExit (n, msg) ->
+      Logs.err (fun m -> m "exn UnixExit(%d): %s" n msg);
+      Error (ExnExit n)
 
 let assert_Ok res =
   match res with
