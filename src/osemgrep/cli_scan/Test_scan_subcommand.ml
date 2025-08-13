@@ -109,6 +109,7 @@ let test_nosettings ~env_app_token_set () =
     (settings_with_no_include_env =*= Semgrep_settings.default)
 
 let test_basic_output (caps : Scan_subcommand.caps) () =
+  Log_semgrep.setup ~force_color:false ~level:(Some Info) ();
   with_env_app_token (fun () ->
       let repo_files =
         [

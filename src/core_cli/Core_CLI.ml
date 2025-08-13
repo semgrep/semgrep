@@ -482,6 +482,33 @@ let all_actions (caps : Cap.all_caps) () =
 (* The options *)
 (*****************************************************************************)
 
+(* Rolls back the mutable state associated with core CLI parsing to their
+ * default values.  This is only needed in a testing context, where we find
+ * ourselves re-entering [main_exn] in a single process and want to ensure
+ * unset arguments fall back to their original values.  Currently, the test
+ * suite still passes without this, but depending on what changes take place
+ * in the future this might not always be the case, so hence being proactive
+ * about this right now. *)
+let reset_options () =
+  Logs_.setup_basic ~level:None ();
+  rule_source := None;
+  target_file := None;
+  lang := None;
+  num_jobs := Core_scan_config.default.num_jobs;
+  output_format := Core_scan_config.default.output_format;
+  strict := Core_scan_config.default.strict;
+  report_time := Core_scan_config.default.report_time;
+  filter_irrelevant_rules := Core_scan_config.default.filter_irrelevant_rules;
+  respect_rule_paths := Core_scan_config.default.respect_rule_paths;
+  timeout := Core_scan_config.default.timeout;
+  timeout_threshold := Core_scan_config.default.timeout_threshold;
+  max_memory_mb := Core_scan_config.default.max_memory_mb;
+  max_match_per_file := Core_scan_config.default.max_match_per_file;
+  use_eio := false;
+  filter_irrelevant_rules := Core_scan_config.default.filter_irrelevant_rules;
+  symbol_analysis := Core_scan_config.default.symbol_analysis;
+  action := ""
+
 let options caps (actions : unit -> Arg_.cmdline_actions) =
   [
     ( "-rules",
@@ -680,6 +707,8 @@ let decide_if_eio caps (config : Core_scan_config.t) =
 (*****************************************************************************)
 
 let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
+  reset_options ();
+
   (* coupling: lots of similarities with what we do in CLI.main *)
   register_exception_printers ();
 

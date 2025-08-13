@@ -128,7 +128,19 @@ let tests (caps : Cap.all_caps) =
       ]
   in
 
-  forking_tests
+  (* Tests that use [Testutio_git.with_git_repo] interact via git through
+   * a subprocess. *)
+  let gitutil_tests =
+    List_.flatten
+      [
+        Test_scan_subcommand.tests (caps :> Scan_subcommand.caps);
+        Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
+        Test_target_selection.tests (caps :> CLI.caps);
+        Unit_find_targets.tests (caps :> < Cap.readdir >);
+      ]
+  in
+
+  gitutil_tests @ forking_tests
   @ List_.flatten
       [
         Commons_tests.tests;
@@ -136,7 +148,6 @@ let tests (caps : Cap.all_caps) =
         Unit_CapExec.tests (caps :> < Cap.exec >);
         Unit_list_files.tests (caps :> < Cap.readdir >);
         Glob.Unit_glob.tests;
-        Unit_find_targets.tests (caps :> < Cap.readdir >);
         Unit_semgrepignore.tests;
         Unit_gitignore.tests;
         Unit_include_filter.tests;
@@ -176,12 +187,9 @@ let tests (caps : Cap.all_caps) =
         Test_is_blocking_helpers.tests;
         (* osemgrep e2e subcommand tests *)
         Test_login_subcommand.tests (caps :> Login_subcommand.caps);
-        Test_scan_subcommand.tests (caps :> Scan_subcommand.caps);
-        Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
         Unit_test_subcommand.tests (caps :> Test_subcommand.caps);
         Test_show_subcommand.tests (caps :> Show_subcommand.caps);
         Test_osemgrep.tests (caps :> CLI.caps);
-        Test_target_selection.tests (caps :> CLI.caps);
         (* Networking tests disabled as they will get rate limited sometimes *)
         (* And the SSL issues they've been testing have been stable *)
         (*Unit_Networking.tests;*)
