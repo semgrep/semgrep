@@ -5,7 +5,7 @@ https://github.com/aptos-labs/aptos-core
 https://github.com/sea-protocol/seaprotocol
 https://github.com/wormhole-foundation/wormhole
 # https://github.com/aptos-labs/aptos-networks  <-- This one contains too many disruptive mega codes
-https://github.com/pancakeswap/pancake-contracts-move
+# https://github.com/pancakeswap/pancake-contracts-move <-- this one got made private I think
 https://github.com/aptos-labs/token-minter
 https://github.com/aptos-labs/aptos-names-contracts
 https://github.com/aptos-labs/daily-move
