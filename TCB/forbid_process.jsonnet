@@ -38,7 +38,7 @@ local sys_funcs = [
       severity: 'ERROR',
       message: |||
         Do not use directly process functions. Use the
-        safer CapProcess or CapSys or CapUnix modules.
+        safer CapSys or CapUnix modules.
       |||,
     },
   ],
