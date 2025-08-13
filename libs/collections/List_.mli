@@ -122,6 +122,9 @@ val find_some_opt : ('a -> 'b option) -> 'a list -> 'b option
 val filter_some : 'a option list -> 'a list
 val optlist_to_list : 'a list option -> 'a list
 
+val map_result : ('a -> ('b, 'e) result) -> 'a list -> ('b list, 'e) result
+(** Map a function over the list, stopping on the first Error. *)
+
 (* Haskell-inspired list combinators (take/drop/span) *)
 
 (* this may raise Failure "List_.take: not enough" *)
