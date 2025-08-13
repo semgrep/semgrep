@@ -139,6 +139,32 @@ type value =
   | Ellipsis of Tok.t
 [@@deriving show { with_path = false }]
 
+(* TODO: does this already exist somewhere? *)
+type loc_range = { loc_start : Loc.t; loc_end : Loc.t }
+
+(** get the location range for the part of the parsed file covered by
+    the given AST fragment *)
+let rec range_of (ast : value) : loc_range =
+  let to_range a b =
+    { loc_start = Tok.unsafe_loc_of_tok a; loc_end = Tok.unsafe_loc_of_tok b }
+  in
+  let union range_a range_b =
+    { loc_start = range_a.loc_start; loc_end = range_b.loc_end }
+  in
+  match ast with
+  | Null tok -> to_range tok tok
+  | Bool (_, tok) -> to_range tok tok
+  | Float (_, tok) -> to_range tok tok
+  | S (_, tok) -> to_range tok tok
+  | Sequence (a, _, b) -> to_range a b
+  | Mapping (a, _, b) -> to_range a b
+  | KV (k, v) -> union (range_of k) (range_of v)
+  | OtherMapping (a, b) -> to_range a b
+  | Alias ((_, tok), _) -> to_range tok tok
+  | Tag ((_, tok), _) -> to_range tok tok
+  | Metavar (_, tok) -> to_range tok tok
+  | Ellipsis tok -> to_range tok tok
+
 (*****************************************************************************)
 (* Document *)
 (*****************************************************************************)
