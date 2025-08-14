@@ -1,0 +1,2 @@
+Language server: Made it so that errors which occur no longer pop up in while using the
+IDE. They still log, but will no longer be displayed via UX.
