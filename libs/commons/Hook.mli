@@ -21,7 +21,7 @@
 
 type 'a t
 
-val create : 'a -> 'a t
+val create : ?split_from_parent:('a -> 'a) -> 'a -> 'a t
 (** Lifts a value into a fiber-local context. *)
 
 val get : 'a t -> 'a

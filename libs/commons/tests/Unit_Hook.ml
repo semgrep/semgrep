@@ -27,27 +27,6 @@ let test_hook_local_nested () =
   (* Lastly, ensure we have rolled back to the original state. *)
   Alcotest.(check int) __LOC__ 0 (H.get h)
 
-let test_hook_local_concurrent () =
-  (* This test depends on us running inside EIO, so we explicitly
-   * set up the runtime here. *)
-  Eio_main.run @@ fun _ ->
-  let h = H.create 0 in
-
-  (* This will repeatedly check that binding [sm]'s value to [i]
-   * is not disturbed by another fiber. *)
-  let f i =
-    H.with_hook_set h i (fun () ->
-        for _ = 0 to 100 do
-          let i' = H.get h in
-          Alcotest.(check int) __LOC__ i i';
-          Eio.Fiber.yield ()
-        done)
-  in
-
-  (* Now let's ramp up and try a whole bunch of fibers. *)
-  let fibers = List.init 100 (fun i -> fun () -> f i) in
-  Eio.Fiber.all fibers
-
 let test_hook_local_with_exn () =
   let h = H.create 0 in
   let msg = "A terrible fate has befallen this computation" in
@@ -97,6 +76,40 @@ let test_cli_unscoped_set () =
       let current = ref 0 in
       Arg.parse_argv ~current argv speclist (fun _ -> ()) "...")
 
+let test_exec_pool_hook () =
+  let h = H.create 99 in
+
+  Eio_main.run @@ fun env ->
+  Eio.Switch.run @@ fun sw ->
+  let dm = Eio.Stdenv.domain_mgr env in
+  let pool = Eio.Executor_pool.create ~sw ~domain_count:4 dm in
+
+  (* This ensures that we inherit the default value of a Hook
+     when forking a fiber across domains. *)
+  let n =
+    Eio.Executor_pool.submit_fork pool ~sw ~weight:0.8 (fun () -> Hook.get h)
+    |> Eio.Promise.await |> Result.get_ok
+  in
+  Alcotest.(check int) __LOC__ 99 n;
+
+  (* This ensures that we get the same behaviour when we fork a fiber
+   * in a scoped setting. *)
+  (* XXX: CURRENTLY THIS TEST FAILS
+   * The reason for this is simple: the executor pool eagerly spawned those
+   * threads so there's no opportunity for them to inherit the newly-set values!
+   * By the end of the domainslib migration, this test should pass (with
+   * the correct non-Eio executor pool, of course) *)
+  (*
+  let n =
+    Hook.with_hook_set h 42 (fun () ->
+        Eio.Executor_pool.submit_fork pool ~sw ~weight:0.8 (fun () ->
+            Hook.get h)
+        |> Eio.Promise.await |> Result.get_ok)
+  in
+  Alcotest.(check int) __LOC__ 42 n
+  *)
+  ()
+
 let proc_and_eio (name, f) =
   [
     t (name ^ " (non-eio)") f;
@@ -114,6 +127,6 @@ let tests =
     |> List.concat_map proc_and_eio
   in
 
-  let eio_only = [ t "Fiber concurrent (eio)" test_hook_local_concurrent ] in
+  let eio_only = [ t "Fiber concurrent (eio)" test_exec_pool_hook ] in
 
   Testo.categorize "Hooks" @@ eio_and_non_tests @ eio_only

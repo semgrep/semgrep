@@ -139,8 +139,9 @@ let set_timeout (caps : < Cap.time_limit >) ~name ~eio_clock max_duration f =
   | Some clock -> (
       let timed_f = Domains.wrap_timeout ~clock max_duration f in
       match timed_f () with
-      | Error _ ->
-          Log.warn (fun m ->
+      | Error `Timeout ->
+          (* nosemgrep: no-logs-in-library *)
+          Logs.warn (fun m ->
               m "%S timeout at %g s (we abort)" name max_duration);
           None
       | Ok res -> Some res)

@@ -34,6 +34,8 @@ let map ~(conf : Parallelism_config.t) ~domain_count f l =
   Eio.Fiber.List.map ~max_fibers:domain_count
     (fun elem ->
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)
+      (* Please see the comment block in [Hook.ml] concerning safe values of
+       * [weight], if you are intending on changing it! *)
       Eio.Executor_pool.submit pool ~weight:1.0 (fun () -> f elem))
     l
 [@@tracing]
