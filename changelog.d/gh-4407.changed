@@ -1,1 +1,0 @@
-Pro scans will no longer attempt to parse tsconfig files for non-typescript scans.

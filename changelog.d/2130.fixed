@@ -1,2 +1,0 @@
-When validating the results of a secrets scan, do not have more than 256
-outstanding validators executing at a given time.

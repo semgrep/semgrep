@@ -1,15 +1,29 @@
-## [1.131.0](https://github.com/semgrep/semgrep/releases/tag/v1.131.0) - 2025-07-30
+## [1.132.0](https://github.com/semgrep/semgrep/releases/tag/v1.132.0) - 2025-08-14
+
+
+### Added
+
+
+- PHP: When enabling option `taint_assume_safe_booleans` the return values of
+  `boolval`, `is_bool`, and `||` will be considered safe.
+  When enabling `taint_assume_safe_numbers` the return values of `intval`,
+  `floatval`, `+`, `-`, `*`, `/` and `%` will also be considered safe. (php)
+- When performing secrets validation, the amount of time that the HTTP request
+  took to complete will now be visible in the debug logs. (#2130)
+- Introduces a timeout to internal HTTP requests, to prevent remote endpoints
+  from indefinitely hanging the engine. (#4295)
+
+
+### Changed
+
+
+- Pro scans will no longer attempt to parse tsconfig files for non-typescript scans. (gh-4407)
 
 
 ### Fixed
 
 
-- Semgrep diff scans can now query the app for which merge base to use. This fixes the issue where some diff scans on shallow clones would use the wrong merge base, and do a diff scan on commits not in a PR. (better-merge-base)
-- Fix a possibility that an empty file be created in place of a missing input file. This bug had been introduced with Semgrep 1.115.0. (dont-create-missing-input-files)
-- When processing a target with debug logging enabled, we now only log the target
-  path rather than the entire internal structure representation.  This allows for
-  more succinct log files and no longer introduces mid-entry newlines, which can
-  break log-parsing tooling. (gh-4315)
-- Language server: Fixed a bug which broke the `Sign in` command (saf-2151)
-- CiScanComplete.dependencies is now populated with parsed dependencies (sc-2468)
-- Print error details when a `SemgrepError` exception is raised and causes `semgrep` to fail. (silent-semgrep-error)
+- Language server: Made it so that errors which occur no longer pop up in while using the
+  IDE. They still log, but will no longer be displayed via UX. (saf-2193)
+- When validating the results of a secrets scan, do not have more than 256
+  outstanding validators executing at a given time. (#2130)
