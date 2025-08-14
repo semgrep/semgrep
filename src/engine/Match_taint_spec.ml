@@ -706,30 +706,40 @@ let taint_config_of_group ~per_file_formula_cache ~(file : Taint_rule_inst.file)
   let rules = Taint_rule_group.rules group in
   let group_spec_matches =
     (* HACK: For every rule except for the first one, we ignore their
-     * propagators and sanitizers when looking for matches, since it should
-     * be the same as the first rule. This saves on a huge memory spike
-     * because we don't need to allocate space for essentially the same
-     * matches between rules in the same group.
-     *
-     * NOTE(Tean): I've tried doing a similar thing with sources and sinks
-     * in the past, because findings will look for the pm associated with
-     * the match when assigning a rule_id. This can lead to missing findings.
-     *
-     * Also, sharing propagators like this can cause differences when dumping
-     * taint sigs, that's because they have slightly different pm match
-     * info, but in practice this doesn't seem to make a difference in findings. *)
+       propagators and sanitizers when looking for matches, since it should
+       be the same as the first rule. This saves on a huge memory spike
+       because we don't need to allocate space for essentially the same
+       matches between rules in the same group.
+
+       NOTE(Tean): I've tried doing a similar thing with sources and sinks
+       in the past, because findings will look for the pm associated with
+       the match when assigning a rule_id. This can lead to missing findings.
+
+       Also, sharing propagators like this can cause differences when dumping
+       taint sigs, that's because they have slightly different pm match
+       info, but in practice this doesn't seem to make a difference in findings. *)
     match rules with
     | [] ->
-        Log.err (fun m -> m "group_spec_matches: unexpected empty list");
+        (* nosemgrep: no-logs-in-library *)
+        Logs.err (fun m ->
+            m "BUG: taint_config_of_group: taint rule group is empty");
         []
-    | _ :: _ ->
-        rules
-        |> List_.map (fun (rule : Rule.taint_rule) ->
-               let (`Taint spec) = rule.mode in
-               let spec = { spec with propagators = []; sanitizers = None } in
-               let rule' = { rule with mode = `Taint spec } in
-               preds_of_rule ~per_file_formula_cache ~file xconf ast_and_errors
-                 rule')
+    | first :: rest ->
+        let first_preds =
+          (* Propagators and sanitizers predicates are computed for the first rule only. *)
+          preds_of_rule ~per_file_formula_cache ~file xconf ast_and_errors first
+        in
+        let rest_preds =
+          rest
+          |> List_.map (fun (rule : Rule.taint_rule) ->
+                 let (`Taint spec) = rule.mode in
+                 (* This rule's propagators and sanitizers are already in 'first_preds'. *)
+                 let spec = { spec with propagators = []; sanitizers = None } in
+                 let rule' = { rule with mode = `Taint spec } in
+                 preds_of_rule ~per_file_formula_cache ~file xconf
+                   ast_and_errors rule')
+        in
+        first_preds :: rest_preds
   in
   (* TODO(iago): It may be better to just have a separate "preds_of_group" that
     folds over the rules in the group and iterately constructs the 'preds',
