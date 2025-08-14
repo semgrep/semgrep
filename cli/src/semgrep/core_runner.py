@@ -2,6 +2,7 @@ import asyncio
 import collections
 import contextlib
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -851,10 +852,15 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     )
                 sys.exit(2)
 
-            # check if ddprof is in PATH and if the trace flag is set.
-            # if yes, then we wrap the call to semgrep with ddprof for
-            # SMS profiling.
+            # check if ddprof is in PATH, if the trace flag is set, and if DDPROF_OFF is not "1".
+            # if yes, then we wrap the call to semgrep with ddprof for SMS profiling.
             ddprof = shutil.which("ddprof") and self._trace
+
+            if ddprof and os.environ.get("DDPROF_OFF") == "1":
+                logger.warning(
+                    "DDPROF_OFF is set to 1, so ddprof will not be used for SMS profiling."
+                )
+                ddprof = False
 
             cmd = [
                 # bugfix: self._binary_path is an Optional[Path]. The
