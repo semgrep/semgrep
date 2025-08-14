@@ -1,5 +1,5 @@
 rules:
-- id: decorated-field-pattern 
+- id: decorated-field-pattern
   message: Matched a decorated field
   languages:
     - typescript

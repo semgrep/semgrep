@@ -412,7 +412,12 @@ let map_identifier_ (env : env) (x : CST.identifier_) =
 
 let map_from_clause (env : env) ((v1, v2) : CST.from_clause) =
   let v1 = (* "from" *) token env v1 in
-  let v2 = map_string_ env v2 in
+  let v2 =
+    match v2 with
+    | `Str x -> R.Case ("Str", map_string_ env x)
+    | `Semg_meta tok ->
+        R.Case ("Semg_meta", (* pattern \$[A-Z_][A-Z_0-9]* *) token env tok)
+  in
   R.Tuple [ v1; v2 ]
 
 let map_literal_type (env : env) (x : CST.literal_type) =
@@ -494,29 +499,35 @@ let map_export_specifier (env : env) ((v1, v2, v3) : CST.export_specifier) =
   in
   R.Tuple [ v1; v2; v3 ]
 
-let map_import_specifier (env : env) ((v1, v2) : CST.import_specifier) =
-  let v1 =
-    match v1 with
-    | Some x -> R.Option (Some (map_anon_choice_type_2b11f6b env x))
-    | None -> R.Option None
-  in
-  let v2 =
-    match v2 with
-    | `Import_id x -> R.Case ("Import_id", map_import_identifier env x)
-    | `Choice_module_export_name_as_import_id (v1, v2, v3) ->
-        R.Case
-          ( "Choice_module_export_name_as_import_id",
-            let v1 =
-              match v1 with
-              | `Module_export_name x ->
-                  R.Case ("Module_export_name", map_module_export_name env x)
-              | `Type tok -> R.Case ("Type", (* "type" *) token env tok)
-            in
-            let v2 = (* "as" *) token env v2 in
-            let v3 = map_import_identifier env v3 in
-            R.Tuple [ v1; v2; v3 ] )
-  in
-  R.Tuple [ v1; v2 ]
+let map_import_specifier (env : env) (x : CST.import_specifier) =
+  match x with
+  | `Opt_choice_type_choice_import_id (v1, v2) ->
+      R.Case
+        ( "Opt_choice_type_choice_import_id",
+          let v1 =
+            match v1 with
+            | Some x -> R.Option (Some (map_anon_choice_type_2b11f6b env x))
+            | None -> R.Option None
+          in
+          let v2 =
+            match v2 with
+            | `Import_id x -> R.Case ("Import_id", map_import_identifier env x)
+            | `Choice_module_export_name_as_import_id (v1, v2, v3) ->
+                R.Case
+                  ( "Choice_module_export_name_as_import_id",
+                    let v1 =
+                      match v1 with
+                      | `Module_export_name x ->
+                          R.Case
+                            ("Module_export_name", map_module_export_name env x)
+                      | `Type tok -> R.Case ("Type", (* "type" *) token env tok)
+                    in
+                    let v2 = (* "as" *) token env v2 in
+                    let v3 = map_import_identifier env v3 in
+                    R.Tuple [ v1; v2; v3 ] )
+          in
+          R.Tuple [ v1; v2 ] )
+  | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
 
 let map_nested_type_identifier (env : env)
     ((v1, v2, v3) : CST.nested_type_identifier) =
@@ -2214,30 +2225,42 @@ and map_internal_module (env : env) ((v1, v2) : CST.internal_module) =
   let v2 = map_module__ env v2 in
   R.Tuple [ v1; v2 ]
 
+and map_jsx_attribute (env : env) ((v1, v2) : CST.jsx_attribute) =
+  let v1 = map_jsx_attribute_name env v1 in
+  let v2 =
+    match v2 with
+    | Some (v1, v2) ->
+        R.Option
+          (Some
+             (let v1 = (* "=" *) token env v1 in
+              let v2 = map_jsx_attribute_value env v2 in
+              R.Tuple [ v1; v2 ]))
+    | None -> R.Option None
+  in
+  R.Tuple [ v1; v2 ]
+
 and map_jsx_attribute_ (env : env) (x : CST.jsx_attribute_) =
   match x with
-  | `Jsx_attr (v1, v2) ->
+  | `Choice_jsx_attr x ->
       R.Case
-        ( "Jsx_attr",
-          let v1 = map_jsx_attribute_name env v1 in
-          let v2 =
-            match v2 with
-            | Some (v1, v2) ->
-                R.Option
-                  (Some
-                     (let v1 = (* "=" *) token env v1 in
-                      let v2 = map_jsx_attribute_value env v2 in
-                      R.Tuple [ v1; v2 ]))
-            | None -> R.Option None
-          in
-          R.Tuple [ v1; v2 ] )
-  | `Jsx_exp x -> R.Case ("Jsx_exp", map_jsx_expression env x)
+        ( "Choice_jsx_attr",
+          match x with
+          | `Jsx_attr x -> R.Case ("Jsx_attr", map_jsx_attribute env x)
+          | `Jsx_exp x -> R.Case ("Jsx_exp", map_jsx_expression env x) )
+  | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
 
 and map_jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   match x with
-  | `Jsx_str x -> R.Case ("Jsx_str", map_jsx_string env x)
-  | `Jsx_exp x -> R.Case ("Jsx_exp", map_jsx_expression env x)
-  | `Choice_jsx_elem x -> R.Case ("Choice_jsx_elem", map_jsx_element_ env x)
+  | `Choice_jsx_str x ->
+      R.Case
+        ( "Choice_jsx_str",
+          match x with
+          | `Jsx_str x -> R.Case ("Jsx_str", map_jsx_string env x)
+          | `Jsx_exp x -> R.Case ("Jsx_exp", map_jsx_expression env x)
+          | `Choice_jsx_elem x ->
+              R.Case ("Choice_jsx_elem", map_jsx_element_ env x) )
+  | `Semg_meta tok ->
+      R.Case ("Semg_meta", (* pattern \$[A-Z_][A-Z_0-9]* *) token env tok)
 
 and map_jsx_child (env : env) (x : CST.jsx_child) =
   match x with
@@ -2369,7 +2392,13 @@ and map_member_expression (env : env) ((v1, v2, v3) : CST.member_expression) =
     | `DOT tok -> R.Case ("DOT", (* "." *) token env tok)
     | `Opt_chain tok -> R.Case ("Opt_chain", (* "?." *) token env tok)
   in
-  let v3 = map_anon_choice_priv_prop_id_89abb74 env v3 in
+  let v3 =
+    match v3 with
+    | `Priv_prop_id tok ->
+        R.Case ("Priv_prop_id", (* private_property_identifier *) token env tok)
+    | `Id tok -> R.Case ("Id", (* identifier *) token env tok)
+    | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
+  in
   R.Tuple [ v1; v2; v3 ]
 
 and map_method_definition (env : env)
@@ -2639,9 +2668,14 @@ and map_parenthesized_expression (env : env)
 
 and map_pattern (env : env) (x : CST.pattern) =
   match x with
-  | `Choice_choice_member_exp x ->
-      R.Case ("Choice_choice_member_exp", map_lhs_expression env x)
-  | `Rest_pat x -> R.Case ("Rest_pat", map_rest_pattern env x)
+  | `Choice_choice_choice_member_exp x ->
+      R.Case
+        ( "Choice_choice_choice_member_exp",
+          match x with
+          | `Choice_choice_member_exp x ->
+              R.Case ("Choice_choice_member_exp", map_lhs_expression env x)
+          | `Rest_pat x -> R.Case ("Rest_pat", map_rest_pattern env x) )
+  | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
 
 and map_primary_expression (env : env) (x : CST.primary_expression) =
   match x with
@@ -2687,6 +2721,17 @@ and map_primary_expression (env : env) (x : CST.primary_expression) =
           | `Non_null_exp x ->
               R.Case ("Non_null_exp", map_non_null_expression env x) )
   | `Semg_exp_ellips tok -> R.Case ("Semg_exp_ellips", (* "..." *) token env tok)
+  | `Deep_ellips (v1, v2, v3) ->
+      R.Case
+        ( "Deep_ellips",
+          let v1 = (* "<..." *) token env v1 in
+          let v2 = map_expression env v2 in
+          let v3 = (* "...>" *) token env v3 in
+          R.Tuple [ v1; v2; v3 ] )
+  | `Semg_meta_ellips tok ->
+      R.Case
+        ( "Semg_meta_ellips",
+          (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *) token env tok )
 
 and map_primary_type (env : env) (x : CST.primary_type) =
   match x with
@@ -2973,214 +3018,224 @@ and map_spread_element (env : env) ((v1, v2) : CST.spread_element) =
   let v2 = map_expression env v2 in
   R.Tuple [ v1; v2 ]
 
+and map_throw_statement (env : env) ((v1, v2, v3) : CST.throw_statement) =
+  let v1 = (* "throw" *) token env v1 in
+  let v2 = map_expressions env v2 in
+  let v3 = map_semicolon env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_labeled_statement (env : env) ((v1, v2, v3) : CST.labeled_statement) =
+  let v1 = map_anon_choice_type_id_dd17e7d env v1 in
+  let v2 = (* ":" *) token env v2 in
+  let v3 = map_statement env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_return_statement (env : env) ((v1, v2, v3) : CST.return_statement) =
+  let v1 = (* "return" *) token env v1 in
+  let v2 =
+    match v2 with
+    | Some x -> R.Option (Some (map_expressions env x))
+    | None -> R.Option None
+  in
+  let v3 = map_semicolon env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_do_statement (env : env) ((v1, v2, v3, v4, v5) : CST.do_statement) =
+  let v1 = (* "do" *) token env v1 in
+  let v2 = map_statement env v2 in
+  let v3 = (* "while" *) token env v3 in
+  let v4 = map_parenthesized_expression env v4 in
+  let v5 =
+    match v5 with
+    | Some x -> R.Option (Some (map_semicolon env x))
+    | None -> R.Option None
+  in
+  R.Tuple [ v1; v2; v3; v4; v5 ]
+
+and map_for_in_statement (env : env) ((v1, v2, v3, v4) : CST.for_in_statement) =
+  let v1 = (* "for" *) token env v1 in
+  let v2 =
+    match v2 with
+    | Some tok -> R.Option (Some ((* "await" *) token env tok))
+    | None -> R.Option None
+  in
+  let v3 = map_for_header env v3 in
+  let v4 = map_statement env v4 in
+  R.Tuple [ v1; v2; v3; v4 ]
+
+and map_for_statement (env : env) ((v1, v2, v3, v4, v5) : CST.for_statement) =
+  let v1 = (* "for" *) token env v1 in
+  let v2 = (* "(" *) token env v2 in
+  let v3 =
+    match v3 with
+    | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
+    | `Choice_choice_lexi_decl_choice_choice_exp_SEMI_opt_choice_exp (v1, v2, v3)
+      ->
+        R.Case
+          ( "Choice_choice_lexi_decl_choice_choice_exp_SEMI_opt_choice_exp",
+            let v1 =
+              match v1 with
+              | `Choice_lexi_decl x ->
+                  R.Case
+                    ( "Choice_lexi_decl",
+                      match x with
+                      | `Lexi_decl x ->
+                          R.Case ("Lexi_decl", map_lexical_declaration env x)
+                      | `Var_decl x ->
+                          R.Case ("Var_decl", map_variable_declaration env x) )
+              | `Choice_exp_SEMI (v1, v2) ->
+                  R.Case
+                    ( "Choice_exp_SEMI",
+                      let v1 = map_expressions env v1 in
+                      let v2 = (* ";" *) token env v2 in
+                      R.Tuple [ v1; v2 ] )
+              | `Empty_stmt tok -> R.Case ("Empty_stmt", (* ";" *) token env tok)
+            in
+            let v2 =
+              match v2 with
+              | `Choice_exp_SEMI (v1, v2) ->
+                  R.Case
+                    ( "Choice_exp_SEMI",
+                      let v1 = map_expressions env v1 in
+                      let v2 = (* ";" *) token env v2 in
+                      R.Tuple [ v1; v2 ] )
+              | `Empty_stmt tok -> R.Case ("Empty_stmt", (* ";" *) token env tok)
+            in
+            let v3 =
+              match v3 with
+              | Some x -> R.Option (Some (map_expressions env x))
+              | None -> R.Option None
+            in
+            R.Tuple [ v1; v2; v3 ] )
+  in
+  let v4 = (* ")" *) token env v4 in
+  let v5 = map_statement env v5 in
+  R.Tuple [ v1; v2; v3; v4; v5 ]
+
+and map_switch_statement (env : env) ((v1, v2, v3) : CST.switch_statement) =
+  let v1 = (* "switch" *) token env v1 in
+  let v2 = map_parenthesized_expression env v2 in
+  let v3 = map_switch_body env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_if_statement (env : env) ((v1, v2, v3, v4) : CST.if_statement) =
+  let v1 = (* "if" *) token env v1 in
+  let v2 = map_parenthesized_expression env v2 in
+  let v3 = map_statement env v3 in
+  let v4 =
+    match v4 with
+    | Some x -> R.Option (Some (map_else_clause env x))
+    | None -> R.Option None
+  in
+  R.Tuple [ v1; v2; v3; v4 ]
+
+and map_import_statement (env : env)
+    ((v1, v2, v3, v4, v5) : CST.import_statement) =
+  let v1 = (* "import" *) token env v1 in
+  let v2 =
+    match v2 with
+    | Some x -> R.Option (Some (map_anon_choice_type_2b11f6b env x))
+    | None -> R.Option None
+  in
+  let v3 =
+    match v3 with
+    | `Import_clause_from_clause (v1, v2) ->
+        R.Case
+          ( "Import_clause_from_clause",
+            let v1 = map_import_clause env v1 in
+            let v2 = map_from_clause env v2 in
+            R.Tuple [ v1; v2 ] )
+    | `Import_requ_clause x ->
+        R.Case ("Import_requ_clause", map_import_require_clause env x)
+    | `Str x -> R.Case ("Str", map_string_ env x)
+  in
+  let v4 =
+    match v4 with
+    | Some x -> R.Option (Some (map_import_attribute env x))
+    | None -> R.Option None
+  in
+  let v5 = map_semicolon env v5 in
+  R.Tuple [ v1; v2; v3; v4; v5 ]
+
+and map_break_statement (env : env) ((v1, v2, v3) : CST.break_statement) =
+  let v1 = (* "break" *) token env v1 in
+  let v2 =
+    match v2 with
+    | Some tok -> R.Option (Some ((* identifier *) token env tok))
+    | None -> R.Option None
+  in
+  let v3 = map_semicolon env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_continue_statement (env : env) ((v1, v2, v3) : CST.continue_statement) =
+  let v1 = (* "continue" *) token env v1 in
+  let v2 =
+    match v2 with
+    | Some tok -> R.Option (Some ((* identifier *) token env tok))
+    | None -> R.Option None
+  in
+  let v3 = map_semicolon env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_debugger_statement (env : env) ((v1, v2) : CST.debugger_statement) =
+  let v1 = (* "debugger" *) token env v1 in
+  let v2 = map_semicolon env v2 in
+  R.Tuple [ v1; v2 ]
+
+and map_while_statement (env : env) ((v1, v2, v3) : CST.while_statement) =
+  let v1 = (* "while" *) token env v1 in
+  let v2 = map_parenthesized_expression env v2 in
+  let v3 = map_statement env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_with_statement (env : env) ((v1, v2, v3) : CST.with_statement) =
+  let v1 = (* "with" *) token env v1 in
+  let v2 = map_parenthesized_expression env v2 in
+  let v3 = map_statement env v3 in
+  R.Tuple [ v1; v2; v3 ]
+
+and map_try_statement (env : env) ((v1, v2, v3, v4) : CST.try_statement) =
+  let v1 = (* "try" *) token env v1 in
+  let v2 = map_statement_block env v2 in
+  let v3 =
+    match v3 with
+    | Some x -> R.Option (Some (map_catch_clause env x))
+    | None -> R.Option None
+  in
+  let v4 =
+    match v4 with
+    | Some x -> R.Option (Some (map_finally_clause env x))
+    | None -> R.Option None
+  in
+  R.Tuple [ v1; v2; v3; v4 ]
+
 and map_statement (env : env) (x : CST.statement) =
   match x with
-  | `Export_stmt x -> R.Case ("Export_stmt", map_export_statement env x)
-  | `Import_stmt (v1, v2, v3, v4, v5) ->
+  | `Choice_export_stmt x ->
       R.Case
-        ( "Import_stmt",
-          let v1 = (* "import" *) token env v1 in
-          let v2 =
-            match v2 with
-            | Some x -> R.Option (Some (map_anon_choice_type_2b11f6b env x))
-            | None -> R.Option None
-          in
-          let v3 =
-            match v3 with
-            | `Import_clause_from_clause (v1, v2) ->
-                R.Case
-                  ( "Import_clause_from_clause",
-                    let v1 = map_import_clause env v1 in
-                    let v2 = map_from_clause env v2 in
-                    R.Tuple [ v1; v2 ] )
-            | `Import_requ_clause x ->
-                R.Case ("Import_requ_clause", map_import_require_clause env x)
-            | `Str x -> R.Case ("Str", map_string_ env x)
-          in
-          let v4 =
-            match v4 with
-            | Some x -> R.Option (Some (map_import_attribute env x))
-            | None -> R.Option None
-          in
-          let v5 = map_semicolon env v5 in
-          R.Tuple [ v1; v2; v3; v4; v5 ] )
-  | `Debu_stmt (v1, v2) ->
-      R.Case
-        ( "Debu_stmt",
-          let v1 = (* "debugger" *) token env v1 in
-          let v2 = map_semicolon env v2 in
-          R.Tuple [ v1; v2 ] )
-  | `Exp_stmt (v1, v2) ->
-      R.Case
-        ( "Exp_stmt",
-          let v1 = map_expressions env v1 in
-          let v2 = map_semicolon env v2 in
-          R.Tuple [ v1; v2 ] )
-  | `Decl x -> R.Case ("Decl", map_declaration env x)
-  | `Stmt_blk x -> R.Case ("Stmt_blk", map_statement_block env x)
-  | `If_stmt (v1, v2, v3, v4) ->
-      R.Case
-        ( "If_stmt",
-          let v1 = (* "if" *) token env v1 in
-          let v2 = map_parenthesized_expression env v2 in
-          let v3 = map_statement env v3 in
-          let v4 =
-            match v4 with
-            | Some x -> R.Option (Some (map_else_clause env x))
-            | None -> R.Option None
-          in
-          R.Tuple [ v1; v2; v3; v4 ] )
-  | `Switch_stmt (v1, v2, v3) ->
-      R.Case
-        ( "Switch_stmt",
-          let v1 = (* "switch" *) token env v1 in
-          let v2 = map_parenthesized_expression env v2 in
-          let v3 = map_switch_body env v3 in
-          R.Tuple [ v1; v2; v3 ] )
-  | `For_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-      R.Case
-        ( "For_stmt",
-          let v1 = (* "for" *) token env v1 in
-          let v2 = (* "(" *) token env v2 in
-          let v3 =
-            match v3 with
-            | `Choice_lexi_decl x ->
-                R.Case
-                  ( "Choice_lexi_decl",
-                    match x with
-                    | `Lexi_decl x ->
-                        R.Case ("Lexi_decl", map_lexical_declaration env x)
-                    | `Var_decl x ->
-                        R.Case ("Var_decl", map_variable_declaration env x) )
-            | `Choice_exp_SEMI (v1, v2) ->
-                R.Case
-                  ( "Choice_exp_SEMI",
-                    let v1 = map_expressions env v1 in
-                    let v2 = (* ";" *) token env v2 in
-                    R.Tuple [ v1; v2 ] )
-            | `Empty_stmt tok -> R.Case ("Empty_stmt", (* ";" *) token env tok)
-          in
-          let v4 =
-            match v4 with
-            | `Choice_exp_SEMI (v1, v2) ->
-                R.Case
-                  ( "Choice_exp_SEMI",
-                    let v1 = map_expressions env v1 in
-                    let v2 = (* ";" *) token env v2 in
-                    R.Tuple [ v1; v2 ] )
-            | `Empty_stmt tok -> R.Case ("Empty_stmt", (* ";" *) token env tok)
-          in
-          let v5 =
-            match v5 with
-            | Some x -> R.Option (Some (map_expressions env x))
-            | None -> R.Option None
-          in
-          let v6 = (* ")" *) token env v6 in
-          let v7 = map_statement env v7 in
-          R.Tuple [ v1; v2; v3; v4; v5; v6; v7 ] )
-  | `For_in_stmt (v1, v2, v3, v4) ->
-      R.Case
-        ( "For_in_stmt",
-          let v1 = (* "for" *) token env v1 in
-          let v2 =
-            match v2 with
-            | Some tok -> R.Option (Some ((* "await" *) token env tok))
-            | None -> R.Option None
-          in
-          let v3 = map_for_header env v3 in
-          let v4 = map_statement env v4 in
-          R.Tuple [ v1; v2; v3; v4 ] )
-  | `While_stmt (v1, v2, v3) ->
-      R.Case
-        ( "While_stmt",
-          let v1 = (* "while" *) token env v1 in
-          let v2 = map_parenthesized_expression env v2 in
-          let v3 = map_statement env v3 in
-          R.Tuple [ v1; v2; v3 ] )
-  | `Do_stmt (v1, v2, v3, v4, v5) ->
-      R.Case
-        ( "Do_stmt",
-          let v1 = (* "do" *) token env v1 in
-          let v2 = map_statement env v2 in
-          let v3 = (* "while" *) token env v3 in
-          let v4 = map_parenthesized_expression env v4 in
-          let v5 =
-            match v5 with
-            | Some x -> R.Option (Some (map_semicolon env x))
-            | None -> R.Option None
-          in
-          R.Tuple [ v1; v2; v3; v4; v5 ] )
-  | `Try_stmt (v1, v2, v3, v4) ->
-      R.Case
-        ( "Try_stmt",
-          let v1 = (* "try" *) token env v1 in
-          let v2 = map_statement_block env v2 in
-          let v3 =
-            match v3 with
-            | Some x -> R.Option (Some (map_catch_clause env x))
-            | None -> R.Option None
-          in
-          let v4 =
-            match v4 with
-            | Some x -> R.Option (Some (map_finally_clause env x))
-            | None -> R.Option None
-          in
-          R.Tuple [ v1; v2; v3; v4 ] )
-  | `With_stmt (v1, v2, v3) ->
-      R.Case
-        ( "With_stmt",
-          let v1 = (* "with" *) token env v1 in
-          let v2 = map_parenthesized_expression env v2 in
-          let v3 = map_statement env v3 in
-          R.Tuple [ v1; v2; v3 ] )
-  | `Brk_stmt (v1, v2, v3) ->
-      R.Case
-        ( "Brk_stmt",
-          let v1 = (* "break" *) token env v1 in
-          let v2 =
-            match v2 with
-            | Some tok -> R.Option (Some ((* identifier *) token env tok))
-            | None -> R.Option None
-          in
-          let v3 = map_semicolon env v3 in
-          R.Tuple [ v1; v2; v3 ] )
-  | `Cont_stmt (v1, v2, v3) ->
-      R.Case
-        ( "Cont_stmt",
-          let v1 = (* "continue" *) token env v1 in
-          let v2 =
-            match v2 with
-            | Some tok -> R.Option (Some ((* identifier *) token env tok))
-            | None -> R.Option None
-          in
-          let v3 = map_semicolon env v3 in
-          R.Tuple [ v1; v2; v3 ] )
-  | `Ret_stmt (v1, v2, v3) ->
-      R.Case
-        ( "Ret_stmt",
-          let v1 = (* "return" *) token env v1 in
-          let v2 =
-            match v2 with
-            | Some x -> R.Option (Some (map_expressions env x))
-            | None -> R.Option None
-          in
-          let v3 = map_semicolon env v3 in
-          R.Tuple [ v1; v2; v3 ] )
-  | `Throw_stmt (v1, v2, v3) ->
-      R.Case
-        ( "Throw_stmt",
-          let v1 = (* "throw" *) token env v1 in
-          let v2 = map_expressions env v2 in
-          let v3 = map_semicolon env v3 in
-          R.Tuple [ v1; v2; v3 ] )
-  | `Empty_stmt tok -> R.Case ("Empty_stmt", (* ";" *) token env tok)
-  | `Labe_stmt (v1, v2, v3) ->
-      R.Case
-        ( "Labe_stmt",
-          let v1 = map_anon_choice_type_id_dd17e7d env v1 in
-          let v2 = (* ":" *) token env v2 in
-          let v3 = map_statement env v3 in
-          R.Tuple [ v1; v2; v3 ] )
+        ( "Choice_export_stmt",
+          match x with
+          | `Export_stmt x -> R.Case ("Export_stmt", map_export_statement env x)
+          | `Import_stmt x -> R.Case ("Import_stmt", map_import_statement env x)
+          | `Debu_stmt x -> R.Case ("Debu_stmt", map_debugger_statement env x)
+          | `Exp_stmt x -> R.Case ("Exp_stmt", map_expression_statement env x)
+          | `Decl x -> R.Case ("Decl", map_declaration env x)
+          | `Stmt_blk x -> R.Case ("Stmt_blk", map_statement_block env x)
+          | `If_stmt x -> R.Case ("If_stmt", map_if_statement env x)
+          | `Switch_stmt x -> R.Case ("Switch_stmt", map_switch_statement env x)
+          | `For_stmt x -> R.Case ("For_stmt", map_for_statement env x)
+          | `For_in_stmt x -> R.Case ("For_in_stmt", map_for_in_statement env x)
+          | `While_stmt x -> R.Case ("While_stmt", map_while_statement env x)
+          | `Do_stmt x -> R.Case ("Do_stmt", map_do_statement env x)
+          | `Try_stmt x -> R.Case ("Try_stmt", map_try_statement env x)
+          | `With_stmt x -> R.Case ("With_stmt", map_with_statement env x)
+          | `Brk_stmt x -> R.Case ("Brk_stmt", map_break_statement env x)
+          | `Cont_stmt x -> R.Case ("Cont_stmt", map_continue_statement env x)
+          | `Ret_stmt x -> R.Case ("Ret_stmt", map_return_statement env x)
+          | `Throw_stmt x -> R.Case ("Throw_stmt", map_throw_statement env x)
+          | `Empty_stmt tok -> R.Case ("Empty_stmt", (* ";" *) token env tok)
+          | `Labe_stmt x -> R.Case ("Labe_stmt", map_labeled_statement env x) )
+  | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
 
 and map_statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
   let v1 = (* "{" *) token env v1 in
@@ -3585,10 +3640,77 @@ and map_variable_declarator (env : env) (x : CST.variable_declarator) =
           let v3 = map_type_annotation env v3 in
           R.Tuple [ v1; v2; v3 ] )
 
+let map_method_pattern (env : env) (x : CST.method_pattern) =
+  match x with
+  | `Rep1_deco_public_field_defi (v1, v2) ->
+      R.Case
+        ( "Rep1_deco_public_field_defi",
+          let v1 = R.List (List_.map (map_decorator env) v1) in
+          let v2 = map_public_field_definition env v2 in
+          R.Tuple [ v1; v2 ] )
+  | `Rep_deco_choice_abst_meth_sign (v1, v2) ->
+      R.Case
+        ( "Rep_deco_choice_abst_meth_sign",
+          let v1 = R.List (List_.map (map_decorator env) v1) in
+          let v2 =
+            match v2 with
+            | `Abst_meth_sign x ->
+                R.Case ("Abst_meth_sign", map_abstract_method_signature env x)
+            | `Index_sign x -> R.Case ("Index_sign", map_index_signature env x)
+            | `Meth_sign x -> R.Case ("Meth_sign", map_method_signature env x)
+            | `Meth_defi_opt_choice_auto_semi (v1, v2) ->
+                R.Case
+                  ( "Meth_defi_opt_choice_auto_semi",
+                    let v1 = map_method_definition env v1 in
+                    let v2 =
+                      match v2 with
+                      | Some x -> R.Option (Some (map_semicolon env x))
+                      | None -> R.Option None
+                    in
+                    R.Tuple [ v1; v2 ] )
+          in
+          R.Tuple [ v1; v2 ] )
+
 let map_semgrep_pattern (env : env) (x : CST.semgrep_pattern) =
   match x with
   | `Exp x -> R.Case ("Exp", map_expression env x)
-  | `Pair x -> R.Case ("Pair", map_pair env x)
+  | `Pair_opt_COMMA (v1, v2) ->
+      R.Case
+        ( "Pair_opt_COMMA",
+          let v1 = map_pair env v1 in
+          let v2 =
+            match v2 with
+            | Some tok -> R.Option (Some ((* "," *) token env tok))
+            | None -> R.Option None
+          in
+          R.Tuple [ v1; v2 ] )
+  | `Meth_pat x -> R.Case ("Meth_pat", map_method_pattern env x)
+  | `Func_decl_pat (v1, v2, v3, v4, v5, v6) ->
+      R.Case
+        ( "Func_decl_pat",
+          let v1 =
+            match v1 with
+            | Some tok -> R.Option (Some ((* "async" *) token env tok))
+            | None -> R.Option None
+          in
+          let v2 = (* "function" *) token env v2 in
+          let v3 =
+            match v3 with
+            | `Id tok -> R.Case ("Id", (* identifier *) token env tok)
+            | `Semg_ellips tok ->
+                R.Case ("Semg_ellips", (* "..." *) token env tok)
+          in
+          let v4 = map_call_signature_ env v4 in
+          let v5 = map_statement_block env v5 in
+          let v6 =
+            match v6 with
+            | Some tok ->
+                R.Option (Some ((* automatic_semicolon *) token env tok))
+            | None -> R.Option None
+          in
+          R.Tuple [ v1; v2; v3; v4; v5; v6 ] )
+  | `Fina_clause x -> R.Case ("Fina_clause", map_finally_clause env x)
+  | `Catch_clause x -> R.Case ("Catch_clause", map_catch_clause env x)
 
 let map_program (env : env) (x : CST.program) =
   match x with

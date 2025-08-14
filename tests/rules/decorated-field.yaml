@@ -1,6 +1,6 @@
 rules:
-- id: decorated-method 
-  message: found a decorated method 
+- id: decorated-method
+  message: found a decorated method
   languages:
     - typescript
   severity: WARNING

@@ -117,11 +117,12 @@ let is_semgrep_pattern_we_would_rather_parse_as_expression cst =
           (* A single statement which is a label looks like `foo: e`, which
              is probably better suited to being a partial pattern.
            *)
-          ( `Labe_stmt _
-          (* A block statement with only one thing in it, or empty, is probably actually
-             a record.
-           *)
-          | `Stmt_blk (_, ([] | [ _ ]), _, _) );
+          `Choice_export_stmt
+            ( `Labe_stmt _
+            (* A block statement with only one thing in it, or empty, is probably actually
+              a record.
+            *)
+            | `Stmt_blk (_, ([] | [ _ ]), _, _) );
         ] ) ->
       true
   | _ -> false
@@ -369,7 +370,11 @@ let from_clause (env : env) ((v1, v2) : CST.from_clause) : tok * string wrap =
     token env v1
     (* "from" *)
   in
-  let v2 = string_ env v2 in
+  let v2 =
+    match v2 with
+    | `Str x -> string_ env x
+    | `Semg_meta tok -> (* pattern \$[A-Z_][A-Z_0-9]* *) str env tok
+  in
   (v1, v2)
 
 let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
@@ -510,28 +515,37 @@ let import_identifier (env : env) (x : CST.import_identifier) =
       (* "type" *)
       identifier env tok
 
-let import_specifier (env : env) ((v1, v2) : CST.import_specifier) :
-    a_ident * a_ident option =
-  (* What is `import typeof`? I know what `import type` is, but this is weird. *)
-  let _v1 =
-    match v1 with
-    | Some x -> Some (type_or_typeof env x)
-    | None -> None
-  in
-  let v2 =
-    match v2 with
-    | `Import_id x -> (import_identifier env x, None)
-    | `Choice_module_export_name_as_import_id (v1, v2, v3) ->
-        let v1 =
-          match v1 with
-          | `Module_export_name x -> module_export_name env x
-          | `Type tok -> (* "type" *) identifier env tok
-        in
-        let _v2 = (* "as" *) token env v2 in
-        let v3 = import_identifier env v3 in
-        (v1, Some v3)
-  in
-  v2
+let import_specifier (env : env) (x : CST.import_specifier) :
+    (a_ident * a_ident option) option =
+  match x with
+  | `Opt_choice_type_choice_import_id (v1, v2) ->
+      (* What is `import typeof`? I know what `import type` is, but this is weird. *)
+      let _v1 =
+        match v1 with
+        | Some x -> Some (type_or_typeof env x)
+        | None -> None
+      in
+      let v2 =
+        match v2 with
+        | `Import_id x -> (import_identifier env x, None)
+        | `Choice_module_export_name_as_import_id (v1, v2, v3) ->
+            let v1 =
+              match v1 with
+              | `Module_export_name x -> module_export_name env x
+              | `Type tok -> (* "type" *) identifier env tok
+            in
+            let _v2 = (* "as" *) token env v2 in
+            let v3 = import_identifier env v3 in
+            (v1, Some v3)
+      in
+      Some v2
+  (* sgrep-ext: this is to allow people to write patterns like
+   * import {..., Foo, ...} from 'Bar', but internally we just skip
+   * those ... and will return an Import {Foo} from 'Bar'
+   *)
+  | `Semg_ellips _tok ->
+      (* "..." *)
+      None
 
 let concat_nested_identifier (idents : a_ident list) : a_ident =
   let str = idents |> List_.map fst |> String.concat "." in
@@ -671,7 +685,7 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
               v2)
             v2
         in
-        v1 :: v2
+        v1 :: v2 |> List_.filter_map Fun.id
     | None -> []
   in
   let _trailing_comma =
@@ -845,25 +859,30 @@ and map_anon_opt_choice_jsx_attr_name_rep_jsx_attr__8497dc0 (env : env)
 
 and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
   match x with
-  | `Jsx_attr (v1, v2) ->
-      let v1 = jsx_attribute_name env v1 in
-      let teq, v2 =
-        match v2 with
-        | Some (v1, v2) ->
-            let v1bis =
-              token env v1
-              (* "=" *)
-            in
-            let v2 = jsx_attribute_value env v2 in
-            (v1bis, v2)
-        (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
-        | None -> (snd v1, L (Bool (true, snd v1)))
-      in
-      XmlAttr (v1, teq, v2)
-  (* less: we could enforce that it's only a Spread operation *)
-  | `Jsx_exp x ->
-      let x = jsx_expression_some env x in
-      XmlAttrExpr x
+  | `Choice_jsx_attr x -> (
+      match x with
+      | `Jsx_attr (v1, v2) ->
+          let v1 = jsx_attribute_name env v1 in
+          let teq, v2 =
+            match v2 with
+            | Some (v1, v2) ->
+                let v1bis =
+                  token env v1
+                  (* "=" *)
+                in
+                let v2 = jsx_attribute_value env v2 in
+                (v1bis, v2)
+            (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
+            | None -> (snd v1, L (Bool (true, snd v1)))
+          in
+          XmlAttr (v1, teq, v2)
+      (* less: we could enforce that it's only a Spread operation *)
+      | `Jsx_exp x ->
+          let x = jsx_expression_some env x in
+          XmlAttrExpr x)
+  | `Semg_ellips tok ->
+      let tok = token env tok in
+      XmlEllipsis tok
 
 and jsx_expression_some env x =
   let t1, eopt, t2 = jsx_expression env x in
@@ -876,16 +895,19 @@ and jsx_expression_some env x =
 
 and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   match x with
-  | `Jsx_str x ->
-      let id = jsx_string env x in
-      L (String id)
-  | `Jsx_exp x ->
-      let _, e, _ = jsx_expression_some env x in
-      e
-  (* an attribute value can be a jsx element? *)
-  | `Choice_jsx_elem x ->
-      let xml = jsx_element_ env x in
-      Xml xml
+  | `Choice_jsx_str x -> (
+      match x with
+      | `Jsx_str x ->
+          let id = jsx_string env x in
+          L (String id)
+      | `Jsx_exp x ->
+          let _, e, _ = jsx_expression_some env x in
+          e
+      (* an attribute value can be a jsx element? *)
+      | `Choice_jsx_elem x ->
+          let xml = jsx_element_ env x in
+          Xml xml)
+  | `Semg_meta tok -> Id (str env tok)
 
 and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   match x with
@@ -937,18 +959,21 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
 
 and pattern (env : env) (x : CST.pattern) : (a_ident, a_pattern) Either.t =
   match x with
-  | `Choice_choice_member_exp e -> (
-      let lhs = lhs_expression env e in
-      match lhs with
-      | Id x -> Left x
-      | _ -> Right lhs)
-  | `Rest_pat (v1, v2) ->
-      let tok =
-        token env v1
-        (* "..." *)
-      in
-      let _lhs_TODO = lhs_expression env v2 in
-      Right (IdSpecial (Spread, tok))
+  | `Choice_choice_choice_member_exp x -> (
+      match x with
+      | `Choice_choice_member_exp e -> (
+          let lhs = lhs_expression env e in
+          match lhs with
+          | Id x -> Left x
+          | _ -> Right lhs)
+      | `Rest_pat (v1, v2) ->
+          let tok =
+            token env v1
+            (* "..." *)
+          in
+          let _lhs_TODO = lhs_expression env v2 in
+          Right (IdSpecial (Spread, tok)))
+  | `Semg_ellips tok -> Right (Ellipsis (token env tok))
 
 and pair_pattern (env : env) (x : CST.pair_pattern) =
   match x with
@@ -1544,20 +1569,20 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
     | `DOT tok (* "." *) -> (Dot, token env tok)
     | `Opt_chain (* "?." *) tok -> (QuestDot, token env tok)
   in
-  let id_tok =
-    match v3 with
-    | `Id x -> x
-    | `Priv_prop_id x ->
-        (* has a leading '#' indicating a private property.
-           Should it have a special construct so we could match
-           all private properties in semgrep with e.g. #$VAR ? *)
-        x
-  in
-  let id =
-    identifier env id_tok
-    (* identifier *)
-  in
-  ObjAccess (expr, dot, PN id)
+  match v3 with
+  | `Id x
+  | `Priv_prop_id x ->
+      let id =
+        identifier env x
+        (* identifier *)
+      in
+      (* has a leading '#' indicating a private property.
+          Should it have a special construct so we could match
+          all private properties in semgrep with e.g. #$VAR ? *)
+      ObjAccess (expr, dot, PN id)
+  | `Semg_ellips tok ->
+      let tok = token env tok in
+      ObjAccessEllipsis (expr, tok)
 
 and map_anon_choice_import_c99ceb4 (env : env)
     (x : CST.anon_choice_import_c99ceb4) =
@@ -1636,6 +1661,15 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Semg_exp_ellips tok ->
       let tok = token env tok in
       Ellipsis tok
+  | `Deep_ellips (v1, v2, v3) ->
+      let v1 = (* "<..." *) token env v1 in
+      let v2 = expression env v2 in
+      let v3 = (* "...>" *) token env v3 in
+      DeepEllipsis (v1, v2, v3)
+  | `Semg_meta_ellips tok ->
+      (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *)
+      let id = identifier env tok in
+      Id id
   | `Choice_choice_subs_exp x -> (
       match x with
       | `Choice_subs_exp x -> (
@@ -2860,248 +2894,263 @@ and statement1 (env : env) (x : CST.statement) : stmt =
 
 and statement (env : env) (x : CST.statement) : stmt list =
   match x with
-  | `Export_stmt x ->
-      let xs = export_statement env x in
-      xs
-  | `Import_stmt (v1, v2, v3, v4, v5) ->
-      let v1 =
-        token env v1
-        (* "import" *)
-      in
-      let import_tok = v1 in
-      let _v2 =
-        match v2 with
-        | Some x -> Some (type_or_typeof env x)
-        | None -> None
-      in
-      let v3 =
-        match v3 with
-        | `Import_clause_from_clause (v1, v2) ->
-            let f = import_clause env v1 in
-            let _t, from_path = from_clause env v2 in
-            f import_tok from_path
-        | `Import_requ_clause x -> [ import_require_clause v1 env x ]
-        | `Str x ->
-            let file = string_ env x in
-            [ ImportFile (import_tok, file) ]
-      in
-      let _v4 =
-        match v4 with
-        | Some x -> Some (import_attribute env x)
-        | None -> None
-      in
-      let _v5 = semicolon env v5 in
-      v3 |> List_.map (fun m -> M m)
-  | `Debu_stmt (v1, v2) ->
-      let v1 =
-        identifier env v1
-        (* "debugger" *)
-      in
-      let v2 = semicolon env v2 in
-      [ ExprStmt (idexp v1, v2) ]
-  | `Exp_stmt x ->
-      let e, t = expression_statement env x in
-      [ ExprStmt (e, t) ]
-  | `Decl x ->
-      let vars = declaration env x in
-      vars |> List_.map (fun x -> DefStmt x)
-  | `Stmt_blk x -> [ statement_block env x ]
-  | `If_stmt (v1, v2, v3, v4) ->
-      let v1 =
-        token env v1
-        (* "if" *)
-      in
-      let v2 = parenthesized_expression ~keep_parens:false env v2 in
-      let v3 = statement1 env v3 in
-      let v4 =
-        match v4 with
-        | Some (v1, v2) ->
-            let _v1 =
-              token env v1
-              (* "else" *)
-            in
-            let v2 = statement1 env v2 in
-            Some v2
-        | None -> None
-      in
-      [ If (v1, v2, v3, v4) ]
-  | `Switch_stmt (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "switch" *)
-      in
-      let v2 = parenthesized_expression ~keep_parens:false env v2 in
-      let v3 = switch_body env v3 in
-      [ Switch (v1, v2, v3) ]
-  | `For_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 =
-        token env v1
-        (* "for" *)
-      in
-      let _v2 =
-        token env v2
-        (* "(" *)
-      in
-      let v3 =
-        match v3 with
-        | `Choice_lexi_decl x -> (
-            match x with
-            | `Lexi_decl x ->
-                let vars = lexical_declaration env x in
-                Left vars
-            | `Var_decl x ->
-                let vars = variable_declaration env x in
-                Left vars)
-        | `Choice_exp_SEMI (v1, v2) ->
-            let e = expressions env v1 in
-            let _v2 = (* ";" *) token env v2 in
-            Right e
-        (* | `Exp_stmt x ->
-            let e, _t = expression_statement env x in
-            Right e *)
-        | `Empty_stmt tok ->
-            let _x =
-              token env tok
-              (* ";" *)
-            in
-            Left []
-      in
-      let v4 =
-        match v4 with
-        | `Choice_exp_SEMI (v1, v2) ->
-            let v1 = expressions env v1 in
-            let _v2 = (* ";" *) token env v2 in
-            Some v1
-        | `Empty_stmt tok ->
-            let _x =
-              token env tok
-              (* ";" *)
-            in
-            None
-      in
-      let v5 =
-        match v5 with
-        | Some x -> Some (expressions env x)
-        | None -> None
-      in
-      let _v6 =
-        token env v6
-        (* ")" *)
-      in
-      let v7 = statement1 env v7 in
-      [ For (v1, ForClassic (v3, v4, v5), v7) ]
-  | `For_in_stmt (v1, v2, v3, v4) ->
-      let v1 =
-        token env v1
-        (* "for" *)
-      in
-      let _v2TODO =
-        match v2 with
-        | Some tok -> Some (token env tok) (* "await" *)
-        | None -> None
-      in
-      let v3 = for_header env v3 in
-      let v4 = statement1 env v4 in
-      [ For (v1, v3, v4) ]
-  | `While_stmt (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "while" *)
-      in
-      let v2 = parenthesized_expression ~keep_parens:false env v2 in
-      let v3 = statement1 env v3 in
-      [ While (v1, v2, v3) ]
-  | `Do_stmt (v1, v2, v3, v4, v5) ->
-      let v1 =
-        token env v1
-        (* "do" *)
-      in
-      let v2 = statement1 env v2 in
-      let _v3 =
-        token env v3
-        (* "while" *)
-      in
-      let v4 = parenthesized_expression ~keep_parens:false env v4 in
-      let _v5 = Option.map (semicolon env) v5 in
-      [ Do (v1, v2, v4) ]
-  | `Try_stmt (v1, v2, v3, v4) ->
-      let v1 =
-        token env v1
-        (* "try" *)
-      in
-      let v2 = statement_block env v2 in
-      let v3 =
-        match v3 with
-        | Some x -> Some (catch_clause env x)
-        | None -> None
-      in
-      let v4 =
-        match v4 with
-        | Some x -> Some (finally_clause env x)
-        | None -> None
-      in
-      [ Try (v1, v2, v3, v4) ]
-  | `With_stmt (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "with" *)
-      in
-      let v2 = parenthesized_expression ~keep_parens:false env v2 in
-      let v3 = statement1 env v3 in
-      [ With (v1, v2, v3) ]
-  | `Brk_stmt (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "break" *)
-      in
-      let v2 =
-        match v2 with
-        | Some tok -> Some (identifier env tok) (* identifier *)
-        | None -> None
-      in
-      let v3 = semicolon env v3 in
-      [ Break (v1, v2, v3) ]
-  | `Cont_stmt (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "continue" *)
-      in
-      let v2 =
-        match v2 with
-        | Some tok -> Some (identifier env tok) (* identifier *)
-        | None -> None
-      in
-      let v3 = semicolon env v3 in
-      [ Continue (v1, v2, v3) ]
-  | `Ret_stmt (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "return" *)
-      in
-      let v2 =
-        match v2 with
-        | Some x -> Some (expressions env x)
-        | None -> None
-      in
-      let v3 = semicolon env v3 in
-      [ Return (v1, v2, v3) ]
-  | `Throw_stmt (v1, v2, v3) ->
-      let v1 =
-        token env v1
-        (* "throw" *)
-      in
-      let v2 = expressions env v2 in
-      let v3 = semicolon env v3 in
-      [ Throw (v1, v2, v3) ]
-  | `Empty_stmt tok -> [ empty_stmt env tok (* ";" *) ]
-  | `Labe_stmt (v1, v2, v3) ->
-      let v1 = id_or_reserved_id env v1 in
-      let _v2 =
-        token env v2
-        (* ":" *)
-      in
-      let v3 = statement1 env v3 in
-      [ Label (v1, v3) ]
+  | `Choice_export_stmt x -> (
+      match x with
+      | `Export_stmt x ->
+          let xs = export_statement env x in
+          xs
+      | `Import_stmt (v1, v2, v3, v4, v5) ->
+          let v1 =
+            token env v1
+            (* "import" *)
+          in
+          let import_tok = v1 in
+          let _v2 =
+            match v2 with
+            | Some x -> Some (type_or_typeof env x)
+            | None -> None
+          in
+          let v3 =
+            match v3 with
+            | `Import_clause_from_clause (v1, v2) ->
+                let f = import_clause env v1 in
+                let _t, from_path = from_clause env v2 in
+                f import_tok from_path
+            | `Import_requ_clause x -> [ import_require_clause v1 env x ]
+            | `Str x ->
+                let file = string_ env x in
+                [ ImportFile (import_tok, file) ]
+          in
+          let _v4 =
+            match v4 with
+            | Some x -> Some (import_attribute env x)
+            | None -> None
+          in
+          let _v5 = semicolon env v5 in
+          v3 |> List_.map (fun m -> M m)
+      | `Debu_stmt (v1, v2) ->
+          let v1 =
+            identifier env v1
+            (* "debugger" *)
+          in
+          let v2 = semicolon env v2 in
+          [ ExprStmt (idexp v1, v2) ]
+      | `Exp_stmt x ->
+          let e, t = expression_statement env x in
+          [ ExprStmt (e, t) ]
+      | `Decl x ->
+          let vars = declaration env x in
+          vars |> List_.map (fun x -> DefStmt x)
+      | `Stmt_blk x -> [ statement_block env x ]
+      | `If_stmt (v1, v2, v3, v4) ->
+          let v1 =
+            token env v1
+            (* "if" *)
+          in
+          let v2 = parenthesized_expression ~keep_parens:false env v2 in
+          let v3 = statement1 env v3 in
+          let v4 =
+            match v4 with
+            | Some (v1, v2) ->
+                let _v1 =
+                  token env v1
+                  (* "else" *)
+                in
+                let v2 = statement1 env v2 in
+                Some v2
+            | None -> None
+          in
+          [ If (v1, v2, v3, v4) ]
+      | `Switch_stmt (v1, v2, v3) ->
+          let v1 =
+            token env v1
+            (* "switch" *)
+          in
+          let v2 = parenthesized_expression ~keep_parens:false env v2 in
+          let v3 = switch_body env v3 in
+          [ Switch (v1, v2, v3) ]
+      | `For_stmt (v1, v2, v3, v4, v5) ->
+          let v1 =
+            token env v1
+            (* "for" *)
+          in
+          let _v2 =
+            token env v2
+            (* "(" *)
+          in
+          let header =
+            match v3 with
+            | `Choice_choice_lexi_decl_choice_choice_exp_SEMI_opt_choice_exp
+                (v1, v2, v3) ->
+                let v1 =
+                  match v1 with
+                  | `Choice_lexi_decl x -> (
+                      match x with
+                      | `Lexi_decl x ->
+                          let vars = lexical_declaration env x in
+                          Left vars
+                      | `Var_decl x ->
+                          let vars = variable_declaration env x in
+                          Left vars)
+                  | `Choice_exp_SEMI (v1, v2) ->
+                      let e = expressions env v1 in
+                      let _v2 = (* ";" *) token env v2 in
+                      Right e
+                  (* | `Exp_stmt x ->
+                let e, _t = expression_statement env x in
+                Right e *)
+                  | `Empty_stmt tok ->
+                      let _x =
+                        token env tok
+                        (* ";" *)
+                      in
+                      Left []
+                in
+                let v2 =
+                  match v2 with
+                  | `Choice_exp_SEMI (v1, v2) ->
+                      let v1 = expressions env v1 in
+                      let _v2 = (* ";" *) token env v2 in
+                      Some v1
+                  | `Empty_stmt tok ->
+                      let _x =
+                        token env tok
+                        (* ";" *)
+                      in
+                      None
+                in
+                let v3 =
+                  match v3 with
+                  | Some x -> Some (expressions env x)
+                  | None -> None
+                in
+                ForClassic (v1, v2, v3)
+            | `Semg_ellips tok ->
+                let tok = token env tok in
+                ForEllipsis tok
+          in
+          let _v4 =
+            token env v4
+            (* ")" *)
+          in
+          let v5 = statement1 env v5 in
+          [ For (v1, header, v5) ]
+      | `For_in_stmt (v1, v2, v3, v4) ->
+          let v1 =
+            token env v1
+            (* "for" *)
+          in
+          let _v2TODO =
+            match v2 with
+            | Some tok -> Some (token env tok) (* "await" *)
+            | None -> None
+          in
+          let v3 = for_header env v3 in
+          let v4 = statement1 env v4 in
+          [ For (v1, v3, v4) ]
+      | `While_stmt (v1, v2, v3) ->
+          let v1 =
+            token env v1
+            (* "while" *)
+          in
+          let v2 = parenthesized_expression ~keep_parens:false env v2 in
+          let v3 = statement1 env v3 in
+          [ While (v1, v2, v3) ]
+      | `Do_stmt (v1, v2, v3, v4, v5) ->
+          let v1 =
+            token env v1
+            (* "do" *)
+          in
+          let v2 = statement1 env v2 in
+          let _v3 =
+            token env v3
+            (* "while" *)
+          in
+          let v4 = parenthesized_expression ~keep_parens:false env v4 in
+          let _v5 = Option.map (semicolon env) v5 in
+          [ Do (v1, v2, v4) ]
+      | `Try_stmt (v1, v2, v3, v4) ->
+          let v1 =
+            token env v1
+            (* "try" *)
+          in
+          let v2 = statement_block env v2 in
+          let v3 =
+            match v3 with
+            | Some x -> Some (catch_clause env x)
+            | None -> None
+          in
+          let v4 =
+            match v4 with
+            | Some x -> Some (finally_clause env x)
+            | None -> None
+          in
+          [ Try (v1, v2, v3, v4) ]
+      | `With_stmt (v1, v2, v3) ->
+          let v1 =
+            token env v1
+            (* "with" *)
+          in
+          let v2 = parenthesized_expression ~keep_parens:false env v2 in
+          let v3 = statement1 env v3 in
+          [ With (v1, v2, v3) ]
+      | `Brk_stmt (v1, v2, v3) ->
+          let v1 =
+            token env v1
+            (* "break" *)
+          in
+          let v2 =
+            match v2 with
+            | Some tok -> Some (identifier env tok) (* identifier *)
+            | None -> None
+          in
+          let v3 = semicolon env v3 in
+          [ Break (v1, v2, v3) ]
+      | `Cont_stmt (v1, v2, v3) ->
+          let v1 =
+            token env v1
+            (* "continue" *)
+          in
+          let v2 =
+            match v2 with
+            | Some tok -> Some (identifier env tok) (* identifier *)
+            | None -> None
+          in
+          let v3 = semicolon env v3 in
+          [ Continue (v1, v2, v3) ]
+      | `Ret_stmt (v1, v2, v3) ->
+          let v1 =
+            token env v1
+            (* "return" *)
+          in
+          let v2 =
+            match v2 with
+            | Some x -> Some (expressions env x)
+            | None -> None
+          in
+          let v3 = semicolon env v3 in
+          [ Return (v1, v2, v3) ]
+      | `Throw_stmt (v1, v2, v3) ->
+          let v1 =
+            token env v1
+            (* "throw" *)
+          in
+          let v2 = expressions env v2 in
+          let v3 = semicolon env v3 in
+          [ Throw (v1, v2, v3) ]
+      | `Empty_stmt tok -> [ empty_stmt env tok (* ";" *) ]
+      | `Labe_stmt (v1, v2, v3) ->
+          let v1 = id_or_reserved_id env v1 in
+          let _v2 =
+            token env v2
+            (* ":" *)
+          in
+          let v3 = statement1 env v3 in
+          [ Label (v1, v3) ])
+  | `Semg_ellips tok ->
+      (* "..." *)
+      let tok = token env tok in
+      [ ExprStmt (Ellipsis tok, G.sc) ]
 
 and method_definition (env : env)
     ((v1, v2, v2bis, v3, v4, v5, v6, v7, v8, v9) : CST.method_definition) :
@@ -4327,11 +4376,64 @@ and map_anon_choice_type_id_a85f573 (env : env)
 
 let toplevel env x = statement env x
 
+let method_pattern (env : env) (x : CST.method_pattern) : any =
+  match x with
+  | `Rep1_deco_public_field_defi (v1, v2) ->
+      let v1 = List_.map (decorator env) v1 in
+      let v2 = public_field_definition env v2 in
+      Property (add_decorators v1 v2)
+  | `Rep_deco_choice_abst_meth_sign (v1, v2) -> (
+      let decorators = List_.map (decorator env) v1 in
+      match v2 with
+      | `Abst_meth_sign x ->
+          (* TODO: types *)
+          let v = abstract_method_signature env x in
+          Property (Field v)
+      | `Index_sign x ->
+          let t = index_signature env x in
+          Type t
+      | `Meth_sign x ->
+          (* TODO: types *)
+          let v = method_signature env x in
+          let { fld_name; fld_attrs; fld_type; fld_body = _ } = v in
+          (* Realistically, the pattern should have a real `id`.
+             Let's just handle the common case.
+           *)
+          let id =
+            match fld_name with
+            | PN id -> id
+            | _ -> ("fake_method_name", Tok.unsafe_fake_tok "fake_method_name")
+          in
+          (* This should be guaranteed to be a function type. I don't want to
+             alter the base behavior or have to duplicate it, though.
+           *)
+          let f_rettype =
+            match fld_type with
+            | Some (TyFun (_, retty)) -> retty
+            | other -> other
+          in
+          let attrs = decorators @ fld_attrs in
+          Partial
+            (PartialDef
+               ( { name = id; attrs },
+                 FuncDef
+                   {
+                     f_kind = (G.Method, snd id);
+                     f_params = fb [];
+                     f_body = Block (fb []);
+                     f_rettype;
+                     f_attrs = [];
+                   } ))
+      | `Meth_defi_opt_choice_auto_semi (v1, v2) ->
+          let v1 = method_definition env v1 in
+          let _semicolon = ignore v2 in
+          Property (add_decorators decorators v1))
+
 let semgrep_pattern (env : env) (x : CST.semgrep_pattern) : any =
   match x with
   | `Exp x -> Expr (expression env x)
-  | `Pair x -> (
-      match x with
+  | `Pair_opt_COMMA (v1, _v2) -> (
+      match v1 with
       | `Prop_name_COLON_exp (v1, v2, v3) -> (
           let v1 = property_name env v1 in
           let v2 =
@@ -4351,6 +4453,35 @@ let semgrep_pattern (env : env) (x : CST.semgrep_pattern) : any =
                    (("PN_Computed", Tok.unsafe_fake_tok "PN_Computed"), v2, v3))
           )
       | `Semg_ellips tok -> Expr (Ellipsis (token env tok)))
+  | `Meth_pat x -> method_pattern env x
+  | `Func_decl_pat (v1, v2, v3, v4, v5, v6) -> (
+      let v1 =
+        match v1 with
+        | Some tok -> [ attr (Async, token env tok) ] (* "async" *)
+        | None -> []
+      in
+      let v2 =
+        token env v2
+        (* "function" *)
+      in
+      let _tparams, (v4, tret) = call_signature env v4 in
+      let v5 = statement_block env v5 in
+      let _v6 = automatic_semicolon_opt env v6 in
+      let f_kind = (G.Function, v2) in
+      let f =
+        { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret; f_kind }
+      in
+      match v3 with
+      | `Id tok ->
+          let v3 = (* identifier *) str env tok in
+          Stmt (DefStmt (basic_entity v3, FuncDef f))
+      | `Semg_ellips tok -> Partial (PartialFunOrFuncDef (token env tok, f)))
+  | `Fina_clause x ->
+      let v1, v2 = finally_clause env x in
+      Partial (PartialFinally (v1, v2))
+  | `Catch_clause x ->
+      let v1 = catch_clause env x in
+      Partial (PartialCatch v1)
 
 let program (env : env) (x : CST.program) : any =
   match x with
@@ -4432,17 +4563,18 @@ let parse ?dialect file =
  * This is not a perfect solution, but it's fine for now.
  *)
 let parse_expression_or_source_file str =
-  let res = Tree_sitter_tsx.Parse.string str in
+  let do_expression str =
+    let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+    Tree_sitter_tsx.Parse.string expr_str
+  and do_program str = Tree_sitter_tsx.Parse.string str in
+  let res = do_program str in
   match res with
   (* If there are errors, we must try to parse it the other way. *)
-  | { errors = _ :: _; _ } ->
-      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
-      Tree_sitter_tsx.Parse.string expr_str
+  | { errors = _ :: _; _ } -> do_expression str
   (* If we succeeded, we may want to still switch over to the expression case. *)
   | { program = Some cst; _ }
     when is_semgrep_pattern_we_would_rather_parse_as_expression cst -> (
-      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
-      let res2 = Tree_sitter_tsx.Parse.string expr_str in
+      let res2 = do_expression str in
       match res2 with
       (* If this one works, we're all good. *)
       | { errors = []; _ } -> res2
