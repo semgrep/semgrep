@@ -1,0 +1,4 @@
+PHP: When enabling option `taint_assume_safe_booleans` the return values of
+`boolval`, `is_bool`, and `||` will be considered safe.
+When enabling `taint_assume_safe_numbers` the return values of `intval`,
+`floatval`, `+`, `-`, `*`, `/` and `%` will also be considered safe.

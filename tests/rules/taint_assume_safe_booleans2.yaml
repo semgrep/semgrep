@@ -1,0 +1,14 @@
+rules:
+  - id: test
+    languages:
+      - php
+    severity: ERROR
+    message: Test
+    options:
+      taint_assume_safe_booleans: true
+    mode: taint
+    pattern-sources:
+      - pattern: source
+    pattern-sinks:
+      - pattern: sink(...)
+

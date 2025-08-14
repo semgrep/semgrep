@@ -21,6 +21,29 @@ let hook_type_of_expr : (Lang.t -> G.expr -> G.name Type.t option) option Hook.t
     =
   Hook.create None
 
+(** Define languages where `E1 || E2` expression must have Boolean type.
+  This is not the case e.g. in Python where you can write `x or ""` to mean
+  `""` in case `x` is `None`.
+  THINK: Is there a similar idiom involving `and`/`&&` ? *)
+let operation_Or_implies_bool_expr = function
+  (* more ? *)
+  | Lang.Ocaml
+  | Lang.Java
+  | Lang.Php ->
+      true
+  | __else__ -> false
+
+(** Define languages where `E1 && E2` expression must have Boolean type.
+  This is not the case e.g. in JavaScript where you can write `x && "yes"`
+  to mean `"yes"` when `x` is "truthy".*)
+let operation_And_implies_bool_expr = function
+  (* more ? *)
+  | Lang.Ocaml
+  | Lang.Java
+  | Lang.Php ->
+      true
+  | __else__ -> false
+
 (* returns possibly the inferred type of the expression,
  * as well as an ident option that can then be used to query LSP to get the
  * type of the ident. *)
@@ -67,6 +90,10 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
           let t2, _id = type_of_expr lang e2 in
           let t =
             match (t1, op, t2) with
+            | _, (G.Plus | G.Minus | G.Mult | G.Div | G.Mod (* more ? *)), _
+              when Lang.(equal lang Php (* more? *)) ->
+                (* PHP will coerce the operands to numbers *)
+                Type.Builtin Type.Number
             | ( Type.(Builtin (Int | Float)),
                 (G.Plus | G.Minus (* TODO more *)),
                 _ )
@@ -76,7 +103,7 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
             (* Note that `+` is overloaded in many languages and may also be
              * string concatenation, and unfortunately some languages such
              * as Java and JS/TS have implicit coercions to string. *)
-              when lang =*= Lang.Python || lang =*= Lang.Php (* TODO more *) ->
+              when Lang.(equal lang Python (* TODO more *)) ->
                 Type.Builtin Type.Number
             | ( Type.Builtin Type.Int,
                 ( G.Plus | G.Minus | G.Mult | G.Mod | G.Pow
@@ -85,15 +112,17 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
                 Type.Builtin Type.Int
             | ( _,
                 ( G.Eq | G.PhysEq | G.NotEq | G.NotPhysEq | G.Lt | G.LtE | G.Gt
-                | G.GtE | G.In | G.NotIn | G.Is | G.NotIs | G.And ),
+                | G.GtE | G.In | G.NotIn | G.Is | G.NotIs ),
                 _ ) ->
+                (* TODO: Does the use of such operators imply that the operation is
+                    Boolean, in every language??? *)
+                Type.Builtin Type.Bool
+            | _, G.Or, _ when operation_Or_implies_bool_expr lang ->
+                Type.Builtin Type.Bool
+            | _, G.And, _ when operation_And_implies_bool_expr lang ->
                 Type.Builtin Type.Bool
             | Type.Builtin Type.Bool, G.Or, _
             | _, G.Or, Type.Builtin Type.Bool ->
-                Type.Builtin Type.Bool
-            | _, G.Or, _ when lang =*= Lang.Java ->
-                (* E.g. in Python you can write `x or ""` to mean `""` in case `x` is `None`.
-                 * THINK: Is there a similar idiom involving `and`/`&&` ? *)
                 Type.Builtin Type.Bool
             | Type.Builtin Type.Bool, (G.BitOr | G.BitAnd | G.BitXor), _
             | _, (G.BitOr | G.BitAnd | G.BitXor), Type.Builtin Type.Bool
@@ -175,12 +204,30 @@ and type_of_name lang = function
       let t = resolved_type_of_id_info lang id_info in
       let t =
         match t with
-        (* Even if we can't resolve the type, the name of the ident can still be
-         * useful for matching. If we had a Typeof variant of Type.t, it might
-         * be more accurate to say this is `Type.Typeof (Type.UnresolvedName
-         * ...)`. See also how we conflate `Class<T>` with `T` itself, evident
-         * in the way we infer the type for a `new` expression. *)
-        | Type.NoType -> Type.UnresolvedName (fst ident, [])
+        | Type.NoType -> (
+            let todo_param =
+              (* Param type could be Top if we add that as a type *)
+              Type.Param { pident = None; ptype = Type.NoType }
+            in
+            match (lang, fst ident) with
+            | Lang.Php, fun_id_str
+              when List.mem
+                     (String.lowercase_ascii fun_id_str)
+                     [ "boolval"; "is_bool" ] ->
+                Type.Function ([ todo_param ], Type.Builtin Type.Bool)
+            | Lang.Php, fun_id_str
+              when String.lowercase_ascii fun_id_str = "intval" ->
+                Type.Function ([ todo_param ], Type.Builtin Type.Int)
+            | Lang.Php, fun_id_str
+              when String.lowercase_ascii fun_id_str = "floatval" ->
+                Type.Function ([ todo_param ], Type.Builtin Type.Float)
+            | __else__ ->
+                (* Even if we can't resolve the type, the name of the ident can still be
+                 useful for matching. If we had a Typeof variant of Type.t, it might
+                 be more accurate to say this is `Type.Typeof (Type.UnresolvedName
+                 ...)`. See also how we conflate `Class<T>` with `T` itself, evident
+                 in the way we infer the type for a `new` expression. *)
+                Type.UnresolvedName (fst ident, []))
         | _else_ -> t
       in
       (t, Some ident)
