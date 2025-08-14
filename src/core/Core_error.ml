@@ -150,6 +150,10 @@ let mk_error ?rule_id ?(msg = "") ?(loc : Tok.location option)
     | FixpointTimeout
     | OutOfMemory
     | StackOverflow
+    (* 'TimeoutDuringInterfile': Some step during inter-file analysis has timed out.
+
+      NOTE: This error used to mean that the entire inter-file analysis had timed out,
+        because we had one big timeout for the whole thing. *)
     | TimeoutDuringInterfile
     | OutOfMemoryDuringInterfile
     | PatternParseError _
