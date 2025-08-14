@@ -10,6 +10,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.types import Target
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,16 @@ class DependencyResolutionConfig:
 
     # download source code for each subproject's dependencies.
     download_dependency_source_code: bool
+
+
+# A classification of subprojects we use to deterine support for various features.
+# Not a perfect classification (doesn't handle multi-lockfile sources), but works
+# well enough for current purposes.
+SubprojectKind = Union[
+    Tuple[out.ManifestKind, None],
+    Tuple[None, out.LockfileKind],
+    Tuple[out.ManifestKind, out.LockfileKind],
+]
 
 
 def from_resolved_dependencies(
@@ -224,7 +235,7 @@ def subproject_to_cli_output_info(
 
 
 def find_closest_subproject(
-    path: Path, ecosystem: out.Ecosystem, candidates: List[out.Subproject]
+    path: Target, ecosystem: out.Ecosystem, candidates: List[out.Subproject]
 ) -> Optional[out.Subproject]:
     """
     Attempt to find the best SCA project for the given match by looking at the
@@ -242,7 +253,7 @@ def find_closest_subproject(
     the directory tree
 
     Args:
-        path (Path): The path to search for the closest subproject.
+        path (Target): The path to search for the closest subproject.
         ecosystem (Ecosystem): The ecosystem to consider subprojects for
         candidates (List[Subproject]): List of candidate subprojects.
     """
@@ -253,7 +264,7 @@ def find_closest_subproject(
     )
 
     for candidate in sorted_candidates:
-        for parent in [path, *path.parents]:
+        for parent in [path, *path.fpath.parents]:
             if (
                 Path(candidate.root_dir.value) == parent
                 and candidate.ecosystem == ecosystem
@@ -307,3 +318,27 @@ def subproject_sort_key(
     path_key_str = ", ".join(sorted(str(p).lower() for p in paths))
 
     return (dependency_sort_tuple, path_key_str)
+
+
+def dep_source_to_subproject_kind(dep_source: out.DependencySource) -> SubprojectKind:
+    """
+    Determine the "kind" of subproject based on the dependency source.
+    """
+    ds = dep_source.value
+    if isinstance(ds, out.ManifestOnly):
+        return (ds.value.kind, None)
+    elif isinstance(ds, out.LockfileOnly):
+        return (None, ds.value.kind)
+    elif isinstance(ds, out.ManifestLockfile):
+        return (ds.value[0].kind, ds.value[1].kind)
+    elif isinstance(ds, out.MultiLockfile):
+        # the SubprojectKind type doesn't really capture all the details
+        # of multi-lockfile sources. We just take the first source in the list,
+        # which should capture the kind of all of them.
+        if len(ds.value) == 0:
+            raise ValueError("MultiLockfile with no sources not allowed")
+        first_dep_source = ds.value[0]
+        if isinstance(first_dep_source, out.MultiLockfile):
+            raise ValueError("MultiLockfile inside MultiLockfile not allowed")
+        return dep_source_to_subproject_kind(first_dep_source)
+    raise ValueError(f"Unexpected dependency_source variant: {type(ds)}")

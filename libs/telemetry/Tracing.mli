@@ -65,7 +65,20 @@ val with_span :
 (** Expose the function to instrument code to send traces.
     prefer using the ppx *)
 
-val with_tracing : string -> (string * user_data) list -> (scope -> 'a) -> 'a
+val with_tracing :
+  ?stop_otel_after:
+    (* Usually, `with_tracing` will stop otel after its execution, for reasons given
+     in `Telemetry.mli` for [stop_otel].
+     This is most important for when running tracing before invoking Parmap.
+     In the case of the language server, we would like to run many small traced
+     spans, with no Parmap involved, and so we don't need this behavior.
+     So, we allow this to be disabled.
+   *)
+    bool ->
+  string ->
+  (string * user_data) list ->
+  (scope -> 'a) ->
+  'a
 (** [with_tracing span_name attributes f] Start tracing with a top level span
     named [span_name] that has attributes [attributes] and run [f]. Stops
     instrumenting once that function is finished. *)

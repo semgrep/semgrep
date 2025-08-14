@@ -1,10 +1,11 @@
 (** Locations, or "real tokens". *)
 
 type t = {
-  str : string; (* the content of the token starting at pos (e.g., "if") *)
   pos : Pos.t;
+  str : string; (* the content of the token starting at pos (e.g., "if") *)
 }
 [@@deriving show, eq, ord, sexp]
+(** The derived [compare] function allows sorting by location *)
 
 val end_pos : t -> int * int * int (* line x col x charpos *)
 (** Token positions in loc.pos denote the beginning of a token.

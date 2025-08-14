@@ -49,6 +49,15 @@ val taint_config_of_rule :
   Rule.taint_rule ->
   Taint_rule_inst.t * raw_spec_matches * Matching_explanation.t list
 
+(* EXPERIMENT: Group taint rules *)
+val taint_config_of_rule_or_group :
+  per_file_formula_cache:Formula_cache.t ->
+  file:Taint_rule_inst.file ->
+  Match_env.xconfig ->
+  AST_generic.program * Tok.location list ->
+  [ `Rule of Rule.taint_rule | `Group of Taint_rule_group.t ] ->
+  Taint_rule_inst.t * raw_spec_matches * Matching_explanation.t list
+
 (* Exposed for Pro *)
 
 val range_of_any : AST_generic.any -> Range.t option

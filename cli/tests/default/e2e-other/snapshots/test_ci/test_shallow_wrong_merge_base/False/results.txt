@@ -1,0 +1,77 @@
+=== exit code
+1
+=== end of exit code
+
+=== stdout - plain
+
+
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+
+  SCAN ENVIRONMENT
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment github-actions, triggering event is pull_request
+Fixing git state for github action pull request
+Not on head ref: 7b5cda417c780f1f96c888e1d7bd062f46df236e; checking that out now.
+
+  CONNECTION
+Using 5b37988ae28e701bc9fd48d651db9e4e67936bcc as the merge-base of 81af3f0c528f4206d48f2f1d1a0ada5fa9e01f38 and 7b5cda417c780f1f96c888e1d7bd062f46df236e
+  Initializing scan (deployment=org_name, scan_id=12345)
+  Enabled products: Code, Supply Chain
+  Using git merge base detected from environment for diff scans: 5b37988ae28e701bc9fd48d651db9e4e67936bcc
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 4 Code rules:
+  Scanning 1 file with 4 python rules.
+  Current version has 1 finding.
+
+Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit.
+  Uploading scan results
+  Finalizing scan
+
+┌─────────────────────────────┐
+│ 1 Non-blocking Code Finding │
+└─────────────────────────────┘
+
+    bar.py
+   ❯❯❱ eqeq-five
+          useless comparison to 5
+
+           ▶▶┆ Autofix ▶ (bar == 2)
+            1┆ bar == 5
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ CI scan completed successfully.
+ • Findings: 1 (0 blocking)
+ • Rules run: 7
+ • Targets scanned: 1
+ • Parsed lines: ~100.0%
+ • Scan was limited to files changed since baseline commit.
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
+CI scan completed successfully.
+  View results in Semgrep Cloud Platform:
+    https://semgrep.dev/orgs/org_name/findings?repo=project_name/project_name&ref=some/branch-name
+    https://semgrep.dev/orgs/org_name/supply-chain/vulnerabilities?repo=project_name/project_name&ref=some/branch-name
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
+
+=== end of stdout - plain
+
+=== stderr - plain
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

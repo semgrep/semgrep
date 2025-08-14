@@ -203,6 +203,21 @@ class BaselineHandler:
     def base_commit(self) -> str:
         return self._base_commit
 
+    def _is_repo_clean(self) -> bool:
+        """
+        Returns true when the repo does not have
+        1. untracked files
+        2. uncommited changes
+        3. staged changes
+        """
+        status = git_check_output(["git", "status", "--porcelain"]).strip()
+        logger.debug(
+            f"----- git status --porcelain output -----\n{status}\n----- end of output -----"
+        )
+        is_clean = len(status) == 0
+        logger.debug(f"Repo is {'' if is_clean else 'not'} clean")
+        return is_clean
+
     def _get_git_status(self) -> GitStatus:
         """
         Read and parse git diff output to keep track of all status types
@@ -389,8 +404,22 @@ class BaselineHandler:
         cwd = Path.cwd()
         git_root = get_git_root_path()
         relative_path = cwd.relative_to(git_root)
-        # `git worktree` is doing 90% of the heavy lifting here. Docs:
-        # https://git-scm.com/docs/git-worktree
+
+        # We have two strategies for checking out the baseline.
+        #
+        # ==============================
+        # Strategy 1: use `git worktree`
+        # ==============================
+        #
+        # This strategy is used when SEMGREP_DIFF_SCAN_USES_GIT_RESET
+        # is unset or set to anything other than "true".
+        #
+        # Pros: works even if there are changes in tracked files or
+        # staged changes. Suitable for pre-commits.
+        #
+        # Cons: for large repositories, it may be slow
+        #
+        # Docs: https://git-scm.com/docs/git-worktree
         #
         # In short, git allows you to have multiple working trees checked out at
         # the same time. This means you can essentially have X different
@@ -402,26 +431,55 @@ class BaselineHandler:
         # This also allows us to not worry about git state, since
         # unstaged/staged files are not shared between worktrees. This means we
         # don't need to git stash anything, or expect a clean working tree.
-        with tempfile.TemporaryDirectory() as tmpdir:
+        #
+        # ==================================
+        # Strategy 2: use `git reset --hard`
+        # ==================================
+        #
+        # This strategy is used when SEMGREP_DIFF_SCAN_USES_GIT_RESET
+        # is set to "true".
+        #
+        # Pros: faster for large repositories.
+        #
+        # Cons: uncommitted and staged changes will be discarded.
+        #
+        # Useful for large repositories in an environment where we
+        # don't expect to have uncommitted or staged changes, such as
+        # CI.
+        merge_base_sha = self._get_git_merge_base()
+
+        is_safe_to_git_reset = self._is_repo_clean()
+        if is_safe_to_git_reset:
+            head_commit_sha = git_check_output(["git", "rev-parse", "HEAD"])
+
             try:
-                merge_base_sha = self._get_git_merge_base()
-                logger.debug("Running git checkout for baseline context")
-                # Add a new working tree at the temporary directory
-                git_check_output(["git", "worktree", "add", tmpdir, merge_base_sha])
-                logger.debug("Finished git checkout for baseline context")
-
-                # Change the working directory to the new working tree
-                os.chdir(Path(tmpdir) / relative_path)
-
-                # We are now in the temporary working tree, and scans should be
-                # identical to as if we had checked out the baseline commit
+                logger.debug("Running git reset for baseline context")
+                git_check_output(["git", "reset", "--hard", merge_base_sha])
+                logger.debug("Finished git reset for baseline context")
                 yield
             finally:
-                os.chdir(cwd)
-                # Cleanup the worktree
-                logger.debug("Cleaning up the worktree")
-                self._remove_worktree_with_check(tmpdir)
-                logger.debug("Finished cleaning up git worktree")
+                logger.debug("Restoring head commit")
+                git_check_output(["git", "reset", "--hard", head_commit_sha])
+                logger.debug("Finished restoring head commit")
+
+        else:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                try:
+                    logger.debug("Running git worktree for baseline context")
+                    # Add a new working tree at the temporary directory
+                    git_check_output(["git", "worktree", "add", tmpdir, merge_base_sha])
+                    # Change the working directory to the new working tree
+                    os.chdir(Path(tmpdir) / relative_path)
+                    # We are now in the temporary working tree, and scans should be
+                    # identical to as if we had checked out the baseline commit
+                    logger.debug("Finished git worktree for baseline context")
+
+                    yield
+                finally:
+                    os.chdir(cwd)
+                    logger.debug(tmpdir)
+                    self._remove_worktree_with_check(tmpdir)
+                    logger.debug("Finished cleaning up git worktree")
 
     def print_git_log(self) -> None:
         base_commit_sha = git_check_output(["git", "rev-parse", self._base_commit])

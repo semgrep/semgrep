@@ -457,6 +457,8 @@ let abstract_for_comparison_visitor =
     method! visit_tok _env _i = Tok.Ab
 
     method! visit_id_info env ii =
+      (* TODO: false positive? *)
+      (* nosemgrep: no-ref-declarations-at-top-scope *)
       super#visit_id_info env { ii with AST_generic.id_svalue = ref None }
   end
 

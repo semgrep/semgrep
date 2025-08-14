@@ -188,26 +188,17 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
       rules_and_errors
       |> List.iter (fun x -> print (Rule_fetching.show_rules_and_origin x));
       Exit_code.ok ~__LOC__
-  | DumpRuleV2 file ->
-      (* TODO: use validation ocaml code to enforce the
-       * CHECK: in rule_schema_v2.atd.
-       * For example, check that at least one and only one field is set in
-       * formula. Reclaim some of the jsonschema power.
-       * Maybe define combinators to express that in rule_schema_v2_adapter.ml?
-       *)
-      let rules = Parse_rules_with_atd.parse_rules_v2 file in
-      print (Rule_schema_v2_t.show_rules rules);
-      Exit_code.ok ~__LOC__
   (* see also the pysemgrep and osemgrep scan --x-ls option *)
   | DumpTargets (scanning_root, target_conf, config_str_opt) -> (
       (* coupling: similar to parts of Core_scan.targets_of_config *)
       let target_paths, _errors, skipped =
-        Find_targets.get_target_fpaths caps target_conf [ scanning_root ]
+        Find_targets.get_targets caps target_conf [ scanning_root ]
       in
       match config_str_opt with
       | None ->
           target_paths
-          |> List.iter (fun path -> print (spf "target = %s" !!path));
+          |> List.iter (fun ({ fpath; _ } : Fppath.t) ->
+                 print (spf "target = %s" !!fpath));
           skipped
           |> List.iter (fun (skip : Out.skipped_target) ->
                  print (spf "skipped = %s" (Out.show_skipped_target skip)));

@@ -21,7 +21,7 @@
 (generate_opam_files)
 
 ;; set here so the semgrep package below can use it and we can easily bump it
-(version 1.128.0)
+(version 1.131.0)
 
 ;; Default attributes of opam packages
 (source (github semgrep/semgrep))
@@ -158,7 +158,8 @@ For more information see https://semgrep.dev
     ; packages that would avoid this effect.
     git-unix
     ; Eio
-    eio
+    ; eio 1.3 appears broken on Windows https://github.com/semgrep/semgrep-proprietary/pull/4322
+    (eio (= 1.2))
     eio_main ; Picks a suitable backend (i.e eio_{posix, linux, windows})
     tls-eio
   )

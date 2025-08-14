@@ -492,6 +492,7 @@ def start_scan_mock_maker(
     def _start_scan_func(
         semgrep_url: str = "https://semgrep.dev",
         product_ignored_files: Mapping[out.Product, List[str]] = {},  # noqa
+        project_merge_base: Optional[str] = None,
     ):
         start_scan_response = out.ScanResponse.from_json(
             {
@@ -503,6 +504,11 @@ def start_scan_mock_maker(
                 },
                 "config": {
                     "rules": YAML(typ="safe").load(scan_config),
+                    **(
+                        {"project_merge_base": project_merge_base}
+                        if project_merge_base
+                        else {}
+                    ),
                     "triage_ignored_syntactic_ids": [
                         "f3b21c38bc22a1f1f870d49fc3a40244"
                     ],
@@ -519,6 +525,7 @@ def start_scan_mock_maker(
                 },
             }
         )
+        print(start_scan_response.to_json())
         return requests_mock.post(
             f"{semgrep_url}/api/cli/scans", json=start_scan_response.to_json()
         )
@@ -1022,6 +1029,14 @@ def test_full_run(
     scan_meta_json["cli_version"] = "<sanitized version>"
     scan_meta_json["unique_id"] = "<sanitized id>"
 
+    if env.get("GITHUB_ACTIONS"):
+        if env["GITHUB_EVENT_NAME"] == "pull_request":
+            # TODO: support this on other CI providers
+            # make sure we're sending the correct base commit so the app can
+            # calculate the merge base
+            assert prj_meta_json["base_branch_head_commit"] == base_commit
+            prj_meta_json["base_branch_head_commit"] = "sanitized"
+
     assert prj_meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP.value
 
     if env.get("GITLAB_CI"):
@@ -1321,6 +1336,7 @@ def test_lockfile_parse_failure_reporting(
 #    ), "Potentially scanning wrong files/commits"
 
 
+@pytest.mark.parametrize("app_project_merge_base", [True, False])
 @pytest.mark.osemfail
 def test_shallow_wrong_merge_base(
     run_semgrep: RunSemgrep,
@@ -1331,6 +1347,7 @@ def test_shallow_wrong_merge_base(
     start_scan_mock_maker,
     complete_scan_mock_maker,
     upload_results_mock_maker,
+    app_project_merge_base,
 ):
     """ """
     commits = defaultdict(list)
@@ -1440,7 +1457,10 @@ def test_shallow_wrong_merge_base(
     subprocess.run(["git", "fetch", "origin", "--depth", "1", "bar:bar"])
     subprocess.run(["git", "checkout", "bar"], check=True, capture_output=True)
 
-    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    project_merge_base = commits["baz"][-1] if app_project_merge_base else None
+    start_scan_mock = start_scan_mock_maker(
+        "https://semgrep.dev", project_merge_base=project_merge_base
+    )
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
@@ -1486,8 +1506,8 @@ def test_shallow_wrong_merge_base(
     )
 
     findings_json = upload_results_mock.last_request.json()
-    assert (
-        len(findings_json["findings"]) == 1
+    assert len(findings_json["findings"]) == (
+        2 if app_project_merge_base else 1
     ), "Potentially scanning wrong files/commits"
 
 

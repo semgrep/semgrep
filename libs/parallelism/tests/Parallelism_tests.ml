@@ -1,5 +1,5 @@
 (* All unit tests for the parallelism library. *)
 
-let tests base =
+let tests =
   Testo.categorize_suites "Parallelism"
-    [ Unit_Domains.tests base; Unit_SharedMemo.tests base ]
+    [ Unit_Domains.tests; Unit_SharedMemo.tests ]

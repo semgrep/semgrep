@@ -35,7 +35,7 @@ module Fpaths = Set.Make (Fpath)
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type diff_scan_func = Fpath.t list -> Rule.rules -> Core_result.result_or_exn
+type diff_scan_func = Fppath.t list -> Rule.rules -> Core_result.result_or_exn
 
 (*****************************************************************************)
 (* Helpers *)
@@ -160,10 +160,17 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
                          match (Unix.lstat !!path).st_kind with
                          | S_LNK -> false
                          | _ -> true
-                       then Some path
+                       then
+                         (* We assume we don't want these targets to go
+                            any path-based filtering. This prevents the
+                            filtering of rules according to
+                            paths.exclude/include which may be incorrect.
+                         *)
+                         Some (Fppath.unfilterable_DEPRECATED path)
                        else None)
                 |> List.of_seq
               in
+              (* How come does a match result become a target? *)
               let paths_in_match =
                 r.processed_matches
                 |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
@@ -192,7 +199,17 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (profiler : Profiler.t)
   Metrics_.g.payload.environment.isDiffScan <- true;
   let commit = Git_wrapper.merge_base_exn baseline_commit in
   let status = Git_wrapper.status_exn ~cwd:(Fpath.v ".") ~commit () in
-  let added_or_modified = status.added @ status.modified in
+  (* What are these files? Are they target files or should they be treated
+     as scan roots? Are Semgrepignore filters being applied? Should they?
+     Fppath.fake_from_fpath_unfilterable makes them unfilterable but it seems
+     wrong.
+     Using Fppath.fake_from_fpath_DEPRECATED on git paths that relative to the git
+     project root might result in correct ppaths but there's no guarantee.
+  *)
+  let added_or_modified =
+    status.added @ status.modified
+    |> List_.map Fppath.fake_from_fpath_DEPRECATED
+  in
   let (head_scan_result : Core_result.result_or_exn) =
     Profiler.record profiler ~name:"head_core_time" (fun () ->
         (* running on HEAD *)

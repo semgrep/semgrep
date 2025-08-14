@@ -889,6 +889,8 @@ let resolution_visitor =
          * we would not need this *)
       (* TODO now that we do use a classic recursive-with-env visitor,
          * refactor so this isn't needed. *)
+      (* TODO: false positive *)
+      (* nosemgrep: no-ref-declarations-at-top-scope *)
       let recurse = ref true in
       (match x.e with
       (* Go: This is `x := E`, a single-variable short variable declaration.

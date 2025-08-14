@@ -132,10 +132,11 @@ let known_subcommands =
     "show";
     "test";
     "validate";
+    (* EXPERIMENTAL: *)
+    "mcp";
   ]
 
-let dispatch_subcommand (caps : caps) (base : Eio_unix.Stdenv.base)
-    (argv : string array) =
+let dispatch_subcommand (caps : caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
   | [] -> assert false
@@ -179,9 +180,7 @@ let dispatch_subcommand (caps : caps) (base : Eio_unix.Stdenv.base)
       Metrics_.add_user_agent_tag "osemgrep";
       Metrics_.add_user_agent_tag (Printf.sprintf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
-      |> List_.exclude (fun x ->
-             (* TODO: don't use JaneStreet Base until we agree to do so *)
-             not (Base.String.is_prefix ~prefix:"-" x))
+      |> List_.exclude (fun x -> not (Base.String.is_prefix ~prefix:"-" x))
       |> List.iter log_cli_feature;
       (* coupling: with known_subcommands if you add an entry below.
        * coupling: with Help.ml if you add an entry below.
@@ -203,7 +202,8 @@ let dispatch_subcommand (caps : caps) (base : Eio_unix.Stdenv.base)
         | "install-semgrep-pro" ->
             Install_semgrep_pro_subcommand.main caps subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
-        | "lsp" -> Lsp_subcommand.main caps base subcmd_argv
+        | "lsp" -> Lsp_subcommand.main caps subcmd_argv
+        | "mcp" -> Mcp_subcommand.main caps subcmd_argv
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "install-ci" -> Install_ci_subcommand.main caps subcmd_argv
@@ -268,8 +268,7 @@ let before_exit ~profile caps : unit =
  * profiling, debugging, and metrics initializations before calling
  * dispatch_subcommand().
  *)
-let main (caps : caps) (base : Eio_unix.Stdenv.base) (argv : string array) :
-    Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
@@ -318,9 +317,8 @@ let main (caps : caps) (base : Eio_unix.Stdenv.base) (argv : string array) :
   Logs_.setup_basic ();
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
-  Hook.with_hook_set Profiling.profile
-    (if profile then Profiling.ProfAll else Profiling.ProfNone)
-  @@ fun () ->
+  if profile then Profiling.profile := Profiling.ProfAll;
+
   (* coupling: Core_CLI.ml and Pro_core_CLI.ml *)
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
@@ -331,9 +329,7 @@ let main (caps : caps) (base : Eio_unix.Stdenv.base) (argv : string array) :
   (* TOADAPT? adapt more of Common.boilerplate? *)
 
   (* !The main call! dispatching a subcommand *)
-  let exit_code =
-    safe_run ~debug (fun () -> dispatch_subcommand caps base argv)
-  in
+  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
 
   Metrics_.add_exit_code exit_code;
   send_metrics (caps :> < Cap.network >);

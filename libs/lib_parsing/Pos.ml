@@ -37,24 +37,30 @@ open Fpath_.Operators
 (*****************************************************************************)
 
 (* Pos.t is used in many places in Semgrep, either directly
- * or indirectly via Tok.t.
- *
- * In theory, we should just have 'type t = int'. This would be nice
- * because Pos.t, which is used in Tok.t, is used to store the position of
- * every token in the generic AST (see AST_generic.ml) so keeping its type
- * small would help reduce the memory footprint of an AST.
- * However this would require a big refactoring effort. Indeed,
- * even though the current type is a bit "fat", it is also convenient
- * because you can easily get line x col or filename information.
- * Moving the filename out of Pos.t would require to pass it around
- * in parsers, evaluators, static analyzers, etc.
- * With the current design, once you have a Pos.t (or Tok.t), you
- * can easily issue an error message with a precise location.
- *
- * TODO: we could probably remove the line x column and compute them
- * on demand.
+  or indirectly via Tok.t.
+
+   In theory, we should just have 'type t = int'. This would be nice
+   because Pos.t, which is used in Tok.t, is used to store the position of
+   every token in the generic AST (see AST_generic.ml) so keeping its type
+   small would help reduce the memory footprint of an AST.
+   However this would require a big refactoring effort. Indeed,
+   even though the current type is a bit "fat", it is also convenient
+   because you can easily get line x col or filename information.
+   Moving the filename out of Pos.t would require to pass it around
+   in parsers, evaluators, static analyzers, etc.
+   With the current design, once you have a Pos.t (or Tok.t), you
+   can easily issue an error message with a precise location.
+
+   TODO: we could probably remove the line x column and compute them
+   on demand.
+
+   The fields are ordered such that deriving a 'compare' function with
+   '@@deriving ord' works as expected (sort by file path first,
+   then by position within the file).
  *)
 type t = {
+  (* TODO: use an Src.t/Origin.t instead? (see spacegrep Src_file.source *)
+  file : Fpath_.t;
   (* Does it handle UTF-8? This is a byte position, not a character
    * position, so in theory we should not have to care about UTF-8.
    *)
@@ -62,8 +68,6 @@ type t = {
   (* Those two fields can be derived from bytepos (See complete_position() *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
-  (* TODO: use an Src.t/Origin.t instead? (see spacegrep Src_file.source *)
-  file : Fpath_.t;
 }
 [@@deriving show, eq, ord, sexp]
 

@@ -44,6 +44,7 @@ let _map_trailing_comma env x =
   | Some tok -> Some ((* "," *) token env tok)
   | None -> None
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let forward_reference_map_template_substitution =
   ref (fun _env _x -> failwith "Foward reference not set.")
 

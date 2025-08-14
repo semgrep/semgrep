@@ -40,6 +40,7 @@ val hook_mk_hook_function_taint_signature :
   (Rule.taint_rule ->
   Taint_rule_inst.t ->
   Xtarget.t ->
-  Dataflow_tainting.hook_function_taint_signature)
+  Dataflow_tainting.hook_function_taint_signature
+  * Core_quick_profiling.Tainting_stats.t)
   option
   Hook.t

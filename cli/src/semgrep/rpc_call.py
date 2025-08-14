@@ -3,6 +3,7 @@ from typing import Optional
 from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep import tracing
 from semgrep.rpc import rpc_call
 from semgrep.verbose_logging import getLogger
 
@@ -13,6 +14,7 @@ logger = getLogger(__name__)
 ##############################################################################
 
 
+@tracing.trace()
 def format(
     formatter: out.OutputFormat, ctx: out.FormatContext, output: out.CliOutput
 ) -> str:
@@ -23,6 +25,7 @@ def format(
     return ret.value
 
 
+@tracing.trace()
 def apply_fixes(args: out.ApplyFixesParams) -> Optional[out.ApplyFixesReturn]:
     call = out.FunctionCall(out.CallApplyFixes(args))
     ret: Optional[out.RetApplyFixes] = rpc_call(call, out.RetApplyFixes)
@@ -33,6 +36,7 @@ def apply_fixes(args: out.ApplyFixesParams) -> Optional[out.ApplyFixesReturn]:
     return ret.value
 
 
+@tracing.trace()
 def sarif_format(
     sarif_format: out.SarifFormat, ctx: out.FormatContext, cli_out: out.CliOutput
 ) -> Optional[out.RetSarifFormat]:
@@ -45,6 +49,7 @@ def sarif_format(
     return ret
 
 
+@tracing.trace()
 def contributions() -> out.Contributions:
     call = out.FunctionCall(out.CallContributions())
     ret: Optional[out.RetContributions] = rpc_call(call, out.RetContributions)
@@ -54,15 +59,21 @@ def contributions() -> out.Contributions:
     return ret.value
 
 
-def validate(fp: out.Fpath) -> bool:
+@tracing.trace()
+def validate(fp: out.Fpath) -> Optional[out.CoreError]:
     call = out.FunctionCall(out.CallValidate(fp))
     ret: Optional[out.RetValidate] = rpc_call(call, out.RetValidate)
     if ret is None:
         logger.error("Failed to validate semgrep configuration")
-        return out.RetValidate(False).value
+        return out.CoreError(
+            error_type=out.ErrorType(out.SemgrepError()),
+            severity=out.ErrorSeverity(out.Error_()),
+            message=f"Failed to validate rule configuration at {fp.value}",
+        )
     return ret.value
 
 
+@tracing.trace()
 def resolve_dependencies(
     dependency_sources: List[out.DependencySource],
     download_dependency_source_code: bool,
@@ -83,6 +94,7 @@ def resolve_dependencies(
     return ret.value
 
 
+@tracing.trace()
 def upload_symbol_analysis(
     token: str, scan_id: int, symbol_analysis: out.SymbolAnalysis
 ) -> None:
@@ -100,10 +112,14 @@ def upload_symbol_analysis(
         logger.debug(f"Uploading symbol analysis succeeded with {ret.value}")
 
 
+@tracing.trace()
 def transitive_reachability_filter(
     args: out.TransitiveReachabilityFilterParams,
 ) -> List[out.TransitiveFinding]:
     call = out.FunctionCall(out.CallTransitiveReachabilityFilter(args))
+    logger.warning(
+        f"transitive reachability filter request: {out.TransitiveReachabilityFilterParams.to_json_string(args)}"
+    )
     ret: Optional[out.RetTransitiveReachabilityFilter] = rpc_call(
         call, out.RetTransitiveReachabilityFilter
     )
@@ -114,6 +130,7 @@ def transitive_reachability_filter(
     return ret.value
 
 
+@tracing.trace()
 def dump_rule_partitions(args: out.DumpRulePartitionsParams) -> bool:
     call = out.FunctionCall(out.CallDumpRulePartitions(args))
     ret: Optional[out.RetDumpRulePartitions] = rpc_call(call, out.RetDumpRulePartitions)
@@ -123,16 +140,31 @@ def dump_rule_partitions(args: out.DumpRulePartitionsParams) -> bool:
     return ret.value
 
 
+@tracing.trace()
 def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
+    def summarize(desc: str, xs: list, threshold: int = 30) -> None:
+        if len(xs) > 0:
+            s = ", ".join([str(x) for x in xs[:threshold]])
+            if len(xs) > threshold:
+                s += f" (and {len(xs) - threshold} others)"
+            logger.debug(f"get_targets resp: {desc}: {s}")
+
+    logger.debug(f"get_targets request: {scanning_roots}")
+
     call = out.FunctionCall(out.CallGetTargets(scanning_roots))
     ret: Optional[out.RetGetTargets] = rpc_call(call, out.RetGetTargets)
     if ret is None:
         logger.error("Failed to obtain target files from semgrep-core")
         return out.TargetDiscoveryResult([], [], [])
-    logger.debug(f"get_targets request: {scanning_roots}\n..... result: {ret.value}")
+
+    summarize("target paths", ret.value.target_paths)
+    summarize("core errors", ret.value.errors)
+    summarize("skipped targets", ret.value.skipped)
+
     return ret.value
 
 
+@tracing.trace()
 def match_subprojects(dependency_source_files: List[out.Fpath]) -> List[out.Subproject]:
     call = out.FunctionCall(out.CallMatchSubprojects(dependency_source_files))
     ret: Optional[out.RetMatchSubprojects] = rpc_call(call, out.RetMatchSubprojects)

@@ -129,12 +129,13 @@ install_requires = [
 
 setuptools.setup(
     name="semgrep",
-    version="1.128.0",
+    version="1.131.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
     install_requires=install_requires,
+    license="LGPL-2.1-or-later",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",

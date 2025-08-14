@@ -47,6 +47,7 @@
 (* Set by -json_time in semgrep-core or --time in pysemgrep/osemgrep to save
  * profiling info. Those profiling info found their way then in our metrics.
  *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let profiling = ref false
 let profiling_opt prof = if !profiling then Some prof else None
 let if_profiling ~default f = if !profiling then f () else default
@@ -75,7 +76,7 @@ type rule_profiling = {
 (* Save time information as we run each file *)
 type file_profiling = {
   file : Fpath.t;
-  rule_times : rule_profiling list;
+  rule_times : rule_profiling list option;
   run_time : float;
 }
 [@@deriving show]
@@ -90,7 +91,7 @@ type partial_profiling = {
  * old: was called Report.final_profiling
  *)
 type t = {
-  rules : Rule.rule list;
+  rules : Rule.rule list option;
   rules_parse_time : float;
   file_times : file_profiling list;
   (* This is meant to represent the maximum amount of memory used by
@@ -115,7 +116,7 @@ type t = {
 (* used in pro engine e.g. when merging secret mode results *)
 let merge a b : t =
   {
-    rules = a.rules @ b.rules;
+    rules = Common.combine_opt ( @ ) a.rules b.rules;
     rules_parse_time = a.rules_parse_time +. b.rules_parse_time;
     file_times = a.file_times @ b.file_times;
     max_memory_bytes = Int.max a.max_memory_bytes b.max_memory_bytes;

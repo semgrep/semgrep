@@ -43,6 +43,7 @@ type conf = {
    * even if it was not requested by the CLI
    *)
   dataflow_traces : bool;
+  use_eio : bool;
   (* symbol_analysis and fips_mode are set by the scan config from the app *)
   symbol_analysis : bool;
   fips_mode : bool;
@@ -77,7 +78,7 @@ type func = {
     (* LATER? alt: use Config_resolve.rules_and_origin instead? *)
     Rule_error.rules_and_invalid ->
     (* Takes a list of target files, not scanning roots. *)
-    Fpath.t list ->
+    Fppath.t list ->
     Core_result.result_or_exn;
 }
 
@@ -94,6 +95,7 @@ let default_conf : conf =
     time_flag = false;
     nosem = true;
     strict = false;
+    use_eio = false;
     symbol_analysis = false;
     fips_mode = false;
   }
@@ -129,8 +131,8 @@ let hook_pro_git_remote_scan_setup : (func -> func) option Hook.t =
 (* Metrics and reporting *)
 (*************************************************************************)
 let report_status_and_add_metrics_languages ~respect_gitignore
-    (lang_jobs : Lang_job.t list) (rules : Rule.t list) (targets : Fpath.t list)
-    =
+    (lang_jobs : Lang_job.t list) (rules : Rule.t list)
+    (targets : Fppath.t list) =
   Logs.app (fun m ->
       m "%s"
         (* TODO: validate if target is actually within a git repo and
@@ -159,6 +161,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    nosem = _TODO;
    strict;
    time_flag;
+   use_eio;
    (* TODO *)
    dataflow_traces = _;
    symbol_analysis;
@@ -190,7 +193,11 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         telemetry = None;
         symbol_analysis;
         fips_mode;
-        use_eio = false;
+        use_eio;
+        (* XXX: careful!  Even though we are opting into eio with [use_eio],
+         * it still falls to the caller to set up the parallelism config
+         * (since Eio "so very helpfully" insists on everything being lexically-
+         * scoped) *)
         par_conf = None;
       }
 
@@ -225,7 +232,7 @@ let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
 let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
   let run ?file_match_hook (conf : conf) (targeting_conf : Find_targets.conf)
       (rules_and_invalid : Rule_error.rules_and_invalid)
-      (target_paths : Fpath.t list) : Core_result.result_or_exn =
+      (target_paths : Fppath.t list) : Core_result.result_or_exn =
     (*
        At this point, we already have the full list of targets. These targets
        will populate the 'target_source' field of the config object
@@ -277,6 +284,17 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
         target_source = Targets targets;
         rule_source = Rules applicable_rules;
       }
+    in
+
+    (* Lastly, wrap the core scan operation in an Eio loop.
+     * It's unfortunate that this has to happen here, but is a consequence of
+     * Eio being "lexically-scoped". *)
+    let core_scan_func =
+      if config.use_eio then fun config ->
+        Eio_main.run (fun env ->
+            let par_conf = Some (Parallelism_config.create env) in
+            core_scan_func { config with par_conf })
+      else core_scan_func
     in
 
     (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)

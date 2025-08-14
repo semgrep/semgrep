@@ -63,6 +63,8 @@ let _is_imp_std s =
   || s = "filter" || s = "objectHasEx"
 
 let freshvar =
+  (* TODO: false positive *)
+  (* nosemgrep: no-ref-declarations-at-top-scope *)
   let store = ref 0 in
   fun () ->
     incr store;

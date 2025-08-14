@@ -299,8 +299,15 @@ and Effect : sig
     sink : sink;
     merged_env : Metavariable.bindings;
         (** The metavariable environment that results of merging the environment from
-    * matching the source and the one from matching the sink. *)
+            matching the source and the one from matching the sink. *)
   }
+  (* EXPERIMENT: Group taint rules
+
+     INVARIANT(taints_to_sink):
+       Taints in 'taints_with_trace' are "valid" for the rule the sink corresponds
+       to, that is, 'taints_with_trace.taint.rule_id = sink.pm.rule_id'.
+       See 'Taint_rule_group.mli'.
+   *)
 
   type taints_to_return = {
     data_taints : Taint.taints;
@@ -788,8 +795,11 @@ module Instantiated_signature = struct
       In particular, there is no 'ToSinkInCall' effect, and 'ToLval' effects
       refer to specific 'IL.lval's rather than to 'Taint.lval's. *)
 
-  type t = effect_ list
+  type t = effect_ Seq.t
+  (** Using lazy sequences helps reducing peak memory usage, the instantiated
+    effects can be computed and consumed as they are needed, and then GCed
+    (hopefully) before getting promoted to the major heap. *)
 
   let show call_effects =
-    call_effects |> List_.map Effect.show |> String.concat "; "
+    call_effects |> Seq.map Effect.show |> List.of_seq |> String.concat "; "
 end

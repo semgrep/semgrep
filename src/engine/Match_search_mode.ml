@@ -30,6 +30,7 @@ open Match_env
 (* Debugging flags.
  * Note that semgrep-core -matching_explanations can also be useful to debug.
  *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let debug_matches = ref false
 
 (*****************************************************************************)
@@ -222,7 +223,7 @@ let debug_semgrep config mini_rules file lang ast =
            Match_patterns.check
              ~hook:(fun _ -> ())
              config [ mr ]
-             (file, File file, lang, ast)
+             (file, Unfilterable_target_file file, lang, ast)
          in
          if !debug_matches then
            (* TODO
@@ -287,6 +288,8 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
         { Core_profiling.parse_time = parse_time ||| 0.0; match_time }
       |> Core_result.quick_add_parse_time_opt internal_path_to_content
            parse_time
+      |> Core_result.quick_add_match_time internal_path_to_content (fst rule.id)
+           match_time
   | _ -> Core_result.empty_match_result
 
 (*****************************************************************************)
@@ -499,18 +502,19 @@ let apply_as_on_ranges ranges as_ =
              | None -> (
                  let tokens = Lazy.force range.origin.tokens in
                  match (range.origin.path.origin, tokens) with
-                 | File _, [] ->
+                 | (Unfilterable_target_file _ | Target_file _), [] ->
                      Log.warn (fun m ->
                          m "Got empty tokens when using as-metavariable");
                      range.mvars
-                 | File fpath, fst_tok :: _ ->
+                 | ( (Unfilterable_target_file fpath | Target_file { fpath; _ }),
+                     fst_tok :: _ ) ->
                      ( as_,
                        Text
                          ( Range.content_at_range fpath range.r,
                            fst_tok,
                            Common2.list_last tokens ) )
                      :: range.mvars
-                 | _ ->
+                 | Git_blob _, _ ->
                      Log.debug (fun m ->
                          m "unable to apply as operator to gitblob match");
                      range.mvars));
@@ -672,6 +676,7 @@ let hook_pro_entropy_analysis :
     (mode:Rule.entropy_analysis_mode -> string -> bool) option Hook.t =
   Hook.create None
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_pro_metavariable_name :
     (Lang.t -> G.expr -> Rule.metavar_cond_name -> bool) option ref =
   ref None

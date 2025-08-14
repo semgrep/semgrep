@@ -19,6 +19,7 @@ type conf = {
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
+  use_eio : bool;
   (* extra scan-adjacent information: symbol_analysis and fips_mode
      are only set by the scan config received from the app
   *)
@@ -44,7 +45,7 @@ type func = {
     conf ->
     Find_targets.conf ->
     Rule_error.rules_and_invalid ->
-    Fpath.t list ->
+    Fppath.t list ->
     Core_result.result_or_exn;
 }
 

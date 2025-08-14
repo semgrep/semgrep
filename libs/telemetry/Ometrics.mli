@@ -176,7 +176,7 @@ module type Meter = sig
     instrument_meta -> (module Instrument with type value = int64)
   (** [make_int64_gauge meta] creates an instrument that can record large
       integer values that are not necessarily additive. This is useful for
-      recording things like cpu fan speed measured at rotations per millenia *)
+      recording things like cpu fan speed measured at rotations per millennia *)
 
   val make_float_gauge :
     instrument_meta -> (module Instrument with type value = float)
@@ -184,8 +184,34 @@ module type Meter = sig
       point values that are not necessarily additive. This is useful for
       recording things like CPU temperature in degrees Celsius *)
 
-  (* TODO: histograms... *)
+  val make_histogram :
+    ?explicit_bounds:float list option ->
+    instrument_meta ->
+    (module Instrument with type value = float list)
+  (** [make_histogram ?explicit_bounds meta ] creates an instrument that can
+      record a histogram from a list of floating point values. It will record
+      the count, sum, min, max, and counts of buckets specified by
+      [explicit_bounds]. If [explicit_bounds] is EXPLICITLY set to [None], this
+      will record the count, sum, min and max only, and will NOT record any
+      buckets. If [explicit_bounds] is not passed, it will default to the value
+      specified in the spec:
+      https://opentelemetry.io/docs/specs/otel/metrics/sdk/#explicit-bucket-histogram-aggregation
 
+     When calling [record] on this instrument, simply pass it a list of floats
+     that is representative of the population you are creating the histogram for.
+
+     A histogram is useful when you want to record the general
+     shape/distribution of a population, like say file sizes, but you don't need
+     high precision.
+
+     NOTE: The grafana metrics will result in a histogram where each bucket is
+     the count of everything less than or equal to that boundary, including
+     points in other buckets. So if you have bucket [[1.0; 2.0; 3.0]] and you
+     record a [2.0], the bucket count for 2.0 AND 3.0 will be 1, the sum 2.0,
+     and the count 1. Otel's model (and this sdk's), is that buckets are exclusive.
+
+     See here for more:
+     https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#histograms-1 *)
   (* TODO: async variants *)
 end
 

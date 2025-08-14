@@ -38,8 +38,8 @@ rules:
   - id: paths-excluded
     paths:
       exclude:
-        - included/excluded.*
-        - excluded/excluded.*
+        - "**/included/excluded.*"
+        - "**/excluded/excluded.*"
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"
@@ -48,8 +48,8 @@ rules:
   - id: paths-included
     paths:
       include:
-        - included/included.*
-        - excluded/included.*
+        - "**/included/included.*"
+        - "**/excluded/included.*"
     patterns:
       - pattern: "$X == $X"
     message: "possibly useless comparison but in eq function"

@@ -229,7 +229,10 @@ local setup_nix_step = [
     uses: 'DeterminateSystems/nix-installer-action@v16',
     with: {
       // pin for more stability
-      'source-tag': 'v0.34.0',
+      // this is just the version of
+      // https://github.com/DeterminateSystems/nix-installer NOT the nix version
+      // itself
+      'source-tag': 'v3.4.2',
       // pysemgrep and osemgrep have networking tests that rely on the
       // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
       // everything fine, but all networking tests fail. So we set sandbox
@@ -242,6 +245,10 @@ local setup_nix_step = [
       // to cache the build dependencies!
       'extra-conf': 'sandbox = false',
     },
+  },
+  {
+    name: 'Print nix version',
+    run: 'nix --version',
   },
   // This will automatically install cachix and upload to cachix
   {

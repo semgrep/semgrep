@@ -184,17 +184,6 @@ let parsing_rules_tests () =
                       (spf "error %s while parsing %s" (Rule_error.show err)
                          !!file))))
 
-let parsing_rules_with_atd_tests () =
-  let dir = tests_path / "rules_v2" in
-  let tests1 = Common2.glob (dir / "*.yaml") @ Common2.glob (dir / "*.json") in
-  let dir = tests_path / "syntax_v2" in
-  let tests2 = Common2.glob (dir / "*.yaml") @ Common2.glob (dir / "*.json") in
-  Testo.categorize "Parsing rules with rule_schema_v2.atd"
-    (tests1 @ tests2
-    |> List_.map (fun file ->
-           t !!file (fun () ->
-               Parse_rules_with_atd.parse_rules_v2 file |> ignore)))
-
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
@@ -205,7 +194,6 @@ let make_tests langs_with_tolerance =
       lang_parsing_tests langs_with_tolerance;
       parsing_error_tests ();
       parsing_rules_tests ();
-      parsing_rules_with_atd_tests ();
     ]
 
 let langs_with_error_tolerance =

@@ -133,4 +133,4 @@ val readdir_UNSAFE : unit -> < readdir >
  * only from a Main.ml (or Test.ml). In any case, it can't be called
  * twice in your program (there's a dynamic check for it).
  *)
-val main : (all_caps -> Eio_unix.Stdenv.base -> 'a) -> 'a
+val main : (all_caps -> 'a) -> 'a

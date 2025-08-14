@@ -1,0 +1,108 @@
+{
+  "engine_requested": "OSS",
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/exclude_include/excluded/included.js",
+      "targets/exclude_include/included/excluded.js",
+      "targets/exclude_include/included/included.js"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.ambiguous-paths-excluded",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 30
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/exclude_include/excluded/included.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 24
+      }
+    },
+    {
+      "check_id": "rules.ambiguous-paths-excluded",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 30
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/exclude_include/included/excluded.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 24
+      }
+    },
+    {
+      "check_id": "rules.ambiguous-paths-excluded",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 30
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 24
+      }
+    },
+    {
+      "check_id": "rules.ambiguous-paths-included",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 30
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "possibly useless comparison but in eq function",
+        "metadata": {},
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/exclude_include/included/included.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 24
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "time": "<masked in tests>",
+  "version": "0.42"
+}

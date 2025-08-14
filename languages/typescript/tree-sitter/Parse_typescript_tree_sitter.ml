@@ -4377,11 +4377,7 @@ type dialect = [ `Typescript | `TSX ]
 let guess_dialect opt_dialect file : dialect =
   match opt_dialect with
   | Some x -> x
-  | None ->
-      (* TODO: should remove the no_sem below, bug in ml_to_generic.ml *)
-      if file =~ ".*\\.tsx" then (* nosem *)
-        `TSX
-      else `Typescript
+  | None -> if String.ends_with ~suffix:".tsx" file then `TSX else `Typescript
 
 type cst_result =
   ( CST_tree_sitter_typescript.program,

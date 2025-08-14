@@ -174,8 +174,5 @@ let handle_single_request (caps : < caps ; .. >) =
 (*****************************************************************************)
 
 let main (caps : < caps ; .. >) =
-  Proxy.configure_proxy (Proxy.settings_from_env ());
-  Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
-
   (* For now, just handle one request and then exit. *)
   handle_single_request caps

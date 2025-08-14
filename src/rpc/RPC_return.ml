@@ -71,22 +71,45 @@ let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
 let contributions (caps : < Cap.exec >) : Out.contributions =
   Parse_contribution.get_contributions caps
 
-let validate (path : Out.fpath) : bool =
+let validate (path : Out.fpath) : Out.core_error option =
   try
     let res = Parse_rule.parse path in
     let valid =
       match res with
-      | Ok _ -> true
-      | Error _ -> false
+      | Ok _ -> None
+      | Error e ->
+          let error =
+            e |> Core_error.error_of_rule_error
+            |> Core_json_output.error_to_error
+          in
+          Some error
     in
     valid
   with
-  | _ -> false
+  | e ->
+      let msg =
+        Printf.sprintf "Error parsing rule file %s: %s" (Fpath.to_string path)
+          (Printexc.to_string e)
+      in
+      let error =
+        Core_error.mk_error ~msg
+          ~loc:(Loc.first_loc_of_file path)
+          Out.OtherParseError
+        |> Core_json_output.error_to_error
+      in
+      Some error
 
 (*****************************************************************************)
 (* Hooks for handlers defined in Pro_RPC_return.ml *)
 (*****************************************************************************)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_resolve_dependencies = ref None
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_dump_rule_partitions = ref None
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_transitive_reachability_filter = ref None
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_match_subprojects = ref None

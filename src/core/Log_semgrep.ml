@@ -29,7 +29,7 @@ https://www.notion.so/semgrep/Logging-in-semgrep-semgrep-core-osemgrep-67c9046fa
  * they can be set also with CLI flags and will be part of the man page.
  *)
 let setup ?log_to_file ?(log_to_otel = false) ?require_one_of_these_tags
-    ~force_color ~level () =
+    ?(quiet_log_setup = false) ~force_color ~level () =
   UConsole.setup ~highlight_setting:(if force_color then On else Auto) ();
   (* We override the default use of LOG_XXX env var in Logs_.setup() with
    * SEMGREP_LOG_XXX env vars because Gitlab was reporting perf problems due
@@ -78,8 +78,12 @@ let setup ?log_to_file ?(log_to_otel = false) ?require_one_of_these_tags
       [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ]
     ~read_srcs_from_env_vars:[ "PYTEST_SEMGREP_LOG_SRCS"; "SEMGREP_LOG_SRCS" ]
     ~read_tags_from_env_vars:[ "PYTEST_SEMGREP_LOG_TAGS"; "SEMGREP_LOG_TAGS" ]
-    ~level ();
-  Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  Logs.debug (fun m -> m "%s" help_msg);
-  Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    ~quiet_log_setup ~level ();
+
+  if not quiet_log_setup then (
+    Logs.debug (fun m ->
+        m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    Logs.debug (fun m -> m "%s" help_msg);
+    Logs.debug (fun m ->
+        m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"));
   ()

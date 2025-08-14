@@ -458,6 +458,19 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-sarif_sort",
       " <JSON file>",
       Arg_.mk_action_1_conv Fpath.v Core_actions.sarif_sort );
+    ( "-rpc",
+      " don't use this unless you already know",
+      Arg_.mk_action_0_arg (fun () ->
+          RPC.main
+            (caps
+              :> < Cap.exec
+                 ; Cap.tmp
+                 ; Cap.network
+                 ; Cap.readdir
+                 ; Cap.random
+                 ; Cap.chdir
+                 ; Core_scan.caps >);
+          Core_exit_code.(exit_semgrep caps#exit Success)) );
   ]
   @ Test_analyze_generic.actions
       (caps :> < Cap.exec ; Cap.tmp >)
@@ -595,20 +608,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
             CapConsole.print caps#stdout version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  The version of OCaml that was used to build this binary" );
-      ( "-rpc",
-        Arg.Unit
-          (fun () ->
-            RPC.main
-              (caps
-                :> < Cap.exec
-                   ; Cap.tmp
-                   ; Cap.network
-                   ; Cap.readdir
-                   ; Cap.random
-                   ; Cap.chdir
-                   ; Core_scan.caps >);
-            Core_exit_code.(exit_semgrep caps#exit Success)),
-        " don't use this unless you already know" );
     ]
   @ [
       ( "-use_eio",
@@ -666,17 +665,21 @@ let run caps (config : Core_scan_config.t) : unit =
     (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
     res config
 
-let decide_if_eio caps base (config : Core_scan_config.t) =
+(* We want to only run the Eio async runtime (i.e Eio_main.run) iff --x-eio is
+ * set. coupling: Pro_CLI.ml
+ *)
+let decide_if_eio caps (config : Core_scan_config.t) =
   if config.use_eio then (
+    Eio_main.run @@ fun env ->
     Logs_threaded.enable ();
-    let par_conf = Some (Parallelism_config.create base) in
+    let par_conf = Some (Parallelism_config.create env) in
     run caps { config with par_conf })
   else run caps config
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
+let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
   (* coupling: lots of similarities with what we do in CLI.main *)
   register_exception_printers ();
 
@@ -718,13 +721,15 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
       usage_msg (Array.of_list argv)
   in
 
+  (* Duplicated in Pro_core_CLI.ml *)
+  let level : Logs.level option = if !debug then Some Debug else Some Warning in
+
+  let is_rpc_call = !action = "-rpc" in
+
   (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
   Log_semgrep.setup ~log_to_otel:!trace ?log_to_file:!log_to_file
-    ?require_one_of_these_tags:None ~force_color:true
-    ~level:
-      (* TODO: command-line option or env variable to choose the log level *)
-      (if !debug then Some Debug else Some Info)
-    ();
+    ?require_one_of_these_tags:None ~quiet_log_setup:is_rpc_call
+    ~force_color:true ~level ();
 
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m "Version: %s" Version.version);
@@ -753,7 +758,7 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
           let num_jobs : Core_scan_config.num_jobs =
-            if Hook.get Profiling.profile =*= Profiling.ProfAll then (
+            if !Profiling.profile =*= Profiling.ProfAll then (
               Logs.info (fun m -> m "Profile mode On");
               Logs.info (fun m -> m "disabling -j when in profiling mode");
               Default 1)
@@ -764,7 +769,7 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
             | Some file, None, [] -> Target_file file
             | None, Some lang, [ file ]
               when UFile.is_reg ~follow_symlinks:true file ->
-                Targets [ Target.mk_lang_target lang file ]
+                Targets [ Target.mk_unfilterable_lang_target lang file ]
             | _ ->
                 (* alt: use the file targeting in Find_targets_lang but better
                  * to "dumb-down" semgrep-core to its minimum.
@@ -784,7 +789,7 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
              able to instrument the pre- and post-scan code in the same way.
           *)
           match config.telemetry with
-          | None -> decide_if_eio caps base config
+          | None -> decide_if_eio caps config
           | Some tracing ->
               let resource_attrs =
                 (* Let's make sure all traces/logs/metrics etc. are tagged as
@@ -801,8 +806,8 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
                   let telemetry =
                     { tracing with top_level_scope = Some scope }
                   in
-                  decide_if_eio caps base
-                    { config with telemetry = Some telemetry })))
+                  decide_if_eio caps { config with telemetry = Some telemetry })
+          ))
 
-let main (caps : Cap.all_caps) base (argv : string array) : unit =
-  UCommon.main_boilerplate (fun () -> main_exn caps base argv)
+let main (caps : Cap.all_caps) (argv : string array) : unit =
+  UCommon.main_boilerplate (fun () -> main_exn caps argv)

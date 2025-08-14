@@ -40,6 +40,7 @@ let created_lock = Mutex.create ()
       " keep temporary generated files" );
 *)
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let save_temp_files = ref false
 
 let erase_temp_files () =
@@ -52,6 +53,7 @@ let erase_temp_files () =
         Hashtbl.clear temp_files_created)
 
 (* hooks for with_temp_file() *)
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let temp_file_cleanup_hooks = ref []
 
 (* See the .mli for a long explanation.
@@ -129,6 +131,13 @@ let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
       let suffix = "-" ^ Fpath.basename path in
       Some (write_temp_file_with_autodelete ~prefix ~suffix ~data)
   | _ -> None
+  | exception Unix.Unix_error (_, _, info) ->
+      Log.warn (fun m ->
+          m
+            "replace_named_pipe_by_regular_file_if_needed: Unix_error %s on \
+             stat %s"
+            info !!path);
+      None
 
 let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   let data = In_channel.input_all Stdlib.stdin in

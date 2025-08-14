@@ -240,9 +240,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       nosem optimizations oss output pro pro_intrafile pro_lang
       pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
       scan_unknown_extensions secrets semgrepignore_filename text text_outputs
-      timeout _timeout_interfileTODO timeout_threshold trace trace_endpoint
-      use_git _use_semgrepignore_v2 version_check vim vim_outputs x_tr
-      x_pro_naming =
+      timeout _timeout_interfileTODO timeout_threshold use_git
+      _use_semgrepignore_v2 version_check vim vim_outputs x_tr x_pro_naming =
     (* this is just handled by psemgrep for now *)
     ignore x_pro_naming;
     let output_format : Output_format.t =
@@ -281,6 +280,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         ~allow_local_builds ~x_tr
     in
     let rules_source = Rules_source.Configs config in
+    let use_eio = common.x_eio in
     let core_runner_conf =
       {
         Core_runner.num_jobs;
@@ -294,6 +294,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         strict = false;
         time_flag = false;
         matching_explanations;
+        use_eio;
         (* coupling: symbol_analysis and fips_mode will be set later by the scan config *)
         symbol_analysis = false;
         fips_mode = false;
@@ -357,8 +358,6 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         engine_type;
         rewrite_rule_ids;
         common;
-        trace;
-        trace_endpoint;
         (* ugly: *)
         version = false;
         show = None;
@@ -390,10 +389,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_pro_path_sensitive $ SC.o_rewrite_rule_ids $ SC.o_sarif
     $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
     $ SC.o_semgrepignore_filename $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
-    $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_trace
-    $ SC.o_trace_endpoint $ SC.o_use_git $ SC.o_use_semgrepignore_v2
-    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_x_tr
-    $ SC.o_x_pro_naming)
+    $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_use_git
+    $ SC.o_use_semgrepignore_v2 $ SC.o_version_check $ SC.o_vim
+    $ SC.o_vim_outputs $ SC.o_x_tr $ SC.o_x_pro_naming)
 
 (*************************************************************************)
 (* Turn argv into conf *)

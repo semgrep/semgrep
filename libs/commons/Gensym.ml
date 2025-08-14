@@ -47,6 +47,7 @@ end = struct
   type t = int [@@deriving show, eq, hash, sexp]
   type partition = A | B
 
+  (* nosemgrep: no-ref-declarations-at-top-scope *)
   let partition = ref A
   let set_partition p = partition := p
   let counter_a = Atomic.make 0

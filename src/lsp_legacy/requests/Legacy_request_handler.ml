@@ -53,6 +53,7 @@ let handle_custom_request session (req_id : Id.t) (meth : string)
       (Legacy_showast.meth, Legacy_showast.on_request);
       (Legacy_login_start.meth, Legacy_login_start.on_request);
       (Legacy_login_status.meth, Legacy_login_status.on_request);
+      (Legacy_loginfinish.meth, Legacy_loginfinish.on_request);
     ]
     |> List.assoc_opt meth
   with

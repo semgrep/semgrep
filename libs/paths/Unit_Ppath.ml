@@ -123,7 +123,7 @@ let test_of_relative_fpath () =
   let check path_str expected_ppath_str =
     printf "of_relative_fpath %S -> %S\n%!" path_str expected_ppath_str;
     let res =
-      path_str |> Fpath.v |> Ppath.of_relative_fpath
+      path_str |> Fpath.v |> Ppath.of_relative_fpath_exn
       |> Ppath.to_string_for_tests
     in
     Alcotest.(check string) __LOC__ expected_ppath_str res

@@ -1,4 +1,6 @@
 open Cohttp
+open Common
+open Lwt.Infix
 
 (*****************************************************************************)
 (* Prelude *)
@@ -37,20 +39,17 @@ type client_result = (server_response, string) result
 (* Globals *)
 (*****************************************************************************)
 
-(* Create a client reference so we can swap it out with a testing version *)
+(* Create a client reference so we can swap it out with a testing version.  In
+ * order to not make relevant Testo tests serial, this is a domain-local value,
+ * though in practice it's a global singleton value. *)
+let client_ref : (module Cohttp_lwt.S.Client) option Domain.DLS.key =
+  Domain.DLS.new_key (Fun.const None)
 
-(* SAFETY: This value is currently only used in single-threaded contexts, and
-   relies on this for safety. If you need to use this in a multi-threaded
-   context you should evaluate switching to Eio-based networking or some other
-   mechanism for a fibre-local or otherwise non-global networking client. Note
-   that DLS is likely not appropriate due to Eio work-stealing and a global
-   Mutex is likely not appropriate due to uses of with_client_ref. *)
-let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
-let set_client_ref v = client_ref := Some v
+let set_client_ref r = Domain.DLS.set client_ref (Some r)
 
 let with_client_ref v f x =
-  let old = !client_ref in
-  Common.protect ~finally:(fun () -> client_ref := old) @@ fun () ->
+  let old = Domain.DLS.get client_ref in
+  Common.protect ~finally:(fun () -> Domain.DLS.set client_ref old) @@ fun () ->
   set_client_ref v;
   f x
 
@@ -126,9 +125,10 @@ let default_resp_handler_eio (response, body) =
    library, who may or may not know about this requirement. *)
 (* coupling(eio-port): if you change this you must change the eio version *)
 let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
-    ?(chunked = false) ?(resp_handler = default_resp_handler) meth url =
+    ?(chunked = false) ?(resp_handler = default_resp_handler)
+    ?(timeout_secs = 10.0) meth url =
   let module Client : Cohttp_lwt.S.Client =
-    (val match !client_ref with
+    (val match Domain.DLS.get client_ref with
          | Some client -> client
          | None -> failwith "HTTP client not initialized")
   in
@@ -141,18 +141,32 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
     | _ -> Lwt.return []
   in
   let headers = Header.of_list (content_length_header @ headers) in
-  match%lwt Client.call ~headers ~body ~chunked meth url with
-  | response, response_body ->
-      let%lwt resp = resp_handler (response, response_body) in
-      Lwt.return_ok resp
-  | exception Cohttp_lwt.Connection.Retry ->
-      Lwt.return_error "Error in request: maybe the server hung up prematurely?"
-  | exception exn ->
-      let err = Printexc.to_string exn in
-      Log.err (fun m ->
-          m "HTTP %s to '%s' failed: %s" (string_of_meth meth)
-            (Uri.to_string url) err);
-      Lwt.return_error err
+
+  let resp =
+    Lwt.catch
+      (fun () ->
+        Client.call ~headers ~body ~chunked meth url
+        >>= resp_handler >>= Lwt.return_ok)
+      (function
+        | Cohttp_lwt.Connection.Retry ->
+            Lwt.return_error
+              (spf
+                 "HTTP %s to '%s' failed: maybe the server hung up prematurely?"
+                 (string_of_meth meth) (Uri.to_string url))
+        | exn ->
+            let err = Printexc.to_string exn in
+            Log.err (fun m ->
+                m "HTTP %s to '%s' failed: %s" (string_of_meth meth)
+                  (Uri.to_string url) err);
+            Lwt.return_error err)
+  in
+  let timeout =
+    Lwt_unix.sleep timeout_secs >>= fun () ->
+    Lwt.return_error
+      (spf "HTTP %s to %s timed out after %.1f seconds" (string_of_meth meth)
+         (Uri.to_string url) timeout_secs)
+  in
+  Lwt.pick [ resp; timeout ]
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let call_eio_client ?(body = Cohttp.Body.empty) ?(headers = [])

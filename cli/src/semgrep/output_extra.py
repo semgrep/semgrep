@@ -2,7 +2,7 @@ from attrs import frozen
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.parsing_data import ParsingData
-from semgrep.types import TargetAccumulator
+from semgrep.types import TargetInfoAccumulator
 
 
 # This class exists to wrap some of the output returned by `semgrep-core`, on its way up
@@ -12,5 +12,5 @@ from semgrep.types import TargetAccumulator
 @frozen
 class OutputExtra:
     core: out.CoreOutput
-    all_targets: TargetAccumulator
+    all_targets: TargetInfoAccumulator
     parsing_data: ParsingData

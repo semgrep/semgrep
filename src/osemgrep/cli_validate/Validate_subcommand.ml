@@ -86,8 +86,9 @@ let hook_pro_init : (unit -> unit) Hook.t =
 (*****************************************************************************)
 (* Targeting (finding the semgrep yaml files to validate) *)
 (*****************************************************************************)
+(* TODO: return a record plz *)
 let find_targets_rules (caps : < caps ; .. >) ~(strict : bool) ~token_opt
-    (rules_source : Rules_source.t) : Fpath.t list * int * int * int =
+    (rules_source : Rules_source.t) : Fppath.t list * int * int * int =
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
    * TODO: report not only Rule.invalid_rule_errors but all Rule.Error.t for (1)
@@ -135,7 +136,12 @@ let find_targets_rules (caps : < caps ; .. >) ~(strict : bool) ~token_opt
     rules_and_origin
     |> List_.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
            match x.origin with
-           | Local_file path -> Some path
+           | Local_file path ->
+               (* For the sake of honoring include/exclude paths filters
+                  found in rules, we need to provide a path that's relative
+                  to the project root (a ppath). Here, we assume the project
+                  root is the folder containing the file. *)
+               Some (Fppath.of_file_basename path)
            | CLI_argument
            | Registry
            | App

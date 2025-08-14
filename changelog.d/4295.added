@@ -1,0 +1,2 @@
+Introduces a timeout to internal HTTP requests, to prevent remote endpoints
+from indefinitely hanging the engine.

@@ -141,7 +141,7 @@ local test_wheels_venv_job = {
 };
 
 local test_wheels_wsl_job = {
-  'runs-on': 'windows-latest',
+  'runs-on': 'windows-2025',
   needs: [
     'build-wheels',
   ],
@@ -151,12 +151,16 @@ local test_wheels_wsl_job = {
       run: 'unzip dist.zip',
     },
     {
-      uses: 'Vampire/setup-wsl@v3',
+      uses: 'Vampire/setup-wsl@v6',
     },
     {
       name: 'Install Python',
       shell: 'wsl-bash {0}',
       run: |||
+        # Bullseye backports has evidently been discontinued. Leaving this
+        # source in causes a 404 when updating the package repositories and
+        # installing Python.
+        sudo sed -ie '/bullseye-backports/d' /etc/apt/sources.list
         sudo apt update -y
         sudo apt install -y make python3 python3-pip
         sudo ln -s /usr/bin/python3 /usr/bin/python

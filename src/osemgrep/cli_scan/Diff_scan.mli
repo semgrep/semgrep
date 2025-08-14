@@ -1,7 +1,7 @@
 (* TODO: rename this module to indicate that it only works on a git repo *)
 (* TODO: provide a function to obtain the list of target files. *)
 
-type diff_scan_func = Fpath.t list -> Rule.rules -> Core_result.result_or_exn
+type diff_scan_func = Fppath.t list -> Rule.rules -> Core_result.result_or_exn
 
 (* Execute the engine again on the baseline checkout, utilizing only
  * the files and rules linked with matches from the head checkout

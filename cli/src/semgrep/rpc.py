@@ -7,8 +7,11 @@
 # See `src/rpc/README.txt` from the repository root for more details.
 # coupling: src/rpc/RPC.handle_call()
 # coupling: semgrep_output_v1.atd which defines the CallXxx and RetXxx
+import logging
 import subprocess
+from datetime import datetime
 from typing import IO
+from typing import List
 from typing import Optional
 from typing import Type
 from typing import TypeVar
@@ -110,12 +113,26 @@ T = TypeVar("T")
 
 
 def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
+    from semgrep.state import get_state
+
+    start = datetime.now()
+
     # We always use the pro binary if it's available. It's up to the caller to
     # appropriately handle the case where the pro function is not available and
     # to ensure that pro RPC methods are only called during a pro scan.
     semgrep_core_path = SemgrepCore.pro_path() or SemgrepCore.executable_path()
+
+    state = get_state()
+    cmd: List[str] = []
+
+    cmd.append(str(semgrep_core_path))
+    cmd.append("-rpc")
+
+    if state.terminal.log_level is logging.DEBUG:
+        cmd.append("-debug")
+
     with subprocess.Popen(
-        [semgrep_core_path, "-rpc"],
+        cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         text=True,
@@ -152,6 +169,8 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
                 return None
             # Check that we got the correct kind of response
             if isinstance(ret.value, cls):
+                secs = (datetime.now() - start).total_seconds()
+                logger.debug(f"RPC completed in: {secs}s")
                 return ret.value
             else:
                 logger.error(f"Received an incorrect kind of RPC response")

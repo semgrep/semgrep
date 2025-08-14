@@ -158,12 +158,14 @@ let fix_poly_taint_with_offset offset taints =
 (*********************************************************)
 
 let rec unify_cell cell1 cell2 =
-  let (Cell (xtaint1, shape1)) = cell1 in
-  let (Cell (xtaint2, shape2)) = cell2 in
-  (* TODO: Apply 'Flag_semgrep.max_taint_set_size' here too ? *)
-  let xtaint = Xtaint.union xtaint1 xtaint2 in
-  let shape = unify_shape shape1 shape2 in
-  Cell (xtaint, shape)
+  if phys_equal cell1 cell2 then cell1
+  else
+    let (Cell (xtaint1, shape1)) = cell1 in
+    let (Cell (xtaint2, shape2)) = cell2 in
+    (* TODO: Apply 'Flag_semgrep.max_taint_set_size' here too ? *)
+    let xtaint = Xtaint.union xtaint1 xtaint2 in
+    let shape = unify_shape shape1 shape2 in
+    Cell (xtaint, shape)
 
 and unify_shape shape1 shape2 =
   match (shape1, shape2) with

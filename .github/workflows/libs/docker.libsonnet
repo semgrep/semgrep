@@ -128,6 +128,7 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
 
 local job(
   name,  // Name of docker image if uploaded (i.e. semgrep/NAME)
+  gha_job_name='',  // User-friendly name to appear in the GitHub Actions job name
   target,  // Target docker layer (i.e. build, semgrep-cli, etc.)
   prefix='',  // prefix for image tags
   suffix='',  // suffix for image tags
@@ -297,7 +298,11 @@ local job(
            [
              {
                id: 'build-%s-docker-image' % name,
-               name: 'Build docker image in Depot%s' % (if push then ' and push to Docker Hub' else ''),
+               // job name = "WHAT: HOW"
+               name: gha_job_name
+                     + (if gha_job_name == '' then '' else ': ')
+                     + ('Build docker image in Depot%s'
+                        % (if push then ' and push to Docker Hub' else '')),
                uses: 'depot/build-push-action@v1.9.0',
                with: {
                  project: '${{ secrets.DEPOT_PROJECT_ID }}',

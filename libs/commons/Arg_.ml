@@ -66,13 +66,19 @@ let (lines : string -> string list) =
 (* Entry points *)
 (*****************************************************************************)
 
-(* now I use argv as I like at the call sites to show that
- * this function internally use argv.
- *)
 let parse_options options usage_msg argv =
   let args = ref [] in
   try
-    Arg.parse_argv argv options (fun file -> args := file :: !args) usage_msg;
+    (* We explicitly pass in 0 for current to avoid Arg's default behaviour
+     * of internally mutating an internal [optind]-style value.  This means
+     * we can repeatedly parse options "from scratch", which we need for
+     * in-process e2e tests.
+     * https://ocaml.org/manual/5.3/api/Arg.html#VALcurrent
+     *)
+    let current = ref 0 in
+    Arg.parse_argv ~current argv options
+      (fun file -> args := file :: !args)
+      usage_msg;
     args := List.rev !args;
     !args
   with
@@ -117,7 +123,8 @@ let arg_parse2 l msg short_usage_fun =
   let f file = args := file :: !args in
   let l = Arg.align l in
   try
-    Arg.parse_argv Sys.argv l f msg;
+    let current = ref 0 in
+    Arg.parse_argv ~current Sys.argv l f msg;
     args := List.rev !args;
     !args
   with

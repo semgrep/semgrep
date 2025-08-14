@@ -2,6 +2,7 @@ import asyncio
 import collections
 import contextlib
 import json
+import shutil
 import sys
 import tempfile
 from datetime import datetime
@@ -51,6 +52,8 @@ from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.types import Target
+from semgrep.types import target_info_acc_of_target_acc
 from semgrep.types import TargetAccumulator
 from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
@@ -524,6 +527,7 @@ class CoreRunner:
         symbol_analysis: bool = False,
         fips_mode: bool = False,
         use_pro_naming_for_intrafile: bool = False,
+        group_taint_rules: bool = False,
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs
@@ -542,6 +546,7 @@ class CoreRunner:
         self._symbol_analysis = symbol_analysis
         self._fips_mode = fips_mode
         self._use_pro_naming_for_intrafile = use_pro_naming_for_intrafile
+        self._group_taint_rules = group_taint_rules
 
     def _extract_core_output(
         self,
@@ -735,7 +740,7 @@ class CoreRunner:
         # The range of target_info is (index into rules x product as json)
         # Using product as JSON because we want structural equality of products instead of object equality.
         target_info: Dict[
-            Tuple[Path, Language], Tuple[List[int], Set[str]]
+            Tuple[Target, Language], Tuple[List[int], Set[str]]
         ] = collections.defaultdict(lambda: (list(), set()))
 
         unused_rules = []
@@ -845,12 +850,19 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         """
                     )
                 sys.exit(2)
+
+            # check if ddprof is in PATH and if the trace flag is set.
+            # if yes, then we wrap the call to semgrep with ddprof for
+            # SMS profiling.
+            ddprof = shutil.which("ddprof") and self._trace
+
             cmd = [
                 # bugfix: self._binary_path is an Optional[Path]. The
                 # recommended way to convert a Path to a string is to use the
                 # str function. However, mypy allows the use of str to convert
                 # Optional values to strings. Make sure to check against None
                 # even though mypy won't warn you.
+                *(["ddprof"] if ddprof else []),
                 str(self._binary_path),
                 "-json",
             ]
@@ -954,6 +966,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             # scans. So let's only add it if that's the case.
             if self._symbol_analysis and engine.is_interfile:
                 cmd.append("-symbol_analysis")
+
+            if self._group_taint_rules:
+                cmd += ["-group_taint_rules"]
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
@@ -1064,9 +1079,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             errors.extend(parsed_errors)
 
         output_extra = OutputExtra(
-            core_output,
-            all_targets,
-            parsing_data,
+            core=core_output,
+            all_targets=target_info_acc_of_target_acc(all_targets),
+            parsing_data=parsing_data,
         )
 
         return (
@@ -1196,12 +1211,17 @@ Exception raised: `{e}`
             output_extra,
         )
 
-    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
+    def validate_configs(
+        self, configs: Tuple[str, ...], no_python_schema_validation: bool = False
+    ) -> Sequence[SemgrepError]:
         if self._binary_path is None:  # should never happen, doing this for mypy
             raise SemgrepError("semgrep engine not found.")
 
         metachecks = Config.from_config_list(
-            ["p/semgrep-rule-lints"], None, force_jsonschema=True
+            ["p/semgrep-rule-lints"],
+            None,
+            force_jsonschema=True,
+            no_python_schema_validation=no_python_schema_validation,
         )[0].get_rules(True)
 
         parsed_errors = []
@@ -1236,7 +1256,8 @@ Exception raised: `{e}`
             core_output = out.CoreOutput.from_json(output_json)
 
             parsed_errors += [
-                core_error_to_semgrep_error(e) for e in core_output.errors
+                core_error_to_semgrep_error(e, show_details=no_python_schema_validation)
+                for e in core_output.errors
             ]
 
         return dedup_errors(parsed_errors)

@@ -70,7 +70,7 @@ type t = {
 (*****************************************************************************)
 
 (* TODO? make default ?product=Product.all? *)
-val mk_target_origin :
+val mk_target_from_origin :
   ?dependency_source:Dependency_source.t ->
   Analyzer.t ->
   Product.t list ->
@@ -87,10 +87,20 @@ val mk_target_origin :
  *)
 
 (* TODO? make default ?product=Product.all? *)
-val mk_target_fpath : Analyzer.t -> Fpath.t -> t
+val mk_target : Analyzer.t -> Fppath.t -> t
+
+(* Create a target for a file that doesn't have a path relative to a project
+   root. This could a code snippet that was extracted from some file and
+   put into a temporary folder. These are files whose name or path aren't
+   known to the user. A consequence is that path filters won't apply
+   to these files.
+
+   TODO: find a better name for these?
+*)
+val mk_unfilterable_target : Analyzer.t -> Fpath.t -> t
 
 (* useful in tests *)
-val mk_lang_target : Lang.t -> Fpath.t -> t
+val mk_unfilterable_lang_target : Lang.t -> Fpath.t -> t
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)

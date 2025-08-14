@@ -8,12 +8,13 @@
 (*****************************************************************************)
 
 type t = {
+  file : Fpath.t;
   bytepos : int; (* 0-based *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
-  file : Fpath.t;
 }
 [@@deriving show, eq, ord, sexp]
+(** The derived [compare] function allows sorting by location *)
 
 val make : ?line:int -> ?column:int -> Fpath.t -> int -> t
 

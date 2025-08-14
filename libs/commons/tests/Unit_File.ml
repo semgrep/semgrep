@@ -18,6 +18,13 @@ let with_string str f =
 (* The tests *)
 (*****************************************************************************)
 
+let test_with_open_in_missing () =
+  let bad_path = Fpath.v "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" in
+  try UFile.with_open_in bad_path (fun _ic -> assert false) with
+  | Unix.Unix_error (Unix.ENOENT, _, _) ->
+      (* file didn't exist and should not have been created *)
+      assert (not (Sys_.file_exists (Fpath.to_string bad_path)))
+
 let with_test_files f =
   let open Testutil_files in
   with_tempfiles ~chdir:true ~verbose:true
@@ -247,4 +254,5 @@ let tests =
       t "is_dir_or_lnk" test_is_dir_or_lnk;
       t "is_lnk_or_reg" test_is_lnk_or_reg;
       t "is_dir_or_lnk_or_reg" test_is_dir_or_lnk_or_reg;
+      t "missing input file" test_with_open_in_missing;
     ]

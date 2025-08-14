@@ -206,7 +206,7 @@ let default_payload =
       };
   }
 
-let default =
+let default () =
   {
     (* default to Off, so don't forget to call Metrics_.configure()
      * to change it in the different subcommands.
@@ -231,7 +231,10 @@ let default =
  * as a global because all fields in Metrics_.t and the payload type
  * are mutable.
  *)
-let g = default
+let g = default ()
+
+(* XXX: what is the safety property that this mutex maintains?  It is not
+ * used consistently (used in the pro LSP, but not in CLI nor in this file) *)
 let g_mutex = Eio.Mutex.create ()
 
 (*****************************************************************************)
@@ -287,6 +290,15 @@ let string_of_user_agent () = String.concat " " g.user_agent
  * ../configuring/Semgrep_settings.ml
  *)
 let init (caps : < Cap.random ; .. >) ~anonymous_user_id ~ci =
+  (* Reset the fields of [g] back to their default values, in case init()
+   * has been previously called (for instance, during e2e tests which may
+   * run multiple distinct subcommands within the same process). *)
+  let g' = default () in
+  g.config <- g'.config;
+  g.is_using_registry <- g'.is_using_registry;
+  g.is_using_app <- g'.is_using_app;
+  g.user_agent <- g'.user_agent;
+
   g.payload.started_at <- now ();
   g.payload.event_id <- Uuidm.v4_gen (CapRandom.get_state caps#random ()) ();
   g.payload.anonymous_user_id <- Uuidm.to_string anonymous_user_id;
@@ -443,14 +455,18 @@ let add_targets_stats (targets : Fpath.t Set_.t)
              match Hashtbl.find_opt hprof path with
              | Some (fprof : Core_profiling.file_profiling) ->
                  ( Some fprof.run_time,
-                   Some
-                     (fprof.rule_times
-                     |> List_.map (fun rt -> rt.Core_profiling.rule_parse_time)
-                     |> Common2.sum_float),
-                   Some
-                     (fprof.rule_times
-                     |> List_.map (fun rt -> rt.Core_profiling.rule_match_time)
-                     |> Common2.sum_float) )
+                   fprof.rule_times
+                   |> Option.map (fun rule_times ->
+                          rule_times
+                          |> List_.map (fun rt ->
+                                 rt.Core_profiling.rule_parse_time)
+                          |> Common2.sum_float),
+                   fprof.rule_times
+                   |> Option.map (fun rule_times ->
+                          rule_times
+                          |> List_.map (fun rt ->
+                                 rt.Core_profiling.rule_match_time)
+                          |> Common2.sum_float) )
              | None -> (None, None, None)
            in
            {
@@ -458,7 +474,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
              numTimesScanned =
                (match Hashtbl.find_opt hprof path with
                | None -> 0
-               | Some fprof -> List.length fprof.rule_times);
+               | Some fprof -> Option.map List.length fprof.rule_times ||| 0);
              parseTime;
              matchTime;
              runTime;

@@ -18,15 +18,18 @@ type loc = {
 [@@deriving show]
 (** The location of a pattern, for logging and troubleshooting. *)
 
-type conf = { glob_period : bool }
+type conf = { glob_period : bool; right_anchored : bool } [@@deriving show]
 (** Options for interpreting glob patterns.
 
-  The options with the [glob_] prefix correspond to
-  the man page for glob(3). We don't support all the options but at least
-  we support those needed to handle Gitignore files.
+    The options with the [glob_] prefix correspond to
+    the man page for glob(3). We don't support all the options but at least
+    we support those needed to handle Gitignore files.
 
-  glob_period: allow a leading period to be matched by metacharacters.
-  By default, metacharacters can't match a leading period.
+    @param glob_period allow a leading period to be matched by metacharacters.
+    By default, metacharacters can't match a leading period.
+    @param right_anchored require the pattern to match the whole given path.
+    If false, extra path segments are tolerated i.e. the same glob pattern
+    extended with [/**] will match too.
 *)
 
 val default_conf : conf

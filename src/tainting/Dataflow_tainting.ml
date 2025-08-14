@@ -561,9 +561,26 @@ let effects_of_tainted_sinks env taints sinks : Effect.poly list =
            (* This is where all taint effects start. If it's interproc,
               the call trace will be later augmented into the Call variant,
               but it starts out here as just a PM variant.
-           *)
+            *)
            let taints_with_traces =
-             taints |> Taints.elements
+             taints
+             |> Taints.elements
+                (* EXPERIMENT: Group taint rules
+
+                    Filter taints to only include those whose sources match the
+                    sink. This prevents the generation of effects like:
+
+                      rule-1/source-A ~~~> rule-2/sink-B
+
+                    or
+
+                      rule-2/source-B -> rule-1/sink-A
+
+                    in the first place.
+
+                    See 'Taint_rule_group.mli'.
+                  *)
+             |> List.filter (Taint.is_valid_taint_for_rule sink.pm.rule_id.id)
              |> List_.map (fun t ->
                     { Effect.taint = t; sink_trace = T.PM (sink.Effect.pm, ()) })
            in
@@ -658,7 +675,9 @@ let sink_of_match lval_env (tm : TP.sink TM.t) =
                (fun (extra_req_acc, ok, lval_env) (var, precondition) ->
                  (* This is the destination/"to" point of the taints associated with the
                     metavariables in a "multi-requires". *)
-                 let taints, lval_env = Lval_env.propagate_from var lval_env in
+                 let taints, lval_env =
+                   Lval_env.find_taint_to_be_propagated var lval_env
+                 in
                  match
                    T.solve_precondition ~ignore_poly_taint:false ~taints
                      precondition
@@ -787,11 +806,11 @@ let handle_taint_propagators env thing taints shape =
   let propagate_froms, propagate_tos =
     List.partition (fun p -> p.TM.spec.TP.kind =*= `From) propagators
   in
-  let pending, lval_env =
+  let ready_to_propagate, lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
-      (fun (pending, lval_env) prop ->
+      (fun (ready, lval_env) prop ->
         (* Only propagate if the current set of taint labels can satisfy the
            propagator's requires precondition.
         *)
@@ -838,18 +857,19 @@ let handle_taint_propagators env thing taints shape =
                        label)
                     taints
             in
-            let lval_env, is_pending =
-              Lval_env.propagate_to prop.spec.var new_taints lval_env
+            let lval_env, is_ready =
+              Lval_env.check_if_can_propagate_to_dest prop.spec.var new_taints
+                lval_env
             in
-            let pending =
-              match is_pending with
-              | `Recorded -> pending
-              | `Pending -> VarMap.add prop.spec.var new_taints pending
+            let ready =
+              match is_ready with
+              | `Recorded -> ready
+              | `Ready -> VarMap.add prop.spec.var new_taints ready
             in
-            (pending, lval_env)
+            (ready, lval_env)
         | Some false
         | None (* THINK: Let the unsolvable pass ? *) ->
-            (pending, lval_env))
+            (ready, lval_env))
       (VarMap.empty, lval_env) propagate_froms
   in
   let lval_env =
@@ -857,7 +877,8 @@ let handle_taint_propagators env thing taints shape =
     | None -> lval_env
     | Some pro_hooks ->
         let lval_env, effects_acc =
-          pro_hooks.run_pending_propagators pending lval_env !(env.effects_acc)
+          pro_hooks.run_taint_propagations ready_to_propagate lval_env
+            !(env.effects_acc)
         in
         env.effects_acc := effects_acc;
         lval_env
@@ -868,7 +889,7 @@ let handle_taint_propagators env thing taints shape =
     List.fold_left
       (fun (taints_in_acc, lval_env) prop ->
         let taints_from_prop, lval_env =
-          Lval_env.propagate_from prop.TM.spec.TP.var lval_env
+          Lval_env.find_taint_to_be_propagated prop.TM.spec.TP.var lval_env
         in
         let lval_env =
           if prop.spec.TP.prop_by_side_effect then
@@ -1763,6 +1784,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | [] -> Lval_env.empty
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
+[@@profiling]
 
 let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
  fun enter_env ~fun_cfg
@@ -2052,9 +2074,19 @@ and fixpoint_aux taint_inst func ?(needed_vars = IL.NameSet.empty)
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   let end_mapping, timeout =
-    DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
-      ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~fun_cfg)
-      ~forward:true ~flow
+    let fp_timeout =
+      match taint_inst.rule_or_group with
+      | `Rule _ -> Limits_semgrep.taint_FIXPOINT_TIMEOUT
+      | `Group group ->
+          (* EXPERIMENT: Group taint rules
+
+             Running fixpoint with a group of rules would cost more time to
+             converge, so we scale up the timeout. *)
+          float_of_int (Taint_rule_group.length group)
+          *. Limits_semgrep.taint_FIXPOINT_TIMEOUT
+    in
+    DataflowX.fixpoint ~timeout:fp_timeout ~eq_env:Lval_env.equal
+      ~init:init_mapping ~trans:(transfer env ~fun_cfg) ~forward:true ~flow
   in
   record_timeout taint_inst env.func.fname timeout;
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in

@@ -32,6 +32,7 @@ from semgrep.constants import Colors
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
+from semgrep.error import mark_semgrep_error_as_reported
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.emacs import EmacsFormatter
@@ -53,7 +54,8 @@ from semgrep.subproject import subproject_to_cli_output_info
 from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
-from semgrep.types import TargetAccumulator
+from semgrep.types import TargetInfo
+from semgrep.types import TargetInfoAccumulator
 from semgrep.util import is_url
 from semgrep.util import line_count_of_path
 from semgrep.util import pretty_print_percentage
@@ -100,8 +102,6 @@ def get_path_str(target: Path) -> str:
 
 
 def _build_time_json(
-    rules: List[Rule],
-    targets: Set[Path],
     profile: out.Profile,
     profiler: Optional[ProfileManager],
 ) -> out.Profile:
@@ -211,7 +211,7 @@ class OutputHandler:
         self.settings: NormalizedOutputSettings = output_settings.normalize()
 
         self.rule_matches: List[RuleMatch] = []
-        self.all_targets: Set[Path] = set()
+        self.all_targets: Set[TargetInfo] = set()
         self.profiler: Optional[ProfileManager] = None
         self.rules: FrozenSet[Rule] = frozenset()
         self.semgrep_structured_errors: List[SemgrepError] = []
@@ -242,6 +242,15 @@ class OutputHandler:
 
             self._formatters[output_destination] = formatter
 
+    # TODO: move this function outside of this class so that we can call
+    #  it on any SemgrepError. Generally, we should avoid handling an exception
+    #  and re-raising it, otherwise, it will be reported again.
+    #  The pattern should be:
+    #  1. Accummulate errors.
+    #  2. Report errors and determine exit code.
+    #  3. Exit with the proper exit code.
+    #  If the error comes in the form of an exception, don't re-raise the exception
+    #  or at least use a different exception.
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
         missing_plugin_errors = []
@@ -332,6 +341,8 @@ class OutputHandler:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
+            # Prevent double reporting
+            mark_semgrep_error_as_reported(ex)
             if isinstance(ex.level.value, out.Error_) and not (
                 isinstance(ex, SemgrepCoreError)
                 and ex.is_special_interfile_analysis_error
@@ -377,7 +388,7 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        all_targets_acc: TargetAccumulator,
+        all_targets_acc: TargetInfoAccumulator,
         engine_type: EngineType = EngineType.OSS,
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
@@ -505,7 +516,7 @@ class OutputHandler:
             suggestion_line = ""
             more_detail_line = ""
 
-            total_lines = sum([line_count_of_path(t) for t in all_targets])
+            total_lines = sum([line_count_of_path(t.fpath) for t in all_targets])
             total_lines_skipped = 0
             if self.ignore_log.core_failure_lines_by_file:
                 ignore_log = self.ignore_log
@@ -601,7 +612,10 @@ class OutputHandler:
             # This is incorrect when some rules are skipped by semgrep-core
             # e.g. proprietary rules.
             # TODO: Use what semgrep-core returns for 'scanned' and 'skipped'.
-            scanned=[out.Fpath(str(path)) for path in sorted(self.all_targets)],
+            scanned=[
+                out.Fpath(str(target.fpath))
+                for target in sorted(self.all_targets, key=lambda x: x.fpath)
+            ],
             skipped=None,
         )
         cli_timing: Optional[out.Profile] = None
@@ -610,8 +624,6 @@ class OutputHandler:
 
         if self.extra and self.extra.core.time:
             cli_timing = _build_time_json(
-                self.filtered_rules,
-                self.all_targets,
                 self.extra.core.time,
                 self.profiler,
             )

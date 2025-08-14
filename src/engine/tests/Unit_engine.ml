@@ -366,7 +366,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
   in
   Match_patterns.check ~hook Rule_options.default [ rule ]
-    (file, File file, lang, ast)
+    (file, Unfilterable_target_file file, lang, ast)
 
 (*
    For each input file with the language's extension, locate a pattern file
@@ -639,7 +639,11 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
     |> List.concat_map (fun rule ->
            let xtarget : Xtarget.t =
              {
-               path = { origin = File file; internal_path_to_content = file };
+               path =
+                 {
+                   origin = Unfilterable_target_file file;
+                   internal_path_to_content = file;
+                 };
                analyzer = Analyzer.L (lang, []);
                lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);

@@ -1,8 +1,5 @@
 (* entry point of semgrep-core *)
-val main : Cap.all_caps -> Eio_unix.Stdenv.base -> string array -> unit
-
-(* this can raise exn; useful in test context *)
-val main_exn : Cap.all_caps -> Eio_unix.Stdenv.base -> string array -> unit
+val main : Cap.all_caps -> string array -> unit
 
 (* internals used also in semgrep-core-proprietary *)
 
@@ -49,3 +46,6 @@ val options :
 val action : string ref
 val all_actions : Cap.all_caps -> unit -> Arg_.action_spec list
 val register_exception_printers : unit -> unit
+
+(* this can raise exn; useful in test context *)
+val main_exn : Cap.all_caps -> string array -> unit

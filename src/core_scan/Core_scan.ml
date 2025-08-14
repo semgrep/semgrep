@@ -263,7 +263,8 @@ let filter_existing_targets (targets : Target.t list) :
          if Sys_.Fpath.exists internal_path then Left target
          else
            match Target.origin target with
-           | File path ->
+           | Unfilterable_target_file path
+           | Target_file { fpath = path; _ } ->
                Logs.warn (fun m -> m "skipping %s which does not exist" !!path);
                Right
                  {
@@ -272,7 +273,7 @@ let filter_existing_targets (targets : Target.t list) :
                    details = Some "File does not exist";
                    rule_id = None;
                  }
-           | GitBlob { sha; _ } ->
+           | Git_blob { sha; _ } ->
                Right
                  {
                    Semgrep_output_v1_t.path = Target.internal_path target;
@@ -315,20 +316,24 @@ let translate_targeting_conf_from_pysemgrep (conf : Out.targeting_conf) :
 *)
 let targets_of_scanning_roots
     ({ root_paths; targeting_conf } : Out.scanning_roots) :
-    Fpath.t list * Core_error.t list * Out.skipped_target list =
+    Fppath.t list * Core_error.t list * Out.skipped_target list =
   let scanning_roots = List_.map Scanning_root.of_fpath root_paths in
   let targeting_conf = translate_targeting_conf_from_pysemgrep targeting_conf in
   let caps = Cap.readdir_UNSAFE () in
   let target_paths, errors, skipped =
-    Find_targets.get_target_fpaths caps targeting_conf scanning_roots
+    Find_targets.get_targets caps targeting_conf scanning_roots
   in
   (target_paths, errors, skipped)
+
+let atd_fppath_of_fppath (x : Fppath.t) : Out.fppath =
+  { fpath = x.fpath; ppath = x.ppath }
 
 let get_targets_for_pysemgrep (scanning_roots : Out.scanning_roots) :
     Out.target_discovery_result =
   let target_paths, errors, skipped =
     targets_of_scanning_roots scanning_roots
   in
+  let target_paths = List_.map atd_fppath_of_fppath target_paths in
   let errors = List_.map Core_json_output.error_to_error errors in
   { target_paths; errors; skipped }
 
@@ -358,11 +363,11 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
            * all the callers.
            *)
           let caps = Cap.readdir_UNSAFE () in
-          let target_paths, errors, skipped =
-            Find_targets.get_target_fpaths caps targeting_conf scanning_roots
+          let targets, errors, skipped =
+            Find_targets.get_targets caps targeting_conf scanning_roots
           in
           let targets =
-            Core_targeting.targets_for_files_and_rules target_paths rules
+            Core_targeting.targets_for_files_and_rules targets rules
           in
           (targets, errors, skipped)
       | `Targets targets ->
@@ -514,7 +519,7 @@ let log_scan_results (config : Core_scan_config.t) (res : Core_result.t)
  *)
 let get_context_for_memory_limit target () =
   let origin = Target.origin target in
-  match !Rule.last_matched_rule with
+  match Domain.DLS.get Rule.last_matched_rule with
   | None -> Origin.to_string origin
   | Some rule_id ->
       spf "%s on %s" (Rule_ID.to_string rule_id) (Origin.to_string origin)
@@ -523,7 +528,7 @@ let log_critical_exn_and_last_rule () =
   (* TODO? why we use Match_patters.last_matched_rule here
    * and below Rule.last_matched_rule?
    *)
-  match !Match_patterns.last_matched_rule with
+  match Domain.DLS.get Match_patterns.last_matched_rule with
   | None -> ()
   | Some rule ->
       Logs.warn (fun m ->
@@ -555,11 +560,15 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
   | Out_of_memory ->
       Logs.warn (fun m -> m "OutOfMemory on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ?rule_id:!Rule.last_matched_rule ~loc Out.OutOfMemory)
+        (E.mk_error
+           ?rule_id:(Domain.DLS.get Rule.last_matched_rule)
+           ~loc Out.OutOfMemory)
   | Stack_overflow ->
       Logs.warn (fun m -> m "StackOverflow on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ?rule_id:!Rule.last_matched_rule ~loc Out.StackOverflow)
+        (E.mk_error
+           ?rule_id:(Domain.DLS.get Rule.last_matched_rule)
+           ~loc Out.StackOverflow)
   | _ -> raise Impossible
 
 (*****************************************************************************)
@@ -577,7 +586,7 @@ let core_error_to_match_result (target : Target.t) (core_error : Core_error.t) =
   let noprof = Core_profiling.empty_partial_profiling internal_path in
   let errors = ESet.singleton core_error in
   let match_result = Core_result.mk_match_result [] errors noprof in
-  (Core_result.add_run_time 0.0 match_result, Some target)
+  (Core_result.add_run_time internal_path None match_result, Some target)
 
 (** [exception_to_core_error target exn] turns a target and the exception it
  triggered to a [Core_error.t]; this will be used by [Domains.map] to transform
@@ -635,7 +644,8 @@ let iter_targets_and_get_matches_and_exn_to_errors
   let process_target (target : Target.t) =
     let internal_path = Target.internal_path target in
     let noprof = Core_profiling.empty_partial_profiling internal_path in
-    Logs.debug (fun m -> m "Core_scan analyzing %a" Target.pp_debug target);
+    Logs.debug (fun m ->
+        m "Core_scan analyzing %s" (Fpath.to_string internal_path));
 
     (* Coupling: if you update handle_target_maybe_with_trace here
      * it's very likely you'd need to update the same in Deep_scan.ml
@@ -716,7 +726,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
               (Core_result.mk_match_result [] errors noprof, true))
     in
     let scanned_target = if was_scanned then Some target else None in
-    (Core_result.add_run_time run_time res, scanned_target)
+    (Core_result.add_run_time internal_path (Some run_time) res, scanned_target)
   in
   let xs =
     if config.use_eio then
@@ -761,28 +771,44 @@ let rules_for_analyzer ~combine_js_with_ts analyzer rules =
              && (Lang.is_js lang2 || List.exists Lang.is_js langs2)
          | _ -> false)
 
-(* Note that filtering is applied on the basis of the target's origin, not the
- * target's "file". This is because filtering should apply to the user's
- * perception of the file, not whatever we may transform it to internally.
- *
- * For instance, the "file" of a target may be a tempfile which has no meaning,
- * and is essentially randomly generated. `paths:` filtering shouldn't apply to
- * this!
- *
- * Note also that `paths:` filters are relative to the root of a project [0],
- * so if the target's file is an absolute path, we don't want to use that for
- * filtering: instead, we'd want the origin to be the desired relative path and
- * use that.
- *
- * [0]: <https://semgrep.dev/docs/writing-rules/rule-syntax/#paths>
+(*
+   Path filtering applies on a ppath i.e. the path of the file from the
+   project root, not from the work folder or whatever.
+
+   Warning: Filter_target.filter_paths that we call from here uses another
+   hack to identify targets as unfilterable
+
+   Old:
+
+   Note that filtering is applied on the basis of the target's origin, not the
+   target's "file". This is because filtering should apply to the user's
+   perception of the file, not whatever we may transform it to internally.
+
+   For instance, the "file" of a target may be a tempfile which has no meaning,
+   and is essentially randomly generated. `paths:` filtering shouldn't apply to
+   this!
+
+   Note also that `paths:` filters are relative to the root of a project [0],
+   so if the target's file is an absolute path, we don't want to use that for
+   filtering: instead, we'd want the origin to be the desired relative path and
+   use that.
+
+   [0]: <https://semgrep.dev/docs/writing-rules/rule-syntax/#paths>
  *)
-let origin_satisfy_paths_filter (origin : Origin.t) (paths : Rule.paths) =
+let origin_satisfy_paths_filter (origin : Origin.t)
+    (path_filter : Rule.path_filter) =
+  (* TODO: have only one way of making a target file unfilterable *)
   match origin with
-  | File path -> Filter_target.filter_paths paths path
-  | GitBlob { paths = target_paths; _ } ->
+  | Target_file fppath ->
+      (* this returns always true if the fppath is not filterable *)
+      Filter_target.filter_paths path_filter fppath
+  | Unfilterable_target_file _path ->
+      (* ignore both paths.exclude and paths.include *)
+      true
+  | Git_blob { paths = target_paths; _ } ->
       target_paths
-      |> List.exists (fun (_, path_at_commit) ->
-             Filter_target.filter_paths paths path_at_commit)
+      |> List.exists (fun (_, (path_at_commit : Fppath.t)) ->
+             Filter_target.filter_paths path_filter path_at_commit)
 
 (* This is also used by semgrep-proprietary. *)
 (* TODO: reduce memory allocation by using only one call to List.filter?
@@ -807,7 +833,8 @@ let rules_for_target ~combine_js_with_ts ~respect_rule_paths (target : Target.t)
             *)
            match r.paths with
            | None -> true
-           | Some paths -> origin_satisfy_paths_filter target.path.origin paths)
+           | Some path_filter ->
+               origin_satisfy_paths_filter target.path.origin path_filter)
   else rules
 
 (*****************************************************************************)
@@ -971,8 +998,10 @@ let post_process_matches (f : post_processor) (res : Core_result.t) :
                      m "exn in post_process_matches: %s" (Exception.to_string e));
                  let file =
                    match pm.pm.path.origin with
-                   | File file -> Some file
-                   | GitBlob _ -> None
+                   | Unfilterable_target_file fpath
+                   | Target_file { fpath; _ } ->
+                       Some fpath
+                   | Git_blob _ -> None
                  in
                  let error = Core_error.exn_to_error ?file e in
                  (pm, [ error ])

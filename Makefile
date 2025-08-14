@@ -93,7 +93,6 @@ all:
 	$(MAKE) copy-core-for-cli
 # Python setup
 	cd cli && pipenv install --dev
-	$(MAKE) -C cli build
 
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
@@ -110,7 +109,6 @@ copy-core-for-cli:
 core:
 	dune build $(BUILD)/install/default/bin/semgrep-core$(EXE)
 	dune build $(BUILD)/install/default/bin/osemgrep$(EXE)
-	dune build $(BUILD)/install/default/bin/semgrep$(EXE)
 # Remove all symbols with GNU strip. It saves 10-25% on the executable
 # size and it doesn't seem to reduce the functionality or
 # debuggability of OCaml executables.
@@ -371,17 +369,6 @@ rebuild:
 	-$(MAKE) clean
 	$(MAKE) build
 
-# Same as 'make clean' but may remove additional files, such as external
-# libraries installed locally.
-#
-# Specifically, this removes all files that are git-ignored. New source files
-# are preserved, so this command is considered safe.
-#
-.PHONY: gitclean
-gitclean:
-	git clean -dfX
-	git submodule foreach --recursive git clean -dfX
-
 # Prepare a release branch.
 # This is mainly called by .github/workflows/start-release.yml
 # It is safe to run it multiple times.
@@ -401,10 +388,6 @@ install-semgrep-libs: semgrep.opam
 	dune build
 	dune install
 
-.PHONY: dump
-dump:
-	$(BUILD_DEFAULT)/tests/test.bc -dump_ast tests/lint/stupid.py
-
 # for ocamldebug
 core-bc:
 	dune build $(BUILD)/install/default/bin/semgrep-core.bc
@@ -417,12 +400,6 @@ install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
 	dune build @install # Generate the treesitter stubs for below
 	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
 
-# Run perf benchmarks
-# Running this will reset your `semgrep` command to point to your local version
-# For more information, see "Reproducing the CI benchmarks" in perf/README.md
-.PHONY: perf-bench
-perf-bench:
-	scripts/run-benchmarks.sh
 
 ###############################################################################
 # Dogfood!
@@ -483,27 +460,3 @@ check_with_docker:
 dev:
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
-
-###############################################################################
-# Pad's targets
-###############################################################################
-
-pr:
-	git push origin `git rev-parse --abbrev-ref HEAD`
-	hub pull-request -b develop -r returntocorp/pa
-push:
-	git push origin `git rev-parse --abbrev-ref HEAD`
-merge:
-	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git pull && git branch -D $$A
-
-# see https://github.com/aryx/codegraph for information on codegraph_build
-index:
-	codegraph_build -lang cmt -derived_data .
-# see https://github.com/aryx/codecheck for information on codecheck
-check2:
-	codecheck -lang ml -with_graph_code graph_code.marshall -filter 3 .
-# see https://github.com/aryx/codemap for information on codemap
-visual:
-	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null .
-visual2:
-	codemap -screen_size 3 -filter semgrep -efuns_client efuns_client -emacs_client /dev/null src

@@ -270,6 +270,7 @@ let exec_and_tmp_caps_UNSAFE () =
     method tmp = ()
   end
 
+(* !!DO NOT USE!! *)
 let readdir_UNSAFE () =
   object
     method readdir = ()
@@ -279,17 +280,18 @@ let readdir_UNSAFE () =
 (* Entry point *)
 (**************************************************************************)
 
+(* nosemgrep: no-ref-declarations-at-top-scope *)
 let already_called_main = ref false
 
 (* TODO: in addition to the dynamic check below, we could also
  * write a semgrep rule to forbid any call to Cap.main() except
  * in Main.ml (via a nosemgrep or paths: exclude:)
  *)
-let main (f : all_caps -> Eio_unix.Stdenv.base -> 'a) : 'a =
+let main (f : all_caps -> 'a) : 'a =
   Memtrace.trace_if_requested ();
-  Eio_main.run (fun base ->
-      let powerbox = new powerbox in
-      if !already_called_main then failwith "Cap.main() already called"
-      else (
-        already_called_main := true;
-        f powerbox base))
+  (* can't cheat :) can't nest them *)
+  let powerbox = new powerbox in
+  if !already_called_main then failwith "Cap.main() already called"
+  else (
+    already_called_main := true;
+    f powerbox)

@@ -8,7 +8,6 @@
 
     commons
     eio
-    telemetry
 
     semgrep.core
     semgrep.parsing

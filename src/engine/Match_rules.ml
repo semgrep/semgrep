@@ -182,7 +182,7 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
   let rule_timeouts = ref [] in
   fun (file : Fpath.t) (rule : Rule.t) f ->
     let rule_id = fst rule.R.id in
-    Rule.last_matched_rule := Some rule_id;
+    Domain.DLS.set Rule.last_matched_rule (Some rule_id);
     let res_opt =
       Profiling.profile_code
         (spf "real_rule:%s" (Rule_ID.to_string rule_id))
@@ -222,7 +222,7 @@ let check ~matches_hook ~(timeout : timeout_config option)
     xtarget
   in
   Log.info (fun m -> m "checking %s with %d rules" !!file (List.length rules));
-  (match (Hook.get Profiling.profile, analyzer) with
+  (match (!Profiling.profile, analyzer) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
   | Profiling.ProfAll, Analyzer.L (_lang, []) ->
       Log.debug (fun m ->

@@ -116,7 +116,6 @@ let options () =
   @ Flag_parsing.cmdline_flags_verbose ()
   @ Flag_parsing.cmdline_flags_debugging ()
   @ Flag_parsing_cpp.cmdline_flags_debugging ()
-  @ Flag_parsing_php.cmdline_flags_pp ()
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
   (*e: [[Main.options]] concatenated flags *)
   (*s: [[Main.options]] concatenated actions *)

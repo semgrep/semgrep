@@ -101,13 +101,20 @@ let map_dotted_name (env : env) ((v1, v2) : CST.dotted_name) : dotted_name =
   v1 :: v2
 
 let map_anon_choice_int_e7b97da (env : env) (x : CST.anon_choice_int_e7b97da) =
+  let complex_str_to_int_str s =
+    (* Complex numbers like 1 + 2j is allowed in Python. This converts
+    2j to 2 so that it can be parsed to an integer/ float. *)
+    if String.ends_with ~suffix:"j" s || String.ends_with ~suffix:"J" s then
+      String_.safe_sub s 0 (String.length s - 1)
+    else s
+  in
   match x with
   | `Int tok ->
       let s, tk = (* integer *) str env tok in
-      Int (Parsed_int.parse (s, tk))
+      Int (Parsed_int.parse (complex_str_to_int_str s, tk))
   | `Float tok ->
       let s, tk = (* float *) str env tok in
-      Float (float_of_string_opt s, tk)
+      Float (float_of_string_opt (complex_str_to_int_str s), tk)
 
 let map_named_expression_lhs (env : env) (x : CST.named_expression_lhs) =
   match x with
@@ -1102,9 +1109,14 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Choice_choice_print x ->
       let id = map_keyword_identifier env x in
       name_of_id id
-  | `Str x ->
+  | `Str x -> (
       let t1, s, t2 = map_string_ env x in
-      InterpolatedString (t1, s, t2)
+      let l = Tok.content_of_tok t1 in
+      if String.starts_with "f" l then InterpolatedString (t1, s, t2)
+      else
+        match s with
+        | [ x ] -> x
+        | _ -> raise Common.Impossible)
   | `Conc_str (v1, v2) ->
       let _, v1, _ = map_string_ env v1 in
       let v2 = List_.map (map_string_ env) v2 in
