@@ -43,7 +43,10 @@ type client_result = (server_response, string) result
  * order to not make relevant Testo tests serial, this is a domain-local value,
  * though in practice it's a global singleton value. *)
 let client_ref : (module Cohttp_lwt.S.Client) option Domain.DLS.key =
-  Domain.DLS.new_key (Fun.const None)
+  (* Set `split_from_parent` to the identity here, so that we properly
+     retain HTTP client references even when spawning child domains.
+   *)
+  Domain.DLS.new_key ~split_from_parent:Fun.id (Fun.const None)
 
 let set_client_ref r = Domain.DLS.set client_ref (Some r)
 
