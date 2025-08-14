@@ -856,9 +856,13 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             # if yes, then we wrap the call to semgrep with ddprof for SMS profiling.
             ddprof = shutil.which("ddprof") and self._trace
 
-            if ddprof and os.environ.get("DDPROF_OFF") == "1":
+            ddprof_on = (
+                os.environ.get("DDPROF_ON") and os.environ.get("DDPROF_ON") != ""
+            )
+
+            if ddprof and not ddprof_on:
                 logger.warning(
-                    "DDPROF_OFF is set to 1, so ddprof will not be used for SMS profiling."
+                    "DDPROF_ON is not set, so ddprof will not be used for SMS profiling."
                 )
                 ddprof = False
 
