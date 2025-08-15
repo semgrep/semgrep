@@ -463,7 +463,16 @@ let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
   let data =
     [
       ("filename", `String !!target_name);
-      ("num_bytes", `Int (UFile.filesize target_name));
+      ( "num_bytes",
+        match UFile.filesize target_name with
+        | Ok num -> `Int num
+        | Error (code, _func, info) ->
+            Logs.warn (fun m ->
+                m
+                  "handle_target_with_trace: Unexpected error when reading %s: \
+                   %s (code %s)"
+                  !!target_name info (Unix.error_message code));
+            `None );
       ("target", `String (Target.show t));
     ]
   in

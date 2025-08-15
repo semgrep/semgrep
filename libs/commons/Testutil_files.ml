@@ -64,18 +64,18 @@ and sort_one x =
 (* TODO move all those functions in UFile.ml *)
 
 let is_dir path =
-  match (Unix.lstat !!path).st_kind with
-  | S_DIR -> true
+  match UUnix.lstat path with
+  | Ok { st_kind = S_DIR; _ } -> true
   | _ -> false
 
 let is_file path =
-  match (Unix.lstat !!path).st_kind with
-  | S_REG -> true
+  match UUnix.lstat path with
+  | Ok { st_kind = S_REG; _ } -> true
   | _ -> false
 
 let is_symlink path =
-  match (Unix.lstat !!path).st_kind with
-  | S_LNK -> true
+  match UUnix.lstat path with
+  | Ok { st_kind = S_LNK; _ } -> true
   | _ -> false
 
 let mkdir ?(root = Sys.getcwd () |> Fpath.v) path =
@@ -115,12 +115,12 @@ let get_dir_entries path =
 
 let remove path =
   let rec remove path =
-    match (Unix.lstat !!path).st_kind with
-    | S_DIR ->
+    match UUnix.lstat path with
+    | Ok { st_kind = S_DIR; _ } ->
         let names = get_dir_entries path in
         List.iter (fun name -> remove (path / name)) names;
         Unix.rmdir !!path
-    | _other -> Sys.remove !!path
+    | _ -> Sys.remove !!path
   in
   if Sys_.Fpath.exists path then remove path
 
@@ -193,17 +193,20 @@ and write_one root file =
 let read root =
   let rec read path =
     let name = Fpath.basename path in
-    match (Unix.lstat !!path).st_kind with
-    | S_DIR ->
+    match UUnix.lstat path with
+    | Ok { st_kind = S_DIR; _ } ->
         let names = get_dir_entries path in
         Dir (name, List_.map (fun name -> read (path / name)) names)
-    | S_REG -> File (name, UFile.read_file path)
-    | S_LNK -> Symlink (name, Unix.readlink !!path)
-    | _other ->
-        failwith ("Testutil_files.read: unsupported file type: " ^ !!path)
+    | Ok { st_kind = S_REG; _ } -> File (name, UFile.read_file path)
+    | Ok { st_kind = S_LNK; _ } -> Symlink (name, Unix.readlink !!path)
+    | Ok _ -> failwith ("Testutil_files.read: unsupported file type: " ^ !!path)
+    | Error (_, _, info) ->
+        failwith
+          ("Testutil_files.read: unexpected error " ^ info ^ " when reading "
+         ^ !!path)
   in
-  match (Unix.stat !!root).st_kind with
-  | S_DIR ->
+  match UUnix.stat root with
+  | Ok { st_kind = S_DIR; _ } ->
       let names = get_dir_entries root in
       List_.map (fun name -> read (root / name)) names
   | _other ->

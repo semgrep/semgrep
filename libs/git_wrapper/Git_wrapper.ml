@@ -527,20 +527,16 @@ let status ?cwd ?commit () =
   in
   let fragments = String.split_on_char '\000' out in
   let check_dir file =
-    try
-      match (Unix.stat file).st_kind with
-      | Unix.S_DIR -> true
-      | _ -> false
-    with
-    | _ -> false
+    match UUnix.stat (Fpath.v file) with
+    | Ok { st_kind = Unix.S_DIR; _ } -> true
+    | Ok _ -> false
+    | Error _ -> false
   in
   let check_symlink file =
-    try
-      match (Unix.lstat file).st_kind with
-      | Unix.S_LNK -> true
-      | _ -> false
-    with
-    | _ -> false
+    match UUnix.lstat (Fpath.v file) with
+    | Ok { st_kind = Unix.S_LNK; _ } -> true
+    | Ok _ -> false
+    | Error _ -> false
   in
   let added = ref [] in
   let modified = ref [] in

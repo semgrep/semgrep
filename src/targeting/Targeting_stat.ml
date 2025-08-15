@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Fpath_.Operators
+module Log = Log_targeting.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,20 +64,29 @@ type annotated_target = {
 type annotated_target_list = annotated_target list [@@deriving yojson]
 
 let stat_file (file : Fpath.t) =
-  let stats = Unix.stat !!file in
-  let line_count = List.length (UFile.cat file) in
-  let type_ = File_type.file_type_of_file file in
-  let textual = File_type.is_textual_file file in
-  let minified = textual && Result.is_error (Skip_target.is_minified file) in
-  (* TODO: iago's is_large_machine_optimized PR (semgrep/semgrep#9992) *)
-  {
-    kind = stats.st_kind;
-    size = stats.st_size;
-    line_count;
-    minified;
-    textual;
-    type_;
-  }
+  match UUnix.stat file with
+  | Ok stats ->
+      let line_count = List.length (UFile.cat file) in
+      let type_ = File_type.file_type_of_file file in
+      let textual = File_type.is_textual_file file in
+      let minified =
+        textual && Result.is_error (Skip_target.is_minified file)
+      in
+      (* TODO: iago's is_large_machine_optimized PR (semgrep/semgrep#9992) *)
+      Ok
+        {
+          kind = stats.st_kind;
+          size = stats.st_size;
+          line_count;
+          minified;
+          textual;
+          type_;
+        }
+  | Error (code, func, info) ->
+      Log.warn (fun m ->
+          m "stat_file: unix error %s (code %s) on %s" (Unix.error_message code)
+            info !!file);
+      Error (code, func, info)
 
 (*****************************************************************************)
 (* Entrypoint *)
@@ -85,9 +95,8 @@ let stat_file (file : Fpath.t) =
 let annotate_targets (targets : Target.t list) : annotated_target_list =
   let targets_by_path = Assoc.group_by Target.internal_path targets in
   targets_by_path
-  |> List_.map (fun (path, targets) ->
-         {
-           internal_path = Fpath.to_string path;
-           stat = stat_file path;
-           targets;
-         })
+  |> List_.filter_map (fun (path, targets) ->
+         match stat_file path with
+         | Ok stat ->
+             Some { internal_path = Fpath.to_string path; stat; targets }
+         | Error _ -> None)

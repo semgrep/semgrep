@@ -74,20 +74,21 @@ let has_an_extension =
   let f path = Filename.extension !!path <> "" in
   Test_path f
 
+(* TODO: duped logic with `UFile.is_executable`? *)
 let is_executable =
   let f path =
     Sys_.file_exists !!path
     &&
-    let st = Unix.stat !!path in
-    match st.st_kind with
-    | S_REG when Platform.is_windows ->
+    match UUnix.stat path with
+    | Ok { st_kind = S_REG; _ } when Platform.is_windows ->
         (* File perms cannot tell us whether a file is an executable script
            on Windows so we only check that a regular file exists. *)
         true
-    | S_REG ->
+    | Ok { st_kind = S_REG; st_perm; _ } ->
         (* at least some user has exec permission *)
-        st.st_perm land 0o111 <> 0
-    | _ -> false
+        st_perm land 0o111 <> 0
+    | Ok _ -> false
+    | Error _ -> false
   in
   (* ".exe" is intended for Windows, although this would be a binary file, not
      a script. *)

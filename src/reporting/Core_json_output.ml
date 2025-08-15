@@ -653,7 +653,18 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
                             rprof.rule_parse_time
                           with
                           | Not_found -> 0.);
-                 num_bytes = UFile.filesize target;
+                 (* We really have to give back a number here. It's likely to be
+                    quite rare that a filesize call fails at this point in time. *)
+                 num_bytes =
+                   (match UFile.filesize target with
+                   | Ok n -> n
+                   | Error (code, _func, info) ->
+                       Log.warn (fun m ->
+                           m
+                             "profiling_to_profiling: unexpected error when \
+                              reading %s: %s (code %s)"
+                             !!target info (Unix.error_message code));
+                       -1);
                  run_time;
                });
     rules = rule_ids;
@@ -664,8 +675,16 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
      *)
     total_bytes =
       profiling_data.file_times
-      |> List_.map (fun { Core_profiling.file = target; _ } ->
-             UFile.filesize target)
+      |> List_.filter_map (fun { Core_profiling.file = target; _ } ->
+             match UFile.filesize target with
+             | Ok n -> Some n
+             | Error (code, _func, info) ->
+                 Log.warn (fun m ->
+                     m
+                       "profiling_to_profiling: unexpected error when reading \
+                        %s: %s (code %s)"
+                       !!target info (Unix.error_message code));
+                 None)
       |> Common2.sum_int;
     (* those are filled later in pysemgrep from the Profiler class *)
     profiling_times = [];

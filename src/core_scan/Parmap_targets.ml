@@ -31,11 +31,24 @@ open Fpath_.Operators
 
 let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
   targets
+  (* This is so we can filter out targets that don't exist, for instance. *)
+  |> List_.filter_map (fun target ->
+         match UFile.filesize (Target.internal_path target) with
+         | Ok size -> Some (target, size)
+         | Error (code, _func, info) ->
+             Logs.err (fun m ->
+                 m
+                   "sort_targets_by_decreasing_size: unexpected error when \
+                    reading %s: %s (code %s)"
+                   !!(Target.internal_path target)
+                   info (Unix.error_message code));
+             None)
   |> List_.sort_by_key
-       (fun target -> UFile.filesize (Target.internal_path target))
+       (fun (_target, size) -> size)
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
        (Fun.flip Int.compare)
+  |> List_.map fst
 
 let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
     Core_error.t =

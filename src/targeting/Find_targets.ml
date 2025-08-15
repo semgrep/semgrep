@@ -310,29 +310,26 @@ let filter_path (ign : Gitignore.filter)
   | Ignored -> ignore_path selection_events fpath
   | Not_ignored -> (
       (* TODO: check read permission too? *)
-      match (Unix.lstat !!fpath).st_kind with
-      (* skipping symlinks *)
-      | S_LNK -> Ignore_silently
-      | S_REG -> (
+      match UUnix.lstat fpath with
+      | Ok { st_kind = S_LNK; _ } ->
+          (* skipping symlinks *)
+          Ignore_silently
+      | Ok { st_kind = S_REG; _ } -> (
           let status, selection_events =
             apply_include_filter status selection_events include_filter ppath
           in
           match status with
           | Ignored -> ignore_path selection_events fpath
           | Not_ignored -> Keep)
-      | S_DIR -> Dir
-      | S_FIFO
-      | S_CHR
-      | S_BLK
-      | S_SOCK ->
-          Ignore_silently
+      | Ok { st_kind = S_DIR; _ } -> Dir
+      | Ok { st_kind = S_FIFO | S_CHR | S_BLK | S_SOCK; _ } -> Ignore_silently
       (* We need to filter those paths ASAP otherwise we can get some exn later
        * when trying to process targets that actually do not exist.
        *)
-      | exception Unix.Unix_error (err, _fun, _info) ->
+      | Error (code, _fun, _info) ->
           Log.debug (fun m ->
-              m "lstat: system error on file '%s': %s" !!fpath
-                (Unix.error_message err));
+              m "filter_path: system error on file '%s': %s" !!fpath
+                (Unix.error_message code));
           Ignore_silently)
 
 (*
@@ -713,7 +710,7 @@ let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
   let ign, include_filter = setup_path_filters conf project_roots in
   List.fold_left
     (fun (selected, skipped) (scan_root : Project.scanning_root_info) ->
-      (* better: Note that we use Unix.stat below, not Unix.lstat, so
+      (* better: Note that we use UUnix.stat below, not UUnix.lstat, so
        * osemgrep accepts symlink paths on the command--line;
        * you can do 'osemgrep -e ... ~/symlink-to-proj' or even
        * 'osemgrep -e ... symlink-to-file.py' whereas pysemgrep
@@ -724,24 +721,24 @@ let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
       let phys_path = scan_root.path.rpath |> Rpath.to_fpath in
       let fppath = Project.fppath_of_scanning_root_info scan_root in
       let selected2, skipped2 =
-        match (Unix.stat !!phys_path).st_kind with
+        match UUnix.stat phys_path with
         (* TOPORT? make sure has right permissions (readable) *)
-        | S_REG -> ([ fppath ], [])
-        | S_DIR -> walk_skip_and_collect caps ign include_filter fppath
-        | S_LNK ->
-            (* already dereferenced by Unix.stat *)
+        | Ok { st_kind = S_REG; _ } -> ([ fppath ], [])
+        | Ok { st_kind = S_DIR; _ } ->
+            walk_skip_and_collect caps ign include_filter fppath
+        | Ok { st_kind = S_LNK; _ } ->
+            (* already dereferenced by UUnix.stat *)
             raise Impossible
         (* TODO? use write_pipe_to_disk? *)
-        | S_FIFO -> ([], [])
+        | Ok { st_kind = S_FIFO; _ } -> ([], [])
         (* TODO? return an error message or a new skipped_target kind? *)
-        | S_CHR
-        | S_BLK
-        | S_SOCK ->
-            ([], [])
-        | exception Unix.Unix_error (_, _, info) ->
+        | Ok { st_kind = S_CHR | S_BLK | S_SOCK; _ } -> ([], [])
+        | Error (code, _fun, info) ->
             Log.warn (fun m ->
-                m "get_targets_from_filesystem: Unix_error %s on stat %s" info
-                  !!phys_path);
+                m
+                  "get_targets_from_filesystem: Unix_error %s (code %s) on \
+                   stat %s"
+                  info (Unix.error_message code) !!phys_path);
             ([], [])
       in
       ( Fppath_set.union selected (Fppath_set.of_list selected2),

@@ -15,6 +15,7 @@
  *)
 open Common
 open Fpath_.Operators
+module Log = Log_commons.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -416,8 +417,17 @@ let file_type_of_file file =
   | _ when String.starts_with "." b && String.ends_with "ignore" b ->
       Config (Ignore b)
   | _ when String.starts_with "." b && String.ends_with "rc" b -> Config (RC b)
-  | _ when UFile.filesize file > 300_000 -> Obj e
-  | _ -> Other e
+  | _ -> (
+      match UFile.filesize file with
+      | Ok n when n > 300_000 -> Obj e
+      | Ok _ -> Other e
+      | Error (code, _func, info) ->
+          Log.warn (fun m ->
+              m
+                "file_type_of_file: unexpected error when reading %s: %s (code \
+                 %s)"
+                !!file info (Unix.error_message code));
+          Other e)
 
 (*****************************************************************************)
 (* Misc *)

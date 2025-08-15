@@ -1,4 +1,5 @@
 open Common
+open Fpath_.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -449,7 +450,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
 
   let file_stats =
     targets
-    |> List_.map (fun path ->
+    |> List_.filter_map (fun path ->
            let runTime, parseTime, matchTime =
              match Hashtbl.find_opt hprof path with
              | Some (fprof : Core_profiling.file_profiling) ->
@@ -468,20 +469,34 @@ let add_targets_stats (targets : Fpath.t Set_.t)
                           |> Common2.sum_float) )
              | None -> (None, None, None)
            in
-           {
-             Semgrep_metrics_t.size = UFile.filesize path;
-             numTimesScanned =
-               (match Hashtbl.find_opt hprof path with
-               | None -> 0
-               | Some fprof -> Option.map List.length fprof.rule_times ||| 0);
-             parseTime;
-             matchTime;
-             runTime;
-           })
+           match UFile.filesize path with
+           | Ok size ->
+               Some
+                 {
+                   Semgrep_metrics_t.size;
+                   numTimesScanned =
+                     (match Hashtbl.find_opt hprof path with
+                     | None -> 0
+                     | Some fprof ->
+                         Option.map List.length fprof.rule_times ||| 0);
+                   parseTime;
+                   matchTime;
+                   runTime;
+                 }
+           | Error (code, _func, info) ->
+               Logs.warn (fun m ->
+                   m
+                     "add_targets_stats: unexpected error when reading %s: %s \
+                      (code %s)"
+                     !!path info (Unix.error_message code));
+               None)
   in
   g.payload.performance.fileStats <- Some file_stats;
   g.payload.performance.totalBytesScanned <-
-    Some (targets |> List_.map UFile.filesize |> Common2.sum_int);
+    Some
+      (file_stats
+      |> List_.map (fun { Semgrep_metrics_t.size; _ } -> size)
+      |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
 (* TODO? type_ is enough? or want also to log the path? but too

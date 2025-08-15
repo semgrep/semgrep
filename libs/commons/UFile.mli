@@ -114,8 +114,13 @@ val find_first_match_with_whole_line :
    TODO: is this intentional? Please explain.
 *)
 val is_executable : Fpath.t -> bool
-val filesize : Fpath.t -> int
-val filemtime : Fpath.t -> float
+val filesize : Fpath.t -> (int, Unix.error * string * string) result
+
+val filesize_exn : Fpath.t -> int
+(** [filesize_exn f] is the same as [filesize f] but raises a `Unix.Unix_error`
+    exception if an error is encountered during the [stat] syscall. *)
+
+val filemtime : Fpath.t -> (float, Unix.error * string * string) result
 
 (*
    Functions for testing whether a file exists and is of the expected kind,

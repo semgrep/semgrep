@@ -4,6 +4,7 @@
 open Common
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
+module Log = Log_targeting.Log
 
 (****************************************************************************)
 (* Minified files detection (via whitespace stats) *)
@@ -126,17 +127,24 @@ let is_minified (path : Fpath.t) =
 *)
 let is_big max_bytes path =
   let size = UFile.filesize path in
-  if max_bytes > 0 && size > max_bytes then
-    Error
-      {
-        Out.path;
-        reason = Too_big;
-        details =
-          Some
-            (spf "target file size exceeds %i bytes at %i bytes" max_bytes size);
-        rule_id = None;
-      }
-  else Ok path
+  match size with
+  | Ok size when max_bytes > 0 && size > max_bytes ->
+      Error
+        {
+          Out.path;
+          reason = Too_big;
+          details =
+            Some
+              (spf "target file size exceeds %i bytes at %i bytes" max_bytes
+                 size);
+          rule_id = None;
+        }
+  | Ok _ -> Ok path
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_big: unexpected error when reading %s: %s (code %s)" !!path info
+            (Unix.error_message code));
+      Ok path
 
 let exclude_big_files max_target_bytes paths =
   let max_bytes = max_target_bytes in

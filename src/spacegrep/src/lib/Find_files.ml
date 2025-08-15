@@ -25,10 +25,13 @@ let memoize f =
     in
     Lazy.force run
 
+(* TODO: should probably lift this `Fpath.t` to the API of `Find_files` *)
+let stat path = UUnix.stat (Fpath.v path)
+
 (* Cache the results of the 'stat' syscall to speed things up.
    (due to calling it multiple times on the same path, and having
    possibly a lot of paths, and not so great caching at the OS level). *)
-let stat = memoize Unix.stat
+let stat = memoize stat
 
 (* This is to avoid visiting the same file or directory multiple times.
 
@@ -39,8 +42,9 @@ let stat = memoize Unix.stat
 let create_visit_tracker () =
   let tbl = Hashtbl.create 100 in
   let get_id path =
-    try Some (stat path).st_ino with
-    | _ -> None
+    match stat path with
+    | Ok { st_ino; _ } -> Some st_ino
+    | Error _ -> None
   in
   let was_visited path =
     match get_id path with
@@ -55,8 +59,9 @@ let create_visit_tracker () =
   { was_visited; mark_visited }
 
 let get_file_kind path =
-  try Some (stat path).st_kind with
-  | _ -> None
+  match stat path with
+  | Ok { st_kind; _ } -> Some st_kind
+  | Error _ -> None
 
 let compare_filenames = String.compare
 

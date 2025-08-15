@@ -170,7 +170,7 @@ let converters_of_arrays line_arr col_arr : bytepos_linecol_converters =
 
 (* coupling: see also Parse_tree_sitter_helpers.line_col_to_pos *)
 let full_converters_large (file : Fpath.t) : bytepos_linecol_converters =
-  let size = UFile.filesize file + 2 in
+  let size = UFile.filesize_exn file + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)
   let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in

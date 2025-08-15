@@ -157,9 +157,11 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
                        if
                          Sys_.file_exists !!path
                          &&
-                         match (Unix.lstat !!path).st_kind with
-                         | S_LNK -> false
-                         | _ -> true
+                         match UUnix.lstat path with
+                         | Ok { st_kind = S_LNK; _ } -> false
+                         | Ok _ -> true
+                         (* TODO: I have no idea if this is correct. *)
+                         | Error _ -> false
                        then
                          (* We assume we don't want these targets to go
                             any path-based filtering. This prevents the

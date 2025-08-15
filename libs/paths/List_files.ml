@@ -39,16 +39,14 @@ and iter_dir_entry caps func (dir : Fpath.t) (name : Fpath.t) =
 (*************************************************************************)
 
 and iter caps func path =
-  let stat =
-    try Some (Unix.lstat !!path) with
-    | Unix.Unix_error (_error_kind, _func, _info) ->
-        (* Ignore all errors. Should we ignore less? *)
-        None
-  in
-  match stat with
-  | Some { Unix.st_kind = S_DIR; _ } -> iter_dir caps func path
-  | Some stat (* regular file, symlink, etc. *) -> func path stat
-  | None -> ()
+  match UUnix.lstat path with
+  | Ok { Unix.st_kind = S_DIR; _ } -> iter_dir caps func path
+  | Ok stat (* regular file, symlink, etc. *) -> func path stat
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "iter: unix error %s (code %s) on %s" (Unix.error_message code) info
+            !!path);
+      ()
 
 and iter_dir caps func dir =
   let names = CapFS.read_dir_entries caps dir in

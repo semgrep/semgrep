@@ -113,7 +113,12 @@ let from_file ?(maturity = Maturity.Default) () =
   try
     if
       Sys_.Fpath.exists settings
-      && Unix.(stat !!settings).st_kind =*= Unix.S_REG
+      (* put the stat call here so we can explicitly short-circuit the `stat`
+         call if the file doesn't exist *)
+      &&
+      match Unix.(stat !!settings) with
+      | { st_kind = Unix.S_REG; _ } -> true
+      | _ -> false
     then
       let data = UFile.read_file settings in
       let settings_result = Result.bind (Yaml.of_string data) of_yaml in

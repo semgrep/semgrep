@@ -125,13 +125,13 @@ let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
     (path : Fpath.t) : Fpath.t option =
-  match (Unix.stat !!path).st_kind with
-  | Unix.S_FIFO ->
+  match UUnix.stat path with
+  | Ok { st_kind = Unix.S_FIFO; _ } ->
       let data = UFile.read_file path in
       let suffix = "-" ^ Fpath.basename path in
       Some (write_temp_file_with_autodelete ~prefix ~suffix ~data)
-  | _ -> None
-  | exception Unix.Unix_error (_, _, info) ->
+  | Ok _ -> None
+  | Error (_code, _func, info) ->
       Log.warn (fun m ->
           m
             "replace_named_pipe_by_regular_file_if_needed: Unix_error %s on \

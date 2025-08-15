@@ -214,73 +214,110 @@ let cat_array file = "" :: cat file |> Array.of_list
 let write_file ~file data = Legacy.write_file ~file:!!file data
 let read_file ?max_len path = Legacy.read_file ?max_len !!path
 let with_open_in path func = Legacy.with_open_infile !!path func
-let filesize file = (Unix.stat !!file).st_size
+
+let filesize file =
+  match UUnix.stat file with
+  | Ok { st_size; _ } -> Ok st_size
+  | Error e -> Error e
 (* src: https://rosettacode.org/wiki/File_size#OCaml *)
 
-let filemtime file = (Unix.stat !!file).st_mtime
+let filesize_exn file =
+  match filesize file with
+  | Ok n -> n
+  | Error (code, _func, info) -> raise (Unix.Unix_error (code, _func, info))
+
+let filemtime file =
+  match UUnix.stat file with
+  | Ok { st_mtime; _ } -> Ok st_mtime
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "filemtime: unix error %s (code %s) on %s" (Unix.error_message code)
+            info !!file);
+      Error (code, _func, info)
 
 let is_dir ~follow_symlinks path =
-  let stat = if follow_symlinks then Unix.stat else Unix.lstat in
-  match (stat !!path).st_kind with
-  | S_DIR -> true
-  | _ -> false
-  | exception Unix.Unix_error _ -> false
+  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  match stat path with
+  | Ok { st_kind = S_DIR; _ } -> true
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_dir: unix error %s (code %s) on %s" (Unix.error_message code)
+            info !!path);
+      false
 
 let is_reg ~follow_symlinks path =
-  let stat = if follow_symlinks then Unix.stat else Unix.lstat in
-  match (stat !!path).st_kind with
-  | S_REG -> true
-  | _ -> false
-  | exception Unix.Unix_error _ -> false
+  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  match stat path with
+  | Ok { st_kind = S_REG; _ } -> true
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_reg: unix error %s (code %s) on %s" (Unix.error_message code)
+            info !!path);
+      false
 
 let is_dir_or_reg ~follow_symlinks path =
-  let stat = if follow_symlinks then Unix.stat else Unix.lstat in
-  match (stat !!path).st_kind with
-  | S_DIR
-  | S_REG ->
-      true
-  | _ -> false
-  | exception Unix.Unix_error _ -> false
+  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  match stat path with
+  | Ok { st_kind = S_DIR | S_REG; _ } -> true
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_dir_or_reg: unix error %s (code %s) on %s"
+            (Unix.error_message code) info !!path);
+      false
 
 let is_lnk path =
-  match (Unix.lstat !!path).st_kind with
-  | S_LNK -> true
-  | _ -> false
-  | exception Unix.Unix_error _ -> false
+  match UUnix.lstat path with
+  | Ok { st_kind = S_LNK; _ } -> true
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_lnk: unix error %s (code %s) on %s" (Unix.error_message code)
+            info !!path);
+      false
 
 let is_lnk_or_reg path =
-  match (Unix.lstat !!path).st_kind with
-  | S_LNK
-  | S_REG ->
-      true
-  | _ -> false
-  | exception Unix.Unix_error _ -> false
+  match UUnix.lstat path with
+  | Ok { st_kind = S_LNK | S_REG; _ } -> true
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_lnk_or_reg: unix error %s (code %s) on %s"
+            (Unix.error_message code) info !!path);
+      false
 
 (* This function isn't very useful but we offer it for completeness. *)
 let is_dir_or_lnk path =
-  match (Unix.lstat !!path).st_kind with
-  | S_LNK
-  | S_DIR ->
-      true
-  | _ -> false
-  | exception Unix.Unix_error _ -> false
+  match UUnix.lstat path with
+  | Ok { st_kind = S_LNK | S_DIR; _ } -> true
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_dir_or_lnk: unix error %s (code %s) on %s"
+            (Unix.error_message code) info !!path);
+      false
 
 let is_dir_or_lnk_or_reg path =
-  match (Unix.lstat !!path).st_kind with
-  | S_DIR
-  | S_LNK
-  | S_REG ->
-      true
-  | _ -> false
-  | exception Unix.Unix_error _ -> false
+  match UUnix.lstat path with
+  | Ok { st_kind = S_DIR | S_LNK | S_REG; _ } -> true
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_dir_or_lnk_or_reg: unix error %s (code %s) on %s"
+            (Unix.error_message code) info !!path);
+      false
 
 let is_executable file =
-  try
-    let stat = Unix.stat !!file in
-    let perms = stat.st_perm in
-    stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
-  with
-  | Unix.Unix_error _ -> false
+  match UUnix.stat file with
+  | Ok { st_kind = Unix.S_REG; st_perm; _ } -> st_perm land 0o011 <> 0
+  | Ok _ -> false
+  | Error (code, _func, info) ->
+      Log.warn (fun m ->
+          m "is_executable: unix error %s (code %s) on %s"
+            (Unix.error_message code) info !!file);
+      false
 
 let rec make_directories dir =
   try Unix.mkdir !!dir 0o755 with

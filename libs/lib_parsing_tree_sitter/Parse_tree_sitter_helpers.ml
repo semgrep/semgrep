@@ -42,7 +42,7 @@ type 'a env = {
 
 (* coupling: mostly a copy-paste of Pos.full_charpos_to_pos_large *)
 let line_col_to_pos file =
-  let size = UFile.filesize file + 2 in
+  let size = UFile.filesize_exn file + 2 in
   let h = Hashtbl.create size in
   UFile.with_open_in file (fun chan ->
       let charpos = ref 0 in
