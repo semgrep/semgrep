@@ -325,14 +325,15 @@ and map_qualified_assignment ?(attrs = []) (env : env)
       | `Choice_choice_module_defi x -> (
           match x with
           | `Prim_exp p -> (
-              match p with
-              | `Id tok ->
-                  let id = map_identifier env tok in
+              let lhs = map_primary_expression_as_id_or_exp env p in
+              match lhs with
+              | Left id ->
                   DefStmt (basic_entity ~attrs id, VarDef G.empty_var) |> G.s
-              (* NOTE(syntax): Primary expressions (that aren't plain variables)
-               * cannot appear inside const/global/local statements.
-               *)
-              | _ -> todo env x)
+              | Right exp ->
+                  DefStmt
+                    ( { name = EDynamic exp; attrs; tparams = None },
+                      VarDef G.empty_var )
+                  |> G.s)
           | `Choice_un_exp x -> (
               match x with
               | `Typed_exp x ->
@@ -345,8 +346,21 @@ and map_qualified_assignment ?(attrs = []) (env : env)
               (* NOTE(syntax): Unary/binary operations cannot appear inside
                * const/local/global statements.
                *)
-              | _ -> todo env x)
-          | _ -> todo env x)
+              | _ ->
+                  let lhs = map_operation env x in
+                  DefStmt
+                    ( { name = EDynamic lhs; attrs; tparams = None },
+                      VarDef G.empty_var )
+                  |> G.s)
+          | _ ->
+              DefStmt
+                ( {
+                    name = EDynamic (map_choice_choice_module_defi env x);
+                    attrs;
+                    tparams = None;
+                  },
+                  VarDef G.empty_var )
+              |> G.s)
       (* TODO: Neither semgrep ellipsis nor deep expression make much sense here,
          only metavariables. What *Stmt variant should go here?
       *)
@@ -367,7 +381,10 @@ and map_type_parameter (env : env) (x : CST.anon_choice_exp_c3aa41b) :
   (* NOTE(lowering): Assignments can appear inside braces,
    * but they're not valid Julia code (this is only usable in macros).
    *)
-  | `Closed_assign x -> todo env x
+  | `Closed_assign (v1, v2, v3) ->
+      let t = (* "=" *) token env v2 in
+      OtherTypeParam
+        (("assign", t), [ G.E (map_closed_assignment env (v1, v2, v3)) ])
 
 and map_top_level (env : env) (x : CST.anon_choice_exp_9468126) =
   match x with
@@ -375,31 +392,38 @@ and map_top_level (env : env) (x : CST.anon_choice_exp_9468126) =
   | `Assign x -> map_assignment_exp env x
   | `Open_tuple x -> map_open_tuple_exp env x
 
+and map_prim_exp_either (env : env) (x : CST.primary_expression) =
+  match x with
+  | `Id tok -> Left (map_identifier env tok)
+  | `Interp_exp x -> (
+      match map_interpolation_expression_either env x with
+      | Left id -> Left id
+      (* TODO: This used to be an OtherArg. Is that a problem? *)
+      | Right exp -> Right exp)
+  | _ -> Right (map_primary_expression env x)
+
 and map_argument (env : env) (x : CST.anon_choice_exp_095959f) : argument =
   match x with
   | `Exp x -> Arg (map_expression env x)
-  | `Closed_assign (v1, v2, v3) ->
-      let _v2 = (* "=" *) token env v2 in
+  | `Closed_assign (v1, v2, v3) -> (
+      let t = (* "=" *) token env v2 in
       let rhs =
         match v3 with
         | `Exp x -> map_expression env x
         | `Closed_assign x -> map_closed_assignment env x
       in
-      let lhs =
-        match v1 with
-        | `Prim_exp p -> (
-            match p with
-            | `Id tok -> map_identifier env tok
-            | `Interp_exp x -> (
-                match map_interpolation_expression_either env x with
-                | Left id -> id
-                (* TODO: This used to be an OtherArg. Is that a problem? *)
-                | Right exp -> todo env exp)
-            (* NOTE(lowering): Same as closed_assignment. *)
-            | _ -> todo env p)
-        | _ -> todo env v1
-      in
-      ArgKwd (lhs, rhs)
+      match v1 with
+      | `Prim_exp p -> (
+          let lhs = map_prim_exp_either env p in
+          match lhs with
+          | Left id -> ArgKwd (id, rhs)
+          | Right exp -> OtherArg (("assign", t), [ G.E exp; G.E rhs ]))
+      | `Choice_un_exp exp ->
+          let v1 = map_operation env exp in
+          OtherArg (("assign", t), [ G.E v1; G.E rhs ])
+      | `Op x ->
+          let op = map_operator env x in
+          OtherArg (("operator", t), [ G.I op; G.E rhs ]))
   | `Exp_comp_clause (v1, v2) ->
       let v1 = map_expression env v1 in
       let v2 = map_comprehension_clause env v2 in
@@ -505,38 +529,43 @@ and map_let_binding (env : env) (x : CST.anon_choice_id_0627c2a) =
         match v1 with
         | `Prim_exp p -> (
             match p with
-            | `Id tok -> (map_identifier env tok, None)
-            (* NOTE(lowering): Other primary expressions are not valid in let binding LHS,
-             * except for short functions (tho they're not commonly used).
-             * TODO: Handle short functions here. *)
-            | _ -> todo env x)
+            | `Id tok -> (basic_entity (map_identifier env tok), None)
+            | _ ->
+                let exp = map_primary_expression env p in
+                ({ name = EDynamic exp; attrs = []; tparams = None }, None))
         (* NOTE(lowering): Here we only care about the case `x::T`. *)
         | `Choice_un_exp x -> (
-            match x with
-            | `Typed_exp (v1, v2, v3) ->
-                let _v2 = (* "::" *) token env v2 in
-                let v3 =
-                  match v3 with
-                  | `Prim_exp x -> map_type env x
-                in
-                let v1 =
+            let id_and_ty_opt =
+              match x with
+              | `Typed_exp (v1, v2, v3) -> (
+                  let _v2 = (* "::" *) token env v2 in
+                  let v3 =
+                    match v3 with
+                    | `Prim_exp x -> map_type env x
+                  in
                   match v1 with
                   | `Choice_choice_module_defi x -> (
                       match x with
                       | `Prim_exp p -> (
                           match p with
-                          | `Id tok -> map_identifier env tok
-                          | _ -> todo env p)
-                      | _ -> todo env x)
-                  | _ -> todo env v1
-                in
-                (v1, Some v3)
-            | _ -> (todo env x, None))
-        | `Op x -> (map_operator env x, None)
+                          | `Id tok -> Some (map_identifier env tok, v3)
+                          | _ -> None)
+                      | _ -> None)
+                  | _ -> None)
+              | _ -> None
+            in
+            match id_and_ty_opt with
+            | Some (id, ty) -> (basic_entity id, Some ty)
+            | None ->
+                ( {
+                    name = EDynamic (map_operation env x);
+                    attrs = [];
+                    tparams = None;
+                  },
+                  None ))
+        | `Op x -> (basic_entity (map_operator env x), None)
       in
-      DefStmt
-        (basic_entity ent, VarDef { vinit = Some rhs; vtype; vtok = G.no_sc })
-      |> G.s
+      DefStmt (ent, VarDef { vinit = Some rhs; vtype; vtok = G.no_sc }) |> G.s
 
 and map_anon_choice_id_f1f5a37 (env : env) (x : CST.anon_choice_id_f1f5a37) =
   match x with
@@ -1139,12 +1168,14 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       | None -> todo env x)
 
 (* NOTE(lowering): MacroDef only allows idents as parameters *)
-and map_macroparams_hack (env : env) ((_v1, params, _v3) : parameters) =
-  List_.map
+(* ? is this true? *)
+and map_macroparams_hack (_env : env) ((_v1, params, _v3) : parameters) =
+  List_.filter_map
     (fun p ->
       match p with
-      | Param { pname = Some id; _ } -> id
-      | _ -> todo env p)
+      | Param { pname = Some id; _ } -> Some id
+      (* TODO: handle other parameter types? (what form can they take?) *)
+      | _ -> None)
     params
 
 and map_do_clause (env : env) ((v1, v2, v3, v4) : CST.do_clause) =
@@ -1227,103 +1258,105 @@ and map_operation (env : env) (x : CST.operation) =
       let v3 = map_expression env v3 in
       OtherExpr (v2, [ G.E v1; G.E v3 ]) |> G.e
 
+and map_choice_choice_module_defi (env : env) x : expr =
+  match x with
+  | `Choice_module_defi x -> (
+      let stmt = map_definition env x in
+      match stmt.s with
+      | ExprStmt (expr, _) -> expr
+      | __else__ -> StmtExpr stmt |> G.e)
+  | `Choice_comp_stmt x -> (
+      let stmt = map_statement env x in
+      match stmt with
+      | [ { s = ExprStmt (expr, _); _ } ] -> expr
+      | [ x ] -> StmtExpr x |> G.e
+      | __else__ -> StmtExpr (Block (fb stmt) |> G.s) |> G.e)
+  | `Int_lit x -> map_integer_literal env x
+  | `Float_lit x -> map_float_literal env x
+  | `Prim_exp x -> map_primary_expression env x
+  | `Choice_un_exp x -> map_operation env x
+  | `Tern_exp (v1, v2, v3, v4, v5) ->
+      let v1 = map_expression env v1 in
+      let _v2 = (* "?" *) token env v2 in
+      let v3 = map_anon_choice_exp_b833738 env v3 in
+      let _v4 = (* ":" *) token env v4 in
+      let v5 = map_anon_choice_exp_b833738 env v5 in
+      Conditional (v1, v3, v5) |> G.e
+  | `Func_exp (v1, v2, v3) ->
+      let fparams =
+        match v1 with
+        | `Id tok -> fb [ map_id_parameter env tok ]
+        | `Arg_list x -> map_parameter_list env x
+        | `Typed_exp x ->
+            let exp, _tok, ty = map_typed_expression env x in
+            fb [ OtherParam (("typed", fake "typed"), [ G.E exp; G.T ty ]) ]
+      in
+      let _v2 = (* "->" *) token env v2 in
+      let v3 = map_anon_choice_exp_b833738 env v3 in
+      Lambda
+        {
+          fkind = (LambdaKind, fake "lambda");
+          fparams;
+          frettype = None;
+          fbody = FBExpr v3;
+        }
+      |> G.e
+  | `Juxt_exp (v1, v2) ->
+      (* As far as I can tell, this allows literals like "2x" to be syntactic sugar for
+          2 * x.
+      *)
+      let v1 =
+        match v1 with
+        | `Int_lit x -> map_integer_literal env x
+        | `Float_lit x -> map_float_literal env x
+        | `Adjo_exp x -> map_adjoint_expression env x
+      in
+      let v2 = map_primary_expression env v2 in
+      opcall (Mult, fake "") [ v1; v2 ]
+  | `Comp_assign_exp (v1, v2, v3) ->
+      let v1 = map_primary_expression env v1 in
+      let v2 =
+        match v2 with
+        | `Assign_op tok -> tok
+        | `Tilde_op tok -> tok
+      in
+      let v3 = map_expression env v3 in
+      map_assign_operator env v2 v1 v3
+  | `Macr_exp (v1, v2, v3) -> (
+      (* As mentioned elsewhere, I believe this to be a parser shenanigan and not
+          actually indicating that this is part of the macro.
+          I believe that this just indicates that the macro is the field to a DotAccess.
+      *)
+      let v2 = map_macro_identifier_exp env v2 in
+      let args =
+        match v3 with
+        | Some x -> map_macro_argument_list env x
+        | None -> []
+      in
+      let base = Call (v2, fb args) |> G.e in
+      match v1 with
+      | Some (v1, v2) ->
+          let v1 = map_primary_expression env v1 in
+          let v2 = map_imm_tok_dot env v2 in
+          (* TODO: simplify the `FDynamic` in the case of an Id? *)
+          DotAccess (v1, v2, FDynamic base) |> G.e
+      | None -> base)
+  | `Op x -> map_operator_exp env x
+  | `COLON tok ->
+      (* For creating "symbols" for metaprogramming. *)
+      let t = (* ":" *) str env tok in
+      OtherExpr (t, []) |> G.e
+  | `Begin tok ->
+      (* "begin" *)
+      (* what even is this I don't understand why why why *)
+      OtherExpr (str env tok, []) |> G.e
+
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
   | `Deep_exp (l, e, r) ->
       G.DeepEllipsis (token env l, map_expression env e, token env r) |> G.e
   | `Semg_ellips tok -> Ellipsis (token env tok) |> G.e
-  | `Choice_choice_module_defi x -> (
-      match x with
-      | `Choice_module_defi x -> (
-          let stmt = map_definition env x in
-          match stmt.s with
-          | ExprStmt (expr, _) -> expr
-          | __else__ -> StmtExpr stmt |> G.e)
-      | `Choice_comp_stmt x -> (
-          let stmt = map_statement env x in
-          match stmt with
-          | [ { s = ExprStmt (expr, _); _ } ] -> expr
-          | [ x ] -> StmtExpr x |> G.e
-          | __else__ -> StmtExpr (Block (fb stmt) |> G.s) |> G.e)
-      | `Int_lit x -> map_integer_literal env x
-      | `Float_lit x -> map_float_literal env x
-      | `Prim_exp x -> map_primary_expression env x
-      | `Choice_un_exp x -> map_operation env x
-      | `Tern_exp (v1, v2, v3, v4, v5) ->
-          let v1 = map_expression env v1 in
-          let _v2 = (* "?" *) token env v2 in
-          let v3 = map_anon_choice_exp_b833738 env v3 in
-          let _v4 = (* ":" *) token env v4 in
-          let v5 = map_anon_choice_exp_b833738 env v5 in
-          Conditional (v1, v3, v5) |> G.e
-      | `Func_exp (v1, v2, v3) ->
-          let fparams =
-            match v1 with
-            | `Id tok -> fb [ map_id_parameter env tok ]
-            | `Arg_list x -> map_parameter_list env x
-            | `Typed_exp x ->
-                let exp, _tok, ty = map_typed_expression env x in
-                fb [ OtherParam (("typed", fake "typed"), [ G.E exp; G.T ty ]) ]
-          in
-          let _v2 = (* "->" *) token env v2 in
-          let v3 = map_anon_choice_exp_b833738 env v3 in
-          Lambda
-            {
-              fkind = (LambdaKind, fake "lambda");
-              fparams;
-              frettype = None;
-              fbody = FBExpr v3;
-            }
-          |> G.e
-      | `Juxt_exp (v1, v2) ->
-          (* As far as I can tell, this allows literals like "2x" to be syntactic sugar for
-              2 * x.
-          *)
-          let v1 =
-            match v1 with
-            | `Int_lit x -> map_integer_literal env x
-            | `Float_lit x -> map_float_literal env x
-            | `Adjo_exp x -> map_adjoint_expression env x
-          in
-          let v2 = map_primary_expression env v2 in
-          opcall (Mult, fake "") [ v1; v2 ]
-      | `Comp_assign_exp (v1, v2, v3) ->
-          let v1 = map_primary_expression env v1 in
-          let v2 =
-            match v2 with
-            | `Assign_op tok -> tok
-            | `Tilde_op tok -> tok
-          in
-          let v3 = map_expression env v3 in
-          map_assign_operator env v2 v1 v3
-      | `Macr_exp (v1, v2, v3) -> (
-          (* As mentioned elsewhere, I believe this to be a parser shenanigan and not
-             actually indicating that this is part of the macro.
-             I believe that this just indicates that the macro is the field to a DotAccess.
-          *)
-          let v2 = map_macro_identifier_exp env v2 in
-          let args =
-            match v3 with
-            | Some x -> map_macro_argument_list env x
-            | None -> []
-          in
-          let base = Call (v2, fb args) |> G.e in
-          match v1 with
-          | Some (v1, v2) ->
-              let v1 = map_primary_expression env v1 in
-              let v2 = map_imm_tok_dot env v2 in
-              (* TODO: simplify the `FDynamic` in the case of an Id? *)
-              DotAccess (v1, v2, FDynamic base) |> G.e
-          | None -> base)
-      | `Op x -> map_operator_exp env x
-      | `COLON tok ->
-          (* For creating "symbols" for metaprogramming. *)
-          let t = (* ":" *) str env tok in
-          OtherExpr (t, []) |> G.e
-      | `Begin tok ->
-          (* "begin" *)
-          (* what even is this I don't understand why why why *)
-          OtherExpr (str env tok, []) |> G.e)
+  | `Choice_choice_module_defi x -> map_choice_choice_module_defi env x
 
 and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression) =
   let v1 = map_primary_expression env v1 in
@@ -1392,13 +1425,32 @@ and map_for_clause (env : env) ((v1, v2, v3) : CST.for_clause) =
   in
   List_.map (fun (x, y, z) -> CompFor (v1, x, y, z)) (v2 :: v3)
 
+and map_primary_expression_as_id_or_exp (env : env) (x : CST.primary_expression)
+    =
+  match x with
+  | `Id tok ->
+      let id = map_identifier env tok in
+      Left id
+  | `Field_exp x -> Right (map_field_expression env x)
+  | `Interp_exp x -> (
+      match map_interpolation_expression_either env x with
+      | Left id -> Left id
+      | Right exp -> Right exp)
+  (* If we have a type parametrized pattern, it means this must be a constructor.
+   * TODO: Handle type parameters.
+   *)
+  | `Para_type_exp (v1, _v2, _v3) -> (
+      match v1 with
+      | `Id tok -> Left (map_identifier env tok)
+      | _ -> Right (map_primary_expression env x))
+  | _ -> Right (map_primary_expression env x)
+
 and map_signature (env : env) (x : CST.signature) =
   match x with
   (* Zero parameter function definition, i.e. a function declaration. *)
   | `Id x ->
       let id = map_identifier env x in
-      (* TODO: zero parameters *)
-      (Some (basic_entity id), todo env x, None)
+      (Some (basic_entity id), fb [], None)
   | `Choice_call_exp_opt_un_typed_exp_opt_where_clause (v1, v2, _v3) ->
       let frettype =
         match v2 with
@@ -1417,33 +1469,10 @@ and map_signature (env : env) (x : CST.signature) =
             let ent =
               match v1 with
               | `Prim_exp x -> (
-                  match x with
-                  | `Id tok ->
-                      let id = map_identifier env tok in
-                      basic_entity id
-                  | `Field_exp x ->
-                      {
-                        name = EDynamic (map_field_expression env x);
-                        attrs = [];
-                        tparams = None;
-                      }
-                  | `Interp_exp x -> (
-                      match map_interpolation_expression_either env x with
-                      | Left id -> basic_entity id
-                      | Right exp ->
-                          { name = EDynamic exp; attrs = []; tparams = None })
-                  (* If we have a type parametrized pattern, it means this must be a constructor.
-                   * TODO: Handle type parameters.
-                   *)
-                  | `Para_type_exp (v1, _v2, _v3) ->
-                      let id =
-                        match v1 with
-                        | `Id tok -> map_identifier env tok
-                        | _ -> todo env v1
-                      in
-                      basic_entity id
-                  (* NOTE(lowering): Other primary expressions are not valid here. *)
-                  | _ -> todo env x)
+                  match map_primary_expression_as_id_or_exp env x with
+                  | Left id -> basic_entity id
+                  | Right exp ->
+                      { name = EDynamic exp; attrs = []; tparams = None })
               | `Op x ->
                   let id = map_operator env x in
                   basic_entity id
@@ -1481,11 +1510,11 @@ and map_exportable (env : env) (x : CST.exportable) =
       let* x = map_macro_identifier env x in
       Some x
   | `Op x -> Some [ map_operator env x ]
-  | `Interp_exp (`DOLLAR_choice_int_lit x) ->
+  | `Interp_exp (`DOLLAR_choice_int_lit _x) ->
       (* TODO: AST_generic can't fit an arbitrary expression in an import right now
          We will just discard the entire import in that case, but continue.
       *)
-      todo env x
+      None
   | `Interp_exp (`Semg_exte_meta x) -> Some [ map_word_identifier env x ]
   | `LPAR_choice_id_RPAR (v1, v2, v3) ->
       let _v1 = (* "(" *) token env v1 in
@@ -1532,7 +1561,7 @@ and map_interpolation_expression_either (env : env)
     (x : CST.interpolation_expression) =
   match x with
   | `DOLLAR_choice_int_lit (v1, v2) -> (
-      let ((s1, t1) as _v1) = (* "$" *) str env v1 in
+      let ((s1, t1) as v1) = (* "$" *) str env v1 in
       let v2 =
         match v2 with
         | `Int_lit x -> map_integer_literal env x
@@ -1555,7 +1584,7 @@ and map_interpolation_expression_either (env : env)
       | G.N (Id ((s, tok), _)) when in_pattern env ->
           let id = (s1 ^ s, Tok.combine_toks t1 [ tok ]) in
           Left id
-      | __else__ -> Right (OtherExpr (todo env v1, [ G.E v2 ]) |> G.e))
+      | __else__ -> Right (OtherExpr (v1, [ G.E v2 ]) |> G.e))
   | `Semg_exte_meta x -> Left (str env x)
 
 and map_interpolation_expression (env : env) (x : CST.interpolation_expression)
@@ -1668,13 +1697,20 @@ and map_optional_parameter (env : env) ((v1, v2, v3) : CST.closed_assignment) =
         | `Id tok -> map_id_parameter env tok
         | `Tuple_exp x -> ParamPattern (map_tuple_pat env x)
         (* NOTE(lowering): Same as closed_assignment. *)
-        | _ -> todo env p)
+        | _ ->
+            OtherParam
+              ( ("exp_param", fake "exp_param"),
+                [ G.E (map_primary_expression env p) ] ))
     | `Choice_un_exp x -> (
         match x with
         | `Typed_exp x -> map_typed_parameter env x
         (* NOTE(lowering): Same as closed_assignment. *)
-        | _ -> todo env x)
-    | _ -> todo env v1
+        | _ ->
+            OtherParam
+              ( ("un_exp_param", fake "un_exp_param"),
+                [ G.E (map_operation env x) ] ))
+    | `Op x ->
+        OtherParam (("op_param", fake "op_param"), [ G.I (map_operator env x) ])
   in
   let _v2 = (* "=" *) token env v2 in
   let v3 = map_bracket_level env v3 in
@@ -1682,36 +1718,52 @@ and map_optional_parameter (env : env) ((v1, v2, v3) : CST.closed_assignment) =
   | Param ({ pdefault = None; _ } as p) -> Param { p with pdefault = Some v3 }
   | __else__ -> OtherParam (("optional", fake "optional"), [ G.Pa v1; G.E v3 ])
 
+and map_primary_expression_as_parameter (env : env) (x : CST.primary_expression)
+    =
+  match x with
+  | `Id tok -> map_id_parameter env tok
+  | `Tuple_exp x ->
+      let pat = map_tuple_pat env x in
+      OtherParam (("param", fake "param"), [ G.P pat ])
+  | `Interp_exp x -> map_interpolation_parameter env x
+  | `Closed_macr_exp x -> map_closed_macro_parameter env x
+  | `Str x ->
+      OtherParam
+        (("str_param", fake "str_param"), [ G.E (map_string_literal env x) ])
+  | e ->
+      let e = map_primary_expression env e in
+      OtherParam (("expr_param", fake "expr_param"), [ G.E e ])
+
+and map_expr_as_parameter (env : env) (x : CST.expression) =
+  match x with
+  | `Choice_choice_module_defi x -> (
+      match x with
+      | `Prim_exp p -> map_primary_expression_as_parameter env p
+      | `Choice_un_exp operation -> (
+          match operation with
+          | `Typed_exp x -> map_typed_parameter env x
+          | `Splat_exp x -> map_slurp_parameter env x
+          | `Un_typed_exp (_t, `Prim_exp prim) ->
+              map_primary_expression_as_parameter env prim
+          | _ ->
+              OtherParam
+                ( ("un_exp_param", fake "un_exp_param"),
+                  [ G.E (map_operation env operation) ] ))
+      | `Macr_exp x -> map_macro_parameter env x
+      | _ ->
+          OtherParam
+            ( ("exp_param", fake "exp_param"),
+              [ G.E (map_choice_choice_module_defi env x) ] ))
+  | `Semg_ellips tok -> ParamEllipsis (token env tok)
+  | `Deep_exp x -> todo env x
+
 (* Try to interpret an arbitrary expression as a pattern.
  * Since only a few expressions can be used as parameters,
  * there's a lot of stuff that gets ignored.
  *)
 and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
   match x with
-  | `Exp x -> (
-      match x with
-      | `Choice_choice_module_defi expr -> (
-          match expr with
-          | `Prim_exp p -> (
-              match p with
-              | `Id tok -> map_id_parameter env tok
-              | `Tuple_exp x ->
-                  let pat = map_tuple_pat env x in
-                  OtherParam (("param", fake "param"), [ G.P pat ])
-              | `Interp_exp x -> map_interpolation_parameter env x
-              | `Closed_macr_exp x -> map_closed_macro_parameter env x
-              (* NOTE(lowering): No other primary expression is a valid parameter. *)
-              | _ -> todo env p)
-          | `Choice_un_exp operation -> (
-              match operation with
-              | `Typed_exp x -> map_typed_parameter env x
-              | `Splat_exp x -> map_slurp_parameter env x
-              | _ -> todo env x)
-          | `Macr_exp x -> map_macro_parameter env x
-          (* NOTE(lowering): No other expression is a valid parameter. *)
-          | _ -> todo env x)
-      | `Semg_ellips tok -> ParamEllipsis (token env tok)
-      | `Deep_exp x -> todo env x)
+  | `Exp x -> map_expr_as_parameter env x
   | `Closed_assign x -> map_optional_parameter env x
   (* NOTE(lowering): generators are not valid parameters. This is only here
    * because tree-sitter parses parameters and arguments the same.
@@ -1941,20 +1993,21 @@ and map_slurp_parameter (env : env) ((v1, v2) : CST.splat_expression) =
         match x with
         | `Prim_exp p -> (
             match p with
-            | `Id tok -> param_of_id (map_identifier env tok)
-            (* NOTE: It doesn't make sense to have slurp a tuple_exp. *)
-            | _ -> todo env p)
+            | `Id tok -> Left (param_of_id (map_identifier env tok))
+            | _ -> Right (map_primary_expression env p))
         | `Choice_un_exp x -> (
             match x with
-            | `Typed_exp x -> map_typed_parameter_classic env x
-            | _ -> todo env x)
-        | _ -> todo env v1)
+            | `Typed_exp x -> Left (map_typed_parameter_classic env x)
+            | _ -> Right (map_operation env x))
+        | _ -> Right (map_choice_choice_module_defi env x))
     (* Semgrep ellipsis doesn't make sense here... *)
     | `Semg_ellips tok -> todo env tok
     | `Deep_exp x -> todo env x
   in
   let v2 = (* "..." *) token env v2 in
-  ParamRest (v2, v1)
+  match v1 with
+  | Left x -> ParamRest (v2, x)
+  | Right exp -> OtherParam (("exp_param", fake "exp_param"), [ G.E exp ])
 
 and map_source_file (env : env) (opt : CST.source_file) =
   match opt with
@@ -2267,10 +2320,10 @@ and map_typed_expression (env : env) ((v1, v2, v3) : CST.typed_expression) =
   in
   (v1, tok, v3)
 
-(* NOTE(lowering): Fallback in case we find `::T` outside function signatures. *)
 and map_unary_typed_expression (env : env)
-    ((_v1, v2) : CST.unary_typed_expression) =
-  todo env v2
+    ((_v1, `Prim_exp v2) : CST.unary_typed_expression) =
+  let v2 = map_primary_expression env v2 in
+  v2
 
 and map_typed_expression_exp (env : env) ((v1, v2, v3) : CST.typed_expression) :
     expr =
@@ -2289,24 +2342,9 @@ and map_typed_parameter (env : env) ((v1, v2, v3) : CST.typed_expression) :
     match v3 with
     | `Prim_exp x -> map_type env x
   in
-  match v1 with
-  | `Choice_choice_module_defi x -> (
-      match x with
-      | `Prim_exp p -> (
-          match p with
-          | `Id tok -> Param (param_of_id ~ptype:v3 (map_identifier env tok))
-          | `Tuple_exp x ->
-              let pat = map_tuple_pat env x in
-              OtherParam (("param", fake "param"), [ G.P pat ])
-          | `Interp_exp x -> (
-              match map_interpolation_expression_either env x with
-              | Left id -> Param (param_of_id id)
-              | Right exp -> OtherParam (("param", fake "param"), [ G.E exp ]))
-          | _ -> todo env x)
-      | _ -> todo env x)
-  | `Semg_ellips tok -> ParamEllipsis (token env tok)
-  (* TODO: Do we need deep expressions in patterns? *)
-  | `Deep_exp x -> todo env x
+  match map_expr_as_parameter env v1 with
+  | Param p -> Param { p with ptype = Some v3 }
+  | other -> other
 
 and map_typed_parameter_classic (env : env) (v1 : CST.typed_expression) :
     parameter_classic =
