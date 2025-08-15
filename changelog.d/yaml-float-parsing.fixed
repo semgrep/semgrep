@@ -1,0 +1,4 @@
+Fixed incorrect YAML parsing of strings like `nan` as well as some more
+obscure cases that were interpreted as a float instead of a string. This
+might affect any area of Semgrep that deals with YAML files containing
+the string `nan`.

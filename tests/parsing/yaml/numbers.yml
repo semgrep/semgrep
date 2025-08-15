@@ -5,24 +5,25 @@ yaml_ints:
 - -0O755
 - 0xabc
 - -0XABC
+- 1e2
+- 1E2
 yaml_floats:
 - 1.0
 - -1.0
 - +1.0
-- 1e2
-- 1E2
 # These are printed out by our AST dumper as 1.23E-034 and -1.23E+034 on
 # Windows. Leaving these test cases out until formatting is the same
 # on all platforms.
 # - 1.23E-34
 # - -1.23E+34
+- 0x1e2
 - .nan
 - .NaN
 - -.nan
 - +.nan
-- inf
-- -inf
-- +inf
+- .inf
+- -.inf
+- +.inf
 yaml_strings:
 - nan
 - .Nan

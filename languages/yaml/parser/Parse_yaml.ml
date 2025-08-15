@@ -250,6 +250,82 @@ let apply_optional_tag (tag : string option) (tag_pos : E.pos) (e : A.value) env
       let tok = mk_tok tag_pos tag_str env in
       A.Tag ((tag_name, tok), e)
 
+(*
+   Parse a regular int or float literal that is known to not be a
+   NaN or an infinity.
+
+   YAML spec: https://yaml.org/spec/1.2.2/#10214-floating-point
+   OCaml spec: https://ocaml.org/manual/5.3/api/Stdlib.html
+
+   The YAML spec isn't very clear. An online YAML validator comes in
+   handy: https://www.yamllint.com/
+
+   alt: check the string against two regexps:
+   - one matching YAML float/int literals that can be converted with
+     float_of_string;
+   - another matching YAML float/int literals can only be converted with
+     int_of_string, namely octal int literals.
+*)
+let parse_yaml_number str : float option =
+  match float_of_string_opt str with
+  | Some _ as res ->
+      (* Hack hack hack
+         Exclude the following valid OCaml float literals:
+         - literals starting with whitespace: "  42"
+         - literals containing underscores: "1_000"
+         - NaNs: "nan", "nAn", ... with optional sign and leading spaces
+         - infinities: "inf", "inF", "infinity", ... with optional sign
+           and leading spaces
+         - hexadecimal floats: "0x1.2"
+         But preserve the following:
+         - ordinary decimal notation: "1", "1.", "1.2", "-1", ...
+         - power notation: "1e10", "-1.2E10"
+         - integers: "42", "0xabcDEF", "0o42", "0x1e2"
+      *)
+      if
+        String.exists
+          (function
+            | ' '
+            | '\t'
+            | '\n'
+            | '_'
+            | 'n'
+            | 'N' (* NaNs and inf(inity) *) ->
+                true
+            | _ -> false)
+          str
+      then None
+      else if
+        (* exclude hexadecimal floats containing a period *)
+        String.contains str '.'
+        && String.exists
+             (function
+               | 'x'
+               | 'X' ->
+                   true
+               | _ -> false)
+             str
+      then None
+      else
+        (* intersection of valid YAML numbers and valid OCaml
+             float literals *)
+        res
+  | None ->
+      (* Check for valid YAML numbers that are not valid OCaml floats.
+         We need to accept octal int literals such as "0o644".
+         OCaml ints may contain underscores but not YAML ints. *)
+      if
+        String.exists
+          (function
+            | 'o'
+            | 'O' ->
+                true
+            | _ -> false)
+          str
+        && not (String.contains str '_')
+      then int_of_string_opt str |> Option.map float
+      else None
+
 (* Scalars must first be checked for sgrep patterns *)
 (* Then, they may need to be converted from a string to a value *)
 let scalar (tag, pos, value, (style : Y.scalar_style)) env : A.value * E.pos =
@@ -311,15 +387,23 @@ let scalar (tag, pos, value, (style : Y.scalar_style)) env : A.value * E.pos =
         | "OFF" ->
             A.Bool (false, token)
         | "-.inf" -> A.Float (Some neg_infinity, token)
-        | ".inf" -> A.Float (Some neg_infinity, token)
+        | ".inf"
+        | "+.inf" ->
+            A.Float (Some infinity, token)
         | ".nan"
+        | "+.nan"
+        | "-.nan"
         | ".NaN"
-        | ".NAN" ->
+        | "-.NaN"
+        | "+.NaN"
+        | ".NAN"
+        | "-.NAN"
+        | "+.NAN" ->
             A.Float (Some nan, token)
-        | _ -> (
-            (* TODO: remove try and use float_of_string_opt instead? *)
-            try A.Float (Some (float_of_string value), token) with
-            | _ -> A.S (value, token))
+        | str -> (
+            match parse_yaml_number str with
+            | Some _ as num -> A.Float (num, token)
+            | None -> A.S (str, token))
   in
 
   let expr = apply_optional_tag tag pos expr env in
