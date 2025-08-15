@@ -1,0 +1,569 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("bar", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (ClassDef
+          { ckind = (Object, _); cextends = []; cimplements = [];
+            cmixins = []; cparams = (_, [], _);
+            cbody =
+            (_,
+             [(F
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("foo", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         attrs = [(KeywordAttr (Private, _))]; tparams = None
+                         },
+                       (FuncDef
+                          { fkind = (Method, _);
+                            fparams =
+                            (_,
+                             [(Param
+                                 { pname = (Some ("x", _));
+                                   ptype =
+                                   (Some { t =
+                                           (TyN
+                                              (Id (("Int", _),
+                                                 { id_resolved = ref (None);
+                                                   id_resolved_alternatives =
+                                                   ref ([]);
+                                                   id_type = ref (None);
+                                                   id_svalue = ref (None);
+                                                   id_flags = ref (0);
+                                                   id_info_id = _ }
+                                                 )));
+                                           t_attrs = [] });
+                                   pdefault = None; pattrs = [];
+                                   pinfo =
+                                   { id_resolved =
+                                     ref ((Some (Parameter, _)));
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type =
+                                     ref ((Some { t =
+                                                  (TyN
+                                                     (Id (("Int", _),
+                                                        { id_resolved =
+                                                          ref (None);
+                                                          id_resolved_alternatives =
+                                                          ref ([]);
+                                                          id_type =
+                                                          ref (None);
+                                                          id_svalue =
+                                                          ref (None);
+                                                          id_flags = ref (0);
+                                                          id_info_id = _ }
+                                                        )));
+                                                  t_attrs = [] }));
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   })
+                               ],
+                             _);
+                            frettype = None;
+                            fbody =
+                            (FBExpr
+                               { e =
+                                 (StmtExpr
+                                    { s =
+                                      (Switch (_,
+                                         (Some (Cond
+                                                  { e =
+                                                    (N
+                                                       (Id (("x", _),
+                                                          { id_resolved =
+                                                            ref ((Some (
+                                                            Parameter, _)));
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref ((Some 
+                                                            { t =
+                                                              (TyN
+                                                                 (Id (
+                                                                    (
+                                                                    "Int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                              t_attrs = [] }));
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    e_id = 0; e_range = None;
+                                                    is_implicit_return =
+                                                    false; facts = <opaque> })),
+                                         [(CasesAndBody
+                                             ([(Case (_,
+                                                  (PatWhen (
+                                                     (PatId (("p", _),
+                                                        { id_resolved =
+                                                          ref ((Some (
+                                                          LocalVar, _)));
+                                                          id_resolved_alternatives =
+                                                          ref ([]);
+                                                          id_type =
+                                                          ref (None);
+                                                          id_svalue =
+                                                          ref (None);
+                                                          id_flags = ref (0);
+                                                          id_info_id = _ }
+                                                        )),
+                                                     { e =
+                                                       (Call (
+                                                          { e =
+                                                            (DotAccess (
+                                                               { e =
+                                                                 (N
+                                                                    (
+                                                                    Id (
+                                                                    ("p", _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                 e_id = 0;
+                                                                 e_range =
+                                                                 None;
+                                                                 is_implicit_return =
+                                                                 false;
+                                                                 facts =
+                                                                 <opaque> },
+                                                               _,
+                                                               (FN
+                                                                  (Id (
+                                                                    ("<", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref ((Some 
+                                                                    { t =
+                                                                    (TyFun (
+                                                                    [(OtherParam (
+                                                                    ("TODO",
+                                                                    _), []))],
+                                                                    { t =
+                                                                    (OtherType (
+                                                                    ("TODO",
+                                                                    _), 
+                                                                    []));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })))
+                                                               ));
+                                                            e_id = 0;
+                                                            e_range = None;
+                                                            is_implicit_return =
+                                                            false;
+                                                            facts = <opaque>
+                                                            },
+                                                          (_,
+                                                           [(Arg
+                                                               { e =
+                                                                 (L
+                                                                    (
+                                                                    Int
+                                                                    ((Some 15L),
+                                                                    _)));
+                                                                 e_id = 0;
+                                                                 e_range =
+                                                                 None;
+                                                                 is_implicit_return =
+                                                                 false;
+                                                                 facts =
+                                                                 <opaque> })
+                                                             ],
+                                                           _)
+                                                          ));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> }
+                                                     ))
+                                                  ))
+                                                ],
+                                              { s =
+                                                (Block
+                                                   (_,
+                                                    [{ s =
+                                                       (ExprStmt (
+                                                          { e =
+                                                            (L
+                                                               (String
+                                                                  (_,
+                                                                   ("a", _),
+                                                                   _)));
+                                                            e_id = 0;
+                                                            e_range = None;
+                                                            is_implicit_return =
+                                                            false;
+                                                            facts = <opaque>
+                                                            },
+                                                          _));
+                                                       s_range = None }
+                                                      ],
+                                                    _));
+                                                s_range = None }));
+                                           (CasesAndBody
+                                              ([(Case (_,
+                                                   (PatWhen (
+                                                      (PatId (("p", _),
+                                                         { id_resolved =
+                                                           ref ((Some (
+                                                           LocalVar, _)));
+                                                           id_resolved_alternatives =
+                                                           ref ([]);
+                                                           id_type =
+                                                           ref (None);
+                                                           id_svalue =
+                                                           ref (None);
+                                                           id_flags = ref (0);
+                                                           id_info_id = _ }
+                                                         )),
+                                                      { e =
+                                                        (Call (
+                                                           { e =
+                                                             (DotAccess (
+                                                                { e =
+                                                                  (N
+                                                                    (Id (
+                                                                    ("p", _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                  e_id = 0;
+                                                                  e_range =
+                                                                  None;
+                                                                  is_implicit_return =
+                                                                  false;
+                                                                  facts =
+                                                                  <opaque> },
+                                                                _,
+                                                                (FN
+                                                                   (Id (
+                                                                    ("<", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref ((Some 
+                                                                    { t =
+                                                                    (TyFun (
+                                                                    [(OtherParam (
+                                                                    ("TODO",
+                                                                    _), []))],
+                                                                    { t =
+                                                                    (OtherType (
+                                                                    ("TODO",
+                                                                    _), 
+                                                                    []));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })))
+                                                                ));
+                                                             e_id = 0;
+                                                             e_range = None;
+                                                             is_implicit_return =
+                                                             false;
+                                                             facts = <opaque>
+                                                             },
+                                                           (_,
+                                                            [(Arg
+                                                                { e =
+                                                                  (L
+                                                                    (Int
+                                                                    ((Some 30L),
+                                                                    _)));
+                                                                  e_id = 0;
+                                                                  e_range =
+                                                                  None;
+                                                                  is_implicit_return =
+                                                                  false;
+                                                                  facts =
+                                                                  <opaque> })
+                                                              ],
+                                                            _)
+                                                           ));
+                                                        e_id = 0;
+                                                        e_range = None;
+                                                        is_implicit_return =
+                                                        false;
+                                                        facts = <opaque> }
+                                                      ))
+                                                   ))
+                                                 ],
+                                               { s =
+                                                 (Block
+                                                    (_,
+                                                     [{ s =
+                                                        (ExprStmt (
+                                                           { e =
+                                                             (L
+                                                                (String
+                                                                   (_,
+                                                                    (
+                                                                    "b", _),
+                                                                    _)));
+                                                             e_id = 0;
+                                                             e_range = None;
+                                                             is_implicit_return =
+                                                             false;
+                                                             facts = <opaque>
+                                                             },
+                                                           _));
+                                                        s_range = None }
+                                                       ],
+                                                     _));
+                                                 s_range = None }));
+                                           (CasesAndBody
+                                              ([(Case (_,
+                                                   (PatWhen (
+                                                      (PatId (("p", _),
+                                                         { id_resolved =
+                                                           ref ((Some (
+                                                           LocalVar, _)));
+                                                           id_resolved_alternatives =
+                                                           ref ([]);
+                                                           id_type =
+                                                           ref (None);
+                                                           id_svalue =
+                                                           ref (None);
+                                                           id_flags = ref (0);
+                                                           id_info_id = _ }
+                                                         )),
+                                                      { e =
+                                                        (Call (
+                                                           { e =
+                                                             (DotAccess (
+                                                                { e =
+                                                                  (N
+                                                                    (Id (
+                                                                    ("p", _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                  e_id = 0;
+                                                                  e_range =
+                                                                  None;
+                                                                  is_implicit_return =
+                                                                  false;
+                                                                  facts =
+                                                                  <opaque> },
+                                                                _,
+                                                                (FN
+                                                                   (Id (
+                                                                    ("<", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref ((Some 
+                                                                    { t =
+                                                                    (TyFun (
+                                                                    [(OtherParam (
+                                                                    ("TODO",
+                                                                    _), []))],
+                                                                    { t =
+                                                                    (OtherType (
+                                                                    ("TODO",
+                                                                    _), 
+                                                                    []));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })))
+                                                                ));
+                                                             e_id = 0;
+                                                             e_range = None;
+                                                             is_implicit_return =
+                                                             false;
+                                                             facts = <opaque>
+                                                             },
+                                                           (_,
+                                                            [(Arg
+                                                                { e =
+                                                                  (L
+                                                                    (Int
+                                                                    ((Some 45L),
+                                                                    _)));
+                                                                  e_id = 0;
+                                                                  e_range =
+                                                                  None;
+                                                                  is_implicit_return =
+                                                                  false;
+                                                                  facts =
+                                                                  <opaque> })
+                                                              ],
+                                                            _)
+                                                           ));
+                                                        e_id = 0;
+                                                        e_range = None;
+                                                        is_implicit_return =
+                                                        false;
+                                                        facts = <opaque> }
+                                                      ))
+                                                   ))
+                                                 ],
+                                               { s =
+                                                 (Block
+                                                    (_,
+                                                     [{ s =
+                                                        (ExprStmt (
+                                                           { e =
+                                                             (L
+                                                                (String
+                                                                   (_,
+                                                                    (
+                                                                    "c", _),
+                                                                    _)));
+                                                             e_id = 0;
+                                                             e_range = None;
+                                                             is_implicit_return =
+                                                             false;
+                                                             facts = <opaque>
+                                                             },
+                                                           _));
+                                                        s_range = None }
+                                                       ],
+                                                     _));
+                                                 s_range = None }));
+                                           (CasesAndBody
+                                              ([(Case (_,
+                                                   (PatId (("_", _),
+                                                      { id_resolved =
+                                                        ref ((Some (LocalVar,
+                                                                    _)));
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (None);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      ))
+                                                   ))
+                                                 ],
+                                               { s =
+                                                 (Block
+                                                    (_,
+                                                     [{ s =
+                                                        (ExprStmt (
+                                                           { e =
+                                                             (L
+                                                                (String
+                                                                   (_,
+                                                                    (
+                                                                    "d", _),
+                                                                    _)));
+                                                             e_id = 0;
+                                                             e_range = None;
+                                                             is_implicit_return =
+                                                             false;
+                                                             facts = <opaque>
+                                                             },
+                                                           _));
+                                                        s_range = None }
+                                                       ],
+                                                     _));
+                                                 s_range = None }))
+                                           ]
+                                         ));
+                                      s_range = None });
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 })
+                            })));
+                   s_range = None })
+               ],
+             _)
+            })));
+   s_range = None }
+  ]

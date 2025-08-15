@@ -1,0 +1,44 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("t", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = [(OtherAttribute (("opaque", _), []))]; tparams = None },
+       (TypeDef
+          { tbody =
+            (NewType
+               { t =
+                 (TyN
+                    (Id (("Int", _),
+                       { id_resolved = ref (None);
+                         id_resolved_alternatives = ref ([]);
+                         id_type = ref (None); id_svalue = ref (None);
+                         id_flags = ref (0); id_info_id = _ }
+                       )));
+                 t_attrs = [] })
+            })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("foo", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(OtherAttribute (("opaque", _), []))]; tparams = None },
+        (FuncDef
+           { fkind = (Method, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBExpr
+                { e = (L (Int ((Some 3L), _))); e_id = 0; e_range = None;
+                  is_implicit_return = true; facts = <opaque> })
+             })));
+    s_range = None }
+  ]

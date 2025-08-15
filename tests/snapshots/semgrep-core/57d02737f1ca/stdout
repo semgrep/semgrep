@@ -1,0 +1,182 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("SomeClass", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (2); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (ClassDef
+          { ckind = (Class, _);
+            cextends =
+            [({ t =
+                (TyN
+                   (IdQualified
+                      { name_last = (("SomeBase", _), None);
+                        name_middle =
+                        (Some (QDots
+                                 [(("__special__ROOT", _), None);
+                                   (("SomePkg", _), None)]));
+                        name_top = None;
+                        name_info =
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (None);
+                          id_flags = ref (0); id_info_id = _ }
+                        }));
+                t_attrs = [] },
+              None)];
+            cimplements = []; cmixins = []; cparams = (_, [], _);
+            cbody =
+            (_,
+             [(F
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("someMethod", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (2);
+                                 id_info_id = _ }
+                               )));
+                         attrs = [(KeywordAttr (Public, _))]; tparams = None
+                         },
+                       (FuncDef
+                          { fkind = (Method, _);
+                            fparams =
+                            (_,
+                             [(Param
+                                 { pname = (Some ("$var", _));
+                                   ptype =
+                                   (Some { t =
+                                           (TyN
+                                              (IdQualified
+                                                 { name_last =
+                                                   (("Other", _), None);
+                                                   name_middle =
+                                                   (Some (QDots
+                                                            [(("__special__ROOT",
+                                                               _),
+                                                              None);
+                                                              (("SomePkg", _),
+                                                               None)
+                                                              ]));
+                                                   name_top = None;
+                                                   name_info =
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   }));
+                                           t_attrs = [] });
+                                   pdefault = None; pattrs = [];
+                                   pinfo =
+                                   { id_resolved =
+                                     ref ((Some (Parameter, _)));
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type =
+                                     ref ((Some { t =
+                                                  (TyN
+                                                     (IdQualified
+                                                        { name_last =
+                                                          (("Other", _), None);
+                                                          name_middle =
+                                                          (Some (QDots
+                                                                   [((
+                                                                    "__special__ROOT",
+                                                                    _), None);
+                                                                    ((
+                                                                    "SomePkg",
+                                                                    _), None)
+                                                                    ]));
+                                                          name_top = None;
+                                                          name_info =
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          }));
+                                                  t_attrs = [] }));
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   })
+                               ],
+                             _);
+                            frettype = None;
+                            fbody =
+                            (FBStmt
+                               { s =
+                                 (Block
+                                    (_,
+                                     [{ s =
+                                        (Return (_,
+                                           (Some { e =
+                                                   (N
+                                                      (Id (("null", _),
+                                                         { id_resolved =
+                                                           ref (None);
+                                                           id_resolved_alternatives =
+                                                           ref ([]);
+                                                           id_type =
+                                                           ref (None);
+                                                           id_svalue =
+                                                           ref (None);
+                                                           id_flags = ref (2);
+                                                           id_info_id = _ }
+                                                         )));
+                                                   e_id = 0; e_range = None;
+                                                   is_implicit_return = false;
+                                                   facts = <opaque> }),
+                                           _));
+                                        s_range = None }
+                                       ],
+                                     _));
+                                 s_range = None })
+                            })));
+                   s_range = None })
+               ],
+             _)
+            })));
+   s_range = None };
+  { s = (Block (_, [], _)); s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("__builtin__echo", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (None);
+                      id_flags = ref (2); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             [(Arg
+                 { e = (L (String (_, ("\n", _), _))); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None }
+  ]

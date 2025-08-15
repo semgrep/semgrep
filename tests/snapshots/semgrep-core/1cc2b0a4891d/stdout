@@ -1,0 +1,3074 @@
+[{ s =
+   (RawStmt
+      (Tuple
+         [(Tuple
+             [(Token ("syntax", _)); (Token ("=", _));
+               (Token ("\"proto3\"", _)); (Token (";", _))]);
+           (Option
+              (Some (List
+                       [(Case ("Import",
+                           (Tuple
+                              [(Token ("import", _)); (Option None);
+                                (Case (
+                                   "DQUOT_rep_choice_imm_tok_prec_p1_pat_3a2a380_DQUOT",
+                                   (Tuple
+                                      [(Token ("\"", _));
+                                        (List
+                                           [(Case (
+                                               "Imm_tok_prec_p1_pat_3a2a380",
+                                               (Token
+                                                  ("google/protobuf/any.proto",
+                                                   _))
+                                               ))
+                                             ]);
+                                        (Token ("\"", _))])
+                                   ));
+                                (Token (";", _))])
+                           ));
+                         (Case ("Import",
+                            (Tuple
+                               [(Token ("import", _)); (Option None);
+                                 (Case (
+                                    "DQUOT_rep_choice_imm_tok_prec_p1_pat_3a2a380_DQUOT",
+                                    (Tuple
+                                       [(Token ("\"", _));
+                                         (List
+                                            [(Case (
+                                                "Imm_tok_prec_p1_pat_3a2a380",
+                                                (Token
+                                                   ("google/protobuf/struct.proto",
+                                                    _))
+                                                ))
+                                              ]);
+                                         (Token ("\"", _))])
+                                    ));
+                                 (Token (";", _))])
+                            ));
+                         (Case ("Pack",
+                            (Tuple
+                               [(Token ("package", _));
+                                 (Tuple
+                                    [(Token ("cli", _));
+                                      (Option (Some (List [])))]);
+                                 (Token (";", _))])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliOutput", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("version", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("508888787", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliError", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("errors", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("179828283", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliMatch", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("results", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("260545850", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliPaths", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("paths", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("109417774", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliTiming", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3117011", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("Position", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Int64",
+                                                     (Token ("int64", _))));
+                                                  (Token ("line", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3117964", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("col", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("107328", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("offset", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("196558931", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("Location", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("path", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3212859", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Position", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("start", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("110621538", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Position", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("end", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("99611", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CoreMatch", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("rule_id", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("42354089", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Location", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("location", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("206711021", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CoreMatchExtra",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("extra", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("93093008", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CoreMatchExtra", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("message", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("337998899", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Map_field",
+                                              (Tuple
+                                                 [(Token ("map", _));
+                                                   (Token ("<", _));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token (",", _));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("MetavarValue",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token (">", _));
+                                                   (Token ("metavars", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("81814710", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("DataflowTrace",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("dataflow_trace", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("359307815", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("DataflowTrace", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option
+                                                     (Some (Token
+                                                              ("repeated", _))));
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("Location", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("taint_source", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("109601574", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Location", _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("intermediate_vars", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("308706979", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("MetavarValue", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("Position", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("start", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("110621538", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Position", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("end", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("99611", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token
+                                                      ("abstract_content", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("75232495", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("SvalueValue",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("propagated_value", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("269991092", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("UniqueId", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("unique_id", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("445148607", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("SvalueValue", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("Position", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("svalue_start", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("430292789", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Position", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("svalue_end", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("313081881", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token
+                                                      ("svalue_abstract_content",
+                                                       _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("526101672", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("UniqueId", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List
+                                                             [(Tuple
+                                                                 [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                   (Token
+                                                                    (".", _))
+                                                                   ]);
+                                                               (Tuple
+                                                                  [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ])
+                                                               ]);
+                                                          (Token ("Any", _))])
+                                                     ));
+                                                  (Token ("type", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3120390", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("md5sum", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("10884057", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("sid", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("99470", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CoreError", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("rule_id", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("42354089", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List
+                                                              [(Tuple
+                                                                  [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ]);
+                                                                (Tuple
+                                                                   [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (Token
+                                                                    (".", _))
+                                                                    ])
+                                                                ]);
+                                                           (Token ("Any", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("error_type", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("428933134", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List
+                                                              [(Tuple
+                                                                  [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ]);
+                                                                (Tuple
+                                                                   [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (Token
+                                                                    (".", _))
+                                                                    ])
+                                                                ]);
+                                                           (Token ("Any", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("severity", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("191113633", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Location", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("location", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("206711021", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("message", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("337998899", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("details", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("28147206", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CoreStats", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Int64",
+                                                     (Token ("int64", _))));
+                                                  (Token ("okfiles", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("367609694", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("errorfiles", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("374129212", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("SkippedTarget", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("path", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3212859", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List
+                                                              [(Tuple
+                                                                  [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ]);
+                                                                (Tuple
+                                                                   [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (Token
+                                                                    (".", _))
+                                                                    ])
+                                                                ]);
+                                                           (Token ("Any", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("reason", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("34014402", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("details", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("28147206", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("rule_id", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("42354089", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("SkippedRule", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("rule_id", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("42354089", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("details", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("28147206", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Position", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("position", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("206964729", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CoreTiming", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option
+                                                     (Some (Token
+                                                              ("repeated", _))));
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("TargetTime", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("targets", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("253663046", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("rules", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("109321335", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token
+                                                      ("rules_parse_time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("367689164", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("TargetTime", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("path", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3212859", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("RuleTimes", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("rule_times", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("352413596", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token ("run_time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("463101456", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("RuleTimes", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("rule_id", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("42354089", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token ("parse_time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("503016756", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token ("match_time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("505312582", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CveResult", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("url", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("107439", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("filename", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("228703562", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("funcnames", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("140608666", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CoreMatchResults", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option
+                                                     (Some (Token
+                                                              ("repeated", _))));
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("CoreMatch", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("matches", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("363750006", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CoreError", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("errors", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("179828283", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("SkippedTarget",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("skipped", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("480732762", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("SkippedRule",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("skipped_rules", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("55568936", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CoreStats", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("stats", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("109757599", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CoreTiming",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3117011", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliError", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Int64",
+                                                     (Token ("int64", _))));
+                                                  (Token ("code", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3108531", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("level", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("102865796", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("type", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3120390", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("rule_id", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("42354089", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("message", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("337998899", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("path", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3212859", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("long_msg", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("242299620", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("short_msg", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("7220394", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("ErrorSpan", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("spans", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("109578729", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("help", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3443615", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("ErrorSpan", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("file", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3116036", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("PositionBis",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("start", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("110621538", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("PositionBis",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("end", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("99611", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("source_hash", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("412117553", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("PositionBis",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("config_start", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("476302353", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("PositionBis",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("config_end", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("359091445", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("config_path", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("261927867", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("PositionBis",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("context_start", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("424938157", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("PositionBis",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("context_end", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("12625475", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("PositionBis", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Int64",
+                                                     (Token ("int64", _))));
+                                                  (Token ("line", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3117964", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("col", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("107328", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliMatch", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("check_id", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("244492357", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("path", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3212859", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Position", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("start", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("110621538", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("Position", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("end", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("99611", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliMatchExtra",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("extra", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("93093008", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliMatchExtra", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Map_field",
+                                             (Tuple
+                                                [(Token ("map", _));
+                                                  (Token ("<", _));
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token (",", _));
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("MetavarValue",
+                                                              _))
+                                                          ])
+                                                     ));
+                                                  (Token (">", _));
+                                                  (Token ("metavars", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("81814710", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("fingerprint", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("426561151", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("lines", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("109322879", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("message", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("337998899", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List
+                                                              [(Tuple
+                                                                  [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ]);
+                                                                (Tuple
+                                                                   [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (Token
+                                                                    (".", _))
+                                                                    ])
+                                                                ]);
+                                                           (Token ("Any", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("metadata", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("534382816", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("severity", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("191113633", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("fix", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("118677", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("FixRegex", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("fix_regex", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("391937584", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Bool",
+                                                      (Token ("bool", _))));
+                                                   (Token ("is_ignored", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("531173073", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Bool",
+                                                      (Token ("bool", _))));
+                                                   (Token
+                                                      ("dependency_match_only",
+                                                       _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("379345809", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List
+                                                              [(Tuple
+                                                                  [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ]);
+                                                                (Tuple
+                                                                   [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (Token
+                                                                    (".", _))
+                                                                    ])
+                                                                ]);
+                                                           (Token ("Any", _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("dependency_matches",
+                                                       _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("288721032", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("fixed_lines", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("405597072", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("DataflowTrace",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("dataflow_trace", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("359307815", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("FixRegex", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("regex", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("113933639", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("replacement", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("21088776", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("count", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("110521423", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliOutputExtra", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("CliPaths", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("paths", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("109417774", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliTiming", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3117011", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliPaths", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option
+                                                     (Some (Token
+                                                              ("repeated", _))));
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("scanned", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("478818202", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliSkippedTarget",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("skipped", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("480732762", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliSkippedTarget", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("path", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3212859", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("reason", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("34014402", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliTiming", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option
+                                                     (Some (Token
+                                                              ("repeated", _))));
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("RuleIdDict", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("rules", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("109321335", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token
+                                                      ("rules_parse_time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("367689164", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Map_field",
+                                              (Tuple
+                                                 [(Token ("map", _));
+                                                   (Token ("<", _));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token (",", _));
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token (">", _));
+                                                   (Token
+                                                      ("profiling_times", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("190109087", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("CliTargetTimes",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token ("targets", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("253663046", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("total_bytes", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("525010859", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("RuleIdDict", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("id", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3205", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("CliTargetTimes", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("path", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("3212859", _))));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("num_bytes", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("49709845", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token ("match_times", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("189904321", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token ("parse_times", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("187608495", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Float",
+                                                      (Token ("float", _))));
+                                                   (Token ("run_time", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("463101456", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("ApiScansFindings", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option
+                                                     (Some (Token
+                                                              ("repeated", _))));
+                                                  (Case ("Mess_or_enum_type",
+                                                     (Tuple
+                                                        [(Option None);
+                                                          (List []);
+                                                          (Token
+                                                             ("Finding", _))
+                                                          ])
+                                                     ));
+                                                  (Token ("findings", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("343207531", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("token", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("104702585", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("gitlab_token", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("284934747", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token
+                                                      ("searched_paths", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("302953681", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("rule_ids", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("212698331", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("cai_ids", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("335914631", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("Finding", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Str",
+                                                     (Token ("string", _))));
+                                                  (Token ("check_id", _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("244492357", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("path", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3212859", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("line", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("3117964", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("column", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("32237808", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("end_line", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("269465307", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("end_column", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("119242219", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("message", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("337998899", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("severity", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("191113633", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Int64",
+                                                      (Token ("int64", _))));
+                                                   (Token ("index", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("113931026", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("commit_date", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("139249355", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("syntactic_id", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("386155329", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token
+                                                      ("match_based_id", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("394189736", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List
+                                                              [(Tuple
+                                                                  [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ]);
+                                                                (Tuple
+                                                                   [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (Token
+                                                                    (".", _))
+                                                                    ])
+                                                                ]);
+                                                           (Token
+                                                              ("Struct", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("metadata", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("534382816", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case ("Bool",
+                                                      (Token ("bool", _))));
+                                                   (Token ("is_blocking", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("487146492", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option
+                                                      (Some (Token
+                                                               ("repeated", _))));
+                                                   (Case ("Str",
+                                                      (Token ("string", _))));
+                                                   (Token ("fixed_lines", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("405597072", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("ScaInfo", _))
+                                                           ])
+                                                      ));
+                                                   (Token ("sca_info", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("493451", _))));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List []);
+                                                           (Token
+                                                              ("DataflowTrace",
+                                                               _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("dataflow_trace", _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("359307815", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ));
+                         (Case ("Mess",
+                            (Tuple
+                               [(Token ("message", _));
+                                 (Token ("ScaInfo", _));
+                                 (Tuple
+                                    [(Token ("{", _));
+                                      (List
+                                         [(Case ("Field",
+                                             (Tuple
+                                                [(Option None);
+                                                  (Option None);
+                                                  (Case ("Bool",
+                                                     (Token ("bool", _))));
+                                                  (Token
+                                                     ("dependency_match_only",
+                                                      _));
+                                                  (Token ("=", _));
+                                                  (Case ("Deci_lit",
+                                                     (Token ("379345809", _))
+                                                     ));
+                                                  (Option None);
+                                                  (Token (";", _))])
+                                             ));
+                                           (Case ("Field",
+                                              (Tuple
+                                                 [(Option None);
+                                                   (Option None);
+                                                   (Case (
+                                                      "Mess_or_enum_type",
+                                                      (Tuple
+                                                         [(Option None);
+                                                           (List
+                                                              [(Tuple
+                                                                  [(Token
+                                                                    ("google",
+                                                                    _));
+                                                                    (
+                                                                    Token
+                                                                    (".", _))
+                                                                    ]);
+                                                                (Tuple
+                                                                   [(Token
+                                                                    ("protobuf",
+                                                                    _));
+                                                                    (Token
+                                                                    (".", _))
+                                                                    ])
+                                                                ]);
+                                                           (Token
+                                                              ("Struct", _))
+                                                           ])
+                                                      ));
+                                                   (Token
+                                                      ("dependency_matches",
+                                                       _));
+                                                   (Token ("=", _));
+                                                   (Case ("Deci_lit",
+                                                      (Token ("288721032", _))
+                                                      ));
+                                                   (Option None);
+                                                   (Token (";", _))])
+                                              ))
+                                           ]);
+                                      (Token ("}", _))])
+                                 ])
+                            ))
+                         ])))
+           ]));
+   s_range = None }
+  ]

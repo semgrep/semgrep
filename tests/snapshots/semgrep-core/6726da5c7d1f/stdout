@@ -1,0 +1,16 @@
+[{ s =
+   (DirectiveStmt
+      { d =
+        (ImportAll (_,
+           (DottedName
+              [("Com", _); ("Auth0", _); ("FGA", _); ("Exceptions", _)]),
+           _));
+        d_attrs = [] });
+   s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (Package (_, [("Com", _); ("Auth0", _); ("FGA", _); ("Client", _)]));
+         d_attrs = [] });
+    s_range = None }
+  ]

@@ -1,0 +1,15 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("Foo", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (2); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (ClassDef
+          { ckind = (Class, _); cextends = []; cimplements = [];
+            cmixins = []; cparams = (_, [], _); cbody = (_, [], _) })));
+   s_range = None }
+  ]

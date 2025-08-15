@@ -1,0 +1,107 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("foo", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (FuncDef
+          { fkind = (Function, _);
+            fparams = (_, [(ParamPattern (PatLiteral (Unit _)))], _);
+            frettype = None;
+            fbody =
+            (FBStmt
+               { s =
+                 (OtherStmt (OS_ExprStmt2,
+                    [(E
+                        { e =
+                          (StmtExpr
+                             { s =
+                               (Block
+                                  (_,
+                                   [{ s =
+                                      (ExprStmt (
+                                         { e =
+                                           (LetPattern (
+                                              (PatTyped (
+                                                 (PatRecord (_, [], _)),
+                                                 { t =
+                                                   (TyN
+                                                      (IdQualified
+                                                         { name_last =
+                                                           (("t", _), None);
+                                                           name_middle =
+                                                           (Some (QDots
+                                                                    [((
+                                                                    "Zz", _),
+                                                                    None)]));
+                                                           name_top = None;
+                                                           name_info =
+                                                           { id_resolved =
+                                                             ref (None);
+                                                             id_resolved_alternatives =
+                                                             ref ([]);
+                                                             id_type =
+                                                             ref (None);
+                                                             id_svalue =
+                                                             ref (None);
+                                                             id_flags =
+                                                             ref (0);
+                                                             id_info_id = _ }
+                                                           }));
+                                                   t_attrs = [] }
+                                                 )),
+                                              { e =
+                                                (N
+                                                   (Id (("foobar", _),
+                                                      { id_resolved =
+                                                        ref (None);
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (None);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      )));
+                                                e_id = 0; e_range = None;
+                                                is_implicit_return = false;
+                                                facts = <opaque> }
+                                              ));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> },
+                                         _));
+                                      s_range = None };
+                                     { s =
+                                       (ExprStmt (
+                                          { e =
+                                            (N
+                                               (Id (("a", _),
+                                                  { id_resolved = ref (None);
+                                                    id_resolved_alternatives =
+                                                    ref ([]);
+                                                    id_type = ref (None);
+                                                    id_svalue = ref (None);
+                                                    id_flags = ref (0);
+                                                    id_info_id = _ }
+                                                  )));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> },
+                                          _));
+                                       s_range = None }
+                                     ],
+                                   _));
+                               s_range = None });
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> })
+                      ]
+                    ));
+                 s_range = None })
+            })));
+   s_range = None }
+  ]

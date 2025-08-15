@@ -1,0 +1,332 @@
+[{ s =
+   (Try (_,
+      { s =
+        (Block
+           (_,
+            [{ s =
+               (ExprStmt (
+                  { e =
+                    (Assign (
+                       { e =
+                         (N
+                            (Id (("$data", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (6);
+                                 id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> },
+                       _,
+                       { e =
+                         (Call (
+                            { e =
+                              (DotAccess (
+                                 { e =
+                                   (N
+                                      (Id (("$response", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (2); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 _,
+                                 (FN
+                                    (Id (("toArray", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type =
+                                         ref ((Some { t =
+                                                      (TyFun (
+                                                         [(OtherParam (
+                                                             ("TODO", _), 
+                                                             []))
+                                                           ],
+                                                         { t =
+                                                           (OtherType (
+                                                              ("TODO", _), 
+                                                              []));
+                                                           t_attrs = [] }
+                                                         ));
+                                                      t_attrs = [] }));
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )))
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_, [], _)));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> }
+                       ));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> },
+                  _));
+               s_range = None }
+              ],
+            _));
+        s_range = None },
+      [(_,
+        (CatchParam
+           { pname = (Some ("$e", _));
+             ptype =
+             (Some { t =
+                     (TyTuple
+                        (_,
+                         [{ t =
+                            (TyN
+                               (Id (("TransportExceptionInterface", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (None);
+                                    id_flags = ref (2); id_info_id = _ }
+                                  )));
+                            t_attrs = [] }
+                           ],
+                         _));
+                     t_attrs = [] });
+             pdefault = None; pattrs = [];
+             pinfo =
+             { id_resolved = ref ((Some (Global, _)));
+               id_resolved_alternatives = ref ([]); id_type = ref (None);
+               id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+             }),
+        { s =
+          (Block
+             (_,
+              [{ s =
+                 (ExprStmt (
+                    { e =
+                      (StmtExpr
+                         { s =
+                           (Throw (_,
+                              { e =
+                                (New (_,
+                                   { t =
+                                     (TyExpr
+                                        { e =
+                                          (N
+                                             (Id (("TransportException", _),
+                                                { id_resolved = ref (None);
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (None);
+                                                  id_flags = ref (2);
+                                                  id_info_id = _ }
+                                                )));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> });
+                                     t_attrs = [] },
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ },
+                                   (_,
+                                    [(Arg
+                                        { e =
+                                          (L
+                                             (String
+                                                (_,
+                                                 ("Could not reach the remote SpotHit server.",
+                                                  _),
+                                                 _)));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> });
+                                      (Arg
+                                         { e =
+                                           (N
+                                              (Id (("$response", _),
+                                                 { id_resolved = ref (None);
+                                                   id_resolved_alternatives =
+                                                   ref ([]);
+                                                   id_type = ref (None);
+                                                   id_svalue = ref (None);
+                                                   id_flags = ref (2);
+                                                   id_info_id = _ }
+                                                 )));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> });
+                                      (Arg
+                                         { e = (L (Int ((Some 0L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> });
+                                      (Arg
+                                         { e =
+                                           (N
+                                              (Id (("$e", _),
+                                                 { id_resolved =
+                                                   ref ((Some (Global, _)));
+                                                   id_resolved_alternatives =
+                                                   ref ([]);
+                                                   id_type = ref (None);
+                                                   id_svalue = ref (None);
+                                                   id_flags = ref (2);
+                                                   id_info_id = _ }
+                                                 )));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> })
+                                      ],
+                                    _)
+                                   ));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                },
+                              _));
+                           s_range = None });
+                      e_id = 0; e_range = None; is_implicit_return = false;
+                      facts = <opaque> },
+                    _));
+                 s_range = None }
+                ],
+              _));
+          s_range = None });
+        (_,
+         (CatchParam
+            { pname = (Some ("$e", _));
+              ptype =
+              (Some { t =
+                      (TyTuple
+                         (_,
+                          [{ t =
+                             (TyN
+                                (Id (("HttpExceptionInterface", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (2); id_info_id = _ }
+                                   )));
+                             t_attrs = [] };
+                            { t =
+                              (TyN
+                                 (Id (("DecodingExceptionInterface", _),
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (None);
+                                      id_flags = ref (2); id_info_id = _ }
+                                    )));
+                              t_attrs = [] }
+                            ],
+                          _));
+                      t_attrs = [] });
+              pdefault = None; pattrs = [];
+              pinfo =
+              { id_resolved = ref ((Some (Global, _)));
+                id_resolved_alternatives = ref ([]); id_type = ref (None);
+                id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+              }),
+         { s =
+           (Block
+              (_,
+               [{ s =
+                  (ExprStmt (
+                     { e =
+                       (StmtExpr
+                          { s =
+                            (Throw (_,
+                               { e =
+                                 (New (_,
+                                    { t =
+                                      (TyExpr
+                                         { e =
+                                           (N
+                                              (Id (("TransportException", _),
+                                                 { id_resolved = ref (None);
+                                                   id_resolved_alternatives =
+                                                   ref ([]);
+                                                   id_type = ref (None);
+                                                   id_svalue = ref (None);
+                                                   id_flags = ref (2);
+                                                   id_info_id = _ }
+                                                 )));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> });
+                                      t_attrs = [] },
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (None);
+                                      id_flags = ref (0); id_info_id = _ },
+                                    (_,
+                                     [(Arg
+                                         { e =
+                                           (L
+                                              (String
+                                                 (_,
+                                                  ("Unexpected reply from the remote SpotHit server.",
+                                                   _),
+                                                  _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> });
+                                       (Arg
+                                          { e =
+                                            (N
+                                               (Id (("$response", _),
+                                                  { id_resolved = ref (None);
+                                                    id_resolved_alternatives =
+                                                    ref ([]);
+                                                    id_type = ref (None);
+                                                    id_svalue = ref (None);
+                                                    id_flags = ref (2);
+                                                    id_info_id = _ }
+                                                  )));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> });
+                                       (Arg
+                                          { e = (L (Int ((Some 0L), _)));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> });
+                                       (Arg
+                                          { e =
+                                            (N
+                                               (Id (("$e", _),
+                                                  { id_resolved =
+                                                    ref ((Some (Global, _)));
+                                                    id_resolved_alternatives =
+                                                    ref ([]);
+                                                    id_type = ref (None);
+                                                    id_svalue = ref (None);
+                                                    id_flags = ref (2);
+                                                    id_info_id = _ }
+                                                  )));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> })
+                                       ],
+                                     _)
+                                    ));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 },
+                               _));
+                            s_range = None });
+                       e_id = 0; e_range = None; is_implicit_return = false;
+                       facts = <opaque> },
+                     _));
+                  s_range = None }
+                 ],
+               _));
+           s_range = None })
+        ],
+      None, None));
+   s_range = None }
+  ]

@@ -1,0 +1,404 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("Direction", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
+       (ClassDef
+          { ckind = (Class, _); cextends = []; cimplements = [];
+            cmixins = []; cparams = (_, [], _);
+            cbody =
+            (_,
+             [(F
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("NORTH", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         attrs = []; tparams = None },
+                       (EnumEntryDef { ee_args = None; ee_body = None })));
+                   s_range = None });
+               (F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("SOUTH", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef { ee_args = None; ee_body = None })));
+                    s_range = None });
+               (F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("WEST", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef { ee_args = None; ee_body = None })));
+                    s_range = None });
+               (F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("EAST", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef { ee_args = None; ee_body = None })));
+                    s_range = None })
+               ],
+             _)
+            })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("Color", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
+        (ClassDef
+           { ckind = (Class, _); cextends = []; cimplements = [];
+             cmixins = [];
+             cparams =
+             (_,
+              [(Param
+                  { pname = (Some ("rgb", _));
+                    ptype =
+                    (Some { t =
+                            (TyN
+                               (Id (("Int", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (None);
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )));
+                            t_attrs = [] });
+                    pdefault = None; pattrs = [(KeywordAttr (Const, _))];
+                    pinfo =
+                    { id_resolved = ref ((Some (Parameter, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type =
+                      ref ((Some { t =
+                                   (TyN
+                                      (Id (("Int", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [] }));
+                      id_svalue = ref (None); id_flags = ref (0);
+                      id_info_id = _ }
+                    })
+                ],
+              _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("RED", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef
+                           { ee_args =
+                             (Some (_,
+                                    [(Arg
+                                        { e = (L (Int ((Some 16711680L), _)));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> })
+                                      ],
+                                    _));
+                             ee_body = None })));
+                    s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("GREEN", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs = []; tparams = None },
+                         (EnumEntryDef
+                            { ee_args =
+                              (Some (_,
+                                     [(Arg
+                                         { e = (L (Int ((Some 65280L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> })
+                                       ],
+                                     _));
+                              ee_body = None })));
+                     s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("BLUE", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs = []; tparams = None },
+                         (EnumEntryDef
+                            { ee_args =
+                              (Some (_,
+                                     [(Arg
+                                         { e = (L (Int ((Some 255L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> })
+                                       ],
+                                     _));
+                              ee_body = None })));
+                     s_range = None })
+                ],
+              _)
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("ProtocolState", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
+        (ClassDef
+           { ckind = (Class, _); cextends = []; cimplements = [];
+             cmixins = []; cparams = (_, [], _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("WAITING", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef
+                           { ee_args = None;
+                             ee_body =
+                             (Some (_,
+                                    [(F
+                                        { s =
+                                          (DefStmt
+                                             ({ name =
+                                                (EN
+                                                   (Id (("signal", _),
+                                                      { id_resolved =
+                                                        ref (None);
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (None);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      )));
+                                                attrs =
+                                                [(KeywordAttr (Override, _))];
+                                                tparams = None },
+                                              (FuncDef
+                                                 { fkind = (Function, _);
+                                                   fparams = (_, [], _);
+                                                   frettype = None;
+                                                   fbody =
+                                                   (FBExpr
+                                                      { e =
+                                                        (N
+                                                           (Id (
+                                                              ("TALKING", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (None);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        e_id = 0;
+                                                        e_range = None;
+                                                        is_implicit_return =
+                                                        false;
+                                                        facts = <opaque> })
+                                                   })));
+                                          s_range = None })
+                                      ],
+                                    _))
+                             })));
+                    s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("TALKING", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs = []; tparams = None },
+                         (EnumEntryDef
+                            { ee_args = None;
+                              ee_body =
+                              (Some (_,
+                                     [(F
+                                         { s =
+                                           (DefStmt
+                                              ({ name =
+                                                 (EN
+                                                    (Id (("signal", _),
+                                                       { id_resolved =
+                                                         ref (None);
+                                                         id_resolved_alternatives =
+                                                         ref ([]);
+                                                         id_type = ref (None);
+                                                         id_svalue =
+                                                         ref (None);
+                                                         id_flags = ref (0);
+                                                         id_info_id = _ }
+                                                       )));
+                                                 attrs =
+                                                 [(KeywordAttr (Override, _))
+                                                   ];
+                                                 tparams = None },
+                                               (FuncDef
+                                                  { fkind = (Function, _);
+                                                    fparams = (_, [], _);
+                                                    frettype = None;
+                                                    fbody =
+                                                    (FBExpr
+                                                       { e =
+                                                         (N
+                                                            (Id (
+                                                               ("WAITING", _),
+                                                               { id_resolved =
+                                                                 ref (None);
+                                                                 id_resolved_alternatives =
+                                                                 ref (
+                                                                 []);
+                                                                 id_type =
+                                                                 ref (None);
+                                                                 id_svalue =
+                                                                 ref (None);
+                                                                 id_flags =
+                                                                 ref (0);
+                                                                 id_info_id =
+                                                                 _ }
+                                                               )));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> })
+                                                    })));
+                                           s_range = None })
+                                       ],
+                                     _))
+                              })));
+                     s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("signal", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs = [(KeywordAttr (Abstract, _))];
+                           tparams = None },
+                         (FuncDef
+                            { fkind = (Function, _); fparams = (_, [], _);
+                              frettype =
+                              (Some { t =
+                                      (TyN
+                                         (Id (("ProtocolState", _),
+                                            { id_resolved = ref (None);
+                                              id_resolved_alternatives =
+                                              ref ([]); id_type = ref (None);
+                                              id_svalue = ref (None);
+                                              id_flags = ref (0);
+                                              id_info_id = _ }
+                                            )));
+                                      t_attrs = [] });
+                              fbody = (FBDecl _) })));
+                     s_range = None })
+                ],
+              _)
+             })));
+    s_range = None }
+  ]

@@ -157,7 +157,6 @@ let test_dump_config (caps : < caps ; .. >) : Testo.t =
         (* because of the use of Xpattern.count global for pattern id *)
         Testo.mask_pcre_pattern {|pid\s*=\s*[0-9]+|} ~replace:(fun _ ->
             "pid = <MASKED NUM>");
-        mask_id_info_id;
         normalize_whitespace;
       ]
     __FUNCTION__

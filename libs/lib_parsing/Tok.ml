@@ -133,10 +133,26 @@ let pp_full_token_info = ref false
 (* for ppx_deriving *)
 let generated_pp = pp
 
+(*
+   By default, hide locations because:
+   - they take a lot of visual space when reviewing an AST
+   - Windows paths are printed with backslashes, causing mismatches in tests
+*)
 let pp fmt t =
   if !pp_full_token_info then generated_pp fmt t else Format.fprintf fmt "_"
 
 let pp_t_always_equal fmt t = pp fmt t
+
+(* Override the pretty-printer for the location type
+
+   This is used somewhere in the AST where the location is used independently
+   from tokens.
+*)
+let generated_pp_location = pp_location
+
+let pp_location fmt x =
+  if !pp_full_token_info then generated_pp_location fmt x
+  else Format.fprintf fmt "_"
 
 (*****************************************************************************)
 (* Fake tokens (safe and unsafe) *)

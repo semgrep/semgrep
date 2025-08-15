@@ -1,0 +1,17 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("SId", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (ModuleDef
+          { mbody =
+            (OtherModule (("App", _),
+               [(ModDk (ModuleAlias [("Gensym", _); ("MkId", _)]))]))
+            })));
+   s_range = None }
+  ]

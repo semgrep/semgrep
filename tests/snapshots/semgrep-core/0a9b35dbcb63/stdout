@@ -1,0 +1,94 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("Foo", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (ClassDef
+          { ckind = (Trait, _); cextends = []; cimplements = [];
+            cmixins = []; cparams = (_, [], _);
+            cbody =
+            (_,
+             [(F
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("bar", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         attrs = []; tparams = None },
+                       (FuncDef
+                          { fkind = (Method, _);
+                            fparams =
+                            (_,
+                             [(ParamRest (_,
+                                 { pname = (Some ("x", _));
+                                   ptype =
+                                   (Some { t =
+                                           (OtherType (("TyRepeated", _),
+                                              [(T
+                                                  { t =
+                                                    (TyN
+                                                       (Id (("T", _),
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    t_attrs = [] });
+                                                (Tk _)]
+                                              ));
+                                           t_attrs = [] });
+                                   pdefault = None;
+                                   pattrs = [(KeywordAttr (Lazy, _))];
+                                   pinfo =
+                                   { id_resolved =
+                                     ref ((Some (Parameter, _)));
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   }
+                                 ))
+                               ],
+                             _);
+                            frettype =
+                            (Some { t =
+                                    (TyN
+                                       (Id (("Int", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    t_attrs = [] });
+                            fbody =
+                            (FBExpr
+                               { e = (L (Int ((Some 3L), _))); e_id = 0;
+                                 e_range = None; is_implicit_return = true;
+                                 facts = <opaque> })
+                            })));
+                   s_range = None })
+               ],
+             _)
+            })));
+   s_range = None }
+  ]

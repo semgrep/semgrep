@@ -26,6 +26,24 @@ let tests_path_parsing_todo = tests_path / "parsing_todo"
 
 type error_tolerance = Strict | Missing_tokens | Partial_parsing | Todo
 
+(* Recommended except if it's too big *)
+let snapshot_ast (lang : Lang.t) =
+  match lang with
+  | Jsonnet ->
+      (* spends forever trying to dump an AST (?) *)
+      false
+  | Yaml ->
+      (* needed to catch incorrect parsing of scalars such as mistaking
+         'nan' for a float. *)
+      true
+  | _ ->
+      (* Lots of snapshots for all languages.
+         For many languages, snapshots were added long after the parsing
+         tests existed. We used to only check whether an exception
+         was raised. Now we can catch non-fatal changes in how
+         the input program is interpreted. *)
+      true
+
 (*
    Strict parsing: errors due to missing (inserted) tokens are not tolerated
    in these tests.
@@ -33,10 +51,22 @@ type error_tolerance = Strict | Missing_tokens | Partial_parsing | Todo
 let parsing_tests_for_lang ?expected_outcome files lang =
   files
   |> List_.map (fun file ->
-         Testo.create ?expected_outcome ~tags:(Test_tags.tags_of_lang lang)
-           (Filename.basename file) (fun () ->
-             Parse_target.parse_and_resolve_name_strict lang (Fpath.v file)
-             |> ignore))
+         let checked_output =
+           (* Due to a bug in Testo, we can't approve the output of
+              a test that fails due to an exception.
+              TODO: fix it (I thought I already did but I guess I didn't)
+           *)
+           if snapshot_ast lang && Option.is_none expected_outcome then
+             Some (Testo.stdout ())
+           else None
+         in
+         Testo.create ?checked_output ?expected_outcome
+           ~tags:(Test_tags.tags_of_lang lang) (Filename.basename file)
+           (fun () ->
+             let ast =
+               Parse_target.parse_and_resolve_name_strict lang (Fpath.v file)
+             in
+             print_string (AST_generic.show_program ast)))
 
 (* Parsing is expected to succeed with only tolerable parsing errors
    (assumed to be "missing token" nodes inserted by tree-sitter) *)
@@ -235,6 +265,7 @@ let langs_with_error_tolerance =
     (Lang.Protobuf, Todo);
     (Lang.Promql, Strict);
     (Lang.Terraform, Strict);
+    (Lang.Yaml, Strict);
     (* a few parsing tests where we expect some partials
      * See cpp/parsing_partial/
      *)

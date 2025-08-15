@@ -1,0 +1,143 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("multi_return", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (Static, _))]; tparams = None },
+       (FuncDef
+          { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+            fbody =
+            (FBStmt
+               { s =
+                 (Block
+                    (_,
+                     [{ s =
+                        (Return (_,
+                           (Some { e =
+                                   (Container (Tuple,
+                                      (_,
+                                       [{ e = (L (Float ((Some 1.), _)));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> };
+                                         { e =
+                                           (L (String (_, ("foo", _), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> };
+                                         { e =
+                                           (Lambda
+                                              { fkind = (Function, _);
+                                                fparams =
+                                                (_, [(ParamEllipsis _)], _);
+                                                frettype = None;
+                                                fbody =
+                                                (FBStmt
+                                                   { s =
+                                                     (Block
+                                                        (_,
+                                                         [{ s =
+                                                            (Return (_,
+                                                               (Some 
+                                                               { e =
+                                                                 (Container (
+                                                                    Tuple,
+                                                                    (
+                                                                    _,
+                                                                    [{ e =
+                                                                    (Call (
+                                                                    { e =
+                                                                    (N
+                                                                    (Id (
+                                                                    ("select",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    },
+                                                                    (_,
+                                                                    [(Arg
+                                                                    { e =
+                                                                    (L
+                                                                    (Float
+                                                                    ((Some 1.),
+                                                                    _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    });
+                                                                    (Arg
+                                                                    { e =
+                                                                    (Ellipsis
+                                                                    _);
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    })], _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }], _)));
+                                                                 e_id = 0;
+                                                                 e_range =
+                                                                 None;
+                                                                 is_implicit_return =
+                                                                 false;
+                                                                 facts =
+                                                                 <opaque> }),
+                                                               _));
+                                                            s_range = None }
+                                                           ],
+                                                         _));
+                                                     s_range = None })
+                                                });
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> }
+                                         ],
+                                       _)
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> }),
+                           _));
+                        s_range = None }
+                       ],
+                     _));
+                 s_range = None })
+            })));
+   s_range = None }
+  ]

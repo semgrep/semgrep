@@ -1,0 +1,468 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("abc", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (Async, _))]; tparams = None },
+       (FuncDef
+          { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+            fbody = (FBStmt { s = (Block (_, [], _)); s_range = None }) })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (Async, _))]; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (DefStmt
+                            ({ name =
+                               (EPattern
+                                  (PatId (("x", _),
+                                     { id_resolved =
+                                       ref ((Some (LocalVar, _)));
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (None);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               attrs = []; tparams = None },
+                             (VarDef
+                                { vinit =
+                                  (Some { e =
+                                          (Call (
+                                             { e = (Special ((Op Elvis), _));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> },
+                                             (_,
+                                              [(Arg
+                                                  { e =
+                                                    (Await (_,
+                                                       { e =
+                                                         (N
+                                                            (Id (
+                                                               ("futures", _),
+                                                               { id_resolved =
+                                                                 ref (None);
+                                                                 id_resolved_alternatives =
+                                                                 ref (
+                                                                 []);
+                                                                 id_type =
+                                                                 ref (None);
+                                                                 id_svalue =
+                                                                 ref (None);
+                                                                 id_flags =
+                                                                 ref (0);
+                                                                 id_info_id =
+                                                                 _ }
+                                                               )));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> }
+                                                       ));
+                                                    e_id = 0; e_range = None;
+                                                    is_implicit_return =
+                                                    false; facts = <opaque> })
+                                                ],
+                                              _)
+                                             ));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = true;
+                                          facts = <opaque> });
+                                  vtype = None; vtok = (Some _) })));
+                         s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (Async, _))]; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e =
+                              (Await (_,
+                                 { e =
+                                   (N
+                                      (Id (("futures", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> }
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e = (Special ((Op Elvis), _)); e_id = 0;
+                                    e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(Arg
+                                       { e =
+                                         (Await (_,
+                                            { e =
+                                              (N
+                                                 (Id (("futures", _),
+                                                    { id_resolved =
+                                                      ref (None);
+                                                      id_resolved_alternatives =
+                                                      ref ([]);
+                                                      id_type = ref (None);
+                                                      id_svalue = ref (None);
+                                                      id_flags = ref (0);
+                                                      id_info_id = _ }
+                                                    )));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> }
+                                            ));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> })
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e = (Special ((Op Elvis), _)); e_id = 0;
+                                    e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(Arg
+                                       { e =
+                                         (Await (_,
+                                            { e =
+                                              (Call (
+                                                 { e =
+                                                   (Special ((Op Elvis), _));
+                                                   e_id = 0; e_range = None;
+                                                   is_implicit_return = false;
+                                                   facts = <opaque> },
+                                                 (_,
+                                                  [(Arg
+                                                      { e =
+                                                        (Await (_,
+                                                           { e =
+                                                             (N
+                                                                (Id (
+                                                                   ("futures",
+                                                                    _),
+                                                                   { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ }
+                                                                   )));
+                                                             e_id = 0;
+                                                             e_range = None;
+                                                             is_implicit_return =
+                                                             false;
+                                                             facts = <opaque>
+                                                             }
+                                                           ));
+                                                        e_id = 0;
+                                                        e_range = None;
+                                                        is_implicit_return =
+                                                        false;
+                                                        facts = <opaque> })
+                                                    ],
+                                                  _)
+                                                 ));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> }
+                                            ));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> })
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e = (Special ((Op Elvis), _)); e_id = 0;
+                                    e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(Arg
+                                       { e =
+                                         (Await (_,
+                                            { e =
+                                              (Call (
+                                                 { e =
+                                                   (DotAccess (
+                                                      { e =
+                                                        (Call (
+                                                           { e =
+                                                             (Special
+                                                                ((Op Elvis),
+                                                                 _));
+                                                             e_id = 0;
+                                                             e_range = None;
+                                                             is_implicit_return =
+                                                             false;
+                                                             facts = <opaque>
+                                                             },
+                                                           (_,
+                                                            [(Arg
+                                                                { e =
+                                                                  (Await (_,
+                                                                    { e =
+                                                                    (N
+                                                                    (Id (
+                                                                    ("futures",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }));
+                                                                  e_id = 0;
+                                                                  e_range =
+                                                                  None;
+                                                                  is_implicit_return =
+                                                                  false;
+                                                                  facts =
+                                                                  <opaque> })
+                                                              ],
+                                                            _)
+                                                           ));
+                                                        e_id = 0;
+                                                        e_range = None;
+                                                        is_implicit_return =
+                                                        false;
+                                                        facts = <opaque> },
+                                                      _,
+                                                      (FN
+                                                         (Id (
+                                                            ("function", _),
+                                                            { id_resolved =
+                                                              ref (None);
+                                                              id_resolved_alternatives =
+                                                              ref ([]);
+                                                              id_type =
+                                                              ref ((Some 
+                                                              { t =
+                                                                (TyFun (
+                                                                   [(OtherParam (
+                                                                    ("TODO",
+                                                                    _), 
+                                                                    []))],
+                                                                   { t =
+                                                                    (OtherType (
+                                                                    ("TODO",
+                                                                    _), 
+                                                                    []));
+                                                                    t_attrs =
+                                                                    [] }
+                                                                   ));
+                                                                t_attrs = []
+                                                                }));
+                                                              id_svalue =
+                                                              ref (None);
+                                                              id_flags =
+                                                              ref (0);
+                                                              id_info_id = _
+                                                              }
+                                                            )))
+                                                      ));
+                                                   e_id = 0; e_range = None;
+                                                   is_implicit_return = false;
+                                                   facts = <opaque> },
+                                                 (_, [], _)));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> }
+                                            ));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> })
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = true; facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (Async, _))]; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (OtherStmtWithStmt ((OSWS_Block ("Async", _)), 
+                            [], { s = (Block (_, [], _)); s_range = None }));
+                         s_range = None };
+                        { s =
+                          (OtherStmtWithStmt ((OSWS_Block ("Async", _)), 
+                             [],
+                             { s =
+                               (Block
+                                  (_,
+                                   [{ s =
+                                      (DefStmt
+                                         ({ name =
+                                            (EPattern
+                                               (PatId (("x", _),
+                                                  { id_resolved =
+                                                    ref ((Some (LocalVar, _)));
+                                                    id_resolved_alternatives =
+                                                    ref ([]);
+                                                    id_type =
+                                                    ref ((Some { t =
+                                                                 (TyN
+                                                                    (
+                                                                    Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                 t_attrs = []
+                                                                 }));
+                                                    id_svalue = ref (None);
+                                                    id_flags = ref (0);
+                                                    id_info_id = _ }
+                                                  )));
+                                            attrs = []; tparams = None },
+                                          (VarDef
+                                             { vinit =
+                                               (Some { e =
+                                                       (L
+                                                          (Int
+                                                             ((Some 10L), _)));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> });
+                                               vtype = None; vtok = (Some _)
+                                               })));
+                                      s_range = None }
+                                     ],
+                                   _));
+                               s_range = None }
+                             ));
+                          s_range = None };
+                        { s =
+                          (OtherStmtWithStmt ((OSWS_Block ("Async", _)), 
+                             [], { s = (Block (_, [], _)); s_range = None }));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None }
+  ]

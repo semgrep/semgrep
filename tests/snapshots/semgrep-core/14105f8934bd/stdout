@@ -1,0 +1,6 @@
+[{ s =
+   (DirectiveStmt
+      { d = (OtherDirective (("ExternAlias", _), [(I ("Foo", _)); (Tk _)]));
+        d_attrs = [] });
+   s_range = None }
+  ]

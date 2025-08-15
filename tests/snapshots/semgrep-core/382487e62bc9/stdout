@@ -1,0 +1,396 @@
+[{ s =
+   (RawStmt
+      (List
+         [(Case ("Form",
+             (Case ("List_lit",
+                (Tuple
+                   [(Token ("(", _));
+                     (List
+                        [(Case ("Form",
+                            (Case ("Sym_lit", (Token ("require", _))))));
+                          (Case ("Form",
+                             (Case ("Quot_lit",
+                                (Tuple
+                                   [(Token ("'", _));
+                                     (Case ("Vec_lit",
+                                        (Tuple
+                                           [(Token ("[", _));
+                                             (List
+                                                [(Case ("Form",
+                                                    (Case ("Sym_lit",
+                                                       (Token
+                                                          ("clojure.xml", _))
+                                                       ))
+                                                    ));
+                                                  (Case ("Form",
+                                                     (Case ("Kwd_lit",
+                                                        (Token (":as", _))))
+                                                     ));
+                                                  (Case ("Form",
+                                                     (Case ("Sym_lit",
+                                                        (Token ("xml", _))))
+                                                     ))
+                                                  ]);
+                                             (Token ("]", _))])
+                                        ))
+                                     ])
+                                ))
+                             ));
+                          (Case ("Form",
+                             (Case ("Quot_lit",
+                                (Tuple
+                                   [(Token ("'", _));
+                                     (Case ("Vec_lit",
+                                        (Tuple
+                                           [(Token ("[", _));
+                                             (List
+                                                [(Case ("Form",
+                                                    (Case ("Sym_lit",
+                                                       (Token
+                                                          ("clojure.zip", _))
+                                                       ))
+                                                    ));
+                                                  (Case ("Form",
+                                                     (Case ("Kwd_lit",
+                                                        (Token (":as", _))))
+                                                     ));
+                                                  (Case ("Form",
+                                                     (Case ("Sym_lit",
+                                                        (Token ("zip", _))))
+                                                     ))
+                                                  ]);
+                                             (Token ("]", _))])
+                                        ))
+                                     ])
+                                ))
+                             ))
+                          ]);
+                     (Token (")", _))])
+                ))
+             ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit", (Token ("defn", _))))));
+                           (Case ("Form",
+                              (Case ("Sym_lit", (Token ("zip-str", _))))));
+                           (Case ("Form",
+                              (Case ("Vec_lit",
+                                 (Tuple
+                                    [(Token ("[", _));
+                                      (List
+                                         [(Case ("Form",
+                                             (Case ("Sym_lit",
+                                                (Token ("s", _))))
+                                             ))
+                                           ]);
+                                      (Token ("]", _))])
+                                 ))
+                              ));
+                           (Case ("Form",
+                              (Case ("List_lit",
+                                 (Tuple
+                                    [(Token ("(", _));
+                                      (List
+                                         [(Case ("Form",
+                                             (Case ("Sym_lit",
+                                                (List
+                                                   [(Token ("zip", _));
+                                                     (Token ("xml-zip", _))])
+                                                ))
+                                             ));
+                                           (Case ("Form",
+                                              (Case ("List_lit",
+                                                 (Tuple
+                                                    [(Token ("(", _));
+                                                      (List
+                                                         [(Case ("Form",
+                                                             (Case (
+                                                                "Sym_lit",
+                                                                (List
+                                                                   [(Token
+                                                                    ("xml", _));
+                                                                    (Token
+                                                                    ("parse",
+                                                                    _))])
+                                                                ))
+                                                             ));
+                                                           (Case ("Form",
+                                                              (Case (
+                                                                 "List_lit",
+                                                                 (Tuple
+                                                                    [(Token
+                                                                    ("(", _));
+                                                                    (List
+                                                                    [(Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Sym_lit",
+                                                                    (Token
+                                                                    ("java.io.ByteArrayInputStream.",
+                                                                    _))))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "List_lit",
+                                                                    (Tuple
+                                                                    [(Token
+                                                                    ("(", _));
+                                                                    (List
+                                                                    [(Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Sym_lit",
+                                                                    (Token
+                                                                    (".getBytes",
+                                                                    _))))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Sym_lit",
+                                                                    (Token
+                                                                    ("s", _))
+                                                                    ))))]);
+                                                                    (Token
+                                                                    (")", _))
+                                                                    ])))))]);
+                                                                    (Token
+                                                                    (")", _))
+                                                                    ])
+                                                                 ))
+                                                              ))
+                                                           ]);
+                                                      (Token (")", _))])
+                                                 ))
+                                              ))
+                                           ]);
+                                      (Token (")", _))])
+                                 ))
+                              ))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit", (Token ("zip-str", _))))));
+                           (Case ("Form",
+                              (Case ("Str_lit",
+                                 (Token ("\"<a href='test.com'/>\"", _))))
+                              ))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("Vec_lit",
+                 (Tuple
+                    [(Token ("[", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Map_lit",
+                                (Tuple
+                                   [(Token ("{", _));
+                                     (List
+                                        [(Case ("Form",
+                                            (Case ("Kwd_lit",
+                                               (Token (":tag", _))))
+                                            ));
+                                          (Case ("Form",
+                                             (Case ("Kwd_lit",
+                                                (Token (":a", _))))
+                                             ));
+                                          (Case ("Form",
+                                             (Case ("Kwd_lit",
+                                                (Token (":attrs", _))))
+                                             ));
+                                          (Case ("Form",
+                                             (Case ("Map_lit",
+                                                (Tuple
+                                                   [(Token ("{", _));
+                                                     (List
+                                                        [(Case ("Form",
+                                                            (Case ("Kwd_lit",
+                                                               (Token
+                                                                  (":href", _))
+                                                               ))
+                                                            ));
+                                                          (Case ("Form",
+                                                             (Case (
+                                                                "Str_lit",
+                                                                (Token
+                                                                   ("\"test.com\"",
+                                                                    _))
+                                                                ))
+                                                             ))
+                                                          ]);
+                                                     (Token ("}", _))])
+                                                ))
+                                             ));
+                                          (Case ("Form",
+                                             (Case ("Kwd_lit",
+                                                (Token (":content", _))))
+                                             ));
+                                          (Case ("Form",
+                                             (Case ("Nil_lit",
+                                                (Token ("nil", _))))
+                                             ))
+                                          ]);
+                                     (Token ("}", _))])
+                                ))
+                             ));
+                           (Case ("Form",
+                              (Case ("Nil_lit", (Token ("nil", _))))))
+                           ]);
+                      (Token ("]", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit", (Token ("println", _))))));
+                           (Case ("Form",
+                              (Case ("List_lit",
+                                 (Tuple
+                                    [(Token ("(", _));
+                                      (List
+                                         [(Case ("Form",
+                                             (Case ("Sym_lit",
+                                                (List
+                                                   [(Token ("xml", _));
+                                                     (Token
+                                                        ("emit-element", _))
+                                                     ])
+                                                ))
+                                             ));
+                                           (Case ("Form",
+                                              (Case ("List_lit",
+                                                 (Tuple
+                                                    [(Token ("(", _));
+                                                      (List
+                                                         [(Case ("Form",
+                                                             (Case (
+                                                                "Sym_lit",
+                                                                (List
+                                                                   [(Token
+                                                                    ("zip", _));
+                                                                    (Token
+                                                                    ("root",
+                                                                    _))])
+                                                                ))
+                                                             ));
+                                                           (Case ("Form",
+                                                              (Case (
+                                                                 "Vec_lit",
+                                                                 (Tuple
+                                                                    [(Token
+                                                                    ("[", _));
+                                                                    (List
+                                                                    [(Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Map_lit",
+                                                                    (Tuple
+                                                                    [(Token
+                                                                    ("{", _));
+                                                                    (List
+                                                                    [(Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Kwd_lit",
+                                                                    (Token
+                                                                    (":tag",
+                                                                    _))))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Kwd_lit",
+                                                                    (Token
+                                                                    (":a", _))
+                                                                    ))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Kwd_lit",
+                                                                    (Token
+                                                                    (":attrs",
+                                                                    _))))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Map_lit",
+                                                                    (Tuple
+                                                                    [(Token
+                                                                    ("{", _));
+                                                                    (List
+                                                                    [(Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Kwd_lit",
+                                                                    (Token
+                                                                    (":href",
+                                                                    _))))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Str_lit",
+                                                                    (Token
+                                                                    ("\"test.com\"",
+                                                                    _))))))]);
+                                                                    (Token
+                                                                    ("}", _))
+                                                                    ])))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Kwd_lit",
+                                                                    (Token
+                                                                    (":content",
+                                                                    _))))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Nil_lit",
+                                                                    (Token
+                                                                    ("nil", _))
+                                                                    ))))]);
+                                                                    (Token
+                                                                    ("}", _))
+                                                                    ])))));
+                                                                    (Case (
+                                                                    "Form",
+                                                                    (Case (
+                                                                    "Nil_lit",
+                                                                    (Token
+                                                                    ("nil", _))
+                                                                    ))))]);
+                                                                    (Token
+                                                                    ("]", _))
+                                                                    ])
+                                                                 ))
+                                                              ))
+                                                           ]);
+                                                      (Token (")", _))])
+                                                 ))
+                                              ))
+                                           ]);
+                                      (Token (")", _))])
+                                 ))
+                              ))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ))
+           ]));
+   s_range = None }
+  ]

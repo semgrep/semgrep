@@ -1,0 +1,29 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Call (
+           { e =
+             (N
+                (Id (("foo", _),
+                   { id_resolved = ref (None);
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (None);
+                     id_flags = ref (0); id_info_id = 315 }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           (_,
+            [(Arg
+                { e = (L (Float ((Some 1.), _))); e_id = 0; e_range = None;
+                  is_implicit_return = false; facts = <opaque> });
+              (Arg
+                 { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> })
+              ],
+            _)
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

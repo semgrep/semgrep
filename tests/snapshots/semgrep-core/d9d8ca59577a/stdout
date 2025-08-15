@@ -1,0 +1,182 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("Tireur", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (ClassDef
+          { ckind = (Class, _); cextends = []; cimplements = [];
+            cmixins = []; cparams = (_, [], _);
+            cbody =
+            (_,
+             [(F
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("cibleVis\195\169e", _),
+                               { id_resolved = ref ((Some (EnclosedVar, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type =
+                                 ref ((Some { t =
+                                              (TyN
+                                                 (Id (("string", _),
+                                                    { id_resolved =
+                                                      ref (None);
+                                                      id_resolved_alternatives =
+                                                      ref ([]);
+                                                      id_type = ref (None);
+                                                      id_svalue = ref (None);
+                                                      id_flags = ref (0);
+                                                      id_info_id = _ }
+                                                    )));
+                                              t_attrs = [] }));
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         attrs = [(KeywordAttr (Private, _))]; tparams = None
+                         },
+                       (VarDef
+                          { vinit = None;
+                            vtype =
+                            (Some { t =
+                                    (TyN
+                                       (Id (("string", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    t_attrs = [] });
+                            vtok = None })));
+                   s_range = None })
+               ],
+             _)
+            })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("Usecase", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (Public, _))]; tparams = None },
+        (ClassDef
+           { ckind = (Class, _); cextends = []; cimplements = [];
+             cmixins = []; cparams = (_, [], _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("Usecase", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = [(KeywordAttr (Public, _))]; tparams = None
+                          },
+                        (FuncDef
+                           { fkind = (Method, _); fparams = (_, [], _);
+                             frettype = None;
+                             fbody =
+                             (FBStmt
+                                { s = (Block (_, [], _)); s_range = None })
+                             })));
+                    s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("ex\195\169cuter", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs = [(KeywordAttr (Public, _))];
+                           tparams = None },
+                         (FuncDef
+                            { fkind = (Method, _);
+                              fparams =
+                              (_,
+                               [(Param
+                                   { pname = (Some ("commande", _));
+                                     ptype =
+                                     (Some { t =
+                                             (TyN
+                                                (Id (("Commande", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             t_attrs = [] });
+                                     pdefault = None; pattrs = [];
+                                     pinfo =
+                                     { id_resolved =
+                                       ref ((Some (Parameter, _)));
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type =
+                                       ref ((Some { t =
+                                                    (TyN
+                                                       (Id (("Commande", _),
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    t_attrs = [] }));
+                                       id_svalue = ref (None);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     })
+                                 ],
+                               _);
+                              frettype =
+                              (Some { t =
+                                      (TyN
+                                         (Id (("void", _),
+                                            { id_resolved = ref (None);
+                                              id_resolved_alternatives =
+                                              ref ([]); id_type = ref (None);
+                                              id_svalue = ref (None);
+                                              id_flags = ref (0);
+                                              id_info_id = _ }
+                                            )));
+                                      t_attrs = [] });
+                              fbody =
+                              (FBStmt
+                                 { s = (Block (_, [], _)); s_range = None })
+                              })));
+                     s_range = None })
+                ],
+              _)
+             })));
+    s_range = None }
+  ]

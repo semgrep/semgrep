@@ -1,0 +1,93 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("test_rules", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs =
+         [(NamedAttr (_,
+             (Id (("action", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )),
+             (_, [], _)))
+           ];
+         tparams = None },
+       (FuncDef
+          { fkind = (Function, _);
+            fparams =
+            (_,
+             [(Param
+                 { pname = (Some ("caps", _));
+                   ptype =
+                   (Some { t = (OtherType (("Object", _), [])); t_attrs = []
+                           });
+                   pdefault = None; pattrs = [];
+                   pinfo =
+                   { id_resolved = ref ((Some (Parameter, _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type =
+                     ref ((Some { t = (OtherType (("Object", _), []));
+                                  t_attrs = [] }));
+                     id_svalue = ref (None); id_flags = ref (0);
+                     id_info_id = _ }
+                   })
+               ],
+             _);
+            frettype =
+            (Some { t =
+                    (TyN
+                       (Id (("unit", _),
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    t_attrs = [] });
+            fbody =
+            (FBStmt
+               { s =
+                 (OtherStmt (OS_ExprStmt2,
+                    [(E
+                        { e =
+                          (DotAccess (
+                             { e =
+                               (N
+                                  (Id (("caps", _),
+                                     { id_resolved =
+                                       ref ((Some (Parameter, _)));
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type =
+                                       ref ((Some { t =
+                                                    (OtherType (
+                                                       ("Object", _), 
+                                                       []));
+                                                    t_attrs = [] }));
+                                       id_svalue = ref (None);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _,
+                             (FN
+                                (Id (("exit", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   )))
+                             ));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> })
+                      ]
+                    ));
+                 s_range = None })
+            })));
+   s_range = None }
+  ]

@@ -1,0 +1,41 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("foo", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e =
+                    (Lambda
+                       { fkind = (Function, _);
+                         fparams =
+                         (_,
+                          [(Param
+                              { pname = (Some ("_caps", _)); ptype = None;
+                                pdefault = None; pattrs = [];
+                                pinfo =
+                                { id_resolved = ref ((Some (Parameter, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                })
+                            ],
+                          _);
+                         frettype = None;
+                         fbody =
+                         (FBExpr
+                            { e = (L (Bool (true, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> })
+                         });
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+            vtype = None; vtok = (Some _) })));
+   s_range = None }
+  ]

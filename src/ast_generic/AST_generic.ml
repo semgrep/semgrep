@@ -214,6 +214,15 @@ open Sexplib.Std
 (* ppx_hash refuses to hash mutable fields but we do it anyway. *)
 let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 
+(* This is used to hide id_info_id values and other IDs whose value
+   changes depending on the context due to the use of global counters.
+   Using [@opaque] didn't work, triggering a weird type error on the giant
+   visitor class.
+
+   TODO: don't use global counters or at least reset them when starting a test.
+*)
+let pp_hidden fmt _ = Format.fprintf fmt "_"
+
 (*****************************************************************************)
 (* Token (leaf) *)
 (*****************************************************************************)
@@ -303,7 +312,7 @@ module IdInfoId = Gensym.MkId ()
  * Resolve_xxx.resolve) on the generic AST to set it correctly.
  *)
 (* a single unique gensym'ed number. *)
-type sid = SId.t
+type sid = (SId.t[@printer pp_hidden])
 and resolved_name = resolved_name_kind * sid
 
 and resolved_name_kind =
@@ -643,7 +652,8 @@ and id_info = {
    * have to compare 'id_flags' anyways. *)
   id_flags : id_flags ref; [@hash.ignore] [@equal fun _a _b -> true]
   (* this is used by Naming_SAST in semgrep-pro *)
-  id_info_id : id_info_id; [@hash.ignore] [@equal fun _a _b -> true]
+  id_info_id : id_info_id;
+      [@hash.ignore] [@equal fun _a _b -> true] [@printer pp_hidden]
 }
 
 (* See explanation for @name where the visitors are generated at the end of
@@ -2278,7 +2288,11 @@ let p x = x
 (* For Naming_SAST.ml in semgrep-pro.
  * This can be reseted to 0 before parsing each file, or not. It does
  * not matter as the couple (filename, id_info_id) is unique.
- *)
+
+   TODO: don't use a global counter so that we get reproducible parsing results
+   Please initialize fresh counters for each semgrep session and in particular
+   for each test so that we don't have to mask these IDs in test snapshots.
+*)
 let id_info_id = IdInfoId.mk
 let empty_var = { vinit = None; vtype = None; vtok = no_sc }
 

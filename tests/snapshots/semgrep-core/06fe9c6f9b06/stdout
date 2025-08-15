@@ -1,0 +1,58 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Xml
+           { xml_kind = (XmlFragment (_, _)); xml_attrs = [];
+             xml_body =
+             [(XmlXml
+                 { xml_kind =
+                   (XmlSingleton (_,
+                      (Id (("xml", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (None);
+                           id_flags = ref (0); id_info_id = _ }
+                         )),
+                      _));
+                   xml_attrs =
+                   [(XmlAttr (("version", _), _,
+                       { e = (L (String (_, ("1.0", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> }
+                       ));
+                     (XmlAttr (("encoding", _), _,
+                        { e = (L (String (_, ("UTF-8", _), _))); e_id = 0;
+                          e_range = None; is_implicit_return = false;
+                          facts = <opaque> }
+                        ))
+                     ];
+                   xml_body = [] });
+               (XmlXml
+                  { xml_kind =
+                    (XmlClassic (_,
+                       (Id (("xs:schema", _),
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          )),
+                       _, _));
+                    xml_attrs =
+                    [(XmlAttr (("xmlns:xs", _), _,
+                        { e =
+                          (L
+                             (String
+                                (_, ("http://www.w3.org/2001/XMLSchema", _),
+                                 _)));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> }
+                        ))
+                      ];
+                    xml_body = [] })
+               ]
+             });
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

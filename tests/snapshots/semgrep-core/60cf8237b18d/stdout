@@ -1,0 +1,322 @@
+[{ s =
+   (DirectiveStmt
+      { d =
+        (ImportFrom (_, (DottedName []),
+           [(Direct
+               (("a", _),
+                { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }))
+             ]
+           ));
+        d_attrs = [] });
+   s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _)]),
+            [(Direct
+                (("b", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("b", _)]),
+            [(Direct
+                (("c", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"; "c"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName []),
+            [(Direct
+                (("this", _),
+                 { id_resolved = ref ((Some ((ImportedEntity ["this"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("this", _)]),
+            [(Direct
+                (("a", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["this"; "a"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("this", _)]),
+            [(Direct
+                (("b", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "this"; "b"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("super", _)]),
+            [(Direct
+                (("b", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "super"; "b"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName []),
+            [(Direct
+                (("$X", _),
+                 { id_resolved = ref ((Some ((ImportedEntity ["$X"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d = (ImportAll (_, (DottedName [("a", _)]), _)); d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d = (ImportAll (_, (DottedName [("a", _)]), _)); d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d = (OtherDirective (("ImportGiven", _), [])); d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (OtherDirective (("ImportGiven", _),
+            [(T
+                { t =
+                  (TyN
+                     (Id (("Int", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (None);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  t_attrs = [] })
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName []),
+            [(Aliased (("a", _),
+                (("b", _),
+                 { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   })
+                ))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName []),
+            [(Aliased (("a", _),
+                (("b", _),
+                 { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   })
+                ))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName []),
+            [(Aliased (("a", _),
+                (("_", _),
+                 { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   })
+                ))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _)]),
+            [(Aliased (("b", _),
+                (("c", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   })
+                ))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _)]),
+            [(Aliased (("b", _),
+                (("c", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   })
+                ))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("b", _)]),
+            [(Direct
+                (("c", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"; "c"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("b", _)]),
+            [(Direct
+                (("d", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"; "d"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("b", _)]),
+            [(Direct
+                (("e", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"; "e"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("b", _)]),
+            [(Aliased (("c", _),
+                (("d", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"; "c"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   })
+                ))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("b", _)]),
+            [(Direct
+                (("e", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"; "e"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_, (DottedName [("a", _); ("b", _)]),
+            [(Aliased (("f", _),
+                (("g", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["a"; "b"; "f"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   })
+                ))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d = (ImportAll (_, (DottedName [("a", _); ("b", _)]), _));
+         d_attrs = [] });
+    s_range = None }
+  ]

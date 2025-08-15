@@ -1,0 +1,1565 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("TestArray", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (Public, _))]; tparams = None },
+       (ClassDef
+          { ckind = (Class, _); cextends = []; cimplements = [];
+            cmixins = []; cparams = (_, [], _);
+            cbody =
+            (_,
+             [(F
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("array1", _),
+                               { id_resolved = ref ((Some (EnclosedVar, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type =
+                                 ref ((Some { t =
+                                              (TyArray ((_, None, _),
+                                                 { t =
+                                                   (TyN
+                                                      (Id (("int", _),
+                                                         { id_resolved =
+                                                           ref (None);
+                                                           id_resolved_alternatives =
+                                                           ref ([]);
+                                                           id_type =
+                                                           ref (None);
+                                                           id_svalue =
+                                                           ref (None);
+                                                           id_flags = ref (0);
+                                                           id_info_id = _ }
+                                                         )));
+                                                   t_attrs = [] }
+                                                 ));
+                                              t_attrs = [] }));
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         attrs =
+                         [(KeywordAttr (Public, _));
+                           (KeywordAttr (Static, _))];
+                         tparams = None },
+                       (VarDef
+                          { vinit =
+                            (Some { e =
+                                    (New (_,
+                                       { t =
+                                         (TyArray ((_, None, _),
+                                            { t =
+                                              (TyN
+                                                 (Id (("int", _),
+                                                    { id_resolved =
+                                                      ref (None);
+                                                      id_resolved_alternatives =
+                                                      ref ([]);
+                                                      id_type = ref (None);
+                                                      id_svalue = ref (None);
+                                                      id_flags = ref (0);
+                                                      id_info_id = _ }
+                                                    )));
+                                              t_attrs = [] }
+                                            ));
+                                         t_attrs = [] },
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ },
+                                       (_,
+                                        [(Arg
+                                            { e =
+                                              (Container (Tuple,
+                                                 (_,
+                                                  [{ e =
+                                                     (L (Int ((Some 1L), _)));
+                                                     e_id = 0;
+                                                     e_range = None;
+                                                     is_implicit_return =
+                                                     false; facts = <opaque>
+                                                     };
+                                                    { e =
+                                                      (L (Int ((Some 3L), _)));
+                                                      e_id = 0;
+                                                      e_range = None;
+                                                      is_implicit_return =
+                                                      false; facts = <opaque>
+                                                      };
+                                                    { e =
+                                                      (L (Int ((Some 5L), _)));
+                                                      e_id = 0;
+                                                      e_range = None;
+                                                      is_implicit_return =
+                                                      false; facts = <opaque>
+                                                      };
+                                                    { e =
+                                                      (L (Int ((Some 7L), _)));
+                                                      e_id = 0;
+                                                      e_range = None;
+                                                      is_implicit_return =
+                                                      false; facts = <opaque>
+                                                      };
+                                                    { e =
+                                                      (L (Int ((Some 9L), _)));
+                                                      e_id = 0;
+                                                      e_range = None;
+                                                      is_implicit_return =
+                                                      false; facts = <opaque>
+                                                      }
+                                                    ],
+                                                  _)
+                                                 ));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> })
+                                          ],
+                                        _)
+                                       ));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                            vtype =
+                            (Some { t =
+                                    (TyArray ((_, None, _),
+                                       { t =
+                                         (TyN
+                                            (Id (("int", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (None);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] }
+                                       ));
+                                    t_attrs = [] });
+                            vtok = (Some _) })));
+                   s_range = None });
+               (F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("weekDays", _),
+                                { id_resolved = ref ((Some (EnclosedVar, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type =
+                                  ref ((Some { t =
+                                               (TyArray ((_, None, _),
+                                                  { t =
+                                                    (TyN
+                                                       (Id (("string", _),
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    t_attrs = [] }
+                                                  ));
+                                               t_attrs = [] }));
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs =
+                          [(KeywordAttr (Public, _));
+                            (KeywordAttr (Static, _))];
+                          tparams = None },
+                        (VarDef
+                           { vinit =
+                             (Some { e =
+                                     (New (_,
+                                        { t =
+                                          (TyArray ((_, None, _),
+                                             { t =
+                                               (TyN
+                                                  (Id (("string", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue = ref (None);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               t_attrs = [] }
+                                             ));
+                                          t_attrs = [] },
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          },
+                                        (_,
+                                         [(Arg
+                                             { e =
+                                               (Container (Tuple,
+                                                  (_,
+                                                   [{ e =
+                                                      (L
+                                                         (String
+                                                            (_, ("Sun", _), _)));
+                                                      e_id = 0;
+                                                      e_range = None;
+                                                      is_implicit_return =
+                                                      false; facts = <opaque>
+                                                      };
+                                                     { e =
+                                                       (L
+                                                          (String
+                                                             (_, ("Mon", _),
+                                                              _)));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> };
+                                                     { e =
+                                                       (L
+                                                          (String
+                                                             (_, ("Tue", _),
+                                                              _)));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> };
+                                                     { e =
+                                                       (L
+                                                          (String
+                                                             (_, ("Wed", _),
+                                                              _)));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> };
+                                                     { e =
+                                                       (L
+                                                          (String
+                                                             (_, ("Thu", _),
+                                                              _)));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> };
+                                                     { e =
+                                                       (L
+                                                          (String
+                                                             (_, ("Fri", _),
+                                                              _)));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> };
+                                                     { e =
+                                                       (L
+                                                          (String
+                                                             (_, ("Sat", _),
+                                                              _)));
+                                                       e_id = 0;
+                                                       e_range = None;
+                                                       is_implicit_return =
+                                                       false;
+                                                       facts = <opaque> }
+                                                     ],
+                                                   _)
+                                                  ));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> })
+                                           ],
+                                         _)
+                                        ));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> });
+                             vtype =
+                             (Some { t =
+                                     (TyArray ((_, None, _),
+                                        { t =
+                                          (TyN
+                                             (Id (("string", _),
+                                                { id_resolved = ref (None);
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (None);
+                                                  id_flags = ref (0);
+                                                  id_info_id = _ }
+                                                )));
+                                          t_attrs = [] }
+                                        ));
+                                     t_attrs = [] });
+                             vtok = (Some _) })));
+                    s_range = None });
+               (F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("array2", _),
+                                { id_resolved = ref ((Some (EnclosedVar, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type =
+                                  ref ((Some { t =
+                                               (TyArray ((_, None, _),
+                                                  { t =
+                                                    (TyN
+                                                       (Id (("int", _),
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    t_attrs = [] }
+                                                  ));
+                                               t_attrs = [] }));
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs =
+                          [(KeywordAttr (Public, _));
+                            (KeywordAttr (Static, _))];
+                          tparams = None },
+                        (VarDef
+                           { vinit =
+                             (Some { e =
+                                     (Container (Tuple,
+                                        (_,
+                                         [{ e = (L (Int ((Some 1L), _)));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> };
+                                           { e = (L (Int ((Some 3L), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e = (L (Int ((Some 5L), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e = (L (Int ((Some 7L), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e = (L (Int ((Some 9L), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> }
+                                           ],
+                                         _)
+                                        ));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> });
+                             vtype =
+                             (Some { t =
+                                     (TyArray ((_, None, _),
+                                        { t =
+                                          (TyN
+                                             (Id (("int", _),
+                                                { id_resolved = ref (None);
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (None);
+                                                  id_flags = ref (0);
+                                                  id_info_id = _ }
+                                                )));
+                                          t_attrs = [] }
+                                        ));
+                                     t_attrs = [] });
+                             vtok = (Some _) })));
+                    s_range = None });
+               (F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("weekDays2", _),
+                                { id_resolved = ref ((Some (EnclosedVar, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type =
+                                  ref ((Some { t =
+                                               (TyArray ((_, None, _),
+                                                  { t =
+                                                    (TyN
+                                                       (Id (("string", _),
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    t_attrs = [] }
+                                                  ));
+                                               t_attrs = [] }));
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs =
+                          [(KeywordAttr (Public, _));
+                            (KeywordAttr (Static, _))];
+                          tparams = None },
+                        (VarDef
+                           { vinit =
+                             (Some { e =
+                                     (Container (Tuple,
+                                        (_,
+                                         [{ e =
+                                            (L (String (_, ("Sun", _), _)));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> };
+                                           { e =
+                                             (L (String (_, ("Mon", _), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e =
+                                             (L (String (_, ("Tue", _), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e =
+                                             (L (String (_, ("Wed", _), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e =
+                                             (L (String (_, ("Thu", _), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e =
+                                             (L (String (_, ("Fri", _), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> };
+                                           { e =
+                                             (L (String (_, ("Sat", _), _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> }
+                                           ],
+                                         _)
+                                        ));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> });
+                             vtype =
+                             (Some { t =
+                                     (TyArray ((_, None, _),
+                                        { t =
+                                          (TyN
+                                             (Id (("string", _),
+                                                { id_resolved = ref (None);
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (None);
+                                                  id_flags = ref (0);
+                                                  id_info_id = _ }
+                                                )));
+                                          t_attrs = [] }
+                                        ));
+                                     t_attrs = [] });
+                             vtok = (Some _) })));
+                    s_range = None })
+               ],
+             _)
+            })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("Cat", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (Public, _))]; tparams = None },
+        (ClassDef
+           { ckind = (Class, _); cextends = []; cimplements = [];
+             cmixins = []; cparams = (_, [], _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (Block
+                       (_,
+                        [{ s =
+                           (DefStmt
+                              ({ name =
+                                 (EN
+                                    (Id (("Age", _),
+                                       { id_resolved =
+                                         ref ((Some (EnclosedVar, _)));
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type =
+                                         ref ((Some { t =
+                                                      (TyN
+                                                         (Id (("int", _),
+                                                            { id_resolved =
+                                                              ref (None);
+                                                              id_resolved_alternatives =
+                                                              ref ([]);
+                                                              id_type =
+                                                              ref (None);
+                                                              id_svalue =
+                                                              ref (None);
+                                                              id_flags =
+                                                              ref (0);
+                                                              id_info_id = _
+                                                              }
+                                                            )));
+                                                      t_attrs = [] }));
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )));
+                                 attrs = [(KeywordAttr (Public, _))];
+                                 tparams = None },
+                               (VarDef
+                                  { vinit = None;
+                                    vtype =
+                                    (Some { t =
+                                            (TyN
+                                               (Id (("int", _),
+                                                  { id_resolved = ref (None);
+                                                    id_resolved_alternatives =
+                                                    ref ([]);
+                                                    id_type = ref (None);
+                                                    id_svalue = ref (None);
+                                                    id_flags = ref (0);
+                                                    id_info_id = _ }
+                                                  )));
+                                            t_attrs = [] });
+                                    vtok = None })));
+                           s_range = None };
+                          { s =
+                            (DefStmt
+                               ({ name =
+                                  (EN
+                                     (Id (("get_Age", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  attrs = [(KeywordAttr (Getter, _))];
+                                  tparams = None },
+                                (FuncDef
+                                   { fkind = (Method, _);
+                                     fparams = (_, [], _);
+                                     frettype =
+                                     (Some { t =
+                                             (TyN
+                                                (Id (("int", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             t_attrs = [] });
+                                     fbody = (FBDecl _) })));
+                            s_range = None };
+                          { s =
+                            (DefStmt
+                               ({ name =
+                                  (EN
+                                     (Id (("set_Age", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  attrs = [(KeywordAttr (Setter, _))];
+                                  tparams = None },
+                                (FuncDef
+                                   { fkind = (Method, _);
+                                     fparams =
+                                     (_,
+                                      [(Param
+                                          { pname = (Some ("value", _));
+                                            ptype =
+                                            (Some { t =
+                                                    (TyN
+                                                       (Id (("int", _),
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    t_attrs = [] });
+                                            pdefault = None; pattrs = [];
+                                            pinfo =
+                                            { id_resolved =
+                                              ref ((Some (Parameter, _)));
+                                              id_resolved_alternatives =
+                                              ref ([]);
+                                              id_type =
+                                              ref ((Some { t =
+                                                           (TyN
+                                                              (Id (
+                                                                 ("int", _),
+                                                                 { id_resolved =
+                                                                   ref (None);
+                                                                   id_resolved_alternatives =
+                                                                   ref (
+                                                                   []);
+                                                                   id_type =
+                                                                   ref (None);
+                                                                   id_svalue =
+                                                                   ref (None);
+                                                                   id_flags =
+                                                                   ref (0);
+                                                                   id_info_id =
+                                                                   _ }
+                                                                 )));
+                                                           t_attrs = [] }));
+                                              id_svalue = ref (None);
+                                              id_flags = ref (0);
+                                              id_info_id = _ }
+                                            })
+                                        ],
+                                      _);
+                                     frettype = None; fbody = (FBDecl _) })));
+                            s_range = None }
+                          ],
+                        _));
+                    s_range = None });
+                (F
+                   { s =
+                     (Block
+                        (_,
+                         [{ s =
+                            (DefStmt
+                               ({ name =
+                                  (EN
+                                     (Id (("Name", _),
+                                        { id_resolved =
+                                          ref ((Some (EnclosedVar, _)));
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type =
+                                          ref ((Some { t =
+                                                       (TyN
+                                                          (Id (("string", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref (None);
+                                                               id_svalue =
+                                                               ref (None);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )));
+                                                       t_attrs = [] }));
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  attrs = [(KeywordAttr (Public, _))];
+                                  tparams = None },
+                                (VarDef
+                                   { vinit = None;
+                                     vtype =
+                                     (Some { t =
+                                             (TyN
+                                                (Id (("string", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             t_attrs = [] });
+                                     vtok = None })));
+                            s_range = None };
+                           { s =
+                             (DefStmt
+                                ({ name =
+                                   (EN
+                                      (Id (("get_Name", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   attrs = [(KeywordAttr (Getter, _))];
+                                   tparams = None },
+                                 (FuncDef
+                                    { fkind = (Method, _);
+                                      fparams = (_, [], _);
+                                      frettype =
+                                      (Some { t =
+                                              (TyN
+                                                 (Id (("string", _),
+                                                    { id_resolved =
+                                                      ref (None);
+                                                      id_resolved_alternatives =
+                                                      ref ([]);
+                                                      id_type = ref (None);
+                                                      id_svalue = ref (None);
+                                                      id_flags = ref (0);
+                                                      id_info_id = _ }
+                                                    )));
+                                              t_attrs = [] });
+                                      fbody = (FBDecl _) })));
+                             s_range = None };
+                           { s =
+                             (DefStmt
+                                ({ name =
+                                   (EN
+                                      (Id (("set_Name", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   attrs = [(KeywordAttr (Setter, _))];
+                                   tparams = None },
+                                 (FuncDef
+                                    { fkind = (Method, _);
+                                      fparams =
+                                      (_,
+                                       [(Param
+                                           { pname = (Some ("value", _));
+                                             ptype =
+                                             (Some { t =
+                                                     (TyN
+                                                        (Id (("string", _),
+                                                           { id_resolved =
+                                                             ref (None);
+                                                             id_resolved_alternatives =
+                                                             ref ([]);
+                                                             id_type =
+                                                             ref (None);
+                                                             id_svalue =
+                                                             ref (None);
+                                                             id_flags =
+                                                             ref (0);
+                                                             id_info_id = _ }
+                                                           )));
+                                                     t_attrs = [] });
+                                             pdefault = None; pattrs = [];
+                                             pinfo =
+                                             { id_resolved =
+                                               ref ((Some (Parameter, _)));
+                                               id_resolved_alternatives =
+                                               ref ([]);
+                                               id_type =
+                                               ref ((Some { t =
+                                                            (TyN
+                                                               (Id (
+                                                                  ("string",
+                                                                   _),
+                                                                  { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ }
+                                                                  )));
+                                                            t_attrs = [] }));
+                                               id_svalue = ref (None);
+                                               id_flags = ref (0);
+                                               id_info_id = _ }
+                                             })
+                                         ],
+                                       _);
+                                      frettype = None; fbody = (FBDecl _) })));
+                             s_range = None }
+                           ],
+                         _));
+                     s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("Cat", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs =
+                           [(KeywordAttr (Ctor, _));
+                             (KeywordAttr (Public, _))];
+                           tparams = None },
+                         (FuncDef
+                            { fkind = (Method, _); fparams = (_, [], _);
+                              frettype = None;
+                              fbody =
+                              (FBStmt
+                                 { s = (Block (_, [], _)); s_range = None })
+                              })));
+                     s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("Cat", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs =
+                           [(KeywordAttr (Ctor, _));
+                             (KeywordAttr (Public, _))];
+                           tparams = None },
+                         (FuncDef
+                            { fkind = (Method, _);
+                              fparams =
+                              (_,
+                               [(Param
+                                   { pname = (Some ("name", _));
+                                     ptype =
+                                     (Some { t =
+                                             (TyN
+                                                (Id (("string", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             t_attrs = [] });
+                                     pdefault = None; pattrs = [];
+                                     pinfo =
+                                     { id_resolved =
+                                       ref ((Some (Parameter, _)));
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type =
+                                       ref ((Some { t =
+                                                    (TyN
+                                                       (Id (("string", _),
+                                                          { id_resolved =
+                                                            ref (None);
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref (None);
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    t_attrs = [] }));
+                                       id_svalue = ref (None);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     })
+                                 ],
+                               _);
+                              frettype = None;
+                              fbody =
+                              (FBStmt
+                                 { s =
+                                   (Block
+                                      (_,
+                                       [{ s =
+                                          (ExprStmt (
+                                             { e =
+                                               (AssignOp (
+                                                  { e =
+                                                    (DotAccess (
+                                                       { e =
+                                                         (N
+                                                            (IdSpecial (
+                                                               (This, _),
+                                                               { id_resolved =
+                                                                 ref (None);
+                                                                 id_resolved_alternatives =
+                                                                 ref (
+                                                                 []);
+                                                                 id_type =
+                                                                 ref (None);
+                                                                 id_svalue =
+                                                                 ref (None);
+                                                                 id_flags =
+                                                                 ref (0);
+                                                                 id_info_id =
+                                                                 _ }
+                                                               )));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> },
+                                                       _,
+                                                       (FN
+                                                          (Id (("Name", _),
+                                                             { id_resolved =
+                                                               ref ((Some (
+                                                               EnclosedVar, _)));
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref ((Some 
+                                                               { t =
+                                                                 (TyN
+                                                                    (
+                                                                    Id (
+                                                                    ("string",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                 t_attrs = []
+                                                                 }));
+                                                               id_svalue =
+                                                               ref (None);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )))
+                                                       ));
+                                                    e_id = 0; e_range = None;
+                                                    is_implicit_return =
+                                                    false; facts = <opaque> },
+                                                  (Eq, _),
+                                                  { e =
+                                                    (N
+                                                       (Id (("name", _),
+                                                          { id_resolved =
+                                                            ref ((Some (
+                                                            Parameter, _)));
+                                                            id_resolved_alternatives =
+                                                            ref ([]);
+                                                            id_type =
+                                                            ref ((Some 
+                                                            { t =
+                                                              (TyN
+                                                                 (Id (
+                                                                    (
+                                                                    "string",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                              t_attrs = [] }));
+                                                            id_svalue =
+                                                            ref (None);
+                                                            id_flags =
+                                                            ref (0);
+                                                            id_info_id = _ }
+                                                          )));
+                                                    e_id = 0; e_range = None;
+                                                    is_implicit_return =
+                                                    false; facts = <opaque> }
+                                                  ));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> },
+                                             _));
+                                          s_range = None }
+                                         ],
+                                       _));
+                                   s_range = None })
+                              })));
+                     s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("Test", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs =
+                           [(KeywordAttr (Ctor, _));
+                             (KeywordAttr (Public, _));
+                             (KeywordAttr (Static, _))];
+                           tparams = None },
+                         (FuncDef
+                            { fkind = (Method, _); fparams = (_, [], _);
+                              frettype = None;
+                              fbody =
+                              (FBStmt
+                                 { s =
+                                   (Block
+                                      (_,
+                                       [{ s =
+                                          (DefStmt
+                                             ({ name =
+                                                (EN
+                                                   (Id (("cat", _),
+                                                      { id_resolved =
+                                                        ref ((Some (LocalVar,
+                                                                    _)));
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type =
+                                                        ref ((Some { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("Cat", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                        id_svalue =
+                                                        ref (None);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      )));
+                                                attrs = []; tparams = None },
+                                              (VarDef
+                                                 { vinit =
+                                                   (Some { e =
+                                                           (New (_,
+                                                              { t =
+                                                                (TyN
+                                                                   (Id (
+                                                                    ("Cat", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                t_attrs = []
+                                                                },
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (None);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ },
+                                                              (_,
+                                                               [(Arg
+                                                                   { e =
+                                                                    (Container (
+                                                                    Tuple,
+                                                                    (_,
+                                                                    [{ e =
+                                                                    (AssignOp (
+                                                                    { e =
+                                                                    (N
+                                                                    (Id (
+                                                                    ("Age", _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    EnclosedVar,
+                                                                    _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref ((Some 
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    id_svalue =
+                                                                    ref ((Some (
+                                                                    Lit
+                                                                    (Int
+                                                                    ((Some 10L),
+                                                                    _)))));
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    },
+                                                                    (Eq, _),
+                                                                    { e =
+                                                                    (L
+                                                                    (Int
+                                                                    ((Some 10L),
+                                                                    _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    };
+                                                                    { e =
+                                                                    (AssignOp (
+                                                                    { e =
+                                                                    (N
+                                                                    (Id (
+                                                                    ("Name",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    EnclosedVar,
+                                                                    _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref ((Some 
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("string",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    id_svalue =
+                                                                    ref ((Some (
+                                                                    Lit
+                                                                    (String
+                                                                    (_,
+                                                                    ("Fluffy",
+                                                                    _), _)))));
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    },
+                                                                    (Eq, _),
+                                                                    { e =
+                                                                    (L
+                                                                    (String
+                                                                    (_,
+                                                                    ("Fluffy",
+                                                                    _), _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }], _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    })
+                                                                 ],
+                                                               _)
+                                                              ));
+                                                           e_id = 0;
+                                                           e_range = None;
+                                                           is_implicit_return =
+                                                           false;
+                                                           facts = <opaque> });
+                                                   vtype =
+                                                   (Some { t =
+                                                           (TyN
+                                                              (Id (
+                                                                 ("Cat", _),
+                                                                 { id_resolved =
+                                                                   ref (None);
+                                                                   id_resolved_alternatives =
+                                                                   ref (
+                                                                   []);
+                                                                   id_type =
+                                                                   ref (None);
+                                                                   id_svalue =
+                                                                   ref (None);
+                                                                   id_flags =
+                                                                   ref (0);
+                                                                   id_info_id =
+                                                                   _ }
+                                                                 )));
+                                                           t_attrs = [] });
+                                                   vtok = (Some _) })));
+                                          s_range = None };
+                                         { s =
+                                           (DefStmt
+                                              ({ name =
+                                                 (EN
+                                                    (Id (("sameCat", _),
+                                                       { id_resolved =
+                                                         ref ((Some (
+                                                         LocalVar, _)));
+                                                         id_resolved_alternatives =
+                                                         ref ([]);
+                                                         id_type =
+                                                         ref ((Some { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("Cat", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                         id_svalue =
+                                                         ref (None);
+                                                         id_flags = ref (0);
+                                                         id_info_id = _ }
+                                                       )));
+                                                 attrs = []; tparams = None },
+                                               (VarDef
+                                                  { vinit =
+                                                    (Some { e =
+                                                            (New (_,
+                                                               { t =
+                                                                 (TyN
+                                                                    (
+                                                                    Id (
+                                                                    ("Cat", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                 t_attrs = []
+                                                                 },
+                                                               { id_resolved =
+                                                                 ref (None);
+                                                                 id_resolved_alternatives =
+                                                                 ref (
+                                                                 []);
+                                                                 id_type =
+                                                                 ref (None);
+                                                                 id_svalue =
+                                                                 ref (None);
+                                                                 id_flags =
+                                                                 ref (0);
+                                                                 id_info_id =
+                                                                 _ },
+                                                               (_,
+                                                                [(Arg
+                                                                    { e =
+                                                                    (L
+                                                                    (String
+                                                                    (_,
+                                                                    ("Fluffy",
+                                                                    _), _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    });
+                                                                  (Arg
+                                                                    { e =
+                                                                    (Container (
+                                                                    Tuple,
+                                                                    (_,
+                                                                    [{ e =
+                                                                    (AssignOp (
+                                                                    { e =
+                                                                    (N
+                                                                    (Id (
+                                                                    ("Age", _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    EnclosedVar,
+                                                                    _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref ((Some 
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    id_svalue =
+                                                                    ref ((Some (
+                                                                    Lit
+                                                                    (Int
+                                                                    ((Some 10L),
+                                                                    _)))));
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    },
+                                                                    (Eq, _),
+                                                                    { e =
+                                                                    (L
+                                                                    (Int
+                                                                    ((Some 10L),
+                                                                    _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }], _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    })
+                                                                  ],
+                                                                _)
+                                                               ));
+                                                            e_id = 0;
+                                                            e_range = None;
+                                                            is_implicit_return =
+                                                            false;
+                                                            facts = <opaque>
+                                                            });
+                                                    vtype =
+                                                    (Some { t =
+                                                            (TyN
+                                                               (Id (
+                                                                  ("Cat", _),
+                                                                  { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ }
+                                                                  )));
+                                                            t_attrs = [] });
+                                                    vtok = (Some _) })));
+                                           s_range = None }
+                                         ],
+                                       _));
+                                   s_range = None })
+                              })));
+                     s_range = None })
+                ],
+              _)
+             })));
+    s_range = None }
+  ]

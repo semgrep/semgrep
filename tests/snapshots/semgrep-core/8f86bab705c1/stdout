@@ -1,0 +1,559 @@
+[{ s =
+   (DirectiveStmt
+      { d =
+        (Package (_,
+           [("com", _); ("path", _); ("to", _); ("my", _); ("package", _)]));
+        d_attrs = [] });
+   s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName
+               [("org", _); ("springframework", _); ("beans", _);
+                 ("factory", _); ("annotation", _)]),
+            [(Direct
+                (("Qualifier", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["org"; "springframework"; "beans";
+                                    "factory"; "annotation"; "Qualifier"]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName
+               [("org", _); ("springframework", _); ("core", _);
+                 ("annotation", _)]),
+            [(Direct
+                (("AliasFor", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["org"; "springframework"; "core";
+                                    "annotation"; "AliasFor"]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName
+               [("org", _); ("springframework", _); ("transaction", _);
+                 ("annotation", _)]),
+            [(Direct
+                (("Transactional", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["org"; "springframework"; "transaction";
+                                    "annotation"; "Transactional"]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName [("java", _); ("lang", _); ("annotation", _)]),
+            [(Direct
+                (("Documented", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["java"; "lang"; "annotation"; "Documented"
+                                    ]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName [("java", _); ("lang", _); ("annotation", _)]),
+            [(Direct
+                (("ElementType", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["java"; "lang"; "annotation";
+                                    "ElementType"]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName [("java", _); ("lang", _); ("annotation", _)]),
+            [(Direct
+                (("Retention", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["java"; "lang"; "annotation"; "Retention"]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName [("java", _); ("lang", _); ("annotation", _)]),
+            [(Direct
+                (("RetentionPolicy", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["java"; "lang"; "annotation";
+                                    "RetentionPolicy"]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d =
+         (ImportFrom (_,
+            (DottedName [("java", _); ("lang", _); ("annotation", _)]),
+            [(Direct
+                (("Target", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity
+                                  ["java"; "lang"; "annotation"; "Target"]),
+                               _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+              ]
+            ));
+         d_attrs = [] });
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("MyInterface", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs =
+          [(KeywordAttr (AnnotationClass, _));
+            (NamedAttr (_,
+               (Id (("Target", _),
+                  { id_resolved =
+                    ref ((Some ((ImportedEntity
+                                   ["java"; "lang"; "annotation"; "Target"]),
+                                _)));
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (None);
+                    id_flags = ref (0); id_info_id = _ }
+                  )),
+               (_,
+                [(Arg
+                    { e =
+                      (Container (List,
+                         (_,
+                          [{ e =
+                             (DotAccess (
+                                { e =
+                                  (N
+                                     (Id (("ElementType", _),
+                                        { id_resolved =
+                                          ref ((Some ((ImportedEntity
+                                                         ["java"; "lang";
+                                                           "annotation";
+                                                           "ElementType"]),
+                                                      _)));
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> },
+                                _,
+                                (FN
+                                   (Id (("FIELD", _),
+                                      { id_resolved = ref (None);
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (None);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )))
+                                ));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> };
+                            { e =
+                              (DotAccess (
+                                 { e =
+                                   (N
+                                      (Id (("ElementType", _),
+                                         { id_resolved =
+                                           ref ((Some ((ImportedEntity
+                                                          ["java"; "lang";
+                                                            "annotation";
+                                                            "ElementType"]),
+                                                       _)));
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 _,
+                                 (FN
+                                    (Id (("METHOD", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )))
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> };
+                            { e =
+                              (DotAccess (
+                                 { e =
+                                   (N
+                                      (Id (("ElementType", _),
+                                         { id_resolved =
+                                           ref ((Some ((ImportedEntity
+                                                          ["java"; "lang";
+                                                            "annotation";
+                                                            "ElementType"]),
+                                                       _)));
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 _,
+                                 (FN
+                                    (Id (("PARAMETER", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )))
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> };
+                            { e =
+                              (DotAccess (
+                                 { e =
+                                   (N
+                                      (Id (("ElementType", _),
+                                         { id_resolved =
+                                           ref ((Some ((ImportedEntity
+                                                          ["java"; "lang";
+                                                            "annotation";
+                                                            "ElementType"]),
+                                                       _)));
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 _,
+                                 (FN
+                                    (Id (("TYPE", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )))
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> };
+                            { e =
+                              (DotAccess (
+                                 { e =
+                                   (N
+                                      (Id (("ElementType", _),
+                                         { id_resolved =
+                                           ref ((Some ((ImportedEntity
+                                                          ["java"; "lang";
+                                                            "annotation";
+                                                            "ElementType"]),
+                                                       _)));
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 _,
+                                 (FN
+                                    (Id (("ANNOTATION_TYPE", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )))
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> }
+                            ],
+                          _)
+                         ));
+                      e_id = 0; e_range = None; is_implicit_return = false;
+                      facts = <opaque> })
+                  ],
+                _)
+               ));
+            (NamedAttr (_,
+               (Id (("Retention", _),
+                  { id_resolved =
+                    ref ((Some ((ImportedEntity
+                                   ["java"; "lang"; "annotation"; "Retention"
+                                     ]),
+                                _)));
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (None);
+                    id_flags = ref (0); id_info_id = _ }
+                  )),
+               (_,
+                [(Arg
+                    { e =
+                      (DotAccess (
+                         { e =
+                           (N
+                              (Id (("RetentionPolicy", _),
+                                 { id_resolved =
+                                   ref ((Some ((ImportedEntity
+                                                  ["java"; "lang";
+                                                    "annotation";
+                                                    "RetentionPolicy"]),
+                                               _)));
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           e_id = 0; e_range = None;
+                           is_implicit_return = false; facts = <opaque> },
+                         _,
+                         (FN
+                            (Id (("RUNTIME", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )))
+                         ));
+                      e_id = 0; e_range = None; is_implicit_return = false;
+                      facts = <opaque> })
+                  ],
+                _)
+               ));
+            (NamedAttr (_,
+               (Id (("Documented", _),
+                  { id_resolved =
+                    ref ((Some ((ImportedEntity
+                                   ["java"; "lang"; "annotation";
+                                     "Documented"]),
+                                _)));
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (None);
+                    id_flags = ref (0); id_info_id = _ }
+                  )),
+               (_, [], _)));
+            (NamedAttr (_,
+               (Id (("Qualifier", _),
+                  { id_resolved =
+                    ref ((Some ((ImportedEntity
+                                   ["org"; "springframework"; "beans";
+                                     "factory"; "annotation"; "Qualifier"]),
+                                _)));
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (None);
+                    id_flags = ref (0); id_info_id = _ }
+                  )),
+               (_,
+                [(ArgKwd (("value", _),
+                    { e =
+                      (DotAccess (
+                         { e =
+                           (N
+                              (Id (("MyInterface", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           e_id = 0; e_range = None;
+                           is_implicit_return = false; facts = <opaque> },
+                         _,
+                         (FN
+                            (Id (("MY_PARAMETER", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )))
+                         ));
+                      e_id = 0; e_range = None; is_implicit_return = false;
+                      facts = <opaque> }
+                    ))
+                  ],
+                _)
+               ));
+            (NamedAttr (_,
+               (Id (("Transactional", _),
+                  { id_resolved =
+                    ref ((Some ((ImportedEntity
+                                   ["org"; "springframework"; "transaction";
+                                     "annotation"; "Transactional"]),
+                                _)));
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (None);
+                    id_flags = ref (0); id_info_id = _ }
+                  )),
+               (_,
+                [(ArgKwd (("value", _),
+                    { e =
+                      (DotAccess (
+                         { e =
+                           (N
+                              (Id (("MyInterface", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           e_id = 0; e_range = None;
+                           is_implicit_return = false; facts = <opaque> },
+                         _,
+                         (FN
+                            (Id (("MY_PARAMETER", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )))
+                         ));
+                      e_id = 0; e_range = None; is_implicit_return = false;
+                      facts = <opaque> }
+                    ))
+                  ],
+                _)
+               ));
+            (KeywordAttr (Public, _))];
+          tparams = None },
+        (ClassDef
+           { ckind = (Interface, _); cextends = []; cimplements = [];
+             cmixins = []; cparams = (_, [], _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("MY_PARAMETER", _),
+                                { id_resolved = ref ((Some (EnclosedVar, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type =
+                                  ref ((Some { t =
+                                               (TyN
+                                                  (Id (("String", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue = ref (None);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               t_attrs = [] }));
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (VarDef
+                           { vinit =
+                             (Some { e =
+                                     (L (String (_, ("my_parameter", _), _)));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> });
+                             vtype =
+                             (Some { t =
+                                     (TyN
+                                        (Id (("String", _),
+                                           { id_resolved = ref (None);
+                                             id_resolved_alternatives =
+                                             ref ([]); id_type = ref (None);
+                                             id_svalue = ref (None);
+                                             id_flags = ref (0);
+                                             id_info_id = _ }
+                                           )));
+                                     t_attrs = [] });
+                             vtok = None })));
+                    s_range = None });
+                (F { s = (OtherStmt (OS_Todo, [(Tk _)])); s_range = None })],
+              _)
+             })));
+    s_range = None }
+  ]

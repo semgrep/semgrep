@@ -1,0 +1,103 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Call (
+           { e = (Special ((Op Or), _)); e_id = 0; e_range = None;
+             is_implicit_return = false; facts = <opaque> },
+           (_,
+            [(Arg
+                { e =
+                  (Call (
+                     { e = (Special ((Op Pipe), _)); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> },
+                     (_,
+                      [(Arg
+                          { e =
+                            (Call (
+                               { e =
+                                 (N
+                                    (Id (("!sh_cmd!", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (1); id_info_id = _ }
+                                       )));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 },
+                               (_,
+                                [(Arg
+                                    { e = (L (String (_, ("a", _), _)));
+                                      e_id = 0; e_range = None;
+                                      is_implicit_return = false;
+                                      facts = <opaque> })
+                                  ],
+                                _)
+                               ));
+                            e_id = 0; e_range = None;
+                            is_implicit_return = false; facts = <opaque> });
+                        (Arg
+                           { e =
+                             (Call (
+                                { e =
+                                  (N
+                                     (Id (("!sh_cmd!", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (1); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> },
+                                (_,
+                                 [(Arg
+                                     { e = (L (String (_, ("b", _), _)));
+                                       e_id = 0; e_range = None;
+                                       is_implicit_return = false;
+                                       facts = <opaque> })
+                                   ],
+                                 _)
+                                ));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> })
+                        ],
+                      _)
+                     ));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (Arg
+                 { e =
+                   (Call (
+                      { e =
+                        (N
+                           (Id (("!sh_cmd!", _),
+                              { id_resolved = ref (None);
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None); id_svalue = ref (None);
+                                id_flags = ref (1); id_info_id = _ }
+                              )));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> },
+                      (_,
+                       [(Arg
+                           { e = (L (String (_, ("c", _), _))); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> })
+                         ],
+                       _)
+                      ));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ],
+            _)
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

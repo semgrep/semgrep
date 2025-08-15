@@ -1,0 +1,85 @@
+[{ s =
+   (While (_,
+      (Cond
+         { e =
+           (Assign (
+              { e =
+                (N
+                   (Id (("data", _),
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None);
+                        id_svalue =
+                        ref ((Some (Sym
+                                      { e =
+                                        (Call (
+                                           { e =
+                                             (N
+                                                (Id (("get_data", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> },
+                                           (_, [], _)));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> })));
+                        id_flags = ref (0); id_info_id = _ }
+                      )));
+                e_id = 0; e_range = None; is_implicit_return = false;
+                facts = <opaque> },
+              _,
+              { e =
+                (Call (
+                   { e =
+                     (N
+                        (Id (("get_data", _),
+                           { id_resolved = ref (None);
+                             id_resolved_alternatives = ref ([]);
+                             id_type = ref (None); id_svalue = ref (None);
+                             id_flags = ref (0); id_info_id = _ }
+                           )));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> },
+                   (_, [], _)));
+                e_id = 0; e_range = None; is_implicit_return = false;
+                facts = <opaque> }
+              ));
+           e_id = 0; e_range = None; is_implicit_return = false;
+           facts = <opaque> }),
+      { s =
+        (Block
+           (_,
+            [{ s =
+               (ExprStmt (
+                  { e =
+                    (Call (
+                       { e =
+                         (N
+                            (Id (("do_things", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> },
+                       (_, [], _)));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> },
+                  _));
+               s_range = None }
+              ],
+            _));
+        s_range = None }
+      ));
+   s_range = None }
+  ]

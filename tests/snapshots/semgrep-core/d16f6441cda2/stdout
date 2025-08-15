@@ -1,0 +1,62 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("TestMapper", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (Public, _))]; tparams = None },
+       (ClassDef
+          { ckind = (Interface, _); cextends = [];
+            cimplements =
+            [{ t =
+               (TyApply (
+                  { t =
+                    (TyN
+                       (Id (("Tester", _),
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    t_attrs = [] },
+                  (_,
+                   [(TA
+                       { t =
+                         (TyN
+                            (IdQualified
+                               { name_last = (("TestItem", _), None);
+                                 name_middle =
+                                 (Some (QDots
+                                          [(("com", _), None);
+                                            (("test", _), None)]));
+                                 name_top = None;
+                                 name_info =
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 }));
+                         t_attrs = [] });
+                     (TA
+                        { t =
+                          (TyN
+                             (Id (("TestItem", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          t_attrs = [] })
+                     ],
+                   _)
+                  ));
+               t_attrs = [] }
+              ];
+            cmixins = []; cparams = (_, [], _); cbody = (_, [], _) })));
+   s_range = None }
+  ]

@@ -1,0 +1,1387 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Xml
+           { xml_kind = (XmlFragment (_, _)); xml_attrs = [];
+             xml_body =
+             [(XmlXml
+                 { xml_kind =
+                   (XmlSingleton (_,
+                      (Id (("xml", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (None);
+                           id_flags = ref (0); id_info_id = _ }
+                         )),
+                      _));
+                   xml_attrs =
+                   [(XmlAttr (("version", _), _,
+                       { e = (L (String (_, ("1.0", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> }
+                       ))
+                     ];
+                   xml_body = [] });
+               (XmlXml
+                  { xml_kind =
+                    (XmlClassic (_,
+                       (Id (("catalog", _),
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          )),
+                       _, _));
+                    xml_attrs = [];
+                    xml_body =
+                    [(XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("book", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs =
+                          [(XmlAttr (("id", _), _,
+                              { e = (L (String (_, ("bk101", _), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                }
+                              ))
+                            ];
+                          xml_body =
+                          [(XmlXml
+                              { xml_kind =
+                                (XmlClassic (_,
+                                   (Id (("author", _),
+                                      { id_resolved = ref (None);
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (None);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )),
+                                   _, _));
+                                xml_attrs = [];
+                                xml_body =
+                                [(XmlText ("Gambardella, Matthew", _))] });
+                            (XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("title", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body =
+                                 [(XmlText ("XML Developer's Guide", _))] });
+                            (XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("genre", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Computer", _))] });
+                            (XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("price", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("44.95", _))] });
+                            (XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("publish_date", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("2000-10-01", _))] });
+                            (XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("description", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body =
+                                 [(XmlText
+                                     ("An in-depth look at creating applications \n      with XML.",
+                                      _))
+                                   ]
+                                 })
+                            ]
+                          });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk102", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Ralls, Kim", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Midnight Rain", _))]
+                                  });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Fantasy", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("5.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-12-16", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("A former architect battles corporate zombies, \n      an evil sorceress, and her own childhood to become queen \n      of the world.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk103", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Corets, Eva", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText ("Maeve Ascendant", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Fantasy", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("5.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-11-17", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("After the collapse of a nanotechnology \n      society in England, the young survivors lay the \n      foundation for a new society.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk104", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Corets, Eva", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText ("Oberon's Legacy", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Fantasy", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("5.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2001-03-10", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("In post-apocalypse England, the mysterious \n      agent known only as Oberon helps to create a new life \n      for the inhabitants of London. Sequel to Maeve \n      Ascendant.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk105", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Corets, Eva", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText ("The Sundered Grail", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Fantasy", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("5.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2001-09-10", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("The two daughters of Maeve, half-sisters, \n      battle one another for control of England. Sequel to \n      Oberon's Legacy.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk106", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body =
+                                 [(XmlText ("Randall, Cynthia", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Lover Birds", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Romance", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("4.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-09-02", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("When Carla meets Paul at an ornithology \n      conference, tempers fly as feathers get ruffled.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk107", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Thurman, Paula", _))]
+                                 });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Splish Splash", _))]
+                                  });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Romance", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("4.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-11-02", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("A deep sea diver finds true love twenty \n      thousand leagues beneath the sea.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk108", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Knorr, Stefan", _))]
+                                 });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText ("Creepy Crawlies", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Horror", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("4.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-12-06", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("An anthology of horror stories about roaches,\n      centipedes, scorpions  and other insects.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk109", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Kress, Peter", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Paradox Lost", _))]
+                                  });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText ("Science Fiction", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("6.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-11-02", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("After an inadvertant trip through a Heisenberg\n      Uncertainty Device, James Salway discovers the problems \n      of being quantum.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk110", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("O'Brien, Tim", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("Microsoft .NET: The Programming Bible",
+                                       _))
+                                    ]
+                                  });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Computer", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("36.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-12-09", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("Microsoft's .NET initiative is explored in \n      detail in this deep programmer's reference.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk111", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("O'Brien, Tim", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("MSXML3: A Comprehensive Guide", _))
+                                    ]
+                                  });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Computer", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("36.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2000-12-01", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("The Microsoft MSXML3 parser is covered in \n      detail, with attention to XML DOM interfaces, XSLT processing, \n      SAX and more.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           });
+                      (XmlXml
+                         { xml_kind =
+                           (XmlClassic (_,
+                              (Id (("book", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )),
+                              _, _));
+                           xml_attrs =
+                           [(XmlAttr (("id", _), _,
+                               { e = (L (String (_, ("bk112", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 }
+                               ))
+                             ];
+                           xml_body =
+                           [(XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("author", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("Galos, Mike", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("title", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("Visual Studio 7: A Comprehensive Guide",
+                                       _))
+                                    ]
+                                  });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("genre", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("Computer", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("price", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("49.95", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("publish_date", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body = [(XmlText ("2001-04-16", _))] });
+                             (XmlXml
+                                { xml_kind =
+                                  (XmlClassic (_,
+                                     (Id (("description", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )),
+                                     _, _));
+                                  xml_attrs = [];
+                                  xml_body =
+                                  [(XmlText
+                                      ("Microsoft Visual Studio 7 is explored in depth,\n      looking at how Visual Basic, Visual C++, C#, and ASP+ are \n      integrated into a comprehensive development \n      environment.",
+                                       _))
+                                    ]
+                                  })
+                             ]
+                           })
+                      ]
+                    })
+               ]
+             });
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

@@ -1,0 +1,51 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("foo", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]);
+                 id_type =
+                 ref ((Some { t =
+                              (OtherType (("class", _),
+                                 [(T
+                                     { t =
+                                       (TyN
+                                          (Id (("Foo", _),
+                                             { id_resolved = ref (None);
+                                               id_resolved_alternatives =
+                                               ref ([]);
+                                               id_type = ref (None);
+                                               id_svalue = ref (None);
+                                               id_flags = ref (0);
+                                               id_info_id = _ }
+                                             )));
+                                       t_attrs = [] })
+                                   ]
+                                 ));
+                              t_attrs = [] }));
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (VarDef
+          { vinit = None;
+            vtype =
+            (Some { t =
+                    (OtherType (("class", _),
+                       [(T
+                           { t =
+                             (TyN
+                                (Id (("Foo", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   )));
+                             t_attrs = [] })
+                         ]
+                       ));
+                    t_attrs = [] });
+            vtok = (Some _) })));
+   s_range = None }
+  ]

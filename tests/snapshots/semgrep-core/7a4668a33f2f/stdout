@@ -1,0 +1,88 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Xml
+           { xml_kind = (XmlFragment (_, _)); xml_attrs = [];
+             xml_body =
+             [(XmlXml
+                 { xml_kind =
+                   (XmlClassic (_,
+                      (Id (("html", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (None);
+                           id_flags = ref (0); id_info_id = _ }
+                         )),
+                      _, _));
+                   xml_attrs = [];
+                   xml_body =
+                   [(XmlXml
+                       { xml_kind =
+                         (XmlClassic (_,
+                            (Id (("body", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )),
+                            _, _));
+                         xml_attrs = [];
+                         xml_body =
+                         [(XmlText ("Hello World", _));
+                           (XmlXml
+                              { xml_kind =
+                                (XmlClassic (_,
+                                   (Id (("a", _),
+                                      { id_resolved = ref (None);
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (None);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )),
+                                   _, _));
+                                xml_attrs =
+                                [(XmlAttr (("href", _), _,
+                                    { e = (L (String (_, ("foo", _), _)));
+                                      e_id = 0; e_range = None;
+                                      is_implicit_return = false;
+                                      facts = <opaque> }
+                                    ))
+                                  ];
+                                xml_body = [(XmlText ("xxx", _))] });
+                           (XmlXml
+                              { xml_kind =
+                                (XmlClassic (_,
+                                   (Id (("p", _),
+                                      { id_resolved = ref (None);
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (None);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )),
+                                   _, _));
+                                xml_attrs = [];
+                                xml_body = [(XmlText ("this is it.", _))] });
+                           (XmlXml
+                              { xml_kind =
+                                (XmlClassic (_,
+                                   (Id (("hr", _),
+                                      { id_resolved = ref (None);
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (None);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )),
+                                   _, _));
+                                xml_attrs = []; xml_body = [] })
+                           ]
+                         })
+                     ]
+                   })
+               ]
+             });
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

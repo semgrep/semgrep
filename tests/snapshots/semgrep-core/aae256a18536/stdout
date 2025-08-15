@@ -1,0 +1,527 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("main", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (FuncDef
+          { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+            fbody =
+            (FBStmt
+               { s =
+                 (Block
+                    (_,
+                     [{ s =
+                        (ExprStmt (
+                           { e =
+                             (Call (
+                                { e =
+                                  (N
+                                     (Id (("a!", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (None);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> },
+                                (_, [], _)));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           _));
+                        s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e =
+                              (Call (
+                                 { e =
+                                   (N
+                                      (Id (("b!", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 (_, [], _)));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e =
+                              (Call (
+                                 { e =
+                                   (N
+                                      (Id (("c!", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 (_, [], _)));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e =
+                              (Call (
+                                 { e =
+                                   (N
+                                      (IdQualified
+                                         { name_last = (("e!", _), None);
+                                           name_middle =
+                                           (Some (QDots [(("d", _), None)]));
+                                           name_top = None;
+                                           name_info =
+                                           { id_resolved = ref (None);
+                                             id_resolved_alternatives =
+                                             ref ([]); id_type = ref (None);
+                                             id_svalue = ref (None);
+                                             id_flags = ref (0);
+                                             id_info_id = _ }
+                                           }));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 (_, [], _)));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e =
+                              (Call (
+                                 { e =
+                                   (N
+                                      (IdQualified
+                                         { name_last = (("h!", _), None);
+                                           name_middle =
+                                           (Some (QDots
+                                                    [(("f", _), None);
+                                                      (("g", _), None)]));
+                                           name_top = None;
+                                           name_info =
+                                           { id_resolved = ref (None);
+                                             id_resolved_alternatives =
+                                             ref ([]); id_type = ref (None);
+                                             id_svalue = ref (None);
+                                             id_flags = ref (0);
+                                             id_info_id = _ }
+                                           }));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 (_, [], _)));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = true; facts = <opaque> },
+                            _));
+                         s_range = None }
+                       ],
+                     _));
+                 s_range = None })
+            })));
+   s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("a!", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (None);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_, [], _)));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e =
+                              (Call (
+                                 { e =
+                                   (N
+                                      (Id (("a!", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 (_,
+                                  [(OtherArg (("ArgMacro", _),
+                                      [(Tk _); (I ("a", _)); (Tk _)]))
+                                    ],
+                                  _)
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e =
+                                    (N
+                                       (Id (("a!", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(OtherArg (("ArgMacro", _),
+                                       [(Tk _); (I ("a", _)); (Tk _)]))
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e =
+                                    (N
+                                       (Id (("a!", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(OtherArg (("ArgMacro", _),
+                                       [(Tk _); (I ("a", _)); (Tk _)]))
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e =
+                                    (N
+                                       (Id (("a!", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(OtherArg (("ArgMacro", _),
+                                       [(I ("b", _)); (Tk _); (I ("c", _));
+                                         (Tk _); (Tk _)]
+                                       ))
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e =
+                                    (N
+                                       (Id (("a!", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(OtherArg (("ArgMacro", _),
+                                       [(E
+                                           { e = (L (Char ("'a'", _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> });
+                                         (Tk _);
+                                         (E
+                                            { e = (L (Char ("'z'", _)));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> })
+                                         ]
+                                       ))
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e =
+                                    (N
+                                       (Id (("a!", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(OtherArg (("ArgMacro", _),
+                                       [(E
+                                           { e = (L (Char ("'\\u{0}'", _)));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> });
+                                         (Tk _);
+                                         (E
+                                            { e = (L (Char ("'\\u{2}'", _)));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> })
+                                         ]
+                                       ))
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (Call (
+                                  { e =
+                                    (N
+                                       (Id (("a!", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(Arg
+                                       { e =
+                                         (N
+                                            (Id (("lifetime", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (None);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> })
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = true; facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("say_hello", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (MacroDef
+           { macroparams = [];
+             macrobody =
+             [(I ("println", _)); (Anys [(Tk _)]);
+               (E
+                  { e = (L (String (_, ("Hello!", _), _))); e_id = 0;
+                    e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Anys [(Tk _)])]
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("four", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (MacroDef
+           { macroparams = [];
+             macrobody =
+             [(E
+                 { e = (L (Int ((Some 1L), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> });
+               (Anys [(Tk _)]);
+               (E
+                  { e = (L (Int ((Some 3L), _))); e_id = 0; e_range = None;
+                    is_implicit_return = false; facts = <opaque> })
+               ]
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("foo", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (MacroDef
+           { macroparams = [];
+             macrobody =
+             [(I ("x", _)); (Anys [(Tk _)]); (I ("$e", _)); (Tk _);
+               (I ("println", _)); (Anys [(Tk _)]);
+               (E
+                  { e = (L (String (_, ("mode X: {}", _), _))); e_id = 0;
+                    e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Anys [(Tk _)]); (I ("$e", _)); (I ("y", _)); (Anys [(Tk _)]);
+               (I ("$e", _)); (Tk _); (I ("println", _)); (Anys [(Tk _)]);
+               (E
+                  { e = (L (String (_, ("mode Y: {}", _), _))); e_id = 0;
+                    e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+               (Anys [(Tk _)]); (I ("$e", _))]
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("o_O", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (MacroDef
+           { macroparams = [];
+             macrobody =
+             [(I ("$x", _)); (Tk _); (Anys [(Tk _)]); (I (";", _)); (
+               Tk _); (I ("$x", _)); (Anys [(Tk _)]); (I ("$e", _));
+               (I (",", _)); (Tk _); (I (",", _)); (Tk _)]
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("zero_or_one", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (MacroDef
+           { macroparams = [];
+             macrobody =
+             [(I ("$e", _)); (Tk _); (I (",", _)); (Tk _); (I ("$e", _));
+               (I (",", _)); (Tk _)]
+             })));
+    s_range = None }
+  ]

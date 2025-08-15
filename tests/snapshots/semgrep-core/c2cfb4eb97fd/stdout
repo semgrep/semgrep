@@ -1,0 +1,455 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("main", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (FuncDef
+          { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+            fbody =
+            (FBStmt
+               { s =
+                 (Block
+                    (_,
+                     [{ s =
+                        (ExprStmt (
+                           { e = (L (Int ((Some 0L), _))); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> },
+                           _));
+                        s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int ((Some 0L), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int ((Some 123L), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e = (L (Int (None, _))); e_id = 0;
+                              e_range = None; is_implicit_return = true;
+                              facts = <opaque> },
+                            _));
+                         s_range = None }
+                       ],
+                     _));
+                 s_range = None })
+            })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e = (L (Float ((Some 123.123), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Float ((Some 2.), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Float (None, _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Float (None, _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Float (None, _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Float (None, _))); e_id = 0;
+                               e_range = None; is_implicit_return = true;
+                               facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e = (L (String (_, ("", _), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("abc", _), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("foo\\nbar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (L (String (_, ("foo\\\n      bar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("\\\"foo\\\"", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (L
+                                  (String
+                                     (_, ("/* foo bar */ foo bar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (L (String (_, ("foo\\x42\\x43bar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e =
+                               (L
+                                  (String (_, ("foo \\x42  \\x43 bar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = true; facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e = (L (String (_, ("abc", _), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("ok", _), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("foo #\"# bar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("foo ##\"## bar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("foo ##### bar", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = true; facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e = (L (String (_, ("abc", _), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (String (_, ("abc", _), _))); e_id = 0;
+                               e_range = None; is_implicit_return = true;
+                               facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e = (L (Char ("'a'", _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Char ("'\\''", _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Char ("'\\0'", _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Char ("b'x'", _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Char ("'\\t'", _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Char ("'\\xff'", _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> },
+                             _));
+                          s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Char ("'\\\\'", _))); e_id = 0;
+                               e_range = None; is_implicit_return = true;
+                               facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("main", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (ExprStmt (
+                            { e = (L (Bool (true, _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            _));
+                         s_range = None };
+                        { s =
+                          (ExprStmt (
+                             { e = (L (Bool (false, _))); e_id = 0;
+                               e_range = None; is_implicit_return = true;
+                               facts = <opaque> },
+                             _));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None }
+  ]

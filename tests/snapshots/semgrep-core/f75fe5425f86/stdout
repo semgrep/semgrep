@@ -1,0 +1,213 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Call (
+           { e =
+             (N
+                (Id (("sum", _),
+                   { id_resolved = ref (None);
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (None);
+                     id_flags = ref (0); id_info_id = _ }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           (_,
+            [(Arg
+                { e =
+                  (Call (
+                     { e =
+                       (N
+                          (Id (("rate", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       e_id = 0; e_range = None; is_implicit_return = false;
+                       facts = <opaque> },
+                     (_,
+                      [(Arg
+                          { e =
+                            (Container (Tuple,
+                               (_,
+                                [{ e =
+                                   (Container (Set,
+                                      (_,
+                                       [{ e =
+                                          (Container (Tuple,
+                                             (_,
+                                              [{ e =
+                                                 (N
+                                                    (Id (("__name__", _),
+                                                       { id_resolved =
+                                                         ref (None);
+                                                         id_resolved_alternatives =
+                                                         ref ([]);
+                                                         id_type = ref (None);
+                                                         id_svalue =
+                                                         ref (None);
+                                                         id_flags = ref (1);
+                                                         id_info_id = _ }
+                                                       )));
+                                                 e_id = 0; e_range = None;
+                                                 is_implicit_return = false;
+                                                 facts = <opaque> };
+                                                { e =
+                                                  (N
+                                                     (Id (("=", _),
+                                                        { id_resolved =
+                                                          ref (None);
+                                                          id_resolved_alternatives =
+                                                          ref ([]);
+                                                          id_type =
+                                                          ref (None);
+                                                          id_svalue =
+                                                          ref (None);
+                                                          id_flags = ref (1);
+                                                          id_info_id = _ }
+                                                        )));
+                                                  e_id = 0; e_range = None;
+                                                  is_implicit_return = false;
+                                                  facts = <opaque> };
+                                                { e =
+                                                  (L
+                                                     (String
+                                                        (_,
+                                                         ("http_requests_total",
+                                                          _),
+                                                         _)));
+                                                  e_id = 0; e_range = None;
+                                                  is_implicit_return = false;
+                                                  facts = <opaque> }
+                                                ],
+                                              _)
+                                             ));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> };
+                                         { e =
+                                           (Container (Tuple,
+                                              (_,
+                                               [{ e =
+                                                  (N
+                                                     (Id (("status_code", _),
+                                                        { id_resolved =
+                                                          ref (None);
+                                                          id_resolved_alternatives =
+                                                          ref ([]);
+                                                          id_type =
+                                                          ref (None);
+                                                          id_svalue =
+                                                          ref (None);
+                                                          id_flags = ref (0);
+                                                          id_info_id = _ }
+                                                        )));
+                                                  e_id = 0; e_range = None;
+                                                  is_implicit_return = false;
+                                                  facts = <opaque> };
+                                                 { e =
+                                                   (N
+                                                      (Id (("=~", _),
+                                                         { id_resolved =
+                                                           ref (None);
+                                                           id_resolved_alternatives =
+                                                           ref ([]);
+                                                           id_type =
+                                                           ref (None);
+                                                           id_svalue =
+                                                           ref (None);
+                                                           id_flags = ref (0);
+                                                           id_info_id = _ }
+                                                         )));
+                                                   e_id = 0; e_range = None;
+                                                   is_implicit_return = false;
+                                                   facts = <opaque> };
+                                                 { e =
+                                                   (L
+                                                      (String
+                                                         (_, ("4..$", _), _)));
+                                                   e_id = 0; e_range = None;
+                                                   is_implicit_return = false;
+                                                   facts = <opaque> }
+                                                 ],
+                                               _)
+                                              ));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> }
+                                         ],
+                                       _)
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> };
+                                  { e =
+                                    (Container (List,
+                                       (_,
+                                        [{ e =
+                                           (Container (Tuple,
+                                              (_,
+                                               [{ e =
+                                                  (L (Int ((Some 5L), _)));
+                                                  e_id = 0; e_range = None;
+                                                  is_implicit_return = false;
+                                                  facts = <opaque> };
+                                                 { e =
+                                                   (L
+                                                      (String
+                                                         (_, ("m", _), _)));
+                                                   e_id = 0; e_range = None;
+                                                   is_implicit_return = false;
+                                                   facts = <opaque> }
+                                                 ],
+                                               _)
+                                              ));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> }
+                                          ],
+                                        _)
+                                       ));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> }
+                                  ],
+                                _)
+                               ));
+                            e_id = 0; e_range = None;
+                            is_implicit_return = false; facts = <opaque> })
+                        ],
+                      _)
+                     ));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (ArgKwdOptional (("by", _),
+                 { e =
+                   (Container (Set,
+                      (_,
+                       [{ e =
+                          (N
+                             (Id (("route", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> }
+                         ],
+                       _)
+                      ));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> }
+                 ))
+              ],
+            _)
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

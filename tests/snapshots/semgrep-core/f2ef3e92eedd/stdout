@@ -1,0 +1,89 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Assign (
+           { e =
+             (N
+                (Id (("a", _),
+                   { id_resolved = ref ((Some (Global, _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (None);
+                     id_flags = ref (4); id_info_id = _ }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           _,
+           { e =
+             (Call (
+                { e =
+                  (DotAccess (
+                     { e =
+                       (N
+                          (Id (("Time", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       e_id = 0; e_range = None; is_implicit_return = false;
+                       facts = <opaque> },
+                     _,
+                     (FN
+                        (Id (("new", _),
+                           { id_resolved = ref (None);
+                             id_resolved_alternatives = ref ([]);
+                             id_type =
+                             ref ((Some { t =
+                                          (TyFun (
+                                             [(OtherParam (("TODO", _), []))],
+                                             { t =
+                                               (OtherType (("TODO", _), []));
+                                               t_attrs = [] }
+                                             ));
+                                          t_attrs = [] }));
+                             id_svalue = ref (None); id_flags = ref (0);
+                             id_info_id = _ }
+                           )))
+                     ));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> },
+                (_,
+                 [(Arg
+                     { e = (L (Int ((Some 2002L), _))); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> });
+                   (Arg
+                      { e = (L (Int ((Some 10L), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                   (Arg
+                      { e = (L (Int ((Some 31L), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                   (Arg
+                      { e = (L (Int ((Some 2L), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                   (Arg
+                      { e = (L (Int ((Some 2L), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                   (Arg
+                      { e = (L (Ratio ("2.123456789", _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                   (Arg
+                      { e = (L (String (_, ("+02:00", _), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                   ],
+                 _)
+                ));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> }
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

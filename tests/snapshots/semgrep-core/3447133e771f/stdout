@@ -1,0 +1,70 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("x", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (4); id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (Const, _))]; tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e =
+                    (StmtExpr
+                       { s =
+                         (While (_,
+                            (Cond
+                               { e = (L (Bool (true, _))); e_id = 0;
+                                 e_range = None; is_implicit_return = false;
+                                 facts = <opaque> }),
+                            { s =
+                              (ExprStmt (
+                                 { e = (L (Int ((Some 5L), _))); e_id = 0;
+                                   e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 _));
+                              s_range = None }
+                            ));
+                         s_range = None });
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+            vtype = None; vtok = None })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("y", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (4); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (Const, _))]; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e =
+                     (StmtExpr
+                        { s =
+                          (While (_,
+                             (Cond
+                                { e = (L (Bool (true, _))); e_id = 0;
+                                  e_range = None; is_implicit_return = false;
+                                  facts = <opaque> }),
+                             { s =
+                               (ExprStmt (
+                                  { e = (L (Int ((Some 5L), _))); e_id = 0;
+                                    e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  _));
+                               s_range = None }
+                             ));
+                          s_range = None });
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None }
+  ]

@@ -1,0 +1,23 @@
+[{ s =
+   (DirectiveStmt
+      { d =
+        (ImportFrom (_, (FileName ("module-name", _)),
+           [(Direct
+               (("export1", _),
+                { id_resolved =
+                  ref ((Some ((ImportedEntity ["module-name"; "export1"]), _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }));
+             (Direct
+                (("export2", _),
+                 { id_resolved =
+                   ref ((Some ((ImportedEntity ["module-name"; "export2"]), _)));
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                   }))
+             ]
+           ));
+        d_attrs = [] });
+   s_range = None }
+  ]

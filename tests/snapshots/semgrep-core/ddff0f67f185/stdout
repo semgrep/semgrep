@@ -1,0 +1,154 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Container (Dict,
+           (_,
+            [{ e =
+               (Container (Tuple,
+                  (_,
+                   [{ e = (L (String (_, ("yaml_ints", _), _))); e_id = 0;
+                      e_range = None; is_implicit_return = false;
+                      facts = <opaque> };
+                     { e =
+                       (Container (Array,
+                          (_,
+                           [{ e = (L (Float ((Some 42.), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> };
+                             { e = (L (Float ((Some -42.), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> };
+                             { e = (L (String (_, ("0o755", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> };
+                             { e = (L (String (_, ("-0O755", _), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> };
+                             { e = (L (Float ((Some 2748.), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> };
+                             { e = (L (Float ((Some -2748.), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> }
+                             ],
+                           _)
+                          ));
+                       e_id = 0; e_range = None; is_implicit_return = false;
+                       facts = <opaque> }
+                     ],
+                   _)
+                  ));
+               e_id = 0; e_range = None; is_implicit_return = false;
+               facts = <opaque> };
+              { e =
+                (Container (Tuple,
+                   (_,
+                    [{ e = (L (String (_, ("yaml_floats", _), _))); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> };
+                      { e =
+                        (Container (Array,
+                           (_,
+                            [{ e = (L (Float ((Some 1.), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> };
+                              { e = (L (Float ((Some -1.), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> };
+                              { e = (L (Float ((Some 1.), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> };
+                              { e = (L (Float ((Some 100.), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> };
+                              { e = (L (Float ((Some 100.), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> };
+                              { e = (L (Float ((Some nan), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> };
+                              { e = (L (Float ((Some nan), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> };
+                              { e = (L (String (_, ("-.nan", _), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (String (_, ("+.nan", _), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (Float ((Some infinity), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (Float ((Some neg_infinity), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (Float ((Some infinity), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                }
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> }
+                      ],
+                    _)
+                   ));
+                e_id = 0; e_range = None; is_implicit_return = false;
+                facts = <opaque> };
+              { e =
+                (Container (Tuple,
+                   (_,
+                    [{ e = (L (String (_, ("yaml_strings", _), _)));
+                       e_id = 0; e_range = None; is_implicit_return = false;
+                       facts = <opaque> };
+                      { e =
+                        (Container (Array,
+                           (_,
+                            [{ e = (L (Float ((Some nan), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> };
+                              { e = (L (String (_, (".Nan", _), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (Float ((Some infinity), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (String (_, (".Inf", _), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (Float ((Some 1000.), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> };
+                              { e = (L (String (_, ("0o1.2", _), _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                };
+                              { e = (L (Float ((Some 1.125), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> }
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> }
+                      ],
+                    _)
+                   ));
+                e_id = 0; e_range = None; is_implicit_return = false;
+                facts = <opaque> }
+              ],
+            _)
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

@@ -1,0 +1,51 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("x", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]);
+                 id_type =
+                 ref ((Some { t =
+                              (TyN
+                                 (Id (("int", _),
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (None);
+                                      id_flags = ref (0); id_info_id = _ }
+                                    )));
+                              t_attrs = [] }));
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e =
+                    (N
+                       (IdQualified
+                          { name_last = (("**foo", _), None);
+                            name_middle =
+                            (Some (QDots [(("A", _), None); (("B", _), None)]));
+                            name_top = None;
+                            name_info =
+                            { id_resolved = ref (None);
+                              id_resolved_alternatives = ref ([]);
+                              id_type = ref (None); id_svalue = ref (None);
+                              id_flags = ref (0); id_info_id = _ }
+                            }));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+            vtype =
+            (Some { t =
+                    (TyN
+                       (Id (("int", _),
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    t_attrs = [] });
+            vtok = (Some _) })));
+   s_range = None }
+  ]

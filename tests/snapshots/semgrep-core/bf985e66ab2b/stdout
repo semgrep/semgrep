@@ -1,0 +1,59 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Assign (
+           { e =
+             (N
+                (Id (("$x", _),
+                   { id_resolved = ref ((Some (Global, _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (None);
+                     id_flags = ref (6); id_info_id = _ }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           _,
+           { e =
+             (StmtExpr
+                { s =
+                  (Switch (_,
+                     (Some (Cond
+                              { e = (L (Float ((Some 8.), _))); e_id = 0;
+                                e_range = None; is_implicit_return = false;
+                                facts = <opaque> })),
+                     [(CasesAndBody
+                         ([(Case (_, (PatLiteral (String (_, ("8.0", _), _)))
+                              ))
+                            ],
+                          { s =
+                            (ExprStmt (
+                               { e = (L (String (_, ("Oh no!", _), _)));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 },
+                               _));
+                            s_range = None }));
+                       (CasesAndBody
+                          ([(Case (_, (PatLiteral (Float ((Some 8.), _)))))],
+                           { s =
+                             (ExprStmt (
+                                { e =
+                                  (L
+                                     (String
+                                        (_, ("This is what I expected", _), _)));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> },
+                                _));
+                             s_range = None }))
+                       ]
+                     ));
+                  s_range = None });
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> }
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

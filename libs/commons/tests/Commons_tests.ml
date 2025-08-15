@@ -16,4 +16,5 @@ let tests =
       (* alt: Unit_CapExec.tests;
        * but this require caps so better to include directly from Test.ml
        *)
+      Unit_external.tests;
     ]

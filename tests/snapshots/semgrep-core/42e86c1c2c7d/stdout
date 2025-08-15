@@ -1,0 +1,480 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Call (
+           { e =
+             (N
+                (Id (("resource", _),
+                   { id_resolved = ref (None);
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (None);
+                     id_flags = ref (0); id_info_id = _ }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           (_,
+            [(Arg
+                { e = (L (String (_, ("aws_s3_bucket", _), _))); e_id = 0;
+                  e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (Arg
+                 { e = (L (String (_, ("b", _), _))); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> });
+              (Arg
+                 { e =
+                   (Record
+                      (_,
+                       [(F
+                           { s =
+                             (DefStmt
+                                ({ name =
+                                   (EN
+                                      (Id (("bucket", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (
+                                                              ("string", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (None);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   attrs = []; tparams = None },
+                                 (VarDef
+                                    { vinit =
+                                      (Some { e =
+                                              (L
+                                                 (String
+                                                    (_,
+                                                     ("s3-website-test.hashicorp.com",
+                                                      _),
+                                                     _)));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> });
+                                      vtype = None; vtok = None })));
+                             s_range = None });
+                         (F
+                            { s =
+                              (DefStmt
+                                 ({ name =
+                                    (EN
+                                       (Id (("acl", _),
+                                          { id_resolved =
+                                            ref ((Some (Global, _)));
+                                            id_resolved_alternatives =
+                                            ref ([]);
+                                            id_type =
+                                            ref ((Some { t =
+                                                         (TyN
+                                                            (Id (
+                                                               ("string", _),
+                                                               { id_resolved =
+                                                                 ref (None);
+                                                                 id_resolved_alternatives =
+                                                                 ref (
+                                                                 []);
+                                                                 id_type =
+                                                                 ref (None);
+                                                                 id_svalue =
+                                                                 ref (None);
+                                                                 id_flags =
+                                                                 ref (0);
+                                                                 id_info_id =
+                                                                 _ }
+                                                               )));
+                                                         t_attrs = [] }));
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    attrs = []; tparams = None },
+                                  (VarDef
+                                     { vinit =
+                                       (Some { e =
+                                               (L
+                                                  (String
+                                                     (_, ("public-read", _),
+                                                      _)));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> });
+                                       vtype = None; vtok = None })));
+                              s_range = None });
+                         (F
+                            { s =
+                              (ExprStmt (
+                                 { e =
+                                   (Call (
+                                      { e =
+                                        (N
+                                           (Id (("cors_rule", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (None);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> },
+                                      (_,
+                                       [(Arg
+                                           { e =
+                                             (Record
+                                                (_,
+                                                 [(F
+                                                     { s =
+                                                       (DefStmt
+                                                          ({ name =
+                                                             (EN
+                                                                (Id (
+                                                                   ("allowed_headers",
+                                                                    _),
+                                                                   { id_resolved =
+                                                                    ref ((Some (
+                                                                    Global, _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ }
+                                                                   )));
+                                                             attrs = [];
+                                                             tparams = None },
+                                                           (VarDef
+                                                              { vinit =
+                                                                (Some 
+                                                                { e =
+                                                                  (Container (
+                                                                    Tuple,
+                                                                    (_,
+                                                                    [{ e =
+                                                                    (L
+                                                                    (String
+                                                                    (_,
+                                                                    ("*", _),
+                                                                    _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }], _)));
+                                                                  e_id = 0;
+                                                                  e_range =
+                                                                  None;
+                                                                  is_implicit_return =
+                                                                  false;
+                                                                  facts =
+                                                                  <opaque> });
+                                                                vtype = None;
+                                                                vtok = None })));
+                                                       s_range = None });
+                                                   (F
+                                                      { s =
+                                                        (DefStmt
+                                                           ({ name =
+                                                              (EN
+                                                                 (Id (
+                                                                    (
+                                                                    "allowed_methods",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    Global, _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                              attrs = [];
+                                                              tparams = None
+                                                              },
+                                                            (VarDef
+                                                               { vinit =
+                                                                 (Some 
+                                                                 { e =
+                                                                   (Container (
+                                                                    Tuple,
+                                                                    (_,
+                                                                    [{ e =
+                                                                    (L
+                                                                    (String
+                                                                    (_,
+                                                                    ("PUT", _),
+                                                                    _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    };
+                                                                    { e =
+                                                                    (L
+                                                                    (String
+                                                                    (_,
+                                                                    ("POST",
+                                                                    _), _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }], _)));
+                                                                   e_id = 0;
+                                                                   e_range =
+                                                                   None;
+                                                                   is_implicit_return =
+                                                                   false;
+                                                                   facts =
+                                                                   <opaque> });
+                                                                 vtype = None;
+                                                                 vtok = None
+                                                                 })));
+                                                        s_range = None });
+                                                   (F
+                                                      { s =
+                                                        (DefStmt
+                                                           ({ name =
+                                                              (EN
+                                                                 (Id (
+                                                                    (
+                                                                    "allowed_origins",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    Global, _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                              attrs = [];
+                                                              tparams = None
+                                                              },
+                                                            (VarDef
+                                                               { vinit =
+                                                                 (Some 
+                                                                 { e =
+                                                                   (Container (
+                                                                    Tuple,
+                                                                    (_,
+                                                                    [{ e =
+                                                                    (L
+                                                                    (String
+                                                                    (_,
+                                                                    ("*", _),
+                                                                    _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }], _)));
+                                                                   e_id = 0;
+                                                                   e_range =
+                                                                   None;
+                                                                   is_implicit_return =
+                                                                   false;
+                                                                   facts =
+                                                                   <opaque> });
+                                                                 vtype = None;
+                                                                 vtok = None
+                                                                 })));
+                                                        s_range = None });
+                                                   (F
+                                                      { s =
+                                                        (DefStmt
+                                                           ({ name =
+                                                              (EN
+                                                                 (Id (
+                                                                    (
+                                                                    "expose_headers",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    Global, _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                              attrs = [];
+                                                              tparams = None
+                                                              },
+                                                            (VarDef
+                                                               { vinit =
+                                                                 (Some 
+                                                                 { e =
+                                                                   (Container (
+                                                                    Tuple,
+                                                                    (_,
+                                                                    [{ e =
+                                                                    (L
+                                                                    (String
+                                                                    (_,
+                                                                    ("ETag",
+                                                                    _), _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    }], _)));
+                                                                   e_id = 0;
+                                                                   e_range =
+                                                                   None;
+                                                                   is_implicit_return =
+                                                                   false;
+                                                                   facts =
+                                                                   <opaque> });
+                                                                 vtype = None;
+                                                                 vtok = None
+                                                                 })));
+                                                        s_range = None });
+                                                   (F
+                                                      { s =
+                                                        (DefStmt
+                                                           ({ name =
+                                                              (EN
+                                                                 (Id (
+                                                                    (
+                                                                    "max_age_seconds",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    Global, _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref ((Some 
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                              attrs = [];
+                                                              tparams = None
+                                                              },
+                                                            (VarDef
+                                                               { vinit =
+                                                                 (Some 
+                                                                 { e =
+                                                                   (L
+                                                                    (Int
+                                                                    ((Some 3000L),
+                                                                    _)));
+                                                                   e_id = 0;
+                                                                   e_range =
+                                                                   None;
+                                                                   is_implicit_return =
+                                                                   false;
+                                                                   facts =
+                                                                   <opaque> });
+                                                                 vtype = None;
+                                                                 vtok = None
+                                                                 })));
+                                                        s_range = None })
+                                                   ],
+                                                 _));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> })
+                                         ],
+                                       _)
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 _));
+                              s_range = None })
+                         ],
+                       _));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ],
+            _)
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

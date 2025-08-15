@@ -1,0 +1,79 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Xml
+           { xml_kind = (XmlFragment (_, _)); xml_attrs = [];
+             xml_body =
+             [(XmlXml
+                 { xml_kind =
+                   (XmlClassic (_,
+                      (Id (("note", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (None);
+                           id_flags = ref (0); id_info_id = _ }
+                         )),
+                      _, _));
+                   xml_attrs = [];
+                   xml_body =
+                   [(XmlXml
+                       { xml_kind =
+                         (XmlClassic (_,
+                            (Id (("to", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )),
+                            _, _));
+                         xml_attrs = []; xml_body = [(XmlText ("Tove", _))] });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("from", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = []; xml_body = [(XmlText ("Jani", _))]
+                          });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("heading", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = [];
+                          xml_body = [(XmlText ("Reminder", _))] });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("body", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = [];
+                          xml_body =
+                          [(XmlText ("Don't forget me this weekend!", _))] })
+                     ]
+                   })
+               ]
+             });
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]

@@ -1,0 +1,42 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("foo", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (Signature
+          { sig_tok = _;
+            sig_type =
+            { t =
+              (TyFun (
+                 [(Param
+                     { pname = None;
+                       ptype =
+                       (Some { t = (OtherType (("Object", _), []));
+                               t_attrs = [] });
+                       pdefault = None; pattrs = [];
+                       pinfo =
+                       { id_resolved = ref ((Some (Parameter, _)));
+                         id_resolved_alternatives = ref ([]);
+                         id_type = ref (None); id_svalue = ref (None);
+                         id_flags = ref (0); id_info_id = _ }
+                       })
+                   ],
+                 { t =
+                   (TyN
+                      (Id (("bool", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (None);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   t_attrs = [] }
+                 ));
+              t_attrs = [] }
+            })));
+   s_range = None }
+  ]

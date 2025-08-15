@@ -1,0 +1,241 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Xml
+           { xml_kind = (XmlFragment (_, _)); xml_attrs = [];
+             xml_body =
+             [(XmlXml
+                 { xml_kind =
+                   (XmlClassic (_,
+                      (Id (("project", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (None);
+                           id_flags = ref (0); id_info_id = _ }
+                         )),
+                      _, _));
+                   xml_attrs =
+                   [(XmlAttr (("xmlns", _), _,
+                       { e =
+                         (L
+                            (String
+                               (_, ("http://maven.apache.org/POM/4.0.0", _),
+                                _)));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> }
+                       ));
+                     (XmlAttr (("xmlns:xsi", _), _,
+                        { e =
+                          (L
+                             (String
+                                (_,
+                                 ("http://www.w3.org/2001/XMLSchema-instance",
+                                  _),
+                                 _)));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> }
+                        ));
+                     (XmlAttr (("xsi:schemaLocation", _), _,
+                        { e =
+                          (L
+                             (String
+                                (_,
+                                 ("http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd",
+                                  _),
+                                 _)));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> }
+                        ))
+                     ];
+                   xml_body =
+                   [(XmlXml
+                       { xml_kind =
+                         (XmlClassic (_,
+                            (Id (("modelVersion", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )),
+                            _, _));
+                         xml_attrs = []; xml_body = [(XmlText ("4.0.0", _))]
+                         });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("groupId", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = [];
+                          xml_body = [(XmlText ("com.mycompany.app", _))] });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("artifactId", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = [];
+                          xml_body = [(XmlText ("my-app", _))] });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("version", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = [];
+                          xml_body = [(XmlText ("1.0-SNAPSHOT", _))] });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("properties", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = [];
+                          xml_body =
+                          [(XmlXml
+                              { xml_kind =
+                                (XmlClassic (_,
+                                   (Id (("maven.compiler.source", _),
+                                      { id_resolved = ref (None);
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (None);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )),
+                                   _, _));
+                                xml_attrs = [];
+                                xml_body = [(XmlText ("1.7", _))] });
+                            (XmlXml
+                               { xml_kind =
+                                 (XmlClassic (_,
+                                    (Id (("maven.compiler.target", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )),
+                                    _, _));
+                                 xml_attrs = [];
+                                 xml_body = [(XmlText ("1.7", _))] })
+                            ]
+                          });
+                     (XmlXml
+                        { xml_kind =
+                          (XmlClassic (_,
+                             (Id (("dependencies", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             _, _));
+                          xml_attrs = [];
+                          xml_body =
+                          [(XmlXml
+                              { xml_kind =
+                                (XmlClassic (_,
+                                   (Id (("dependency", _),
+                                      { id_resolved = ref (None);
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (None);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )),
+                                   _, _));
+                                xml_attrs = [];
+                                xml_body =
+                                [(XmlXml
+                                    { xml_kind =
+                                      (XmlClassic (_,
+                                         (Id (("groupId", _),
+                                            { id_resolved = ref (None);
+                                              id_resolved_alternatives =
+                                              ref ([]); id_type = ref (None);
+                                              id_svalue = ref (None);
+                                              id_flags = ref (0);
+                                              id_info_id = _ }
+                                            )),
+                                         _, _));
+                                      xml_attrs = [];
+                                      xml_body = [(XmlText ("junit", _))] });
+                                  (XmlXml
+                                     { xml_kind =
+                                       (XmlClassic (_,
+                                          (Id (("artifactId", _),
+                                             { id_resolved = ref (None);
+                                               id_resolved_alternatives =
+                                               ref ([]);
+                                               id_type = ref (None);
+                                               id_svalue = ref (None);
+                                               id_flags = ref (0);
+                                               id_info_id = _ }
+                                             )),
+                                          _, _));
+                                       xml_attrs = [];
+                                       xml_body = [(XmlText ("junit", _))] });
+                                  (XmlXml
+                                     { xml_kind =
+                                       (XmlClassic (_,
+                                          (Id (("version", _),
+                                             { id_resolved = ref (None);
+                                               id_resolved_alternatives =
+                                               ref ([]);
+                                               id_type = ref (None);
+                                               id_svalue = ref (None);
+                                               id_flags = ref (0);
+                                               id_info_id = _ }
+                                             )),
+                                          _, _));
+                                       xml_attrs = [];
+                                       xml_body = [(XmlText ("4.13.1", _))] });
+                                  (XmlXml
+                                     { xml_kind =
+                                       (XmlClassic (_,
+                                          (Id (("scope", _),
+                                             { id_resolved = ref (None);
+                                               id_resolved_alternatives =
+                                               ref ([]);
+                                               id_type = ref (None);
+                                               id_svalue = ref (None);
+                                               id_flags = ref (0);
+                                               id_info_id = _ }
+                                             )),
+                                          _, _));
+                                       xml_attrs = [];
+                                       xml_body = [(XmlText ("test", _))] })
+                                  ]
+                                })
+                            ]
+                          })
+                     ]
+                   })
+               ]
+             });
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None }
+  ]
