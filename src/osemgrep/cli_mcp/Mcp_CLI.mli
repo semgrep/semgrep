@@ -3,7 +3,7 @@
 *)
 
 (*
-   The result of parsing a 'semgrep lsp' command.
+   The result of parsing a 'semgrep mcp' command.
 *)
 
 type conf = { common : CLI_common.conf } [@@deriving show]
