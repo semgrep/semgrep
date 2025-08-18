@@ -752,11 +752,23 @@ and expr_aux env ?(void = false) g_expr =
         | _ -> exp
       in
       ident_function_call_hack exp
-  (* x = ClassName(args ...) in Python *)
-  (* ClassName has been resolved to __init__ by the pro engine. *)
-  (* Identified and treated as x = New ClassName(args ...) to support
-     field sensitivity. See HACK(new) *)
   | G.Assign
+      ( ({ e = G.N obj; _ } as obj_e),
+        _,
+        ({ e = G.New (_tok, ty, cons_id_info, args); _ } as new_exp) ) ->
+      (* x = new T(args) -- initialization without declaration *)
+      (* HACK(new): Because of field-sensitivity hacks, we need to know to which
+       * variable are we assigning the `new` object, so we intercept the assignment. *)
+      let obj' = var_of_name obj in
+      let lval, ss =
+        mk_class_construction env obj' new_exp ty cons_id_info args
+      in
+      add_stmts env ss;
+      mk_e (Fetch lval) (SameAs obj_e)
+  | G.Assign
+      (* x = ClassName(args ...) in Python *)
+      (* Identified and treated as x = New ClassName(args ...) to support
+         field sensitivity. See HACK(new) *)
       ( ({
            e =
              G.N
@@ -780,7 +792,8 @@ and expr_aux env ?(void = false) g_expr =
                  args );
            _;
          } as origin_exp) )
-    when is_constructor env ret_ty id_info ->
+    when is_constructor env ret_ty id_info
+         (* ClassName has been resolved to __init__ by the pro engine. *) ->
       let obj' = var_of_name obj in
       let lval, ss =
         mk_class_construction env obj' origin_exp ret_ty id_info args
@@ -1645,7 +1658,7 @@ and stmt_aux env st =
               Some ({ e = G.New (_tok, ty, cons_id_info, args); _ } as new_exp);
             _;
           } ) ->
-      (* x = new T(args) *)
+      (* T x = new T(args) *)
       (* HACK(new): Because of field-sensitivity hacks, we need to know to which
        * variable are we assigning the `new` object, so we intercept the assignment. *)
       let obj' = var_of_name obj in

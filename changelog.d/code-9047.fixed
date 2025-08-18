@@ -1,0 +1,1 @@
+Pro: Fixed a bug that prevented taint tracking through `new` in some cases.
