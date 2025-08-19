@@ -215,8 +215,10 @@ let run_core_search xconf (rule : Rule.search_rule) (file : Fpath.t) =
         (Target.mk_unfilterable_target analyzer file)
     in
     try
-      let `Relevant rules, _ =
-        Match_rules.group_relevant_rules ([ rule ] :> Rule.t list) xconf xtarget
+      let `Relevant rules, _, _ =
+        Match_rules.group_relevant_rules
+          ([ rule ] :> Rule.t list)
+          xconf xtarget Core_quick_profiling.zero
       in
       if not (List_.null rules) then
         (* !!calling the engine!! *)

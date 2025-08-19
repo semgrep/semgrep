@@ -71,7 +71,7 @@ let timeout_function (rule : Rule.t) (file : Fpath.t)
       None
 
 let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
-    =
+    profiling =
   let interfile =
     (* TODO: Should be a field in 'xconf'. *)
     Option.is_some (Hook.get Pattern_vs_code.hook_find_possible_parents)
@@ -88,7 +88,7 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
                      (fst r.id));
                Right { r with mode })
   in
-  let relevant, irrelevant =
+  let relevant, irrelevant, profiling =
     (* NOTE: Previously we updated xconf here based on the rule. I don't think
        `filter_irrelevant_rules` should be a rule-level option, so there
        shouldn't need to be any reason to update xconf here (since this is the
@@ -99,7 +99,7 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
     match xconf.filter_irrelevant_rules with
     (* NOTE: SCA rules are dropped. For details see discussion below in the
        filtered case. *)
-    | NoPrefiltering -> (non_sca_rules, [])
+    | NoPrefiltering -> (non_sca_rules, [], profiling)
     | CachedPrefilter f ->
         (* Rules we couldn't generate a prefilter for are always relevant *)
         let rules_with_prefilters, rules_with_no_prefilters =
@@ -109,6 +109,13 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
               | Some prefilter -> Left (r, prefilter)
               | None -> Right r)
             non_sca_rules
+        in
+        let num_rules_with_prefilters = List.length rules_with_prefilters in
+        Engine_metrics.Prefilter_metrics.record_rules_processed
+          ~analyzer:xtarget.analyzer num_rules_with_prefilters;
+        let profiling =
+          Core_quick_profiling.add_rules_with_file_prefilters profiling
+            num_rules_with_prefilters
         in
         let relevant_filtered, irrelevant_filtered =
           let rules, prefilters = List_.split rules_with_prefilters in
@@ -128,20 +135,25 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
                          (Origin.to_string xtarget.path.origin));
                    Right rule))
         in
-        (relevant_filtered @ rules_with_no_prefilters, irrelevant_filtered)
+        Engine_metrics.Prefilter_metrics.record_rules_skipped
+          ~analyzer:xtarget.analyzer
+          (List.length irrelevant_filtered);
+        ( relevant_filtered @ rules_with_no_prefilters,
+          irrelevant_filtered,
+          profiling )
   in
   (* NOTE: SCA rules here are put into the irrelevant bucket. This is because
      we don't execute SCA rules in this codepath: SCA matching isn't available
      here in CE. If/when it is possible to execute them here, this will need to
      be updated. *)
-  (`Relevant relevant, `Irrelevant (irrelevant @ sca_rules))
+  (`Relevant relevant, `Irrelevant (irrelevant @ sca_rules), profiling)
 
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
-let group_rules xconf rules xtarget =
-  let `Relevant relevant, `Irrelevant skipped_rules =
-    group_relevant_rules rules xconf xtarget
+let group_rules xconf rules xtarget profiling =
+  let `Relevant relevant, `Irrelevant skipped_rules, profiling =
+    group_relevant_rules rules xconf xtarget profiling
   in
   let relevant_taint_rules, relevant_nontaint_rules =
     List.partition_map
@@ -165,7 +177,14 @@ let group_rules xconf rules xtarget =
     |> List_.map (fun r -> (r.R.target_analyzer, r))
     |> Assoc.group_assoc_bykey_eff |> List_.map snd
   in
-  (relevant_taint_rules_groups, relevant_nontaint_rules, skipped_rules)
+  let profiling =
+    Core_quick_profiling.add_rules_selected profiling
+      (List.length relevant_taint_rules + List.length relevant_nontaint_rules)
+  in
+  ( relevant_taint_rules_groups,
+    relevant_nontaint_rules,
+    skipped_rules,
+    profiling )
 
 (* Given a thunk [f] that computes the results of running the engine on a
  * single rule, this function simply instruments the computation on a single
@@ -230,6 +249,10 @@ let check ~matches_hook ~(timeout : timeout_config option)
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
 
+  let profiling = Core_quick_profiling.zero in
+  let profiling =
+    Core_quick_profiling.add_rules profiling (List.length rules)
+  in
   let per_rule_boilerplate_fn = per_rule_boilerplate_fn timeout file in
 
   (* We separate out the taint rules specifically, because we may want to
@@ -240,8 +263,8 @@ let check ~matches_hook ~(timeout : timeout_config option)
 
      TODO: use skipped_rules to call the commented skipped_target_of_rule?
   *)
-  let taint_rules_groups, nontaint_rules, _skipped_rules =
-    group_rules xconf rules xtarget
+  let taint_rules_groups, nontaint_rules, _skipped_rules, profiling =
+    group_rules xconf rules xtarget profiling
   in
   let res_taint_rules, errors =
     taint_rules_groups
@@ -305,7 +328,14 @@ let check ~matches_hook ~(timeout : timeout_config option)
    * skipped_target is only in the Core_result.t (and not in the
    * intermediate match_result).
    *)
+  let profiling =
+    Core_quick_profiling.add_rules_matched profiling (List.length res_total)
+  in
   let res =
     RP.collate_rule_results xtarget.path.internal_path_to_content res_total
   in
-  { res with errors = res.errors |> E.ErrorSet.union errors }
+  {
+    res with
+    quick_profiling = Some profiling;
+    errors = res.errors |> E.ErrorSet.union errors;
+  }

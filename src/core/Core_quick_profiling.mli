@@ -37,11 +37,20 @@ module Tainting_stats :
   This also includes the analysis of object initializers and the analysis of
   the top-level statements of a file. *)
 
+module Prefiltering_stats : sig
+  type t [@@deriving show]
+
+  val zero : t
+  val combine : t -> t -> t
+  val to_ratio_stats : t -> Semgrep_output_v1_t.prefiltering_stats
+end
+
 type t = {
   parsing_stats : Parsing_stats.t;
   scanning_stats : Scanning_stats.t;
   matching_stats : Matching_stats.t;
   tainting_stats : Tainting_stats.t;
+  prefiltering_stats : Prefiltering_stats.t;
 }
 [@@deriving show]
 
@@ -59,3 +68,11 @@ val add_match_time : Fpath.t -> Rule_ID.t -> float -> t -> t
 
 val add_taint_time : Fpath.t -> Pos.t -> Rule_ID.t -> float -> t -> t
 (** Add the tainting time for a definition and rule. *)
+
+val add_project_level_time : float -> t -> t
+val add_file_level_time : float -> t -> t
+val add_rules : t -> int -> t
+val add_rules_with_project_prefilters : t -> int -> t
+val add_rules_with_file_prefilters : t -> int -> t
+val add_rules_selected : t -> int -> t
+val add_rules_matched : t -> int -> t

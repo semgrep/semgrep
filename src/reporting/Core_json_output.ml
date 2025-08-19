@@ -549,6 +549,10 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     extra = Option.map extra_to_extra extra;
   }
 
+let quick_profiling_to_prefiltering (quick_profiling : QProf.t) :
+    Out.prefiltering_stats =
+  QProf.Prefiltering_stats.to_ratio_stats quick_profiling.prefiltering_stats
+
 let quick_profiling_to_parsing_time (quick_profiling : QProf.t) :
     Out.parsing_time =
   let parsing_stats = quick_profiling.parsing_stats in
@@ -688,6 +692,8 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
       |> Common2.sum_int;
     (* those are filled later in pysemgrep from the Profiler class *)
     profiling_times = [];
+    prefiltering =
+      opt_quick_profiling |> Option.map quick_profiling_to_prefiltering;
     parsing_time =
       opt_quick_profiling |> Option.map quick_profiling_to_parsing_time;
     scanning_time =

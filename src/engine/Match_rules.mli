@@ -30,4 +30,7 @@ val group_relevant_rules :
   Rule.t list ->
   Match_env.xconfig ->
   Xtarget.t ->
-  [ `Relevant of Rule.t list ] * [ `Irrelevant of Rule.t list ]
+  Core_quick_profiling.t ->
+  [ `Relevant of Rule.t list ]
+  * [ `Irrelevant of Rule.t list ]
+  * Core_quick_profiling.t
