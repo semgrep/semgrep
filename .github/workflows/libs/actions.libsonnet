@@ -1,16 +1,14 @@
 // Factorize GHA "actions" (=~ plugins) boilerplate.
 local gha = import './gha.libsonnet';
 
-local download_artifact_step(artifact_name, run_id=null) = {
+local download_artifact_step(artifact_name, run_id=null, path=null) = {
   uses: 'actions/download-artifact@v4',
   with: {
-  } + (if artifact_name == '' then {} else {
-
-         name: artifact_name,
-       }) + (if run_id != null then {
-               'run-id': run_id,
-               'github-token': '${{ secrets.GITHUB_TOKEN }}',
-             } else {}),
+    [if path != null then 'path']: path,
+    [if artifact_name != null then 'name']: artifact_name,
+    [if run_id != null then 'run-id']: run_id,
+    [if run_id != null then 'github-token']: '${{ secrets.GITHUB_TOKEN }}',
+  },
 };
 
 // Gets the run id of a workflow from a specific ref. This is useful for if you
