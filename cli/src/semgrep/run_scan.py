@@ -378,6 +378,7 @@ def baseline_run(
     ptt_enabled: bool,
     dry_run: bool,
     fips_mode: bool,
+    x_eio: bool,
 ) -> RuleMatchMap:
     """
     Run baseline scan and return the updated rule_matches_by_rule with baseline matches removed.
@@ -494,6 +495,7 @@ def baseline_run(
                     ptt_enabled=ptt_enabled,
                     dry_run=dry_run,
                     fips_mode=fips_mode,
+                    x_eio=x_eio,
                 )
                 rule_matches_by_rule = remove_matches_in_baseline(
                     rule_matches_by_rule,
@@ -1292,6 +1294,7 @@ def run_scan(
             ptt_enabled=ptt_enabled,
             dry_run=dryrun,
             fips_mode=fips_mode,
+            x_eio=x_eio,
         )
 
     # ---------------------------------
