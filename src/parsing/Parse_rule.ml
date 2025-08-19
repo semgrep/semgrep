@@ -893,9 +893,18 @@ let parse_validators env key value =
 
 let parse_ecosystem env key value =
   match value.G.e with
-  | G.L (String (_, (_ecosystem, _), _)) ->
-      Ok Ecosystem.Npm
-      (* | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem)) *)
+  | G.L (String (_, (ecosystem, _), _)) -> (
+      (* ATD deserializers expect JSON values, so we need to wrap the ecosystem in quotes. *)
+      try
+        Ok
+          (Semgrep_output_v1_j.ecosystem_of_string
+             (Common.spf "\"%s\"" ecosystem))
+      with
+      (* It's not clear to me what exception could be raised here, so catch-all. *)
+      | e ->
+          error_at_key env.id key
+            (Common.spf "Failure parsing ecosystem %s: %s" ecosystem
+               (Printexc.to_string e)))
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 
 let parse_dependency_pattern key env value :
