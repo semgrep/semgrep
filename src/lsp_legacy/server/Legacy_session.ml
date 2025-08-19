@@ -233,8 +233,9 @@ let scan_config_of_token caps = function
   | Some token -> (
       let caps = Auth.cap_token_and_network token caps in
       let%lwt config_string =
-        Semgrep_App.fetch_scan_config_string_async caps ~sca:false ~dry_run:true
-          ~full_scan:true ~repository:""
+        (* Legacy LS doesn't get secrets :( *)
+        Semgrep_App.fetch_scan_config_string_async caps ~secrets:false
+          ~sca:false ~dry_run:true ~full_scan:true ~repository:""
       in
       match config_string with
       | Ok config_string ->

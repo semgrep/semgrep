@@ -398,8 +398,8 @@ let url_for_policy caps =
       | Some repo_name -> scan_config_uri repo_name)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
-let fetch_scan_config_string_async ~dry_run ~sca ~full_scan ~repository caps :
-    (string, string) result Lwt.t =
+let fetch_scan_config_string_async ~dry_run ~secrets ~sca ~full_scan ~repository
+    caps : (string, string) result Lwt.t =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
    * or with a scan_id.
    * python:
@@ -408,7 +408,7 @@ let fetch_scan_config_string_async ~dry_run ~sca ~full_scan ~repository caps :
    *   else:
    *    app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
    *)
-  let url = scan_config_uri ~sca ~dry_run ~full_scan repository in
+  let url = scan_config_uri ~secrets ~sca ~dry_run ~full_scan repository in
   let headers =
     [
       ("User-Agent", spf "Semgrep/%s" Version.version);
@@ -435,8 +435,8 @@ let fetch_scan_config_string_async ~dry_run ~sca ~full_scan ~repository caps :
   Lwt.return conf_string
 
 (* coupling(eio-port): if you change this you must change the eio version *)
-let fetch_scan_config_string_eio ~dry_run ~sca ~full_scan ~repository caps :
-    (string, string) result =
+let fetch_scan_config_string_eio ~dry_run ~secrets ~sca ~full_scan ~repository
+    caps : (string, string) result =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
    * or with a scan_id.
    * python:
@@ -445,7 +445,7 @@ let fetch_scan_config_string_eio ~dry_run ~sca ~full_scan ~repository caps :
    *   else:
    *    app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
    *)
-  let url = scan_config_uri ~sca ~dry_run ~full_scan repository in
+  let url = scan_config_uri ~secrets ~sca ~dry_run ~full_scan repository in
   let headers =
     [
       ("User-Agent", spf "Semgrep/%s" Version.version);

@@ -95,6 +95,7 @@ val get_identity_async : < Cap.network ; Auth.cap_token ; .. > -> string Lwt.t
 (* used by 'semgrep lsp' *)
 val fetch_scan_config_string_async :
   dry_run:bool ->
+  secrets:bool ->
   sca:bool ->
   full_scan:bool ->
   repository:string ->
@@ -103,6 +104,7 @@ val fetch_scan_config_string_async :
 
 val fetch_scan_config_string_eio :
   dry_run:bool ->
+  secrets:bool ->
   sca:bool ->
   full_scan:bool ->
   repository:string ->
