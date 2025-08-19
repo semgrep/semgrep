@@ -14,6 +14,15 @@ let max_retries = 30
 (* Request parameters *)
 (*****************************************************************************)
 
+let mk_login_response (deployment : OutJ.deployment_config) (token : Auth.token)
+    =
+  `Assoc
+    [
+      ("deploymentName", `String deployment.name);
+      ("deploymentId", `Int deployment.id);
+      ("authToken", `String (Auth.string_of_token token));
+    ]
+
 type t = { url : string; sessionId : string } [@@deriving yojson]
 
 let of_jsonrpc_params params : (Uri.t * Uuidm.t) option =
@@ -41,7 +50,7 @@ let on_request session id params : Legacy_session.t * Legacy_lsp_.Reply.t =
           (Reply.now
              (notify_show_message ~kind:MessageType.Error
                 "semgrep/loginFinish got no parameters, but expected some"))
-          (Reply.now (respond_json id (`Assoc [ ("loggedIn", `Bool false) ])))
+          (Reply.now (respond_json id `Null))
     | Some _ ->
         (* All of this is side-effecting, so we can run it asynchronously, and
            return to the main event loop.
@@ -51,14 +60,19 @@ let on_request session id params : Legacy_session.t * Legacy_lsp_.Reply.t =
               let%lwt result = x in
               match result with
               | Error s ->
+                  let msg = "Failed to complete login process: " ^ s in
                   Reply.apply send
                     (Reply.both
                        (Reply.now
-                          (notify_show_message ~kind:MessageType.Error
-                             ("Failed to complete login process: " ^ s)))
+                          (notify_show_message ~kind:MessageType.Error msg))
+                       (* coupling: this is the same as Lsp_.respond_json_error *)
                        (Reply.now
-                          (respond_json id
-                             (`Assoc [ ("loggedIn", `Bool false) ]))))
+                          (Jsonrpc.Packet.Response
+                             (Jsonrpc.Response.error id
+                                (Jsonrpc.Response.Error.make
+                                   ~code:
+                                     Jsonrpc.Response.Error.Code.InternalError
+                                   ~message:msg ())))))
               | Ok y -> f y
             in
             let^ _url, sessionId =
@@ -75,7 +89,7 @@ let on_request session id params : Legacy_session.t * Legacy_lsp_.Reply.t =
                 caps sessionId
             in
             let caps = Auth.cap_token_and_network token caps in
-            let^ _deployment =
+            let^ deployment =
               Semgrep_App.deployment_config_async caps
               |> Lwt.map (Option.to_result ~none:"failed to get deployment")
             in
@@ -87,7 +101,7 @@ let on_request session id params : Legacy_session.t * Legacy_lsp_.Reply.t =
               Reply.apply send
                 (Reply.both
                    (Reply.now
-                      (respond_json id (`Assoc [ ("loggedIn", `Bool true) ])))
+                      (respond_json id (mk_login_response deployment token)))
                    (Legacy_scan_helpers.refresh_rules session))
             in
             Lwt.return ()) )
