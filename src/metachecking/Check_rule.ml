@@ -21,7 +21,7 @@ module E = Core_error
 module PM = Core_match
 module RP = Core_result
 module SJ = Semgrep_output_v1_j
-module Set = Set_
+module Mvar_set = Sets.String_set
 module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
@@ -91,7 +91,7 @@ let mv_error env mv t =
 
 let mvar_is_ok mv mvs =
   (* TODO: remove first condition when we kill numeric capture groups *)
-  Mvar.is_metavar_for_capture_group mv || Set.mem mv mvs
+  Mvar.is_metavar_for_capture_group mv || Mvar_set.mem mv mvs
 
 let check_mvars_of_condition env bound_mvs (t, condition) =
   match condition with
@@ -110,12 +110,12 @@ let check_mvars_of_focus r bound_mvs (t, mv_list) =
 
 let unknown_metavar_in_comparison r f =
   let rec collect_metavars parent_mvs { f; conditions; focus; fix = _; as_ } :
-      Mvar.t Set.t * Core_error.t list =
+      Mvar_set.t * Core_error.t list =
     (* Check the metavariables in the conditions (e.g. metavariable-pattern).
        From here on, both the metavariables from the conjuncts and the
        metavariables from the parent are already bound *)
     let inner_mvs, inner_errors = collect_metavars' parent_mvs f in
-    let bound_mvs_for_conds = Set.union inner_mvs parent_mvs in
+    let bound_mvs_for_conds = Mvar_set.union inner_mvs parent_mvs in
     let errors =
       conditions
       |> List.concat_map (check_mvars_of_condition r bound_mvs_for_conds)
@@ -130,32 +130,32 @@ let unknown_metavar_in_comparison r f =
              | CondType _
              | CondAnalysis _
              | CondName _ ->
-                 (Set.empty, [])
+                 (Mvar_set.empty, [])
              | CondRegexp (_, regex, _) ->
-                 (Mvar.mvars_of_regexp_string regex |> Set_.of_list, [])
+                 (Mvar.mvars_of_regexp_string regex |> Mvar_set.of_list, [])
              | CondNestedFormula (_, _, formula) ->
                  collect_metavars bound_mvs_for_conds formula)
       |> List.fold_left
            (fun (mvars_acc, errors_acc) (mvars, errors) ->
-             (Set.union mvars_acc mvars, errors @ errors_acc))
-           (Set.empty, [])
+             (Mvar_set.union mvars_acc mvars, errors @ errors_acc))
+           (Mvar_set.empty, [])
     in
 
     (* Check the focus-metavariable clauses last since they can use metavariables
        in any clause within the And *)
-    let bound_mvs_for_focus = Set.union cond_mvs bound_mvs_for_conds in
+    let bound_mvs_for_focus = Mvar_set.union cond_mvs bound_mvs_for_conds in
     let focus_errors =
       focus |> List.concat_map (check_mvars_of_focus r bound_mvs_for_focus)
     in
     (* Return only the metavariables that were newly bound in this node *)
-    let mvs = Set.union cond_mvs inner_mvs in
+    let mvs = Mvar_set.union cond_mvs inner_mvs in
     let mvs_with_as =
       match as_ with
       | None -> mvs
-      | Some as_ -> Set.add as_ mvs
+      | Some as_ -> Mvar_set.add as_ mvs
     in
     (mvs_with_as, focus_errors @ cond_errors @ errors @ inner_errors)
-  and collect_metavars' parent_mvs kind : Mvar.t Set.t * Core_error.t list =
+  and collect_metavars' parent_mvs kind : Mvar_set.t * Core_error.t list =
     match kind with
     | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
@@ -178,13 +178,13 @@ let unknown_metavar_in_comparison r f =
           | __else__ -> []
         in
         ( [ metavars; ellipsis_metavars; regexp_captured_mvars ]
-          |> List_.map Set.of_list
-          |> List.fold_left Set.union Set.empty,
+          |> List_.map Mvar_set.of_list
+          |> List.fold_left Mvar_set.union Mvar_set.empty,
           [] )
     | Inside (_, f)
     | Anywhere (_, f) ->
         collect_metavars parent_mvs f
-    | Not (_, _) -> (Set.empty, [])
+    | Not (_, _) -> (Mvar_set.empty, [])
     | And (_, xs)
     | Or (_, xs) ->
         (* Collect and check from the conjuncts. Pass down the metavariables
@@ -197,10 +197,10 @@ let unknown_metavar_in_comparison r f =
            * is not always enforced, so the metacheck is too strict
            *)
           (fun (acc, acc_errors) (mv_set, errors) ->
-            (Set.union acc mv_set, errors @ acc_errors))
-          (Set.empty, []) mv_sets
+            (Mvar_set.union acc mv_set, errors @ acc_errors))
+          (Mvar_set.empty, []) mv_sets
   in
-  let _, errors = collect_metavars Set.empty f in
+  let _, errors = collect_metavars Mvar_set.empty f in
   List.rev errors
 
 (* call Check_pattern subchecker *)
