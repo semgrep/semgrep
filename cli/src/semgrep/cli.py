@@ -77,5 +77,6 @@ def cli(ctx: click.Context) -> None:
 cli.add_command(cmd=ci)
 cli.add_command(cmd=login)
 cli.add_command(cmd=publish)
-cli.add_command(cmd=scan)
+cli.add_command(cmd=scan, name="scan")
+cli.commands["scan"].help = "Scan code using Semgrep rules (default)"
 cli.add_command(cmd=install_semgrep_pro)
