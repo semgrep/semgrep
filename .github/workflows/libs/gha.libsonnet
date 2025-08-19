@@ -103,4 +103,13 @@ local on_pull_request_config = {
     ],
 
   },
+  // GHA expression that evaluates to the input ref or, if that is empty, the sha
+  // associated with the trigger for this action.
+  ref_expr: "${{ inputs.ref != '' && inputs.ref || github.sha }}",
+  ref_input: {
+    description: 'Git ref to checkout. Defaults to github.sha',
+    required: false,
+    type: 'string',
+    default: '',
+  },
 }

@@ -11,10 +11,6 @@
 local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
 
-// GHA expression that evaluates to the input ref or, if that is empty, the sha
-// associated with the trigger for this action.
-local ref_expr = "${{ inputs.ref != '' && inputs.ref || github.sha }}";
-
 // TODO: Generalize and also make build-test-linux-arm64.jsonnet share the
 //       same job. Maybe also use it in the release script.
 
@@ -148,7 +144,7 @@ local job(
       digest: '${{ steps.build-%s-docker-image.outputs.digest }}' % name,
     },
     permissions: gha.read_permissions,
-    steps: checkout_steps(ref=ref_expr) + [
+    steps: checkout_steps(ref=gha.ref_expr) + [
              // Documentation for this step is here:
              // https://github.com/docker/metadata-action
              //
@@ -232,7 +228,7 @@ local job(
                    type=raw,value=sha-%(ref_expr)s
                    type=semver,pattern={{version}}
                    type=semver,pattern={{major}}.{{minor}}
-                 ||| % { prefix: prefix, ref_expr: ref_expr },
+                 ||| % { prefix: prefix, ref_expr: gha.ref_expr },
                },
              },
              {
@@ -336,7 +332,7 @@ local job(
                  'build-args': |||
                    VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
                    VCS_REF_HEAD_REVISION=%(ref_expr)s
-                 ||| % { ref_expr: ref_expr },
+                 ||| % { ref_expr: gha.ref_expr },
                  // This flag controls if for whatever reason depot fails to
                  // build the docker image on their fast native arm64 runners, whether
                  // depot will fallback to docker-buildx which uses emulation (which is
@@ -374,12 +370,7 @@ local job(
   };
 
 local inputs = {
-  ref: {
-    description: 'Git ref to checkout. Defaults to github.sha',
-    required: false,
-    type: 'string',
-    default: '',
-  },
+  ref: gha.ref_input,
 };
 
 // ----------------------------------------------------------------------------
@@ -404,7 +395,6 @@ local inputs = {
     },
   },
   copy_from_docker_step: copy_from_docker_step,
-  ref_expr: ref_expr,
   validate: validate,
   retag_step: retag_step,
 }
