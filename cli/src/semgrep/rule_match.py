@@ -285,6 +285,19 @@ class RuleMatch:
         hash_bytes = int.to_bytes(hash_int, byteorder="big", length=16, signed=False)
         return str(binascii.hexlify(hash_bytes), "ascii")
 
+    def _get_metavar_bindings(self) -> Iterable[Tuple[str, str]]:
+        if self.match.extra.metavars is not None:
+            metavars = self.match.extra.metavars.value
+            # Sort keys in descending order so that we don't inadvertedly
+            # perform a substitution of a metavariable which is a prefix
+            # of another.  E.g: Given bindings $REQ->foo and $REQFUNC->bar,
+            # we expect the pattern "$RECFUNC($REQ)" to be substituted
+            # as "bar(foo)" and not "fooFUNC(foo)".
+            keys = sorted(metavars.keys(), key=len, reverse=True)
+            for mvar in keys:
+                mval = metavars[mvar]
+                yield mvar, mval.abstract_content
+
     @match_based_key.default
     def get_match_based_key(self) -> Tuple[str, Path, str]:
         """
@@ -299,12 +312,8 @@ class RuleMatch:
         except (ValueError, FileNotFoundError):
             path = self.path
         match_formula_str = self.match_formula_string
-        if self.match.extra.metavars is not None:
-            metavars = self.match.extra.metavars.value
-            for mvar, mval in metavars.items():
-                match_formula_str = match_formula_str.replace(
-                    mvar, mval.abstract_content
-                )
+        for mvar, mval in self._get_metavar_bindings():
+            match_formula_str = match_formula_str.replace(mvar, mval)
         if self.from_transient_scan:
             # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
             # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
@@ -368,12 +377,8 @@ class RuleMatch:
         has only changed because e.g. the file path changed
         """
         match_formula_str = self.match_formula_string
-        if self.match.extra.metavars is not None:
-            metavars = self.match.extra.metavars.value
-            for mvar, mval in metavars.items():
-                match_formula_str = match_formula_str.replace(
-                    mvar, mval.abstract_content
-                )
+        for mvar, mval in self._get_metavar_bindings():
+            match_formula_str = match_formula_str.replace(mvar, mval)
         return hashlib.sha256(match_formula_str.encode()).hexdigest()
 
     @start_line_hash.default

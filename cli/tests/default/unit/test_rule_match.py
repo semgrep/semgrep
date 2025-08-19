@@ -37,6 +37,47 @@ def create_rule() -> Rule:
 
 
 @pytest.mark.quick
+def test_rule_match_metavar_subst_ordering(mocker):
+    """Tests that metavariable substitution handles prefix cases correctly.
+    When we have metavariables where one is a prefix of another, such as $REQ
+    and $REQFUNC, we need to apply the latter before the former to avoid
+    incorrect substitutions."""
+
+    fmla = "$REQFUNC($REQ)"
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=fmla))
+
+    fake_pos = out.Position(0, 0, 0)
+    # Order matters here: shorter value precedes the longer one.
+    bindings = {
+        "$REQ": out.MetavarValue(start=fake_pos, end=fake_pos, abstract_content="foo"),
+        "$REQFUNC": out.MetavarValue(
+            start=fake_pos, end=fake_pos, abstract_content="bar"
+        ),
+    }
+
+    match = RuleMatch(
+        message="message",
+        severity=out.MatchSeverity(out.Error()),
+        match=out.CoreMatch(
+            check_id=out.RuleId("long.rule.id"),
+            path=out.Fpath("relative/path/to/foo.py"),
+            start=out.Position(3, 1, 24),
+            end=out.Position(3, 15, 38),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars(bindings),
+                engine_kind=out.EngineOfFinding(out.OSS()),
+                is_ignored=False,
+            ),
+        ),
+        match_formula_string=fmla,
+    )
+
+    expected = "bar(foo)"
+    actual = match.match_based_key[0]
+    assert actual == expected
+
+
+@pytest.mark.quick
 def test_rule_match_attributes(mocker):
     file_content = dedent(
         """
