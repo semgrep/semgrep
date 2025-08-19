@@ -204,9 +204,6 @@
         "code_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052",
         "pattern_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052"
       },
-      "fixed_lines": [
-        "    (x == 2)"
-      ],
       "validation_state": "NO_VALIDATOR",
       "engine_kind": "OSS"
     },

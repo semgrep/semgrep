@@ -190,9 +190,6 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "(x == 2)",
-        "fixed_lines": [
-          "    (x == 2)"
-        ],
         "is_ignored": false,
         "lines": "    x == 5",
         "message": "useless comparison to 5",
@@ -525,6 +522,7 @@
   poetry.lock          Lockfile            Pypi        3                  1
   yarn.lock            Lockfile            Npm         1                  2
 
+successfully modified 1 file.
   Uploading scan results
   Finalizing scan
 

@@ -46,6 +46,7 @@ poetry.lock:2:1:E:supply-chain1:found a dependency
   poetry.lock          Lockfile            Pypi        3                  1
   yarn.lock            Lockfile            Npm         1                  2
 
+successfully modified 1 file.
   Uploading scan results
   Finalizing scan
 

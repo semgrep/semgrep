@@ -34,6 +34,7 @@
   poetry.lock          Lockfile            Pypi        3                  1
   yarn.lock            Lockfile            Npm         1                  2
 
+successfully modified 1 file.
   Uploading scan results
   Finalizing scan
 
@@ -84,7 +85,7 @@
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

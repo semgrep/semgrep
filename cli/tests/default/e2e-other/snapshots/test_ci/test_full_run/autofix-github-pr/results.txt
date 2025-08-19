@@ -63,6 +63,7 @@ Creating git worktree from '<MASKED>' to scan baseline.
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        3                  1
 
+successfully modified 1 file.
   Uploading scan results
   Finalizing scan
 
@@ -102,7 +103,7 @@ Creating git worktree from '<MASKED>' to scan baseline.
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ (x == 2)
+           15┆ x == 5
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad

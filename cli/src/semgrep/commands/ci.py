@@ -213,7 +213,7 @@ def ci(
     config: Optional[Tuple[str, ...]],
     debug: bool,
     dump_command_for_core: bool,
-    dry_run: bool,
+    dry_run: bool = False,
     enable_nosem: bool,
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
@@ -673,7 +673,7 @@ def ci(
             "exclude_rule": exclude_rule,
             "max_target_bytes": max_target_bytes,
             "autofix": scan_handler.autofix if scan_handler else False,
-            "dryrun": True,
+            "dryrun": dry_run,
             # Determine whether or not we will sort ignored matches into the
             # `kept` category of FilteredMatches.
             # If there are multiple outputs and any request to keep_ignores
