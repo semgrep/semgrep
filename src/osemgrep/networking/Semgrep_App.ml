@@ -355,7 +355,7 @@ let deployment_config token = Lwt_platform.run (deployment_config_async token)
 let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
     ?(full_scan = true) repo_name =
   let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
-  let base_query_params =
+  let query_params =
     [
       ("is_secrets_scan", json_bool_to_string secrets);
       ("sca", json_bool_to_string sca);
@@ -363,18 +363,14 @@ let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
       ("full_scan", json_bool_to_string full_scan);
       ("repo_name", repo_name);
       ("semgrep_version", Version.version);
+      (* We will always fetch code rules for now. This may change in the future,
+         e.g. if we want to run a supply-chain-only scan, but for most purposes of
+         Semgrep scanning, code rules are implied.
+         Because the App requires that we specify some product positively, this
+         also ensures that `sca: false` works properly.
+       *)
+      ("is_code_scan", json_bool_to_string true);
     ]
-  in
-  (* In principle, there is no reason why we should have to do this, but
-      the backend is configured to default to _all_ products unless _some_
-      product is specified positively.
-      So if we want to filter out SCA rules, we need to add a query param
-      explicitly requesting something else, like code rules.
-    *)
-  let query_params =
-    if not sca then
-      base_query_params @ [ ("is_code_scan", json_bool_to_string true) ]
-    else base_query_params
   in
   Uri.(
     add_query_params'
