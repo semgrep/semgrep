@@ -34,14 +34,13 @@ type id_to_match_results = (pattern_id, Core_match.t list ref) Hashtbl.t
 type prefilter_policy =
   (* The policy for when we wish to prefilter (conditional on whether we are
    * doing interfile analysis or not) *)
-  | CachedPrefilter of
-      (interfile:bool -> Rule.t -> Analyze_rule.prefilter option)
+  | CachedPrefilter of (interfile:bool -> Rule.t -> Prefiltering.File.t option)
   (* The policy for when we do not wish to prefilter at all. *)
   | NoPrefiltering
 
 let make_prefilter () =
-  let with_interfile = Analyze_rule.prefilter_of_rule ~interfile:true in
-  let without_interfile = Analyze_rule.prefilter_of_rule ~interfile:false in
+  let with_interfile = Prefiltering.File.of_rule ~interfile:true in
+  let without_interfile = Prefiltering.File.of_rule ~interfile:false in
   CachedPrefilter
     (fun ~interfile r ->
       if interfile then with_interfile r else without_interfile r)

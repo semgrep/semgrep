@@ -358,7 +358,7 @@ let check_files (caps : < Cap.stdout ; Core_scan.caps ; Cap.readdir ; .. >)
 
 (* for semgrep-core -stat_rules *)
 let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
-  let generate_prefilter = Analyze_rule.prefilter_of_rule ~interfile:false in
+  let generate_prefilter = Prefiltering.File.of_rule ~interfile:false in
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files caps (function
@@ -383,9 +383,8 @@ let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
                     | Some prefilter ->
                         incr good;
                         let s =
-                          Semgrep_prefilter_j.string_of_formula
-                            (Analyze_rule.prefilter_formula_of_prefilter
-                               prefilter)
+                          Prefiltering.Semgrep_prefilter_j.string_of_formula
+                            (Prefiltering.File.to_semgrep_formula prefilter)
                         in
                         Logs.debug (fun m -> m "regexp: %s" s))
          | Error e ->

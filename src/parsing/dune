@@ -26,7 +26,7 @@
    parser_json.menhir parser_json.ast_generic
 
    semgrep_core
-   semgrep_optimizing
+   semgrep.prefiltering
    semgrep.typing
    pfff_lang_GENERIC_analyze ; =~ semgrep_analyzing ; Constant_propagation in Parse_target.ml
    semgrep_targeting ; for Input_to_core.atd
