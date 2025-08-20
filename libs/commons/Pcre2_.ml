@@ -228,7 +228,7 @@ let quote = Pcre2.quote
  * Regexps are used in many places in Semgrep:
  *  - in Pattern_vs_code to support the "=~/.../",
  *  - in Semgrep.ml for the metavariable-regexp and pattern-regexp
- *  - in Optimizing/ for skipping rules or target files
+ *  - in Prefiltering/ for skipping rules or target files
  *    (See Analyze_pattern.ml for more information).
  *  - TODO for include/exclude globbing
  *

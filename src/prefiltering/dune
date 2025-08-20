@@ -1,10 +1,10 @@
 (library
- (public_name semgrep.optimizing)
- (name semgrep_optimizing)
- (wrapped false)
+ (public_name semgrep.prefiltering)
+ (name prefiltering)
  (libraries
     ast_generic
     semgrep.core
+    semgrep.target
  )
  (preprocess
    (pps

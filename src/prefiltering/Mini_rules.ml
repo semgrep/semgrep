@@ -14,7 +14,6 @@
  *)
 module Flag = Flag_semgrep
 module R = Mini_rule
-module Log = Log_optimizing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,4 +62,4 @@ let filter_mini_rules_relevant_to_file_using_regexp ~interfile rules lang file =
            Log.info (fun m ->
                m "filtering out rule %s" (Rule_ID.to_string rule.id));
          match_)
-[@@profiling "Mini_rules_filter.filter"]
+[@@profiling "Mini_rules.filter"]

@@ -7,7 +7,7 @@
 
    semgrep.core
    semgrep.core_scan
-   semgrep.optimizing ; for regexp_prefilter stats
+   semgrep.prefiltering ; for regexp_prefilter stats
    semgrep.engine.tests
  )
  (preprocess (pps ppx_profiling))
