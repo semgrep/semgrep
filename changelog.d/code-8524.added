@@ -1,0 +1,3 @@
+Pro: improved prefiltering for interfile rules. This allows the engine to skip
+interfile rules earlier in the process when we determine they cannot match in a
+given scan, which should improve performance.
