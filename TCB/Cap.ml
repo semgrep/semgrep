@@ -288,6 +288,14 @@ let already_called_main = ref false
  * in Main.ml (via a nosemgrep or paths: exclude:)
  *)
 let main (f : all_caps -> 'a) : 'a =
+  (* Registers a segfault handler that prints pretty backtraces if there's
+     a segfault *)
+  (match Backward.register () with
+  | Error e ->
+      prerr_string e;
+      prerr_newline ();
+      flush stderr
+  | Ok () -> ());
   Memtrace.trace_if_requested ();
   (* can't cheat :) can't nest them *)
   let powerbox = new powerbox in

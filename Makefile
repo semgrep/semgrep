@@ -109,12 +109,7 @@ copy-core-for-cli:
 core:
 	dune build $(BUILD)/install/default/bin/semgrep-core$(EXE)
 	dune build $(BUILD)/install/default/bin/osemgrep$(EXE)
-# Remove all symbols with GNU strip. It saves 10-25% on the executable
-# size and it doesn't seem to reduce the functionality or
-# debuggability of OCaml executables.
-# See discussion at https://github.com/semgrep/semgrep/pull/9471
 	chmod +w bin/semgrep-core$(EXE)
-	strip bin/semgrep-core$(EXE)
 
 #coupling: The 'semgrep-oss' is the name of the step in the Dockerfile, the
 # 'semgrep' the name of the docker image produced (will be semgrep:latest)

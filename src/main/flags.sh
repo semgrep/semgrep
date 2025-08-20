@@ -123,6 +123,7 @@ else
             "-lbase_stubs"
             "-locaml_intrinsics_kernel_stubs"
             "-lbigstringaf_stubs"
+            "-lobackward_stubs"
             "-lca_certs_stubs"
             "-lcamlstrnat"
             "-lcheckseum_c_stubs"
@@ -162,6 +163,7 @@ else
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"
             "$(pkg-config libpcre --variable libdir)/libpcre.a"
             "$(pkg-config libpcre2-8 --variable libdir)/libpcre2-8.a"
+            "$(brew --prefix dwarfutils)/lib/libdwarf.a"
             "$(brew --prefix zstd)/lib/libzstd.a")
 
         # Libev does not support pkg-config. See, e.g.,

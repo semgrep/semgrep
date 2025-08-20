@@ -1,0 +1,5 @@
+(executables
+  (names discover)
+  (libraries dune.configurator)
+  (modes byte exe)
+)

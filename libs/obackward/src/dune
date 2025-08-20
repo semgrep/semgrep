@@ -1,0 +1,20 @@
+; wrapper library around backward-cpp
+(library
+  (public_name obackward)
+  (name obackward)
+  (wrapped false)
+  (foreign_stubs
+    (language cxx)
+    (names backward)
+    (flags (:include cpp_flags.sexp)))
+  (foreign_stubs
+    (language c)
+    (names backward_stubs)
+    (flags (:include c_flags.sexp))
+  )
+  (c_library_flags (:include c_library_flags.sexp))
+)
+
+(rule
+  (targets cpp_flags.sexp c_flags.sexp c_library_flags.sexp)
+  (action (run ./config/discover.exe)))
