@@ -29,7 +29,7 @@ open AST_generic
  * a pattern that we can run first on the target file.
  *
  * This module is currently used by:
- *  - Mini_rules_filter and Semgrep_generic, to skip certain mini-rules
+ *  - Mini_rules and Semgrep_generic, to skip certain mini-rules
  *    (but not entire files)
  *  - the Semgrep.ml engine to skip entire files!
  *)

@@ -127,23 +127,22 @@ let dump_rule (file : Fpath.t) : unit =
 (*****************************************************************************)
 
 let prefilter_of_rules ~interfile file =
-  let generate_prefilter = Analyze_rule.prefilter_of_rule ~interfile in
   match Parse_rule.parse file with
   | Ok rules ->
       let xs =
         rules
         |> List_.map (fun r ->
-               let pre_opt = generate_prefilter r in
+               let pre_opt = Prefiltering.File.of_rule ~interfile r in
                let pre_atd_opt =
-                 Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
+                 Option.map Prefiltering.File.to_semgrep_formula pre_opt
                in
                let id = r.Rule.id |> fst in
                {
-                 Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
+                 Prefiltering.Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
                  filter = pre_atd_opt;
                })
       in
-      let s = Semgrep_prefilter_j.string_of_prefilters xs in
+      let s = Prefiltering.Semgrep_prefilter_j.string_of_prefilters xs in
       UCommon.pr s
   (* TODO: handle parse errors gracefully instead of silently ignoring *)
   | Error _ -> ()

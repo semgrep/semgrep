@@ -122,7 +122,7 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
           Log.info (fun m ->
               m "Performing rule prefiltering for %s"
                 (Origin.to_string xtarget.path.origin));
-          Analyze_rule.check_prefilters prefilters
+          Prefiltering.File.check_many prefilters
             (Lazy.force xtarget.lazy_content)
           |> List_.combine rules
           |> List.partition_map

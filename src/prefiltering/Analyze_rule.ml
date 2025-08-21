@@ -13,7 +13,6 @@
 open Common
 module String_set = Analyze_pattern.String_set
 module MvarSet = Analyze_pattern.MvarSet
-module Log = Log_optimizing.Log
 
 (* NOTE "AND vs OR and filter_map":
    We cannot use `List_.filter_map` for `R.Or`, because it has the wrong
@@ -30,21 +29,9 @@ let option_map f xs =
       Some (y :: ys))
     (Some []) xs
 
-type 'pred requirement_tree =
-  | And of 'pred requirement_tree list  (** A conjunction of requirements. *)
-  | Or of 'pred requirement_tree list  (** A disjunction of requirements. *)
-  | Pred of 'pred  (** A single requirement. *)
-[@@deriving show]
+type 'pred requirement_tree = 'pred Formula.t [@@deriving show]
 
-let rec map_requirement_tree_opt f = function
-  | And xs -> (
-      match List_.filter_map (map_requirement_tree_opt f) xs with
-      | [] -> None
-      | _ :: _ as xs -> Some (And xs))
-  | Or xs ->
-      let* xs = option_map (map_requirement_tree_opt f) xs in
-      Some (Or xs)
-  | Pred x -> f x
+let map_requirement_tree_opt = Formula.map_opt
 
 type pattern_predicate =
   | LPat of Xpattern.t  (** A pattern from the rule.*)
@@ -61,14 +48,14 @@ let rec required_patterns_of_formula ({ f; conditions; _ } : Rule.formula) :
   let augment_with_conditions x =
     let conditions =
       List_.map
-        (fun (_, cond) : _ requirement_tree -> Pred (LCond cond))
+        (fun (_, cond) : _ requirement_tree -> Formula.Pred (LCond cond))
         conditions
     in
-    And (x :: conditions)
+    Formula.And (x :: conditions)
   and required_patterns_of_formula_kind (kind : Rule.formula_kind) :
       pattern_predicate requirement_tree option =
     match kind with
-    | P pat -> Some (Pred (LPat pat))
+    | P pat -> Some (Formula.Pred (LPat pat))
     | Not (_, formula) -> (
         match formula.f with
         | P _ -> None
@@ -84,11 +71,11 @@ let rec required_patterns_of_formula ({ f; conditions; _ } : Rule.formula) :
         required_patterns_of_formula formula
     | And (_, xs) ->
         let ys = List_.filter_map required_patterns_of_formula xs in
-        if List_.null ys then None else Some (And ys)
+        if List_.null ys then None else Some (Formula.And ys)
     | Or (_, xs) ->
         (* See NOTE "AND vs OR and filter_map". *)
         let* ys = option_map required_patterns_of_formula xs in
-        if List_.null ys then None else Some (Or ys)
+        if List_.null ys then None else Some (Formula.Or ys)
   in
   required_patterns_of_formula_kind f |> Option.map augment_with_conditions
 
@@ -125,6 +112,7 @@ let id_mvars_of_formula ~interfile f =
 
 let metavariables_and_strings_of_pattern (env : env) (pat : Xpattern.t) :
     metavariable_and_strings_predicate requirement_tree option =
+  let open Formula in
   match pat.pat with
   | Sem (pat, lang) ->
       let ids, mvars =
@@ -175,22 +163,11 @@ let simplify_patterns env cnf =
  * MvarRegexp into a Regexp2
  *)
 
-module Textual_predicate : sig
-  type t =
-    | String of string  (** A string literal *)
-    | Regex of Pcre2_.t  (** A compiled regex. *)
-  [@@deriving show, eq, ord, hash]
-end = struct
-  (* Needed to derive hash *)
-  let hash_fold_string = Base.hash_fold_string
-
-  type t = String of string | Regex of Pcre2_.t
-  [@@deriving show, eq, ord, hash]
-end
-
-let textual_requirements_of_simplified :
+(* Now remove the predicate references to metavariables and directly have
+   predicates on the entire text stream. *)
+let rec textual_requirements_of_simplified :
     metavariable_and_strings_predicate requirement_tree ->
-    Textual_predicate.t requirement_tree option =
+    Predicate.t requirement_tree option =
   let no_regex_special_chars (s : string) =
     (* Compare with <https://www.pcre.org/original/doc/html/pcrepattern.html>:
 
@@ -240,103 +217,32 @@ let textual_requirements_of_simplified :
      because we parsed the rule already, but this is rather fragile. We should
      consider making our regex serialisable (the blocker as of May 2025 for
      having Xpattern.Regexp store the regex value directly). *)
-  let open Textual_predicate in
-  map_requirement_tree_opt (function
-    | StringsAndMvars ([], _) -> None
-    | StringsAndMvars (xs, _) ->
-        Some (And (List_.map (fun x -> Pred (String x)) xs))
-    | Regex re ->
-        if no_regex_special_chars re then Some (Pred (String re))
-        else Some (Pred (Regex (Pcre2_.pcre_compile re)))
-    | MvarRegexp (_mvar, re_str, _const_prop) ->
-        (* The original regexp is meant to apply on a substring.
-             We rewrite them to remove end-of-string anchors if possible. *)
-        let* re =
-          Pcre2_.remove_end_of_string_assertions (Pcre2_.pcre_compile re_str)
-        in
-        Some (Pred (Regex re)))
-
-(*****************************************************************************)
-(* Run the regexps *)
-(*****************************************************************************)
-
-module Execution_cache = Hashtbl.Make (Textual_predicate)
-
-let rec eval_textual_predicates ?cache
-    (requirement : Textual_predicate.t requirement_tree) big_str =
-  match requirement with
-  | And xs ->
-      List.for_all (fun x -> eval_textual_predicates ?cache x big_str) xs
-  | Or xs ->
-      (* An empty list is true here since we need to be conservative if we
-         failed to generate any constraints, even though generally an empty or
-         would be false (identity). This is due to the fact that in principle
-         this list being empty means we failed to generate some condition to
-         check. If we have no condition to check, we still need to run the
-         rule, so the prefiler must select for further matching (i.e., true). *)
-      if List_.null xs then true
-      else List.exists (fun x -> eval_textual_predicates ?cache x big_str) xs
-  | Pred x -> (
-      let eval () =
-        match x with
-        | String id ->
-            Log.debug (fun m -> m "check for the presence of %S" id);
-            (* TODO: matching_exact_word does not work, why??
-                     because string literals and metavariables are put under
-                     String? *)
-            let re = Pcre2_.matching_exact_string id in
-            (* Note that in case of a PCRE error, we want to assume
-                     that the rule is relevant, hence error -> true! *)
-            Pcre2_.unanchored_match ~on_error:true re big_str
-        | Regex re -> Pcre2_.unanchored_match ~on_error:true re big_str
+  let module P = Predicate in
+  let module F = Formula in
+  function
+  | And xs -> (
+      match List_.filter_map textual_requirements_of_simplified xs with
+      | [] -> None
+      | _ :: _ as xs -> Some (F.And xs))
+  | Or xs -> (
+      match option_map textual_requirements_of_simplified xs with
+      | None -> None
+      | Some ys -> Some (F.Or ys))
+  | Pred (StringsAndMvars ([], _)) -> None
+  | Pred (StringsAndMvars (xs, _)) ->
+      Some (F.And (List_.map (fun x -> F.Pred (P.String x)) xs))
+  | Pred (Regex re) ->
+      if no_regex_special_chars re then Some (F.Pred (P.String re))
+      else Some (F.Pred (P.Regex (Pcre2_.pcre_compile re)))
+  | Pred (MvarRegexp (_mvar, re_str, _const_prop)) ->
+      (* The original regexp is meant to apply on a substring.
+           We rewrite them to remove end-of-string anchors if possible. *)
+      let* re =
+        Pcre2_.remove_end_of_string_assertions (Pcre2_.pcre_compile re_str)
       in
-      match cache with
-      | Some cache -> (
-          match Execution_cache.find_opt cache x with
-          | Some x -> x
-          | None ->
-              let result = eval () in
-              Execution_cache.add cache x result;
-              result)
-      | None -> eval ())
-[@@profiling]
+      Some (F.Pred (P.Regex re))
 
-(*****************************************************************************)
-(* Entry points *)
-(*****************************************************************************)
-
-(* see mli for more information
- * TODO: use a record.
- *)
-type prefilter = Textual_predicate.t requirement_tree [@@deriving show]
-
-exception EmptyOr
-exception EmptyAnd
-
-let rec prefilter_formula_of_prefilter (formula : prefilter) :
-    Semgrep_prefilter_t.formula =
-  match formula with
-  | And xs -> begin
-      let xs' = xs |> List_.map prefilter_formula_of_prefilter in
-      match xs' with
-      | [] -> raise EmptyAnd
-      | [ x ] -> x
-      | xs -> `And xs
-    end
-  | Or ys -> begin
-      let ys' = ys |> List_.map prefilter_formula_of_prefilter in
-      match ys' with
-      | [] -> raise EmptyOr
-      | [ x ] -> x
-      | xs -> `Or xs
-    end
-  | Pred x -> (
-      match x with
-      | String x -> `Pred (`Idents [ x ])
-      | Regex re ->
-          let re_str = Pcre2_.show re in
-          `Pred (`Regexp re_str))
-[@@profiling]
+type prefilter = Predicate.t requirement_tree [@@deriving show]
 
 let create_prefilter (env : env) f =
   let* f = required_patterns_of_formula f in
@@ -344,17 +250,6 @@ let create_prefilter (env : env) f =
   let* f = textual_requirements_of_simplified f in
   Some f
 [@@profiling]
-
-let check_prefilters prefilters content =
-  (* TODO(cooper): For `Strings` predicates, gather them all and run them
-     up-front for the cache *)
-  let cache = Execution_cache.create 256 in
-  List_.map
-    (fun prefilter -> eval_textual_predicates ~cache prefilter content)
-    prefilters
-
-let check_prefilter prefilter content =
-  eval_textual_predicates prefilter content
 
 let prefilter_of_formula ~interfile ~analyzer f : prefilter option =
   let is_id_mvar =
@@ -405,7 +300,8 @@ let prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
         And (rule_tok, [ f (Or (rule_tok, sources)); f (Or (rule_tok, sinks)) ])
         |> f)
 
-let generate_prefilter ~interfile ({ id = rule_id, _; _ } as r : Rule.t) =
+let generate_prefilter_internal ~interfile
+    ({ id = rule_id, _; _ } as r : Rule.t) =
   try
     match r.mode with
     | `Search f
@@ -427,10 +323,14 @@ let generate_prefilter ~interfile ({ id = rule_id, _; _ } as r : Rule.t) =
           m "Stack overflow when generating prefilter for %a" Rule_ID.pp rule_id);
       None
 
-let prefilter_of_rule ~interfile =
-  let key_fn = fun ({ id = key, _; _ } : Rule.t) -> key in
-  SharedMemo.make_with_key_fn key_fn (generate_prefilter ~interfile)
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
-module Private = struct
-  let prefilter_of_formula = prefilter_of_formula
-end
+(* Memoized prefilter generation *)
+let generate_prefilter ~interfile =
+  let key_fn = fun ({ id = key, _; _ } : Rule.t) -> key in
+  SharedMemo.make_with_key_fn key_fn (generate_prefilter_internal ~interfile)
+
+(* Alias for the lower-level function to match the mli *)
+let generate_prefilter_from_formula = prefilter_of_formula

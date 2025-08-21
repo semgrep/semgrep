@@ -1,118 +1,188 @@
-{ opam-nix, opam-repository, hasSubmodules, ocamlVersion ? "5.3.0" }:
-{ pkgs, system, }:
+{
+  opam-nix,
+  opam-repository,
+  hasSubmodules,
+  ocamlVersion ? "5.3.0",
+}:
+{ pkgs, system }:
 let
 
-  lib = let on = opam-nix.lib.${system};
-  in rec {
-    # We need to add the pkg-config path to the PATH for these packages so that
-    # dune can find it
-    # TODO fix on opam side to use pkg-conf on macos
-    addPkgConfig = pkg: inputs:
-      pkg.overrideAttrs (prev: {
-        nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
-      });
-    patchesOverlay = final: prev: {
-      conf-libpcre = addPkgConfig prev.conf-libpcre [ pkgs.pkg-config ];
-      conf-libffi = addPkgConfig prev.conf-libffi [ pkgs.pkg-config ];
-      conf-libpcre2-8 = addPkgConfig prev.conf-libpcre2-8 [ pkgs.pkg-config ];
+  lib =
+    let
+      on = opam-nix.lib.${system};
+      libunwind-dev = if pkgs.stdenv.isDarwin then pkgs.darwin.libunwind else pkgs.libunwind.dev;
+    in
+    rec {
+      # We need to add the pkg-config path to the PATH for these packages so that
+      # dune can find it
+      # TODO fix on opam side to use pkg-conf on macos
+      addPkgConfig =
+        pkg: inputs:
+        pkg.overrideAttrs (prev: {
+          nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
+        });
+      patchesOverlay = final: prev: {
+        conf-libpcre = addPkgConfig prev.conf-libpcre [ pkgs.pkg-config ];
+        conf-libffi = addPkgConfig prev.conf-libffi [ pkgs.pkg-config ];
+        conf-libpcre2-8 = addPkgConfig prev.conf-libpcre2-8 [ pkgs.pkg-config ];
+        conf-unwind = prev.conf-unwind.overrideAttrs (old: {
+          buildInputs = old.buildInputs ++ [ libunwind-dev ];
+          nativeBuildInputs = old.nativeBuildInputs ++ [ libunwind-dev ];
+        });
+        # remove lzma from conf-xz, since we don't have it, and instead add xz
+        conf-libdw = (
+          if !pkgs.stdenv.isDarwin then
+            (prev.conf-libdw.overrideAttrs (old: {
+              buildInputs = prev.conf-libpcre.buildInputs ++ [
+                pkgs.elfutils.dev
+                pkgs.xz.dev
+                pkgs.zstd.dev
+              ];
+              nativeBuildInputs = prev.conf-libpcre.nativeBuildInputs ++ [
+                pkgs.elfutils.dev
+                pkgs.xz.dev
+                pkgs.zstd.dev
+              ];
+            }))
+          else
+            prev.conf-libdw
+        );
+      };
+
+      # helper to add buildinputs to an existing pkg
+      addBuildInputs =
+        pkg: inputs:
+        pkg.overrideAttrs (prev: {
+          buildInputs = prev.buildInputs ++ inputs;
+        });
+
+      # convert scopes to a list of pkgs so we can explicitly add packages from
+      # the query
+      scopeToPkgs =
+        query: scope: builtins.attrValues (pkgs.lib.getAttrs (builtins.attrNames query) scope);
+
+      # Pass a src and list of paths in that source to get a src that is only
+      # those paths
+      strictSrc =
+        src: paths:
+        # Use cleanSource, but limit it to only include srcs explicitly listed
+        with pkgs.lib.fileset;
+        (toSource {
+          root = src;
+          fileset = (intersection (fromSource (pkgs.lib.sources.cleanSource src)) (unions paths));
+        });
+      mapDev =
+        pkg: field:
+        builtins.map (
+          dep:
+          if
+            (
+              (builtins.isAttrs dep)
+              && (builtins.hasAttr "pname" dep)
+              && pkgs.lib.strings.hasSuffix "-dev" dep.name
+            )
+          then
+            (mapDev dep field)
+          else
+            dep
+        ) pkg.${field};
+      filterDevDeps =
+        pkg:
+        let
+        in
+        pkg.overrideAttrs (prev: {
+          buildInputs = mapDev prev "buildInputs";
+
+          nativeBuildInputs = mapDev prev "nativeBuildInputs";
+        });
+
+      # TODO https://github.com/tweag/opam-nix/blob/main/DOCUMENTATION.md#materialization
+      # Will speed it up
+      buildOpamPkg =
+        {
+          name,
+          src,
+          query ? { },
+          overlays ? [
+            patchesOverlay
+            on.defaultOverlay
+          ],
+          inputs ? [ ],
+        }:
+        let
+          # Force ocaml version
+          #
+          # you can also force specific ocaml package versions like
+          #
+          # ocamlfind = "1.9.8";
+          baseQuery = {
+            ocaml-base-compiler = ocamlVersion;
+          };
+          resolveArgs = {
+            # speeds up so we don't get a solver timeout
+            criteria = null;
+          };
+          repos = [ "${opam-repository}" ];
+          # repos = opamRepos to force newest version of opam
+          # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
+          # overlays = to force the default and patches overlay
+          scope = on.buildOpamProject {
+            inherit
+              pkgs
+              repos
+              overlays
+              resolveArgs
+              ;
+          } name src (baseQuery // query);
+          inputsFromQuery = scopeToPkgs query scope;
+          pkgWithInputs = addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
+        in
+        filterDevDeps pkgWithInputs;
+
+      # make sure we have submodules
+      # See https://github.com/NixOS/nix/pull/7862
+      buildPhaseSubmoduleCheck =
+        buildPhase:
+        let
+
+          buildPhaseFail = ''
+            echo "Derivation won't build outside of a nix shell without submodules:"
+            echo "  nix build '.?submodules=1#' # build from local sources"
+            exit 1
+          '';
+
+        in
+        if hasSubmodules then buildPhase else buildPhaseFail;
     };
-
-    # helper to add buildinputs to an existing pkg
-    addBuildInputs = pkg: inputs:
-      pkg.overrideAttrs (prev: { buildInputs = prev.buildInputs ++ inputs; });
-
-    # convert scopes to a list of pkgs so we can explicitly add packages from
-    # the query
-    scopeToPkgs = query: scope:
-      builtins.attrValues (pkgs.lib.getAttrs (builtins.attrNames query) scope);
-
-    # Pass a src and list of paths in that source to get a src that is only
-    # those paths
-    strictSrc = src: paths:
-      # Use cleanSource, but limit it to only include srcs explicitly listed
-      with pkgs.lib.fileset;
-      (toSource {
-        root = src;
-        fileset = (intersection (fromSource (pkgs.lib.sources.cleanSource src))
-          (unions paths));
-      });
-    mapDev = pkg: field:
-      builtins.map (dep:
-        if ((builtins.isAttrs dep) && (builtins.hasAttr "pname" dep)
-          && pkgs.lib.strings.hasSuffix "-dev" dep.name) then
-          (mapDev dep field)
-        else
-          dep) pkg.${field};
-    filterDevDeps = pkg:
-      let
-      in pkg.overrideAttrs (prev: {
-        buildInputs = mapDev prev "buildInputs";
-
-        nativeBuildInputs = mapDev prev "nativeBuildInputs";
-      });
-
-    # TODO https://github.com/tweag/opam-nix/blob/main/DOCUMENTATION.md#materialization
-    # Will speed it up
-    buildOpamPkg = { name, src, query ? { }
-      , overlays ? [ patchesOverlay on.defaultOverlay ], inputs ? [ ] }:
-      let
-        # Force ocaml version
-        #
-        # you can also force specific ocaml package versions like
-        #
-        # ocamlfind = "1.9.8";
-        baseQuery = {
-          ocaml-base-compiler = ocamlVersion;
-        };
-        resolveArgs = {
-          # speeds up so we don't get a solver timeout
-          criteria = null;
-        };
-        repos = [ "${opam-repository}" ];
-        # repos = opamRepos to force newest version of opam
-        # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
-        # overlays = to force the default and patches overlay
-        scope =
-          on.buildOpamProject { inherit pkgs repos overlays resolveArgs; } name
-          src (baseQuery // query);
-        inputsFromQuery = scopeToPkgs query scope;
-        pkgWithInputs =
-          addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
-      in filterDevDeps pkgWithInputs;
-
-    # make sure we have submodules
-    # See https://github.com/NixOS/nix/pull/7862
-    buildPhaseSubmoduleCheck = buildPhase:
-      let
-
-        buildPhaseFail = ''
-          echo "Derivation won't build outside of a nix shell without submodules:"
-          echo "  nix build '.?submodules=1#' # build from local sources"
-          exit 1
-        '';
-
-      in if hasSubmodules then buildPhase else buildPhaseFail;
-  };
 
   # Grab opam packages from opam file
   semgrepOpam = lib.buildOpamPkg {
     name = "semgrep";
     src = ./.;
-    inputs = (with pkgs; [ tree-sitter ]);
+    inputs = (
+      with pkgs;
+      [
+        tree-sitter
+      ]
+      ++ (if pkgs.stdenv.isDarwin then [ libdwarf ] else [ ])
+    );
   };
 
   devOptional = lib.buildOpamPkg {
     name = "optional";
     src = ./dev;
     # You can force versions of certain packages here
-    query = { utop = "2.15.0"; };
+    query = {
+      utop = "2.15.0";
+    };
   };
 
   devRequired = lib.buildOpamPkg {
     name = "required";
     src = ./dev;
   };
-in let
+in
+let
 
   #
   # semgrep
@@ -132,41 +202,53 @@ in let
   env = {
     # Needed so we don't pass any flags in flags.sh
     SEMGREP_NIX_BUILD = "1";
-  } // (if pkgs.stdenv.isDarwin then darwinEnv else { });
+  }
+  // (if pkgs.stdenv.isDarwin then darwinEnv else { });
   semgrep = semgrepOpam.overrideAttrs (prev: rec {
     # Special environment variables for osemgrep for linking stuff
 
     # coupling: if you add files here you probably want to add them to the
     # Dockerfile and the pro Dockerfile
-    src = (lib.strictSrc ./. (with pkgs.lib.fileset; [
-      ./Makefile
-      ./cygwin-env.mk
-      ./TCB
-      ./bin
-      # might be missing due to submodule issue (dumb)
-      (maybeMissing ./cli/src/semgrep/semgrep_interfaces)
-      ./dune
-      ./dune-project
-      ./interfaces
-      ./languages
-      ./libs
-      ./src
-      ./tools
+    src = (
+      lib.strictSrc ./. (
+        with pkgs.lib.fileset;
+        [
+          ./Makefile
+          ./cygwin-env.mk
+          ./TCB
+          ./bin
+          # might be missing due to submodule issue (dumb)
+          (maybeMissing ./cli/src/semgrep/semgrep_interfaces)
+          ./dune
+          ./dune-project
+          ./interfaces
+          ./languages
+          ./libs
+          ./src
+          ./tools
 
-      # only needed for testing
-      # TODO split out into separate derivation
-      ./cli/tests
-      ./scripts/run-core-test
-      ./scripts/make-symlinks
-      ./test
-      ./tests
-    ]));
+          # only needed for testing
+          # TODO split out into separate derivation
+          ./cli/tests
+          ./scripts/run-core-test
+          ./scripts/make-symlinks
+          ./test
+          ./tests
+        ]
+      )
+    );
 
     inherit env;
 
     buildPhase = lib.buildPhaseSubmoduleCheck "make core";
     # needed for networking tests
-    nativeCheckInputs = (with pkgs; [ cacert git ]);
+    nativeCheckInputs = (
+      with pkgs;
+      [
+        cacert
+        git
+      ]
+    );
 
     # git init is needed so tests work successfully since many rely on git root existing
     checkPhase = ''
@@ -184,7 +266,8 @@ in let
 
   # for development
   devPkgs = devOptional.buildInputs ++ devRequired.buildInputs;
-in {
+in
+{
   pkg = semgrep;
   devEnv = env;
   inherit devPkgs;

@@ -119,6 +119,8 @@ For more information see https://semgrep.dev
     pcre
     ; we're currently "vendoring" pcre2 in libs/pcre2
     pcre2
+    ; obackward, vendored in libs/obackward
+    obackward
     ; misc
     ocamlgraph
     parmap
