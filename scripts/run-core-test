@@ -20,8 +20,7 @@ NC='\033[0m' # No Color
 # './test status' and './test approve'. See './test --help' for options.
 # This uses the in-house project testo.
 #
-if [[ $(uname -o) = "Cygwin" ]];
-then
+if [[ $(uname -o) = "Cygwin" ]]; then
   # TODO: Remove when https://github.com/semgrep/testo/issues/124 is fixed
   # Don't run tests in parallel on Windows, to prevent deadlocks
   ./test -j 0
@@ -29,13 +28,19 @@ else
   ./test
 fi
 
-
+# Dune > 3.20 expects paths relative to the dune project, not cwd
+# see: https://github.com/ocaml/dune/issues/12250
+dune_version=$(dune --version | cut -d. -f2)
+current_dir=""
+if [[ "${dune_version}" -gt "19" ]]; then
+  current_dir="$(pwd)/"
+fi
 # run inline tests
 # TODO: make them part of the testo test program above.
-dune runtest -f --no-buffer libs/commons
-dune runtest -f --no-buffer libs/lib_parsing
-dune runtest -f --no-buffer src/engine
-dune runtest -f --no-buffer src/fixing
+dune runtest -f --no-buffer "${current_dir}libs/commons"
+dune runtest -f --no-buffer "${current_dir}libs/lib_parsing"
+dune runtest -f --no-buffer "${current_dir}src/engine"
+dune runtest -f --no-buffer "${current_dir}src/fixing"
 
 # osemgrep expect tests
 # TODO: migrate to testo
