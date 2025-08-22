@@ -372,7 +372,6 @@ let scan_metadata () : Out.scan_metadata =
         unique_id = Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) ();
         (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
         requested_products = [];
-        compress_config = false;
         dry_run = false;
         sms_scan_id = !Semgrep_envvars.v.sms_scan_id;
       }

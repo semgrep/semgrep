@@ -27,7 +27,6 @@
     "cli_version": "<sanitized version>",
     "unique_id": "<sanitized id>",
     "requested_products": [],
-    "compress_config": false,
     "dry_run": false
   },
   "project_config": {
