@@ -1,2 +1,0 @@
-We now substitute metavariables for their values in a deterministic order to
-ensure keys for match-based IDs are stable.
