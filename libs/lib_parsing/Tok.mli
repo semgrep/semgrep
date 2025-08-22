@@ -86,6 +86,10 @@ val tok_of_loc : location -> t
 (* deprecated: TODO used only in Lexer_php.mll *)
 val make : str:string -> file:Fpath.t -> bytepos:int -> t
 
+val of_lexing_position : Lexing.position -> string -> t
+(** Create a tok from a standard lexing position as provided by
+    a lexbuf managed by ocamllex. *)
+
 (* the token will be empty, but its pos will be the beginning of the file *)
 val first_tok_of_file : Fpath.t -> t
 

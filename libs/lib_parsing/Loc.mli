@@ -24,3 +24,6 @@ val adjust_loc_wrt_base : t -> t -> t
 
 val fix_pos : (Pos.t -> Pos.t) -> t -> t
 (** adjust the position in a location *)
+
+val of_lexing_position : Lexing.position -> string -> t
+(** Convert from a standard position and token contents *)

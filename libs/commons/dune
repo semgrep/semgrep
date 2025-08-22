@@ -9,6 +9,7 @@
    unix
    ; popular libs
    fpath
+   hex
    yojson
    atdgen-runtime
    fmt

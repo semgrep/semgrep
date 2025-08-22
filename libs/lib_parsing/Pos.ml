@@ -80,6 +80,14 @@ type linecol = { l : int; c : int } [@@deriving show, eq]
 let make ?(line = -1) ?(column = -1) file bytepos =
   { bytepos; line; column; file }
 
+let of_lexing_position (pos : Lexing.position) =
+  {
+    file = Fpath.v pos.pos_fname;
+    line = pos.pos_lnum;
+    column = pos.pos_cnum - pos.pos_bol;
+    bytepos = pos.pos_cnum;
+  }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)

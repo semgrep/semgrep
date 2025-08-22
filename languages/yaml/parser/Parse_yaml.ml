@@ -743,13 +743,12 @@ let make_pattern_expr (e : A.value list) : A.any =
   | [ x ] -> A.V x
   | _ -> raise UnreachableList
 
-let any (str : string) : A.any =
-  let file = Fpath.v "<pattern_file>" in
+let any ?(src_path = Fpath.v "<pattern_file>") (str : string) : A.any =
   let str = preprocess_yaml (mask_unicode str) in
-  let parser = get_res file (S.parser str) in
+  let parser = get_res src_path (S.parser str) in
   let env =
     {
-      file;
+      file = src_path;
       text = str;
       bytepos_to_pos = None;
       parser;

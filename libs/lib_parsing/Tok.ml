@@ -260,6 +260,9 @@ let make ~str ~file ~bytepos =
   in
   tok_of_loc loc
 
+let of_lexing_position (pos : Lexing.position) str : t =
+  OriginTok (Loc.of_lexing_position pos str)
+
 (* TODO: we can't rely on Lexing.lexbuf.pos_fname to have
  * been set correctly by the caller (or need an "origin" when lexbuf is stdin)
  * and actually in many case where we do a Lexbuf.of_string, the

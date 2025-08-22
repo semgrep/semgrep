@@ -53,7 +53,8 @@ type kind = Out.dependency_kind =
 
 (* TODO: add other kinds of hashes as needed. The ATD interface is untyped
    wrt hash names. *)
-type hashes = { sha512 : string list } [@@deriving eq, ord, show]
+type hashes = { sha1 : Hex_.t list; sha256 : Hex_.t list; sha512 : Hex_.t list }
+[@@deriving eq, ord, show]
 
 type t = {
   package : Package.t;
@@ -120,8 +121,21 @@ let dependency_kind (pkg : Package.t) (direct_deps : Package.name list option) :
 (* Converters *)
 (*****************************************************************************)
 
-let convert_hashes ({ sha512 } : hashes) : (string * string list) list =
-  [ ("sha512", sha512) ]
+let empty_hashes : hashes = { sha1 = []; sha256 = []; sha512 = [] }
+let sha1 (x : Hex_.t) = { empty_hashes with sha1 = [ x ] }
+let sha256 (x : Hex_.t) = { empty_hashes with sha256 = [ x ] }
+let sha512 (x : Hex_.t) = { empty_hashes with sha512 = [ x ] }
+
+let extract_hex_values (xs : Hex_.t list) : string list =
+  List_.map Hex_.to_hex_string xs
+
+let convert_hashes ({ sha1; sha256; sha512 } : hashes) :
+    (string * string list) list =
+  [
+    ("sha1", extract_hex_values sha1);
+    ("sha256", extract_hex_values sha256);
+    ("sha512", extract_hex_values sha512);
+  ]
   |>
   (* remove empty fields *)
   List.filter (function

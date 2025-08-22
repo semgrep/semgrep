@@ -18,6 +18,14 @@ type t = {
 
 val make : ?line:int -> ?column:int -> Fpath.t -> int -> t
 
+val of_lexing_position : Lexing.position -> t
+(** Convert from the standard type Lexing.position used by ocamllex.
+    The line count should be set during the lexing phase using
+    [Lexing.new_line lexbuf]. Extracting the pair of positions for
+    a token matched by ocamllex is done with
+    [(Lexing.lexeme_start_p lexbuf, Lexing.lexeme_end_p lexbuf)].
+*)
+
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]
 

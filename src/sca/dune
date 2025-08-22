@@ -16,6 +16,8 @@
  (name semgrep_core_sca)
  (wrapped false)
  (libraries
+   base64
+   hex
    ; standard libraries
    ; in libs/
    commons

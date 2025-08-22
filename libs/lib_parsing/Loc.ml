@@ -97,3 +97,6 @@ let adjust_loc_wrt_base base_loc loc =
   }
 
 let fix_pos fix loc = { loc with pos = fix loc.pos }
+
+let of_lexing_position (pos : Lexing.position) contents =
+  { pos = Pos.of_lexing_position pos; str = contents }
