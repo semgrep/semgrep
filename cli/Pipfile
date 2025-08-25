@@ -48,8 +48,8 @@ typing_extensions = "*"
 
 [packages]
 jsonschema = "==4.6.1"
-opentelemetry-api = "~=1.25.0"
-opentelemetry-sdk = "~=1.25.0"
-opentelemetry-exporter-otlp-proto-http = "~=1.25.0"
-opentelemetry-instrumentation-requests = "~=0.46b0"
+opentelemetry-api = "~=1.34.1"
+opentelemetry-sdk = "~=1.34.1"
+opentelemetry-exporter-otlp-proto-http = "~=1.34.1"
+opentelemetry-instrumentation-requests = "~=0.55b1"
 semgrep = {editable = true, path = "."}
