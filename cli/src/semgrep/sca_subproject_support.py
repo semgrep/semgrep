@@ -52,6 +52,7 @@ TR_OCAML_RESOLVER_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (None, out.LockfileKind(out.PipRequirementsTxt())),
     (out.ManifestKind(out.Pipfile()), out.LockfileKind(out.PipfileLock())),
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.PnpmLock())),
+    (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.YarnLock())),
 ]
 
 # Subproject kinds that we use ocaml parsers for always.
@@ -71,4 +72,5 @@ TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (None, out.LockfileKind(out.PipRequirementsTxt())),
     (out.ManifestKind(out.Pipfile()), out.LockfileKind(out.PipfileLock())),
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.PnpmLock())),
+    (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.YarnLock())),
 ]
