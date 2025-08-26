@@ -15,9 +15,12 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 14 files larger than 0 MB.
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
+✅ Scan completed successfully.
+ • Findings: 1 (1 blocking)
+ • Rules run: 4
+ • Targets scanned: 7
+ • Parsed lines: ~100.0%
+ • Scan skipped:
+   ◦ Files larger than  files 0.0001 MB: 14
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 4 rules on 7 files: 1 finding.
