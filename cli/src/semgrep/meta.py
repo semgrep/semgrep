@@ -1247,6 +1247,13 @@ class SemgrepManagedScanMeta(GitMeta):
         return os.getenv("SEMGREP_MANAGED_SCAN_EVENT_NAME", super().event_name)
 
 
+@dataclass
+class SemgrepMcpMeta(GitMeta):
+    """Gather metadata from Semgrep MCP."""
+
+    environment: str = field(default="mcp", init=False)
+
+
 def generate_meta_from_environment(
     baseline_ref: Optional[str], subdir: Optional[Path]
 ) -> GitMeta:
@@ -1285,6 +1292,9 @@ def generate_meta_from_environment(
 
     elif os.getenv("SEMGREP_MANAGED_SCAN") == "true":
         return SemgrepManagedScanMeta(baseline_ref)
+
+    elif os.getenv("SEMGREP_MCP") == "true":
+        return SemgrepMcpMeta(baseline_ref)
 
     else:
         return GitMeta(baseline_ref, subdir)
