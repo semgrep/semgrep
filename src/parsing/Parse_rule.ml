@@ -1249,6 +1249,11 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
                         yaml_error_at_expr rules
                           "expected a list of rules following `rules:`")
               in
+              (* TODO: 'missed' key is present in the rules downloaded from
+                 semgrep.dev. We don't do anything with the value, but consume
+                 it from the dict to prevent error about unknown or duplicate
+                 properties in YAML. *)
+              let _missed = dict_take_opt root_dict "missed" in
               let/ () = check_that_dict_is_empty root_dict in
               Ok rules
           (* it's also ok to not have the toplevel rules:, anyway we never

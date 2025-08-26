@@ -154,7 +154,6 @@ class SemgrepCoreError(SemgrepError):
     # TODO: spans are used only for PatternParseError
     spans: Optional[List[out.ErrorSpan]]
     core: out.CoreError
-    show_details: bool
 
     def type_(self) -> out.ErrorType:
         return self.core.error_type
@@ -233,13 +232,7 @@ class SemgrepCoreError(SemgrepError):
         else:
             error_context = ""
 
-        message = (
-            f"{self.core.message}\n{self.core.details}"
-            if self.show_details and self.core.details
-            else self.core.message
-        )
-
-        return f"{error_type_string(self.core.error_type)} {error_context}:\n {message}"
+        return f"{error_type_string(self.core.error_type)} {error_context}:\n {self.core.message}"
 
     @property
     def _stack_trace(self) -> str:

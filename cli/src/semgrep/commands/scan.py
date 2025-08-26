@@ -917,14 +917,6 @@ def scan(
                             validation_errors = [e]
 
                     config_errors = list(chain(config_errors, validation_errors))
-                    if x_no_python_schema_validation:
-                        # de-dup errors from RPC config validation and
-                        # -check_rules checks since the OCaml parser errors are
-                        # generated from both these checks.
-                        config_errors = list(
-                            {str(e): e for e in config_errors}.values()
-                        )
-
                     valid_str = "invalid" if config_errors else "valid"
                     # NOTE: get_rules will de-duplicate rules as the same rule can appear across multiple config packs
                     rule_count = len(resolved_configs.get_rules(True))
@@ -1000,6 +992,7 @@ def scan(
                         x_tr=x_tr,
                         x_eio=x_eio,
                         x_pro_naming=x_pro_naming,
+                        x_no_python_schema_validation=x_no_python_schema_validation,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,

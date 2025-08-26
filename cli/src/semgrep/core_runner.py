@@ -1266,8 +1266,7 @@ Exception raised: `{e}`
             core_output = out.CoreOutput.from_json(output_json)
 
             parsed_errors += [
-                core_error_to_semgrep_error(e, show_details=no_python_schema_validation)
-                for e in core_output.errors
+                core_error_to_semgrep_error(e) for e in core_output.errors
             ]
 
         return dedup_errors(parsed_errors)

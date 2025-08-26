@@ -1,9 +1,10 @@
-Configuration is invalid - found 1 configuration error(s), and 0 rule(s).
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/invalid-missing-top-item.yaml:2
+2 |   - id: blah
+  |     ^
+
+Missing required field severity
+
 [ERROR] Rule parse error in rule blah:
  Missing required field severity
-  --> rules/invalid-rules/invalid-missing-top-item.yaml:2
-   1 | rules:
-   2 |   - id: blah
-     |     ^
-   3 |     message: blah
-   4 |     languages: [python]

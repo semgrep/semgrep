@@ -1,10 +1,10 @@
-Configuration is invalid - found 1 configuration error(s), and 0 rule(s).
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/string-pattern-under-patterns.yaml:4
+4 |     - "foo"
+  |     ^
+
+Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?
+
 [ERROR] Rule parse error in rule eqeq:
  Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?
-  --> rules/invalid-rules/string-pattern-under-patterns.yaml:4
-   2 | - id: eqeq
-   3 |   patterns:
-   4 |     - "foo"
-     |     ^
-   5 |   message: |
-   6 |     You can't use string literals as patterns in old-style rules!

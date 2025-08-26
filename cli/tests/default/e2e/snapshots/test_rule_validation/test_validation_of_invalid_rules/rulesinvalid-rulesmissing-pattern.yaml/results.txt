@@ -1,9 +1,10 @@
-Configuration is invalid - found 1 configuration error(s), and 0 rule(s).
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/missing-pattern.yaml:2
+2 | - id: eqeq
+  |   ^
+
+Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, or `r2c-internal-project-depends-on` to be present.
+
 [ERROR] Rule parse error in rule eqeq:
  Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, or `r2c-internal-project-depends-on` to be present.
-  --> rules/invalid-rules/missing-pattern.yaml:2
-   1 | rules:
-   2 | - id: eqeq
-     |   ^
-   3 |   message: |
-   4 |     You can't use string literals as patterns in old-style rules!

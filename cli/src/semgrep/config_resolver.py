@@ -39,6 +39,7 @@ from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
+from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
@@ -844,9 +845,11 @@ def parse_config_string(
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
+        source_hash = SourceTracker.add_source(contents)
         errors.extend(
             validate_yaml(
                 data,
+                source_hash,
                 filename,
                 no_rewrite_rule_ids=no_rewrite_rule_ids,
                 force_jsonschema=force_jsonschema,

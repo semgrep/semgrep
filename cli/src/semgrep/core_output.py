@@ -37,9 +37,7 @@ def _core_location_to_error_span(location: out.Location) -> out.ErrorSpan:
     )
 
 
-def core_error_to_semgrep_error(
-    err: out.CoreError, show_details: bool = False
-) -> SemgrepCoreError:
+def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
     level = err.severity
     spans: Optional[List[out.ErrorSpan]] = None
     if isinstance(err.error_type.value, out.PatternParseError):
@@ -86,7 +84,7 @@ def core_error_to_semgrep_error(
     else:
         code = FATAL_EXIT_CODE
 
-    return SemgrepCoreError(code, level, spans, err, show_details=show_details)
+    return SemgrepCoreError(code, level, spans, err)
 
 
 def core_matches_to_rule_matches(
