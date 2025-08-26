@@ -18,14 +18,13 @@ requests-mock = "*"
 # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 # type hints
 pypi-parker = "*"
-pytest-freezegun = "*"
+pytest-freezer = "*"
 pytest-mock = "*"
 pytest-rerunfailures = "*"
 # for pytest --splits and --group
 pytest-split = "*"
 types-appdirs = "*"
 types-colorama = "~=0.4.0"
-types-freezegun = "*"
 types-jinja2 = "*"
 types-jsonschema = "==4.6.0"
 types-python-dateutil = "*"
