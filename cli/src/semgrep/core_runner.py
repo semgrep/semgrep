@@ -861,7 +861,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             )
 
             if ddprof and not ddprof_on:
-                logger.warning(
+                logger.debug(
                     "DDPROF_ON is not set, so ddprof will not be used for SMS profiling."
                 )
                 ddprof = False
