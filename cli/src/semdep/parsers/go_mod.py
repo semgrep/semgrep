@@ -52,9 +52,25 @@ def make_directive(
 
 dep_spec = regex(r"([^ \n]+) v([^ \n]+)", flags=0, group=(1, 2)) | comment.result(None)
 
+# reference: https://go.dev/ref/mod#go-mod-file-grammar
+# EBNF copied here:
+# GoMod = { Directive } .
+# Directive = ModuleDirective |
+#             GoDirective |
+#             ToolDirective |
+#             IgnoreDirective |
+#             RequireDirective |
+#             ExcludeDirective |
+#             ReplaceDirective |
+#             RetractDirective .
+# note that this EBNF seems to be missing the 'toolchain' and 'godebug' directives,
+# which are described in the docs below the grammar section
 specs: Dict[str, "Parser[Optional[Tuple[str,...]]]"] = {
     "module": comment.result(None) | consume_line,
     "go": comment.result(None) | consume_line,
+    "tool": comment.result(None) | consume_line,
+    "godebug": comment.result(None) | consume_line,
+    "ignore": comment.result(None) | consume_line,
     "toolchain": comment.result(None) | consume_line,
     "require": dep_spec,
     "exclude": dep_spec,

@@ -1,0 +1,12 @@
+[
+  {
+    "package": "github.com/go-chi/chi/v5",
+    "version": "5.0.7",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "github.com/go-chi/chi/v5",
+    "lockfile_path": "targets/dependency_aware/go_tool_section/go.mod",
+    "line_number": 6
+  }
+]

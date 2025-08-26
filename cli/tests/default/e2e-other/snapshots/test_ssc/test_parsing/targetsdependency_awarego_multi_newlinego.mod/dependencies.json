@@ -1,0 +1,272 @@
+[
+  {
+    "package": "github.com/go-chi/chi/v5",
+    "version": "5.0.7",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "github.com/go-chi/chi/v5",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 13
+  },
+  {
+    "package": "github.com/go-chi/render",
+    "version": "1.0.2",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "github.com/go-chi/render",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 14
+  },
+  {
+    "package": "github.com/lucasb-eyer/go-colorful",
+    "version": "1.2.0",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "github.com/lucasb-eyer/go-colorful",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 15
+  },
+  {
+    "package": "go.opentelemetry.io/otel/sdk",
+    "version": "1.11.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "go.opentelemetry.io/otel/sdk",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 17
+  },
+  {
+    "package": "github.com/cheekybits/genny",
+    "version": "99.99.99",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "github.com/cheekybits/genny",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 19
+  },
+  {
+    "package": "github.com/ajg/form",
+    "version": "1.5.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "github.com/ajg/form",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 24
+  },
+  {
+    "package": "github.com/cenkalti/backoff/v4",
+    "version": "4.1.3",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "github.com/cenkalti/backoff/v4",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 25
+  },
+  {
+    "package": "github.com/felixge/httpsnoop",
+    "version": "1.0.2",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "github.com/felixge/httpsnoop",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 26
+  },
+  {
+    "package": "github.com/go-logr/logr",
+    "version": "1.2.3",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "github.com/go-logr/logr",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 27
+  },
+  {
+    "package": "github.com/go-logr/stdr",
+    "version": "1.2.2",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "github.com/go-logr/stdr",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 28
+  },
+  {
+    "package": "github.com/golang/protobuf",
+    "version": "1.5.2",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "github.com/golang/protobuf",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 29
+  },
+  {
+    "package": "github.com/grpc-ecosystem/grpc-gateway/v2",
+    "version": "2.7.0",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "github.com/grpc-ecosystem/grpc-gateway/v2",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 30
+  },
+  {
+    "package": "go.opentelemetry.io/contrib",
+    "version": "1.0.0",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "go.opentelemetry.io/contrib",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 31
+  },
+  {
+    "package": "go.opentelemetry.io/otel/exporters/otlp/internal/retry",
+    "version": "1.11.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "go.opentelemetry.io/otel/exporters/otlp/internal/retry",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 34
+  },
+  {
+    "package": "go.opentelemetry.io/otel/trace",
+    "version": "1.11.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "go.opentelemetry.io/otel/trace",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 36
+  },
+  {
+    "package": "go.opentelemetry.io/proto/otlp",
+    "version": "0.19.0",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "go.opentelemetry.io/proto/otlp",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 37
+  },
+  {
+    "package": "golang.org/x/net",
+    "version": "0.0.0-20220722155237-a158d28d115b",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "golang.org/x/net",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 38
+  },
+  {
+    "package": "golang.org/x/text",
+    "version": "0.3.8",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "golang.org/x/text",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 39
+  },
+  {
+    "package": "google.golang.org/genproto",
+    "version": "0.0.0-20211118181313-81c1377c94b1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "google.golang.org/genproto",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 40
+  },
+  {
+    "package": "google.golang.org/grpc",
+    "version": "1.50.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "google.golang.org/grpc",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 41
+  },
+  {
+    "package": "github.com/riandyrn/otelchi",
+    "version": "0.5.0",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "github.com/riandyrn/otelchi",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 49
+  },
+  {
+    "package": "go.opentelemetry.io/otel",
+    "version": "1.11.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "go.opentelemetry.io/otel",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 50
+  },
+  {
+    "package": "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
+    "version": "1.11.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 51
+  },
+  {
+    "package": "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
+    "version": "1.11.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 53
+  },
+  {
+    "package": "golang.org/x/sys",
+    "version": "0.2.0",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "golang.org/x/sys",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 54
+  },
+  {
+    "package": "golang.org/x/tools",
+    "version": "0.1.12",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "golang.org/x/tools",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 58
+  },
+  {
+    "package": "google.golang.org/protobuf",
+    "version": "1.28.1",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "google.golang.org/protobuf",
+    "lockfile_path": "targets/dependency_aware/go_multi_newline/go.mod",
+    "line_number": 59
+  }
+]

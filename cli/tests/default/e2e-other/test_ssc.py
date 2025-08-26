@@ -10,6 +10,7 @@ from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 
 from semdep.package_restrictions import is_in_range
+from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
@@ -545,6 +546,7 @@ LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
     "Pipfile.lock": DependencyParser(parse_pipfile),
     "poetry.lock": DependencyParser(parse_poetry),
     "pnpm-lock.yaml": DependencyParser(parse_pnpm),
+    "go.mod": DependencyParser(parse_go_mod),
 }
 
 
@@ -625,6 +627,10 @@ LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
         "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
         "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
         "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
+        "targets/dependency_aware/go_tool_section/go.mod",
+        "targets/dependency_aware/go/go.mod",
+        "targets/dependency_aware/go_multi_newline/go.mod",
+        "targets/dependency_aware/go_toolchain/go.mod",
     ],
 )
 # These tests are taken from https://github.com/google/osv-scanner/tree/main/pkg/lockfile/fixtures
