@@ -578,7 +578,7 @@ type fix_regexp = {
 (* Shared mode definitions *)
 (*****************************************************************************)
 
-(* Polymorhic variants used to improve type checking of rules (see below) *)
+(* Polymorphic variants used to improve type checking of rules (see below) *)
 type search_mode = [ `Search of formula ] [@@deriving show]
 type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
 type extract_mode = [ `Extract of extract ] [@@deriving show]
@@ -603,6 +603,24 @@ and step = {
 }
 
 and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
+
+(*****************************************************************************)
+(* Join mode (parsing support only)*)
+(*****************************************************************************)
+(* TODO: Join mode is to be deprecated in favor of steps mode. The parsing has
+   been implemented to allow for RPC validation of join mode files. *)
+(*****************************************************************************)
+
+type join_mode = [ `Join of join ] [@@deriving show]
+
+and join = { refs : join_ref list; rules : join_inline list; on : string list }
+[@@deriving show]
+
+and join_ref = { rule : string; as_ : string option; renames : rename list }
+[@@deriving show]
+
+and join_inline = step [@@deriving show]
+and rename = { from_ : string; to_ : string } [@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)
@@ -734,7 +752,8 @@ type 'mode rule_info = {
 (* Later, if we keep it, we might want to make all rules have steps,
    but for the experiment this is easier to remove *)
 
-type mode = [ search_mode | taint_mode | extract_mode | steps_mode | sca_mode ]
+type mode =
+  [ search_mode | taint_mode | extract_mode | steps_mode | sca_mode | join_mode ]
 [@@deriving show]
 
 (* the general type *)
@@ -752,6 +771,7 @@ type search_rule = search_mode rule_info [@@deriving show]
 type taint_rule = taint_mode rule_info [@@deriving show]
 type extract_rule = extract_mode rule_info [@@deriving show]
 type steps_rule = steps_mode rule_info [@@deriving show]
+type join_rule = join_mode rule_info [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -776,7 +796,8 @@ let partition_rules (rules : rules) :
             part_rules search taint ({ r with mode = e } :: extract) step l
         | `Steps _ as j ->
             part_rules search taint extract ({ r with mode = j } :: step) l
-        | `SCA _ -> part_rules search taint extract step l)
+        | `SCA _ -> part_rules search taint extract step l
+        | `Join _ -> part_rules search taint extract step l)
   in
   part_rules [] [] [] [] rules
 
@@ -789,6 +810,7 @@ let split_taint_rules (rules : rules) : taint_rule list * rules =
         | `Search _
         | `Extract _
         | `Steps _
+        | `Join _
         | `SCA _ ->
             part_rules taint (r :: other) l)
   in
@@ -850,6 +872,7 @@ let rec formulas_of_mode (mode : mode) : formula list =
       List.concat_map
         (fun step -> formulas_of_mode (step.step_mode :> mode))
         steps
+  | `Join _ -> []
   | `SCA _ -> []
 
 (*****************************************************************************)

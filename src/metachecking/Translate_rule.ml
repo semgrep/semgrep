@@ -382,6 +382,8 @@ let translate_files fparser xs =
                             ]
                         | `SCA _ ->
                             failwith "sca rules not currently translated"
+                        | `Join _ ->
+                            failwith "join rules not currently translated"
                         | `Steps _ ->
                             failwith "step rules not currently handled")
              | Error e ->

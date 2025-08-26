@@ -241,6 +241,19 @@ let parse_dict_helper opt_rule_id error_fun_f error_fun_d
                    else (
                      Hashtbl.add dict key_str ((key_str, t), value);
                      Ok ())
+               (* special case for YAML 'on' keys *)
+               | G.Container
+                   (G.Tuple, (_, [ { e = L (Bool (true, t)); _ }; value ], _))
+                 ->
+                   let key_str = "on" in
+                   if Hashtbl.mem dict key_str then
+                     Error
+                       (Rule_error.mk_error ?rule_id:opt_rule_id
+                          (DuplicateYamlKey
+                             (spf "duplicate key '%s' in dictionary" key_str, t)))
+                   else (
+                     Hashtbl.add dict key_str ((key_str, t), value);
+                     Ok ())
                | _ -> error_fun_f field "Not a valid key value pair")
              (Ok ())
       in

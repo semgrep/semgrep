@@ -82,6 +82,11 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
            match r.mode with
            | (`Extract _ | `Search _ | `Steps _ | `Taint _) as mode ->
                Left { r with mode }
+           | `Join _ as mode ->
+               Log.warn (fun m ->
+                   m "Note: Join rule %a not avaliable via core" Rule_ID.pp
+                     (fst r.id));
+               Right { r with mode }
            | `SCA _ as mode ->
                Log.warn (fun m ->
                    m "Note: SCA rule %a not avaliable via core" Rule_ID.pp

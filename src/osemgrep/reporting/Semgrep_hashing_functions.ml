@@ -183,7 +183,7 @@ let match_formula_interpolated_str (rule : Rule.t) metavars : string =
     match rule.mode with
     | `Taint { Rule.sources; sanitizers = _; sinks; propagators = _ } ->
         `Taint { Rule.sources; sanitizers = None; sinks; propagators = [] }
-    | (`Search _ | `Extract _ | `Steps _ | `SCA _) as mode -> mode
+    | (`Search _ | `Extract _ | `Steps _ | `SCA _ | `Join _) as mode -> mode
   in
   let xs = Rule.formulas_of_mode mode in
   let str = string_of_formulas xs in

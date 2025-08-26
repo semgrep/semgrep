@@ -252,6 +252,7 @@ let check r =
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
   | `SCA _ -> (* TODO *) []
+  | `Join _ -> (* TODO *) []
 
 let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
     (rules : Fpath.t list) : Core_error.t list =

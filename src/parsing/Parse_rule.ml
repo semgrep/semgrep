@@ -758,6 +758,76 @@ let parse_steps env key (value : G.expr) : (R.step list, Rule_error.t) result =
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 (*****************************************************************************)
+(* Parsers for join mode *)
+(*****************************************************************************)
+let parse_rename env key (value : G.expr) : (Rule.rename, Rule_error.t) result =
+  let/ rd = parse_dict env key value in
+  let/ from_ = take_key rd env parse_string "from" in
+  let/ to_ = take_key rd env parse_string "to" in
+  if Hashtbl.length rd.h > 0 then
+    error_at_key env.id key
+      "Additional properties are not allowed in 'renames' (only 'from' and \
+       'to')"
+  else Ok Rule.{ from_; to_ }
+
+let parse_join_ref env key (value : G.expr) :
+    (Rule.join_ref, Rule_error.t) result =
+  let/ rd = parse_dict env key value in
+  let/ rule = take_key rd env parse_string "rule" in
+  let/ as_ = take_opt rd env parse_string "as" in
+  let/ renames =
+    take_opt rd env
+      (fun env key v ->
+        parse_list env key (fun env' -> parse_rename env' key) v)
+      "renames"
+    |> Result.map (Option.value ~default:[])
+  in
+  if Hashtbl.length rd.h > 0 then
+    error_at_key env.id key
+      "Additional properties are not allowed in 'refs' items (only 'rule', \
+       'as', and 'renames')"
+  else Ok Rule.{ rule; as_; renames }
+
+let parse_join env key (value : G.expr) : (Rule.join, Rule_error.t) result =
+  let/ rd = parse_dict env key value in
+  let/ refs_opt =
+    take_opt rd env
+      (fun env key v ->
+        parse_list env key (fun env' -> parse_join_ref env' key) v)
+      "refs"
+  in
+  let/ rules_opt =
+    take_opt rd env
+      (fun env key v ->
+        parse_list env key (fun env' -> parse_step_fields env' key) v)
+      "rules"
+  in
+  let/ refs, rules =
+    match (refs_opt, rules_opt) with
+    | Some _, Some _ ->
+        error_at_key env.id key
+          "You cannot use both 'refs' and 'rules' in a 'join'."
+    | None, None ->
+        error_at_key env.id key
+          "You must use either 'refs' or 'rules' in a 'join'."
+    | Some refs, None -> Ok (refs, [])
+    | None, Some rules -> Ok ([], rules)
+  in
+  (*NOTE: We don't parse the conditions to check their validity, only
+    extracting them as strings. *)
+  let/ on_conds =
+    take_key rd env
+      (fun env key v ->
+        parse_list env key (fun env' -> parse_string env' key) v)
+      "on"
+  in
+  if Hashtbl.length rd.h > 0 then
+    error_at_key env.id key
+      "Additional properties are not allowed in 'join' (only 'refs', 'rules' \
+       and 'on')"
+  else Ok Rule.{ refs; rules; on = on_conds }
+
+(*****************************************************************************)
 (* Parsers for secrets mode *)
 (*****************************************************************************)
 
@@ -988,6 +1058,9 @@ let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) :
   | Some ("step", _), _, _ ->
       let/ steps = take_key rule_dict env parse_steps "steps" in
       Ok (`Steps steps)
+  | Some ("join", _), _, _ ->
+      let/ joins = take_key rule_dict env parse_join "join" in
+      Ok (`Join joins)
   (* SCA Doesn't require patterns. Just trying to be permissive here
      for now. If the SCA rule is a valid search rule then we go ahead
      and parse it as a search rule. Right now the dependency_formula
@@ -1076,18 +1149,18 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
   let/ max_version = take_opt_no_env rd parse_version "max-version" in
   let/ () = check_version_compatibility rule_id ~min_version ~max_version in
 
+  let/ mode_opt = take_opt_no_env rd parse_string_wrap_no_env "mode" in
+
   let/ languages_opt =
     take_opt_no_env rd parse_string_wrap_list_no_env "languages"
   in
   let/ languages =
-    match languages_opt with
-    | Some languages -> Ok languages
-    (* TODO: join-mode does not have languages and is not recognized right now
-     * by semgrep-core
-     * TODO? steps-mode or rules using just pattern-regex could also skip
-     * the languages section? (and use target selector instead)
-     *)
-    | None -> H.error rule_id tok "missing languages"
+    match (languages_opt, mode_opt) with
+    | Some languages, _ -> Ok languages
+    (* TODO? steps-mode or rules using just pattern-regex could also skip
+     * the languages section? (and use target selector instead) *)
+    | None, Some ("join", tok) -> Ok [ ("none", tok) ]
+    | None, _ -> H.error rule_id tok "missing languages"
   in
   let/ options_opt, options_key =
     let/ options = take_opt_no_env rd (parse_options rule_id) "options" in
@@ -1109,7 +1182,6 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
       options = options_opt;
     }
   in
-  let/ mode_opt = take_opt rd env parse_string_wrap "mode" in
   let/ dep_formula_opt =
     take_opt rd env parse_dependency_formula "r2c-internal-project-depends-on"
   in

@@ -316,6 +316,7 @@ let generate_prefilter_internal ~interfile
     | `Taint spec ->
         prefilter_of_taint_rule ~interfile ~analyzer:r.target_analyzer r.id spec
     | `Steps _ -> (* TODO *) None
+    | `Join _ -> (* not supported *) None
     | `SCA _ -> None
   with
   | Stack_overflow ->
