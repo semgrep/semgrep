@@ -61,7 +61,7 @@ For more information see https://semgrep.dev
   (depends
     ; core deps
     (ocaml (>= 5.3.0))
-    (dune (>= 2.7.0 ))
+    (dune (>= 3.20.1 ))
     ; parser generators
     (menhir (= 20230608))
     ; vendored in libs/ocaml-tree-sitter-core

@@ -17,7 +17,7 @@ homepage: "https://semgrep.dev"
 bug-reports: "https://github.com/semgrep/semgrep/issues"
 depends: [
   "ocaml" {>= "5.3.0"}
-  "dune" {>= "3.7" & >= "2.7.0"}
+  "dune" {>= "3.7" & >= "3.20.1"}
   "menhir" {= "20230608"}
   "tree-sitter"
   "semgrep-interfaces"
@@ -106,7 +106,6 @@ dev-repo: "git+https://github.com/semgrep/semgrep.git"
 (* pin-depends let's opam know where to pull the source for dependencies from *)
 (* Since we're vendoring all these dependencies instead of pulling them from opam *)
 (* we put them here! *)
-(* coupling: update semgrep-pro.opam.template too! *)
 pin-depends: [
   ["pcre2.dev" "./libs/pcre2"]
   ["tree-sitter.dev" "./libs/ocaml-tree-sitter-core"]
