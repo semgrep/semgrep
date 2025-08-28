@@ -3,14 +3,13 @@
  (wrapped false)
  (libraries
    TCB
-   commons
    eio
    eio.mock
+   logs
  )
  (preprocess
    (pps
      ppx_deriving.show
-     profiling.ppx
    )
  )
 )
