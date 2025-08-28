@@ -37,6 +37,7 @@
    memtrace
    ; concurrency and parallelism
    parmap
+   parallelism
    eio_main
  )
  (inline_tests)

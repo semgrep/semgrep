@@ -17,8 +17,6 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
-module Log = Log_parallelism.Log
-
 let map ~(conf : Parallelism_config.t) ~domain_count f l =
   (* The main thread concurrently maps over the list of tasks via spawning
    * fibers (i.e weak threads) that submit and wait for the Domain pool to
@@ -28,7 +26,8 @@ let map ~(conf : Parallelism_config.t) ~domain_count f l =
   let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
   let pool = Eio.Executor_pool.create ~sw ~domain_count domain_mgr in
 
-  Log.debug (fun m ->
+  (* nosemgrep: no-logs-in-library *)
+  Logs.debug (fun m ->
       m "Mapping %d elements across %d domains" (List.length l) domain_count);
 
   Eio.Fiber.List.map ~max_fibers:domain_count
