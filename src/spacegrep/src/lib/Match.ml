@@ -259,7 +259,7 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
       dots:dots option -> env -> Loc.t -> Pattern_AST.node list -> match_result)
     : match_result =
   if !debug then Dump_match.print pat doc;
-  Domains.maybe_yield ();
+  Concurrent.maybe_yield ();
   match (pat, doc) with
   | [], doc -> (
       match doc_matches_dots ~dots last_loc doc with

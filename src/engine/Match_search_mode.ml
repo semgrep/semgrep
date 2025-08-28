@@ -686,7 +686,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
   let file = env.xtarget.path.internal_path_to_content in
   xs
   |> List_.filter_map
-       ( Domains.yielding @@ fun (r, new_bindings) ->
+       ( Concurrent.yielding @@ fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with
