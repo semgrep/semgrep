@@ -60,7 +60,7 @@ local on_pull_request_config = {
   },
 
   // For making matrix jobs, i.e. one job running on multiple OSes.
-  os_matrix(oss=['ubuntu-latest', 'macos-latest', 'windows-latest'], steps): {
+  os_matrix(oss=['ubuntu-latest', 'macos-latest', 'windows-2025'], steps): {
     strategy: {
       matrix: {
         os: oss,
