@@ -158,10 +158,20 @@ let create ?split_from_parent default =
 let get { key; _ } = Domain.DLS.get key
 
 let with_hook_set { key; can_unscoped_set } v f =
+  (* This is `Common.protect`, duplicated here to avoid a circular
+   * dependency between `common` and `parallelism`. *)
+  let protect ~finally work =
+    (* nosemgrep: no-fun-protect *)
+    try Fun.protect ~finally work with
+    | Fun.Finally_raised e ->
+        let bt = Printexc.get_raw_backtrace () in
+        Printexc.raise_with_backtrace e bt
+  in
+
   Atomic.set can_unscoped_set false;
   let old = Domain.DLS.get key in
   Domain.DLS.set key v;
-  Common.finalize f (fun _ -> Domain.DLS.set key old)
+  protect ~finally:(fun _ -> Domain.DLS.set key old) f
 
 let with_ h v f () = with_hook_set h v f
 
