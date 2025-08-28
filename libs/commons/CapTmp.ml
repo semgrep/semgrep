@@ -1,6 +1,9 @@
 let with_temp_file ?contents ?persist ?prefix ?suffix ?temp_dir _caps f =
   UTmp.with_temp_file ?contents ?persist ?prefix ?suffix ?temp_dir f
 
+let temp_dir _caps ?temp_dir ?perms prefix suffix =
+  UTmp.temp_dir ?temp_dir ?perms prefix suffix
+
 let get_temp_dir_name _caps = UTmp.get_temp_dir_name ()
 let erase_temp_files _caps = UTmp.erase_temp_files ()
 
