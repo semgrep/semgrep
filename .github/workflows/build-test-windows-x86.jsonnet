@@ -7,7 +7,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local artifact_name = 'semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}';
 
 local wheel_name = 'windows-x86-wheel';
-local runs_on = 'windows-latest';
+local runs_on = 'windows-2025';
 local defaults = {
   run: {
     // Windows GHA runners default to pwsh (PowerShell). We want to use bash
