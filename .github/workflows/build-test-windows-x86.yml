@@ -4,7 +4,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
@@ -122,7 +122,7 @@ jobs:
         shell: bash
     needs:
       - build-core
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
@@ -148,7 +148,7 @@ jobs:
         shell: bash
     needs:
       - build-wheels
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - uses: actions/download-artifact@v4
         with:
