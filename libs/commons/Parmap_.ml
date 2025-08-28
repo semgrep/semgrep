@@ -18,7 +18,7 @@
 (*****************************************************************************)
 (* Small wrapper around Parmap with better error management and capabilities *)
 
-module Log = Log_parallelism.Log
+module Log = Log_commons.Log
 
 (*****************************************************************************)
 (* Error management *)

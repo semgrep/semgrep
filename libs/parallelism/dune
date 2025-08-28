@@ -3,7 +3,6 @@
  (wrapped false)
  (libraries
    TCB
-   parmap
    commons
    eio
    eio.mock
