@@ -87,6 +87,9 @@ val replace_named_pipe_by_regular_file_if_needed :
 *)
 val replace_stdin_by_regular_file : ?prefix:string -> unit -> Fpath.t
 
+val temp_dir : ?temp_dir:Fpath.t -> ?perms:int -> string -> string -> Fpath.t
+(** fpath wrapper to Filename.temp_dir *)
+
 (* fpath wrapper to Filename.get_temp_dir_name() *)
 val get_temp_dir_name : unit -> Fpath.t
 
