@@ -335,25 +335,36 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
 
 let debug_trace_src = Logs.Src.create "debug_trace"
 
-(* This hook keeps track of whether there is another call to
+(* This state keeps track of whether there is another call to
    [with_debug_trace] wrapping the current call; this enables only
    writing out the outermost call's backtrace to keep logs
    minimal. This could cause backtraces to not show up if someone
    catches and handles them between the first and the last
-   with_debug_trace call. *)
-let is_in_debug_trace_context = Hook.create false
+   with_debug_trace call.
+
+   This value should really be a [Hook.t]; however, to avoid a circular
+   dependency between [common] and [parallelism] it is left as a domain-local
+   value.
+   *)
+let in_debug_trace = Domain.DLS.new_key (const false)
 
 let with_debug_trace ?(src = debug_trace_src) ~__FUNCTION__
     ?(pp_input : (unit -> string) option) (f : unit -> 'a) : 'a =
   let name = __FUNCTION__ in
-  let currently_in_debug_trace = Hook.get is_in_debug_trace_context in
+  let currently_tracing = Domain.DLS.get in_debug_trace in
   (match pp_input with
   | None -> Logs.debug ~src (fun m -> m "starting %s" name)
   | Some pp_input ->
       Logs.debug ~src (fun m ->
           m "starting %s with input:\n%s" name (pp_input ())));
   try
-    let res = Hook.with_hook_set is_in_debug_trace_context true f in
+    let res =
+      Common.protect
+        ~finally:(fun () -> Domain.DLS.set in_debug_trace currently_tracing)
+        (fun () ->
+          Domain.DLS.set in_debug_trace true;
+          f ())
+    in
     Logs.debug ~src (fun m -> m "finished %s" name);
     res
   with
@@ -369,7 +380,7 @@ let with_debug_trace ?(src = debug_trace_src) ~__FUNCTION__
               (Printexc.to_string (Exception.get_exn exn'));
             (* Only print stack trace in the outermost handler to
                          prevent large duplications. *)
-            if not currently_in_debug_trace then
+            if not currently_tracing then
               Format.fprintf ppf "backtrace:\n%s"
                 (Printexc.raw_backtrace_to_string (Exception.get_trace exn'))
       in
