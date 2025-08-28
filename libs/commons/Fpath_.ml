@@ -76,6 +76,7 @@ module Operators = struct
   let ( !! ) = ( !! )
 end
 
+let dirname path = Fpath.v (Filename.dirname (Fpath.to_string path))
 let current_dir = Fpath.v "."
 
 (* TODO: get rid of! *)

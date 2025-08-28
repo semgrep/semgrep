@@ -146,6 +146,10 @@ let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
 
 let get_temp_dir_name () = Fpath.v (Filename.get_temp_dir_name ())
 
+let temp_dir ?temp_dir ?perms prefix suffix =
+  let temp_dir = Option.map Fpath.to_string temp_dir in
+  Fpath.v (Filename.temp_dir ?temp_dir ?perms prefix suffix)
+
 let get_unique_temp_name ?(prefix = "") ?(suffix = "") () =
   get_temp_dir_name ()
   (* This is meant only to be used in test code. *)
