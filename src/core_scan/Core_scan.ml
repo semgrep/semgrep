@@ -586,7 +586,7 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
 
 (** [core_error_to_match_result target core_error] transforms a target and its
   core error to a match result; this is used by our mappers (Parmap, and soon:
-  Domains.map)
+  Concurrent.map)
 
   TODO: remove/cleanup this function once we remove parmap
   *)
@@ -598,7 +598,7 @@ let core_error_to_match_result (target : Target.t) (core_error : Core_error.t) =
   (Core_result.add_run_time internal_path None match_result, Some target)
 
 (** [exception_to_core_error target exn] turns a target and the exception it
- triggered to a [Core_error.t]; this will be used by [Domains.map] to transform
+ triggered to a [Core_error.t]; this will be used by [Concurrent.map] to transform
  [Error exn] to a match_result
 
  TODO: the mistmatch of error types between parmap and domains.map makes this
@@ -610,7 +610,7 @@ let exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
   Core_error.exn_to_error ~file:internal_path exception_
 
 (** [exception_handler] is used to postprocess the result of a core_scan
-  [Domains.map]; this pattern of kafkaesque exception handling is mostly borrowed
+  [Concurrent.map]; this pattern of kafkaesque exception handling is mostly borrowed
   from [Parmap_targets].
 
  TODO: Once we rip out parmap; we won't need to support two different types of
@@ -625,7 +625,7 @@ let exception_handler (target : Target.t) (res : ('a, exn) Result.t) =
 
 (** This functions handles & isolates the parmap logic (computation + err handeling)
   into a single function (hopefully) so that it's easier to have
-  [if eio then Domains.map else parmap_map].
+  [if eio then Concurrent.map else Parmap_.map].
 
   NOTE: some of the error handling logic might be overkill/extraneous; however
   keeping it as is for now.
@@ -741,7 +741,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
     if config.use_eio then
       let conf = Option.get config.par_conf in
       let domain_count = Core_scan_config.finalize_num_jobs config.num_jobs in
-      Domains.map ~conf ~domain_count process_target targets
+      Concurrent.map ~conf ~domain_count process_target targets
       |> List_.map2 exception_handler targets
     else
       parmap_map

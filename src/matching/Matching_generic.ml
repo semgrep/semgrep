@@ -155,7 +155,7 @@ type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
  *)
 
 let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
-  Domains.yielding (fun m1 m2 tin ->
+  Concurrent.yielding (fun m1 m2 tin ->
       (* let's get a list of possible environment match (could be
        * the empty list when it didn't match, playing the role None
        * had before)
@@ -168,7 +168,7 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
 
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
-  Domains.yielding (fun m1 m2 tin ->
+  Concurrent.yielding (fun m1 m2 tin ->
       (* opti? use set instead of list *)
       m1 tin @ m2 tin)
 

@@ -35,7 +35,7 @@ let test_hook_inherit_val () =
   Alcotest.(check int) __LOC__ 1 n
 
 (* Ensures that Domains.map plays well with hooked per-fiber values. *)
-let test_fiber_local_domains_map () =
+let test_fiber_local_concurrent_map () =
   let h = H.create 0 in
   let procs = 4 in
 
@@ -56,7 +56,7 @@ let test_fiber_local_domains_map () =
   let conf = Parallelism_config.create env in
 
   let l = List.init procs (fun i -> i + 1) in
-  let res = Domains.map ~conf ~domain_count:2 f l in
+  let res = Concurrent.map ~conf ~domain_count:2 f l in
 
   assert (Result.is_ok (Result_.collect res));
   Alcotest.(check int) __LOC__ 0 (H.get h)
@@ -82,12 +82,12 @@ let test_wrap_timeout_exn () =
    *)
 
   (* Exceed our timeout deadline. *)
-  let f = Domains.wrap_timeout_exn ~clock 0.1 forty_two in
+  let f = Concurrent.wrap_timeout_exn ~clock 0.1 forty_two in
   let res = result_of_exn f in
   Alcotest.(check (result int exnt)) __LOC__ (res ()) (Error Eio.Time.Timeout);
 
   (* Do not exceed our timeout deadline !*)
-  let f = Domains.wrap_timeout_exn ~clock 0.5 forty_two in
+  let f = Concurrent.wrap_timeout_exn ~clock 0.5 forty_two in
   let res = result_of_exn f in
   Alcotest.(check (result int exnt)) __LOC__ (res ()) (Ok 42)
 
@@ -108,15 +108,15 @@ let test_wrap_timeout () =
    *)
 
   (* Exceed our timeout deadline. *)
-  let f = Domains.wrap_timeout ~clock 0.1 forty_two in
+  let f = Concurrent.wrap_timeout ~clock 0.1 forty_two in
   let res = f () in
   Alcotest.(check (result int timeout)) __LOC__ res (Error `Timeout);
 
   (* Do not exceed our timeout deadline !*)
-  let f = Domains.wrap_timeout ~clock 0.5 forty_two in
+  let f = Concurrent.wrap_timeout ~clock 0.5 forty_two in
   Alcotest.(check (result int timeout)) __LOC__ (f ()) (Ok 42)
 
-let test_domain_map_timeouts () =
+let test_concurrent_map_timeouts () =
   Eio_main.run @@ fun env ->
   let conf = Parallelism_config.create env in
   let clock = Eio.Stdenv.clock env in
@@ -129,8 +129,8 @@ let test_domain_map_timeouts () =
   (* The happy case: no Ensure we handle no timeouts. *)
   let xs = [ 0.1; 0.2; 0.1; 0.2 ] in
   let res =
-    Domains.map ~conf ~domain_count:2
-      (Domains.wrap_timeout_exn ~clock 0.5 sleep)
+    Concurrent.map ~conf ~domain_count:2
+      (Concurrent.wrap_timeout_exn ~clock 0.5 sleep)
       xs
   in
   Alcotest.(check (list (result (float 0.001) exnt)))
@@ -140,8 +140,8 @@ let test_domain_map_timeouts () =
   (* An unhappy case: Some timeouts. *)
   let xs = [ 0.1; 0.7; 0.2; 0.7 ] in
   let res =
-    Domains.map ~conf ~domain_count:2
-      (Domains.wrap_timeout_exn ~clock 0.5 sleep)
+    Concurrent.map ~conf ~domain_count:2
+      (Concurrent.wrap_timeout_exn ~clock 0.5 sleep)
       xs
   in
   Alcotest.(check (list (result (float 0.001) exnt)))
@@ -163,22 +163,22 @@ let test_burn () =
          * performing an Effect; busywaiting in this way is _not_. *)
         i := !i + 1
       done;
-      Domains.maybe_yield ()
+      Concurrent.maybe_yield ()
     done
   in
 
   (* Exceed our timeout deadline. *)
-  let f = Domains.wrap_timeout ~clock 0.1 burn in
+  let f = Concurrent.wrap_timeout ~clock 0.1 burn in
   let res = f () in
   Alcotest.(check (result int timeout)) __LOC__ res (Error `Timeout)
 
 let tests =
-  Testo.categorize "Domains"
+  Testo.categorize "Concurrent"
     [
       t "test_hook_inherit_val" test_hook_inherit_val;
-      t "Fiber with Domains.map" test_fiber_local_domains_map;
+      t "Fiber with Concurrent.map" test_fiber_local_concurrent_map;
       t "test_wrap_timeout_exn" test_wrap_timeout_exn;
       t "test_wrap_timeout" test_wrap_timeout;
-      t "test_domain_map_timeouts" test_domain_map_timeouts;
+      t "test_concurrent_map_timeouts" test_concurrent_map_timeouts;
       t "test_burn" test_burn;
     ]
