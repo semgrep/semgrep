@@ -2,4 +2,4 @@
 
 let tests =
   Testo.categorize_suites "Parallelism"
-    [ Unit_Domains.tests; Unit_SharedMemo.tests; Unit_Hook.tests ]
+    [ Unit_Concurrent.tests; Unit_SharedMemo.tests; Unit_Hook.tests ]

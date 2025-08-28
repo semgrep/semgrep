@@ -137,7 +137,7 @@ let timed_computation_and_clear_timer info caps max_duration f :
 let set_timeout (caps : < Cap.time_limit >) ~name ~eio_clock max_duration f =
   match eio_clock with
   | Some clock -> (
-      let timed_f = Domains.wrap_timeout ~clock max_duration f in
+      let timed_f = Concurrent.wrap_timeout ~clock max_duration f in
       match timed_f () with
       | Error `Timeout ->
           (* nosemgrep: no-logs-in-library *)
