@@ -1,3 +1,15 @@
+(*
+   Copyright (c) 2020-2025 Semgrep Inc.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License
+   version 2.1 as published by the Free Software Foundation.
+
+   This library is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
+   LICENSE for more details.
+*)
 (* [parsing_stats l json_output paths] recursively explores [paths] to
  * find files in given language [l]. Then it parses those files using
  * [Parse_target.parse_program] (which internally uses either a
