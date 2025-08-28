@@ -45,6 +45,12 @@ let wrap_timeout ~clock t f =
 let wrap_timeout_exn ~clock t f =
  fun x -> Eio.Time.with_timeout_exn clock t (fun () -> f x)
 
+let yield () =
+  (* If we fail to get the context during yielding, we're not running in Eio. *)
+  try Eio.Fiber.yield () with
+  (* TODO: This is similar to Hook.attempt_in_eio. *)
+  | Stdlib.Effect.Unhandled _ -> ()
+
 (* TODO: make the frequency configurable on the CLI, perhaps. Keep this a power of two! *)
 let yield_frequency = 8192
 
@@ -64,7 +70,6 @@ let yield_attempts = Atomic.make 0
 
 let maybe_yield () =
   if Atomic.fetch_and_add yield_attempts 1 land (yield_frequency - 1) = 0 then
-    (* If we fail to get the context during yielding, we're not running in Eio. *)
-    try Eio.Fiber.yield () with
-    (* TODO: This is similar to Hook.attempt_in_eio. *)
-    | Stdlib.Effect.Unhandled _ -> ()
+    yield ()
+
+let yielding f = fun a -> Utils.protect (fun () -> f a) ~finally:maybe_yield
