@@ -88,7 +88,7 @@
  * parsing and matching are compute-bound, so it wouldn't make sense to
  * have more than one on an OS thread since they'd be competing with each other
  * for the same underlying resource.  In order to maintain this invariant,
- * it's critical that Domains.map, when farming out tasks, assigns at minimum
+ * it's critical that Concurrent.map, when farming out tasks, assigns at minimum
  * the majority of a domain to that operation.  (If we gave it less than 50%,
  * then >1 such operations could land on the same domain, causing phantom writes
  * from another fiber to be observed.)
@@ -113,11 +113,11 @@
  * If you are just adding Hooks to the codebase, nothing.  Godspeed!
  *
  * If you are factoring out previously-single threaded compute to be in
- * parallel, so long as you are using Domains.map for its fork-join
+ * parallel, so long as you are using Concurrent.map for its fork-join
  * parallelism, also nothing.  Thank you for speeding up our codebase and
  * making good use of our hardware.
  *
- * If you are adding new parallelism that does not go through Domains.map, and
+ * If you are adding new parallelism that does not go through Concurrent.map, and
  * if it potentially accesses Hook state, heed The Big Invariant above.
  *
  *
@@ -155,13 +155,19 @@ let create ?split_from_parent default =
   let key = Domain.DLS.new_key ~split_from_parent (Fun.const default) in
   { key; can_unscoped_set = Atomic.make true }
 
-let get { key; _ } = Domain.DLS.get key
+let get { key; _ } =
+  Concurrent.maybe_yield ();
+  Domain.DLS.get key
 
 let with_hook_set { key; can_unscoped_set } v f =
   Atomic.set can_unscoped_set false;
   let old = Domain.DLS.get key in
   Domain.DLS.set key v;
-  Utils.protect ~finally:(fun _ -> Domain.DLS.set key old) f
+  Utils.protect
+    ~finally:(fun _ ->
+      Concurrent.maybe_yield ();
+      Domain.DLS.set key old)
+    f
 
 let with_ h v f () = with_hook_set h v f
 
