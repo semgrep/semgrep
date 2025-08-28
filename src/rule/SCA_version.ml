@@ -1,3 +1,15 @@
+(*
+   Copyright (c) 2024-2025 Semgrep Inc.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License
+   version 2.1 as published by the Free Software Foundation.
+
+   This library is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
+   LICENSE for more details.
+*)
 (* The "core of a version": a dot separated list of numbers, like 4.1.6.2.7
  * alt: we could inline it in V of { ... } which is allowed in modern OCaml
  * but Match_SCA_mode.ml has also functions operating just on this type

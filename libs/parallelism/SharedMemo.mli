@@ -1,3 +1,15 @@
+(*
+   Copyright (c) 2025 Semgrep Inc.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License
+   version 2.1 as published by the Free Software Foundation.
+
+   This library is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
+   LICENSE for more details.
+*)
 (* Ensures safe memoization of a function that can be called between threads.
  * If you are writing new code, think hard about whether your problem warrants
  * this solution!  This should typically only be used for legacy pre-multicore
