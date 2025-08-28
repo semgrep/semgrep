@@ -10,6 +10,9 @@ val with_temp_file :
   (Fpath.t -> 'a) ->
   'a
 
+val temp_dir :
+  Cap.FS.tmp -> ?temp_dir:Fpath.t -> ?perms:int -> string -> string -> Fpath.t
+
 val get_temp_dir_name : Cap.FS.tmp -> Fpath.t
 
 val new_temp_file :

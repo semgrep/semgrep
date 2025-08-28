@@ -112,6 +112,15 @@ module Operators : sig
   *)
 end
 
+val dirname : Fpath.t -> Fpath.t
+(** Get the directory part of a path. fpath wrapper for
+    Filename.dirname.
+
+    "foo/bar/baz" => "foo/bar"
+    "/foo/bar/baz" => "/foo/bar"
+    "/foo/bar/baz/" => "/foo/bar"
+    "baz" => "." *)
+
 (* Fpath.v "." *)
 val current_dir : Fpath.t
 
