@@ -695,13 +695,44 @@ let run caps (config : Core_scan_config.t) : unit =
 (* We want to only run the Eio async runtime (i.e Eio_main.run) iff --x-eio is
  * set. coupling: Pro_CLI.ml
  *)
-let decide_if_eio caps (config : Core_scan_config.t) =
-  if config.use_eio then (
-    Eio_main.run @@ fun env ->
-    Logs_threaded.enable ();
-    let par_conf = Some (Parallelism_config.create env) in
-    run caps { config with par_conf })
-  else run caps config
+let maybe_with_eio (config : Core_scan_config.t) (f : Core_scan_config.t -> 'a)
+    : 'a =
+  if config.use_eio then
+    Eio_main.run (fun env ->
+        Logs_threaded.enable ();
+        f { config with par_conf = Some (Parallelism_config.create env) })
+  else f config
+
+let maybe_with_tracing function_name engine analysis_flags
+    (config : Core_scan_config.t) (f : Core_scan_config.t -> 'a) : 'a =
+  match config.telemetry with
+  | None -> f config
+  | Some tracing -> (
+      let resource_attrs =
+        (* Let's make sure all traces/logs/metrics etc. are tagged as
+                   coming from the pro invocation *)
+        Trace_data.get_resource_attrs ?env:tracing.env ~engine ~analysis_flags
+          ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
+          ()
+      in
+      let configure_otel ?eio_sw_base () =
+        Telemetry.configure_otel ?eio_sw_base ~attrs:resource_attrs
+          "semgrep-core" tracing.endpoint
+      in
+      let run () =
+        Tracing.with_tracing function_name [] (fun scope ->
+            let telemetry = { tracing with top_level_scope = Some scope } in
+            f { config with telemetry = Some telemetry })
+      in
+      match config.par_conf with
+      | None ->
+          configure_otel ();
+          run ()
+      | Some par_conf ->
+          Eio.Switch.run (fun sw ->
+              let env = Parallelism_config.unsafe_get_base par_conf in
+              configure_otel ~eio_sw_base:(sw, env) ();
+              run ()))
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -782,7 +813,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
-      | roots -> (
+      | roots ->
           let roots = Fpath_.of_strings roots in
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
@@ -811,32 +842,16 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           in
           let config = { config with target_source; num_jobs } in
 
-          (* Set up tracing and run it for the duration of scanning. Note that
+          maybe_with_eio config (fun config ->
+              (* Set up tracing and run it for the duration of scanning. Note that
              this will only trace `Core_command.run_conf` and the functions it
              calls.
              TODO when osemgrep is the default entry point, we will also be
              able to instrument the pre- and post-scan code in the same way.
           *)
-          match config.telemetry with
-          | None -> decide_if_eio caps config
-          | Some tracing ->
-              let resource_attrs =
-                (* Let's make sure all traces/logs/metrics etc. are tagged as
-                   coming from the OSS invocation *)
-                Trace_data.get_resource_attrs ?env:tracing.env ~engine:"oss"
-                  ~analysis_flags:(Trace_data.no_analysis_features ())
-                  ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
-                  ()
-              in
-              Telemetry.configure_otel ~attrs:resource_attrs "semgrep-core"
-                tracing.endpoint;
-              Tracing.with_tracing "Core_command.semgrep_core_dispatch" []
-                (fun scope ->
-                  let telemetry =
-                    { tracing with top_level_scope = Some scope }
-                  in
-                  decide_if_eio caps { config with telemetry = Some telemetry })
-          ))
+              maybe_with_tracing "Core_command.semgrep_core_dispatch" "oss"
+                (Trace_data.no_analysis_features ()) config (fun config ->
+                  run caps config)))
 
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () -> main_exn caps argv)
