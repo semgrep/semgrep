@@ -9,7 +9,9 @@
     logs
     opentelemetry
     opentelemetry-client-ocurl
+    opentelemetry-client-cohttp-eio
     ambient-context-lwt
+    opentelemetry.ambient-context.eio
   )
   (preprocess (pps
       ppx_deriving.show
