@@ -713,6 +713,7 @@ let maybe_with_tracing function_name engine analysis_flags
                    coming from the pro invocation *)
         Trace_data.get_resource_attrs ?env:tracing.env ~engine ~analysis_flags
           ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
+          ~eio:(Option.is_some config.par_conf)
           ()
       in
       let configure_otel ?eio_sw_base () =
