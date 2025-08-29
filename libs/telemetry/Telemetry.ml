@@ -127,6 +127,16 @@ let mk_rand_bytes_16 rand_ () : bytes =
 
 let get_current_scope () = Otel.Scope.get_ambient_scope ()
 
+let with_opt_scope scope_opt f =
+  match scope_opt with
+  | None -> f ()
+  | Some scope -> Otel.Scope.with_ambient_scope scope f
+
+let force_curr_scope f =
+  let current_scope_opt = get_current_scope () in
+  let f x = with_opt_scope current_scope_opt (fun () -> f x) in
+  f
+
 let get_global_attr_opt key =
   List.find_map
     (fun (kv : Otel.Proto.Common.key_value) ->

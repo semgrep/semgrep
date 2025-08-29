@@ -5,4 +5,5 @@ val map_targets :
   Target.t list ->
   ('a, exn) result list
 (** [map_targets] basically wraps {!Concurrent.map} but with some extra Semgrep
-    specific tweaks *)
+    specific tweaks, such as hacks to get telemetry to work across domain
+    spawns *)

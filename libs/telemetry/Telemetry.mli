@@ -49,6 +49,15 @@ end
 val get_current_scope : unit -> scope option
 (** Expose the Trace function to get the current scope *)
 
+val with_opt_scope : scope option -> (unit -> 'a) -> 'a
+(** [with_scope scope_opt f] will run [f] with the given scope as the current
+    scope, if it is not None. This is useful for propagating spans across
+    threads/eio domains, or setting a parent span *)
+
+val force_curr_scope : ('a -> 'b) -> 'a -> 'b
+(** [force_curr_scope f x] will run [f x] with the current scope. This is
+    useful for propagating spans across threads/eio domains. *)
+
 val get_global_attr_opt : string -> (string * user_data) option
 (** [get_global_attr_opt some_attr] will return some key value pair if the key
     is set in the global attributes *)
