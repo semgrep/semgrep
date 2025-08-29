@@ -173,7 +173,7 @@ let default_resource_env_attrs =
     ( Telemetry.Attributes.instance_id,
       `String,
       [ "SEMGREP_JOB_URL"; "CI_JOB_URL" ],
-      `None );
+      `String "<local run>" );
     (* coupling: semgrep/meta.py, if you change this we may want to change
        something about job url there, or vice versa *)
     ( Attributes.semgrep_managed_scan,
