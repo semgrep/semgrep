@@ -147,8 +147,8 @@ let to_found_dependency ?(lockfile_path : Fpath.t option)
     Out.found_dependency =
   Out.
     {
-      package = dep.package.name;
-      version = dep.package.version;
+      package = (dep.package.name :> string);
+      version = (dep.package.version :> string);
       ecosystem = dep.ecosystem;
       allowed_hashes = convert_hashes dep.allowed_hashes;
       resolved_url = Option.map Uri.to_string dep.url;
@@ -163,9 +163,9 @@ let to_found_dependency ?(lockfile_path : Fpath.t option)
         children
         |> Option.map
              (List_.map (fun (dep : t) ->
-                  Out.
-                    {
-                      package = dep.package.name;
-                      version = dep.package.version;
-                    }));
+                  ({
+                     package = (dep.package.name :> string);
+                     version = (dep.package.version :> string);
+                   }
+                    : Out.dependency_child)));
     }
