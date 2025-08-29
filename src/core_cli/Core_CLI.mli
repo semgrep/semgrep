@@ -36,6 +36,16 @@ val output_core_results :
     (depending on the value in config.output_format)
 *)
 
+val maybe_with_eio : Core_scan_config.t -> (Core_scan_config.t -> 'a) -> 'a
+
+val maybe_with_tracing :
+  string ->
+  string ->
+  Trace_data.analysis_flags ->
+  Core_scan_config.t ->
+  (Core_scan_config.t -> 'a) ->
+  'a
+
 (* This requires many capabilities partly because of semgrep-core -rpc
  * which now does lots of things (including calling Core_scan for
  * transitive reachability).
