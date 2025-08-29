@@ -337,6 +337,8 @@ let default_metric_attributes () =
       Telemetry.Attributes.scan_source;
       (* If it's an sms experiment *)
       Telemetry.Attributes.experiment_name;
+      (* If we're running with eio or not *)
+      Telemetry.Attributes.eio;
       (* e.g. console, intuit, etc. *)
       Otel.Conventions.Attributes.Service.namespace;
     ]
