@@ -37,11 +37,19 @@ type env =
   < clock : float Eio.Time.clock_ty Eio.Std.r
   ; domain_mgr : Eio.Domain_manager.ty Eio.Std.r >
 
+type _base = Eio_unix.Stdenv.base
+
 (* TODO: perhaps t should just be the env?  *)
 type t = {
   (* [env] is the Eio environment with our required capabilities. *)
   env : env; [@opaque]
+  base : _base; [@opaque]
 }
 [@@deriving show]
 
-let create (env : Eio_unix.Stdenv.base) = { env :> env }
+let create (env : Eio_unix.Stdenv.base) = { env :> env; base = env }
+
+let unsafe_get_base (t : t) : _base =
+  (* This is unsafe because it exposes the full Eio environment, which
+     may not be what we want.  Use with care! *)
+  t.base
