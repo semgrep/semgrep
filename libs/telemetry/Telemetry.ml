@@ -151,11 +151,20 @@ let stop_otel () =
          Backend.cleanup ~on_done:Fun.id ())
 
 (* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
-let setup_otel trace_endpoint =
+let setup_otel ?eio_sw_base trace_endpoint =
   let url = Uri.to_string trace_endpoint in
   Log.info (fun m -> m "Tracing endpoint set to %s" url);
-  let config = Opentelemetry_client_ocurl.Config.make ~url () in
-  let otel_backend = Opentelemetry_client_ocurl.create_backend ~config () in
+  let otel_backend =
+    match eio_sw_base with
+    | None ->
+        let config = Opentelemetry_client_ocurl.Config.make ~url () in
+        Opentelemetry_client_ocurl.create_backend ~config ()
+    | Some (sw, base) ->
+        (* If we are provided an eio switch + base let's use the eio backend
+           since the curl backend has been known to segfault *)
+        let config = Opentelemetry_client_cohttp_eio.Config.make ~url () in
+        Opentelemetry_client_cohttp_eio.create_backend ~sw ~config base
+  in
   (* hack: let's just keep track of the endpoint for if we restart tracing
      instead of having to pass it down everywhere. We will assume that we will
      only ever report to one endpoint for the lifetime of the program *)
@@ -164,8 +173,8 @@ let setup_otel trace_endpoint =
   Otel.Collector.set_backend otel_backend
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_otel ?(attrs : (string * user_data) list = []) service_name
-    trace_endpoint =
+let configure_otel ?eio_sw_base ?(attrs : (string * user_data) list = [])
+    service_name trace_endpoint =
   Otel.Globals.service_name := service_name;
   Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
   (* Disable self tracing, e.g. tracing the otel library *)
@@ -176,8 +185,15 @@ let configure_otel ?(attrs : (string * user_data) list = []) service_name
     attrs;
   Log.info (fun m -> m "Setting up tracing with service name %s" service_name);
   Otel.GC_metrics.basic_setup ();
-  Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
-  setup_otel trace_endpoint
+  let ambient_storage_provider =
+    match eio_sw_base with
+    (* If we are provided an eio switch + base we know we are going to use eio,
+       so let's use that as our ambient context storage provider *)
+    | None -> Ambient_context_lwt.storage ()
+    | Some _ -> Opentelemetry_ambient_context_eio.storage ()
+  in
+  Ambient_context.set_storage_provider ambient_storage_provider;
+  setup_otel ?eio_sw_base trace_endpoint
 
 let restart_otel () =
   (* We must re-initialize the randomness on restart since this usually happens
