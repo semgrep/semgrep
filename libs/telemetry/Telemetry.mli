@@ -63,13 +63,21 @@ val find_global_attrs : string list -> (string * user_data) list
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-val configure_otel : ?attrs:(string * user_data) list -> string -> Uri.t -> unit
-(** [configure_otel service_name tracing_endpoint] Before instrumenting
+val configure_otel :
+  ?eio_sw_base:Eio.Switch.t * Eio_unix.Stdenv.base ->
+  ?attrs:(string * user_data) list ->
+  string ->
+  Uri.t ->
+  unit
+(** [configure_otel ?eio_sw_base service_name tracing_endpoint] Before instrumenting
     anything, configure OTel. This should only be run once in a program, because
     it creates a backend with threads, HTTP connections, etc. when called.
     [service_name] is the name of the service. [~attrs] can be used to set
     additional global attributes (such as ["service.version"]), which are tags
     that will be applied to all outgoing traces/metrics/logs etc.
+
+    By default this uses the OTel curl collector, but if an eio switch + base is passed via
+    [~eio_sw_base], it will use the eio collector instead.
 
     NOTE: this will set the active trace endpoint to
     whatever is passed. This endpoint will be used when restarting tracing via
