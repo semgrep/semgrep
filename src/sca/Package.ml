@@ -17,35 +17,49 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* A few type aliases for packages to avoid using 'string' everywhere *)
+(* A few private type for packages to avoid using 'string' everywhere.
+
+   Unfortunately, having private types forces us to have an mli file that's
+   almost identical to the ml file.
+
+   See the mli file for details.
+*)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-(* package name (e.g., "lodash")
- * alt: could use a newtype with 'PackageName of string'
- *)
-type name = string [@@deriving eq, ord, show]
+(* see mli *)
+type name = string [@@deriving eq, ord, show, yojson]
 
-(* package version (e.g., "1.1.0")
-   see also SCA_version.t which is its parsed form.
-   Those strings usually appear in lockfiles.
-   TODO: define a version-aware 'compare' function if it becomes important.
-   For now, 'compare' is derived naively by ppx_deriving.ord.
- *)
-type version = string [@@deriving eq, ord, show]
+let name x = x
+let names xs = xs
 
-(* ex: "^1.1.0","~1.1.0", "*" in yarn.lock and package.json
- * This can also be a single version as in "1.1.0". Those strings
- * usually appear in manifests.
- *)
-type version_constraint = string [@@deriving show, eq]
+module Name_set = Set.Make (struct
+  type t = name
 
-(* See also SCA_dependency.t which specifies the ecosystem, URI,
- * and location in a lockfile.
- * This is mostly the same type that dependency_child in semgrep_output_v1.atd
- *)
+  let compare = compare_name
+end)
+
+module Name_map = Map.Make (struct
+  type t = name
+
+  let compare = compare_name
+end)
+
+(* see mli *)
+type version = string [@@deriving eq, ord, show, yojson]
+
+let version x = x
+
+(* see mli *)
+type version_constraint = string [@@deriving show, eq, yojson]
+
+let version_constraint x = x
+let name_and_version x = x
+
+(* see mli *)
 type t = { name : name; version : version } [@@deriving eq, ord, show]
 
+let of_strings ~name ~version = { name; version }
 let to_string (pkg : t) : string = spf "%s@%s" pkg.name pkg.version
