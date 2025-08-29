@@ -85,6 +85,7 @@ module Attributes = struct
   let scan_engine = "scan.engine"
   let scan_source = "scan.source"
   let experiment_name = "experiment.name"
+  let eio = "scan.eio"
 end
 
 (*****************************************************************************)
