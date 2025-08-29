@@ -147,8 +147,8 @@ let stop_otel () =
   |> Option.iter (fun backend ->
          Log.info (fun m -> m "Stopping tracing");
          let module Backend = (val backend : Otel.Collector.BACKEND) in
-         Otel.Collector.remove_backend ();
-         Backend.cleanup ())
+         Otel.Collector.remove_backend ~on_done:Fun.id ();
+         Backend.cleanup ~on_done:Fun.id ())
 
 (* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
 let setup_otel trace_endpoint =

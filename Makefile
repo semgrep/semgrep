@@ -277,7 +277,7 @@ install-opam-deps:
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
 # 'opam install dune' to get started.
-semgrep.opam: dune-project
+semgrep.opam: dune-project semgrep.opam.template
 	dune build $@
 # Foolproofing
 	chmod a-w semgrep.opam
