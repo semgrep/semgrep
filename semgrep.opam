@@ -65,9 +65,9 @@ depends: [
   "git"
   "memtrace"
   "ppx_trace"
-  "opentelemetry" {= "0.11.2"}
-  "ocurl" {= "0.9.1"}
+  "opentelemetry"
   "opentelemetry-client-ocurl"
+  "opentelemetry-client-cohttp-eio"
   "ambient-context-lwt"
   "conf-libcurl"
   "uri"
@@ -114,4 +114,9 @@ pin-depends: [
   ["testo-diff.dev" "./libs/testo"]
   ["obackward.dev" "./libs/obackward"]
   ["semgrep-interfaces.dev" "./cli/src/semgrep/semgrep_interfaces"]
+  (* pinned until the following PR is merged *)
+  (* https://github.com/imandra-ai/ocaml-opentelemetry/pull/103 *)
+  ["opentelemetry.dev" "git+https://github.com/shonfeder/ocaml-opentelemetry#16de06aac5f6cbeba2c47d3383d88061808e8b2d"]
+  ["opentelemetry-client-ocurl.dev" "git+https://github.com/shonfeder/ocaml-opentelemetry#16de06aac5f6cbeba2c47d3383d88061808e8b2d"]
+  ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/shonfeder/ocaml-opentelemetry#16de06aac5f6cbeba2c47d3383d88061808e8b2d"]
 ]
