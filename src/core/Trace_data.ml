@@ -213,7 +213,7 @@ let data_of_languages (languages : Analyzer.t list) =
    types of data can have different performance and cost implications for these
    tools. See module commentary for more info
 *)
-let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs () =
+let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs ~eio () =
   let attrs =
     [
       (* Version of Semgrep *)
@@ -222,6 +222,7 @@ let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs () =
        (Usually maps to SMS prod,staging,dev2) *)
       (Telemetry.Attributes.deployment_environment_name, `String env);
       (Telemetry.Attributes.scan_engine, `String engine);
+      (Telemetry.Attributes.eio, `Bool eio);
       (Attributes.jobs, `Int jobs);
       (Attributes.folder, `String (current_working_folder ()));
       ( Attributes.pro_secrets_validators,

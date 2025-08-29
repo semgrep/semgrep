@@ -41,6 +41,7 @@ module Attributes : sig
   val scan_engine : string
   val scan_source : string
   val experiment_name : string
+  val eio : string
 end
 
 (*****************************************************************************)

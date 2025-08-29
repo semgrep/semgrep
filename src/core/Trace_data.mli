@@ -55,6 +55,7 @@ val get_resource_attrs :
   engine:string ->
   analysis_flags:analysis_flags ->
   jobs:int ->
+  eio:bool ->
   unit ->
   (string * Telemetry.user_data) list
 (** [get_resource_data ~engine:"oss" ~env:"prod" ~analysis_flags () ] creates
