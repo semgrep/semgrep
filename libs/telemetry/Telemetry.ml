@@ -168,6 +168,8 @@ let configure_otel ?(attrs : (string * user_data) list = []) service_name
     trace_endpoint =
   Otel.Globals.service_name := service_name;
   Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
+  (* Disable self tracing, e.g. tracing the otel library *)
+  Opentelemetry_client.Self_trace.set_enabled false;
   let attrs = attrs @ Otel.GC_metrics.get_runtime_attributes () in
   List.iter
     (fun (key, value) -> Otel.Globals.add_global_attribute key value)
