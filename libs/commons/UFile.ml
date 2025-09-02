@@ -87,6 +87,7 @@ module Legacy = struct
           Buffer.add_subbytes extbuf buf 0 num_bytes;
           if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
           else loop fd
+      | exception Unix.Unix_error (Unix.EINTR, _, _) -> loop fd
     in
     (* Temporary files created using Python's [tempfile.NamedTemporaryFiles]
          on Windows enables the [FILE_SHARE_DELETE] sharing mode. Files that
