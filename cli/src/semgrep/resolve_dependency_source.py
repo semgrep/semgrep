@@ -136,6 +136,7 @@ def _resolve_dependencies_rpc(
         out.LockfileOnly,
     ],
     download_dependency_source_code: bool,
+    allow_local_builds: bool,
 ) -> Tuple[
     Optional[List[out.ResolvedDependency]],
     Sequence[out.ScaResolutionError],
@@ -146,7 +147,9 @@ def _resolve_dependencies_rpc(
     """
     try:
         response = resolve_dependencies(
-            [out.DependencySource(dep_src)], download_dependency_source_code
+            [out.DependencySource(dep_src)],
+            download_dependency_source_code,
+            allow_local_builds,
         )
     except Exception as e:
         logger.verbose(f"RPC call failed: {e}")
@@ -214,7 +217,7 @@ def _handle_manifest_only_source(
     )
 
     new_deps, new_errors, new_targets = _resolve_dependencies_rpc(
-        dep_source, config.download_dependency_source_code
+        dep_source, config.download_dependency_source_code, config.allow_local_builds
     )
 
     logger.verbose(
@@ -327,7 +330,9 @@ def _handle_lockfile_source(
             new_deps,
             new_errors,
             new_targets,
-        ) = _resolve_dependencies_rpc(dep_source, use_tr_ocaml_resolver)
+        ) = _resolve_dependencies_rpc(
+            dep_source, use_tr_ocaml_resolver, config.allow_local_builds
+        )
 
         for error in new_errors:
             logger.verbose(f"Dynamic resolution RPC error: '{error}'")

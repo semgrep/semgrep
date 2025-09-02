@@ -66,7 +66,9 @@ let handle_call (caps : < caps ; .. >) :
             resolve_dependencies
               (caps :> < Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.readdir >)
               ~download_dependency_source_code:
-                params.download_dependency_source_code params.dependency_sources
+                params.download_dependency_source_code
+              ~allow_local_builds:params.allow_local_builds
+              params.dependency_sources
           in
           Ok (`RetResolveDependencies resolved)
       | None ->

@@ -89,11 +89,12 @@ def validate(fp: out.Fpath) -> Optional[out.CoreError]:
 def resolve_dependencies(
     dependency_sources: List[out.DependencySource],
     download_dependency_source_code: bool,
+    allow_local_builds: bool,
 ) -> Optional[List[Tuple[out.DependencySource, out.ResolutionResult]]]:
     call = out.FunctionCall(
         out.CallResolveDependencies(
             out.ResolveDependenciesParams(
-                dependency_sources, download_dependency_source_code
+                dependency_sources, download_dependency_source_code, allow_local_builds
             )
         )
     )
