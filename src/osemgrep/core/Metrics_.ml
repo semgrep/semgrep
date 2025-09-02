@@ -217,6 +217,7 @@ let default_payload =
         autofixCount = None;
         ignoreCount = None;
       };
+    mcp = { session_id = None; num_findings = None };
   }
 
 let default () =

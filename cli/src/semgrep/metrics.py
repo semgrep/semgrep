@@ -54,6 +54,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
 from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
 from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
+from semgrep.semgrep_interfaces.semgrep_metrics import Mcp
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
@@ -139,6 +140,7 @@ class Metrics:
             errors=Errors(),
             performance=Performance(maxMemoryBytes=None),
             extension=Extension(),
+            mcp=Mcp(),
             value=Value(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
             event_id=met.Uuid(str(get_frozen_id())),
@@ -485,6 +487,20 @@ class Metrics:
             )
         except Exception as e:
             self.log_exception("add_extension", e)
+
+    def add_mcp(
+        self,
+        deployment_id: Optional[int],
+        session_id: Optional[str],
+        num_findings: Optional[int],
+    ) -> None:
+        try:
+            self.payload.mcp = Mcp(
+                session_id=session_id,
+                num_findings=num_findings,
+            )
+        except Exception as e:
+            self.log_exception("add_mcp", e)
 
     def as_json(self) -> str:
         value = self.payload.to_json()
