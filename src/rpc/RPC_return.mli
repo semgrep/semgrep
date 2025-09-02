@@ -31,6 +31,7 @@ val validate : Out.fpath -> Out.core_error option
 val hook_resolve_dependencies :
   (< Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.readdir > ->
   download_dependency_source_code:bool ->
+  allow_local_builds:bool ->
   Out.dependency_source list ->
   (Out.dependency_source * Out.resolution_result) list)
   option
