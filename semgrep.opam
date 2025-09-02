@@ -67,6 +67,8 @@ depends: [
   "ppx_trace"
   "opentelemetry"
   "opentelemetry-client-ocurl"
+  "ocurl" {= "0.9.1"}
+  "opentelemetry-client-ocurl"
   "opentelemetry-client-cohttp-eio"
   "ambient-context-lwt"
   "conf-libcurl"
