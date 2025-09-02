@@ -28,6 +28,55 @@
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
+
+(* coupling(eio-port): if you change this you must change the lwt version *)
+let send_eio caps =
+  (* Populate the sent_at timestamp *)
+  Metrics_.prepare_to_send ();
+  let user_agent = Metrics_.string_of_user_agent () in
+  let metrics = Metrics_.string_of_metrics () in
+  let url = !Semgrep_envvars.v.metrics_url in
+  let headers =
+    [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
+  in
+  (* TODO: the metrics can be big, maybe skip logging it if too big,
+   * especially the fileStats and rule performance stats.
+   *)
+  Logs.debug (fun m ->
+      m "Sending metrics (with user agent '%s') data: %s" user_agent metrics);
+  let response =
+    Http_helpers.post_eio ~body:metrics ~headers caps#network url
+  in
+  (match response with
+  | Ok { body = Ok body; _ } -> (
+      (* TODO: find where the schema of the response is defined and
+       * add it in semgrep_metrics.atd
+       * Here is an example of answer:
+       *       { "errorType":"TypeError",
+       *         "errorMessage":"Cannot read property 'map' of undefined",
+       *          "trace":[
+       *             "TypeError: Cannot read property 'map' of undefined",
+       *             "    at createPerRuleObjects (/var/task/index.js:287:24)",
+       *             "    at Runtime.exports.handler (/var/task/index.js:363:20)",
+       *           ]
+       *        }
+       *
+       *)
+      try
+        let json = JSON.json_of_string body in
+        match json with
+        | Object (("errorType", _) :: _) ->
+            Logs.warn (fun m -> m "Metrics server error: %s" body)
+        | _else_ -> Logs.debug (fun m -> m "Metrics server response: %s" body)
+      with
+      | Yojson.Json_error msg ->
+          Logs.warn (fun m -> m "Metrics response is not valid json: %s" msg))
+  | Ok { body = Error err; code; _ } ->
+      Logs.warn (fun m -> m "Metrics server error: %d %s" code err)
+  | Error e -> Logs.warn (fun m -> m "Failed to send metrics: %s" e));
+  ()
+
+(* coupling(eio-port): if you change this you must change the eio version *)
 let send_async caps =
   (* Populate the sent_at timestamp *)
   Metrics_.prepare_to_send ();
