@@ -141,7 +141,7 @@ let isatty chan =
 let create_formatter opt_file =
   let chan, fmt =
     match opt_file with
-    | None -> (Stdlib.stderr, Format.err_formatter)
+    | None -> (Stdlib.stderr, Format.get_err_formatter ())
     | Some out_file ->
         let oc =
           (* This truncates the log file, which is usually what we want for
@@ -156,10 +156,6 @@ let create_formatter opt_file =
 (* The "reporter" *)
 (*****************************************************************************)
 
-(* This code was copy-pasted and derived from the example in the Logs library.
-   The Logs library interface makes us write this code that is frankly
-   incomprehensible and excessively complicated given how little it provides.
-*)
 let mk_reporter ?(additional_reporters : Logs.reporter list = []) ~dst
     ~require_one_of_these_tags ~read_tags_from_env_vars:(env_vars : string list)
     ~highlight () =
@@ -264,10 +260,11 @@ let read_level_from_env (vars : string list) : Logs.level option option =
  * precise call to setup_logging.
  *)
 let setup_basic ?(level = Some Logs.Warning) () =
+  let dst = Format.get_err_formatter () in
   Logs.set_level ~all:true level;
   Logs.set_reporter
-    (mk_reporter ~dst:Format.err_formatter ~require_one_of_these_tags:[]
-       ~read_tags_from_env_vars:[] ~highlight:false ());
+    (mk_reporter ~dst ~require_one_of_these_tags:[] ~read_tags_from_env_vars:[]
+       ~highlight:false ());
   ()
 
 let setup ?(highlight_setting = Console.get_highlight_setting ())
@@ -415,59 +412,3 @@ let option to_string opt =
   match opt with
   | None -> "None"
   | Some x -> Printf.sprintf "Some %s" (to_string x)
-
-(*****************************************************************************)
-(* Wishlist *)
-(*****************************************************************************)
-
-(*
-   I want 'with_log_level' to be available for turning on debugging
-   for specific sources for specific tests when writing test suites.
-
-   This should result in tests logging exactly what's relevant to them.
-
-   I made this during debugging. It works at the time of writing but
-   I no longer need it for the specific tests I was working on.
-   Feel free to resurrect or to throw away.
-   (we also have issues with tags being incompatible with log srcs at this
-   time; we might want to remove tag support completely before we can use
-   this effectively)
-*)
-(*
-let select_srcs (src_strings : string list) : Logs.Src.t list =
-  let all_srcs = Logs.Src.list () in
-  let all_srcs_by_name = Hashtbl.create 100 in
-  List.iter (fun src -> Hashtbl.add all_srcs_by_name (Logs.Src.name src) src)
-    all_srcs;
-  List.filter_map (fun str ->
-    (* TODO: warn/fail if not found? *)
-    Hashtbl.find_opt all_srcs_by_name str
-  ) src_strings
-
-(*
-   Override log level temporarily for the specified list of log sources.
-   The list of available sources is shown when running
-   for example 'semgrep --experimental --debug'.
-*)
-let with_log_level ?(level = Some Logs.Debug) ?srcs func =
-  let srcs =
-    match srcs with
-    | None -> Logs.Src.list ()
-    | Some srcs -> select_srcs srcs
-  in
-  let orig_level = Logs.level () in
-  let orig_levels = List_.map (fun src -> (src, Logs.Src.level src)) srcs in
-  Fun.protect (fun () ->
-    Logs.set_level level;
-    List.iter (fun src ->
-      Logs.Src.set_level src level
-    ) srcs;
-    func ()
-  )
-    ~finally:(fun () ->
-      Logs.set_level orig_level;
-      List.iter (fun (src, orig_level) ->
-        Logs.Src.set_level src orig_level
-      ) orig_levels
-    )
-*)
