@@ -822,7 +822,6 @@ class GitlabMeta(GitMeta):
 
     def to_project_metadata(self) -> out.ProjectMetadata:
         res = super().to_project_metadata()
-        res.branch = self.commit_ref
         res.base_sha = sha1_opt(self.merge_base_ref)
         res.start_sha = sha1_opt(self.start_sha)
         return res
