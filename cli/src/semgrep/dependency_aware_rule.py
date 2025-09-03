@@ -186,7 +186,6 @@ def generate_unreachable_sca_findings(
                 transitive_findings = [
                     out.TransitiveFinding(m=rm.match) for rm in subproject_matches
                 ]
-                print("starting with transitive findings", transitive_findings)
                 if transitive_findings:
                     logger.debug(
                         f"SCA TR is on! Running for rule {rule.id}, subproject {subproject.info.dependency_source}, {len(transitive_findings)} transitive findings"
