@@ -6,6 +6,12 @@
 
 <!-- insertion point -->
 
+## [1.135.0](https://github.com/semgrep/semgrep/releases/tag/v1.135.0) - 2025-09-03
+
+
+No significant changes.
+
+
 ## [1.134.0](https://github.com/semgrep/semgrep/releases/tag/v1.134.0) - 2025-08-27
 
 
