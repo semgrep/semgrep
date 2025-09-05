@@ -148,10 +148,18 @@ let timed_computation_and_clear_timer info caps max_duration f :
   question: can we have a signal and so exn when in a exn handler ?
 *)
 let set_timeout (caps : < Cap.time_limit >) ~name ~eio_clock max_duration f =
+  let info = { Exception.name; max_duration } in
   match eio_clock with
   | Some clock -> (
       let timed_f = Concurrent.wrap_timeout ~clock max_duration f in
-      match timed_f () with
+      let start = Unix.gettimeofday () in
+      let res = timed_f () in
+      let actual_duration = Unix.gettimeofday () -. start in
+      let result_info =
+        { Exception.actual_duration; exceeded = Result.is_error res }
+      in
+      Process_limit_metrics.record_time_limit ~info ~result_info;
+      match res with
       | Error `Timeout ->
           (* nosemgrep: no-logs-in-library *)
           Logs.warn (fun m ->
@@ -169,7 +177,6 @@ let set_timeout (caps : < Cap.time_limit >) ~name ~eio_clock max_duration f =
                 A timer for %S of %g seconds is still running."
                name max_duration running_name running_val));
 
-      let info (* private *) = { Exception.name; max_duration } in
       let timed_f, clear_timer =
         let res = timed_computation_and_clear_timer info caps max_duration f in
         res
