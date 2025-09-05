@@ -40,12 +40,12 @@ module Time_limit_duration =
 let time_limit_trigger_table = SharedCounterTable.create_int_table 10
 let time_limit_time_spent_table = SharedCounterTable.create_int_table 10
 
-let record_time_limit ~name ~duration ~exceeded =
+let record_time_limit ~(info : Exception.timeout_info) ~exceeded =
   let ms_of_s x = x *. 1000.0 in
 
   (* Don't care about more than ms *)
-  let duration_ms = duration |> ms_of_s |> int_of_float in
-  let table_key = (name, exceeded) in
+  let duration_ms = info.max_duration |> ms_of_s |> int_of_float in
+  let table_key = (info.name, exceeded) in
   let triggers =
     SharedCounterTable.add_and_fetch time_limit_trigger_table table_key 1
   in
@@ -53,7 +53,7 @@ let record_time_limit ~name ~duration ~exceeded =
     SharedCounterTable.add_and_fetch time_limit_time_spent_table table_key
       duration_ms
   in
-  let attrs = [ ("time_limit_name", `String name) ] in
+  let attrs = [ ("time_limit_name", `String info.name) ] in
   let trigger_attrs = attrs @ [ ("exceeded", `Bool exceeded) ] in
   Time_limit_counter.record ~attrs:trigger_attrs triggers;
   Time_limit_duration.record ~attrs total_durations

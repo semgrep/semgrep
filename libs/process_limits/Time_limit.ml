@@ -159,14 +159,12 @@ let set_timeout (caps : < Cap.time_limit >) ~name ~eio_clock max_duration f =
       let info (* private *) = { Exception.name; max_duration } in
       let timed_f, clear_timer =
         let res = timed_computation_and_clear_timer info caps max_duration f in
-        Process_limit_metrics.record_time_limit ~name ~duration:max_duration
-          ~exceeded:false;
+        Process_limit_metrics.record_time_limit ~info ~exceeded:false;
         res
       in
       try timed_f () with
       | Timeout { Exception.name; max_duration } ->
-          Process_limit_metrics.record_time_limit ~name ~duration:max_duration
-            ~exceeded:true;
+          Process_limit_metrics.record_time_limit ~info ~exceeded:true;
           clear_timer ();
           Log.warn (fun m ->
               m "%S timeout at %g s (we abort)" name max_duration);
