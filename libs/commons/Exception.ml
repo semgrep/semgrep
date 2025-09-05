@@ -46,3 +46,16 @@ type timeout_info = { name : string; max_duration : float }
 type timeout_result_info = { actual_duration : float; exceeded : bool }
 
 exception Timeout of (timeout_info * timeout_result_info)
+
+(* Register timeout pretty printer *)
+
+let () =
+  let open Printexc in
+  register_printer (function
+    | Timeout (info, result_info) ->
+        Some
+          (Printf.sprintf
+             "Exception.Timeout(name=%s,max_duration=%g,actual_duration=%g,exceeded=%b)"
+             info.name info.max_duration result_info.actual_duration
+             result_info.exceeded)
+    | _ -> None)
