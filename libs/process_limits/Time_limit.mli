@@ -12,12 +12,13 @@
 *)
 (* Contains the name given by the user to the timer and the time limit *)
 type timeout_info
+type timeout_result_info
 
 (*
    If ever caught, this exception must be re-raised immediately so as
    to not interfere with the timeout handler. See function 'set_timeout'.
 *)
-exception Timeout of timeout_info
+exception Timeout of (timeout_info * timeout_result_info)
 
 (* Show name and time limit in a compact format for debugging purposes. *)
 val string_of_timeout_info : timeout_info -> string

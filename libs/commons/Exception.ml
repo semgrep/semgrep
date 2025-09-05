@@ -43,5 +43,6 @@ let to_string (exn, trace) =
   if msg = "" || msg.[String.length msg - 1] <> '\n' then msg ^ "\n" else msg
 
 type timeout_info = { name : string; max_duration : float }
+type timeout_result_info = { actual_duration : float; exceeded : bool }
 
-exception Timeout of timeout_info
+exception Timeout of (timeout_info * timeout_result_info)

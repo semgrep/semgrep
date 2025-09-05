@@ -31,6 +31,7 @@ module Log = Log_process_limits.Log
      unit to allow logging to not treat it a an error.
 *)
 type timeout_info = Exception.timeout_info
+type timeout_result_info = Exception.timeout_result_info
 
 exception Timeout = Exception.Timeout
 
@@ -80,14 +81,20 @@ let set_timer_win32 info = current_timer := Some info
    5.3, support for signals is missing on Windows. Use Gc.Memprof
    callbacks to check how much time has elapsed. *)
 let timed_computation_and_clear_timer info caps max_duration f :
-    (unit -> 'a option) * (unit -> unit) =
-  let raise_timeout () = raise (Timeout info) in
+    (unit -> 'a option * Exception.timeout_result_info) * (unit -> unit) =
+  let raise_timeout start_time =
+    let actual_duration = Unix.gettimeofday () -. start_time in
+    let result_info = { Exception.actual_duration; exceeded = true } in
+
+    raise (Timeout (info, result_info))
+  in
   if Sys.win32 then
     let timed_computation () =
       let start = Unix.gettimeofday () in
       let alarm () =
         let now = Unix.gettimeofday () in
-        if Float.compare (now -. start) max_duration > 0 then raise_timeout ();
+        if Float.compare (now -. start) max_duration > 0 then
+          raise_timeout start;
         Some () (* Should we stop tracking the block? *)
       in
       let tracker =
@@ -109,18 +116,24 @@ let timed_computation_and_clear_timer info caps max_duration f :
               discard sampler))
       in
       clear_timer_win32 ();
-      Some x
+      let actual_duration = Unix.gettimeofday () -. start in
+      let result_info = { Exception.actual_duration; exceeded = false } in
+      (Some x, result_info)
     in
     (timed_computation, clear_timer_win32)
   else
     (* We're on a posix compatible system *)
     let clear_timer () = clear_timer_unix caps in
     let timed_computation () =
-      Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise_timeout ()));
+      let start = Unix.gettimeofday () in
+      Sys.set_signal Sys.sigalrm
+        (Sys.Signal_handle (fun _ -> raise_timeout start));
       set_timer_unix max_duration caps info;
       let x = f () in
       clear_timer ();
-      Some x
+      let actual_duration = Unix.gettimeofday () -. info.max_duration in
+      let result_info = { Exception.actual_duration; exceeded = false } in
+      (Some x, result_info)
     in
     (timed_computation, clear_timer)
 
@@ -159,12 +172,15 @@ let set_timeout (caps : < Cap.time_limit >) ~name ~eio_clock max_duration f =
       let info (* private *) = { Exception.name; max_duration } in
       let timed_f, clear_timer =
         let res = timed_computation_and_clear_timer info caps max_duration f in
-        Process_limit_metrics.record_time_limit ~info ~exceeded:false;
         res
       in
-      try timed_f () with
-      | Timeout { Exception.name; max_duration } ->
-          Process_limit_metrics.record_time_limit ~info ~exceeded:true;
+      try
+        let res, result_info = timed_f () in
+        Process_limit_metrics.record_time_limit ~info ~result_info;
+        res
+      with
+      | Timeout (info, result_info) ->
+          Process_limit_metrics.record_time_limit ~info ~result_info;
           clear_timer ();
           Log.warn (fun m ->
               m "%S timeout at %g s (we abort)" name max_duration);

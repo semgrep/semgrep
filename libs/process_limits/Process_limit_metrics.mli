@@ -10,6 +10,9 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val record_time_limit : info:Exception.timeout_info -> exceeded:bool -> unit
-(** [record_time_limit ~info ~exceeded] records metrics on if a time limit was
+val record_time_limit :
+  info:Exception.timeout_info ->
+  result_info:Exception.timeout_result_info ->
+  unit
+(** [record_time_limit ~info ~result_info] records metrics on if a time limit was
     exceeded, how long we spent, and which function set it *)

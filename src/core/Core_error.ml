@@ -240,7 +240,7 @@ let known_exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t option =
       Some (mk_error_tok ?file tok s Out.OtherParseError)
   | AST_generic.Error (s, tok) ->
       Some (mk_error_tok ?file tok s Out.AstBuilderError)
-  | Time_limit.Timeout timeout_info ->
+  | Time_limit.Timeout (timeout_info, _) ->
       let s = Printexc.get_backtrace () in
       Log.warn (fun m -> m "WEIRD Timeout converted to exn, backtrace = %s" s);
       (* This exception should always be reraised. *)
