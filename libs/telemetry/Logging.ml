@@ -27,16 +27,16 @@ let no_telemetry_tag_set = Opentelemetry_logs.(emit_telemetry false)
 let attach_otel_reporter ?service_name ?attributes reporter =
   let combine r1 r2 =
     let report src level ~over k msgf =
-      let v = r1.Logs.report src level ~over:(fun () -> ()) k msgf in
-
       (* Let's not send debug logs for now, as they can be expensive and
                and we're not sure of the usefulness *)
       (* COUPLING: we do something similar in tracing.py. If we want to
                enable sending debug logs here we probably want to send them from
                pysemgrep too! *)
       match level with
-      | Logs.Debug -> r2.Logs.report src level ~over (fun () -> v) msgf
-      | _ -> v
+      | Logs.Debug -> r1.Logs.report src level ~over k msgf
+      | _ ->
+          let v = r1.Logs.report src level ~over:(fun () -> ()) k msgf in
+          r2.Logs.report src level ~over (fun () -> v) msgf
     in
     { Logs.report }
   in
