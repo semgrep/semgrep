@@ -27,7 +27,6 @@ depends: [
   "fileutils"
   "testo"
   "alcotest"
-  "alcotest-js"
   "alcotest-lwt"
   "calendar"
   "fmt"
@@ -84,7 +83,6 @@ depends: [
   "lwt"
   "lwt_ppx"
   "conf-libev" {os != "win32"}
-  "integers_stubs_js"
   "git-unix"
   "eio" {= "1.2"}
   "eio_main"

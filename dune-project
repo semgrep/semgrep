@@ -82,7 +82,6 @@ For more information see https://semgrep.dev
     ; unit testing (note that testo is vendored in libs/)
     testo
     alcotest
-    alcotest-js
     alcotest-lwt
     calendar
     ; text and terminal formating
@@ -155,7 +154,6 @@ For more information see https://semgrep.dev
     lwt
     lwt_ppx
     (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
-    integers_stubs_js
     ;TODO: this is for secrets and should be in ../dune-project but doing so
     ; slows down a lot our CI because it pulls dependencies that seem
     ; to cause the removal and recompilation of many packages (e.g., tls) and
