@@ -60,7 +60,9 @@ let setup ?log_to_file ?(log_to_otel = false) ?require_one_of_these_tags
   (* currently only additional reporter is otel. Only set to true when --trace
      is passed *)
   let additional_reporters =
-    if log_to_otel then Some [ Logging.otel_reporter ] else None
+    if log_to_otel then
+      [ Logging.(attach_otel_reporter ?service_name:None ?attributes:None) ]
+    else []
   in
   (* If we're going to log to otel, let's by default log info since that's
      incredibly useful for debugging. When we see logs from otel, we may not
@@ -85,7 +87,7 @@ let setup ?log_to_file ?(log_to_otel = false) ?require_one_of_these_tags
         Some Logs.Info
     | _ -> level
   in
-  Logs_.setup ?log_to_file ?require_one_of_these_tags ?additional_reporters
+  Logs_.setup ?log_to_file ?require_one_of_these_tags ~additional_reporters
     ~read_level_from_env_vars:
       [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ]
     ~read_srcs_from_env_vars:[ "PYTEST_SEMGREP_LOG_SRCS"; "SEMGREP_LOG_SRCS" ]

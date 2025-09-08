@@ -10,6 +10,7 @@
     opentelemetry
     opentelemetry-client-ocurl
     opentelemetry-client-cohttp-eio
+    opentelemetry-logs
     ambient-context-lwt
     opentelemetry.ambient-context.eio
   )

@@ -108,7 +108,7 @@ val setup_basic : ?level:Logs.level option -> unit -> unit
 val setup :
   ?highlight_setting:Console.highlight_setting ->
   ?log_to_file:Fpath.t ->
-  ?additional_reporters:Logs.reporter list ->
+  ?additional_reporters:(Logs.reporter -> Logs.reporter) list ->
   ?require_one_of_these_tags:string list ->
   ?read_level_from_env_vars:string list ->
   ?read_srcs_from_env_vars:string list ->

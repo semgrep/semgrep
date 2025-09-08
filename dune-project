@@ -139,6 +139,7 @@ For more information see https://semgrep.dev
     (ocurl (= 0.9.1))
     opentelemetry-client-ocurl
     opentelemetry-client-cohttp-eio
+    opentelemetry-logs
     ambient-context-lwt
     conf-libcurl
     ; web stuff

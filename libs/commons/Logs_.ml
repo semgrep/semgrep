@@ -156,7 +156,8 @@ let create_formatter opt_file =
 (* The "reporter" *)
 (*****************************************************************************)
 
-let mk_reporter ?(additional_reporters : Logs.reporter list = []) ~dst
+let mk_reporter
+    ?(additional_reporters : (Logs.reporter -> Logs.reporter) list = []) ~dst
     ~require_one_of_these_tags ~read_tags_from_env_vars:(env_vars : string list)
     ~highlight () =
   let require_one_of_these_tags =
@@ -222,16 +223,9 @@ let mk_reporter ?(additional_reporters : Logs.reporter list = []) ~dst
     Format.fprintf dst "%a" pp_style style_off;
     r
   in
-  (* Copied directly from the Logs.mli docs. Just calls a bunch of reporters in
-     a row *)
-  let combine r1 r2 =
-    let report src level ~over k msgf =
-      let v = r1.Logs.report src level ~over:(fun () -> ()) k msgf in
-      r2.Logs.report src level ~over (fun () -> v) msgf
-    in
-    { Logs.report }
-  in
-  List.fold_left combine { Logs.report } additional_reporters
+  List.fold_left
+    (fun reporter add_reporter -> add_reporter reporter)
+    { Logs.report } additional_reporters
 
 (*****************************************************************************)
 (* Specifying the log level with an environment variable *)
