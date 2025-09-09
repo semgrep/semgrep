@@ -97,7 +97,7 @@ let handle_call (caps : < caps ; .. >) :
             "Dump rule partitions is a proprietary feature, but semgreep-pro \
              has not been loaded")
   | `CallTransitiveReachabilityFilter params -> (
-      match !RPC_return.hook_transitive_reachability_filter with
+      match !RPC_return.hook_transitive_reachability_analyzer with
       | Some transitive_reachability_filter ->
           let xs =
             transitive_reachability_filter

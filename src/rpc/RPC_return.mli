@@ -37,7 +37,7 @@ val hook_resolve_dependencies :
   option
   ref
 
-val hook_transitive_reachability_filter :
+val hook_transitive_reachability_analyzer :
   (< Cap.readdir ; Core_scan.caps ; Cap.network ; Cap.exec ; Cap.tmp > ->
   Out.transitive_reachability_filter_params ->
   Out.transitive_finding list)

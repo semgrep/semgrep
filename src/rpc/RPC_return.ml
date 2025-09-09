@@ -121,7 +121,7 @@ let hook_resolve_dependencies = ref None
 let hook_dump_rule_partitions = ref None
 
 (* nosemgrep: no-ref-declarations-at-top-scope *)
-let hook_transitive_reachability_filter = ref None
+let hook_transitive_reachability_analyzer = ref None
 
 (* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_match_subprojects = ref None
