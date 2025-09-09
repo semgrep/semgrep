@@ -28,36 +28,44 @@ open Ppx_hash_lib.Std.Hash.Builtin
 (* Types *)
 (*****************************************************************************)
 
-(* The type of an analyzer. An analyzer determines how a file or a collection
-   of files gets analyzed. It is often parametrized by search patterns
-   and options but not always.
+(* Make a separate module so that we can safely instantiate functors below
+ * without the danger of pulling in Stdlib.compare inadvertently if we stop
+ * autogenerating a compare function. *)
+module AnalyzerType = struct
+  (* The type of an analyzer. An analyzer determines how a file or a collection
+     of files gets analyzed. It is often parametrized by search patterns
+     and options but not always.
 
-   In the common case of searching for semgrep patterns in a program,
-   the analyzer determines the parser for the program as well as the parser
-   for the patterns and possibly some search-time options that are
-   language-specific.
+     In the common case of searching for semgrep patterns in a program,
+     the analyzer determines the parser for the program as well as the parser
+     for the patterns and possibly some search-time options that are
+     language-specific.
 
-   Analyzers can be used to analyze any kind of file, not just programs
-   written in a traditional human-readable programming language. For example,
-   we might want to search for known problems in PDF files or images which may
-   neither be parsed into a generic AST nor scanned with a simple search
-   pattern. The Analyzer.t type must accommodate all sorts of analyzers.
+     Analyzers can be used to analyze any kind of file, not just programs
+     written in a traditional human-readable programming language. For example,
+     we might want to search for known problems in PDF files or images which may
+     neither be parsed into a generic AST nor scanned with a simple search
+     pattern. The Analyzer.t type must accommodate all sorts of analyzers.
 
-   less: merge with xpattern_kind? -> no. Not every analyzer takes a pattern.
-   TODO: add other analyzers such as 'entropy' (which doesn't take a pattern
-   but some options).
-*)
-type t =
-  (* for "real" semgrep (the first language is used to parse the pattern)
-     TODO: get rid of Lang.t list (see .ml)
+     less: merge with xpattern_kind? -> no. Not every analyzer takes a pattern.
+     TODO: add other analyzers such as 'entropy' (which doesn't take a pattern
+     but some options).
   *)
-  | L of Lang.t * Lang.t list
-  (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
-  | LRegex
-  (* generic mode uses either spacegrep or aliengrep *)
-  | LSpacegrep
-  | LAliengrep
-[@@deriving eq, hash, ord, show, yojson]
+  type t =
+    (* for "real" semgrep (the first language is used to parse the pattern)
+       TODO: get rid of Lang.t list (see .ml)
+    *)
+    | L of Lang.t * Lang.t list
+    (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
+    | LRegex
+    (* generic mode uses either spacegrep or aliengrep *)
+    | LSpacegrep
+    | LAliengrep
+  [@@deriving eq, hash, ord, show, yojson]
+end
+
+include AnalyzerType
+module Set = Set.Make (AnalyzerType)
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 

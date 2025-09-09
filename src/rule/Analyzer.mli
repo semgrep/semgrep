@@ -132,3 +132,5 @@ val unwrap : t -> string
    This helps when debugging.
 *)
 val informative_suffix : t -> string
+
+module Set : Set.S with type elt = t

@@ -24,18 +24,6 @@ open Common
 (* Extract mode *)
 (*************************************************************************)
 
-(* TODO? move to Analyzer.ml? *)
-module AnalyzerSet = Set.Make (struct
-  let compare
-      (* This only compares the first language in the case of `L (lang :: _)`.
-         That should be fine because for the use of Analyzer in this file,
-         `L _` should always be flattened out *)
-        a b =
-    String.compare (Analyzer.to_string a) (Analyzer.to_string b)
-
-  type t = Analyzer.t
-end)
-
 (* Extract mode: we need to make sure to include rules that will apply
    to targets that have been extracted. To do that, we'll detect the languages
    that targets might be extracted to and include them in the jobs *)
@@ -46,9 +34,9 @@ let detect_extract_languages all_rules =
   |> List.fold_left
        (fun acc { Rule.mode; _ } ->
          match mode with
-         | `Extract { Rule.dst_lang; _ } -> AnalyzerSet.add dst_lang acc
+         | `Extract { Rule.dst_lang; _ } -> Analyzer.Set.add dst_lang acc
          | _ -> acc)
-       AnalyzerSet.empty
+       Analyzer.Set.empty
 
 (* The same rule may appear under multiple target languages because
    some patterns can be interpreted in multiple languages.
@@ -117,7 +105,7 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
          in
          if
            List_.null targets
-           && not (AnalyzerSet.mem analyzer extract_languages)
+           && not (Analyzer.Set.mem analyzer extract_languages)
          then None
          else Some ({ analyzer; targets; rules } : Lang_job.t))
 
