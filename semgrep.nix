@@ -242,7 +242,7 @@ let
 
     buildPhase = lib.buildPhaseSubmoduleCheck "make core";
     # needed for networking tests
-    nativeCheckInputs = (
+    nativeBuildInputs = (
       with pkgs;
       [
         cacert
