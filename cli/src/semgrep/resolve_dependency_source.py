@@ -297,9 +297,13 @@ def _handle_lockfile_source(
     lockfile_kind = lockfile.kind
 
     use_nondynamic_ocaml_parsing = (
-        config.ptt_enabled
-        and (manifest_kind, lockfile_kind) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
-    ) or (manifest_kind, lockfile_kind) in ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS
+        (
+            config.ptt_enabled
+            and (manifest_kind, lockfile_kind) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
+        )
+        or (manifest_kind, lockfile_kind) in ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS
+        or config.use_experimental_ocaml_parsers
+    )
 
     use_dynamic_resolution = (
         config.ptt_enabled
@@ -350,7 +354,9 @@ def _handle_lockfile_source(
                 new_targets,
             )
     # if there is no parser or ecosystem for the lockfile, we can't resolve it
-    if parser is None:
+    # also skip resolving with python parsers is use_experimental_ocaml_parsers
+    # is enabled, since this flag means that _only_ ocaml parsers should be used
+    if parser is None or config.use_experimental_ocaml_parsers:
         return out.UnresolvedReason(out.UnresolvedUnsupported()), [], []
 
     # Parse lockfile (used for both standard parsing and as fallback for failed dynamic resolution)

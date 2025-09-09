@@ -44,6 +44,12 @@ class DependencyResolutionConfig:
     # download source code for each subproject's dependencies.
     download_dependency_source_code: bool
 
+    # Use only the experimental ocaml parsers. This may
+    # produce different results from the python parsers. Note that ocaml parsers
+    # may be used even when False when necessary for feature support or when
+    # they have been validated.
+    use_experimental_ocaml_parsers: bool = False
+
 
 # A classification of subprojects we use to deterine support for various features.
 # Not a perfect classification (doesn't handle multi-lockfile sources), but works
