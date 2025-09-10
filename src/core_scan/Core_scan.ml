@@ -392,11 +392,11 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
   (ast, skipped_tokens)
 
 (* Lang heuristic to determine if a rule is relevant or can be filtered out *)
-let is_rule_used_by_targets (analyzer_set : Analyzer.t Set_.t) (rule : Rule.t) =
+let is_rule_used_by_targets (analyzer_set : Analyzer.Set.t) (rule : Rule.t) =
   match rule.target_analyzer with
   | Analyzer.L _ as analyzer ->
       let analyzers = Analyzer.flatten analyzer in
-      List.exists (fun x -> Set_.mem x analyzer_set) analyzers
+      List.exists (fun x -> Analyzer.Set.mem x analyzer_set) analyzers
   | LRegex
   | LSpacegrep
   | LAliengrep ->

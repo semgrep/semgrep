@@ -143,7 +143,7 @@ val origin : t -> Origin.t
    The analyzers are flattened i.e. each of them contains at most one Lang.t
    (L (lang, []).
 *)
-val analyzers_of_targets : t list -> Analyzer.t Set_.t
+val analyzers_of_targets : t list -> Analyzer.Set.t
 
 (*****************************************************************************)
 (* Dumpers *)

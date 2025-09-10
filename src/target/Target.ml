@@ -139,10 +139,10 @@ let origin (target : t) : Origin.t =
   let { path = { origin; _ }; _ } = target in
   origin
 
-let analyzers_of_targets (targets : t list) : Analyzer.t Set_.t =
+let analyzers_of_targets (targets : t list) : Analyzer.Set.t =
   List.fold_left
     (fun set target ->
       let a = target.analyzer in
       let analyzers = Analyzer.flatten a in
-      List_.fold_right Set_.add analyzers set)
-    Set_.empty targets
+      List_.fold_right Analyzer.Set.add analyzers set)
+    Analyzer.Set.empty targets
