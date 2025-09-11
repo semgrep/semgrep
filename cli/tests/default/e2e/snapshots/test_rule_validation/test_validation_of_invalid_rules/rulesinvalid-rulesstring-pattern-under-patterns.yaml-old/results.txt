@@ -4,7 +4,7 @@ semgrep error: Invalid rule schema
 4 |     - "foo"
   |       ^^^^^
 
-'foo' is not of type 'object'
+'foo' is not valid under any of the given schemas
 
 [ERROR] Rule parse error in rule eqeq:
  Strings are not valid under `patterns`: did you mean to write `pattern: foo` instead?
