@@ -3,6 +3,6 @@
 [94m[22m[24m5 | [0m      - pattern-not: $Y
 [94m[22m[24m6 | [0m    severity: ERROR
 
-[31m[22m[24mAdditional properties are not allowed ('pattern-not' was unexpected)[0m
+[31m[22m[24m{'pattern-not': '$Y'} is not valid under any of the given schemas[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

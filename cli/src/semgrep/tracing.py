@@ -30,7 +30,7 @@ from opentelemetry import context as context_api
 from opentelemetry import propagate
 from opentelemetry import trace as otrace
 from opentelemetry._logs import set_logger_provider
-from opentelemetry.attributes import BoundedAttributes  # type: ignore
+from opentelemetry.attributes import BoundedAttributes
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
@@ -176,7 +176,7 @@ class Traces:
         # attributes to Otel info after tracing is setup, we can't do it here.
         # Instead we have to do it in the corresponding kind of processor
         resource = get_aggregated_resources(
-            detectors=[ProcessResourceDetector(), OTELResourceDetector()],  # type: ignore
+            detectors=[ProcessResourceDetector(), OTELResourceDetector()],
             initial_resource=Resource(
                 attributes={
                     SERVICE_NAME: "semgrep-cli",
