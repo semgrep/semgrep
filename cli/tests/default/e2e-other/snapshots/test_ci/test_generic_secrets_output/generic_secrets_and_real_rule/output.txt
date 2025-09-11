@@ -98,7 +98,8 @@
            27┆ sink(d2)
 
   Your deployment has generic secrets enabled. 42 potential line locations
-  will be uploaded to the Semgrep platform and then analyzed by Semgrep Assistant.
+  will be uploaded to the Semgrep platform and then analyzed by Semgrep
+  Assistant.
   Any findings that appear actionable will be available in the Semgrep Platform.
   You can view the secrets analyzed by Assistant at
   https://semgrep.dev/orgs/-/secrets?status=open&type=Generic+Secret+%28AI%29

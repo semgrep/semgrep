@@ -11,6 +11,6 @@ semgrep error: Invalid rule schema
 5 |   languages: [python]
 6 |   severity: ERROR
 
-One of these properties is missing: 'match', 'pattern', 'pattern-either', 'pattern-regex', 'patterns', 'r2c-internal-project-depends-on'
+{'id': 'eqeq-bad', 'pattern-new-feature': '$X == $X', 'message': 'useless comparison', 'languages': ['python'], 'severity': 'ERROR'} is not valid under any of the given schemas
 
 [ERROR] invalid configuration file found (1 configs were invalid)

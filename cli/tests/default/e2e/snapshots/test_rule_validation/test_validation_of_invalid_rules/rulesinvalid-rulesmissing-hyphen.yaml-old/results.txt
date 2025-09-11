@@ -7,9 +7,7 @@ semgrep error: Invalid rule schema
 7 |         bar
 8 |   message: |
 
-Additional properties are not allowed ('pattern' was unexpected)
-Additional properties are not allowed ('pattern', 'pattern-not' were unexpected)
-Additional properties are not allowed ('pattern-not' was unexpected)
+{'pattern': 'foo\n', 'pattern-not': 'bar\n'} is not valid under any of the given schemas
 
 [ERROR] Rule parse error in rule eqeq:
  Expected object with only one entry -- did you forget a hyphen?
