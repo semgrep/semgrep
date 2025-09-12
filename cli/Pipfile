@@ -18,7 +18,7 @@ requests-mock = "*"
 # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 # type hints
 pypi-parker = "*"
-pytest-freezegun = "*"
+pytest-freezer = "*"
 pytest-mock = "*"
 pytest-rerunfailures = "*"
 # for pytest --splits and --group
