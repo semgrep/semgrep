@@ -217,7 +217,17 @@ let default_payload =
         autofixCount = None;
         ignoreCount = None;
       };
-    mcp = { session_id = None; num_findings = None };
+    mcp =
+      {
+        session_id = None;
+        num_findings = None;
+        num_skipped_rules = None;
+        rules = None;
+        num_scanned_files = None;
+        findings = None;
+        errors = None;
+        num_lines = None;
+      };
   }
 
 let default () =
@@ -536,6 +546,22 @@ let add_exit_code code =
 let add_feature ~category ~name =
   let str = Format.asprintf "%s/%s" category name in
   g.payload.value.features <- str :: g.payload.value.features
+
+let add_findings (findings : Out.cli_match list) =
+  let findings =
+    findings
+    |> List_.map (fun (finding : Out.cli_match) ->
+           ( Rule_ID.to_string finding.check_id,
+             ({
+                path = Fpath.to_string finding.path;
+                line = finding.start.line;
+                col = finding.start.col;
+                offset = finding.start.offset;
+                severity = Out.string_of_match_severity finding.extra.severity;
+              }
+               : Semgrep_metrics_t.finding) ))
+  in
+  g.payload.mcp.findings <- Some findings
 
 (*****************************************************************************)
 (* Init and Send *)

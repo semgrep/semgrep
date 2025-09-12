@@ -119,3 +119,6 @@ val add_max_memory_bytes : Core_profiling.t option -> unit
 
 (* useful for us to improve semgrep *)
 val add_errors : Semgrep_output_v1_t.cli_error list -> unit
+
+(* for MCP metrics *)
+val add_findings : Semgrep_output_v1_t.cli_match list -> unit
