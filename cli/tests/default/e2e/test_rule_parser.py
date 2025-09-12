@@ -38,7 +38,7 @@ def test_rule_parser__success(run_semgrep_in_tmp: RunSemgrep, snapshot, filename
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename):
-    run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8})
+    run_semgrep_in_tmp(f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7})
 
 
 # TODO: osemgrep does not return exit code 8 yet, since all errors are handled
@@ -47,7 +47,7 @@ def test_rule_parser__failure(run_semgrep_in_tmp: RunSemgrep, snapshot, filename
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_regex_with_bad_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=8)
+    run_semgrep_in_tmp("rules/syntax/badlanguage.yaml", assert_exit_code=7)
 
 
 @pytest.mark.kinda_slow
@@ -68,7 +68,7 @@ def test_rule_parser__failure__error_messages(
     run_semgrep_in_tmp: RunSemgrep, posix_snapshot, filename
 ):
     stdout, _ = run_semgrep_in_tmp(
-        f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8}
+        f"rules/syntax/{filename}.yaml", assert_exit_code={2, 4, 7}
     )
 
     json_output = json.loads(stdout)
@@ -81,7 +81,7 @@ def test_rule_parser__failure__error_messages(
         options=["--force-color"],
         output_format=OutputFormat.TEXT,
         force_color=True,
-        assert_exit_code={2, 7, 8},
+        assert_exit_code={2, 4, 7},
     )
 
     posix_snapshot.assert_match(stderr, "error-in-color.txt")
