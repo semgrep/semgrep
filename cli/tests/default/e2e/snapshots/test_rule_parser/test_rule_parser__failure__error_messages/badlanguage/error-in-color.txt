@@ -3,6 +3,6 @@
 [94m[22m[24m7 | [0m    languages: [intercal]
 [94m[22m[24m  | [0m                [31m[22m[24m^^^^^^^^[0m
 
-[31m[22m[24m'intercal' is not one of ['apex', 'bash', 'sh', 'c', 'clojure', 'cpp', 'c++', 'csharp', 'c#', 'dart', 'dockerfile', 'docker', 'ex', 'elixir', 'generic', 'go', 'golang', 'hack', 'html', 'java', 'js', 'javascript', 'json', 'jsonnet', 'julia', 'kt', 'kotlin', 'lisp', 'lua', 'ocaml', 'php', 'python2', 'python3', 'py', 'python', 'r', 'regex', 'none', 'ruby', 'rust', 'scala', 'scheme', 'solidity', 'sol', 'swift', 'tf', 'hcl', 'terraform', 'ts', 'typescript', 'vue', 'yaml'][0m
+[31m[22m[24m'intercal' is not one of ['apex', 'bash', 'sh', 'c', 'clojure', 'cpp', 'c++', 'csharp', 'c#', 'dart', 'dockerfile', 'docker', 'ex', 'elixir', 'generic', 'go', 'golang', 'hack', 'html', 'java', 'js', 'javascript', 'json', 'jsonnet', 'julia', 'kt', 'kotlin', 'lisp', 'lua', 'ocaml', 'php', 'python2', 'python3', 'py', 'python', 'r', 'regex', 'none', 'ruby', 'rust', 'scala', 'scheme', 'solidity', 'sol', 'swift', 'tf', 'hcl', 'terraform', 'ts', 'typescript', 'vue', 'yaml', 'xml'][0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

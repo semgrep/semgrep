@@ -54,6 +54,8 @@ type kind = Out.manifest_kind =
   (* A Gradle build.gradle build file
    * https://docs.gradle.org/current/userguide/build_file_basics.html *)
   | BuildGradle
+  (* A Gradle build.gradle.kts file, which uses Kotlin instead of Groovy. *)
+  | BuildGradleKts
   (* A Gradle settings.gradle file
    * https://docs.gradle.org/current/userguide/settings_file_basics.html.
    * Multi-project builds are defined by settings.gradle rather than
@@ -115,6 +117,7 @@ let kind_to_ecosystem_opt (kind : kind) : Out.ecosystem option =
   | CargoToml -> Some Out.Cargo
   | PomXml
   | BuildGradle
+  | BuildGradleKts
   | SettingsGradle ->
       Some Out.Maven
   | ComposerJson -> Some Out.Composer

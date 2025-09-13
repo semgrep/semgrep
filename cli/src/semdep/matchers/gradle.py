@@ -17,6 +17,7 @@ from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
@@ -136,14 +137,22 @@ class GradleMatcher(SubprojectMatcher):
 
             manifest: Optional[out.Manifest] = None
             if build_path is not None:
-                # if both settings.gradle and build.gradle exist, prefer build.gradle as it more closely resembles a manifest
+                kind: Union[out.BuildGradle, out.BuildGradleKts] = (
+                    out.BuildGradleKts()
+                    if build_path == "build.gradle.kts"
+                    else out.BuildGradle()
+                )
+                # if both settings.gradle and build.gradle exist,
+                # prefer build.gradle as it more closely resembles a
+                # manifest
                 manifest = out.Manifest(
-                    kind=out.ManifestKind(out.BuildGradle()),
+                    kind=out.ManifestKind(kind),
                     path=out.Fpath(str(build_path)),
                 )
             elif settings_path is not None:
-                # Gradle doesn't really have a manifest, but we treat both build.gradle and settings.gradle both as manifests
-                # depending on what's available.
+                # Gradle doesn't really have a manifest, but we treat
+                # both build.gradle and settings.gradle both as
+                # manifests depending on what's available.
                 manifest = out.Manifest(
                     kind=out.ManifestKind(out.SettingsGradle()),
                     path=out.Fpath(str(settings_path)),
@@ -188,8 +197,13 @@ class GradleMatcher(SubprojectMatcher):
                 # if a build file is present, favor using that as the manifest file, but build
                 # files might be missing for multi-project builds
                 used_build_paths.add(first_build_path)
+                kind = (
+                    out.BuildGradleKts()
+                    if first_build_path == "build.gradle.kts"
+                    else out.BuildGradle()
+                )
                 manifest = out.Manifest(
-                    kind=out.ManifestKind(out.BuildGradle()),
+                    kind=out.ManifestKind(kind),
                     path=out.Fpath(str(first_build_path)),
                 )
             else:
@@ -222,6 +236,11 @@ class GradleMatcher(SubprojectMatcher):
                 # this to be part of that subproject and do not create a separate one.
                 continue
 
+            kind = (
+                out.BuildGradleKts()
+                if build_path == "build.gradle.kts"
+                else out.BuildGradle()
+            )
             # if we make it to here, we have decided that this build.gradle file defines a single-project
             # gradle build, so we should create a subproject from it.
             subprojects.append(
@@ -230,7 +249,7 @@ class GradleMatcher(SubprojectMatcher):
                     dependency_source=out.DependencySource(
                         out.ManifestOnly(
                             out.Manifest(
-                                kind=out.ManifestKind(out.BuildGradle()),
+                                kind=out.ManifestKind(kind),
                                 path=out.Fpath(str(build_path)),
                             )
                         )

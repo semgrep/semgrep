@@ -41,6 +41,7 @@ ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
 # enabled.
 PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.BuildGradle()), out.LockfileKind(out.GradleLockfile())),
+    (out.ManifestKind(out.BuildGradleKts()), out.LockfileKind(out.GradleLockfile())),
     (
         out.ManifestKind(out.RequirementsIn()),
         out.LockfileKind(out.PipRequirementsTxt()),
