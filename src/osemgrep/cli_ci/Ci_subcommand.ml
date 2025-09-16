@@ -373,6 +373,8 @@ let scan_metadata () : Out.scan_metadata =
         (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
         requested_products = [];
         dry_run = false;
+        ecosystems = [];
+        packages = [];
         sms_scan_id = !Semgrep_envvars.v.sms_scan_id;
       }
   in
