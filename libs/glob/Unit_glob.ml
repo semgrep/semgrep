@@ -178,4 +178,7 @@ let tests =
         (test "./a" "/a" false);
       t "don't normalize path pattern into relative path" (test "./a" "a" false);
       t "don't normalize '.' pattern into empty path" (test "." "." true);
+      t "match literal #" (test {|\#|} "#" true);
+      t "don't mistake # for a comment" (test {|\#*|} "a" false);
+      t "match literal space" (test {|\ |} " " true);
     ]

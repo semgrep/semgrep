@@ -67,7 +67,25 @@ let string_loc ?(source_name = "<pattern>") ~source_kind pat =
 
 let add = Buffer.add_string
 let addc = Buffer.add_char
-let quote_char buf c = add buf (Pcre2_.quote (String.make 1 c))
+
+(* Escape a character (char) so that it's interpreted literally
+   by PCRE in extended mode. The extended mode recognizes shell-style
+   comments (#) and ignores whitespace, so these must be escaped in addition
+   to what ocaml-pcre2's quote function does.
+
+   See https://github.com/tobil4sk/pcre2-ocaml/issues/1 for the possible
+   addition of such a function to ocaml-pcre2.
+*)
+let quote_char buf c =
+  match c with
+  (* white space is: HT (9), LF (10), VT (11), FF (12), CR (13),
+       and space (32) *)
+  | '\009' .. '\013'
+  | ' '
+  | '#' ->
+      addc buf '\\';
+      addc buf c
+  | _ -> add buf (Pcre2_.quote (String.make 1 c))
 
 let translate_frag conf buf pos (frag : Pattern.segment_fragment) =
   match frag with

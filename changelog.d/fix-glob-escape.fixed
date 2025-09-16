@@ -1,0 +1,2 @@
+Fix incorrect interpretation of `\#` and `\ ` in glob patterns found in
+Semgrepignore and included Gitignore files.
