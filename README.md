@@ -98,31 +98,29 @@ If there are any issues, <a href="https://go.semgrep.dev/slack" target="_blank">
 
 ### Option 2: Getting started from the CLI
 
-1.  Install Semgrep CLI
+1. Install Semgrep CLI
 
-```
-# For macOS
-$ brew install semgrep
+    ```
+    # For macOS
+    $ brew install semgrep
 
-# For Ubuntu/WSL/Linux/macOS
-$ python3 -m pip install semgrep
+    # For Ubuntu/WSL/Linux/macOS
+    $ python3 -m pip install semgrep
 
-# To try Semgrep without installation run via Docker
-$ docker run -it -v "${PWD}:/src" semgrep/semgrep semgrep login
-$ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci
-```
+    # To try Semgrep without installation run via Docker
+    $ docker run -it -v "${PWD}:/src" semgrep/semgrep semgrep login
+    $ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci
+    ```
 
-2.  Run `semgrep login` to create your account and login to Semgrep.
+1. Run `semgrep login` to create your account and login to Semgrep. This step is optional, but logging into Semgrep gets you access to:
 
-Logging into Semgrep gets you access to:
+    - [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain?utm_medium=readme&utm_source=github&utm_content=ssc-product): A dependency scanner that detects reachable vulnerabilities in third party libraries
+    - [Semgrep Code's Pro rules](https://semgrep.dev/products/semgrep-code?utm_medium=readme&utm_source=github&utm_content=code-pro-rules): 600+ high confidence rules written by Semgrep's security research team
+    - [Semgrep Code's Pro engine](https://semgrep.dev/products/pro-engine?utm_medium=readme&utm_source=github&utm_content=pro-engine): An advanced code analysis engine, designed to detect complex vulnerabilities, and reduce false positives
 
-- [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain?utm_medium=readme&utm_source=github&utm_content=ssc-product): A dependency scanner that detects reachable vulnerabilities in third party libraries
-- [Semgrep Code's Pro rules](https://semgrep.dev/products/semgrep-code?utm_medium=readme&utm_source=github&utm_content=code-pro-rules): 600+ high confidence rules written by Semgrep's security research team
-- [Semgrep Code's Pro engine](https://semgrep.dev/products/pro-engine?utm_medium=readme&utm_source=github&utm_content=pro-engine): An advanced code analysis engine, designed to detect complex vulnerabilities, and reduce false positives
+1. Go to your app's root directory and run `semgrep ci`. This will scan your project to check for vulnerabilities in your source code and its dependencies.
 
-3.  Go to your app's root directory and run `semgrep ci`. This will scan your project to check for vulnerabilities in your source code and its dependencies.
-
-4.  Try writing your own query interactively with `-e`. For example, a check for Python == where the left and right hand sides are the same (potentially a bug):
+1. Try writing your own query interactively with `-e`. For example, a check for Python == where the left and right hand sides are the same (potentially a bug):
     `$ semgrep -e '$X == $X' --lang=py path/to/src`
 
 ### Semgrep Ecosystem
