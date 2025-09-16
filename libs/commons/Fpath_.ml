@@ -110,6 +110,8 @@ let () =
         =*= (Fpath.v "a/foo", ".tar.gz")));
   ()
 
+let hash (x : Fpath.t) = Base.String.hash !!x
+let hash_fold_t s (x : Fpath.t) = Base.String.hash_fold_t s !!x
 (*****************************************************************************)
 (* Data Structures *)
 (*****************************************************************************)

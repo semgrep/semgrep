@@ -67,7 +67,7 @@ val to_posix_string : Fpath.t -> string
     files from the system or for showing paths on the system to users. *)
 
 (* alias but with derived available *)
-type t = Fpath.t [@@deriving show, eq, ord, sexp]
+type t = Fpath.t [@@deriving show, eq, ord, sexp, hash]
 
 (*
    Take a nonempty list of path segments and turn them in to relative path.
