@@ -29,7 +29,9 @@
     "cli_version": "<sanitized version>",
     "unique_id": "<sanitized id>",
     "requested_products": [],
-    "dry_run": false
+    "dry_run": false,
+    "ecosystems": [],
+    "packages": []
   },
   "project_config": {
     "version": "v1"
