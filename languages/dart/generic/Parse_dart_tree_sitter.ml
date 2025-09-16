@@ -3939,7 +3939,7 @@ let map_method_signature (env : env) (x : CST.method_signature) (attrs, body) =
         match v2 with
         | `Func_sign x ->
             map_function_signature ~attrs env x
-              ((Function, fake "Function"), FBNothing)
+              ((Function, fake "Function"), body)
         | `Getter_sign x -> map_getter_signature ~attrs env x FBNothing
         | `Setter_sign x -> map_setter_signature ~attrs env x FBNothing
       in
