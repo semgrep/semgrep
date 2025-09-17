@@ -108,10 +108,10 @@ repos:
           - requests~=2.22
           - rich~=13.5.2
           - tomli~=2.0.1
-          - opentelemetry-api~=1.28.1
-          - opentelemetry-sdk~=1.28.1
-          - opentelemetry-exporter-otlp-proto-http~=1.28.1
-          - opentelemetry-instrumentation-requests~=0.49b1
+          - opentelemetry-api~=1.37.0
+          - opentelemetry-sdk~=1.37.0
+          - opentelemetry-exporter-otlp-proto-http~=1.37.0
+          - opentelemetry-instrumentation-requests~=0.58b0
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-freezegun
