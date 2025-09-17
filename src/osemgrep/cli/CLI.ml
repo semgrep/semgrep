@@ -203,7 +203,8 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
             Install_semgrep_pro_subcommand.main caps subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "lsp" -> Lsp_subcommand.main caps subcmd_argv
-        | "mcp" -> Mcp_subcommand.main caps subcmd_argv
+        | "mcp" when experimental -> Mcp_subcommand.main caps subcmd_argv
+        | "mcp" -> raise Pysemgrep.Fallback
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "install-ci" -> Install_ci_subcommand.main caps subcmd_argv
