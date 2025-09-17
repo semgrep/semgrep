@@ -25,7 +25,7 @@ pytest-rerunfailures = "*"
 # The former is for running `async def` tests whatsoever, the latter for
 # a runtime dependency of `pytest-asyncio`.
 pytest-asyncio = "*"
-backports-asyncio-runner = {version="*", markers="python_version < '3.11'"}
+backports-asyncio-runner = {version="==1.2.0", markers="python_version < '3.11'"}
 # for pytest --splits and --group
 pytest-split = "*"
 types-appdirs = "*"
@@ -54,9 +54,9 @@ typing_extensions = "*"
 [packages]
 mcp = "==1.12.2"
 jsonschema = "==4.20.0"
-opentelemetry-api = "~=1.28.1"
-opentelemetry-sdk = "~=1.28.1"
-opentelemetry-exporter-otlp-proto-http = "~=1.28.1"
-opentelemetry-instrumentation-requests = "~=0.49b1"
+opentelemetry-api = "~=1.37.0"
+opentelemetry-sdk = "~=1.37.0"
+opentelemetry-exporter-otlp-proto-http = "~=1.37.0"
+opentelemetry-instrumentation-requests = "~=0.58b0"
 pywin32 = { version = "==311", markers = "platform_system == 'Windows'" }
 semgrep = {editable = true, path = "."}

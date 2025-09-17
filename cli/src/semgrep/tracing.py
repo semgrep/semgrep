@@ -119,7 +119,7 @@ class ScanInfoLogProcessor(LogRecordProcessor):
         self.base_processor: LogRecordProcessor = base_processor
         self.scan_info: Optional[ScanInfo] = None
 
-    def emit(self: "ScanInfoLogProcessor", log_data: LogData) -> None:
+    def on_emit(self: "ScanInfoLogProcessor", log_data: LogData) -> None:
         if self.scan_info:
             scan_info_dict = scan_info_to_dict(self.scan_info)
             log_record = log_data.log_record
@@ -130,7 +130,7 @@ class ScanInfoLogProcessor(LogRecordProcessor):
             attrs = BoundedAttributes(attributes=mut_attrs)
             log_record.attributes = attrs
 
-        self.base_processor.emit(log_data)
+        self.base_processor.on_emit(log_data)
 
     def shutdown(self: "ScanInfoLogProcessor") -> None:
         self.base_processor.shutdown()  # type: ignore
