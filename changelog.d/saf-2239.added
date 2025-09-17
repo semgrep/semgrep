@@ -1,3 +1,0 @@
-Added a new `semgrep mcp` subcommand, which runs the Semgrep MCP server, which previously
-used to live at https://github.com/semgrep/mcp. That repository will be *deprecated*
-as of this release, and future MCP contributions / issues should go into this repo.
