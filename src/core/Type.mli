@@ -41,6 +41,7 @@ and 'r t =
   | Null
   (* int option for the cases where we know the size of the array *)
   | Array of Parsed_int.t option * 'r t
+  | Record of 'r record
   | Function of 'r function_type
   | Pointer of 'r t
   (* NoType is to avoid some Type.t option and use of let* everywhere.
@@ -58,6 +59,7 @@ and builtin_type =
   | Number
   | OtherBuiltins of string
 
+and 'r record = (string * 'r t) list
 and 'r function_type = 'r parameter list * 'r t
 and 'r parameter = Param of 'r parameter_classic | OtherParam of todo_kind
 
@@ -106,6 +108,7 @@ class virtual ['c] map : object ('c)
        ; visit_OtherTypeArg : 'd -> todo_kind -> 'h type_argument
        ; visit_Param : 'd -> 'g parameter_classic -> 'h parameter
        ; visit_Pointer : 'd -> 'g t -> 'h t
+       ; visit_Record : 'd -> (string * 'g t) list -> 'h t
        ; visit_String : 'd -> builtin_type
        ; visit_TA : 'd -> 'g t -> 'h type_argument
        ; visit_TALower : 'd -> 'g t -> 'h type_arg_constraint
@@ -124,6 +127,7 @@ class virtual ['c] map : object ('c)
        ; visit_parameter_classic :
            'd -> 'g parameter_classic -> 'h parameter_classic
        ; visit_parsed_int : 'd -> Parsed_int.t -> Parsed_int.t
+       ; visit_record : 'd -> 'g record -> 'h record
        ; visit_t : 'd -> 'g t -> 'h t
        ; visit_todo_kind : 'd -> todo_kind -> todo_kind
        ; visit_type_arg_constraint :
@@ -147,6 +151,7 @@ class virtual ['c] map : object ('c)
   method visit_OtherTypeArg : 'd -> todo_kind -> 'h type_argument
   method visit_Param : 'd -> 'g parameter_classic -> 'h parameter
   method visit_Pointer : 'd -> 'g t -> 'h t
+  method visit_Record : 'd -> (string * 'g t) list -> 'h t
   method visit_String : 'd -> builtin_type
   method visit_TA : 'd -> 'g t -> 'h type_argument
   method visit_TALower : 'd -> 'g t -> 'h type_arg_constraint
@@ -195,6 +200,7 @@ class virtual ['c] map : object ('c)
     'd -> 'g parameter_classic -> 'h parameter_classic
 
   method visit_parsed_int : 'd -> Parsed_int.t -> Parsed_int.t
+  method visit_record : 'd -> 'g record -> 'h record
 
   method private visit_ref :
     'env 'a 'b. ('env -> 'a -> 'b) -> 'env -> 'a ref -> 'b ref

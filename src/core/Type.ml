@@ -88,6 +88,7 @@ and 'resolved t =
    * in SAST.ml? *)
   (* int option for the cases where we know the size of the array *)
   | Array of (Parsed_int.t[@name "parsed_int"]) option * 'resolved t
+  | Record of 'resolved record
   | Function of 'resolved function_type
   | Pointer of 'resolved t
   (* todos (bailout) *)
@@ -107,6 +108,7 @@ and builtin_type =
   | Number
   | OtherBuiltins of string
 
+and 'resolved record = (string * 'resolved t) list
 and 'resolved function_type = 'resolved parameter list * 'resolved t
 
 and 'resolved parameter =
@@ -269,6 +271,29 @@ let rec to_ast_generic_type_ ?tok lang
       let size = Option.map (fun pi -> G.L (G.Int pi) |> G.e) size in
       let* ty = to_ast_generic_type_ lang f ty in
       Some (G.TyArray (Tok.unsafe_fake_bracket size, ty) |> G.t)
+  | Record fields ->
+      let kind = (G.Object, G.fake "object") in
+      let fields =
+        fields
+        |> List_.map (fun (fld_label, fld_type) ->
+               let entity : G.entity =
+                 {
+                   name =
+                     EN (Id ((fld_label, G.fake fld_label), G.empty_id_info ()));
+                   attrs = [];
+                   tparams = None;
+                 }
+               in
+               let var_def : G.variable_definition =
+                 {
+                   vinit = None;
+                   vtype = to_ast_generic_type_ lang f fld_type;
+                   vtok = None;
+                 }
+               in
+               G.F (DefStmt (entity, VarDef var_def) |> G.s))
+      in
+      Some (G.TyRecordAnon (kind, fields |> Tok.unsafe_fake_bracket) |> G.t)
   | Function (params, tret) ->
       let params =
         params
