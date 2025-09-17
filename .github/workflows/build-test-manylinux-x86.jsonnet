@@ -81,21 +81,21 @@ local test_wheels_job = {
     // platform compatibility tag
     {
       name: 'install package',
-      run: '/opt/python/cp39-cp39/bin/pip install dist/*.whl',
+      run: '/opt/python/cp310-cp310/bin/pip install dist/*.whl',
     },
     // TODO? could reuse build-test-osx-x86.test_semgrep_steps
     // only diff is PATH adjustments
     {
       name: 'test package',
       run: |||
-        export PATH=/opt/python/cp39-cp39/bin:$PATH
+        export PATH=/opt/python/cp310-cp310/bin:$PATH
         semgrep --version
       |||,
     },
     {
       name: 'e2e semgrep-core test',
       run: |||
-        export PATH=/opt/python/cp39-cp39/bin:$PATH
+        export PATH=/opt/python/cp310-cp310/bin:$PATH
         echo '1 == 1' | semgrep -l python -e '$X == $X' -
       |||,
     },
@@ -115,7 +115,7 @@ local test_wheels_venv_job = {
     },
     {
       name: 'create venv',
-      run: '/opt/python/cp39-cp39/bin/python3 -m venv env',
+      run: '/opt/python/cp310-cp310/bin/python3 -m venv env',
     },
     // *.whl is fine here because we're building one wheel with the "any"
     // platform compatibility tag
