@@ -2388,6 +2388,7 @@ and m_generic_type_vs_type_t lang tok a b =
   | _, Type.Builtin _
   | _, Type.Null
   | _, Type.Array _
+  | _, Type.Record _
   | _, Type.Function _
   | _, Type.Pointer _
   | _, Type.NoType
