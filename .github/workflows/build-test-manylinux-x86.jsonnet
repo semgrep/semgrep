@@ -42,9 +42,9 @@ local build_wheels_job = {
     {
       run: |||
         yum update -y
-        yum install -y zip python3-pip python3.9
+        yum install -y zip python3-pip python3.10
         alternatives --remove-all python3
-        alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
+        alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
         alternatives --auto python3
       |||,
     },
