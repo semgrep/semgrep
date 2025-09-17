@@ -104,6 +104,8 @@ repos:
           # click 8.1.4's new decorator type hints don't seem to work well
           - click<8.1.4
           - defusedxml~=0.7.1
+          # pydantic for fast rule validation (until we have a better solution in pure ocaml)
+          - pydantic~=2.8.2
           - packaging~=21.0
           - requests~=2.22
           - rich~=13.5.2
