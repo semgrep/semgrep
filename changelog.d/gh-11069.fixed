@@ -1,0 +1,2 @@
+Removed `pkg_resources is deprecated` warning by bumping opentelemetry-*
+packages
