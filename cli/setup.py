@@ -122,6 +122,7 @@ install_requires = [
     "defusedxml~=0.7.1",
     "exceptiongroup~=1.2.0",
     "glom~=22.1",
+    "mcp==1.12.2",
     "jsonschema~=4.20.0",
     "opentelemetry-api~=1.28.1",
     "opentelemetry-sdk~=1.28.1",
@@ -136,6 +137,7 @@ install_requires = [
     "typing-extensions~=4.2",
     "urllib3~=2.0",
     "wcmatch~=8.3",
+    "pywin32==311; sys_platform == 'win32'",
 ]
 
 

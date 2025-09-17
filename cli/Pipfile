@@ -21,6 +21,11 @@ pypi-parker = "*"
 pytest-freezer = "*"
 pytest-mock = "*"
 pytest-rerunfailures = "*"
+# Both of these are needed for MCP tests.
+# The former is for running `async def` tests whatsoever, the latter for
+# a runtime dependency of `pytest-asyncio`.
+pytest-asyncio = "*"
+backports-asyncio-runner = {version="*", markers="python_version < '3.11'"}
 # for pytest --splits and --group
 pytest-split = "*"
 types-appdirs = "*"
@@ -47,9 +52,11 @@ importlib_resources = ">=1.4.0"
 typing_extensions = "*"
 
 [packages]
+mcp = "==1.12.2"
 jsonschema = "==4.20.0"
 opentelemetry-api = "~=1.28.1"
 opentelemetry-sdk = "~=1.28.1"
 opentelemetry-exporter-otlp-proto-http = "~=1.28.1"
 opentelemetry-instrumentation-requests = "~=0.49b1"
+pywin32 = { version = "==311", markers = "platform_system == 'Windows'" }
 semgrep = {editable = true, path = "."}

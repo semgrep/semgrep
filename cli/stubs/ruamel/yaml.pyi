@@ -20,7 +20,14 @@ class YAML:
     Constructor: Any
     representer: Any
 
-    def __init__(self, typ: str = "rt"):
+    def __init__(
+        self,
+        *,
+        typ: list[str] | str | None = None,
+        pure: Any = False,
+        output: Any = None,
+        plug_ins: Any = None,
+    ) -> None:
         self.default_flow_style: bool = ...
         ...
     def load(self, stream: Any) -> Any: ...
