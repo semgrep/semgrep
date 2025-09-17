@@ -14,7 +14,9 @@ let
       setupPyFile = (builtins.readFile setupPy);
       # check if the package is in the setup.py before adding it to the list
       isInSetupPy = name: (builtins.match ".*${name}.*" setupPyFile) != null;
-      pipfileLockInputs = builtins.filter isInSetupPy pipfileLockInputs';
+      # filter out Windows-specific packages that aren't available in Nix
+      isNotWindowsOnly = name: !(builtins.elem name ["pywin32"]);
+      pipfileLockInputs = builtins.filter (name: isInSetupPy name && isNotWindowsOnly name) pipfileLockInputs';
       # replace . with -
     in builtins.map (name: builtins.replaceStrings [ "." ] [ "-" ] name)
     pipfileLockInputs;

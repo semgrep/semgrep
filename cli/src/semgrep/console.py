@@ -114,7 +114,6 @@ class AutoIndentingConsole(Console):
 MAX_WIDTH = 120
 MIN_WIDTH = 40
 terminal_width = get_terminal_size((MAX_WIDTH, 1))[0]
-safe_width = min(MAX_WIDTH, terminal_width) if terminal_width > MIN_WIDTH else MIN_WIDTH
 # We only want to set the dynamic width for real CLI invocations.
 # If we're in our CI tests, "PYTEST_CURRENT_TEST" is set. In which case, let's not care.
 # nosemgrep: no-env-vars-on-top-level

@@ -1,0 +1,79 @@
+#
+# Copyright (c) 2025 Semgrep Inc.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public License
+# version 2.1 as published by the Free Software Foundation.
+#
+# This library is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
+# LICENSE for more details.
+#
+import json
+import subprocess
+import time
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+import pytest
+from mcp.client.session import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+
+@pytest.fixture
+def streamable_server(available_port):
+    # Start the streamable-http server
+    proc = subprocess.Popen(
+        ["semgrep", "mcp", "-t", "streamable-http", "--port", str(available_port)],
+    )
+    # Wait briefly to ensure the server starts
+    time.sleep(5)
+    yield available_port
+    # Teardown: terminate the server
+    proc.terminate()
+    proc.wait()
+
+
+@pytest.mark.slow
+async def test_local_scan(streamable_server):
+    port = streamable_server
+    base_url = f"http://127.0.0.1:{port}"
+    async with streamablehttp_client(f"{base_url}/mcp") as (
+        read_stream,
+        write_stream,
+        _,
+    ):
+        async with ClientSession(read_stream, write_stream) as session:
+            # Initializing session...
+            await session.initialize()
+            # Session initialized
+
+            with NamedTemporaryFile(
+                "w", prefix="hello_world", suffix=".py", encoding="utf-8"
+            ) as tmp:
+                tmp.write("def hello(): print('Hello, World!')")
+                tmp.flush()
+
+                path = tmp.name
+
+                # Scan code for security issues using local semgrep_scan
+                results = await session.call_tool(
+                    "semgrep_scan",
+                    {
+                        "code_files": [
+                            {
+                                "path": str(Path(path).absolute()),
+                            }
+                        ]
+                    },
+                )
+                # We have results!
+                assert results is not None
+                content = json.loads(results.content[0].text)  # type: ignore
+                assert isinstance(content, dict)
+                assert len(content["paths"]["scanned"]) == 1
+                filename = content["paths"]["scanned"][0]
+                assert Path(filename).name.startswith("hello_world")
+
+                print(json.dumps(content, indent=2))

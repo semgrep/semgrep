@@ -461,7 +461,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11
-  default_python_version: '3.9',
+  default_python_version: '3.10',
   python_version: '3.12',
   containers: containers,
 
