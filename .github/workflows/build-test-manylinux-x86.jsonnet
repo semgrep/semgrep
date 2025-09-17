@@ -38,7 +38,7 @@ local build_wheels_job = {
   container: manylinux_container,
   steps: actions.checkout_with_submodules() + [
     // TODO: use semgrep.default_python_version instead of hardcoding 3.9 below
-    // coupling: if you modify the python version, update the cp39-cp39 further below
+    // coupling: if you modify the python version, update the cp310-cp310 further below
     {
       run: |||
         yum update -y
