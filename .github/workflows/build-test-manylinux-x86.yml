@@ -12,11 +12,13 @@ jobs:
         with:
           submodules: true
       - run: |
-          yum update -y
-          yum install -y zip python3-pip python3.10
-          alternatives --remove-all python3
-          alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
-          alternatives --auto python3
+          wget https://www.python.org/ftp/python/3.10.5/Python-3.10.5.tgz
+          tar xzf Python-3.10.5.tgz
+          cd Python-3.10.5
+          ./configure --with-system-ffi --with-computed-gotos --enable-loadable-sqlite-extensions
+
+          make -j ${nproc}
+          make altinstall
       - uses: actions/download-artifact@v4
         with:
           name: semgrep-core-x86-artifact

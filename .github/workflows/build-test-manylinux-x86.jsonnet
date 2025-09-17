@@ -37,15 +37,17 @@ local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   container: manylinux_container,
   steps: actions.checkout_with_submodules() + [
-    // TODO: use semgrep.default_python_version instead of hardcoding 3.9 below
+    // TODO: use semgrep.default_python_version instead of hardcoding 3.10 below
     // coupling: if you modify the python version, update the cp310-cp310 further below
     {
       run: |||
-        yum update -y
-        yum install -y zip python3-pip python3.10
-        alternatives --remove-all python3
-        alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
-        alternatives --auto python3
+        wget https://www.python.org/ftp/python/3.10.5/Python-3.10.5.tgz
+        tar xzf Python-3.10.5.tgz
+        cd Python-3.10.5
+        ./configure --with-system-ffi --with-computed-gotos --enable-loadable-sqlite-extensions
+
+        make -j ${nproc}
+        make altinstall
       |||,
     },
     actions.download_artifact_step(core_x86.export.artifact_name),
