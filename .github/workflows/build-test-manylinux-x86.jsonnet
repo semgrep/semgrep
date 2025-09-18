@@ -23,11 +23,27 @@
 local core_x86 = import 'build-test-core-x86.jsonnet';
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 local wheel_name = 'manylinux-x86-wheel';
 // The '2_28' is the minimum version of GLIBC supported by the image, we need
 // 2.28 since GHA runners use node20, which has 2.28 as a dependancy.
 local manylinux_container = 'quay.io/pypa/manylinux_2_28_x86_64';
+
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+
+// The `windows-2025` runner comes with Python 3.9 by default.
+// This is problematic, because as of 2025-09-17, Semgrep requires Python 3.10
+// or higher.
+// So, we install Python 3.10.
+local setup_python_step = {
+  uses: 'actions/setup-python@v5',
+  with: {
+    'python-version': semgrep.default_python_version,
+  },
+};
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -149,6 +165,7 @@ local test_wheels_wsl_job = {
     'build-wheels',
   ],
   steps: [
+    setup_python_step,
     actions.download_artifact_step(wheel_name),
     {
       run: 'unzip dist.zip',

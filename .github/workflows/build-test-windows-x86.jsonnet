@@ -19,6 +19,10 @@ local defaults = {
 // OCaml 5 everywhere.
 local opam_switch = '5.3.0';
 
+// ----------------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------------
+
 // The `windows-2025` runner comes with Python 3.9 by default.
 // This is problematic, because as of 2025-09-17, Semgrep requires Python 3.10
 // or higher.
