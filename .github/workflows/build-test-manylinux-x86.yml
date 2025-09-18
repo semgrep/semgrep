@@ -12,7 +12,7 @@ jobs:
         with:
           submodules: true
       - run: |
-          yum install -y wget python3-pip
+          yum install -y wget zip python3-pip
           wget https://www.python.org/ftp/python/3.10.5/Python-3.10.5.tgz
           tar xzf Python-3.10.5.tgz
           cd Python-3.10.5
