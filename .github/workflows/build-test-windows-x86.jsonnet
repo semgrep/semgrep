@@ -19,6 +19,17 @@ local defaults = {
 // OCaml 5 everywhere.
 local opam_switch = '5.3.0';
 
+// The `windows-2025` runner comes with Python 3.9 by default.
+// This is problematic, because as of 2025-09-17, Semgrep requires Python 3.10
+// or higher.
+// So, we install Python 3.10.
+local setup_python_step = {
+  uses: 'actions/setup-python@v5',
+  with: {
+    'python-version': semgrep.default_python_version,
+  },
+};
+
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
@@ -177,6 +188,7 @@ local build_wheels_job = {
     'build-core',
   ],
   steps: actions.checkout_with_submodules() + [
+    setup_python_step,
     actions.download_artifact_step(artifact_name),
     {
       run: |||
@@ -202,6 +214,7 @@ local test_wheels_job = {
     'build-wheels',
   ],
   steps: [
+    setup_python_step,
     actions.download_artifact_step(wheel_name),
     {
       run: 'tar xzvf dist.tgz',
