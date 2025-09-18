@@ -189,7 +189,7 @@ local test_wheels_wsl_job = {
     {
       name: 'install package',
       shell: 'wsl-bash {0}',
-      run: 'python3 -m pip install dist/*.whl',
+      run: 'python -m pip install dist/*.whl',
     },
     {
       name: 'test package',
