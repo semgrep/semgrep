@@ -160,7 +160,8 @@ local test_wheels_wsl_job = {
     'build-wheels',
   ],
   steps: [
-    actions.setup_python_step(semgrep.default_python_version),
+    // Why make life harder? Disable cache for now.
+    actions.setup_python_step(version=semgrep.default_python_version, cache=false),
     actions.download_artifact_step(wheel_name),
     {
       run: 'unzip dist.zip',
