@@ -12,11 +12,19 @@ jobs:
         with:
           submodules: true
       - run: |
-          yum update -y
-          yum install -y zip python3-pip python3.9
-          alternatives --remove-all python3
-          alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
-          alternatives --auto python3
+          # history:
+          # we used to `yum install python3.9`
+          # but now that we are on python 3.10, there is no python3.10 in `yum`
+          # so we need to download and install it ourselves
+
+          yum install -y wget zip python3-pip
+          wget https://www.python.org/ftp/python/3.10.5/Python-3.10.5.tgz
+          tar xzf Python-3.10.5.tgz
+          cd Python-3.10.5
+          ./configure --with-system-ffi --with-computed-gotos --enable-loadable-sqlite-extensions
+
+          make -j ${nproc}
+          make altinstall
       - uses: actions/download-artifact@v4
         with:
           name: semgrep-core-x86-artifact
@@ -39,14 +47,14 @@ jobs:
           name: manylinux-x86-wheel
       - run: unzip dist.zip
       - name: install package
-        run: /opt/python/cp39-cp39/bin/pip install dist/*.whl
+        run: /opt/python/cp310-cp310/bin/pip install dist/*.whl
       - name: test package
         run: |
-          export PATH=/opt/python/cp39-cp39/bin:$PATH
+          export PATH=/opt/python/cp310-cp310/bin:$PATH
           semgrep --version
       - name: e2e semgrep-core test
         run: |
-          export PATH=/opt/python/cp39-cp39/bin:$PATH
+          export PATH=/opt/python/cp310-cp310/bin:$PATH
           echo '1 == 1' | semgrep -l python -e '$X == $X' -
   test-wheels-venv:
     container: quay.io/pypa/manylinux_2_28_x86_64
@@ -59,7 +67,7 @@ jobs:
           name: manylinux-x86-wheel
       - run: unzip dist.zip
       - name: create venv
-        run: /opt/python/cp39-cp39/bin/python3 -m venv env
+        run: /opt/python/cp310-cp310/bin/python3 -m venv env
       - name: install package
         run: env/bin/pip install dist/*.whl
       - name: test package
@@ -73,21 +81,22 @@ jobs:
       - build-wheels
     runs-on: windows-2025
     steps:
+      - uses: actions/setup-python@v5
+        with:
+          cache: pipenv
+          python-version: "3.10"
       - uses: actions/download-artifact@v4
         with:
           name: manylinux-x86-wheel
       - run: unzip dist.zip
       - uses: Vampire/setup-wsl@v6
-      - name: Install Python
-        run: |
-          # Bullseye backports has evidently been discontinued. Leaving this
-          # source in causes a 404 when updating the package repositories and
-          # installing Python.
-          sudo sed -ie '/bullseye-backports/d' /etc/apt/sources.list
-          sudo apt update -y
-          sudo apt install -y make python3 python3-pip
-          sudo ln -s /usr/bin/python3 /usr/bin/python
-        shell: wsl-bash {0}
+        with:
+          additional-packages: |
+            python3
+            python3-venv
+            python3-pip
+          distribution: Ubuntu-22.04
+          update: true
       - name: install package
         run: python3 -m pip install dist/*.whl
         shell: wsl-bash {0}
