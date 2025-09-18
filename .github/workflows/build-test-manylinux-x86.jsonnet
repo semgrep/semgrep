@@ -41,7 +41,7 @@ local build_wheels_job = {
     // coupling: if you modify the python version, update the cp310-cp310 further below
     {
       run: |||
-        yum install -y wget
+        yum install -y wget python3-pip
         wget https://www.python.org/ftp/python/3.10.5/Python-3.10.5.tgz
         tar xzf Python-3.10.5.tgz
         cd Python-3.10.5
