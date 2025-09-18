@@ -177,6 +177,7 @@ local build_wheels_job = {
     'build-core',
   ],
   steps: actions.checkout_with_submodules() + [
+    actions.setup_python_step(semgrep.default_python_version),
     actions.download_artifact_step(artifact_name),
     {
       run: |||
@@ -202,6 +203,7 @@ local test_wheels_job = {
     'build-wheels',
   ],
   steps: [
+    actions.setup_python_step(semgrep.default_python_version),
     actions.download_artifact_step(wheel_name),
     {
       run: 'tar xzvf dist.tgz',

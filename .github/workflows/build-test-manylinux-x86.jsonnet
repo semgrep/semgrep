@@ -20,14 +20,20 @@
 // https://isdown.app/integrations/quay-io
 // We use it because the manylinux project is using it.
 
+// TODO, switch this to use a docker image like we do in pro, so it's easier to run+reproduce
+// from proprietary, and more aligned to what we do there for CI
+
 local core_x86 = import 'build-test-core-x86.jsonnet';
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 local wheel_name = 'manylinux-x86-wheel';
 // The '2_28' is the minimum version of GLIBC supported by the image, we need
 // 2.28 since GHA runners use node20, which has 2.28 as a dependancy.
 local manylinux_container = 'quay.io/pypa/manylinux_2_28_x86_64';
+
+local default_specific_python_version = semgrep.default_python_version + '.' + semgrep.default_python_patch_version;
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -37,16 +43,24 @@ local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   container: manylinux_container,
   steps: actions.checkout_with_submodules() + [
-    // TODO: use semgrep.default_python_version instead of hardcoding 3.9 below
-    // coupling: if you modify the python version, update the cp39-cp39 further below
+    // TODO: use semgrep.default_python_version instead of hardcoding 3.10 below
+    // coupling: if you modify the python version, update the cp310-cp310 further below
     {
       run: |||
-        yum update -y
-        yum install -y zip python3-pip python3.9
-        alternatives --remove-all python3
-        alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
-        alternatives --auto python3
-      |||,
+        # history:
+        # we used to `yum install python3.9`
+        # but now that we are on python 3.10, there is no python3.10 in `yum`
+        # so we need to download and install it ourselves
+
+        yum install -y wget zip python3-pip
+        wget https://www.python.org/ftp/python/%(python_version)s/Python-%(python_version)s.tgz
+        tar xzf Python-%(python_version)s.tgz
+        cd Python-%(python_version)s
+        ./configure --with-system-ffi --with-computed-gotos --enable-loadable-sqlite-extensions
+
+        make -j ${nproc}
+        make altinstall
+      ||| % { python_version: default_specific_python_version },
     },
     actions.download_artifact_step(core_x86.export.artifact_name),
     {
@@ -81,21 +95,21 @@ local test_wheels_job = {
     // platform compatibility tag
     {
       name: 'install package',
-      run: '/opt/python/cp39-cp39/bin/pip install dist/*.whl',
+      run: '/opt/python/cp310-cp310/bin/pip install dist/*.whl',
     },
     // TODO? could reuse build-test-osx-x86.test_semgrep_steps
     // only diff is PATH adjustments
     {
       name: 'test package',
       run: |||
-        export PATH=/opt/python/cp39-cp39/bin:$PATH
+        export PATH=/opt/python/cp310-cp310/bin:$PATH
         semgrep --version
       |||,
     },
     {
       name: 'e2e semgrep-core test',
       run: |||
-        export PATH=/opt/python/cp39-cp39/bin:$PATH
+        export PATH=/opt/python/cp310-cp310/bin:$PATH
         echo '1 == 1' | semgrep -l python -e '$X == $X' -
       |||,
     },
@@ -115,7 +129,7 @@ local test_wheels_venv_job = {
     },
     {
       name: 'create venv',
-      run: '/opt/python/cp39-cp39/bin/python3 -m venv env',
+      run: '/opt/python/cp310-cp310/bin/python3 -m venv env',
     },
     // *.whl is fine here because we're building one wheel with the "any"
     // platform compatibility tag
@@ -146,25 +160,22 @@ local test_wheels_wsl_job = {
     'build-wheels',
   ],
   steps: [
+    actions.setup_python_step(semgrep.default_python_version),
     actions.download_artifact_step(wheel_name),
     {
       run: 'unzip dist.zip',
     },
     {
       uses: 'Vampire/setup-wsl@v6',
-    },
-    {
-      name: 'Install Python',
-      shell: 'wsl-bash {0}',
-      run: |||
-        # Bullseye backports has evidently been discontinued. Leaving this
-        # source in causes a 404 when updating the package repositories and
-        # installing Python.
-        sudo sed -ie '/bullseye-backports/d' /etc/apt/sources.list
-        sudo apt update -y
-        sudo apt install -y make python3 python3-pip
-        sudo ln -s /usr/bin/python3 /usr/bin/python
-      |||,
+      with: {
+        distribution: 'Ubuntu-22.04',
+        update: true,
+        'additional-packages': |||
+          python3
+          python3-venv
+          python3-pip
+        |||,
+      },
     },
     {
       name: 'install package',

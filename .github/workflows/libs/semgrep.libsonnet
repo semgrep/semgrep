@@ -459,9 +459,16 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   trigger_build_sms_docker_image_step: trigger_build_sms_docker_image_step,
   wheel_name: wheel_name,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
+  // coupling: if you change this field, also specify a specific patch version
+  // for the default_python_patch_version field below!
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11
   default_python_version: '3.10',
+  // this is the patch version, the last part of the version string
+  // this is important when we need to know the specific version
+  // to install, e.g. `3.10.5`, which we will create from this field
+  // and the `default_python_version` field
+  default_python_patch_version: '5',
   python_version: '3.12',
   containers: containers,
 

@@ -22,7 +22,7 @@
 
 
 - Update semgrep-interfaces to only accept valid lanugage keys for editor (PR-4600)
-
+- The minimum Python version for Semgrep is now 3.10. We are dropping support for Python 3.9.
 
 ### Fixed
 
