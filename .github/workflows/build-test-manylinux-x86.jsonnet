@@ -172,6 +172,15 @@ local test_wheels_wsl_job = {
     },
     {
       uses: 'Vampire/setup-wsl@v6',
+      with: {
+        distribution: 'Ubuntu-22.04',
+        update: true,
+        'additional-packages': |||
+          python3
+          python3-venv
+          python3-pip
+        |||
+      }
     },
     // {
     //   name: 'Install Python',

@@ -84,6 +84,13 @@ jobs:
           name: manylinux-x86-wheel
       - run: unzip dist.zip
       - uses: Vampire/setup-wsl@v6
+        with:
+          additional-packages: |
+            python3
+            python3-venv
+            python3-pip
+          distribution: Ubuntu-22.04
+          update: true
       - name: install package
         run: python -m pip install dist/*.whl
         shell: wsl-bash {0}
