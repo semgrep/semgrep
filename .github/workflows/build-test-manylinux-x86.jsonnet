@@ -173,19 +173,19 @@ local test_wheels_wsl_job = {
     {
       uses: 'Vampire/setup-wsl@v6',
     },
-    {
-      name: 'Install Python',
-      shell: 'wsl-bash {0}',
-      run: |||
-        # Bullseye backports has evidently been discontinued. Leaving this
-        # source in causes a 404 when updating the package repositories and
-        # installing Python.
-        sudo sed -ie '/bullseye-backports/d' /etc/apt/sources.list
-        sudo apt update -y
-        sudo apt install -y make python3 python3-pip
-        sudo ln -s /usr/bin/python3 /usr/bin/python
-      |||,
-    },
+    // {
+    //   name: 'Install Python',
+    //   shell: 'wsl-bash {0}',
+    //   run: |||
+    //     # Bullseye backports has evidently been discontinued. Leaving this
+    //     # source in causes a 404 when updating the package repositories and
+    //     # installing Python.
+    //     sudo sed -ie '/bullseye-backports/d' /etc/apt/sources.list
+    //     sudo apt update -y
+    //     sudo apt install -y make python3 python3-pip
+    //     sudo ln -s /usr/bin/python3 /usr/bin/python
+    //   |||,
+    // },
     {
       name: 'install package',
       shell: 'wsl-bash {0}',
