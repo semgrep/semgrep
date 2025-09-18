@@ -179,8 +179,8 @@ local test_wheels_wsl_job = {
           python3
           python3-venv
           python3-pip
-        |||
-      }
+        |||,
+      },
     },
     // {
     //   name: 'Install Python',
@@ -198,7 +198,7 @@ local test_wheels_wsl_job = {
     {
       name: 'install package',
       shell: 'wsl-bash {0}',
-      run: 'python -m pip install dist/*.whl',
+      run: 'python3 -m pip install dist/*.whl',
     },
     {
       name: 'test package',

@@ -92,7 +92,7 @@ jobs:
           distribution: Ubuntu-22.04
           update: true
       - name: install package
-        run: python -m pip install dist/*.whl
+        run: python3 -m pip install dist/*.whl
         shell: wsl-bash {0}
       - name: test package
         run: |
