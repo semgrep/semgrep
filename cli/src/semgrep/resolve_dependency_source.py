@@ -10,6 +10,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -129,7 +130,17 @@ def lockfile_path_unless_manifest_only(
         raise TypeError(f"Unexpected dependency_source variant2: {type(ds)}")
 
 
+@dataclass
+class ResolveDependenciesRpcResult:
+    """The result of _resolve_dependencies_rpc"""
+
+    new_deps: Optional[List[out.ResolvedDependency]]
+    new_errors: Sequence[out.ScaResolutionError]
+    new_targets: List[Path]
+
+
 def _resolve_dependencies_rpc(
+    *,
     dep_src: Union[
         out.ManifestOnly,
         out.ManifestLockfile,
@@ -137,11 +148,7 @@ def _resolve_dependencies_rpc(
     ],
     download_dependency_source_code: bool,
     allow_local_builds: bool,
-) -> Tuple[
-    Optional[List[out.ResolvedDependency]],
-    Sequence[out.ScaResolutionError],
-    List[Path],
-]:
+) -> ResolveDependenciesRpcResult:
     """
     Handle the RPC call to resolve dependencies in ocaml
     """
@@ -153,12 +160,12 @@ def _resolve_dependencies_rpc(
         )
     except Exception as e:
         logger.verbose(f"RPC call failed: {e}")
-        return None, [], []
+        return ResolveDependenciesRpcResult(None, [], [])
 
     if response is None:
         # we failed to resolve somehow
         # TODO: handle this and generate an error
-        return None, [], []
+        return ResolveDependenciesRpcResult(None, [], [])
     if len(response) > 1:
         logger.warning(
             f"Too many responses from dependency resolution RPC. Expected 1, got {len(response)}"
@@ -174,13 +181,13 @@ def _resolve_dependencies_rpc(
             )
             for e_type in errors
         ]
-        return (
+        return ResolveDependenciesRpcResult(
             resolved_deps,
             wrapped_errors,
             [Path(lockfile_path_unless_manifest_only(dep_src).value)],
         )
     else:
-        # some error occured in resolution, track it
+        # some error occurred in resolution, track it
         wrapped_errors = (
             [
                 out.ScaResolutionError(
@@ -204,7 +211,7 @@ def _resolve_dependencies_rpc(
                 )
             ]
         )
-        return (None, wrapped_errors, [])
+        return ResolveDependenciesRpcResult(None, wrapped_errors, [])
 
 
 def _handle_manifest_only_source(
@@ -216,9 +223,14 @@ def _handle_manifest_only_source(
         f"Dynamically resolving manifest only path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
     )
 
-    new_deps, new_errors, new_targets = _resolve_dependencies_rpc(
-        dep_source, config.download_dependency_source_code, config.allow_local_builds
+    resolved_deps = _resolve_dependencies_rpc(
+        dep_src=dep_source,
+        download_dependency_source_code=config.download_dependency_source_code,
+        allow_local_builds=config.allow_local_builds,
     )
+    new_deps = resolved_deps.new_deps
+    new_errors = resolved_deps.new_errors
+    new_targets = resolved_deps.new_targets
 
     logger.verbose(
         f"Dynamic resolution result: {new_deps}, {new_errors}, {new_targets}"
@@ -330,28 +342,26 @@ def _handle_lockfile_source(
             f"Dynamically resolving path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
         )
 
-        (
-            new_deps,
-            new_errors,
-            new_targets,
-        ) = _resolve_dependencies_rpc(
-            dep_source, use_tr_ocaml_resolver, config.allow_local_builds
+        resolved_deps = _resolve_dependencies_rpc(
+            dep_src=dep_source,
+            download_dependency_source_code=use_tr_ocaml_resolver,
+            allow_local_builds=config.allow_local_builds,
         )
 
-        for error in new_errors:
+        for error in resolved_deps.new_errors:
             logger.verbose(f"Dynamic resolution RPC error: '{error}'")
 
-        if new_deps is not None:
+        if resolved_deps.new_deps is not None:
             # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
             return (
                 (
                     out.ResolutionMethod(out.LockfileParsing())
                     if use_nondynamic_ocaml_parsing
                     else out.ResolutionMethod(out.DynamicResolution()),
-                    new_deps,
+                    resolved_deps.new_deps,
                 ),
-                new_errors,
-                new_targets,
+                resolved_deps.new_errors,
+                resolved_deps.new_targets,
             )
     # if there is no parser or ecosystem for the lockfile, we can't resolve it
     # also skip resolving with python parsers is use_experimental_ocaml_parsers
@@ -367,12 +377,12 @@ def _handle_lockfile_source(
     )
 
     logger.verbose(f"Parsing {lockfile_path} and {manifest_path} with Python parser")
-    resolved_deps, parse_errors = parser(lockfile_path, manifest_path)
+    found_dependencies, parse_errors = parser(lockfile_path, manifest_path)
 
     return (
         (
             out.ResolutionMethod(out.LockfileParsing()),
-            [out.ResolvedDependency((fd, None)) for fd in resolved_deps],
+            [out.ResolvedDependency((fd, None)) for fd in found_dependencies],
         ),
         parse_errors,
         [lockfile_path],
