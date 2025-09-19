@@ -49,10 +49,10 @@ def test_handle_missing_parser_for_lockfile(mock_parsers_dict) -> None:
         dep_source, DependencyResolutionConfig(False, False, False, False)
     )
 
-    assert isinstance(result[0], out.UnresolvedReason)
-    assert result[0].value == out.UnresolvedUnsupported()
-    assert result[1] == []
-    assert result[2] == []
+    assert isinstance(result.deps, out.UnresolvedReason)
+    assert result.deps.value == out.UnresolvedUnsupported()
+    assert result.errors == []
+    assert result.targets == []
 
 
 @pytest.mark.quick
@@ -86,9 +86,9 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
         dep_source, DependencyResolutionConfig(False, False, False, False)
     )
 
-    assert result[0] == (out.ResolutionMethod(out.LockfileParsing()), [])
-    assert len(result[1]) == 1
-    assert str(result[1][0]) == str(
+    assert result.deps == (out.ResolutionMethod(out.LockfileParsing()), [])
+    assert len(result.errors) == 1
+    assert str(result.errors[0]) == str(
         out.ScaResolutionError(
             type_=out.ResolutionErrorKind(
                 value=out.ParseDependenciesFailed(value=str(KeyError("Oh No")))
@@ -96,4 +96,4 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
             dependency_source_file=out.Fpath("poetry.lock"),
         )
     )
-    assert result[2] == [PosixPath("poetry.lock")]
+    assert result.targets == [PosixPath("poetry.lock")]
