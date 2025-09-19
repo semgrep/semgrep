@@ -658,7 +658,10 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
     target_path = Path(target)
     # Parse
     parser: DependencyParser = LOCKFILE_NAME_TO_PARSER[target_path.name]
-    dependencies, error = parser(Path(target), None)  # no manifest for any of these
+    dependencies, error = parser(
+        lockfile_path=Path(target),
+        manifest_path=None,
+    )  # no manifest for any of these
 
     # The purpose of these tests is to ensure that parsers can handle a variety of lockfiles. As such,
     # they may contain invalid dependency graphs which can result in DependencyParserErrors. Since these
