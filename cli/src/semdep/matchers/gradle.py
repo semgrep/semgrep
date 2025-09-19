@@ -139,7 +139,7 @@ class GradleMatcher(SubprojectMatcher):
             if build_path is not None:
                 kind: Union[out.BuildGradle, out.BuildGradleKts] = (
                     out.BuildGradleKts()
-                    if build_path == "build.gradle.kts"
+                    if build_path.suffix == ".kts"
                     else out.BuildGradle()
                 )
                 # if both settings.gradle and build.gradle exist,
@@ -199,7 +199,7 @@ class GradleMatcher(SubprojectMatcher):
                 used_build_paths.add(first_build_path)
                 kind = (
                     out.BuildGradleKts()
-                    if first_build_path == "build.gradle.kts"
+                    if first_build_path.suffix == ".kts"
                     else out.BuildGradle()
                 )
                 manifest = out.Manifest(
@@ -238,7 +238,7 @@ class GradleMatcher(SubprojectMatcher):
 
             kind = (
                 out.BuildGradleKts()
-                if build_path == "build.gradle.kts"
+                if build_path.suffix == ".kts"
                 else out.BuildGradle()
             )
             # if we make it to here, we have decided that this build.gradle file defines a single-project
