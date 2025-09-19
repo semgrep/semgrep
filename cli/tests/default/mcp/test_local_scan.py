@@ -19,6 +19,7 @@ from tempfile import NamedTemporaryFile
 import pytest
 from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.types import TextContent
 
 
 @pytest.fixture
@@ -70,7 +71,9 @@ async def test_local_scan(streamable_server):
                 )
                 # We have results!
                 assert results is not None
-                content = json.loads(results.content[0].text)  # type: ignore
+                content_block = results.content[0]
+                assert isinstance(content_block, TextContent)
+                content = json.loads(content_block.text)
                 assert isinstance(content, dict)
                 assert len(content["paths"]["scanned"]) == 1
                 filename = content["paths"]["scanned"][0]
