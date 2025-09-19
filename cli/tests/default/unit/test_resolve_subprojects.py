@@ -21,6 +21,7 @@ from semdep.subproject_matchers import ExactLockfileManifestMatcher
 from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
+from semgrep.resolve_dependency_source import ResolveDependenciesRpcResult
 from semgrep.resolve_subprojects import find_subprojects
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.types import fake_targets_of_paths
@@ -212,7 +213,9 @@ def test_ptt_unconditionally_generates_dependency_graphs(
     lockfile_file.write("requests==2.25.1")
     lockfile_file.close()
 
-    mock_dynamic_resolve.return_value = [[], [], []]
+    mock_dynamic_resolve.return_value = ResolveDependenciesRpcResult(
+        new_deps=[], new_errors=[], new_targets=[]
+    )
     dep_source = out.DependencySource(
         out.ManifestLockfile(
             (
@@ -252,7 +255,9 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     lockfile_file.write("requests==2.25.1")
     lockfile_file.close()
 
-    mock_dynamic_resolve.return_value = [None, [], []]
+    mock_dynamic_resolve.return_value = ResolveDependenciesRpcResult(
+        new_deps=None, new_errors=[], new_targets=[]
+    )
     mock_parse_requirements.return_value = (
         [
             out.FoundDependency(
