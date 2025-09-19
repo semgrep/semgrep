@@ -86,8 +86,11 @@ class ConfigFile(NamedTuple):
 
 
 class ConfigType(Enum):
+    # e.g p/<packname>, supply-chain, ...
     REGISTRY = auto()
     SEMGREP_CLOUD_PLATFORM = auto()
+    # 3rd party config sites (e.g https://mywebsite.com/rules.yaml)
+    REMOTE = auto()
     LOCAL = auto()
 
 
@@ -109,12 +112,18 @@ class ConfigLoader:
         """
         state = get_state()
         self._project_url = project_url
-        self._origin = ConfigType.REGISTRY
+        self._origin = ConfigType.REMOTE
         self._supports_fallback_config = False
+
         if config_str == "r2c":
+            # Hardcoded Registry rule pack
             state.metrics.add_feature("config", "r2c")
+            state.metrics.is_using_registry = True
             self._config_path = "https://semgrep.dev/c/p/r2c"
+            self._origin = ConfigType.REGISTRY
         elif is_url(config_str):
+            # This could still be either a 3rd party REMOTE rule pack or a url
+            # to semgrep.dev
             state.metrics.add_feature("config", "url")
             self._config_path = config_str
         elif is_product_names(config_str):
@@ -124,18 +133,29 @@ class ConfigLoader:
             self._supports_fallback_config = True
         elif is_registry_id(config_str):
             state.metrics.add_feature("config", f"registry:prefix-{config_str[0]}")
+            state.metrics.is_using_registry = True
             self._config_path = registry_id_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
             state.metrics.add_feature("config", "auto")
+            state.metrics.is_using_registry = True
             self._config_path = f"{state.env.semgrep_url}/{AUTO_CONFIG_LOCATION}"
         else:
             state.metrics.add_feature("config", "local")
             self._origin = ConfigType.LOCAL
             self._config_path = str(Path(config_str).expanduser())
 
-        if self.is_registry_url():
+        # We still have to modify metrics metadata in case the config was a
+        # registry URL
+        # TODO: refactor and reshare logic with `app/session.py`
+        try:
+            netloc = urlsplit(config_str).netloc
+        except ValueError:
+            netloc = "invalid-url"
+
+        if netloc.endswith(".semgrep.dev") or netloc == "semgrep.dev":
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
+            self._origin = ConfigType.REGISTRY
 
     @classmethod
     def includes_remote_config(cls, configs: Sequence[str]) -> bool:
@@ -158,7 +178,7 @@ class ConfigLoader:
         it may be a path to a folders of configs, each of
         which produces a file
         """
-        if self._origin == ConfigType.REGISTRY:
+        if self._origin == ConfigType.REGISTRY or self._origin == ConfigType.REMOTE:
             return [self._download_config()]
         elif self._origin == ConfigType.SEMGREP_CLOUD_PLATFORM:
             return [self._fetch_semgrep_cloud_platform_scan_config()]
@@ -243,9 +263,6 @@ class ConfigLoader:
             )
         logger.debug(f"Done loading local config from {loc}")
         return config
-
-    def is_registry_url(self) -> bool:
-        return self._origin == ConfigType.REGISTRY
 
     def _project_metadata_for_standalone_scan(
         self, require_repo_name: bool
