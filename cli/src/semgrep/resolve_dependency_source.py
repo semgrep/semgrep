@@ -366,6 +366,7 @@ def _handle_lockfile_source(
         else None
     )
 
+    logger.verbose(f"Parsing {lockfile_path} and {manifest_path} with Python parser")
     resolved_deps, parse_errors = parser(lockfile_path, manifest_path)
 
     return (
