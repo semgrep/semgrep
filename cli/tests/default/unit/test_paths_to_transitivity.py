@@ -89,7 +89,10 @@ def test_child_construction(
     target_supports_path_to_transitivity: str,
     parser: DependencyParser,
 ):
-    dependencies, error = parser(Path(target_supports_path_to_transitivity), None)
+    dependencies, error = parser(
+        lockfile_path=Path(target_supports_path_to_transitivity),
+        manifest_path=None,
+    )
 
     """
     This might be weird but I wanted to create a simple test that people can reuse as we
