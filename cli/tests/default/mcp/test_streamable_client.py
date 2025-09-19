@@ -18,6 +18,7 @@ import time
 import pytest
 from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
+from mcp.types import TextContent
 
 
 @pytest.fixture
@@ -64,7 +65,9 @@ async def test_streamable_client_smoke(streamable_server):
             )
             # We have results!
             assert results is not None
-            content = json.loads(results.content[0].text)
+            content_block = results.content[0]
+            assert isinstance(content_block, TextContent)
+            content = json.loads(content_block.text)
             assert isinstance(content, dict)
             assert content["paths"]["scanned"] == ["hello_world.py"]
             print(json.dumps(content, indent=2))

@@ -16,6 +16,7 @@ import pytest
 from mcp import ClientSession
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.types import TextContent
 
 from semgrep.mcp.models import Finding
 
@@ -42,6 +43,7 @@ async def test_semgrep_findings_sca():
 
             # Validate findings against the model
             for content in results.content:
+                assert isinstance(content, TextContent)
                 Finding.model_validate_json(content.text)
 
 
@@ -67,5 +69,6 @@ async def test_semgrep_findings_sast():
 
             # Validate findings against the model
             for content in results.content:
+                assert isinstance(content, TextContent)
                 finding = Finding.model_validate_json(content.text)
                 print(finding)

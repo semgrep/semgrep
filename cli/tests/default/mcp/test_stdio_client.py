@@ -17,6 +17,8 @@ import pytest
 from mcp import ClientSession
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.types import TextContent
+from pydantic_core import Url
 
 
 def mk_server_params(port: int):
@@ -55,7 +57,7 @@ async def test_stdio_client(available_port):
 
             # Read a resource
             print("Reading resource")
-            content, _ = await session.read_resource("semgrep://rule/schema")
+            content, _ = await session.read_resource(Url("semgrep://rule/schema"))
 
             # Call a tool
             results = await session.call_tool(
@@ -71,7 +73,9 @@ async def test_stdio_client(available_port):
             )
             # We have results!
             assert results is not None
-            content = json.loads(results.content[0].text)
+            content_block = results.content[0]
+            assert isinstance(content_block, TextContent)
+            content = json.loads(content_block.text)
             assert isinstance(content, dict)
             assert content["paths"]["scanned"] == ["hello_world.py"]
             print(json.dumps(content, indent=2))
