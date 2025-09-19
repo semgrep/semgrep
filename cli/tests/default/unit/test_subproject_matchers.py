@@ -931,6 +931,27 @@ class TestGradleMatcher:
                 ],
                 [],
             ),
+            (
+                # a very simple project with only a build.gradle.kts file
+                [
+                    Path("build.gradle.kts"),
+                ],
+                [
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    kind=out.ManifestKind(value=out.BuildGradleKts()),
+                                    path=out.Fpath("build.gradle.kts"),
+                                )
+                            ),
+                        ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
+                    ),
+                ],
+                [],
+            ),
         ],
     )
     @pytest.mark.quick
