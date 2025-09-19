@@ -1,0 +1,2 @@
+We now filter `SEMGREP_APP_TOKEN` from any request made to non semgrep URLs
+passed to `-f/-c/--config` during config/rules fetching.
