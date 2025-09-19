@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any
 from typing import Optional
 from typing import Set
-from urllib.parse import urlsplit
 
 import requests
 import urllib3
@@ -26,6 +25,7 @@ from attrs import field
 
 from semgrep import __VERSION__
 from semgrep import tracing
+from semgrep.util import is_semgrep_url
 
 
 @define
@@ -207,16 +207,7 @@ class AppSession(requests.Session):
         #
         # TODO: this logic is copied from `config_resolver.py`, we should
         # refactor such that the logic is shared
-        try:
-            url_netloc = urlsplit(url).netloc
-        except ValueError:
-            # This shouldn't happen assuming that the passed URL is a valid URL
-            # but we will still handle error here
-            url_netloc = "invalid-url"
-
-        if self.token and (
-            url_netloc.endswith(".semgrep.dev") or url_netloc == "semgrep.dev"
-        ):
+        if self.token and is_semgrep_url(url):
             kwargs["headers"].setdefault("Authorization", f"Bearer {self.token}")
 
         error_handler = state.error_handler
