@@ -201,6 +201,8 @@ def test_find_subprojects(
     )
 
 
+# Please don't use @patch because it can't be typechecked and makes refactoring
+# particularly tricky.
 @pytest.mark.quick
 @patch("semgrep.resolve_dependency_source._resolve_dependencies_rpc")
 def test_ptt_unconditionally_generates_dependency_graphs(
@@ -231,17 +233,19 @@ def test_ptt_unconditionally_generates_dependency_graphs(
         ),
     )
 
-    deps, _, _ = resolve_dependency_source(
+    res = resolve_dependency_source(
         dep_source, DependencyResolutionConfig(True, True, True, False)
     )
-    assert not isinstance(deps, out.UnresolvedReason)
-    assert deps[0] == out.ResolutionMethod(out.DynamicResolution())
+    assert not isinstance(res.deps, out.UnresolvedReason)
+    assert res.deps[0] == out.ResolutionMethod(out.DynamicResolution())
 
     mock_dynamic_resolve.mock_assert_called_once_with(
         Path("requirements.txt"), out.ManifestKind(value=out.RequirementsIn())
     )
 
 
+# Please don't use @patch because it can't be typechecked and makes refactoring
+# particularly tricky.
 @pytest.mark.quick
 @patch("semdep.parsers.requirements.parse_requirements")
 @patch("semgrep.resolve_dependency_source._resolve_dependencies_rpc")
@@ -285,9 +289,10 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
             )
         ),
     )
-    deps, _, _ = resolve_dependency_source(
+    res = resolve_dependency_source(
         dep_source, DependencyResolutionConfig(True, True, True, False)
     )
+    deps = res.deps
     assert not isinstance(deps, out.UnresolvedReason)
     assert deps[0] == out.ResolutionMethod(out.LockfileParsing())
     assert len(deps[1]) == 1
