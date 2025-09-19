@@ -296,10 +296,13 @@ def resolve_subprojects(
                     )
                 )
                 continue
-            resolved_info, errors, targets = resolve_dependency_source(
+            res = resolve_dependency_source(
                 subproject.dependency_source,
                 config,
             )
+            resolved_info = res.deps
+            errors = res.errors
+            targets = res.targets
             dependency_targets.extend(targets)
 
             if not isinstance(resolved_info, out.UnresolvedReason):
