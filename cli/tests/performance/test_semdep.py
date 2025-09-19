@@ -60,7 +60,7 @@ def test_dependency_aware_timing(
     start = time()
 
     lockfile_path = Path(f"targets_perf_sca/{file_size}/{target}")
-    _, error = parser(lockfile_path, None)
+    _, error = parser(lockfile_path=lockfile_path, manifest_path=None)
 
     end = time()
 

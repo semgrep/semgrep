@@ -392,7 +392,9 @@ def _handle_lockfile_source(
     )
 
     logger.verbose(f"Parsing {lockfile_path} and {manifest_path} with Python parser")
-    found_dependencies, parse_errors = parser(lockfile_path, manifest_path)
+    found_dependencies, parse_errors = parser(
+        lockfile_path=lockfile_path, manifest_path=manifest_path
+    )
 
     return DependencyResolutionResult(
         deps=(
