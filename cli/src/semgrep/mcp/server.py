@@ -1062,7 +1062,7 @@ async def get_semgrep_rule_yaml(rule_id: str = RULE_ID_FIELD) -> str:
         ) from e
 
 
-async def health(request: Request) -> JSONResponse:  # type: ignore
+async def health(request: Request) -> JSONResponse:
     """Health check endpoint"""
     return JSONResponse({"status": "ok", "version": __VERSION__})
 
