@@ -1,9 +1,0 @@
-from typing import Any
-
-class FastMCP:
-    def __init__(
-        self, name: str | None = None, instructions: str | None = None, **kwargs: Any
-    ) -> None: ...
-    def __getattr__(self, name: str) -> Any: ...
-
-def __getattr__(name: str) -> Any: ...
