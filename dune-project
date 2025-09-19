@@ -246,7 +246,7 @@ a few other projects developed at r2c.
     ; we're currently "vendoring" pcre2 in libs/pcre2
     ; so no need to get opam to install it
     ;(pcre2 (>= "7.5.3" ))
-    (ppxlib (>= "0.25.0"))
+    (ppxlib (and (>= "0.25.0") (< "0.36.0")))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
     (digestif (>= "1.0.0"))
