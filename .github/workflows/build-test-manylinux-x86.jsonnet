@@ -43,7 +43,6 @@ local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   container: manylinux_container,
   steps: actions.checkout_with_submodules() + [
-    // TODO: use semgrep.default_python_version instead of hardcoding 3.10 below
     // coupling: if you modify the python version, update the cp310-cp310 further below
     {
       run: |||
