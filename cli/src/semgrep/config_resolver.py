@@ -30,7 +30,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from urllib.parse import urlencode
-from urllib.parse import urlsplit
 
 import click
 import requests
@@ -65,6 +64,7 @@ from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
 from semgrep.util import is_config_suffix
 from semgrep.util import is_rules
+from semgrep.util import is_semgrep_url
 from semgrep.util import is_url
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -146,13 +146,7 @@ class ConfigLoader:
 
         # We still have to modify metrics metadata in case the config was a
         # registry URL
-        # TODO: refactor and reshare logic with `app/session.py`
-        try:
-            netloc = urlsplit(config_str).netloc
-        except ValueError:
-            netloc = "invalid-url"
-
-        if netloc.endswith(".semgrep.dev") or netloc == "semgrep.dev":
+        if is_semgrep_url(config_str):
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
             self._origin = ConfigType.REGISTRY
@@ -488,17 +482,9 @@ def parse_config_files(
                 # want to avoid running postprocessors from untrusted remote
                 # sources (unless a local flag disabiling the relevant check is
                 # used).
-                try:
-                    remote_rule_netloc = urlsplit(config_path).netloc
-                except ValueError:
-                    remote_rule_netloc = "invalid-url"
                 config_id = (
                     REGISTRY_CONFIG_ID
-                    if is_url(config_path)
-                    and (
-                        remote_rule_netloc.endswith(".semgrep.dev")
-                        or remote_rule_netloc == "semgrep.dev"
-                    )
+                    if is_semgrep_url(config_path)
                     else NON_REGISTRY_REMOTE_CONFIG_ID
                 )
                 filename = f"{config_path[:20]}..."

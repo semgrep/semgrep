@@ -30,6 +30,7 @@ from typing import Sequence
 from typing import TypeVar
 from typing import Union
 from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
 import click
 
@@ -61,6 +62,16 @@ def is_url(url: str) -> bool:
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+
+
+def is_semgrep_url(url: str) -> bool:
+    try:
+        netloc = urlsplit(url).netloc
+        return is_url(url) and (
+            netloc.endswith(".semgrep.dev") or netloc == "semgrep.dev"
+        )
     except ValueError:
         return False
 
