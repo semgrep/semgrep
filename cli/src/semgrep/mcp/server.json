@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.semgrep/semgrep",
+  "description": "MCP server exposing Semgrep to scan code for security issues and return findings.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/semgrep/semgrep",
+    "source": "github",
+    "id": "227803815",
+    "subfolder": "cli/src/semgrep/mcp"
+  },
+  "version": "1.0.0",
+  "website_url": "https://semgrep.dev",
+  "packages": [
+    {
+      "registry_type": "pypi",
+      "registry_base_url": "https://pypi.org",
+      "identifier": "semgrep",
+      "version": "1.137.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "package_arguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ],
+      "environment_variables": [
+        {
+          "description": "Optional API token to interact with Semgrep Cloud Platform",
+          "is_required": false,
+          "format": "string",
+          "is_secret": true,
+          "name": "SEMGREP_APP_TOKEN"
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.semgrep.ai/mcp"
+    }
+  ]
+}
