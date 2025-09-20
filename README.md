@@ -49,7 +49,7 @@ Semgrep is semantic grep for code. While running `grep "2"` would only match the
 Note that in security contexts, Semgrep Community Edition will miss many true positives as it can only analyze code within the boundaries of a single function or file. If you want to use Semgrep for security purposes (**SAST**, **SCA**, or **secrets scanning**), the Semgrep AppSec Platform is strongly recommended since it adds the following critical capabilities:
 
 1. Improved core analysis capabilities (cross-file, cross-function, data-flow reachability) that greatly reduce false positives by 25% and increase detected true positives by 250%
-2. Contextual post-processing of findings with Semgrep Assistant (AI) to further reduce noise by [~20%](https://a.storyblok.com/f/151984/x/2d12dc0223/whitepaper_-ai-powered-appsec-engineer-automate.pdf?cv=1728584410408).  In addition, Assistant enriches findings with tailored, step-by-step remediation guidance that humans find actionable >80% of the time.
+2. Contextual post-processing of findings with Semgrep Assistant (AI) to further reduce noise by [~20%](https://a.storyblok.com/f/151984/x/2d12dc0223/whitepaper_-ai-powered-appsec-engineer-automate.pdf?cv=1728584410408). In addition, Assistant enriches findings with tailored, step-by-step remediation guidance that humans find actionable >80% of the time.
 3. Customizable policies and seamless integration into developer workflows, giving security teams granular control over where, when, and how different findings are presented to developers (IDE, PR comment, etc.)
 
 The Semgrep AppSec Platform works out-of-the-box with 20000+ proprietary rules across SAST, SCA, and secrets. Pro rules are written and maintained by the Semgrep security research team and are highly accurate, meaning AppSec teams can feel confident bringing findings directly to developers without slowing them down.
@@ -100,28 +100,28 @@ If there are any issues, <a href="https://go.semgrep.dev/slack" target="_blank">
 
 1. Install Semgrep CLI
 
-    ```
-    # For macOS
-    $ brew install semgrep
+   ```
+   # For macOS
+   $ brew install semgrep
 
-    # For Ubuntu/WSL/Linux/macOS
-    $ python3 -m pip install semgrep
+   # For Ubuntu/WSL/Linux/macOS
+   $ python3 -m pip install semgrep
 
-    # To try Semgrep without installation run via Docker
-    $ docker run -it -v "${PWD}:/src" semgrep/semgrep semgrep login
-    $ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci
-    ```
+   # To try Semgrep without installation run via Docker
+   $ docker run -it -v "${PWD}:/src" semgrep/semgrep semgrep login
+   $ docker run -e SEMGREP_APP_TOKEN=<TOKEN> --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci
+   ```
 
 1. Run `semgrep login` to create your account and login to Semgrep. This step is optional, but logging into Semgrep gets you access to:
 
-    - [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain?utm_medium=readme&utm_source=github&utm_content=ssc-product): A dependency scanner that detects reachable vulnerabilities in third party libraries
-    - [Semgrep Code's Pro rules](https://semgrep.dev/products/semgrep-code?utm_medium=readme&utm_source=github&utm_content=code-pro-rules): 600+ high confidence rules written by Semgrep's security research team
-    - [Semgrep Code's Pro engine](https://semgrep.dev/products/pro-engine?utm_medium=readme&utm_source=github&utm_content=pro-engine): An advanced code analysis engine, designed to detect complex vulnerabilities, and reduce false positives
+   - [Semgrep Supply Chain](https://semgrep.dev/products/semgrep-supply-chain?utm_medium=readme&utm_source=github&utm_content=ssc-product): A dependency scanner that detects reachable vulnerabilities in third party libraries
+   - [Semgrep Code's Pro rules](https://semgrep.dev/products/semgrep-code?utm_medium=readme&utm_source=github&utm_content=code-pro-rules): 600+ high confidence rules written by Semgrep's security research team
+   - [Semgrep Code's Pro engine](https://semgrep.dev/products/pro-engine?utm_medium=readme&utm_source=github&utm_content=pro-engine): An advanced code analysis engine, designed to detect complex vulnerabilities, and reduce false positives
 
 1. Go to your app's root directory and run `semgrep ci`. This will scan your project to check for vulnerabilities in your source code and its dependencies.
 
 1. Try writing your own query interactively with `-e`. For example, a check for Python == where the left and right hand sides are the same (potentially a bug):
-    `$ semgrep -e '$X == $X' --lang=py path/to/src`
+   `$ semgrep -e '$X == $X' --lang=py path/to/src`
 
 ### Semgrep Ecosystem
 
@@ -129,9 +129,9 @@ The Semgrep ecosystem includes the following:
 
 - [Semgrep Community Edition](https://semgrep.dev/docs/cli-reference/) - The open-source program analysis engine at the heart of everything. Suitable for ad-hoc use cases with a high tolerance for false positives - think consultants, security auditors, or pentesters.
 
-- [Semgrep AppSec Platform](https://semgrep.dev/login?utm_medium=readme&utm_source=github&utm_content=appsec-platform) - Easily orchestrate and scale SAST, SCA, and Secrets scanning across an organization, with no risk of overwhelming developers.  Customize which findings developers see, where they see them, and integrate with CI providers like GitHub, GitLab, CircleCI, and more. Includes both free and paid tiers.
+- [Semgrep AppSec Platform](https://semgrep.dev/login?utm_medium=readme&utm_source=github&utm_content=appsec-platform) - Easily orchestrate and scale SAST, SCA, and Secrets scanning across an organization, with no risk of overwhelming developers. Customize which findings developers see, where they see them, and integrate with CI providers like GitHub, GitLab, CircleCI, and more. Includes both free and paid tiers.
 
-  - [Semgrep Code (SAST)](https://semgrep.dev/products/semgrep-code?utm_medium=readme&utm_source=github&utm_content=semgrep-code) - Make real progress on your vulnerability backlog with SAST that minimizes noise and empowers developers to quickly fix issues on their own, even if they have no security knowledge. Easy to deploy secure guardrails and tailored, step-by-step remediation guidance mean developers actually fix issues since they don't feel slowed down.  
+  - [Semgrep Code (SAST)](https://semgrep.dev/products/semgrep-code?utm_medium=readme&utm_source=github&utm_content=semgrep-code) - Make real progress on your vulnerability backlog with SAST that minimizes noise and empowers developers to quickly fix issues on their own, even if they have no security knowledge. Easy to deploy secure guardrails and tailored, step-by-step remediation guidance mean developers actually fix issues since they don't feel slowed down.
 
   - [Semgrep Supply Chain (SSC)](https://semgrep.dev/products/semgrep-supply-chain?utm_medium=readme&utm_source=github&utm_content=ssc) - A high-signal dependency scanner that detects reachable vulnerabilities in open source third-party libraries and functions.
 
@@ -218,3 +218,7 @@ $ python3 -m pip install --upgrade semgrep
 # Using Docker
 $ docker pull semgrep/semgrep:latest
 ```
+
+### MCP metadata
+
+mcp-name: io.github.semgrep/semgrep
