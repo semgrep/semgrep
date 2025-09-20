@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
-  "name": "io.github.semgrep/semgrep",
+  "name": "ai.semgrep/semgrep",
   "description": "MCP server exposing Semgrep to scan code for security issues and return findings.",
   "status": "active",
   "repository": {
