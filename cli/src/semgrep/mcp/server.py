@@ -931,10 +931,8 @@ def setup_semgrep_mcp() -> str:
     prompt_template = """
     You are Cursor automations. Do the following in order and confirm each step:
 
-    1) Install and authenticate Semgrep:
-    - Check if Semgrep is installed by running `semgrep --version`.
-    - If Semgrep is not installed, install it by running `brew install semgrep`.
-    - Once Semgrep is installed, run non-interactively:
+    1) Authenticate Semgrep and install Semgrep Pro:
+    - Run non-interactively:
     `semgrep login && semgrep install-semgrep-pro || true`
 
     2) Add a Cursor rule file at `.cursor/rules/semgrep.mdc` with the following exact content:
