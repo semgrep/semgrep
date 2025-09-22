@@ -46,14 +46,14 @@ class SemgrepContext:
 
     is_hosted: bool
     pro_engine_available: bool
-    use_rpc: bool
+    use_rpc: bool | None
 
     def __init__(
         self,
         top_level_span: trace.Span | None,
         is_hosted: bool,
         pro_engine_available: bool,
-        use_rpc: bool,
+        use_rpc: bool | None,
         process: asyncio.subprocess.Process | None = None,
     ) -> None:
         self.process = process
@@ -205,6 +205,15 @@ async def run_semgrep_process_sync(
     return process
 
 
+async def spawn_semgrep_daemon(
+    top_level_span: trace.Span | None,
+) -> asyncio.subprocess.Process:
+    logger.info("Spawning `semgrep mcp` daemon...")
+    return await run_semgrep_process_async(
+        top_level_span, ["mcp", "--experimental", "--pro"]
+    )
+
+
 async def mk_context(top_level_span: trace.Span | None) -> SemgrepContext:
     """
     Runs the semgrep daemon (`semgrep mcp`) if:
@@ -218,45 +227,58 @@ async def mk_context(top_level_span: trace.Span | None) -> SemgrepContext:
     process = None
     pro_engine_available = True
 
-    use_rpc = os.environ.get("USE_SEMGREP_RPC", "true").lower() == "true"
+    # TODO: Should rename this env var if we ever use the daemon for non-strictly RPC scanning
+    use_rpc_value = os.environ.get("USE_SEMGREP_RPC", None)
 
     resp = await run_semgrep_process_sync(top_level_span, ["--pro", "--version"])
 
-    # The user doesn't seem to have the Pro Engine installed.
+    # First, let's handle the "fatal" reasons why we cannot run the daemon.
+    # This means, regardless of the user's choice, we simply could not run the daemon
+    # even if we wanted to.
+
+    # 1. The user doesn't seem to have the Pro Engine installed.
     # That's fine, let's just run the free engine, without the
-    # `semgrep mcp` backend.
+    # daemon-based backend.
     if resp.returncode != 0:
         logger.warning(
             "User doesn't have the Pro Engine installed, not running `semgrep mcp` daemon..."
         )
         pro_engine_available = False
-    elif not use_rpc:
-        logger.info(
-            "USE_SEMGREP_RPC env var is false, not running `semgrep mcp` daemon..."
-        )
-    elif is_hosted():
-        logger.warning(
-            """
-            The `semgrep mcp` daemon is only available when the MCP server is ran locally.
-            User is using the hosted version of the MCP server, not running `semgrep mcp` daemon...
-            """
-        )
+    # 2. The user doesn't have a valid app token.
+    # In which case, we don't run the daemon, because we can't properly authenticate the user
+    # to fetch their deployment details.
     elif not get_semgrep_app_token():
         logger.warning(
             "No SEMGREP_APP_TOKEN found, not running `semgrep mcp` daemon..."
         )
     else:
-        logger.info("Spawning `semgrep mcp` daemon...")
-        process = await run_semgrep_process_async(
-            top_level_span, ["mcp", "--experimental", "--pro"]
-        )
-
+        # Otherwise, we defer to the value of `USE_SEMGREP_RPC`.
+        # If the user specifies "true" or "false", that's that.
+        # Otherwise, we defer to whether the user is running the MCP server locally or hosted.
+        # Importantly, this means the user can still do daemon-based scanning remotely, if they
+        # pass `USE_SEMGREP_RPC=true` and `SEMGREP_IS_HOSTED=true`!
+        if use_rpc_value is None:
+            if is_hosted():
+                logger.warning(
+                    """
+                    The `semgrep mcp` daemon is only available when the MCP server is ran locally.
+                    User is using the hosted version of the MCP server, not running `semgrep mcp` daemon...
+                    """
+                )
+            else:
+                process = await spawn_semgrep_daemon(top_level_span)
+        elif use_rpc_value.lower() == "true":
+            process = await spawn_semgrep_daemon(top_level_span)
+        elif use_rpc_value.lower() == "false":
+            logger.info(
+                f"USE_SEMGREP_RPC env var is {use_rpc_value}, not running `semgrep mcp` daemon..."
+            )
     return SemgrepContext(
         top_level_span=top_level_span,
         is_hosted=is_hosted(),
         pro_engine_available=pro_engine_available,
         process=process,
-        use_rpc=use_rpc,
+        use_rpc=None if use_rpc_value is None else use_rpc_value.lower() == "true",
     )
 
 
