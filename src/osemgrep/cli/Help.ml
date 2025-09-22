@@ -89,4 +89,5 @@ let print_semgrep_dashdash_help (stdout : Cap.Console.stdout) =
   @{<cyan>show@}                 Show various types of information
   @{<cyan>test@}                 Test the rules (EXPERIMENTAL improvements over scan --test)
   @{<cyan>validate@}             Validate the rules (EXPERIMENTAL improvements over scan --validate)
+  @{<cyan>mcp@}                  Start the Semgrep MCP server
 |}
