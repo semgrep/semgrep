@@ -100,7 +100,7 @@ repos:
           # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 
           # some packages ship with type definitions
-          - attrs~=21.3
+          - attrs>=21.3
           # click 8.1.4's new decorator type hints don't seem to work well
           - click<8.1.4
           - defusedxml~=0.7.1
@@ -131,6 +131,7 @@ repos:
           - appdirs
           - pytest
           - pytest-mock
+          - mcp==1.12.2
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
