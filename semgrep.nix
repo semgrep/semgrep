@@ -117,6 +117,12 @@ let
           # ocamlfind = "1.9.8";
           baseQuery = {
             ocaml-base-compiler = ocamlVersion;
+
+            # ppxlib 0.36 breaks our PPX code; once ppx_tracing.ml and
+            # ppx_profiling.ml are updated, we'll need to remove this
+            # (which will be indicated by a compile error involving
+            # `Pexp_function` in both files).
+            ppxlib = "0.35.0";
           };
           resolveArgs = {
             # speeds up so we don't get a solver timeout
