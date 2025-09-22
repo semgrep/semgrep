@@ -306,6 +306,9 @@ def _handle_lockfile_source(
     config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for lockfile-based sources."""
+    logger.verbose(
+        f"\nResolving dependencies for lockfile-based subproject {dep_source.to_json()}"
+    )
     lockfile = (
         dep_source.value
         if isinstance(dep_source, out.LockfileOnly)
@@ -336,6 +339,7 @@ def _handle_lockfile_source(
         and (manifest_kind, lockfile_kind) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
     )
 
+    # TODO: how to use TR in OCaml without dynamic dep resolution?
     use_tr_ocaml_resolver = (
         config.download_dependency_source_code
         and config.allow_local_builds
@@ -349,10 +353,19 @@ def _handle_lockfile_source(
     resolve_with_ocaml = (
         use_nondynamic_ocaml_parsing or use_dynamic_resolution or use_tr_ocaml_resolver
     )
+    # Log the condition that leads us to use the OCaml implementation (RPC):
+    if use_nondynamic_ocaml_parsing:
+        logger.verbose(f"Using OCaml lockfile/manifest parsing")
+    if use_dynamic_resolution:
+        logger.verbose(f"Using dynamic dependency resolution")
+    if use_tr_ocaml_resolver:
+        logger.verbose(
+            f"Using OCaml implementation for transitive reachability analysis"
+        )
 
     if resolve_with_ocaml:
         logger.verbose(
-            f"Dynamically resolving path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
+            f"Resolving path(s) via RPC to OCaml implementation: {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
         )
         resolved_deps = _resolve_dependencies_rpc(
             dep_src=dep_source,
@@ -360,7 +373,7 @@ def _handle_lockfile_source(
             allow_local_builds=config.allow_local_builds,
         )
         for error in resolved_deps.new_errors:
-            logger.verbose(f"Dynamic resolution RPC error: '{error}'")
+            logger.verbose(f"RPC error: '{error}'")
 
         if resolved_deps.new_deps is not None:
             # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
@@ -374,6 +387,8 @@ def _handle_lockfile_source(
                 errors=resolved_deps.new_errors,
                 targets=resolved_deps.new_targets,
             )
+        else:
+            logger.verbose(f"Falling back to Python implementation")
     # if there is no parser or ecosystem for the lockfile, we can't resolve it
     # also skip resolving with python parsers is use_experimental_ocaml_parsers
     # is enabled, since this flag means that _only_ ocaml parsers should be used
