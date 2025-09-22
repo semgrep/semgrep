@@ -20,3 +20,4 @@
   [36mshow[39m                 Show various types of information
   [36mtest[39m                 Test the rules (EXPERIMENTAL improvements over scan --test)
   [36mvalidate[39m             Validate the rules (EXPERIMENTAL improvements over scan --validate)
+  [36mmcp[39m                  Start the Semgrep MCP server
