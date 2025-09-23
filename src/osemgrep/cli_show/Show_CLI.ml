@@ -84,9 +84,11 @@ and show_kind =
    * accessible also as 'semgrep scan --dump-command-for-core' (or just '-d')
    * LATER: get rid of it *)
   | DumpCommandForCore
+  | FilePrefilterOfRules of Fpath.t
   (* pro-only commands *)
   | Debug of debug_settings
   | DumpLockfile of Fpath.t (* lockfile *) * Fpath.t option (* manifest *)
+  | ProjectPrefilterOfRules of Fpath.t
 [@@deriving show]
 
 (*************************************************************************)
@@ -392,6 +394,37 @@ Requires --experimental.
   in
   Cmd.v info term
 
+let file_prefilter_of_rules_cmd =
+  let doc = "Show the file-level prefilters generated for a set of rules" in
+  let file_arg =
+    Arg.(required (pos 0 (some string) None (info [] ~docv:"FILE")))
+  in
+  let info = Cmd.info "file-prefilter" ~doc in
+  let term =
+    Term.(
+      const (fun file common json ->
+          { common; json; show_kind = FilePrefilterOfRules (Fpath.v file) })
+      $ file_arg $ CLI_common.o_common $ o_json)
+  in
+  Cmd.v info term
+
+let project_prefilter_of_rules_cmd =
+  let doc =
+    "Show the project-level prefilters generated for a set of rules (Pro \
+     engine only)"
+  in
+  let file_arg =
+    Arg.(required (pos 0 (some string) None (info [] ~docv:"FILE")))
+  in
+  let info = Cmd.info "project-prefilter" ~doc in
+  let term =
+    Term.(
+      const (fun file common json ->
+          { common; json; show_kind = ProjectPrefilterOfRules (Fpath.v file) })
+      $ file_arg $ CLI_common.o_common $ o_json)
+  in
+  Cmd.v info term
+
 (*************************************************************************)
 (* Main command *)
 (*************************************************************************)
@@ -442,6 +475,8 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
         dump_lockfile_cmd;
         project_root_cmd;
         resources_cmd;
+        file_prefilter_of_rules_cmd;
+        project_prefilter_of_rules_cmd;
       ]
   in
   CLI_common.eval_value ~argv group

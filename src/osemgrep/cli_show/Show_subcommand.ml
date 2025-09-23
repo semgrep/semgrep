@@ -242,10 +242,37 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
                  print (spf "Target = %s" (Target.show tgt)));
           Exit_code.ok ~__LOC__)
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
+  | FilePrefilterOfRules file -> (
+      match Parse_rule.parse file with
+      | Ok rules ->
+          let xs =
+            rules
+            |> List_.map (fun r ->
+                   let filter = Prefiltering.File.of_rule ~interfile:false r in
+                   let filter_atd =
+                     Option.map Prefiltering.File.to_semgrep_formula filter
+                   in
+                   let id = r.Rule.id |> fst in
+                   {
+                     Prefiltering.Semgrep_prefilter_t.rule_id =
+                       Rule_ID.to_string id;
+                     filter = filter_atd;
+                   })
+          in
+          let json = Prefiltering.Semgrep_prefilter_j.string_of_prefilters xs in
+          print json;
+          Exit_code.ok ~__LOC__
+      | Error s ->
+          Logs.err (fun m -> m "Parse error: %s" (Rule_error.string_of_error s));
+          Exit_code.invalid_pattern ~__LOC__)
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"
   | Debug _ -> failwith "TODO: CE-only show debug not implemented yet"
   | DumpLockfile _ -> failwith "this subcommand requires semgrep-pro"
+  | ProjectPrefilterOfRules _file ->
+      failwith
+        "'semgrep show project-prefilter-of-rules' is only available in the \
+         Pro engine."
 
 (*****************************************************************************)
 (* Entry point *)

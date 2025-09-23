@@ -43,9 +43,11 @@ and show_kind =
       Scanning_root.t * Find_targets.conf * Rules_config.config_string option
   | DumpEnginePath of bool (* pro = true *)
   | DumpCommandForCore
+  | FilePrefilterOfRules of Fpath.t
   (* pro-only commands *)
   | Debug of debug_settings  (** Open an interactive debugging view. *)
   | DumpLockfile of Fpath.t (* lockfile *) * Fpath.t option (* manifest *)
+  | ProjectPrefilterOfRules of Fpath.t
 
 and debug_settings = {
   output_dir : Fpath.t;
