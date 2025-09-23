@@ -4,7 +4,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-# testing & linting packages
 appdirs = "*"
 mypy = "==0.931"
 pytest = "*"
@@ -12,21 +11,12 @@ pytest-snapshot = "*"
 pytest-xdist = "*"
 tox = "*"
 requests-mock = "*"
-# versions must be manually synced:
-# - cli/setup.py lists dependencies
-# - cli/Pipfile lists type hint packages for dev env
-# - .pre-commit-config.yaml's mypy hooks also list type hint packages
-# type hints
 pypi-parker = "*"
 pytest-freezer = "*"
 pytest-mock = "*"
 pytest-rerunfailures = "*"
-# Both of these are needed for MCP tests.
-# The former is for running `async def` tests whatsoever, the latter for
-# a runtime dependency of `pytest-asyncio`.
 pytest-asyncio = "*"
 backports-asyncio-runner = {version="==1.2.0", markers="python_version < '3.11'"}
-# for pytest --splits and --group
 pytest-split = "*"
 types-appdirs = "*"
 types-colorama = "~=0.4.0"
@@ -36,17 +26,6 @@ types-jsonschema = "==4.6.0"
 types-python-dateutil = "*"
 types-requests = "*"
 types-setuptools = "*"
-# pipenv does not support multiple python versions, but the
-# dependencies of jsonschema differ from < 3.8 to >= 3.8. Therefore we just
-# rely on these directly for the dev environment so that an entry for these is
-# always generated for the lockfile, regardless of the local version of python.
-# If we change to Poetry or another system which allows multiple version of
-# python these could likely be removed.
-#
-# Sourced from
-# <https://github.com/python-jsonschema/jsonschema/blob/afc22f09e74d696ab00be8a711bbc5c2a15327b7/pyproject.toml#L39-L41>
-#
-# These _should not_ be added to setup.py
 importlib_metadata = "*"
 importlib_resources = ">=1.4.0"
 typing_extensions = "*"
@@ -58,5 +37,10 @@ opentelemetry-api = "~=1.37.0"
 opentelemetry-sdk = "~=1.37.0"
 opentelemetry-exporter-otlp-proto-http = "~=1.37.0"
 opentelemetry-instrumentation-requests = "~=0.58b0"
+# 0.2.13 is broken on macos
+# https://sourceforge.net/p/ruamel-yaml-clib/tickets/47/
+# 0.2.14 is broken on linux
+# https://sourceforge.net/p/ruamel-yaml-clib/tickets/49/
+"ruamel.yaml.clib" = "==0.2.12"
 pywin32 = { version = "==311", markers = "platform_system == 'Windows'" }
 semgrep = {editable = true, path = "."}
