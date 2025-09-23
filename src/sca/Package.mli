@@ -72,7 +72,7 @@ type version_constraint = private string [@@deriving show, eq, yojson]
 (** A formula specifying version constraints. Its syntax depends on the
     package manager.
     In yarn lockfiles and NPM manifests, it's something like "^1.1.0",
-    "~1.1.0", "*", etc.
+    "~1.1.0", "*", ">= 2.1.2 < 3.0.0", etc.
     This can also be a single version as in "1.1.0". Those strings
     usually appear in manifests.
 *)
