@@ -119,8 +119,8 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
         Engine_metrics.Prefilter_metrics.record_rules_processed
           ~analyzer:xtarget.analyzer num_rules_with_prefilters;
         let profiling =
-          Core_quick_profiling.add_rules_with_file_prefilters profiling
-            num_rules_with_prefilters
+          Core_quick_profiling.add_rules_with_file_prefilters
+            num_rules_with_prefilters profiling
         in
         let relevant_filtered, irrelevant_filtered =
           let rules, prefilters = List_.split rules_with_prefilters in
@@ -183,8 +183,9 @@ let group_rules xconf rules xtarget profiling =
     |> Assoc.group_assoc_bykey_eff |> List_.map snd
   in
   let profiling =
-    Core_quick_profiling.add_rules_selected profiling
+    Core_quick_profiling.add_rules_selected
       (List.length relevant_taint_rules + List.length relevant_nontaint_rules)
+      profiling
   in
   ( relevant_taint_rules_groups,
     relevant_nontaint_rules,
@@ -254,9 +255,9 @@ let check ~matches_hook ~(timeout : timeout_config option)
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
 
-  let profiling = Core_quick_profiling.zero in
   let profiling =
-    Core_quick_profiling.add_rules profiling (List.length rules)
+    Core_quick_profiling.zero
+    |> Core_quick_profiling.add_rules (List.length rules)
   in
   let per_rule_boilerplate_fn = per_rule_boilerplate_fn timeout file in
 
@@ -334,7 +335,7 @@ let check ~matches_hook ~(timeout : timeout_config option)
    * intermediate match_result).
    *)
   let profiling =
-    Core_quick_profiling.add_rules_matched profiling (List.length res_total)
+    Core_quick_profiling.add_rules_matched (List.length res_total) profiling
   in
   let res =
     RP.collate_rule_results xtarget.path.internal_path_to_content res_total

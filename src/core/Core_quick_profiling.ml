@@ -205,7 +205,7 @@ let add_file_level_time time qprof =
       };
   }
 
-let add_rules qprof n =
+let add_rules n qprof =
   {
     qprof with
     prefiltering_stats =
@@ -215,7 +215,7 @@ let add_rules qprof n =
       };
   }
 
-let add_rules_with_project_prefilters qprof n =
+let add_rules_with_project_prefilters n qprof =
   {
     qprof with
     prefiltering_stats =
@@ -226,7 +226,7 @@ let add_rules_with_project_prefilters qprof n =
       };
   }
 
-let add_rules_with_file_prefilters qprof n =
+let add_rules_with_file_prefilters n qprof =
   {
     qprof with
     prefiltering_stats =
@@ -237,7 +237,7 @@ let add_rules_with_file_prefilters qprof n =
       };
   }
 
-let add_rules_selected qprof n =
+let add_rules_selected n qprof =
   {
     qprof with
     prefiltering_stats =
@@ -247,7 +247,7 @@ let add_rules_selected qprof n =
       };
   }
 
-let add_rules_matched qprof n =
+let add_rules_matched n qprof =
   {
     qprof with
     prefiltering_stats =
