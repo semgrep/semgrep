@@ -20,11 +20,20 @@ type 'a t =
   | Pred of 'a  (** A single requirement. *)
 [@@deriving show, eq, ord, hash]
 
+let and_ = function
+  | [] -> None
+  | [ x ] -> Some x
+  | xs -> Some (And xs)
+
+let or_ = function
+  | [] -> None (* TODO: maybe we need to permit this? *)
+  | [ x ] -> Some x
+  | xs -> Some (Or xs)
+
+let pred x = Pred x
+
 let rec map_opt f = function
-  | And xs -> (
-      match List_.filter_map (map_opt f) xs with
-      | [] -> None
-      | _ :: _ as xs -> Some (And xs))
+  | And xs -> List_.filter_map (map_opt f) xs |> and_
   | Or xs ->
       let option_map f xs =
         List.fold_left
@@ -35,7 +44,7 @@ let rec map_opt f = function
           (Some []) xs
       in
       let* xs = option_map (map_opt f) xs in
-      Some (Or xs)
+      or_ xs
   | Pred x -> f x
 
 let rec fold f formula acc =

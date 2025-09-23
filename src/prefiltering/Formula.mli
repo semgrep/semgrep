@@ -10,11 +10,26 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-type 'a t =
+type 'a t = private
   | And of 'a t list  (** A conjunction of requirements. *)
   | Or of 'a t list  (** A disjunction of requirements. *)
   | Pred of 'a  (** A single requirement. *)
 [@@deriving show, eq, ord, hash]
+
+val and_ : 'a t list -> 'a t option
+(** Smart constructor for [And]: ensures we don't have [And]s comprising one condition.
+
+    [and_ xs] is [None] when [xs] is [[]]; [x] when [xs] is [[x]]; and [And xs]
+    otherwise. *)
+
+val or_ : 'a t list -> 'a t option
+(** Smart constructor for [Or]: ensures we don't have [Or]s comprising one condition
+
+    [or_ xs] is [None] when [xs] is [[]]; [x] when [xs] is [[x]]; and [Or xs]
+    otherwise. *)
+
+val pred : 'a -> 'a t
+(** Smart constructor for [Pred]. Needed for uniformity so the type can have private constructors. *)
 
 val map_opt : ('a -> 'b t option) -> 'a t -> 'b t option
 (** [map_opt f formula] applies [f] to each predicate in [formula].
