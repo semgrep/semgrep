@@ -227,6 +227,9 @@ let default_payload =
         findings = None;
         errors = None;
         num_lines = None;
+        git_username = None;
+        git_repo = None;
+        git_branch = None;
       };
   }
 
