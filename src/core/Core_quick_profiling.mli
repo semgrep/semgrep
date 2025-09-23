@@ -83,8 +83,8 @@ val add_taint_time : Fpath.t -> Pos.t -> Rule_ID.t -> float -> t -> t
 
 val add_project_level_time : float -> t -> t
 val add_file_level_time : float -> t -> t
-val add_rules : t -> int -> t
-val add_rules_with_project_prefilters : t -> int -> t
-val add_rules_with_file_prefilters : t -> int -> t
-val add_rules_selected : t -> int -> t
-val add_rules_matched : t -> int -> t
+val add_rules : int -> t -> t
+val add_rules_with_project_prefilters : int -> t -> t
+val add_rules_with_file_prefilters : int -> t -> t
+val add_rules_selected : int -> t -> t
+val add_rules_matched : int -> t -> t
