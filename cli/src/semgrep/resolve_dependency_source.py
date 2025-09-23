@@ -339,29 +339,29 @@ def _handle_lockfile_source(
         and (manifest_kind, lockfile_kind) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
     )
 
-    # TODO: how to use TR in OCaml without dynamic dep resolution?
-    use_tr_ocaml_resolver = (
+    # If TR is requested (--x-tr = download_dependency_source_code (rename?))
+    # then prefer to use the OCaml implementation of dependency resolution
+    # when available (appears in TR_OCAML_RESOLVER_SUBPROJECT_KINDS).
+    use_ocaml_resolver_for_tr = (
         config.download_dependency_source_code
-        and config.allow_local_builds
         and (
             manifest_kind,
             lockfile_kind,
         )
         in TR_OCAML_RESOLVER_SUBPROJECT_KINDS
     )
-
     resolve_with_ocaml = (
-        use_nondynamic_ocaml_parsing or use_dynamic_resolution or use_tr_ocaml_resolver
+        use_nondynamic_ocaml_parsing
+        or use_dynamic_resolution
+        or use_ocaml_resolver_for_tr
     )
     # Log the condition that leads us to use the OCaml implementation (RPC):
     if use_nondynamic_ocaml_parsing:
         logger.verbose(f"Using OCaml lockfile/manifest parsing")
     if use_dynamic_resolution:
         logger.verbose(f"Using dynamic dependency resolution")
-    if use_tr_ocaml_resolver:
-        logger.verbose(
-            f"Using OCaml implementation for transitive reachability analysis"
-        )
+    if use_ocaml_resolver_for_tr:
+        logger.verbose(f"Using OCaml implementation for dependency resolution")
 
     if resolve_with_ocaml:
         logger.verbose(
@@ -369,11 +369,11 @@ def _handle_lockfile_source(
         )
         resolved_deps = _resolve_dependencies_rpc(
             dep_src=dep_source,
-            download_dependency_source_code=use_tr_ocaml_resolver,
+            download_dependency_source_code=use_ocaml_resolver_for_tr,
             allow_local_builds=config.allow_local_builds,
         )
         for error in resolved_deps.new_errors:
-            logger.verbose(f"RPC error: '{error}'")
+            logger.verbose(f"\nRPC error: '{error}'")
 
         if resolved_deps.new_deps is not None:
             # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
