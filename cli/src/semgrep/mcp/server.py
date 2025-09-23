@@ -813,7 +813,7 @@ async def semgrep_scan_rpc(
     try:
         # TODO: perhaps should return more interpretable results?
         context: SemgrepContext = ctx.request_context.lifespan_context
-        cli_output = await run_semgrep_via_rpc(context, code_files)
+        cli_output = await run_semgrep_via_rpc(context, workspace_dir, code_files)
 
         attach_rpc_scan_metrics(get_current_span(), cli_output, workspace_dir)
 
