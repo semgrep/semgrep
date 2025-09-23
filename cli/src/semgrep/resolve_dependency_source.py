@@ -361,7 +361,9 @@ def _handle_lockfile_source(
     if use_dynamic_resolution:
         logger.verbose(f"Using dynamic dependency resolution")
     if use_ocaml_resolver_for_tr:
-        logger.verbose(f"Using OCaml implementation for dependency resolution")
+        logger.verbose(
+            f"Attempting to use OCaml implementation for dependency resolution"
+        )
 
     if resolve_with_ocaml:
         logger.verbose(
