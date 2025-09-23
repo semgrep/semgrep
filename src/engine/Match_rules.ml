@@ -123,22 +123,41 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
             num_rules_with_prefilters profiling
         in
         let relevant_filtered, irrelevant_filtered =
+          let%trace span = "prefilter.file" in
           let rules, prefilters = List_.split rules_with_prefilters in
           Log.info (fun m ->
               m "Performing rule prefiltering for %s"
                 (Origin.to_string xtarget.path.origin));
-          Prefiltering.File.check_many prefilters
-            (Lazy.force xtarget.lazy_content)
-          |> List_.combine rules
-          |> List.partition_map
-               (fun ((rule, relevant) : _ Rule.rule_info * bool) ->
-                 if relevant then Left rule
-                 else (
-                   Log.info (fun m ->
-                       m "skipping rule %s for %s"
-                         (Rule_ID.to_string (fst rule.id))
-                         (Origin.to_string xtarget.path.origin));
-                   Right rule))
+          let prefilter_results =
+            Tracing.with_span "prefilter.file.evaluation" ~__FILE__ ~__LINE__
+              (fun _span ->
+                Prefiltering.File.check_many prefilters
+                  (Lazy.force xtarget.lazy_content))
+          in
+          let rule_results = List_.combine rules prefilter_results in
+          let relevant_filtered, irrelevant_filtered =
+            List.partition_map
+              (fun ((rule, relevant) : _ Rule.rule_info * bool) ->
+                if relevant then Left rule
+                else (
+                  Log.info (fun m ->
+                      m "skipping rule %s for %s"
+                        (Rule_ID.to_string (fst rule.id))
+                        (Origin.to_string xtarget.path.origin));
+                  Right rule))
+              rule_results
+          in
+          (* Add span attributes for file prefiltering metrics *)
+          Tracing.add_data_to_span span
+            [
+              ( "rules_with_prefilters_count",
+                `Int (List.length rules_with_prefilters) );
+              ("rules_filtered_count", `Int (List.length irrelevant_filtered));
+              ("rules_kept_count", `Int (List.length relevant_filtered));
+              ("analyzer", `String (Analyzer.to_string xtarget.analyzer));
+              ("file_path", `String (Origin.to_string xtarget.path.origin));
+            ];
+          (relevant_filtered, irrelevant_filtered)
         in
         Engine_metrics.Prefilter_metrics.record_rules_skipped
           ~analyzer:xtarget.analyzer
