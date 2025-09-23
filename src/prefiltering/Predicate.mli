@@ -19,7 +19,7 @@
 type t =
   | String of string  (** Match exact string occurrence *)
   | Regex of Pcre2_.t  (** Match regular expression *)
-[@@deriving show, eq, ord, hash]
+[@@deriving show, eq, ord, hash, sexp_of]
 
 val eval : t -> string -> bool
 (** [eval predicate content] evaluates [predicate] against [content].
