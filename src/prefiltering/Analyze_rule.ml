@@ -45,17 +45,17 @@ type pattern_predicate =
 
 let rec required_patterns_of_formula ({ f; conditions; _ } : Rule.formula) :
     pattern_predicate requirement_tree option =
-  let augment_with_conditions x =
-    let conditions =
-      List_.map
-        (fun (_, cond) : _ requirement_tree -> Formula.Pred (LCond cond))
-        conditions
-    in
-    Formula.And (x :: conditions)
+  let augment_with_conditions (conditions : (Tok.t * Rule.metavar_cond) list)
+      (x : pattern_predicate requirement_tree) =
+    Formula.and_
+      (x
+      :: List_.map
+           (fun (_, cond) : _ requirement_tree -> Formula.pred (LCond cond))
+           conditions)
   and required_patterns_of_formula_kind (kind : Rule.formula_kind) :
       pattern_predicate requirement_tree option =
     match kind with
-    | P pat -> Some (Formula.Pred (LPat pat))
+    | P pat -> Some (Formula.pred (LPat pat))
     | Not (_, formula) -> (
         match formula.f with
         | P _ -> None
@@ -70,14 +70,14 @@ let rec required_patterns_of_formula ({ f; conditions; _ } : Rule.formula) :
     | Anywhere (_, formula) ->
         required_patterns_of_formula formula
     | And (_, xs) ->
-        let ys = List_.filter_map required_patterns_of_formula xs in
-        if List_.null ys then None else Some (Formula.And ys)
+        List_.filter_map required_patterns_of_formula xs |> Formula.and_
     | Or (_, xs) ->
         (* See NOTE "AND vs OR and filter_map". *)
-        let* ys = option_map required_patterns_of_formula xs in
-        if List_.null ys then None else Some (Formula.Or ys)
+        let* xs = option_map required_patterns_of_formula xs in
+        Formula.or_ xs
   in
-  required_patterns_of_formula_kind f |> Option.map augment_with_conditions
+  let* pats = required_patterns_of_formula_kind f in
+  augment_with_conditions conditions pats
 
 (*****************************************************************************)
 (* Step 2: simplify the patterns *)
@@ -120,15 +120,15 @@ let metavariables_and_strings_of_pattern (env : env) (pat : Xpattern.t) :
           pat
       in
       Some
-        (Pred (StringsAndMvars (String_set.to_list ids, MvarSet.to_list mvars)))
-  | Regexp re -> Some (Pred (Regex re))
+        (pred (StringsAndMvars (String_set.to_list ids, MvarSet.to_list mvars)))
+  | Regexp re -> Some (pred (Regex re))
   (* turn out some genergc spacegrep rules can also be slow and a prefilter
     is also useful there *)
   | Spacegrep pat ->
       let ids, mvars =
         Analyze_spacegrep.extract_strings_and_mvars_spacegrep pat
       in
-      Some (Pred (StringsAndMvars (ids, mvars)))
+      Some (pred (StringsAndMvars (ids, mvars)))
   (* TODO? do we need to prefilter aliengrep rules? they are supposed to be
      compiled in effective Pcre_.t (see Pat_compile.t) regexps *)
   | Aliengrep _ -> None
@@ -140,7 +140,7 @@ let metavariables_and_strings_of_condition (env : env) (x : Rule.metavar_cond) :
   | CondNestedFormula _ -> None
   | CondRegexp (mvar, re, const_prop) ->
       if env.is_id_mvar mvar then
-        Some (Pred (MvarRegexp (mvar, re, const_prop)))
+        Some (Formula.pred (MvarRegexp (mvar, re, const_prop)))
       else None
   (* TODO? maybe we should extract the strings from the type constraint *)
   | CondType _ -> None
@@ -220,27 +220,22 @@ let rec textual_requirements_of_simplified :
   let module P = Predicate in
   let module F = Formula in
   function
-  | And xs -> (
-      match List_.filter_map textual_requirements_of_simplified xs with
-      | [] -> None
-      | _ :: _ as xs -> Some (F.And xs))
-  | Or xs -> (
-      match option_map textual_requirements_of_simplified xs with
-      | None -> None
-      | Some ys -> Some (F.Or ys))
-  | Pred (StringsAndMvars ([], _)) -> None
+  | And xs -> List_.filter_map textual_requirements_of_simplified xs |> F.and_
+  | Or xs ->
+      let* xs = option_map textual_requirements_of_simplified xs in
+      F.or_ xs
   | Pred (StringsAndMvars (xs, _)) ->
-      Some (F.And (List_.map (fun x -> F.Pred (P.String x)) xs))
+      F.and_ (List_.map (fun x -> F.pred (P.String x)) xs)
   | Pred (Regex re) ->
-      if no_regex_special_chars re then Some (F.Pred (P.String re))
-      else Some (F.Pred (P.Regex (Pcre2_.pcre_compile re)))
+      if no_regex_special_chars re then Some (F.pred (P.String re))
+      else Some (F.pred (P.Regex (Pcre2_.pcre_compile re)))
   | Pred (MvarRegexp (_mvar, re_str, _const_prop)) ->
       (* The original regexp is meant to apply on a substring.
            We rewrite them to remove end-of-string anchors if possible. *)
       let* re =
         Pcre2_.remove_end_of_string_assertions (Pcre2_.pcre_compile re_str)
       in
-      Some (F.Pred (P.Regex re))
+      Some (F.pred (P.Regex re))
 
 type prefilter = Predicate.t requirement_tree [@@deriving show]
 
