@@ -15,6 +15,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 
+from semgrep.git import git_check_output
 from semgrep.state import get_state
 
 SETTINGS_FILENAME = "settings.yml"
@@ -47,22 +48,49 @@ def get_user_settings_file() -> Path:
     return Path(path)
 
 
-def get_semgrep_app_token() -> str | None:
+def get_field_from_settings_file(field: str) -> str | None:
     """
-    Returns the deployment ID the token is for, if token is valid
+    Returns the value of the field from the settings file, if it exists
     """
-
-    # Prioritize environment variable first
-    env_token = os.environ.get("SEMGREP_APP_TOKEN")
-    if env_token is not None:
-        return env_token
-
-    # Fall back to settings file if environment variable is not set
     user_settings_file = get_user_settings_file()
     if user_settings_file.exists():
         with open(user_settings_file) as f:
             yaml = YAML(typ="safe", pure=True)
             settings = yaml.load(f)
-            return str(settings.get("api_token"))
-
+            return str(settings.get(field))
     return None
+
+
+def get_semgrep_app_token() -> str | None:
+    """
+    Returns the Semgrep app token, if it exists
+    """
+    env_token = os.environ.get("SEMGREP_APP_TOKEN")
+    if env_token is not None:
+        return env_token
+
+    return get_field_from_settings_file("api_token")
+
+
+def get_anonymous_user_id() -> str:
+    """
+    Returns the anonymous user ID, if it exists
+    """
+    id = get_field_from_settings_file("anonymous_user_id")
+    return id if id else "unknown"
+
+
+def run_git_command(workspace_dir: str | None, args: list[str]) -> str:
+    if workspace_dir is None:
+        return "unknown"
+    try:
+        return git_check_output(["git", *args], cwd=workspace_dir)
+    except Exception:
+        return "unknown"
+
+
+def get_git_info(workspace_dir: str | None) -> dict[str, str]:
+    git_username = run_git_command(workspace_dir, ["config", "user.name"])
+    git_repo = run_git_command(workspace_dir, ["config", "--get", "remote.origin.url"])
+    git_branch = run_git_command(workspace_dir, ["rev-parse", "--abbrev-ref", "HEAD"])
+    return {"username": git_username, "repo": git_repo, "branch": git_branch}

@@ -35,6 +35,8 @@ from ruamel.yaml import YAML
 
 from semgrep import __VERSION__
 from semgrep.mcp.models import SemgrepScanResult
+from semgrep.mcp.utilities.utils import get_anonymous_user_id
+from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_user_settings_file
 from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
@@ -93,6 +95,15 @@ def get_token_from_user_settings() -> str:
     return yaml_contents.get("api_token", "")
 
 
+def attach_git_info(span: trace.Span | None, workspace_dir: str | None) -> None:
+    if span is None:
+        return
+    git_info = get_git_info(workspace_dir)
+    span.set_attribute("metrics.git_info.username", git_info["username"])
+    span.set_attribute("metrics.git_info.repo", git_info["repo"])
+    span.set_attribute("metrics.git_info.branch", git_info["branch"])
+
+
 def attach_metrics(
     span: trace.Span | None,
     version: str,
@@ -101,6 +112,7 @@ def attach_metrics(
     findings: list[dict[str, Any]],
     errors: list[dict[str, Any]],
     config: str | None,
+    workspace_dir: str | None,
 ) -> None:
     if span is None:
         return
@@ -110,12 +122,17 @@ def attach_metrics(
     span.set_attribute("metrics.num_scanned_files", len(paths))
     span.set_attribute("metrics.num_findings", len(findings))
     span.set_attribute("metrics.num_errors", len(errors))
+    attach_git_info(span, workspace_dir)
+    span.set_attribute("metrics.anonymous_user_id", get_anonymous_user_id())
     # TODO: the actual findings and errors (not just the number). This might require
     # us setting up Datadog metrics and not just tracing.
 
 
 def attach_scan_metrics(
-    span: trace.Span | None, results: SemgrepScanResult, config: str | None
+    span: trace.Span | None,
+    results: SemgrepScanResult,
+    config: str | None,
+    workspace_dir: str | None,
 ) -> None:
     if span is None:
         return
@@ -127,10 +144,13 @@ def attach_scan_metrics(
         results.results,
         results.errors,
         config,
+        workspace_dir,
     )
 
 
-def attach_rpc_scan_metrics(span: trace.Span | None, results: CliOutput) -> None:
+def attach_rpc_scan_metrics(
+    span: trace.Span | None, results: CliOutput, workspace_dir: str | None
+) -> None:
     if span is None:
         return
     span.set_attribute(
@@ -143,6 +163,8 @@ def attach_rpc_scan_metrics(span: trace.Span | None, results: CliOutput) -> None
     span.set_attribute("metrics.num_scanned_files", len(results.paths.scanned))
     span.set_attribute("metrics.num_findings", len(results.results))
     span.set_attribute("metrics.num_errors", len(results.errors))
+    attach_git_info(span, workspace_dir)
+    span.set_attribute("metrics.anonymous_user_id", get_anonymous_user_id())
 
 
 ################################################################################
