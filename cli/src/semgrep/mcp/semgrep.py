@@ -25,6 +25,7 @@ from opentelemetry import trace
 from semgrep.mcp.models import CodeFile
 from semgrep.mcp.utilities.tracing import get_trace_endpoint
 from semgrep.mcp.utilities.tracing import is_tracing_disabled
+from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.semgrep_core import compute_executable_path
@@ -308,7 +309,7 @@ async def run_semgrep_output(top_level_span: trace.Span | None, args: list[str])
 
 
 async def run_semgrep_via_rpc(
-    context: SemgrepContext, data: list[CodeFile]
+    context: SemgrepContext, workspace_dir: str | None, data: list[CodeFile]
 ) -> CliOutput:
     """
     Runs semgrep with the given arguments via RPC
@@ -323,9 +324,10 @@ async def run_semgrep_via_rpc(
     # TODO: to be honest it's silly for us to wire the contents of the files over RPC
     # if they exist on the local filesystem, we could just pass the paths
     files_json = [{"file": data.path, "content": data.content} for data in data]
+    git_info = get_git_info(workspace_dir)
 
     # ATD serialized value
-    resp = await context.send_request("scanFiles", files=files_json)
+    resp = await context.send_request("scanFiles", files=files_json, git_info=git_info)
 
     # The JSON we get is double encoded, looks like
     # '"{"results": ..., ...}"'
