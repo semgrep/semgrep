@@ -1,5 +1,4 @@
-(*
-   Copyright (c) 2025 Semgrep Inc.
+(* Copyright (c) 2025 Semgrep Inc.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public License
@@ -8,13 +7,15 @@
    This library is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
-   LICENSE for more details.
-*)
+   LICENSE for more details. *)
+open Sexplib.Std
+
 (* Needed to derive hash *)
 let hash_fold_string : Base.Hash.state -> string -> Base.Hash.state =
   Base.hash_fold_string
 
-type t = String of string | Regex of Pcre2_.t [@@deriving show, eq, ord, hash]
+type t = String of string | Regex of Pcre2_.t
+[@@deriving show, eq, ord, hash, sexp_of]
 
 let eval (predicate : t) (content : string) : bool =
   match predicate with

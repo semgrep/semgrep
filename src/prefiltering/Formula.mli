@@ -14,7 +14,7 @@ type 'a t = private
   | And of 'a t list  (** A conjunction of requirements. *)
   | Or of 'a t list  (** A disjunction of requirements. *)
   | Pred of 'a  (** A single requirement. *)
-[@@deriving show, eq, ord, hash]
+[@@deriving show, eq, ord, hash, sexp_of]
 
 val and_ : 'a t list -> 'a t option
 (** Smart constructor for [And]: ensures we don't have [And]s comprising one condition.
