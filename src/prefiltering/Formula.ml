@@ -11,6 +11,7 @@
    LICENSE for more details.
 *)
 open Common
+open Sexplib.Std
 
 let hash_fold_list = Base.hash_fold_list
 
@@ -18,7 +19,7 @@ type 'a t =
   | And of 'a t list  (** A conjunction of requirements. *)
   | Or of 'a t list  (** A disjunction of requirements. *)
   | Pred of 'a  (** A single requirement. *)
-[@@deriving show, eq, ord, hash]
+[@@deriving show, eq, ord, hash, sexp_of]
 
 let and_ = function
   | [] -> None
