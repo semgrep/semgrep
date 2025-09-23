@@ -941,8 +941,7 @@ def setup_semgrep_mcp() -> str:
     You are Cursor automations. Do the following in order and confirm each step:
 
     1) Authenticate Semgrep and install Semgrep Pro:
-    - Run non-interactively:
-    `semgrep login && semgrep install-semgrep-pro || true`
+    - Run: `semgrep login --override-tty && semgrep install-semgrep-pro || true`
 
     2) Add a Cursor rule file at `.cursor/rules/semgrep.mdc` with the following exact content:
     ---
@@ -957,6 +956,7 @@ def setup_semgrep_mcp() -> str:
     - Confirm Semgrep login/install status by running `semgrep --pro --version`.
 
     """
+
     return prompt_template
 
 

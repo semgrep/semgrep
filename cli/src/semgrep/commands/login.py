@@ -38,8 +38,16 @@ def make_login_url() -> Tuple[uuid.UUID, str]:
 
 
 @click.command()
+# Cursor can call `semgrep login` and pop a window up for users to login without being in a
+# TTY. So, we need to add a flag to the command to allow for this.
+@click.option(
+    "--override-tty",
+    "override_tty",
+    is_flag=True,
+    help="Login from a non-interactive terminal. Used by agents calling to our MCP server.",
+)
 @handle_command_errors
-def login() -> NoReturn:
+def login(override_tty: bool) -> NoReturn:
     """
     Obtain and save credentials for semgrep.dev
 
@@ -63,7 +71,7 @@ def login() -> NoReturn:
 
     # If token doesn't already exist in the settings file or as an environment variable,
     # interactively prompt the user to supply it (if we are in a TTY).
-    if not auth.is_a_tty():
+    if not auth.is_a_tty() and not override_tty:
         click.echo(
             f"Error: semgrep login is an interactive command: run in an interactive terminal (or define SEMGREP_APP_TOKEN)",
             err=True,
