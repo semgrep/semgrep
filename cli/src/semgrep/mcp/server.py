@@ -72,6 +72,10 @@ RULE_ID_FIELD = Field(description="Semgrep rule ID")
 CODE_FIELD = Field(description="The code to get the AST for")
 LANGUAGE_FIELD = Field(description="The programming language of the code")
 
+WORKSPACE_DIR_FIELD = Field(
+    description="The absolute path to the workspace directory the user is working in"
+)
+
 # ---------------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------------
@@ -622,6 +626,7 @@ async def semgrep_scan_with_custom_rule(
     ctx: Context,
     code_files: list[dict[str, str]] = REMOTE_CODE_FILES_FIELD,
     rule: str = RULE_FIELD,
+    workspace_dir: str | None = WORKSPACE_DIR_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan with a custom rule on provided code content
@@ -647,7 +652,7 @@ async def semgrep_scan_with_custom_rule(
         output = await run_semgrep_output(top_level_span=None, args=args)
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
 
-        attach_scan_metrics(get_current_span(), results, "custom")
+        attach_scan_metrics(get_current_span(), results, "custom", workspace_dir)
 
         remove_temp_dir_from_results(results, temp_dir)
         return results
@@ -740,6 +745,7 @@ async def get_abstract_syntax_tree(
 @with_tool_span()
 async def semgrep_scan_cli(
     ctx: Context,
+    workspace_dir: str | None,
     code_files: list[CodeFile],
     config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult:
@@ -768,7 +774,7 @@ async def semgrep_scan_cli(
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
         remove_temp_dir_from_results(results, temp_dir)
 
-        attach_scan_metrics(get_current_span(), results, config)
+        attach_scan_metrics(get_current_span(), results, config, workspace_dir)
 
         return results
 
@@ -794,6 +800,7 @@ async def semgrep_scan_cli(
 @with_tool_span()
 async def semgrep_scan_rpc(
     ctx: Context,
+    workspace_dir: str | None,
     code_files: list[CodeFile],
 ) -> CliOutput:
     """
@@ -808,7 +815,7 @@ async def semgrep_scan_rpc(
         context: SemgrepContext = ctx.request_context.lifespan_context
         cli_output = await run_semgrep_via_rpc(context, code_files)
 
-        attach_rpc_scan_metrics(get_current_span(), cli_output)
+        attach_rpc_scan_metrics(get_current_span(), cli_output, workspace_dir)
 
         return cli_output
     except McpError as e:
@@ -832,6 +839,7 @@ async def semgrep_scan_rpc(
 
 async def semgrep_scan_core(
     ctx: Context,
+    workspace_dir: str | None,
     code_files: list[CodeFile],
     config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult | CliOutput:
@@ -863,10 +871,10 @@ async def semgrep_scan_core(
             )
 
         logger.info(f"Running RPC-based scan on paths: {paths}")
-        return await semgrep_scan_rpc(ctx, code_files)
+        return await semgrep_scan_rpc(ctx, workspace_dir, code_files)
     else:
         logger.info(f"Running CLI-based scan on paths: {paths}")
-        return await semgrep_scan_cli(ctx, code_files, config)
+        return await semgrep_scan_cli(ctx, workspace_dir, code_files, config)
 
 
 @with_tool_span()
@@ -892,12 +900,13 @@ async def semgrep_scan_remote(
 
     validated_code_files = validate_remote_files(code_files)
 
-    return await semgrep_scan_core(ctx, validated_code_files, config)
+    return await semgrep_scan_core(ctx, None, validated_code_files, config)
 
 
 @with_tool_span()
 async def semgrep_scan(
     ctx: Context,
+    workspace_dir: str = WORKSPACE_DIR_FIELD,
     code_files: list[dict[str, str]] = LOCAL_CODE_FILES_FIELD,
     config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult | CliOutput:
@@ -919,7 +928,7 @@ async def semgrep_scan(
 
     validated_local_files = validate_local_files(code_files)
 
-    return await semgrep_scan_core(ctx, validated_local_files, config)
+    return await semgrep_scan_core(ctx, workspace_dir, validated_local_files, config)
 
 
 # ---------------------------------------------------------------------------------
