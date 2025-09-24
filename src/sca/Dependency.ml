@@ -63,6 +63,9 @@ type t = {
   ecosystem : Ecosystem.t;
   allowed_hashes : hashes;
   transitivity : kind;
+  (* A download URL for the package used in the old approach to transitive
+     reachability. The problem with it is that these bundles include
+     tests and examples that we shouldn't scan. *)
   url : Uri.t option;
   (* the location of the dependency source code, if it exists
    * (used by the transitive reachability analysis)
