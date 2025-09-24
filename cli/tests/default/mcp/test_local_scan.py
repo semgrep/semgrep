@@ -11,41 +11,33 @@
 # LICENSE for more details.
 #
 import json
-import subprocess
-import time
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import pytest
+from mcp import stdio_client
+from mcp import StdioServerParameters
 from mcp.client.session import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
 from mcp.types import TextContent
 
 
-@pytest.fixture
-def streamable_server(available_port):
-    # Start the streamable-http server
-    proc = subprocess.Popen(
-        ["semgrep", "mcp", "-t", "streamable-http", "--port", str(available_port)],
+def mk_server_params(port: int):
+    # Create server parameters for stdio connection
+    return StdioServerParameters(
+        command="semgrep",  # Executable
+        args=["mcp", "--port", str(port)],  # Optional command line arguments
+        env={
+            "USE_SEMGREP_RPC": "false",
+            **os.environ,
+        },
     )
-    # Wait briefly to ensure the server starts
-    time.sleep(5)
-    yield available_port
-    # Teardown: terminate the server
-    proc.terminate()
-    proc.wait()
 
 
 @pytest.mark.slow
-async def test_local_scan(streamable_server):
-    port = streamable_server
-    base_url = f"http://127.0.0.1:{port}"
-    async with streamablehttp_client(f"{base_url}/mcp") as (
-        read_stream,
-        write_stream,
-        _,
-    ):
-        async with ClientSession(read_stream, write_stream) as session:
+async def test_local_scan(available_port):
+    async with stdio_client(mk_server_params(available_port)) as (read, write):
+        async with ClientSession(read, write) as session:
             # Initializing session...
             await session.initialize()
             # Session initialized
