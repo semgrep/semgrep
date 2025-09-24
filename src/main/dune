@@ -13,7 +13,8 @@
   semgrep.legacy_language_server
   )
  (preprocess
-  (pps ppx_profiling))
+  (pps ppx_profiling
+))
  ; 'byte' is for ocamldebug
  (modes native byte))
 

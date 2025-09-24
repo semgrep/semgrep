@@ -7,4 +7,10 @@
     testo
     commons
     eio_main
-    parallelism))
+    unix
+    parallelism
+    ppx_parallelism
+    parallelism_tests_ppx_test_lib
+  )
+  (preprocess (pps ppx_parallelism))
+)
