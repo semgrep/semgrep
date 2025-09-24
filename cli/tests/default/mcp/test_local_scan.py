@@ -62,11 +62,12 @@ async def test_local_scan(streamable_server):
                 results = await session.call_tool(
                     "semgrep_scan",
                     {
+                        "workspace_dir": "",
                         "code_files": [
                             {
                                 "path": str(Path(path).absolute()),
                             }
-                        ]
+                        ],
                     },
                 )
                 # We have results!
