@@ -163,7 +163,7 @@ local slack = {
 
 // This is the version of the cache we use below. If you need to invalidate it
 // for some reason then bump this.
-local opam_cache_version = 'v1';
+local opam_cache_version = 'v2';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)

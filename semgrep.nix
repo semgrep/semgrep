@@ -22,6 +22,15 @@ let
           nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
         });
       patchesOverlay = final: prev: {
+        # For the custom temp OCaml fork
+        ocaml-base-compiler = prev.ocaml-base-compiler.overrideAttrs (old: {
+          src = pkgs.fetchFromGitHub {
+            owner = "semgrep";
+            repo = "ocaml";
+            rev = "5.3.0-semgrep";
+            sha256 = "sha256-FUzl8OZQDGhvEMwP6BGft9UAQXG/LrDMxG1NvviGlkM=";
+          };
+        });
         conf-libpcre = addPkgConfig prev.conf-libpcre [ pkgs.pkg-config ];
         conf-libffi = addPkgConfig prev.conf-libffi [ pkgs.pkg-config ];
         conf-libpcre2-8 = addPkgConfig prev.conf-libpcre2-8 [ pkgs.pkg-config ];

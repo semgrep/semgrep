@@ -271,6 +271,8 @@ install-deps-for-semgrep-core:
 #   install the pcre system package, this ensures those are reinstalled
 install-opam-deps:
 	opam update -y
+	# NBT: our fork of the compiler
+	opam pin add ocaml-variants.5.3.0 "git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep" --update-invariant -y
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 
