@@ -4494,6 +4494,41 @@ let semgrep_pattern (env : env) (x : CST.semgrep_pattern) : any =
   | `Catch_clause x ->
       let v1 = catch_clause env x in
       Partial (PartialCatch v1)
+  (* We special case this here because we used to support the
+     pattern `var $X = $FUNC($REQ, $RES, ...) {...}`, but
+     we accidentally removed it at some point.
+     This broke a bunch of rules and reportedly has made
+     many people very angry. Let's fix that.
+   *)
+  | `Assign_lambda (v1, v2, v3, v4, v5, v6) ->
+      let v1 = (* "var" *) token env v1 in
+      let v2 = anon_choice_type_id_940079a env v2 in
+      let v3 = (* "=" *) token env v3 in
+      (* Turns out we don't actually use this name, but whatever.
+         It's effectively a lambda, so it shouldn't need a name.
+       *)
+      let _v4 =
+        match v4 with
+        | Some tok -> Some ((* identifier *) token env tok)
+        | None -> None
+      in
+      let _typarams, (f_params, tret) = call_signature env v5 in
+      let v6 = statement_block env v6 in
+      let fdef =
+        {
+          f_kind = (G.Function, v1);
+          f_attrs = [];
+          f_params;
+          f_body = v6;
+          f_rettype = tret;
+        }
+      in
+      let lhs =
+        match v2 with
+        | Left id -> Id id
+        | Right expr -> expr
+      in
+      Expr (Assign (lhs, v3, Fun (fdef, None)))
 
 let program (env : env) (x : CST.program) : any =
   match x with

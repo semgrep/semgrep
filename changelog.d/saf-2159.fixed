@@ -1,0 +1,2 @@
+Typescript: Made it so that the pattern `var $X = $FUNC($REQ, $RES, ...) {...}`
+no longer fails to parse.
