@@ -72,10 +72,6 @@ RULE_ID_FIELD = Field(description="Semgrep rule ID")
 CODE_FIELD = Field(description="The code to get the AST for")
 LANGUAGE_FIELD = Field(description="The programming language of the code")
 
-WORKSPACE_DIR_FIELD = Field(
-    description="The absolute path to the workspace directory the user is working in"
-)
-
 # ---------------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------------
@@ -338,6 +334,31 @@ def remove_temp_dir_from_results(results: SemgrepScanResult, temp_dir: str) -> N
         results.paths["skipped"] = [
             os.path.relpath(path, temp_dir) for path in results.paths["skipped"]
         ]
+
+
+async def get_workspace_dir(ctx: Context) -> str | None:
+    """
+    Get the workspace directory from the context
+
+    Note: We must invoke this method at request time, and not lifespan time,
+    because it relies on the `ctx.request_context`, which does not exist
+    when we initialize the server.
+    """
+    # This URI is supposed to begin with `file://`
+    roots = await ctx.request_context.session.list_roots()
+    logger.debug(f"Got roots from client: {roots}")
+
+    # Just to be safe. It's probably impossible.
+    if len(roots.roots) == 0:
+        logger.warning("Somehow, no roots found")
+        return None
+
+    uri: str = str(roots.roots[0].uri)
+    path = uri[7:] if uri.startswith("file://") else uri
+
+    logger.debug(f"Determined path of workspace directory: {path}")
+
+    return path
 
 
 # ---------------------------------------------------------------------------------
@@ -626,7 +647,6 @@ async def semgrep_scan_with_custom_rule(
     ctx: Context,
     code_files: list[dict[str, str]] = REMOTE_CODE_FILES_FIELD,
     rule: str = RULE_FIELD,
-    workspace_dir: str | None = WORKSPACE_DIR_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan with a custom rule on provided code content
@@ -636,6 +656,9 @@ async def semgrep_scan_with_custom_rule(
       - scan code files for specific security vulnerability not covered by the default Semgrep rules
       - scan code files for specific issue not covered by the default Semgrep rules
     """
+
+    workspace_dir = await get_workspace_dir(ctx)
+
     # Validate code_files
     validated_code_files = validate_remote_files(code_files)
     temp_dir = None
@@ -906,7 +929,6 @@ async def semgrep_scan_remote(
 @with_tool_span()
 async def semgrep_scan(
     ctx: Context,
-    workspace_dir: str = WORKSPACE_DIR_FIELD,
     code_files: list[dict[str, str]] = LOCAL_CODE_FILES_FIELD,
     config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult | CliOutput:
@@ -919,6 +941,8 @@ async def semgrep_scan(
       - scan code files for security vulnerabilities
       - scan code files for other issues
     """
+
+    workspace_dir = await get_workspace_dir(ctx)
 
     # Implementer's note:
     # This is one possible entry point for regular scanning, depending on whether
