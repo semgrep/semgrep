@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import os
 import shutil
 import tempfile
@@ -31,6 +32,7 @@ from semgrep.mcp.models import Finding
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import mk_context
 from semgrep.mcp.semgrep import run_semgrep_output
+from semgrep.mcp.semgrep import run_semgrep_process_sync
 from semgrep.mcp.semgrep import run_semgrep_via_rpc
 from semgrep.mcp.semgrep import SemgrepContext
 from semgrep.mcp.utilities.tracing import attach_rpc_scan_metrics
@@ -761,6 +763,80 @@ async def get_abstract_syntax_tree(
 
 
 # ---------------------------------------------------------------------------------
+# Supply Chain scanning
+# ---------------------------------------------------------------------------------
+
+
+async def semgrep_scan_sca(
+    context: SemgrepContext,
+    workspace_dir: str,
+) -> CliOutput:
+    cwd = os.getcwd()
+
+    # Do this from the repo so we only scan stuff in there
+    os.chdir(workspace_dir)
+    args = ["scan", "--config", "supply-chain", "--json"]
+    output = await run_semgrep_process_sync(context.top_level_span, args)
+    os.chdir(cwd)
+
+    resp_json = json.loads(output.stdout.decode())
+
+    return CliOutput.from_json(resp_json)
+
+
+@with_tool_span()
+async def semgrep_scan_supply_chain(
+    ctx: Context,
+) -> CliOutput:
+    """
+    Runs a Semgrep supply chain scan on the provided workspace directory,
+    to identify potential third-party security vulnerabilities.
+
+    Use this tool when you:
+      - change the version of a dependency in a project
+      - add a new dependency to a project
+      - update the lockfiles of a project
+    """
+
+    context: SemgrepContext = ctx.request_context.lifespan_context
+    workspace_dir = await get_workspace_dir(ctx)
+    if workspace_dir is None:
+        raise McpError(
+            ErrorData(
+                code=INTERNAL_ERROR,
+                message="Workspace directory not found",
+            )
+        )
+
+    try:
+        if context.process is None:
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message="Supply Chain scan requires an active Semgrep daemon to be running.",
+                )
+            )
+        else:
+            logger.info(f"Running Supply Chain scan on path: {workspace_dir}")
+            return await semgrep_scan_sca(context, workspace_dir)
+    except McpError as e:
+        raise e
+    except ValidationError as e:
+        raise McpError(
+            ErrorData(
+                code=INTERNAL_ERROR, message=f"Error parsing semgrep output: {e!s}"
+            )
+        ) from e
+    except Exception as e:
+        raise McpError(
+            ErrorData(
+                code=INTERNAL_ERROR,
+                message=f"Error running semgrep scan (supply chain): {e!s}",
+            )
+        ) from e
+
+
+# ---------------------------------------------------------------------------------
 # Scanning tools
 # ---------------------------------------------------------------------------------
 
@@ -1110,6 +1186,7 @@ TOOL_DISABLE_ENV_VARS = {
     "SEMGREP_SCAN_DISABLED": "semgrep_scan",
     "SEMGREP_SCAN_REMOTE_DISABLED": "semgrep_scan_remote",
     "GET_ABSTRACT_SYNTAX_TREE_DISABLED": "get_abstract_syntax_tree",
+    "SEMGREP_SCAN_SUPPLY_CHAIN_DISABLED": "semgrep_scan_supply_chain",
 }
 
 
@@ -1122,6 +1199,7 @@ def register(mcp: FastMCP) -> None:
     mcp.add_tool(semgrep_scan)
     mcp.add_tool(semgrep_scan_remote)
     mcp.add_tool(get_abstract_syntax_tree)
+    mcp.add_tool(semgrep_scan_supply_chain)
 
     # prompts
     mcp.add_prompt(Prompt.from_function(write_custom_semgrep_rule))
@@ -1162,5 +1240,6 @@ def deregister_tools(mcp: FastMCP) -> None:
 
     if is_hosted():
         del mcp._tool_manager._tools["semgrep_scan"]
+        del mcp._tool_manager._tools["semgrep_scan_supply_chain"]
     else:
         del mcp._tool_manager._tools["semgrep_scan_remote"]
