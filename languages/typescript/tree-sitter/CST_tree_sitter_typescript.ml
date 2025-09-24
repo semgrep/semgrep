@@ -1875,6 +1875,14 @@ type semgrep_pattern = [
     )
   | `Fina_clause of finally_clause
   | `Catch_clause of catch_clause
+  | `Assign_lambda of (
+        Token.t (* "var" *)
+      * anon_choice_type_id_940079a
+      * Token.t (* "=" *)
+      * identifier (*tok*) option
+      * call_signature_
+      * statement_block
+    )
 ]
 
 type program = [

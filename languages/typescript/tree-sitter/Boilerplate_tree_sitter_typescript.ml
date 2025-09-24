@@ -3723,6 +3723,20 @@ let map_semgrep_pattern (env : env) (x : CST.semgrep_pattern) =
           R.Tuple [ v1; v2; v3; v4; v5; v6 ] )
   | `Fina_clause x -> R.Case ("Fina_clause", map_finally_clause env x)
   | `Catch_clause x -> R.Case ("Catch_clause", map_catch_clause env x)
+  | `Assign_lambda (v1, v2, v3, v4, v5, v6) ->
+      R.Case
+        ( "Assign_lambda",
+          let v1 = (* "var" *) token env v1 in
+          let v2 = map_anon_choice_type_id_940079a env v2 in
+          let v3 = (* "=" *) token env v3 in
+          let v4 =
+            match v4 with
+            | Some tok -> R.Option (Some ((* identifier *) token env tok))
+            | None -> R.Option None
+          in
+          let v5 = map_call_signature_ env v5 in
+          let v6 = map_statement_block env v6 in
+          R.Tuple [ v1; v2; v3; v4; v5; v6 ] )
 
 let map_program (env : env) (x : CST.program) =
   match x with
