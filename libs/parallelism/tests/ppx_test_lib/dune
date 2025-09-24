@@ -1,0 +1,9 @@
+(library
+  (public_name parallelism.tests.ppx_test_lib)
+  (name parallelism_tests_ppx_test_lib)
+  (wrapped false)
+  (libraries
+    ppx_parallelism
+  )
+  (preprocess (pps ppx_parallelism --auto))
+)

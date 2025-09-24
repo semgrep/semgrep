@@ -73,3 +73,4 @@ let maybe_yield () =
     yield ()
 
 let yielding f = fun a -> Utils.protect (fun () -> f a) ~finally:maybe_yield
+let yield_attempts () = Atomic.get yield_attempts

@@ -17,7 +17,7 @@ module H = Hook
 let t = Testo.create
 let exnt = Alcotest.testable Fmt.exn ( = )
 
-let timeout : Alcotest.([ `Timeout ] testable) =
+let timeout : [ `Timeout ] Alcotest.testable =
   Alcotest.testable (fun pff _ -> Format.fprintf pff "`Timeout") ( = )
 
 (* Ensures that when new Domains are spawned, the assigned value
