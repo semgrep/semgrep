@@ -118,6 +118,9 @@ RUN apk update && apk add bash build-base git make rsync opam
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 RUN opam init --disable-sandboxing -v && opam switch create 5.3.0 -v
 
+# Install our fork of the compiler
+RUN opam pin add ocaml-variants.5.3.0 git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep --update-invariant -y
+
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
 
