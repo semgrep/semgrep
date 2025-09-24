@@ -781,7 +781,6 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       (options caps (all_actions caps))
       usage_msg (Array.of_list argv)
   in
-
   (* Duplicated in Pro_core_CLI.ml *)
   let level : Logs.level option = if !debug then Some Debug else Some Warning in
 
