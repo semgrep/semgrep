@@ -346,21 +346,25 @@ async def get_workspace_dir(ctx: Context) -> str | None:
     because it relies on the `ctx.request_context`, which does not exist
     when we initialize the server.
     """
-    # This URI is supposed to begin with `file://`
-    roots = await ctx.request_context.session.list_roots()
-    logger.debug(f"Got roots from client: {roots}")
+    # This step fails when we are running tests, so I am wrapping it in a try/except
+    try:
+        # This URI is supposed to begin with `file://`
+        roots = await ctx.request_context.session.list_roots()
+        logger.debug(f"Got roots from client: {roots}")
 
-    # Just to be safe. It's probably impossible.
-    if len(roots.roots) == 0:
-        logger.warning("Somehow, no roots found")
-        return None
+        # Just to be safe. It's probably impossible.
+        if len(roots.roots) == 0:
+            logger.warning("Somehow, no roots found")
+            return None
 
-    uri: str = str(roots.roots[0].uri)
-    path = uri[7:] if uri.startswith("file://") else uri
+        uri: str = str(roots.roots[0].uri)
+        path = uri[7:] if uri.startswith("file://") else uri
 
-    logger.debug(f"Determined path of workspace directory: {path}")
+        logger.debug(f"Determined path of workspace directory: {path}")
 
-    return path
+        return path
+    except Exception:
+        return ""
 
 
 # ---------------------------------------------------------------------------------
