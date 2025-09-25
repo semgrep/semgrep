@@ -233,6 +233,9 @@ let parse_pattern_by_lang options lang str =
   | Lang.Elixir ->
       let res = Parsing_plugin.Elixir.parse_pattern str in
       extract_pattern_from_tree_sitter_result res
+  | Lang.Gosu ->
+      let res = Parsing_plugin.Gosu.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res
   | Lang.Move_on_sui ->
       let res = Parse_move_on_sui_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res
