@@ -1,1 +1,0 @@
-Semgrep no longer fails to validate a config when a rule lang is capitalized (Introduced 1.137.0)

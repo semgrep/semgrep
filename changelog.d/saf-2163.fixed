@@ -1,2 +1,0 @@
-pro: improved performance of `tsconfig.json` matching for Typescript projects
-that contain multiple `tsconfig.json`s.

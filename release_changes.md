@@ -1,26 +1,28 @@
-## [1.137.0](https://github.com/semgrep/semgrep/releases/tag/v1.137.0) - 2025-09-17
+## [1.138.0](https://github.com/semgrep/semgrep/releases/tag/v1.138.0) - 2025-09-25
 
 
 ### Added
 
 
-- pro: typescript: Improved name resolution for destructuring parameters. (code-9088)
-- Added a new `semgrep mcp` subcommand, which runs the Semgrep MCP server, which previously
-  used to live at https://github.com/semgrep/mcp. That repository will be *deprecated*
-  as of this release, and future MCP contributions / issues should go into this repo. (saf-2239)
+- pro: scala: Method dispatching through traits (code-9092)
 
 
 ### Changed
 
 
-- Update semgrep-interfaces to only accept valid lanugage keys for editor (PR-4600)
+- Pro: additionally improved prefiltering for taint rules, especially when using
+  taint labels. This allows for the generation of more specific conditions than
+  the previously released version (v1.133.0). (code-9097)
 
 
 ### Fixed
 
 
-- Fix incorrect interpretation of `\#` and `\ ` in glob patterns found in
-  Semgrepignore and included Gitignore files. (fix-glob-escape)
-- Removed `pkg_resources is deprecated` warning by bumping opentelemetry-*
-  packages (gh-11069)
-- Fixes an issue in Dart language processing to return better results (gh-11173)
+- pro: python: Fix resolution of implicit namespace modules (code-9008)
+- We now filter `SEMGREP_APP_TOKEN` from any request made to non semgrep URLs
+  passed to `-f/-c/--config` during config/rules fetching. (gh-11016)
+- Typescript: Made it so that the pattern `var $X = $FUNC($REQ, $RES, ...) {...}`
+  no longer fails to parse. (saf-2159)
+- pro: improved performance of `tsconfig.json` matching for Typescript projects
+  that contain multiple `tsconfig.json`s. (saf-2163)
+- Semgrep no longer fails to validate a config when a rule lang is capitalized (Introduced 1.137.0) (saf-2247)

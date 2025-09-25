@@ -1,3 +1,0 @@
-Pro: additionally improved prefiltering for taint rules, especially when using
-taint labels. This allows for the generation of more specific conditions than
-the previously released version (v1.133.0).
