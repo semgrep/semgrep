@@ -227,7 +227,7 @@ let pp_hidden fmt _ = Format.fprintf fmt "_"
 (* Token (leaf) *)
 (*****************************************************************************)
 (* Tok.t_always_equal is the same type as Tok.t but provides special equal and
- * hash functions that are more conveninent in Semgrep matching context.
+ * hash functions that are more convenient in Semgrep matching context.
  * See Matching_generic.equal_ast_bound_code() and Metavariable.equal_mvalue()
  * for more information.
  *)
@@ -2049,7 +2049,7 @@ and signature_definition = {
 (*****************************************************************************)
 and directive = {
   d : directive_kind;
-  (* Right now d_attrs is used just for Static import in Java, and for
+  (* d_attrs is used just for Static import in Java, for
    * OCaml attributes of directives (e.g., open).
    *)
   d_attrs : attribute list;
@@ -2093,7 +2093,7 @@ and directive_kind =
   | PackageEnd of tok
   | Pragma of ident * any list
   (* e.g., Dynamic include in C, Extern "C" in C++/Rust, Undef in C++/Ruby,
-   * Export/Reexport in Javascript, Using in Solidity
+   * Export/Reexport in Javascript, Using in Solidity, pack modifiers in Gosu
    * TODO: Declare, move OE_UseStrict here for JS?
    *)
   | OtherDirective of todo_kind * any list
