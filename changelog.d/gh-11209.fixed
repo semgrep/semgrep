@@ -1,0 +1,1 @@
+Fixed a bug preventing metavariable-comparisons with more than two subsequent "and" or "or" conditions from producing findings. For example, the condition `$X > 1 or $Y > 1 or $Z > 1` would previously always evaluate to `false`. Now, it will behave as expected.

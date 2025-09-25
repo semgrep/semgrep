@@ -1,0 +1,11 @@
+rules:
+  - id: multi-and
+    severity: WARNING
+    languages:
+      - java
+    message: test
+    patterns:
+      - pattern: return $X;
+      - metavariable-comparison:
+          comparison: $X < 2 and $X < 2 and $X < 2
+          metavariable: $X
