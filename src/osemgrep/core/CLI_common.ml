@@ -87,16 +87,6 @@ let o_eio : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let o_no_python_schema_validation : bool Term.t =
-  let info =
-    Arg.info
-      [ "x-no-python-schema-validation" ]
-      ~doc:
-        "[INTERNAL] Skip JSON schema validation; rely on osemgrep parser to \
-         validate rules files"
-  in
-  Arg.value (Arg.flag info)
-
 let o_logging : Logs.level option Term.t =
   let combine debug quiet verbose =
     match (verbose, debug, quiet) with
@@ -203,15 +193,12 @@ let o_telemetry : Telemetry.config option Term.t =
 (*************************************************************************)
 
 let o_common : conf Term.t =
-  let combine logging profile maturity x_eio x_no_python_schema_validation
-      telemetry =
-    (* experimental flag only used by pysemgrep *)
-    ignore x_no_python_schema_validation;
+  let combine logging profile maturity x_eio telemetry =
     { logging_level = logging; profile; maturity; x_eio; telemetry }
   in
   Term.(
     const combine $ o_logging $ o_profile $ Maturity.o_maturity $ o_eio
-    $ o_no_python_schema_validation $ o_telemetry)
+    $ o_telemetry)
 
 (*************************************************************************)
 (* Misc *)

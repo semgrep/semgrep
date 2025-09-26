@@ -6,11 +6,8 @@ Please upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrad
 semgrep error: Invalid rule schema
   --> https://semgrep.dev/...:2
 2 | - id: eqeq-bad
-3 |   pattern-new-feature: $X == $X
-4 |   message: "useless comparison"
-5 |   languages: [python]
-6 |   severity: ERROR
+  |   ^
 
-{'id': 'eqeq-bad', 'pattern-new-feature': '$X == $X', 'message': 'useless comparison', 'languages': ['python'], 'severity': 'ERROR'} is not valid under any of the given schemas
+Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, or `r2c-internal-project-depends-on` to be present.
 
 [ERROR] invalid configuration file found (1 configs were invalid)
