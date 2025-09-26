@@ -17,15 +17,16 @@ from typing import Optional
 from boltons.iterutils import get_path
 
 from semgrep import tracing
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DeploymentConfig
 from semgrep.state import get_state
 
 logger = logging.getLogger(__name__)
 
 
 @tracing.trace()
-def get_deployment_from_token(token: str) -> Optional[str]:
+def get_deployment_from_token(token: str) -> Optional[DeploymentConfig]:
     """
-    Returns the deployment name the token is for, if token is valid
+    Returns the deployment config record the token is for, if token is valid
     """
     state = get_state()
     r = state.app_session.get(
@@ -34,7 +35,7 @@ def get_deployment_from_token(token: str) -> Optional[str]:
     )
     if r.ok:
         data = r.json()
-        return data.get("deployment", {}).get("name")  # type: ignore
+        return DeploymentConfig.from_json(data.get("deployment", {}))
     else:
         return None
 
