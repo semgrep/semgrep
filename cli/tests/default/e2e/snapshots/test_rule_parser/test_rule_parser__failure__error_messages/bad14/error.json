@@ -4,21 +4,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "These properties are invalid in the current mode: '0'",
+      "long_msg": "each pattern-sourceslist item should be a dictionary",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 1,
-            "line": 13,
-            "offset": -1
+            "col": 11,
+            "line": 10,
+            "offset": 161
           },
           "file": "rules/syntax/bad14.yaml",
           "source_hash": "3288d50ef917f40d8e5d0bec082d910a53ea93465167f5b2efbaac7ed68efcb2",
           "start": {
-            "col": 3,
-            "line": 2,
-            "offset": -1
+            "col": 9,
+            "line": 10,
+            "offset": 159
           }
         }
       ],
