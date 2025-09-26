@@ -4,21 +4,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "'4' is not valid under any of the given schemas",
+      "long_msg": "Strings are not valid under `patterns`: did you mean to write `pattern: 4` instead?",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 12,
+            "col": 8,
             "line": 5,
-            "offset": -1
+            "offset": 88
           },
           "file": "rules/syntax/bad5.yaml",
           "source_hash": "5c4f00f11940b0b9526ec7832ba2b1b539877e705bc7d73a4421db5a7006eba9",
           "start": {
-            "col": 9,
+            "col": 7,
             "line": 5,
-            "offset": -1
+            "offset": 87
           }
         }
       ],

@@ -4,21 +4,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "['*.py', 'test/*'] is not of type 'object'",
+      "long_msg": "each paths should be a dictionary",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 5,
-            "line": 10,
-            "offset": -1
+            "col": 8,
+            "line": 8,
+            "offset": 183
           },
           "file": "rules/syntax/badpaths1.yaml",
           "source_hash": "5f729ef631099eaddf81dca6b10c2e399989ff7c923ac53ab0e4e51b6124d1a1",
           "start": {
             "col": 7,
             "line": 8,
-            "offset": -1
+            "offset": 182
           }
         }
       ],
