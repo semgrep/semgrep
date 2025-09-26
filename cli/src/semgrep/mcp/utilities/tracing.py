@@ -39,7 +39,6 @@ from semgrep.mcp.utilities.utils import get_anonymous_user_id
 from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_user_settings_file
 from semgrep.mcp.utilities.utils import is_hosted
-from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
@@ -146,25 +145,6 @@ def attach_scan_metrics(
         config,
         workspace_dir,
     )
-
-
-def attach_rpc_scan_metrics(
-    span: trace.Span | None, results: CliOutput, workspace_dir: str | None
-) -> None:
-    if span is None:
-        return
-    span.set_attribute(
-        "metrics.semgrep_version",
-        results.version.value if results.version else "unknown",
-    )
-    span.set_attribute("metrics.num_skipped_rules", len(results.skipped_rules))
-    # Rules for RPC scans are cached by pulling the user's rules.
-    span.set_attribute("metrics.rule_config", "cached")
-    span.set_attribute("metrics.num_scanned_files", len(results.paths.scanned))
-    span.set_attribute("metrics.num_findings", len(results.results))
-    span.set_attribute("metrics.num_errors", len(results.errors))
-    attach_git_info(span, workspace_dir)
-    span.set_attribute("metrics.anonymous_user_id", get_anonymous_user_id())
 
 
 ################################################################################

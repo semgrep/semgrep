@@ -35,7 +35,6 @@ from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.semgrep import run_semgrep_process_sync
 from semgrep.mcp.semgrep import run_semgrep_via_rpc
 from semgrep.mcp.semgrep import SemgrepContext
-from semgrep.mcp.utilities.tracing import attach_rpc_scan_metrics
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_tool_span
@@ -905,7 +904,7 @@ async def semgrep_scan_rpc(
     ctx: Context,
     workspace_dir: str | None,
     code_files: list[CodeFile],
-) -> CliOutput:
+) -> SemgrepScanResult:
     """
     Runs a Semgrep scan on provided code content using the new Semgrep RPC feature.
 
@@ -916,11 +915,11 @@ async def semgrep_scan_rpc(
     try:
         # TODO: perhaps should return more interpretable results?
         context: SemgrepContext = ctx.request_context.lifespan_context
-        cli_output = await run_semgrep_via_rpc(context, workspace_dir, code_files)
+        results = await run_semgrep_via_rpc(context, workspace_dir, code_files)
 
-        attach_rpc_scan_metrics(get_current_span(), cli_output, workspace_dir)
+        attach_scan_metrics(get_current_span(), results, None, workspace_dir)
 
-        return cli_output
+        return results
     except McpError as e:
         raise e
     except ValidationError as e:
@@ -945,7 +944,7 @@ async def semgrep_scan_core(
     workspace_dir: str | None,
     code_files: list[CodeFile],
     config: str | None = CONFIG_FIELD,
-) -> SemgrepScanResult | CliOutput:
+) -> SemgrepScanResult:
     """
     Runs a Semgrep scan on provided CodeFile objects and returns the findings in JSON format
 
@@ -986,7 +985,7 @@ async def semgrep_scan_remote(
     code_files: list[dict[str, str]] = REMOTE_CODE_FILES_FIELD,
     # TODO: currently only for CLI-based scans
     config: str | None = CONFIG_FIELD,
-) -> SemgrepScanResult | CliOutput:
+) -> SemgrepScanResult:
     """
     Runs a Semgrep scan on provided code content and returns the findings in JSON format
 
@@ -1011,7 +1010,7 @@ async def semgrep_scan(
     ctx: Context,
     code_files: list[dict[str, str]] = LOCAL_CODE_FILES_FIELD,
     config: str | None = CONFIG_FIELD,
-) -> SemgrepScanResult | CliOutput:
+) -> SemgrepScanResult:
     """
     Runs a Semgrep scan locally on provided code files returns the findings in JSON format.
 
