@@ -11,10 +11,8 @@
 # LICENSE for more details.
 #
 import os
-from pathlib import Path
 
-from ruamel.yaml import YAML
-
+from semgrep.app import auth
 from semgrep.git import git_check_output
 from semgrep.state import get_state
 
@@ -33,51 +31,32 @@ def get_semgrep_api_url() -> str:
     return f"{url}/api"
 
 
-def get_user_settings_file() -> Path:
-    def get_user_data_folder() -> Path:
-        config_home = os.getenv("XDG_CONFIG_HOME")
-        if config_home is None or not Path(config_home).is_dir():
-            parent_dir = Path.home()
-        else:
-            parent_dir = Path(config_home)
-        return parent_dir / ".semgrep"
-
-    path = os.getenv(
-        "SEMGREP_SETTINGS_FILE", str(get_user_data_folder() / SETTINGS_FILENAME)
-    )
-    return Path(path)
-
-
-def get_field_from_settings_file(field: str) -> str | None:
-    """
-    Returns the value of the field from the settings file, if it exists
-    """
-    user_settings_file = get_user_settings_file()
-    if user_settings_file.exists():
-        with open(user_settings_file) as f:
-            yaml = YAML(typ="safe", pure=True)
-            settings = yaml.load(f)
-            return str(settings.get(field))
-    return None
-
-
 def get_semgrep_app_token() -> str | None:
     """
     Returns the Semgrep app token, if it exists
     """
-    env_token = os.environ.get("SEMGREP_APP_TOKEN")
-    if env_token is not None:
-        return env_token
-
-    return get_field_from_settings_file("api_token")
+    return auth.get_token()
 
 
 def get_anonymous_user_id() -> str:
     """
     Returns the anonymous user ID, if it exists
     """
-    id = get_field_from_settings_file("anonymous_user_id")
-    return id if id else "unknown"
+    id = get_state().settings.get("anonymous_user_id")
+    if isinstance(id, str):
+        return id
+    return "unknown"
+
+
+def get_deployment_id_from_token(token: str | None) -> str:
+    """
+    Returns the deployment ID the token is for, if token is valid
+    """
+    if not token:
+        return ""
+
+    deployment = auth.get_deployment_from_token(token)
+    return str(deployment.id) if deployment else ""
 
 
 def run_git_command(workspace_dir: str | None, args: list[str]) -> str:
