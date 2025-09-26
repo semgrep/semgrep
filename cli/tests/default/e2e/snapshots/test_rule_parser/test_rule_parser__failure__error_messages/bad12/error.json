@@ -4,21 +4,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "{'pattern-not': '$Y'} is not valid under any of the given schemas",
+      "long_msg": "you cannot negate in an Or; you can only negate inside an And",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 5,
-            "line": 6,
-            "offset": -1
+            "col": 20,
+            "line": 5,
+            "offset": 80
           },
           "file": "rules/syntax/bad12.yaml",
           "source_hash": "69c490071ff3af369ac30c61b12bad8f0ee8092440ea9d5b4fcdf3ee924c78ae",
           "start": {
             "col": 9,
             "line": 5,
-            "offset": -1
+            "offset": 69
           }
         }
       ],

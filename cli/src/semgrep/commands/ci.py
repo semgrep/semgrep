@@ -279,7 +279,6 @@ def ci(
     x_tr: bool,
     x_pro_naming: bool,
     x_semgrepignore_filename: Optional[str],
-    x_no_python_schema_validation: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
     dump_n_rule_partitions: Optional[int],

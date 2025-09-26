@@ -270,13 +270,15 @@ def add_metrics_part1(
         metrics.add_engine_config(
             engine_type,
             CodeConfig() if with_code_rules else None,
-            SecretsConfig(
-                SecretsOrigin(AnySecretsOrigin())
-                if allow_untrusted_validators
-                else SecretsOrigin(SemgrepSecretsOrigin())
-            )
-            if run_secrets and not disable_secrets_validation
-            else None,
+            (
+                SecretsConfig(
+                    SecretsOrigin(AnySecretsOrigin())
+                    if allow_untrusted_validators
+                    else SecretsOrigin(SemgrepSecretsOrigin())
+                )
+                if run_secrets and not disable_secrets_validation
+                else None
+            ),
             SupplyChainConfig() if with_supply_chain else None,
         )
         metrics.add_is_diff_scan(baseline_commit is not None)
@@ -1050,7 +1052,6 @@ def run_scan(
     x_tr: bool = False,
     x_eio: bool = False,
     x_pro_naming: bool = False,
-    x_no_python_schema_validation: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     allow_local_builds: bool = False,
@@ -1106,7 +1107,6 @@ def run_scan(
             replacement=replacement,
             project_url=project_url,
             no_rewrite_rule_ids=no_rewrite_rule_ids,
-            no_python_schema_validation=x_no_python_schema_validation,
         )
         progress.remove_task(task_id)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
