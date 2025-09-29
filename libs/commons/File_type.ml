@@ -85,7 +85,7 @@ and pl_type =
 
 and config_type =
   | Makefile
-  | Dockerfile
+  | Dockerfile (* Dockerfile, Containerfile *)
   (* note: XML is in webpl_type below *)
   | Json
   | Jsonnet
@@ -275,7 +275,9 @@ let file_type_of_file file =
   | "tf" -> Config Terraform
   | "toml" -> Config Toml
   (* sometimes people use foo.Dockerfile *)
-  | "Dockerfile" -> Config Dockerfile
+  | "Dockerfile"
+  | "Containerfile" ->
+      Config Dockerfile
   | "sql" -> PL (Web Sql)
   | "sqlite" -> PL (Web Sql)
   (* apple stuff ? *)
@@ -403,7 +405,7 @@ let file_type_of_file file =
   | "ex" -> PL Elixir
   | _ when UFile.is_executable file -> Binary e
   | _ when b = "Makefile" || b = "mkfile" || b = "Imakefile" -> Config Makefile
-  | _ when b = "Dockerfile" -> Config Dockerfile
+  | _ when b = "Dockerfile" || b = "Containerfile" -> Config Dockerfile
   | _ when b = "dune" -> Config Sexp
   | _ when b = "README" -> Text "txt"
   | _ when b = "CODEOWNERS" -> Text "txt"
