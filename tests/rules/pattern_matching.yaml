@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    message: Test
+    languages:
+      - scala
+    severity: WARNING
+    pattern: |
+        HttpRoutes.of[$_] {
+            case ... =>
+              ...
+        }
