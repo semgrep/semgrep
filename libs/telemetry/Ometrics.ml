@@ -674,3 +674,31 @@ let make_meter ?(provider = (module Simple_meter_provider : Meter_provider))
             (struct
               let meta = meta
             end))
+
+(*****************************************************************************)
+(* Useful generic meters, also examples *)
+(*****************************************************************************)
+
+(* Extensible type for adding errors that may not be exceptions *)
+type metered_error = ..
+
+let error_table = SharedCounterTable.create_int_table 10
+
+module Error_meter = (val make_meter default_meter_meta)
+
+module Error_count =
+  (val Error_meter.make_int_counter
+         (make_instrument_meta ~name:"ocaml_exceptions"
+            ~description:"How many errors a service has encountered" ()))
+
+let meter_exception (e : exn) =
+  let exn_type = Printexc.exn_slot_name e in
+  let attrs = [ ("type", `String exn_type); ("kind", `String "exception") ] in
+  let count = SharedCounterTable.add_and_fetch error_table attrs 1 in
+  Error_count.record ~attrs count
+
+let meter_error (e : metered_error) =
+  let error_type = Obj.Extension_constructor.(e |> of_val |> name) in
+  let attrs = [ ("type", `String error_type); ("kind", `String "error") ] in
+  let count = SharedCounterTable.add_and_fetch error_table attrs 1 in
+  Error_count.record ~attrs count

@@ -4,6 +4,7 @@
  (wrapped false)
   (libraries
     commons
+    parallelism
     uri
     yojson
     logs
