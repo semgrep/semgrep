@@ -42,8 +42,7 @@ def test_publish(tmp_path, mocker):
     assert result.output == "run `semgrep login` before using upload\n"
 
     mocker.patch(
-        "semgrep.app.auth.get_deployment_from_token",
-        return_value={"id": 1, "name": "deployment_name"},
+        "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
     )
 
     # log back in

@@ -66,11 +66,7 @@ val id_of_import_from_kind : AST_generic.import_from_kind -> AST_generic.ident
 val alias_opt_of_import_from_kind :
   AST_generic.import_from_kind -> AST_generic.alias option
 
-val name_of_id :
-  ?hidden:bool ->
-  ?case_insensitive:bool ->
-  AST_generic.ident ->
-  AST_generic.name
+val name_of_id : ?case_insensitive:bool -> AST_generic.ident -> AST_generic.name
 
 val name_of_ids :
   ?case_insensitive:bool -> AST_generic.dotted_ident -> AST_generic.name

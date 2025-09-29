@@ -23,13 +23,13 @@ from mcp.types import INVALID_REQUEST
 from opentelemetry import trace
 
 from semgrep.mcp.models import CodeFile
-from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.utilities.tracing import get_trace_endpoint
 from semgrep.mcp.utilities.tracing import is_tracing_disabled
 from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.semgrep_core import compute_executable_path
+from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -310,7 +310,7 @@ async def run_semgrep_output(top_level_span: trace.Span | None, args: list[str])
 
 async def run_semgrep_via_rpc(
     context: SemgrepContext, workspace_dir: str | None, data: list[CodeFile]
-) -> SemgrepScanResult:
+) -> CliOutput:
     """
     Runs semgrep with the given arguments via RPC
 
@@ -336,4 +336,4 @@ async def run_semgrep_via_rpc(
     resp_json = json.loads(resp_json)
     assert isinstance(resp_json, dict)
 
-    return SemgrepScanResult.model_validate(resp_json)
+    return CliOutput.from_json(resp_json)

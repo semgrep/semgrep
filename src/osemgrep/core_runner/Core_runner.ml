@@ -206,11 +206,11 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         symbol_analysis;
         fips_mode;
         use_eio;
-        (* XXX: careful!  If we are opting into eio with [use_eio],
+        (* XXX: careful!  Even though we are opting into eio with [use_eio],
          * it still falls to the caller to set up the parallelism config
          * (since Eio "so very helpfully" insists on everything being lexically-
          * scoped) *)
-        par_conf = Parallelism_config.default;
+        par_conf = None;
       }
 
 (* output adapter to Core_scan.scan.
@@ -304,11 +304,8 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     let core_scan_func =
       if config.use_eio then fun config ->
         Eio_main.run (fun env ->
-            let par_conf = Parallelism_config.create env in
-            let res : Core_result.result_or_exn =
-              core_scan_func { config with par_conf }
-            in
-            res)
+            let par_conf = Some (Parallelism_config.create env) in
+            core_scan_func { config with par_conf })
       else core_scan_func
     in
 

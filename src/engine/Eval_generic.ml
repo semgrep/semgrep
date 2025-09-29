@@ -369,13 +369,6 @@ and eval_op op values code =
       (* To compare `AST` values one needs to explicitly use the `str()`
        * function! Otherwise we would introduce regressions. *)
       raise (NotHandled code)
-  (* Our Python parser (which we use for metavariable comparison expressions)
-   * will parse `x or y or z` not as two separate binary expressions but as a
-   * single call to the special `Or` operation with three arguments. `and` is
-   * the same. Account for that when evaluating these operations. *)
-  | (G.Or | G.And), x1 :: x2 :: (_ :: _ as tl) ->
-      let first_result = eval_op op [ x1; x2 ] code in
-      eval_op op (first_result :: tl) code
   | G.And, [ Bool b1; Bool b2 ] -> Bool (b1 && b2)
   | G.Not, [ Bool b1 ] -> Bool (not b1)
   | G.Or, [ Bool b1; Bool b2 ] -> Bool (b1 || b2)

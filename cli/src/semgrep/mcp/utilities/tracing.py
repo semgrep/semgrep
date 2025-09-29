@@ -15,31 +15,40 @@ import os
 from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import Generator
+from collections.abc import Mapping
 from contextlib import contextmanager
 from typing import Any
 from typing import Concatenate
 from typing import ParamSpec
 from typing import TypeVar
 
+import requests
 from mcp.server.fastmcp.server import Context
 from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import DEPLOYMENT_ENVIRONMENT
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.resources import SERVICE_NAME
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from ruamel.yaml import YAML
 
+from semgrep import __VERSION__
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.utilities.utils import get_anonymous_user_id
-from semgrep.mcp.utilities.utils import get_deployment_id_from_token
 from semgrep.mcp.utilities.utils import get_git_info
-from semgrep.mcp.utilities.utils import get_semgrep_app_token
+from semgrep.mcp.utilities.utils import get_user_settings_file
 from semgrep.mcp.utilities.utils import is_hosted
+from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
 from semgrep.state import get_state
-from semgrep.tracing import _DEFAULT_ENDPOINT
-from semgrep.tracing import _DEV_ENDPOINT
-from semgrep.tracing import _LOCAL_ENDPOINT
-from semgrep.tracing import TRACER
 from semgrep.verbose_logging import getLogger
 
-
 logger = getLogger(__name__)
+
+# coupling: these need to be kept in sync with semgrep-proprietary/tracing.py
+DEFAULT_TRACE_ENDPOINT = "https://telemetry.semgrep.dev/v1/traces"
+DEFAULT_DEV_ENDPOINT = "https://telemetry.dev2.semgrep.dev/v1/traces"
+DEFAULT_LOCAL_ENDPOINT = "http://localhost:4318/v1/traces"
 
 DEPLOYMENT_ROUTE = "/api/agent/deployments/current"
 
@@ -50,6 +59,40 @@ yaml = YAML()
 ################################################################################
 # Metrics Helpers #
 ################################################################################
+
+
+def get_deployment_id_from_token(token: str) -> str:
+    """
+    Returns the deployment ID the token is for, if token is valid
+    """
+    if not token:
+        return ""
+
+    state = get_state()
+
+    resp = requests.get(
+        f"{state.env.semgrep_url}{DEPLOYMENT_ROUTE}",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=(2, 30),
+    )
+    if resp.status_code == 200:
+        deployment = resp.json().get("deployment")
+        return str(deployment.get("id")) if deployment else ""
+    else:
+        return ""
+
+
+def get_token_from_user_settings() -> str:
+    settings_file = get_user_settings_file()
+    if not os.access(settings_file, os.R_OK) or not settings_file.is_file():
+        return ""
+    with settings_file.open() as fd:
+        yaml_contents = yaml.load(fd)
+
+    if not isinstance(yaml_contents, Mapping):
+        return ""
+
+    return yaml_contents.get("api_token", "")
 
 
 def attach_git_info(span: trace.Span | None, workspace_dir: str | None) -> None:
@@ -105,6 +148,25 @@ def attach_scan_metrics(
     )
 
 
+def attach_rpc_scan_metrics(
+    span: trace.Span | None, results: CliOutput, workspace_dir: str | None
+) -> None:
+    if span is None:
+        return
+    span.set_attribute(
+        "metrics.semgrep_version",
+        results.version.value if results.version else "unknown",
+    )
+    span.set_attribute("metrics.num_skipped_rules", len(results.skipped_rules))
+    # Rules for RPC scans are cached by pulling the user's rules.
+    span.set_attribute("metrics.rule_config", "cached")
+    span.set_attribute("metrics.num_scanned_files", len(results.paths.scanned))
+    span.set_attribute("metrics.num_findings", len(results.results))
+    span.set_attribute("metrics.num_errors", len(results.errors))
+    attach_git_info(span, workspace_dir)
+    span.set_attribute("metrics.anonymous_user_id", get_anonymous_user_id())
+
+
 ################################################################################
 # Tracing Helpers #
 ################################################################################
@@ -112,14 +174,14 @@ def attach_scan_metrics(
 
 def get_trace_endpoint() -> tuple[str, str]:
     """Get the appropriate trace endpoint based on environment."""
-    env = os.environ.get("SEMGREP_OTEL_ENDPOINT", "semgrep-prod").lower()
+    env = os.environ.get("SEMGREP_OTEL_ENDPOINT", "semgrep-dev").lower()
 
-    if env == "semgrep-dev":
-        return (_DEV_ENDPOINT, "semgrep-dev")
+    if env == "semgrep-prod":
+        return (DEFAULT_TRACE_ENDPOINT, "semgrep-prod")
     elif env == "semgrep-local":
-        return (_LOCAL_ENDPOINT, "semgrep-local")
+        return (DEFAULT_LOCAL_ENDPOINT, "semgrep-local")
     else:
-        return (_DEFAULT_ENDPOINT, "semgrep-prod")
+        return (DEFAULT_DEV_ENDPOINT, "semgrep-dev")
 
 
 def is_tracing_disabled() -> bool:
@@ -139,20 +201,36 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
     else:
         (endpoint, env) = get_trace_endpoint()
 
-        token = os.environ.get("SEMGREP_APP_TOKEN", get_semgrep_app_token())
+        token = os.environ.get("SEMGREP_APP_TOKEN", get_token_from_user_settings())
 
-        state = get_state()
-        state.traces.configure(
-            True,
-            endpoint,
-            MCP_SERVICE_NAME,
+        # Create resource with basic attributes
+        resource = Resource.create(
             {
+                SERVICE_NAME: MCP_SERVICE_NAME,
+                DEPLOYMENT_ENVIRONMENT: env,
+                "metrics.semgrep_version": __VERSION__,
                 "metrics.is_hosted": is_hosted(),
                 "metrics.deployment_id": get_deployment_id_from_token(token),
-            },
+            }
         )
 
-        with TRACER.start_as_current_span(name) as span:
+        # Create tracer provider
+        provider = TracerProvider(resource=resource)
+
+        # Create OTLP exporter
+        exporter = OTLPSpanExporter(endpoint=endpoint)
+
+        # Create span processor
+        processor = BatchSpanProcessor(exporter)
+        provider.add_span_processor(processor)
+
+        # Set the global tracer provider
+        trace.set_tracer_provider(provider)
+
+        # Get tracer instance
+        tracer = trace.get_tracer(MCP_SERVICE_NAME)
+
+        with tracer.start_as_current_span(name) as span:
             trace_id = trace.format_trace_id(span.get_span_context().trace_id)
             # Get a link to the trace in Datadog
             link = (
@@ -175,8 +253,10 @@ def with_span(
     if is_tracing_disabled() or parent_span is None:
         yield None
     else:
+        tracer = trace.get_tracer(MCP_SERVICE_NAME)
+
         context = trace.set_span_in_context(parent_span)
-        with TRACER.start_as_current_span(name, context=context) as span:
+        with tracer.start_as_current_span(name, context=context) as span:
             yield span
 
 

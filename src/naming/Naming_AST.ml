@@ -448,15 +448,9 @@ let resolved_name_kind env lang =
       | Lang.Js
       | Lang.Ts
       | Lang.Php
-      | Lang.Scala
-      (* history: for other langs, used to be a `Common.Impossible`
-         but, as typically is the case with these things, Datadog
-         shows a ton of instances of these.
-         to not crash out, let's just return `EnclosedVar`, which seems like
-         a reasonable default.
-       *)
-      | _ ->
-          EnclosedVar)
+      | Lang.Scala ->
+          EnclosedVar
+      | _ -> raise Impossible)
 
 (* !also set the id_info of the parameter as a side effect! *)
 let params_of_parameters env params : scope =

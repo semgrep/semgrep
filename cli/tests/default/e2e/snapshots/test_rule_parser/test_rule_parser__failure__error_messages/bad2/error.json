@@ -4,21 +4,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "you need at least one positive term (not just negations or conditions)",
+      "long_msg": "One of these properties is missing: 'severity'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 13,
-            "line": 3,
-            "offset": 39
+            "col": 1,
+            "line": 8,
+            "offset": -1
           },
           "file": "rules/syntax/bad2.yaml",
           "source_hash": "8861f46f4219927c24d0ba57521a2b46d60f7367eca308fa7efb623c5a8b17bc",
           "start": {
             "col": 5,
-            "line": 3,
-            "offset": 31
+            "line": 2,
+            "offset": -1
           }
         }
       ],

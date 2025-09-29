@@ -18,7 +18,7 @@
  *)
 
 val map :
-  conf:Parallelism_config.eio_state ->
+  conf:Parallelism_config.t ->
   domain_count:int ->
   ('a -> 'b) ->
   'a list ->

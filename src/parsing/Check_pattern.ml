@@ -21,7 +21,6 @@ let lang_has_no_dollar_ids =
     | Python2
     | Python3
     | Java
-    | Gosu
     | Go
     | C
     | Cpp

@@ -919,16 +919,15 @@ class TextFormatter(base.BaseFormatter):
                             kind, out.TransitiveReachable_
                         ):
                             subgroup = "reachable"
-                        elif isinstance(kind, out.TransitiveUnreachable_):
-                            # This means we're really sure the vulnerable usage
-                            # pattern doesn't occur anywhere in the application
-                            # or its dependencies.
+                        # TODO: at some point stop considering
+                        # TransitiveUndetermined_ as unreachable and use
+                        # "undetermined" (uncomment code below)
+                        elif isinstance(
+                            kind, out.TransitiveUndetermined_
+                        ) or isinstance(kind, out.TransitiveUnreachable_):
                             subgroup = "unreachable"
-                        elif isinstance(kind, out.TransitiveUndetermined_):
-                            # This could be due to a failure to obtain dependency
-                            # source code. In doubt, a user should assume
-                            # that the finding may be reachable.
-                            subgroup = "undetermined"
+                        # elif isinstance(kind, out.TransitiveUndetermined_):
+                        #    subgroup = "undetermined"
                         else:
                             logger.warning(f"Unknown match kind:{kind}")
                 else:

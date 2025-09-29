@@ -1,8 +1,8 @@
 [31m[22m[24msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad5.yaml:5
 [94m[22m[24m5 | [0m      - "4"
-[94m[22m[24m  | [0m      [31m[22m[24m^[0m
+[94m[22m[24m  | [0m        [31m[22m[24m^^^[0m
 
-[31m[22m[24mStrings are not valid under `patterns`: did you mean to write `pattern: 4` instead?[0m
+[31m[22m[24m'4' is not valid under any of the given schemas[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)

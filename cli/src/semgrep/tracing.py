@@ -145,15 +145,7 @@ class Traces:
     scan_info_span_processor = ScanInfoSpanProcessor()
     scan_info_log_processor: Optional[ScanInfoLogProcessor] = None
 
-    def configure(
-        self,
-        enabled: bool,
-        trace_endpoint: Optional[str],
-        service_name: str = "semgrep-cli",
-        attributes: Optional[
-            dict
-        ] = None,  # for adding extra attributes to the resource
-    ) -> None:
+    def configure(self, enabled: bool, trace_endpoint: Optional[str]) -> None:
         self.enabled = enabled
 
         if not self.enabled:
@@ -187,10 +179,9 @@ class Traces:
             detectors=[ProcessResourceDetector(), OTELResourceDetector()],
             initial_resource=Resource(
                 attributes={
-                    SERVICE_NAME: service_name,
+                    SERVICE_NAME: "semgrep-cli",
                     SERVICE_VERSION: __VERSION__,
                     "deployment.environment.name": env_name if env_name else "prod",
-                    **(attributes or {}),
                 },
             ),
         )

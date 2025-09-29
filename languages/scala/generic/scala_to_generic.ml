@@ -44,11 +44,9 @@ let v_option = Option.map
 
 let cases_to_lambda lb cases : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
-  let param = G.Param (G.param_of_id ~hidden:true id) in
+  let param = G.Param (G.param_of_id id) in
   let body =
-    G.Switch
-      (lb, Some (G.Cond (G.N (H.name_of_id ~hidden:true id) |> G.e)), cases)
-    |> G.s
+    G.Switch (lb, Some (G.Cond (G.N (H.name_of_id id) |> G.e)), cases) |> G.s
   in
   {
     fkind = (G.BlockCases, lb);

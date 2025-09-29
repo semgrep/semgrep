@@ -63,7 +63,7 @@ let push_mvar env x = env.mvars <- MvarSet.add x env.mvars
 
 let extract_strings_and_mvars_for_intrafile =
   let visitor =
-    object (self : 'self)
+    object (_self : 'self)
       inherit [_] AST_generic.iter_no_id_info as super
 
       method! visit_ident env (str, _tok) =
@@ -81,15 +81,6 @@ let extract_strings_and_mvars_for_intrafile =
                 being present in the target source, so we ignore it. *)
             ()
         | _ -> super#visit_name env x
-
-      method! visit_parameter_classic env
-          { pname; ptype; pdefault; pattrs; pinfo } =
-        if not (IdFlags.is_hidden !(pinfo.id_flags)) then
-          self#visit_option self#visit_ident env pname;
-        self#visit_option self#visit_type_ env ptype;
-        self#visit_option self#visit_expr env pdefault;
-        self#visit_list self#visit_attribute env pattrs;
-        self#visit_id_info env pinfo
 
       method! visit_directive env x =
         match x with

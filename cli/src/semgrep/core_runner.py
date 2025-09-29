@@ -1178,7 +1178,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         target_mode_config: TargetModeConfig,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
         x_eio: bool,
-    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra]:
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
         These issues may possibly cause a failure if a user, for instance, updates their
@@ -1285,13 +1285,18 @@ Exception raised: `{e}`
             output_extra,
         )
 
-    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
+    def validate_configs(
+        self, configs: Tuple[str, ...], no_python_schema_validation: bool = False
+    ) -> Sequence[SemgrepError]:
         if self._binary_path is None:  # should never happen, doing this for mypy
             raise SemgrepError("semgrep engine not found.")
 
-        metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
-            0
-        ].get_rules(True)
+        metachecks = Config.from_config_list(
+            ["p/semgrep-rule-lints"],
+            None,
+            force_jsonschema=True,
+            no_python_schema_validation=no_python_schema_validation,
+        )[0].get_rules(True)
 
         parsed_errors = []
         with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:

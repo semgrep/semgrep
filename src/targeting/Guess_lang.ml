@@ -265,7 +265,6 @@ let inspect_file_p (lang : Lang.t) path =
     | Dart
     | Elixir
     | Go
-    | Gosu
     | Html
     | Java
     | Js

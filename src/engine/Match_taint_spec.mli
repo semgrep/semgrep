@@ -44,7 +44,7 @@ type spec_matches = {
   'Taint_spec_preds.propagation_point's. *)
 
 val hook_mk_taint_spec_match_preds :
-  (Rule.rule -> spec_matches -> Taint_spec_preds.t) option Hook.t
+  (Rule.rule -> spec_matches -> Taint_spec_preds.t) option ref
 
 (* The [per_file_formula_cache] argument is exposed here because this function is
   also a subroutine, but the cache itself should be created outside of the any

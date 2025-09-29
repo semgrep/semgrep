@@ -335,7 +335,7 @@ let mk_config () : Core_scan_config.t =
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
     use_eio = !use_eio;
-    par_conf = Parallelism_config.default;
+    par_conf = None;
   }
 
 (*****************************************************************************)
@@ -695,35 +695,26 @@ let run caps (config : Core_scan_config.t) : unit =
 (* We want to only run the Eio async runtime (i.e Eio_main.run) iff --x-eio is
  * set. coupling: Pro_CLI.ml
  *)
-let maybe_with_eio (f : Core_scan_config.t -> 'a) : 'a =
-  let config = mk_config () in
-  Core_profiling.profiling := config.report_time;
-  let num_jobs : Core_scan_config.num_jobs =
-    if !Profiling.profile =*= Profiling.ProfAll then (
-      Logs.info (fun m -> m "Profile mode On");
-      Logs.info (fun m -> m "disabling -j when in profiling mode");
-      Default 1)
-    else config.num_jobs
-  in
-  let config = { config with num_jobs } in
-  if !use_eio then
+let maybe_with_eio (config : Core_scan_config.t) (f : Core_scan_config.t -> 'a)
+    : 'a =
+  if config.use_eio then
     Eio_main.run (fun env ->
         Logs_threaded.enable ();
-        f { config with par_conf = Parallelism_config.create env })
+        f { config with par_conf = Some (Parallelism_config.create env) })
   else f config
 
 let maybe_with_tracing function_name engine analysis_flags
     (config : Core_scan_config.t) (f : Core_scan_config.t -> 'a) : 'a =
   match config.telemetry with
   | None -> f config
-  | Some tracing ->
-      let eio = !use_eio in
+  | Some tracing -> (
       let resource_attrs =
         (* Let's make sure all traces/logs/metrics etc. are tagged as
                    coming from the pro invocation *)
         Trace_data.get_resource_attrs ?env:tracing.env ~engine ~analysis_flags
           ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
-          ~eio ()
+          ~eio:(Option.is_some config.par_conf)
+          ()
       in
       let configure_otel ?eio_sw_base () =
         Telemetry.configure_otel ?eio_sw_base ~attrs:resource_attrs
@@ -734,21 +725,15 @@ let maybe_with_tracing function_name engine analysis_flags
             let telemetry = { tracing with top_level_scope = Some scope } in
             f { config with telemetry = Some telemetry })
       in
-      if not eio then (
-        configure_otel ();
-        run ())
-      else
-        Eio.Switch.run (fun sw ->
-            let env =
-              match Parallelism_config.unsafe_get_base config.par_conf with
-              | Error (NotInEio _) ->
-                  (* Since we are running within an Eio loop, this code path can never be
-                 hit; we would have previously already errored out by now. *)
-                  raise Impossible
-              | Ok env -> env
-            in
-            configure_otel ~eio_sw_base:(sw, env) ();
-            run ())
+      match config.par_conf with
+      | None ->
+          configure_otel ();
+          run ()
+      | Some par_conf ->
+          Eio.Switch.run (fun sw ->
+              let env = Parallelism_config.unsafe_get_base par_conf in
+              configure_otel ~eio_sw_base:(sw, env) ();
+              run ()))
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -830,6 +815,15 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       (* --------------------------------------------------------- *)
       | roots ->
           let roots = Fpath_.of_strings roots in
+          let config = mk_config () in
+          Core_profiling.profiling := config.report_time;
+          let num_jobs : Core_scan_config.num_jobs =
+            if !Profiling.profile =*= Profiling.ProfAll then (
+              Logs.info (fun m -> m "Profile mode On");
+              Logs.info (fun m -> m "disabling -j when in profiling mode");
+              Default 1)
+            else config.num_jobs
+          in
           let target_source : Core_scan_config.target_source =
             match (!target_file, !lang, roots) with
             | Some file, None, [] -> Target_file file
@@ -846,11 +840,18 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                    and a single target file; if you need more complex file \
                    targeting use semgrep"
           in
-          maybe_with_eio (fun config ->
-              let config = { config with target_source } in
-              let analysis_flags = Trace_data.no_analysis_features () in
+          let config = { config with target_source; num_jobs } in
+
+          maybe_with_eio config (fun config ->
+              (* Set up tracing and run it for the duration of scanning. Note that
+             this will only trace `Core_command.run_conf` and the functions it
+             calls.
+             TODO when osemgrep is the default entry point, we will also be
+             able to instrument the pre- and post-scan code in the same way.
+          *)
               maybe_with_tracing "Core_command.semgrep_core_dispatch" "oss"
-                analysis_flags config (fun config -> run caps config)))
+                (Trace_data.no_analysis_features ()) config (fun config ->
+                  run caps config)))
 
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () -> main_exn caps argv)

@@ -39,7 +39,6 @@ type t = Language.t =
   | Dockerfile
   | Elixir
   | Go
-  | Gosu
   | Hack
   | Html
   | Java

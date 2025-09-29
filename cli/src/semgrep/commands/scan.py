@@ -452,6 +452,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--x-no-python-schema-validation",
+        "x_no_python_schema_validation",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -695,6 +701,7 @@ def scan(
     x_tr: bool,
     x_eio: bool,
     x_pro_naming: bool,
+    x_no_python_schema_validation: bool,
     x_semgrepignore_filename: Optional[str],
     path_sensitive: bool,
     allow_local_builds: bool,
@@ -886,7 +893,12 @@ def scan(
                         resolved_configs,
                         config_errors,
                     ) = semgrep.config_resolver.get_config(
-                        pattern, lang, config or [], project_url=get_project_url()
+                        pattern,
+                        lang,
+                        config or [],
+                        project_url=get_project_url(),
+                        force_jsonschema=True,
+                        no_python_schema_validation=x_no_python_schema_validation,
                     )
 
                     # Run `semgrep-core -check_rules` on the config files. This
@@ -909,7 +921,10 @@ def scan(
                                 allow_untrusted_validators=allow_untrusted_validators,
                                 path_sensitive=path_sensitive,
                                 group_taint_rules=x_group_taint_rules,
-                            ).validate_configs(config)
+                            ).validate_configs(
+                                config,
+                                no_python_schema_validation=x_no_python_schema_validation,
+                            )
                         except SemgrepError as e:
                             validation_errors = [e]
 
@@ -989,6 +1004,7 @@ def scan(
                         x_tr=x_tr,
                         x_eio=x_eio,
                         x_pro_naming=x_pro_naming,
+                        x_no_python_schema_validation=x_no_python_schema_validation,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,

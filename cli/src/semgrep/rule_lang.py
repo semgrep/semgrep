@@ -10,21 +10,26 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import json
 import re
 from io import StringIO
 from pathlib import Path
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import Generic
 from typing import ItemsView
 from typing import KeysView
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
+import jsonschema.exceptions
+from jsonschema.validators import Draft7Validator
 from packaging.version import Version
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
@@ -57,6 +62,26 @@ logger = getLogger(__name__)
 
 class EmptyYamlException(Exception):
     pass
+
+
+class RuleSchema:
+    _schema: Dict[str, Any] = {}
+
+    @classmethod
+    def get(cls) -> Dict[str, Any]:
+        """
+        Returns the rule schema
+
+        Not thread safe.
+        """
+        if not cls._schema:
+            yaml = YAML()
+            schema_path = (
+                Path(__file__).parent / "semgrep_interfaces" / "rule_schema_v1.yaml"
+            )
+            with schema_path.open() as fd:
+                cls._schema = yaml.load(fd)
+        return cls._schema
 
 
 EmptySpan = Span.from_string("a: b")
@@ -178,7 +203,7 @@ def parse_yaml_preserve_spans(
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
     so they can be used later when constructing error messages or displaying context.
 
-    :raise InvalidRuleSchemaError if config is invalid
+    :raise jsonschema.exceptions.SchemaError: if config is invalid
     """
 
     source_hash = SourceTracker.add_source(contents)
@@ -259,6 +284,8 @@ def parse_yaml_preserve_spans(
 def parse_config_preserve_spans(
     contents: str,
     filename: Optional[str],
+    force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
     rules_tmp_path: Optional[str] = None,
 ) -> Tuple[YamlTree, List[SemgrepError]]:
     data = parse_yaml_preserve_spans(contents, filename)
@@ -271,6 +298,8 @@ def parse_config_preserve_spans(
         source_hash,
         filename,
         no_rewrite_rule_ids=False,
+        force_jsonschema=force_jsonschema,
+        no_python_schema_validation=no_python_schema_validation,
         rules_tmp_path=rules_tmp_path,
     )
     return data, errors
@@ -297,6 +326,84 @@ class RuleValidation:
     BAD_TYPE_SENTINEL = "is not of type"
     BANNED_SENTINEL = "Additional properties are not allowed"
     REDUNDANT_SENTINEL = "is valid under each of"
+
+
+def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> str:
+    """
+    Heuristic that returns meaningful error messages in all examples from
+    tests/default/e2e/rules/syntax/badXXX.yaml
+    """
+
+    contexts = (error.parent.context or []) if error.parent else [error]
+    invalid_for_mode_keys = set()
+    redundant_keys = set()
+    bad_type = set()
+    invalid_keys = set()
+    any_of_invalid_keys = set()
+    required = set()
+    banned = set()
+    for context in contexts:
+        if RuleValidation.REDUNDANT_SENTINEL in context.message:
+            mutex_properties = [
+                k["required"][0]
+                for k in context.validator_value
+                if "required" in k and k["required"]
+            ]
+            l = []
+            for property in mutex_properties:
+                if property and property in context.instance.keys():
+                    l.append(property)
+            redundant_keys.add(tuple(l))
+        if context.message.startswith(RuleValidation.INVALID_FOR_MODE_SENTINEL):
+            invalid_for_mode_keys.add(context.path.pop())
+        if RuleValidation.BAD_TYPE_SENTINEL in context.message:
+            bad_type.add(context.message)
+        if RuleValidation.INVALID_SENTINEL in context.message:
+            try:
+                required_keys = [
+                    k["required"][0]
+                    for k in context.validator_value.get("anyOf", [])
+                    if "required" in k and k["required"]
+                ]
+                for r in required_keys:
+                    if r and r in context.instance.keys():
+                        any_of_invalid_keys.add(r)
+            except (json.JSONDecodeError, AttributeError):
+                invalid_keys.add(context.message)
+        if context.message.startswith(RuleValidation.BANNED_SENTINEL):
+            banned.add(context.message)
+        require_matches = RuleValidation.REQUIRE_REGEX.match(context.message)
+        if require_matches:
+            required.add(require_matches[1])
+
+    if invalid_keys:
+        return "\n".join(sorted(invalid_keys))
+    if bad_type:
+        return "\n".join(sorted(bad_type))
+    if banned:
+        return "\n".join(sorted(banned))
+
+    outs = []
+    if invalid_for_mode_keys:
+        keys = ", ".join(f"'{k}'" for k in sorted(invalid_for_mode_keys))
+        outs.append(f"These properties are invalid in the current mode: {keys}")
+    if any_of_invalid_keys:
+        keys = ", ".join(f"'{k}'" for k in sorted(any_of_invalid_keys))
+        outs.append(f"One of these properties may be invalid: {keys}")
+        required = required - RuleValidation.PATTERN_KEYS
+    if required:
+        keys = ", ".join(f"'{k}'" for k in sorted(required))
+        outs.append(f"One of these properties is missing: {keys}")
+    if redundant_keys:
+        for mutex_set in sorted(redundant_keys):
+            keys = ", ".join(f"'{k}'" for k in sorted(mutex_set))
+            outs.append(
+                f"These options were {'both' if len(mutex_set) == 2 else 'all'} specified, but they are mutually exclusive: {keys}"
+            )
+    if outs:
+        return "\n".join(outs)
+
+    return contexts[0].message
 
 
 DUMMY_POSITION = out.Position(line=1, col=0, offset=0)
@@ -449,6 +556,22 @@ def remove_incompatible_rules_based_on_version(
     return errors
 
 
+class RpcValidationError(Exception):
+    pass
+
+
+def run_rpc_validate(rules_tmp_path: str) -> Literal[True]:
+    try:
+        error = rpc_validate(out.Fpath(rules_tmp_path))
+        logger.debug(f"semgrep-core validation response: {error=}")
+        if error is None:
+            logger.debug("semgrep-core validation succeeded")
+            return True
+        raise RpcValidationError("semgrep-core validation failed")
+    except Exception as e:
+        raise e
+
+
 def _core_location_to_error_location_span(
     location: out.Location, filename: Optional[str], source_hash: SourceFileHash
 ) -> Span:
@@ -488,16 +611,6 @@ def run_rpc_validate_exn(
             # Ignore invalid language errors. They are handled by
             # _LanguageData.resolve with the correct exit code.
             return
-        if message.startswith("Invalid pattern"):
-            # Ignore invalid pattern errors. For backward compatibility,
-            # the pattern is handled after the scan starts. This means
-            # that if the rule get skipped, the scan succeeds despite the
-            # parse error
-            return
-        if message.startswith("(approximate error location; error nearby after)"):
-            # Ignore approximate error location messages from YAML parser
-            # for backward compatibility TODO fix those errors
-            return
         span = (
             _core_location_to_error_location_span(
                 core_error.location, filename, source_hash
@@ -507,7 +620,9 @@ def run_rpc_validate_exn(
         )
         spans = [span] if span is not None else []
         raise InvalidRuleSchemaError(
-            short_msg="Invalid rule schema", long_msg=message, spans=spans
+            short_msg="Invalid rule schema",
+            long_msg=message,
+            spans=spans,
         )
 
 
@@ -517,20 +632,71 @@ def validate_yaml(
     source_hash: SourceFileHash,
     filename: Optional[str] = None,
     no_rewrite_rule_ids: bool = False,
+    force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
     rules_tmp_path: Optional[str] = None,
 ) -> List[SemgrepError]:
     errors = remove_incompatible_rules_based_on_version(
         data, filename, no_rewrite_rule_ids=no_rewrite_rule_ids
     )
 
-    if filename and Path(filename).exists():
-        path = filename
-    elif rules_tmp_path and Path(rules_tmp_path).exists():
-        path = rules_tmp_path
-    else:
-        raise SemgrepError(
-            "Cannot execute RPC validation without a rules_tmp_path or filename",
-            code=MISSING_CONFIG_EXIT_CODE,
+    if no_python_schema_validation:
+        if filename and Path(filename).exists():
+            path = filename
+        elif rules_tmp_path and Path(rules_tmp_path).exists():
+            path = rules_tmp_path
+        else:
+            raise SemgrepError(
+                "Cannot execute RPC validation without a rules_tmp_path or filename",
+                code=MISSING_CONFIG_EXIT_CODE,
+            )
+        run_rpc_validate_exn(filename, path, source_hash)
+        return errors
+
+    # If we specifically request jsonschema validation (or tmp_path of the rules was not successfully
+    # set), we skip the RPC validation and go straight to jsonschema validation
+    skip_rpc_validation = force_jsonschema or not rules_tmp_path
+    try:
+        if skip_rpc_validation:
+            logger.debug(
+                "Skipping semgrep-core validation to proceed directly to jsonschema validation"
+            )
+        else:
+            # NOTE: Some rule schema errors are marked as "Other syntax error" by the
+            # native RPC-based validation and are included in the errors JSON response
+            # without outright rejecting the config. This behavior presents an immediate
+            # challenge for certain validation test cases and is called out in SAF-1556.
+            try:
+                if not rules_tmp_path or not Path.exists(Path(rules_tmp_path)):
+                    raise NotImplementedError(
+                        "Cannot execute RPC validation without a rules_tmp_path"
+                    )
+                run_rpc_validate(rules_tmp_path=rules_tmp_path)
+                logger.debug("RPC validation succeeded")
+                # If we reach this line, the RPC-based validation passed and we can early return
+                return errors
+            except (RpcValidationError, NotImplementedError) as e:
+                logger.debug(f"run_rpc_validate failed: {e}")
+
+        # Now enter the jsonschema validation for the custom error messages
+        with tracing.TRACER.start_as_current_span("jsonschema.validate"):
+            jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+        # At this point we have successfully validated the rules
+        # and can return any errors
+        return errors
+    except jsonschema.ValidationError as ve:
+        message = _validation_error_message(ve)
+        item = data
+
+        root_error = ve
+        while root_error.parent is not None:
+            root_error = cast(jsonschema.ValidationError, root_error.parent)
+
+        for el in root_error.absolute_path:
+            item = item.value[el]
+
+        raise InvalidRuleSchemaError(
+            short_msg="Invalid rule schema",
+            long_msg=message,
+            spans=[item.span],
         )
-    run_rpc_validate_exn(filename, path, source_hash)
-    return errors

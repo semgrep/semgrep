@@ -1906,45 +1906,27 @@ and m_arguments_concat a b =
 
 and m_argument a b =
   Trace_matching.(if on then print_argument_pair a b);
-  with_lang (fun lang ->
-      match (a, b) with
-      (* TODO: iso on keyword argument, keyword is optional in pattern.
-       * TODO: maybe Arg (N (Id "$S")) should be allowed to match
-       * an ArgType or ArgOther (especially for C/C++ where typedef
-       * inference is sometimes wrong when we get an ArgType instead of Arg.
-       *)
-      | ( G.Arg
-            {
-              e =
-                StmtExpr
-                  {
-                    s =
-                      Block
-                        ( _,
-                          [ { s = ExprStmt ({ e = Ellipsis _; _ }, _); _ } ],
-                          _ );
-                    _;
-                  };
-              _;
-            },
-          B.Arg { e = Lambda _; _ } )
-        when Lang.(equal lang Scala) ->
-          (* Scala: { ... } vs { <partial function> } *)
-          return ()
-      (* boilerplate *)
-      | G.Arg a1, B.Arg b1 -> m_expr a1 b1
-      | G.ArgType a1, B.ArgType b1 -> m_type_ a1 b1
-      | G.ArgKwd (a1, a2), B.ArgKwd (b1, b2)
-      | G.ArgKwdOptional (a1, a2), B.ArgKwdOptional (b1, b2) ->
-          m_ident a1 b1 >>= fun () -> m_expr a2 b2
-      | G.OtherArg (a1, a2), B.OtherArg (b1, b2) ->
-          m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
-      | G.Arg _, _
-      | G.ArgKwd _, _
-      | G.ArgKwdOptional _, _
-      | G.ArgType _, _
-      | G.OtherArg _, _ ->
-          fail ())
+  match (a, b) with
+  (* TODO: iso on keyword argument, keyword is optional in pattern.
+   * TODO: maybe Arg (N (Id "$S")) should be allowed to match
+   * an ArgType or ArgOther (especially for C/C++ where typedef
+   * inference is sometimes wrong when we get an ArgType instead of Arg.
+   *)
+
+  (* boilerplate *)
+  | G.Arg a1, B.Arg b1 -> m_expr a1 b1
+  | G.ArgType a1, B.ArgType b1 -> m_type_ a1 b1
+  | G.ArgKwd (a1, a2), B.ArgKwd (b1, b2)
+  | G.ArgKwdOptional (a1, a2), B.ArgKwdOptional (b1, b2) ->
+      m_ident a1 b1 >>= fun () -> m_expr a2 b2
+  | G.OtherArg (a1, a2), B.OtherArg (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.Arg _, _
+  | G.ArgKwd _, _
+  | G.ArgKwdOptional _, _
+  | G.ArgType _, _
+  | G.OtherArg _, _ ->
+      fail ()
 
 (*---------------------------------------------------------------------------*)
 (* Associative-commutative iso *)

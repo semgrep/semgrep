@@ -11,29 +11,14 @@
 # LICENSE for more details.
 #
 import os
-import re
-from typing import Any
+from pathlib import Path
 
-import requests
-from mcp.shared.exceptions import McpError
-from mcp.types import ErrorData
-from mcp.types import INTERNAL_ERROR
-from mcp.types import INVALID_PARAMS
+from ruamel.yaml import YAML
 
-from semgrep.app import auth
 from semgrep.git import git_check_output
 from semgrep.state import get_state
 
 SETTINGS_FILENAME = "settings.yml"
-
-# A regex to match { "identity": "... roles=[<content>] ..." }
-# We need this because the form of the response from the /agent/identity
-# endpoint looks like:
-# {"identity":"id=<id> deployment_id=<d_id> user_id=<u_id> created_at=<time> roles=[<roles>] ...}
-# The string mapped to by `"identity"` is not an actual JSON, its a whitespace-separated
-# list of fields, so we have to manually extract the `roles` field.
-# We really just need to match "roles=[<stuff>]"
-re_identity_string = re.compile(r"roles=\[(.*)\]")
 
 
 def is_hosted() -> bool:
@@ -48,32 +33,51 @@ def get_semgrep_api_url() -> str:
     return f"{url}/api"
 
 
+def get_user_settings_file() -> Path:
+    def get_user_data_folder() -> Path:
+        config_home = os.getenv("XDG_CONFIG_HOME")
+        if config_home is None or not Path(config_home).is_dir():
+            parent_dir = Path.home()
+        else:
+            parent_dir = Path(config_home)
+        return parent_dir / ".semgrep"
+
+    path = os.getenv(
+        "SEMGREP_SETTINGS_FILE", str(get_user_data_folder() / SETTINGS_FILENAME)
+    )
+    return Path(path)
+
+
+def get_field_from_settings_file(field: str) -> str | None:
+    """
+    Returns the value of the field from the settings file, if it exists
+    """
+    user_settings_file = get_user_settings_file()
+    if user_settings_file.exists():
+        with open(user_settings_file) as f:
+            yaml = YAML(typ="safe", pure=True)
+            settings = yaml.load(f)
+            return str(settings.get(field))
+    return None
+
+
 def get_semgrep_app_token() -> str | None:
     """
     Returns the Semgrep app token, if it exists
     """
-    return auth.get_token()
+    env_token = os.environ.get("SEMGREP_APP_TOKEN")
+    if env_token is not None:
+        return env_token
+
+    return get_field_from_settings_file("api_token")
 
 
 def get_anonymous_user_id() -> str:
     """
     Returns the anonymous user ID, if it exists
     """
-    id = get_state().settings.get("anonymous_user_id")
-    if isinstance(id, str):
-        return id
-    return "unknown"
-
-
-def get_deployment_id_from_token(token: str | None) -> str:
-    """
-    Returns the deployment ID the token is for, if token is valid
-    """
-    if not token:
-        return ""
-
-    deployment = auth.get_deployment_from_token(token)
-    return str(deployment.id) if deployment else ""
+    id = get_field_from_settings_file("anonymous_user_id")
+    return id if id else "unknown"
 
 
 def run_git_command(workspace_dir: str | None, args: list[str]) -> str:
@@ -90,62 +94,3 @@ def get_git_info(workspace_dir: str | None) -> dict[str, str]:
     git_repo = run_git_command(workspace_dir, ["config", "--get", "remote.origin.url"])
     git_branch = run_git_command(workspace_dir, ["rev-parse", "--abbrev-ref", "HEAD"])
     return {"username": git_username, "repo": git_repo, "branch": git_branch}
-
-
-async def get_identity() -> dict[str, Any]:
-    """
-    Fetches the identity from Semgrep API.
-
-    Returns:
-        dict[str, Any]: The identity object
-
-    Raises:
-        McpError: If unable to fetch identity or no identity found
-    """
-
-    # Get API token
-    api_token = get_semgrep_app_token()
-    if not api_token:
-        raise McpError(
-            ErrorData(
-                code=INVALID_PARAMS,
-                message="""
-                  SEMGREP_APP_TOKEN environment variable must be set or user
-                  must be logged in to use this tool
-                """,
-            )
-        )
-
-    # Fetch identity
-    url = f"{get_semgrep_api_url()}/agent/identity"
-    headers = {"Authorization": f"Bearer {api_token}", "Accept": "application/json"}
-
-    try:
-        response = requests.get(url, headers=headers, timeout=(2, 30))
-        response.raise_for_status()
-        data: dict[str, Any] = response.json()
-
-        return data
-
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 401:
-            raise McpError(
-                ErrorData(
-                    code=INVALID_PARAMS,
-                    message="Invalid API token: check your SEMGREP_APP_TOKEN environment variable.",
-                )
-            ) from e
-        else:
-            raise McpError(
-                ErrorData(
-                    code=INTERNAL_ERROR,
-                    message=f"Error fetching deployments: {e.response.text}",
-                )
-            ) from e
-    except Exception as e:
-        raise McpError(
-            ErrorData(
-                code=INTERNAL_ERROR,
-                message=f"Error fetching deployments from Semgrep: {e!s}",
-            )
-        ) from e

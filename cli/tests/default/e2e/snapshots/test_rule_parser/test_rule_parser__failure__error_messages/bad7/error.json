@@ -4,21 +4,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Expected a string value for id",
+      "long_msg": "123 is not of type 'string'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 7,
+            "col": 12,
             "line": 3,
-            "offset": 37
+            "offset": -1
           },
           "file": "rules/syntax/bad7.yaml",
           "source_hash": "99c414681ffa893e6d96ca71e262787fd058d3da094abe7425e470a21879205c",
           "start": {
-            "col": 5,
+            "col": 9,
             "line": 3,
-            "offset": 35
+            "offset": -1
           }
         }
       ],
