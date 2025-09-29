@@ -14,9 +14,8 @@
  *)
 
 module Otel = Opentelemetry
-module Log = Log_commons.Log
+module Log = Log_telemetry.Log
 open Telemetry
-open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -86,7 +85,8 @@ type level =
   | Debug  (** Traces to help profile a specific run *)
   | Trace  (** All traces *)
 
-let trace_level : level option Domain.DLS.key = Domain.DLS.new_key (const None)
+let trace_level : level option Domain.DLS.key =
+  Domain.DLS.new_key (Fun.const None)
 
 let get_level () =
   match Domain.DLS.get trace_level with
@@ -225,7 +225,7 @@ let with_tracing ?(stop_otel_after = true) fname data f =
   in
   if stop_otel_after then
     (* coupling: [restart_otel] *)
-    Common.protect ~finally:stop_otel f'
+    Telemetry_commons.protect ~finally:stop_otel f'
   else f' ()
 
 (* TODO: switch to otel eio once we are on multicore/it is supported by the otel
