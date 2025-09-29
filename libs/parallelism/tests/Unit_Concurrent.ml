@@ -65,7 +65,14 @@ let test_fiber_local_concurrent_map () =
   in
 
   Eio_main.run @@ fun env ->
-  let conf = Parallelism_config.create env in
+  let conf =
+    match Parallelism_config.create env with
+    | Parallelism_config.Eio_executor conf -> conf
+    | _ ->
+        Alcotest.fail
+          "Failed to get a Parallelism_config.Eio_executor from a \
+           Parallelism_config.create"
+  in
 
   let l = List.init procs (fun i -> i + 1) in
   let res = Concurrent.map ~conf ~domain_count:2 f l in
@@ -130,7 +137,11 @@ let test_wrap_timeout () =
 
 let test_concurrent_map_timeouts () =
   Eio_main.run @@ fun env ->
-  let conf = Parallelism_config.create env in
+  let conf =
+    match Parallelism_config.create env with
+    | Parallelism_config.Eio_executor conf -> conf
+    | _ -> raise Common.Impossible
+  in
   let clock = Eio.Stdenv.clock env in
 
   let sleep s =
@@ -172,7 +183,7 @@ let test_burn () =
       let i = ref 0 in
       for _ = 0 to 1000 do
         (* NB: this is _not_ the same thing as Eio.Time.Sleep, as sleeping is
-         * performing an Effect; busywaiting in this way is _not_. *)
+         * performing an effect; busywaiting in this way is _not_. *)
         i := !i + 1
       done;
       Concurrent.maybe_yield ()

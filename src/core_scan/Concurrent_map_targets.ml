@@ -17,7 +17,7 @@
 (* Prelude *)
 (*****************************************************************************)
 
-let map_targets ~(conf : Parallelism_config.t) ~(num_jobs : int)
+let map_targets ~(conf : Parallelism_config.eio_state) ~(num_jobs : int)
     (f : Target.t -> 'a) (targets : Target.t list) =
   (* the scope does not persist across domain spawns due to this issue:
           https://github.com/imandra-ai/ocaml-opentelemetry/issues/104

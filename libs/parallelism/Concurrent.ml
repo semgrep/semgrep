@@ -17,7 +17,7 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
-let map ~(conf : Parallelism_config.t) ~domain_count f l =
+let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
   (* The main thread concurrently maps over the list of tasks via spawning
    * fibers (i.e weak threads) that submit and wait for the Domain pool to
    * return the result of submitting the task.

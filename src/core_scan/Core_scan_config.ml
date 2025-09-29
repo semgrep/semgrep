@@ -120,10 +120,10 @@ type t = {
   symbol_analysis : bool;
   fips_mode : bool;
   (* Rely on a EIO impl of `-j` v.s Parmap
-   * logic redundancy: par_conf is set only if use_eio was
+   * logic redundancy: par_conf is [Effect _] only if use_eio was
    * previously set to true. *)
   use_eio : bool;
-  par_conf : Parallelism_config.t option;
+  par_conf : Parallelism_config.t;
 }
 [@@deriving show]
 
@@ -156,5 +156,5 @@ let default =
     symbol_analysis = false;
     fips_mode = false;
     use_eio = false;
-    par_conf = None;
+    par_conf = Parallelism_config.Process;
   }
