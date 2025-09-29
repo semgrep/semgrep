@@ -2404,13 +2404,13 @@ let raw_of_stmt (x : stmt) : any Raw_tree.t = Any (S x)
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let param_of_id ?(pattrs = []) ?ptype ?pdefault id =
+let param_of_id ?hidden ?(pattrs = []) ?ptype ?pdefault id =
   {
     pname = Some id;
     pdefault;
     ptype;
     pattrs;
-    pinfo = basic_id_info (Parameter, SId.unsafe_default);
+    pinfo = basic_id_info ?hidden (Parameter, SId.unsafe_default);
   }
 
 let param_of_type ?(pattrs = []) ?pdefault ?pname typ =
