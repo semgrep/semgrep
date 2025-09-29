@@ -3,7 +3,7 @@
  (public_name telemetry)
  (wrapped false)
   (libraries
-    commons
+    collections
     parallelism
     uri
     yojson

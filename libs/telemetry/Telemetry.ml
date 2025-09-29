@@ -14,9 +14,9 @@
  *)
 
 module Otel = Opentelemetry
-module Log = Log_commons.Log
-open Common
+module Log = Log_telemetry.Log
 open Otel_util
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -68,7 +68,7 @@ type config = {
    pull random seeds - see [restart_otel]).  Once we are using multicore by
    default, we should revisit this.
    *)
-let active_endpoint = Domain.DLS.new_key (const None)
+let active_endpoint = Domain.DLS.new_key (Fun.const None)
 
 (* Service related attributes *)
 module Attributes = struct
@@ -228,4 +228,4 @@ let restart_otel () =
 let with_otel_paused f =
   (* Don't exit current spans here since we only want to pause *)
   stop_otel ();
-  Common.protect ~finally:restart_otel f
+  Telemetry_commons.protect ~finally:restart_otel f
