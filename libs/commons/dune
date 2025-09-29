@@ -29,6 +29,7 @@
    digestif.ocaml
    sexplib
    semver
+   telemetry
    ; web stuff
    uri uuidm
    ; async stuff
