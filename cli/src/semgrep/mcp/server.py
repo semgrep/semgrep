@@ -38,9 +38,11 @@ from semgrep.mcp.semgrep import SemgrepContext
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_tool_span
+from semgrep.mcp.utilities.utils import get_identity
 from semgrep.mcp.utilities.utils import get_semgrep_api_url
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
+from semgrep.mcp.utilities.utils import re_identity_string
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
 from semgrep.verbose_logging import getLogger
 
@@ -579,7 +581,24 @@ async def semgrep_findings(
             )
         )
 
+    # Check whether the token has the `webapi` role
+    identity = await get_identity()
+    match = re_identity_string.search(identity["identity"])
+    if match is None:
+        logger.error("Identity string in unexpected format")
+    else:
+        inner = match.group(1)
+        if "webapi" not in inner:
+            raise McpError(
+                ErrorData(
+                    code=INVALID_PARAMS,
+                    message="Cannot access findings without token with `webapi` role: user must generate one manually from `semgrep.dev`",
+                )
+            )
+
+    # If the token is good, let's get the deployment info.
     deployment = await get_deployment_slug()
+
     api_token = get_semgrep_app_token()
     if not api_token:
         raise McpError(
