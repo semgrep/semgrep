@@ -91,10 +91,9 @@ type spec_matches = {
 (* Hooks *)
 (*****************************************************************************)
 
-(* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_mk_taint_spec_match_preds :
-    (Rule.rule -> spec_matches -> TP.t) option ref =
-  ref None
+    (Rule.rule -> spec_matches -> TP.t) option Hook.t =
+  Hook.create None
 
 (*****************************************************************************)
 (* Helpers *)
@@ -616,7 +615,7 @@ let any_is_in_propagators_matches_OSS matches any :
              if is_exact_match ~match_range:tm.range r then Some tm else None)
 
 let mk_taint_spec_match_preds rule matches =
-  match !hook_mk_taint_spec_match_preds with
+  match Hook.get hook_mk_taint_spec_match_preds with
   | None ->
       TP.
         {
