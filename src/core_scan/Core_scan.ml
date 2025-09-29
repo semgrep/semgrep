@@ -738,15 +738,17 @@ let iter_targets_and_get_matches_and_exn_to_errors
     (Core_result.add_run_time internal_path (Some run_time) res, scanned_target)
   in
   let xs =
-    if config.use_eio then
-      let conf = Option.get config.par_conf in
-      let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
-      Concurrent_map_targets.map_targets ~conf ~num_jobs process_target targets
-      |> List_.map2 exception_handler targets
-    else
-      parmap_map
-        (caps :> < Cap.fork >)
-        ~num_jobs:config.num_jobs process_target targets
+    match config.par_conf with
+    | Parallelism_config.Eio_executor conf ->
+        let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
+        Concurrent_map_targets.map_targets ~conf ~num_jobs process_target
+          targets
+        |> List_.map2 exception_handler targets
+    | Parallelism_config.Process ->
+        assert (not config.use_eio);
+        parmap_map
+          (caps :> < Cap.fork >)
+          ~num_jobs:config.num_jobs process_target targets
   in
   let matches, opt_paths = List_.split xs in
   let scanned =
@@ -866,9 +868,9 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   let timeout : Match_rules.timeout_config option =
     let caps = (caps :> < Cap.time_limit >) in
     let clock : float Eio.Time.clock_ty Eio.Std.r option =
-      Option.map
-        (fun (pf : Parallelism_config.t) -> pf.env#clock)
-        config.par_conf
+      match config.par_conf with
+      | Parallelism_config.Process -> None
+      | Parallelism_config.Eio_executor pf -> Some pf.env#clock
     in
     Some
       {
