@@ -293,7 +293,7 @@ def ci(
     state.traces.configure(trace, trace_endpoint)
     with tracing.TRACER.start_as_current_span(
         "semgrep.commands.ci", kind=tracing.TOP_LEVEL_SPAN_KIND
-    ):
+    ) as semgrep_commands_ci_span:
         state.terminal.configure(
             verbose=verbose,
             debug=debug,
@@ -760,6 +760,9 @@ def ci(
                 exit_code = e.code
             else:
                 exit_code = FATAL_EXIT_CODE
+
+            semgrep_commands_ci_span.set_attribute("scan.cli_exitcode", exit_code)
+
             if scan_handler:
                 scan_handler.report_failure(exit_code)
 
@@ -1094,4 +1097,5 @@ def ci(
 
             version_check()
 
+        semgrep_commands_ci_span.set_attribute("scan.cli_exitcode", exit_code)
         sys.exit(exit_code)
