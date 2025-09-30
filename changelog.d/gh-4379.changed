@@ -1,1 +1,0 @@
-Rule parsing now happens solely in OCaml. This should have no change in the behavior of whether a rule successfully parses or not, but will change the parse errors emitted (#4346, #4269, #4379)

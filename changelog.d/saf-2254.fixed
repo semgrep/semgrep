@@ -1,2 +1,0 @@
-MCP: The `semgrep_findings` tool now gives a suitable error message when erring due
-to insufficient permissions on standard `semgrep login` tokens.

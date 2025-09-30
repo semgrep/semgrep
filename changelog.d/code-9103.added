@@ -1,4 +1,0 @@
---pro-intrafile scans will now add built-in taint propagators, like --pro does,
-hence producing extra findings. For example, in Java, `list.add(taint)` will now
-make `list` tainted even if the rule does not explicitly request that. Scan times
-should not be generally affected in a significant way.
