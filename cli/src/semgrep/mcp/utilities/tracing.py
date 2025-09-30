@@ -149,6 +149,7 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
             {
                 "metrics.is_hosted": is_hosted(),
                 "metrics.deployment_id": get_deployment_id_from_token(token),
+                "metrics.anonymous_user_id": get_anonymous_user_id(),
             },
         )
 
