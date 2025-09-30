@@ -1,2 +1,0 @@
-MCP: Fixed an issue where the `semgrep_scan` tool, when invoking the RPC-based
-scanning approach, would return JSON output not consistent with the CLI tool.

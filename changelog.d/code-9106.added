@@ -1,1 +1,0 @@
-Scala: Enable pattern `{ ... }` to match partial functions like `{ case 1 => "1" }`.

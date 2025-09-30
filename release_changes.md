@@ -1,28 +1,33 @@
-## [1.138.0](https://github.com/semgrep/semgrep/releases/tag/v1.138.0) - 2025-09-25
+## [1.139.0](https://github.com/semgrep/semgrep/releases/tag/v1.139.0) - 2025-09-30
 
 
 ### Added
 
 
-- pro: scala: Method dispatching through traits (code-9092)
+- --pro-intrafile scans will now add built-in taint propagators, like --pro does,
+  hence producing extra findings. For example, in Java, `list.add(taint)` will now
+  make `list` tainted even if the rule does not explicitly request that. Scan times
+  should not be generally affected in a significant way. (code-9103)
+- Scala: Enable pattern `{ ... }` to match partial functions like `{ case 1 => "1" }`. (code-9106)
+- Associate Containerfiles with the `dockerfile` language (gh-11091)
 
 
 ### Changed
 
 
-- Pro: additionally improved prefiltering for taint rules, especially when using
-  taint labels. This allows for the generation of more specific conditions than
-  the previously released version (v1.133.0). (code-9097)
+- Rule parsing now happens solely in OCaml. This should have no change in the behavior of whether a rule successfully parses or not, but will change the parse errors emitted (#4346, #4269, #4379) (gh-4379)
+- MCP: Removed the `config` parameter from the `semgrep_scan` tools, to prevent
+  agents from inserting unwanted config files to scan with. (saf-2258)
 
 
 ### Fixed
 
 
-- pro: python: Fix resolution of implicit namespace modules (code-9008)
-- We now filter `SEMGREP_APP_TOKEN` from any request made to non semgrep URLs
-  passed to `-f/-c/--config` during config/rules fetching. (gh-11016)
-- Typescript: Made it so that the pattern `var $X = $FUNC($REQ, $RES, ...) {...}`
-  no longer fails to parse. (saf-2159)
-- pro: improved performance of `tsconfig.json` matching for Typescript projects
-  that contain multiple `tsconfig.json`s. (saf-2163)
-- Semgrep no longer fails to validate a config when a rule lang is capitalized (Introduced 1.137.0) (saf-2247)
+- scala: Fixed matching of `{ case ... => ... }` patterns. (code-9111)
+- Fixed a bug preventing metavariable-comparisons with more than two subsequent "and" or "or" conditions from producing findings. For example, the condition `$X > 1 or $Y > 1 or $Z > 1` would previously always evaluate to `false`. Now, it will behave as expected. (gh-11209)
+- MCP: Fixed an issue where the `semgrep_scan` tool, when invoking the RPC-based
+  scanning approach, would return JSON output not consistent with the CLI tool. (saf-2250)
+- MCP: The `semgrep_findings` tool now gives a suitable error message when erring due
+  to insufficient permissions on standard `semgrep login` tokens. (saf-2254)
+- MCP: Fixed a bug where if the user is already logged in when running the setup flow,
+  the Semgrep Pro Engine installation step would be ignored. (saf-2259)
