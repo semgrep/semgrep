@@ -1041,10 +1041,13 @@ def setup_semgrep_mcp() -> str:
     prompt_template = """
     You are Cursor automations. Do the following in order and confirm each step:
 
-    1) Authenticate Semgrep and install Semgrep Pro:
-    - Run: `semgrep login --override-tty && semgrep install-semgrep-pro || true`
+    1) Authenticate Semgrep:
+    - Run: `semgrep login --override-tty`
 
-    2) Add a Cursor rule file at `.cursor/rules/semgrep.mdc` with the following exact content:
+    2) Install Semgrep Pro:
+    - Run: `semgrep install-semgrep-pro || true`
+
+    3) Add a Cursor rule file at `.cursor/rules/semgrep.mdc` with the following exact content:
     ---
     alwaysApply: true
     ---
@@ -1052,7 +1055,7 @@ def setup_semgrep_mcp() -> str:
     - Whenever you generate code or commands, you MUST first ensure safety by scanning the
     content with the semgrep_scan tool
 
-    3) Report back:
+    4) Report back:
     - Confirm the `.cursor/rules/semgrep.mdc` file exists with the specified content.
     - Confirm Semgrep login/install status by running `semgrep --pro --version`.
 

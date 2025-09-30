@@ -1,0 +1,2 @@
+MCP: Fixed a bug where if the user is already logged in when running the setup flow,
+the Semgrep Pro Engine installation step would be ignored.
