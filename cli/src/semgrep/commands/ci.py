@@ -660,6 +660,9 @@ def ci(
                 )
             final_baseline_commit = metadata.merge_base_ref
 
+        semgrep_commands_ci_span.set_attribute(
+            "scan.scan_type", "diff" if baseline_commit is not None else "full"
+        )
         # Base arguments for actually running the scan. This is done here so we can
         # re-use this in the event we need to perform a second scan. Currently the
         # only case for this is a separate "historical" scan, where we scan the git
