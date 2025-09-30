@@ -64,11 +64,10 @@ type scan_caps = < Core_scan.caps ; Cap.tmp >
  * one rule can be tested on multiple files such as a with a .js and a .ts
  * LATER: for interfile tests, it will be normal to have multiple targets.
  *)
-type tests = (Fpath.t (* rule file *) * Fpath.t list (* targets *)) list
+type test = Fpath.t (* rule file *) * Fpath.t list (* targets *)
 
 (* TODO: use a record please and a better name for the type *)
-type tests_result =
-  (Fpath.t (* rule file *) * test_result list * fixtest_result list) list
+type t_res = Fpath.t (* rule file *) * test_result list * fixtest_result list
 
 (* Intermediate type because semgrep_output_v1.atd does not have
  * a good type name for those. Note that we can't easily change the .atd
@@ -101,10 +100,6 @@ type env = {
   rule_file : Fpath.t;
   target_files : Fppath.t list;
   engine : A.engine;
-  (* use a ref so easy to store all the errors returned by different functions.
-   * alt: get each functions returning different kind of errors
-   *)
-  errors : error list ref;
   conf : Test_CLI.conf;
 }
 
@@ -155,7 +150,7 @@ let find_targets_for_rule (caps : < Cap.readdir ; .. >) (rule_file : Fpath.t) :
          else None)
 
 let rules_and_targets (caps : < Cap.readdir ; .. >)
-    (kind : Test_CLI.target_kind) (errors : error list ref) : tests =
+    (kind : Test_CLI.target_kind) : (test, error) result list =
   match kind with
   | Test_CLI.Dir (dir, None) ->
       (* coupling: similar to Test_engine.test_rules() *)
@@ -165,22 +160,21 @@ let rules_and_targets (caps : < Cap.readdir ; .. >)
         |> List.filter Rule_file.is_valid_rule_filename
       in
       rule_files
-      |> List_.filter_map (fun (rule_file : Fpath.t) ->
+      |> List_.map (fun (rule_file : Fpath.t) ->
              match find_targets_for_rule caps rule_file with
              | [] ->
                  (* stricter: (but reported via config_missing_tests in JSON)*)
                  Logs.warn (fun m ->
                      m "could not find target for %s" !!rule_file);
-                 Stack_.push (MissingTest rule_file) errors;
-                 None
+                 Error (MissingTest rule_file)
              | xs ->
                  Logs.debug (fun m ->
                      m "found targets for %s: %s" !!rule_file
                        (xs |> List_.map Fpath.to_string |> String.concat ", "));
-                 Some (rule_file, xs))
+                 Ok (rule_file, xs))
   | Test_CLI.File (target, config_str) -> (
       match Rules_config.parse_config_string ~in_docker:false config_str with
-      | File rule_file -> [ (rule_file, [ target ]) ]
+      | File rule_file -> [ Ok (rule_file, [ target ]) ]
       | Dir _
       | URL _
       | R _
@@ -302,8 +296,8 @@ let report_diagnosis print (res : Out.tests_result) : unit =
 (*****************************************************************************)
 
 (* TODO: use a helpful function name, use records *)
-let tests_result_of_tests_result (results : tests_result) (errors : error list)
-    : Out.tests_result =
+let tests_result_of_tests_result (results : t_res list) (errors : error list) :
+    Out.tests_result =
   {
     Out.results =
       results
@@ -673,7 +667,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
   checks
 
 let compare_for_autofix (env : env) (rules : Rule.t list)
-    (matches : Core_match.t list) : fixtest_result list =
+    (matches : Core_match.t list) : (fixtest_result, error) result list =
   env.target_files
   |> List_.filter_map (fun (target : Fppath.t) ->
          match
@@ -685,8 +679,7 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
              Logs.warn (fun m ->
                  m "no fixtest for test %s but the rule file %s uses autofix"
                    !!(target.fpath) !!(env.rule_file));
-             Stack_.push (MissingFixtest env.rule_file) env.errors;
-             None
+             Some (Result.error (MissingFixtest env.rule_file))
          | Some fixtest, false ->
              (* stricter? *)
              Logs.err (fun m ->
@@ -702,7 +695,9 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
                |> List.filter (fun (pm : Core_match.t) ->
                       Fpath.equal pm.path.internal_path_to_content target.fpath)
              in
-             Some (fixtest_result_for_target env target fixtest_target matches))
+             Some
+               (Result.ok
+                  (fixtest_result_for_target env target fixtest_target matches)))
 
 (*****************************************************************************)
 (* Run the tests *)
@@ -712,7 +707,7 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
 let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
     (targets : Target.t list)
     (files_and_annots : (Fpath.t * A.annotations) list) :
-    test_result list * fixtest_result list =
+    test_result list * fixtest_result list * error list =
   let res : Core_result.t =
     run_rules_against_targets_for_engine caps env rules targets
   in
@@ -729,10 +724,10 @@ let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
   let checks =
     compare_actual_to_expected env matches expected res.explanations
   in
-  let fixtest =
+  let fixtest, errors =
     (* optional fixtest *)
     match env.engine with
-    | OSS -> compare_for_autofix env rules matches
+    | OSS -> compare_for_autofix env rules matches |> Result_.partition Fun.id
     (* TODO? we do not run the autofix for pro because
      * the matches might differ which could require some .pro.fixed
      * (or .deep.fixed) to separate them from the OSS one.
@@ -741,14 +736,14 @@ let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
      *)
     | Pro
     | Deep ->
-        []
+        ([], [])
   in
-  (checks, fixtest)
+  (checks, fixtest, errors)
 
 (* run one test using the different engines if --pro *)
 let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
-    (rule_file : Fpath.t) (rules : Rule.t list) (target_fpaths : Fpath.t list)
-    (errors : error list ref) : test_result list * fixtest_result list =
+    (rule_file : Fpath.t) (rules : Rule.t list) (target_fpaths : Fpath.t list) :
+    test_result list * fixtest_result list * error list =
   (* note that even one target file can result in different targets
    * if the rules contain multiple analyzers.
    *)
@@ -771,8 +766,8 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
            (fpath, A.annotations fpath))
   in
 
-  let env = { rule_file; target_files; engine = A.OSS; conf; errors } in
-  let checks_oss, fixtest_oss =
+  let env = { rule_file; target_files; engine = A.OSS; conf } in
+  let checks_oss, fixtest_oss, errors_oss =
     run_engine caps env rules targets files_and_annots
   in
   (* When conf.pro, we should run the engine 3 times:
@@ -788,7 +783,7 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
      * TODO? have those .pro.fixed? actually when I run on semgrep-rules-pro
      * the fixtest seems bad for some python tests
      *)
-    let checks_pro, _ =
+    let checks_pro, _, errors_pro =
       let env = { env with engine = A.Pro } in
       run_engine caps env rules targets files_and_annots
     in
@@ -804,7 +799,7 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
              (id, rule_result))
     in
     (* same for deep *)
-    let checks_deep, _ =
+    let checks_deep, _, errors_deep =
       let env = { env with engine = A.Deep } in
       run_engine caps env rules targets files_and_annots
     in
@@ -815,18 +810,19 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
              let id = Rule_ID.of_string_exn (s ^ "--DEEP") in
              (id, rule_result))
     in
-    (checks_oss @ checks_pro @ checks_deep, fixtest_oss)
-  else (checks_oss, fixtest_oss)
+    let checks = checks_oss @ checks_pro @ checks_deep in
+    let errors = errors_oss @ errors_pro @ errors_deep in
+    (checks, fixtest_oss, errors)
+  else (checks_oss, fixtest_oss, errors_oss)
 
-let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf) (tests : tests)
-    (errors : error list ref) :
-    (Fpath.t (* rule file *) * test_result list * fixtest_result list) list =
+let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
+    (tests : test list) : (t_res, error) result list =
   (* LATER: in theory we could use Parmap here or better Domains which
    * would avoid the cost of fork (which is significant when running
    * lots of very small tests like what we have in semgrep-rules/).
    *)
   tests
-  |> List_.map (fun (rule_file, target_files) ->
+  |> List.concat_map (fun (rule_file, target_files) ->
          Logs.info (fun m -> m "processing rule file %s" !!rule_file);
          (* TODO? sanity check? call metachecker Check_rule.check()? *)
          match Parse_rule.parse_and_filter_invalid_rules rule_file with
@@ -834,16 +830,18 @@ let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf) (tests : tests)
              Logs.info (fun m ->
                  m "processing target(s) %s"
                    (target_files |> Fpath_.to_strings |> String.concat ", "));
-             let checks, fixtest =
-               run_test caps conf rule_file rules target_files errors
+             let checks, fixtest, errors =
+               run_test caps conf rule_file rules target_files
              in
-             (rule_file, checks, fixtest)
+             let successes = (rule_file, checks, fixtest) in
+             let errors = List_.map Result.error errors in
+             [ Ok successes ] @ errors
          (* capture 's' and return it in the error so the user will see something
           * like "Missing semgrep extenstion needed for parsing X. Try --pro"
           *)
          | Ok (_, (MissingPlugin s, _, _) :: _)
          | Error { kind = InvalidRule (MissingPlugin s, _, _); _ } ->
-             (* alt: could Stack_.push (MissingPlugin rule_file) errors *)
+             (* alt: Error (MissingPlugin rule_file) errors *)
              raise
                (Error.Semgrep_error (s, Some (Exit_code.missing_config ~__LOC__)))
          | Ok (_, _ :: _)
@@ -874,19 +872,24 @@ let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
   if conf.pro then (Hook.get hook_pro_init) ();
   let matching_diagnosis = conf.matching_diagnosis in
-  let errors = ref [] in
 
   (* step1: compute the set of tests (rule + target) *)
   (* We now support multiple targets (e.g., .jsx/.tsx) analyzed independently.
    * TODO: multiple targets analyzed together for --pro interfile analysis.
    *)
-  let tests : tests = rules_and_targets caps conf.target errors in
+  let tests, tests_errors =
+    rules_and_targets caps conf.target |> Result_.partition Fun.id
+  in
 
   (* step2: run the tests *)
-  let result : tests_result = run_tests caps conf tests errors in
+  let result, res_errors =
+    run_tests caps conf tests |> Result_.partition Fun.id
+  in
 
   (* step3: report the test results *)
-  let res : Out.tests_result = tests_result_of_tests_result result !errors in
+  let res : Out.tests_result =
+    tests_result_of_tests_result result (tests_errors @ res_errors)
+  in
   (* pysemgrep is reporting some "successfully modified 1 file."
    * before the final report, but actually it reports that even on failing
    * fixtests, so better to not imitate for now.
