@@ -1,0 +1,2 @@
+MCP: Removed the `config` parameter from the `semgrep_scan` tools, to prevent
+agents from inserting unwanted config files to scan with.

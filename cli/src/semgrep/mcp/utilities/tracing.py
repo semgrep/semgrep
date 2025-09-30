@@ -68,14 +68,12 @@ def attach_metrics(
     paths: list[Any],
     findings: list[dict[str, Any]],
     errors: list[dict[str, Any]],
-    config: str | None,
     workspace_dir: str | None,
 ) -> None:
     if span is None:
         return
     span.set_attribute("metrics.semgrep_version", version)
     span.set_attribute("metrics.num_skipped_rules", len(skipped_rules))
-    span.set_attribute("metrics.rule_config", config if config else "default")
     span.set_attribute("metrics.num_scanned_files", len(paths))
     span.set_attribute("metrics.num_findings", len(findings))
     span.set_attribute("metrics.num_errors", len(errors))
@@ -88,7 +86,6 @@ def attach_metrics(
 def attach_scan_metrics(
     span: trace.Span | None,
     results: SemgrepScanResult,
-    config: str | None,
     workspace_dir: str | None,
 ) -> None:
     if span is None:
@@ -100,7 +97,6 @@ def attach_scan_metrics(
         results.paths["scanned"],
         results.results,
         results.errors,
-        config,
         workspace_dir,
     )
 

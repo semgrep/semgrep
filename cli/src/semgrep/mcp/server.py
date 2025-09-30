@@ -699,7 +699,7 @@ async def semgrep_scan_with_custom_rule(
         output = await run_semgrep_output(top_level_span=None, args=args)
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
 
-        attach_scan_metrics(get_current_span(), results, "custom", workspace_dir)
+        attach_scan_metrics(get_current_span(), results, workspace_dir)
 
         remove_temp_dir_from_results(results, temp_dir)
         return results
@@ -868,7 +868,6 @@ async def semgrep_scan_cli(
     ctx: Context,
     workspace_dir: str | None,
     code_files: list[CodeFile],
-    config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan on provided code content and returns the findings in JSON format
@@ -883,19 +882,16 @@ async def semgrep_scan_cli(
       - scan code files for other issues
     """
 
-    # Validate config
-    config = validate_config(config)
-
     temp_dir = None
     try:
         # Create temporary files from code content
         temp_dir = create_temp_files_from_code_content(code_files)
-        args = get_semgrep_scan_args(temp_dir, config)
+        args = get_semgrep_scan_args(temp_dir, None)
         output = await run_semgrep_output(top_level_span=None, args=args)
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
         remove_temp_dir_from_results(results, temp_dir)
 
-        attach_scan_metrics(get_current_span(), results, config, workspace_dir)
+        attach_scan_metrics(get_current_span(), results, workspace_dir)
 
         return results
 
@@ -936,7 +932,7 @@ async def semgrep_scan_rpc(
         context: SemgrepContext = ctx.request_context.lifespan_context
         results = await run_semgrep_via_rpc(context, workspace_dir, code_files)
 
-        attach_scan_metrics(get_current_span(), results, None, workspace_dir)
+        attach_scan_metrics(get_current_span(), results, workspace_dir)
 
         return results
     except McpError as e:
@@ -962,7 +958,6 @@ async def semgrep_scan_core(
     ctx: Context,
     workspace_dir: str | None,
     code_files: list[CodeFile],
-    config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan on provided CodeFile objects and returns the findings in JSON format
@@ -978,32 +973,17 @@ async def semgrep_scan_core(
     paths = [cf.path for cf in code_files]
 
     if context.process is not None:
-        if config is not None:
-            # This should hopefully just cause the agent to call us back with
-            # the correct parameters.
-            raise McpError(
-                ErrorData(
-                    code=INVALID_PARAMS,
-                    message="""
-                    `config` is not supported when using the RPC-based scan.
-                    Try calling again without that parameter set?
-                  """,
-                )
-            )
-
         logger.info(f"Running RPC-based scan on paths: {paths}")
         return await semgrep_scan_rpc(ctx, workspace_dir, code_files)
     else:
         logger.info(f"Running CLI-based scan on paths: {paths}")
-        return await semgrep_scan_cli(ctx, workspace_dir, code_files, config)
+        return await semgrep_scan_cli(ctx, workspace_dir, code_files)
 
 
 @with_tool_span()
 async def semgrep_scan_remote(
     ctx: Context,
     code_files: list[dict[str, str]] = REMOTE_CODE_FILES_FIELD,
-    # TODO: currently only for CLI-based scans
-    config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan on provided code content and returns the findings in JSON format
@@ -1021,14 +1001,13 @@ async def semgrep_scan_remote(
 
     validated_code_files = validate_remote_files(code_files)
 
-    return await semgrep_scan_core(ctx, None, validated_code_files, config)
+    return await semgrep_scan_core(ctx, None, validated_code_files)
 
 
 @with_tool_span()
 async def semgrep_scan(
     ctx: Context,
     code_files: list[dict[str, str]] = LOCAL_CODE_FILES_FIELD,
-    config: str | None = CONFIG_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan locally on provided code files returns the findings in JSON format.
@@ -1050,7 +1029,7 @@ async def semgrep_scan(
 
     validated_local_files = validate_local_files(code_files)
 
-    return await semgrep_scan_core(ctx, workspace_dir, validated_local_files, config)
+    return await semgrep_scan_core(ctx, workspace_dir, validated_local_files)
 
 
 # ---------------------------------------------------------------------------------
