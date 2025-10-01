@@ -130,15 +130,15 @@ For more information see https://semgrep.dev
     ; tracing
     memtrace
     ppx_trace
-    opentelemetry
-    opentelemetry-client-ocurl
+    (opentelemetry (>= 0.12))
+    (opentelemetry-client-ocurl (>= 0.12))
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
     (ocurl (= 0.9.1))
-    opentelemetry-client-ocurl
-    opentelemetry-client-cohttp-eio
-    opentelemetry-logs
+    (opentelemetry-client-ocurl (>= 0.12))
+    (opentelemetry-client-cohttp-eio (>= 0.12))
+    (opentelemetry-logs (>= 0.12))
     ambient-context-lwt
     conf-libcurl
     ; web stuff
