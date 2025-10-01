@@ -42,7 +42,7 @@ depends: [
   "xmlm"
   "sarif" {>= "0.3.0"}
   "cmdliner"
-  "ppxlib" {< "0.36.0"}
+  "ppxlib"
   "ppx_blob"
   "ppx_deriving" {>= "6.0.3"}
   "ppx_deriving_yojson"
@@ -64,12 +64,12 @@ depends: [
   "git"
   "memtrace"
   "ppx_trace"
-  "opentelemetry"
-  "opentelemetry-client-ocurl"
+  "opentelemetry" {>= "0.12"}
+  "opentelemetry-client-ocurl" {>= "0.12"}
   "ocurl" {= "0.9.1"}
-  "opentelemetry-client-ocurl"
-  "opentelemetry-client-cohttp-eio"
-  "opentelemetry-logs"
+  "opentelemetry-client-ocurl" {>= "0.12"}
+  "opentelemetry-client-cohttp-eio" {>= "0.12"}
+  "opentelemetry-logs" {>= "0.12"}
   "ambient-context-lwt"
   "conf-libcurl"
   "uri"
@@ -115,9 +115,4 @@ pin-depends: [
   ["testo-diff.dev" "./libs/testo"]
   ["obackward.dev" "./libs/obackward"]
   ["semgrep-interfaces.dev" "./cli/src/semgrep/semgrep_interfaces"]
-  (* pinned until the following is released *)
-  ["opentelemetry.dev" "git+https://github.com/imandra-ai/ocaml-opentelemetry#8eda0730e92d650ed4776d3e206c2e259f374965"]
-  ["opentelemetry-client-ocurl.dev" "git+https://github.com/imandra-ai/ocaml-opentelemetry#8eda0730e92d650ed4776d3e206c2e259f374965"]
-  ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/imandra-ai/ocaml-opentelemetry#8eda0730e92d650ed4776d3e206c2e259f374965"]
-  ["opentelemetry-logs.dev" "git+https://github.com/imandra-ai/ocaml-opentelemetry#8eda0730e92d650ed4776d3e206c2e259f374965"]
 ]
