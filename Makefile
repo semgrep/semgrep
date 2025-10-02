@@ -109,7 +109,7 @@ copy-core-for-cli:
 core:
 	dune build $(BUILD)/install/default/bin/semgrep-core$(EXE)
 	dune build $(BUILD)/install/default/bin/osemgrep$(EXE)
-	chmod +w bin/semgrep-core$(EXE)
+	chmod +w $(BUILD)/install/default/bin/semgrep-core$(EXE)
 
 #coupling: The 'semgrep-oss' is the name of the step in the Dockerfile, the
 # 'semgrep' the name of the docker image produced (will be semgrep:latest)
@@ -321,6 +321,9 @@ shell:
 # exclude all non-nix environment variables, good for debugging
 shell-pure:
 	$(NIX) develop -i ".?submodules=1#pure"
+
+shell-pure-test:
+	$(NIX) develop -i ".?submodules=1#pure" -c make core
 
 # Build targets
 # For all the .?submodules=1 we need because nix is weird:

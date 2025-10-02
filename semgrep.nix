@@ -17,7 +17,7 @@ let
       # dune can find it
       # TODO fix on opam side to use pkg-conf on macos
       addPkgConfig =
-        pkg: inputs:
+        pkg:
         pkg.overrideAttrs (prev: {
           nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
         });
@@ -31,9 +31,9 @@ let
             sha256 = "sha256-FUzl8OZQDGhvEMwP6BGft9UAQXG/LrDMxG1NvviGlkM=";
           };
         });
-        conf-libpcre = addPkgConfig prev.conf-libpcre [ pkgs.pkg-config ];
-        conf-libffi = addPkgConfig prev.conf-libffi [ pkgs.pkg-config ];
-        conf-libpcre2-8 = addPkgConfig prev.conf-libpcre2-8 [ pkgs.pkg-config ];
+        conf-libpcre = addPkgConfig prev.conf-libpcre;
+        conf-libffi = addPkgConfig prev.conf-libffi;
+        conf-libpcre2-8 = addPkgConfig prev.conf-libpcre2-8;
         conf-unwind = prev.conf-unwind.overrideAttrs (old: {
           buildInputs = old.buildInputs ++ [ libunwind-dev ];
           nativeBuildInputs = old.nativeBuildInputs ++ [ libunwind-dev ];
@@ -105,6 +105,13 @@ let
           nativeBuildInputs = mapDev prev "nativeBuildInputs";
         });
 
+      # set doNixSupport to false so we don't accidentally drag in any conflicting deps
+      # (since we only care about binaries for these)
+      disableNixSupport =
+        pkg:
+        pkg.overrideAttrs (prev: {
+          doNixSupport = false;
+        });
       # TODO https://github.com/tweag/opam-nix/blob/main/DOCUMENTATION.md#materialization
       # Will speed it up
       buildOpamPkg =
@@ -220,6 +227,7 @@ let
   }
   // (if pkgs.stdenv.isDarwin then darwinEnv else { });
   semgrep = semgrepOpam.overrideAttrs (prev: rec {
+    doNixSupport = false;
     # Special environment variables for osemgrep for linking stuff
 
     # coupling: if you add files here you probably want to add them to the
@@ -280,7 +288,7 @@ let
   });
 
   # for development
-  devPkgs = devOptional.buildInputs ++ devRequired.buildInputs;
+  devPkgs = builtins.map lib.disableNixSupport (devOptional.buildInputs ++ devRequired.buildInputs);
 in
 {
   pkg = semgrep;
