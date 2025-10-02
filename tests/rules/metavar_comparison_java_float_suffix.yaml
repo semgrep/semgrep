@@ -1,0 +1,11 @@
+rules:
+  - id: java-float-double-suffix-comparison
+    severity: WARNING
+    languages:
+      - java
+    message: Test metavariable-comparison with Java float/double suffixes
+    patterns:
+      - pattern: $X
+      - metavariable-comparison:
+          comparison: $X < 1.0
+          metavariable: $X

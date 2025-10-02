@@ -153,7 +153,7 @@ let escape_sequence_ (env : env) (x : CST.escape_sequence_) =
 
 let float_literal env tok =
   let s, t = str env tok in
-  (float_of_string_opt s, t)
+  Parsed_float.parse (s, t)
 
 (* TODO: add in AST *)
 let module_directive (env : env) (v : CST.module_directive) : unit =

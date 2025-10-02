@@ -369,7 +369,7 @@ let integer_literal env tok =
 
 let float_literal env tok =
   let s, t = str env tok in
-  (float_of_string_opt s, t)
+  Parsed_float.parse (s, t)
 
 let map_raw_string_literal (env : env) ((v1, v2, v3) : CST.raw_string_literal) =
   let v1 = (* raw_string_literal_start *) token env v1 in

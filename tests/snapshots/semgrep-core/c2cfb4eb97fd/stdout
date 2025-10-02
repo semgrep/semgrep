@@ -131,30 +131,30 @@
                           s_range = None };
                         { s =
                           (ExprStmt (
-                             { e = (L (Float (None, _))); e_id = 0;
+                             { e = (L (Float ((Some 123.), _))); e_id = 0;
                                e_range = None; is_implicit_return = false;
                                facts = <opaque> },
                              _));
                           s_range = None };
                         { s =
                           (ExprStmt (
-                             { e = (L (Float (None, _))); e_id = 0;
+                             { e = (L (Float ((Some 0.1), _))); e_id = 0;
                                e_range = None; is_implicit_return = false;
                                facts = <opaque> },
                              _));
                           s_range = None };
                         { s =
                           (ExprStmt (
-                             { e = (L (Float (None, _))); e_id = 0;
+                             { e = (L (Float ((Some 0.1), _))); e_id = 0;
                                e_range = None; is_implicit_return = false;
                                facts = <opaque> },
                              _));
                           s_range = None };
                         { s =
                           (ExprStmt (
-                             { e = (L (Float (None, _))); e_id = 0;
-                               e_range = None; is_implicit_return = true;
-                               facts = <opaque> },
+                             { e = (L (Float ((Some 1.2e+100), _)));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = true; facts = <opaque> },
                              _));
                           s_range = None }
                         ],

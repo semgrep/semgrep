@@ -1,0 +1,1 @@
+Java and Rust: Fixed parsing of float and double literals with type suffixes so they can be used in metavariable-comparison and pattern matching. Previously, Java literals like `0.5f` or `1.0d`, and Rust literals like `0.5f32` or `1.0f64` would fail to parse and could not be compared.
