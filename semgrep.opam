@@ -116,3 +116,9 @@ pin-depends: [
   ["obackward.dev" "./libs/obackward"]
   ["semgrep-interfaces.dev" "./cli/src/semgrep/semgrep_interfaces"]
 ]
+
+depexts: [
+    ["pcre-static"] {os-distribution = "alpine"}
+    ["pcre2-static"] {os-distribution = "alpine"}
+    ["gmp-static"] {os-distribution = "alpine"}
+]
