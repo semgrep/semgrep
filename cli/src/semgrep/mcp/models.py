@@ -1,3 +1,15 @@
+#
+# Copyright (c) 2025 Semgrep Inc.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public License
+# version 2.1 as published by the Free Software Foundation.
+#
+# This library is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
+# LICENSE for more details.
+#
 from datetime import datetime
 from typing import Any
 
@@ -14,6 +26,10 @@ class CodeFile(BaseModel):
     # The `content` field will be filled in either by the LLM (in the remote scanning case)
     # or gleaned from the filesystem (in the local scanning case).
     content: str = Field(description="Content of the code file")
+
+
+class CodePath(BaseModel):
+    path: str = Field(description="Absolute path of the code file")
 
 
 class CodeWithLanguage(BaseModel):
