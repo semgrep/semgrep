@@ -71,7 +71,7 @@ local containers = {
       'runs-on': 'ubuntu-latest',
       // coupling: if you change this you must change the dockerfile alpine
       // version
-      container: 'alpine:3.21',
+      container: 'alpine:3.22',
       // We need this hack because GHA tampers with the HOME in container
       // and this does not play well with 'opam' installed in /root
       env: {
