@@ -1047,7 +1047,8 @@ def setup_semgrep_mcp() -> str:
     2) Install Semgrep Pro:
     - Run: `semgrep install-semgrep-pro || true`
 
-    3) Add a Cursor rule file at `.cursor/rules/semgrep.mdc` with the following exact content:
+    3 - for Cursor) If the user is using Cursor, add a Cursor rule file at `.cursor/rules/semgrep.mdc`
+    with the following exact content:
     ---
     alwaysApply: true
     ---
@@ -1055,10 +1056,25 @@ def setup_semgrep_mcp() -> str:
     - Whenever you generate code or commands, you MUST first ensure safety by scanning the
     content with the semgrep_scan tool
 
-    4) Report back:
-    - Confirm the `.cursor/rules/semgrep.mdc` file exists with the specified content.
-    - Confirm Semgrep login/install status by running `semgrep --pro --version`.
+    3 - for Claude Code) If the user is using Claude Code, add/append to a Claude Code rule file at `~/.claude/CLAUDE.md`
+    with the following exact content:
+    # Security
+    - Always look first to any semgrep mcp servers for code security needs
+    - Whenever you generate code or commands, you MUST first ensure safety by scanning the
+    content with the semgrep_scan tool
 
+    3 - for other AI agents) Skip this step.
+
+    4 - for Cursor) Report back:
+    - Confirm the `.cursor/rules/semgrep.mdc` file exists with the specified content.
+
+    4 - for Claude Code) Report back:
+    - Confirm the `~/.claude/CLAUDE.md` file exists with the specified content.
+
+    4 - for other AI agents) Skip this step.
+
+    5) Report back:
+    - Confirm Semgrep login/install status by running `semgrep --pro --version`.
     """
 
     return prompt_template
