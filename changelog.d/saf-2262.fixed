@@ -1,0 +1,1 @@
+MCP: Fixed tool calls failing for some models (e.g., GPT-5).

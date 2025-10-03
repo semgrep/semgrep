@@ -28,6 +28,7 @@ from starlette.routing import Route
 
 from semgrep import __VERSION__
 from semgrep.mcp.models import CodeFile
+from semgrep.mcp.models import CodePath
 from semgrep.mcp.models import Finding
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import mk_context
@@ -230,7 +231,7 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
     return args
 
 
-def validate_local_files(local_files: list[dict[str, str]]) -> list[CodeFile]:
+def validate_local_files(local_files: list[CodePath]) -> list[CodeFile]:
     """
     Validates the local_files parameter for semgrep scan using Pydantic validation
 
@@ -251,7 +252,7 @@ def validate_local_files(local_files: list[dict[str, str]]) -> list[CodeFile]:
         # Pydantic will automatically validate each item in the list
         validated_local_files = []
         for file in local_files:
-            path = file["path"]
+            path = file.path
             if not Path(path).is_absolute():
                 raise McpError(
                     ErrorData(
@@ -279,7 +280,7 @@ def validate_local_files(local_files: list[dict[str, str]]) -> list[CodeFile]:
     return validated_local_files
 
 
-def validate_remote_files(code_files: list[dict[str, str]]) -> list[CodeFile]:
+def validate_remote_files(code_files: list[CodeFile]) -> list[CodeFile]:
     """
     Validates the code_files parameter for semgrep scan using Pydantic validation
 
@@ -669,7 +670,7 @@ async def semgrep_findings(
 @with_tool_span()
 async def semgrep_scan_with_custom_rule(
     ctx: Context,
-    code_files: list[dict[str, str]] = REMOTE_CODE_FILES_FIELD,
+    code_files: list[CodeFile] = REMOTE_CODE_FILES_FIELD,
     rule: str = RULE_FIELD,
 ) -> SemgrepScanResult:
     """
@@ -983,7 +984,7 @@ async def semgrep_scan_core(
 @with_tool_span()
 async def semgrep_scan_remote(
     ctx: Context,
-    code_files: list[dict[str, str]] = REMOTE_CODE_FILES_FIELD,
+    code_files: list[CodeFile] = REMOTE_CODE_FILES_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan on provided code content and returns the findings in JSON format
@@ -1007,7 +1008,7 @@ async def semgrep_scan_remote(
 @with_tool_span()
 async def semgrep_scan(
     ctx: Context,
-    code_files: list[dict[str, str]] = LOCAL_CODE_FILES_FIELD,
+    code_files: list[CodePath] = LOCAL_CODE_FILES_FIELD,
 ) -> SemgrepScanResult:
     """
     Runs a Semgrep scan locally on provided code files returns the findings in JSON format.
