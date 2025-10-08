@@ -132,12 +132,8 @@ install_requires = [
     "peewee~=3.14",
     "requests~=2.22",
     "rich~=13.5.2",
-    "ruamel.yaml>=0.18.5",
-    # 0.2.13 is broken on macos
-    # https://sourceforge.net/p/ruamel-yaml-clib/tickets/47/
-    # 0.2.14 is broken on linux
-    # https://sourceforge.net/p/ruamel-yaml-clib/tickets/49/
-    "ruamel.yaml.clib==0.2.12",
+    "ruamel.yaml>=0.18.15",
+    "ruamel.yaml.clib==0.2.14",
     "tomli~=2.0.1",
     "typing-extensions~=4.2",
     "urllib3~=2.0",
