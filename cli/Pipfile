@@ -37,10 +37,6 @@ opentelemetry-api = "~=1.37.0"
 opentelemetry-sdk = "~=1.37.0"
 opentelemetry-exporter-otlp-proto-http = "~=1.37.0"
 opentelemetry-instrumentation-requests = "~=0.58b0"
-# 0.2.13 is broken on macos
-# https://sourceforge.net/p/ruamel-yaml-clib/tickets/47/
-# 0.2.14 is broken on linux
-# https://sourceforge.net/p/ruamel-yaml-clib/tickets/49/
-"ruamel.yaml.clib" = "==0.2.12"
+"ruamel.yaml.clib" = "==0.2.14"
 pywin32 = { version = "==311", markers = "platform_system == 'Windows'" }
 semgrep = {editable = true, path = "."}
