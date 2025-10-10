@@ -11,6 +11,7 @@
    LICENSE for more details.
 *)
 let t = Testo.create
+let metrics_id = "Unit_SharedMemo"
 
 let test_make_with_state () =
   let mtx = Mutex.create () in
@@ -18,7 +19,7 @@ let test_make_with_state () =
 
   let cache_misses = Atomic.make 0 in
   let f =
-    SharedMemo.make_with_state mtx ht (fun k ->
+    SharedMemo.make_with_state ~metrics_id mtx ht (fun k ->
         Atomic.incr cache_misses;
         k + 1)
   in
@@ -58,7 +59,7 @@ let test_make_with_state () =
 let test_make_x_domains () =
   (* Tests a "realistic" use of a SharedMemo, across fibers schedule
    * by an executor pool. *)
-  let f = SharedMemo.make (fun i -> i + 1) in
+  let f = SharedMemo.make ~metrics_id (fun i -> i + 1) in
 
   Eio_main.run @@ fun env ->
   Eio.Switch.run @@ fun sw ->
@@ -81,7 +82,7 @@ let test_key_fn () =
     key_fn_calls := !key_fn_calls + 1;
     Int.to_string i
   in
-  let f = SharedMemo.make_with_key_fn key_fn (fun i -> i + 1) in
+  let f = SharedMemo.make_with_key_fn ~metrics_id key_fn (fun i -> i + 1) in
   for _ = 0 to 100 do
     let i = Random.int 1000 in
     Alcotest.(check int) __LOC__ (f i) (i + 1)
