@@ -309,14 +309,17 @@ let matched7 s =
 
 let _memo_compiled_regexp = Hashtbl.create 101
 
-let candidate_match_func s re =
-  (* old: Str.string_match (Str.regexp re) s 0 *)
+(* Ideally this would be a use of a [SharedMemo].  However, TSAN reports possibly-
+ * spurious data races within `strstubs.c` when regexps are shared between threads.
+ * Therefore, we are conservative here and make our backing hashtable per-domain. *)
+let _memo_compiled_regexp = Domain.DLS.new_key (fun () -> Hashtbl.create 101)
+
+let match_func s re =
   let compile_re =
-    memoized _memo_compiled_regexp re (fun () -> Str.regexp re)
+    memoized (Domain.DLS.get _memo_compiled_regexp) re (fun () -> Str.regexp re)
   in
   Str.string_match compile_re s 0
 
-let match_func s re = candidate_match_func s re
 let ( =~ ) s re = match_func s re
 
 let ( =/~ ) (p : Fpath.t) re =
