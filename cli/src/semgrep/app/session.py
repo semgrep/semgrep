@@ -207,7 +207,7 @@ class AppSession(requests.Session):
         #
         # TODO: this logic is copied from `config_resolver.py`, we should
         # refactor such that the logic is shared
-        if self.token and is_semgrep_url(url):
+        if self.token and is_semgrep_url(url, state.env.semgrep_url):
             kwargs["headers"].setdefault("Authorization", f"Bearer {self.token}")
 
         error_handler = state.error_handler

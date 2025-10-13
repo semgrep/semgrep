@@ -146,7 +146,7 @@ class ConfigLoader:
 
         # We still have to modify metrics metadata in case the config was a
         # registry URL
-        if is_semgrep_url(config_str):
+        if is_semgrep_url(config_str, state.env.semgrep_url):
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
             self._origin = ConfigType.REGISTRY
@@ -445,6 +445,10 @@ def parse_config_files(
     ] = {}
 
     ctx = click.get_current_context(silent=True)
+    configured_semgrep_url = None
+    if ctx is not None:
+        with ctx.scope():
+            configured_semgrep_url = get_state().env.semgrep_url
 
     def context_aware_parse_config_string(
         *args: Any,
@@ -482,7 +486,7 @@ def parse_config_files(
                 # used).
                 config_id = (
                     REGISTRY_CONFIG_ID
-                    if is_semgrep_url(config_path)
+                    if is_semgrep_url(config_path, configured_semgrep_url)
                     else NON_REGISTRY_REMOTE_CONFIG_ID
                 )
                 filename = f"{config_path[:20]}..."
