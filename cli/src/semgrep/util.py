@@ -66,12 +66,27 @@ def is_url(url: str) -> bool:
         return False
 
 
-def is_semgrep_url(url: str) -> bool:
+def is_semgrep_url(url: str, configured_url: Optional[str] = None) -> bool:
+    """
+    Returns True if the URL matches one of the production Semgrep URLs or the passed in configured_url,
+    ignoring protocol and paths.
+
+    Introduced in order to prevent sending auth tokens to non-Semgrep URLs for security purposes. See
+    https://github.com/semgrep/semgrep-proprietary/pull/4769 for more details.
+    """
     try:
         netloc = urlsplit(url).netloc
-        return is_url(url) and (
-            netloc.endswith(".semgrep.dev") or netloc == "semgrep.dev"
-        )
+        if not is_url(url):
+            return False
+
+        if netloc.endswith(".semgrep.dev") or netloc == "semgrep.dev":
+            return True
+
+        if configured_url:
+            configured_netloc = urlsplit(configured_url).netloc
+            return netloc == configured_netloc
+
+        return False
     except ValueError:
         return False
 
