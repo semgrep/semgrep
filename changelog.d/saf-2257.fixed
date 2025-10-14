@@ -1,0 +1,2 @@
+Fixed an issue where temporary files, containing rules to be validated,
+persisted after a semgrep scan.
