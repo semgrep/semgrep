@@ -11,12 +11,15 @@
 # LICENSE for more details.
 #
 # Testing src/semgrep/util.py
+import pytest
+
 from semgrep.util import is_semgrep_url
 
 
 class TestIsSemgrepUrl:
     """Test cases for the is_semgrep_url function."""
 
+    @pytest.mark.quick
     def test_default_semgrep_dev_urls(self):
         """Test that default semgrep.dev URLs are recognized."""
         assert is_semgrep_url("https://semgrep.dev/rules.yaml") is True
@@ -26,6 +29,7 @@ class TestIsSemgrepUrl:
         assert is_semgrep_url("https://telemetry.dev2.semgrep.dev") is True
         assert is_semgrep_url("ftp://semgrep.dev") is True
 
+    @pytest.mark.quick
     def test_non_semgrep_urls(self):
         """Test that non-semgrep URLs are not recognized."""
         assert is_semgrep_url("https://bad.actor.com/rules.yaml") is False
@@ -35,6 +39,7 @@ class TestIsSemgrepUrl:
         assert is_semgrep_url("not-a-url") is False
         assert is_semgrep_url("") is False
 
+    @pytest.mark.quick
     def test_custom_configured_url_respected(self):
         """Test that custom configured URL is respected when passed as parameter."""
         # URLs that don't match fail without a custom url
