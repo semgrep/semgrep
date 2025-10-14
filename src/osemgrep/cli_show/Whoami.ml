@@ -23,26 +23,35 @@ let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
-  | Some token ->
+  | Some token -> (
       let caps = Auth.cap_token_and_network token caps in
-      (match kind with
+      match kind with
       | Identity ->
+          (* get_identity_async returns the identity string or empty on failure *)
           let id = Lwt_platform.run (Semgrep_App.get_identity_async caps) in
-          Logs.app (fun m ->
-              m "%s You are logged in as %s" (Console.success_tag ()) id)
+          if id = "" then (
+            Logs.app (fun m ->
+                m "%s Failed to determine identity" (Console.error_tag ()));
+            Exit_code.fatal ~__LOC__)
+          else (
+            Logs.app (fun m ->
+                m "%s You are logged in as %s" (Console.success_tag ()) id);
+            Exit_code.ok ~__LOC__)
       | Deployment -> (
           let (x : OutJ.deployment_config option) =
             Lwt_platform.run (Semgrep_App.deployment_config_async caps)
           in
           match x with
-          | None -> failwith "no deployment_config"
+          | None ->
+              Logs.app (fun m ->
+                  m "%s Failed to determine deployment" (Console.error_tag ()));
+              Exit_code.fatal ~__LOC__
           | Some x ->
               (* TODO? return just x.name? *)
               let str = OutJ.string_of_deployment_config x in
               Logs.app (fun m ->
-                  m "%s Your deployment info is %s" (Console.success_tag ()) str)
-          ));
-      Exit_code.ok ~__LOC__
+                  m "%s Your deployment info is %s" (Console.success_tag ()) str);
+              Exit_code.ok ~__LOC__))
   | None ->
       Logs.err (fun m ->
           m
