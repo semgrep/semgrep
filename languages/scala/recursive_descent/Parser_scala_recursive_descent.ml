@@ -4960,8 +4960,17 @@ let parse toks =
       | Parsing_error.Syntax_error _ -> Exception.reraise e1)
 
 let semgrep_pattern toks =
+  let partialCaseClause in_ =
+    match in_.token with
+    | Kcase ii ->
+        nextToken in_;
+        caseClause block ii in_
+    | _ -> error "expected case clause" in_
+  in
   try try_rule toks (fun in_ -> Ex (expr in_)) with
   | Parsing_error.Syntax_error _ -> (
       try try_rule toks (fun in_ -> Ss (block in_)) with
-      | Parsing_error.Syntax_error _ ->
-          try_rule toks (fun in_ -> Pr (compilationUnit in_)))
+      | Parsing_error.Syntax_error _ -> (
+          try try_rule toks (fun in_ -> Cs (partialCaseClause in_)) with
+          | Parsing_error.Syntax_error _ ->
+              try_rule toks (fun in_ -> Pr (compilationUnit in_))))
