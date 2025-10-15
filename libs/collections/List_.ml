@@ -371,11 +371,7 @@ let optlist_to_list = function
 (* Results and lists *)
 (*****************************************************************************)
 
-let map_result f list =
-  let go x acc =
-    Result.bind acc (fun ls -> Result.bind (f x) (fun res -> Ok (res :: ls)))
-  in
-  fold_right go list (Ok [])
+let map_result = Result_.list_map
 
 (*****************************************************************************)
 (* Generic op *)

@@ -37,6 +37,18 @@ let collect l =
   in
   f (Ok []) l |> Result.map List.rev
 
+(* Map a list from left to right, stop at the first error *)
+let list_map f xs =
+  let rec map res_list xs =
+    match xs with
+    | x :: xs -> (
+        match f x with
+        | Ok res -> map (res :: res_list) xs
+        | Error err -> Error err)
+    | [] -> Ok (List.rev res_list)
+  in
+  map [] xs
+
 module Operators = struct
   let ( >>= ) x f = Result.bind x f
 end

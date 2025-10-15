@@ -30,4 +30,33 @@ let test_collect () =
   Result_.collect [ Ok 1; Error "uh oh"; Ok 3 ] |> chk (Error "uh oh");
   Result_.collect [ Ok 1; Error "first"; Error "missed" ] |> chk (Error "first")
 
-let tests = Testo.categorize "Domains" [ t "test_collect" test_collect ]
+let test_list_map_ok () =
+  let res =
+    Result_.list_map
+      (function
+        | (0 | 1) as x -> Ok (string_of_int x)
+        | _ -> Alcotest.fail "bad input list")
+      [ 0; 1 ]
+  in
+  assert (res = Ok [ "0"; "1" ])
+
+let test_list_map_error () =
+  let res =
+    Result_.list_map
+      (function
+        | 0
+        | 1 ->
+            Ok ()
+        | 2 -> Error "error on 2"
+        | _ -> Alcotest.fail "Result_.list_map failed to be lazy")
+      [ 0; 1; 2; 3; 4 ]
+  in
+  assert (res = Error "error on 2")
+
+let tests =
+  Testo.categorize "Result_"
+    [
+      t "collect" test_collect;
+      t "list_map ok" test_list_map_ok;
+      t "list_map error" test_list_map_error;
+    ]

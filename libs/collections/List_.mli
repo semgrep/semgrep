@@ -134,8 +134,12 @@ val find_some_opt : ('a -> 'b option) -> 'a list -> 'b option
 val filter_some : 'a option list -> 'a list
 val optlist_to_list : 'a list option -> 'a list
 
+(* We keep this signature for discoverability because it's not clear
+   whether this function should be in our List or in our Result module. *)
 val map_result : ('a -> ('b, 'e) result) -> 'a list -> ('b list, 'e) result
-(** Map a function over the list, stopping on the first Error. *)
+[@@ocaml.deprecated "Use Result_.list_map instead."]
+(** Alias for [Result_.list_map] - map a list or stop at the first error
+    and return it. *)
 
 (* Haskell-inspired list combinators (take/drop/span) *)
 

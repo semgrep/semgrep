@@ -21,6 +21,14 @@ val collect : ('a, 'e) result list -> ('a list, 'e) result
 (** Distributes out the successful results if zero errors inhabit the supplied
   * list.  If multiple errors inhabit the list, all but one is discarded. *)
 
+val list_map : ('a -> ('b, 'err) result) -> 'a list -> ('b list, 'err) result
+(** Map the list from left to right until an error occurs.
+    The result is either the new list or the first error encountered.
+    Results past the first error are not computed, therefore this is
+    potentially faster than [List.map] followed by a [collect] and it
+    may produce clearer logs.
+*)
+
 module Operators : sig
   val ( >>= ) :
     ('a, 'error) result -> ('a -> ('b, 'error) result) -> ('b, 'error) result
