@@ -62,9 +62,11 @@ def semgrep_mcp(transport: str, port: int) -> None:
     logger.info(f"Starting Semgrep MCP server version v{__VERSION__}")
 
     # Create a fast MCP server
+    # Note: stateless_http should be False for proper session management
+    # When True, it causes ClosedResourceError in streamable-http transport
     mcp = FastMCP(
         "Semgrep",
-        stateless_http=True,
+        stateless_http=False,
         json_response=True,
         lifespan=server_lifespan,
         port=port,
