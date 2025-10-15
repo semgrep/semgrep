@@ -49,7 +49,7 @@ class TestIsSemgrepUrl:
         custom_url = "http://localhost:3000"
         # URLs matching the custom domain should be recognized
         assert is_semgrep_url("http://localhost:3000", custom_url) is True
-        assert is_semgrep_url("http://localhost/api", custom_url) is True
+        assert is_semgrep_url("http://localhost:3000/api", custom_url) is True
 
         # Default semgrep.dev URLs should still work even with custom URL
         assert is_semgrep_url("https://semgrep.dev/rules.yaml", custom_url) is True
