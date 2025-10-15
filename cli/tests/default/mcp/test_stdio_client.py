@@ -18,7 +18,7 @@ from mcp import ClientSession
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.types import TextContent
-from pydantic_core import Url
+from pydantic import AnyUrl
 
 
 def mk_server_params(port: int):
@@ -57,7 +57,7 @@ async def test_stdio_client(available_port):
 
             # Read a resource
             print("Reading resource")
-            content, _ = await session.read_resource(Url("semgrep://rule/schema"))
+            content, _ = await session.read_resource(AnyUrl("semgrep://rule/schema"))
 
             # Call a tool
             results = await session.call_tool(
