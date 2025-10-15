@@ -172,6 +172,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
   test-osemgrep:
     container: alpine:3.22
     env:
