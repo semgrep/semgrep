@@ -20,6 +20,7 @@ open Common
 
 (* A test that sometimes fails for unknown reasons *)
 let flaky = Testo.Tag.declare "flaky"
+let e2e = Testo.Tag.declare "e2e"
 
 (* "lang.none" would be shorter but possibly confusing since we're using
    the term "generic" everywhere. *)

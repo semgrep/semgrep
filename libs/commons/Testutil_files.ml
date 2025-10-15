@@ -200,10 +200,8 @@ let read root =
     | Ok { st_kind = S_REG; _ } -> File (name, UFile.read_file path)
     | Ok { st_kind = S_LNK; _ } -> Symlink (name, Unix.readlink !!path)
     | Ok _ -> failwith ("Testutil_files.read: unsupported file type: " ^ !!path)
-    | Error (_, _, info) ->
-        failwith
-          ("Testutil_files.read: unexpected error " ^ info ^ " when reading "
-         ^ !!path)
+    | Error (err, _, _) ->
+        failwith (spf "Cannot read %s: %s" !!path (Unix.error_message err))
   in
   match UUnix.stat root with
   | Ok { st_kind = S_DIR; _ } ->
@@ -249,3 +247,32 @@ let () =
           let paths = flatten tree |> Fpath_.to_strings in
           List.iter Stdlib.print_endline paths;
           assert (paths =*= [ "a"; "b"; "c"; "d/e" ])))
+
+(* Copy a file potentially to a new name.
+   Assume dst doesn't exist but its parent exists. *)
+let rec copy_file src dst =
+  match UUnix.stat src with
+  | Ok { st_kind = S_DIR; _ } ->
+      mkdir dst;
+      let names = get_dir_entries src in
+      List.iter (fun name -> copy_file (src / name) (dst / name)) names
+  | Ok { st_kind = S_REG; _ } ->
+      let data = UFile.read_file src in
+      UFile.write_file ~file:dst data
+  | Ok { st_kind = S_LNK; _ } ->
+      (* Unix.stat dereferences symlinks recursively *)
+      assert false
+  | Ok _ -> (* ignored exotic file kind *) ()
+  | Error (err, _, _) ->
+      failwith (spf "Cannot read %s: %s" !!src (Unix.error_message err))
+
+let copy ~src ~dst =
+  if Sys_.Fpath.exists dst then
+    failwith (spf "Destination file or folder already exists: %s" !!dst)
+  else copy_file src dst
+
+let with_temp_copy ~src func =
+  with_tempdir (fun tempdir ->
+      let dst = Fpath.add_seg tempdir (Fpath.basename src) in
+      copy src dst;
+      func ~dst)
