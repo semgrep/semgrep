@@ -128,13 +128,37 @@ val remove : Fpath.t -> unit
 *)
 val mkdir : ?root:Fpath.t -> Fpath.t -> unit
 
-(*
+val with_tempdir : ?persist:bool -> ?chdir:bool -> (Fpath.t -> 'a) -> 'a
+(**
    Create a temporary directory and pass its path to the function to call.
    The folder is automatically deleted upon exit unless 'persist'
-   is true. If 'chdir' is set to true, the current directory is
+   is true. If [chdir] is set to true, the current directory is
    set temporarily to the temporary directory.
  *)
-val with_tempdir : ?persist:bool -> ?chdir:bool -> (Fpath.t -> 'a) -> 'a
 
-(* Run a function in a directory, then return to the original directory. *)
 val with_chdir : Fpath.t -> (unit -> 'a) -> 'a
+(** Run a function in a directory, then return to the original directory. *)
+
+val copy : src:Fpath.t -> dst:Fpath.t -> unit
+(** Copy folders and files recursively.
+    Symbolic links are dereferenced.
+    Files of other types are ignored silently.
+
+    Raise an exception if [dst] already exists or if anything goes wrong.
+
+    TODO: move to Testo
+*)
+
+val with_temp_copy : src:Fpath.t -> (dst:Fpath.t -> 'a) -> 'a
+(** Create a temporary workspace containing a copy of the given folder
+    or file.
+    Files other than regular files, folders, and symlinks are not copied.
+    Symbolic links are dereferenced.
+
+    [src] is the source folder or file to copy.
+    The temporary folder will contain a copy of [src] with the same basename.
+    The argument passed to the handler is [dst], the path to the copied
+    folder or file.
+
+    TODO: move to Testo
+*)
