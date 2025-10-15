@@ -105,8 +105,7 @@ repos:
           - click<8.1.4
           - defusedxml~=0.7.1
           - packaging~=21.0
-          # pydantic for fast rule validation (until we have a better solution in pure ocaml)
-          - pydantic~=2.8.2
+          - pydantic~=2.12.2
           - requests~=2.22
           - rich~=13.5.2
           - tomli~=2.0.1
@@ -130,7 +129,7 @@ repos:
           - appdirs
           - pytest
           - pytest-mock
-          - mcp==1.12.2
+          - mcp==1.16.0
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
