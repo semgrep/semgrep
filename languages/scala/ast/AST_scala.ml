@@ -625,7 +625,12 @@ type program = top_stat list [@@deriving show]
 (* Any *)
 (*****************************************************************************)
 
-type any = Pr of program | Ex of expr | Ss of block | Tk of tok
+type any =
+  | Pr of program
+  | Ex of expr
+  | Ss of block
+  | Cs of (pattern, block) case_clause
+  | Tk of tok
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)

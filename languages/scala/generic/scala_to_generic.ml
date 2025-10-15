@@ -1234,6 +1234,9 @@ let v_any = function
   | Tk v1 ->
       let v1 = v_tok v1 in
       G.Tk v1
+  | Cs v1 ->
+      let v1 = v_case_clause v1 in
+      G.(Partial (PartialSwitchCase v1))
   | Ex e ->
       let st = v_expr_for_stmt e in
       G.S st
