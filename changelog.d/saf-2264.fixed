@@ -1,2 +1,0 @@
-MCP: Fixed a bug where resource closure errors would occur when trying to use
-the MCP with the `streamable-http` tranport method.

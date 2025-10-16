@@ -1,2 +1,0 @@
-scala: Allow partial case patterns such as `case 1 => ...` to easily match
-individual case clauses within a match-expression.

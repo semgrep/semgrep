@@ -1,2 +1,0 @@
-Display an error instead of a malformed success message
-when the show subcommand fails due to an invalid CLI token.
