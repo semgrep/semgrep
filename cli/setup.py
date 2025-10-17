@@ -119,7 +119,6 @@ install_requires = [
     "click-option-group~=0.5",
     "click~=8.1.8",
     "colorama~=0.4.0",
-    "defusedxml~=0.7.1",
     "exceptiongroup~=1.2.0",
     "glom~=22.1",
     "mcp==1.16.0",
