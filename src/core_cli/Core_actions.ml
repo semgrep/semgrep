@@ -99,10 +99,7 @@ let dump_il (caps : < Cap.stdout >) file =
     print s;
     print "==>";
 
-    (* Creating a CFG and throwing it away here so the implicit return
-     * analysis pass may be run in order to mark implicit return nodes.
-     *)
-    let _ = CFG_build.cfg_of_gfdef lang fdef in
+    Implicit_return.mark_implicit_return lang ast;
 
     (* This round, the IL stmts will show return nodes when
      * they were implicit before.
