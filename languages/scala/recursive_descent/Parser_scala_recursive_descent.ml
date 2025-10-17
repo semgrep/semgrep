@@ -2334,7 +2334,7 @@ and interpolatedString ~inPattern in_ =
             if s.[0] =$= '$'
                 then if Hook.get Flag.sgrep_mode
                     then xs += EncapsExpr (Name (Id x, []))
-                    else xs += EncapsDollarIdent (String.sub s 1 (String.length s - 1), t)
+                    else xs += EncapsDollarIdent (Str.string_after s 1, t)
                 else xs += EncapsDollarIdent x
         (* actually a ${, but using LBRACE allows to reuse blockExpr *)
         | LBRACE _ ->
