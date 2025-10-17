@@ -645,8 +645,15 @@ libs/testo/_opam
 libs/testo/failing-test
 libs/testo/meta-test
 libs/testo/parallel-test
+libs/testo/timeout-test
 libs/testo/test
 libs/testo/test-alcotest
+libs/testo/bin
+libs/testo/tests/diff-data/testo-diff
+
+# From libs/testo/docsrc/cli-reference/.gitignore
+# Generated help pages
+libs/testo/docsrc/cli-reference/**/*.html
 
 # From libs/testo/docsrc/tutorial/.gitignore
 libs/testo/docsrc/tutorial/my_project
