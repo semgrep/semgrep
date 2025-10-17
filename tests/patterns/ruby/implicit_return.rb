@@ -88,3 +88,8 @@ def f(x)
     "implicit return else case"
   end
 end
+
+def f(x)
+  # ERROR:
+  "Implicit return with interpolation #{x}"
+end

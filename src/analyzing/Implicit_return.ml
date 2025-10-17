@@ -52,6 +52,8 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
   | NInstr instr -> (
       match instr with
       | { i = Assign (_, { eorig = SameAs e; _ }); _ }
+      | { i = CallSpecial (_, _, _); iorig = SameAs e }
+      (* NB We translate void as returning Unit in AST_to_IL, so this is safe. *)
       | { i = Call _; iorig = SameAs e } ->
           e.is_implicit_return <- true
       | _else_ -> ())
