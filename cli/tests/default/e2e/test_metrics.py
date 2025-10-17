@@ -161,6 +161,8 @@ def test_flags(
         options=[*options, "--debug"],
         force_metrics_off=False,
         env=env,
+        # Need to use the click runner. Forking will cause the mocks to go away.
+        use_click_runner=True,
     )
     if should_send:
         assert "Sending pseudonymous metrics" in stderr
