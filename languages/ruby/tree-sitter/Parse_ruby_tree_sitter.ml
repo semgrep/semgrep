@@ -2499,6 +2499,7 @@ let parse_pattern string =
     (fun cst _extras ->
       let file = Fpath.v "<file>" in
       let env =
+        (* TODO: inject the heredoc bodies found as extras into the AST *)
         { H.file; conv = H.line_col_to_pos_pattern string; extra = Pattern }
       in
       if debug then Boilerplate.dump_tree cst;

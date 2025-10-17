@@ -38,15 +38,25 @@ val token : 'a env -> Tree_sitter_run.Token.t -> Tok.t
 val str : 'a env -> Tree_sitter_run.Token.t -> string * Tok.t
 val debug_sexp_cst_after_error : Sexplib.Sexp.t -> unit
 
-(*
+val wrap_parser :
+  (unit -> ('cst, 'extra) Tree_sitter_run.Parsing_result.t) ->
+  ('cst -> 'extra list -> 'ast) ->
+  ('ast, unit) Tree_sitter_run.Parsing_result.t
+(**
    Call a tree-sitter parser and then map the CST into an AST
    with the user-provided function. Takes care of error handling but lets
    exceptions go through.
 
    Extras (e.g. comments, heredoc bodies, ...) must be injected into the AST
    at this stage.
+
+   Extras are little trees with their own root and type. Some of
+   them are ordinary comments and should be discarded. Others may be
+   comments with special syntax that is worth parsing and somehow
+   scanning with semgrep. There are also extras such as heredoc
+   templates that start on the line after the opening marker and
+   after any other heredoc body (whose opening markers come first on
+   a line with multiple opening markers). Matching heredoc openings
+   with their heredoc bodies would be done by inspecting the source
+   locations of the heredoc openings and their matching bodies.
 *)
-val wrap_parser :
-  (unit -> ('cst, 'extra) Tree_sitter_run.Parsing_result.t) ->
-  ('cst -> 'extra list -> 'ast) ->
-  ('ast, unit) Tree_sitter_run.Parsing_result.t
