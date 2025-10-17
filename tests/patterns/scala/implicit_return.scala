@@ -26,7 +26,7 @@ def f(x) =
     "no implicit return because not the last statement"
   else
     "no implicit return because not the last statement"
-   
+
   // ERROR:
   "implicit return last statement after non trivial"
 
@@ -72,3 +72,6 @@ def f() =
   // ERROR:
   return "explicit return should still work"
 
+def f(x) =
+  // ERROR:
+  s"Implicit return of string interpolation should still work $x"
