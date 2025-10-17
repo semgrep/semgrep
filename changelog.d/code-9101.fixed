@@ -1,0 +1,3 @@
+Improved detection of implicitly returned expressions.
+Functions in some languages, such as Ruby and Scala, can return a value without an explicit `return` statement.
+More expressions, such as string interpolation, are now correctly identified as implicitly returned.
