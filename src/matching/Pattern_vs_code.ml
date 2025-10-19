@@ -30,6 +30,7 @@ open Matching_generic
 module Log = Log_matching.Log
 
 let hook_find_possible_parents = Hook.create None
+let hook_match_PatConstructor = Hook.create None
 let hook_r2c_pro_was_here = Hook.create false
 
 (*****************************************************************************)
@@ -3092,12 +3093,18 @@ and m_pattern a b =
       m_ident a1 b1 >>= fun () -> m_id_info a2 b2
   | G.PatLiteral a1, B.PatLiteral b1 -> m_literal a1 b1
   | G.PatType a1, B.PatType b1 -> m_type_ a1 b1
-  | G.PatConstructor (a1, a2), B.PatConstructor (b1, b2) ->
-      m_name a1 b1 >>= fun () ->
-      (m_list_with_dots ~less_is_ok:false m_pattern (function
-        | G.PatEllipsis _ -> true
-        | _ -> false))
-        a2 b2
+  | G.PatConstructor (a1, a2), B.PatConstructor (b1, b2) -> (
+      let default () =
+        m_name a1 b1 >>= fun () ->
+        (m_list_with_dots ~less_is_ok:false m_pattern (function
+          | G.PatEllipsis _ -> true
+          | _ -> false))
+          a2 b2
+      in
+      match Hook.get hook_match_PatConstructor with
+      | Some m_PatConstructor ->
+          m_PatConstructor ~default ~m_pattern (a1, a2) (b1, b2)
+      | None -> default ())
   | G.PatTuple a1, B.PatTuple b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatList a1, B.PatList b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1
