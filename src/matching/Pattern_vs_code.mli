@@ -45,6 +45,18 @@ val m_any : AST_generic.any Matching_generic.matcher
 val hook_find_possible_parents :
   (AST_generic.dotted_ident -> AST_generic.name list) option Hook.t
 
+(* deep-scan hook *)
+val hook_match_PatConstructor :
+  (default:(unit -> Matching_generic.tin -> Matching_generic.tout) ->
+  m_pattern:
+    (AST_generic.pattern, AST_generic.pattern) Matching_generic.general_matcher ->
+  AST_generic.name * AST_generic.pattern list ->
+  AST_generic.name * AST_generic.pattern list ->
+  Matching_generic.tin ->
+  Matching_generic.tout)
+  option
+  Hook.t
+
 val hook_r2c_pro_was_here : bool Hook.t
 
 (* used for evaluating `metavariable-type:` in Match_search_mode.ml *)
