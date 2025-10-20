@@ -331,8 +331,9 @@ local job(
                  // These have no effect if ARG isn't used in the Dockerfile
                  'build-args': |||
                    VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
-                   VCS_REF_HEAD_REVISION=%(ref_expr)s
-                 ||| % { ref_expr: gha.ref_expr },
+                   VCS_REF_HEAD_REVISION=%(ref_expr)s%(build_args)s
+                 ||| % { ref_expr: gha.ref_expr, build_args: if build_args == '' then '' else '\n' + build_args }
+                 ,
                  // This flag controls if for whatever reason depot fails to
                  // build the docker image on their fast native arm64 runners, whether
                  // depot will fallback to docker-buildx which uses emulation (which is
@@ -350,9 +351,7 @@ local job(
 
                  // Also maybe push to Docker hub and ec2
                  push: push,
-               } + (if build_args != '' then {
-                      'build-args': build_args,
-                    } else {}),
+               },
              },
            ] +
            (if artifact_name != null then (

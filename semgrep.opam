@@ -25,6 +25,7 @@ depends: [
   "fpath"
   "bos"
   "fileutils"
+  "uring" {os = "linux" & = "0.9"}
   "testo"
   "alcotest"
   "alcotest-lwt"

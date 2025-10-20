@@ -62,7 +62,7 @@ else
   BUILD_DEFAULT = ../_build/default/OSS
 endif
 
-include cygwin-env.mk
+-include cygwin-env.mk
 
 ###############################################################################
 # Build (and clean) targets
@@ -249,6 +249,14 @@ install-deps-for-semgrep-core:
 	./scripts/build-static-libcurl.sh
 	$(MAKE) install-opam-deps
 
+pin-ocaml-fork:
+	# NBT: our fork of the compiler
+	opam pin add ocaml-variants.5.3.0 "git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep" --update-invariant -y
+
+
+pin-ocaml-fork-tsan:
+	# NBT: our fork of the compiler
+	opam pin add ocaml-variants.5.3.0+options "git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep-tsan" --update-invariant -y
 # Install OCaml dependencies (globally) from *.opam files.
 # This now also installs the dev dependencies. This has the benefit
 # of installing all the packages in one shot and detecting possible
@@ -269,10 +277,8 @@ install-deps-for-semgrep-core:
 #   breaks the build
 # - When we have cache hits in GHA on things like conf-pcre, by default we won't
 #   install the pcre system package, this ensures those are reinstalled
-install-opam-deps:
+install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	opam update -y
-	# NBT: our fork of the compiler
-	opam pin add ocaml-variants.5.3.0 "git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep" --update-invariant -y
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 
