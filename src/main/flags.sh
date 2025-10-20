@@ -33,7 +33,6 @@ set -eu
 
 OS="$1"
 TREE_SITTER_LANGS="$2"
-
 >&2 echo "Generating linking flags for OS ${OS} (!!!in case of linking errors, adjust src/main/flags.sh!!!)"
 
 # Force the use of static linking in these scenarios:
@@ -44,10 +43,14 @@ TREE_SITTER_LANGS="$2"
 #   name. It is assumed that the reason we're on alpine is to get
 #   statically-linked executables.
 
-# Check if NIX_ENVIRONMENT is not set
+# Check if SEMGREP_NIX_BUILD is not set
 # If it is set, we are in a nix-shell and we should not statically link
 # This is first because opam won't exist in a nix build environment
 if [[ -n "${SEMGREP_NIX_BUILD-}" ]]; then
+    FLAGS=()
+    CCLIB=()
+    CCOPT=()
+elif [[ -n "${FORCE_DYNLINK-}" ]]; then
     FLAGS=()
     CCLIB=()
     CCOPT=()
