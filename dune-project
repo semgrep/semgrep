@@ -79,6 +79,17 @@ For more information see https://semgrep.dev
     fpath
     bos
     fileutils
+    ; > 0.9 fails to compile w/tsan on linux
+    ;
+    ; Dune doesn't pass the -fsanitize=thread flag to compile C stubs when
+    ; building for native, so we have a simple wrapper that forces the flag.
+    ; See:
+    ; https://github.com/ocaml/dune/issues/11923
+    ;
+    ; I suspect this is part of the issue with uring > 0.9 so let's wait until
+    ; that is resolved until filing an issue on this
+    ; alt: only choose an old uring if the tsan option is enabled?
+    (uring (and (= :os linux) (= 0.9)))
     ; unit testing (note that testo is vendored in libs/)
     testo
     alcotest
