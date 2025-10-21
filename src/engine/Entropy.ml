@@ -95,7 +95,7 @@ let load_trigrams () =
   in
   (trigram_entropies, char_entropies)
 
-let data_tables = lazy (load_trigrams ())
+let data_tables = lazy_safe (load_trigrams ())
 
 (*
    A string is scanned as follows:
@@ -114,7 +114,7 @@ let data_tables = lazy (load_trigrams ())
    get back the entropy corresponding to a single byte.
 *)
 let get_substring_entropy s =
-  let trigram_entropies, char_entropies = Lazy.force data_tables in
+  let trigram_entropies, char_entropies = Lazy_safe.force data_tables in
   match String.length s with
   | 3 ->
       let trigram_entropy =

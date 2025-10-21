@@ -206,8 +206,8 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                               env.xtarget.path with
                               internal_path_to_content = file;
                             };
-                          lazy_ast_and_errors = lazy (mast', []);
-                          lazy_content = lazy contents;
+                          lazy_ast_and_errors = lazy_safe (mast', []);
+                          lazy_content = lazy_safe contents;
                         }
                       in
                       (* Persist the bindings from inside the `metavariable-pattern`
@@ -289,7 +289,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                        to fully parse the content of %s"
                                       (Rule_ID.to_string (fst env.rule.Rule.id))
                                       mvar);
-                              Ok (lazy (ast, skipped_tokens))
+                              Ok (lazy_safe (ast, skipped_tokens))
                             with
                             | Parsing_error.Syntax_error tk ->
                                 Error (Tok.content_of_tok tk))
@@ -297,10 +297,10 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                         | LSpacegrep
                         | LAliengrep ->
                             Ok
-                              (lazy
-                                (failwith
-                                   "requesting generic AST for \
-                                    LRegex|LSpacegrep|LAliengrep"))
+                              (lazy_safe
+                                 (failwith
+                                    "requesting generic AST for \
+                                     LRegex|LSpacegrep|LAliengrep"))
                       in
                       match ast_and_errors_res with
                       | Error msg ->
@@ -323,7 +323,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                 };
                               analyzer;
                               lazy_ast_and_errors;
-                              lazy_content = lazy contents;
+                              lazy_content = lazy_safe contents;
                             }
                           in
                           (* Persist the bindings from inside the `metavariable-pattern`

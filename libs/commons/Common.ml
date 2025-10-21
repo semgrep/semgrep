@@ -108,8 +108,8 @@ let with_time f =
   (res, t2 -. t1)
 
 let force_lazy_with_time lazy_x =
-  let had_to_force = not (Lazy.is_val lazy_x) in
-  let x, time = with_time (fun () -> Lazy.force lazy_x) in
+  let had_to_force = not (Lazy_safe.is_val lazy_x) in
+  let x, time = with_time (fun () -> Lazy_safe.force lazy_x) in
   let time = if had_to_force then Some time else None in
   (x, time)
 [@@profiling]

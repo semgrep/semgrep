@@ -40,9 +40,9 @@ let with_fallback value fallback =
   match value with
   | Ok x -> Ok x
   | Error e1 -> (
-      match fallback with
-      | (lazy (Ok x)) -> Ok x
-      | (lazy (Error e2)) ->
+      match Lazy_safe.force fallback with
+      | Ok x -> Ok x
+      | Error e2 ->
           Error
             (spf
                "Failed to print AST with hybrid printer. First error:\n\
@@ -71,18 +71,20 @@ end = struct
       inherit Fallback.printer as fallback
 
       method! print_argument arg =
-        with_fallback (primary (G.Ar arg)) (lazy (fallback#print_argument arg))
+        with_fallback (primary (G.Ar arg))
+          (lazy_safe (fallback#print_argument arg))
 
       method! private print_expr_without_parens e =
         with_fallback (primary (G.E e))
-          (lazy (fallback#print_expr_without_parens e))
+          (lazy_safe (fallback#print_expr_without_parens e))
 
       method! print_unbracketed_arguments args =
         with_fallback (primary (G.Args args))
-          (lazy (fallback#print_unbracketed_arguments args))
+          (lazy_safe (fallback#print_unbracketed_arguments args))
 
       method! print_ident ident =
-        with_fallback (primary (G.I ident)) (lazy (fallback#print_ident ident))
+        with_fallback (primary (G.I ident))
+          (lazy_safe (fallback#print_ident ident))
 
       (* TODO Fill in more cases as needed. *)
     end

@@ -22,6 +22,7 @@
      ppx_deriving.ord
      ppx_deriving.show
      ppx_hash
+     commons.ppx
    )
  )
 )

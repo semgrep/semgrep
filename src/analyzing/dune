@@ -17,6 +17,7 @@
     (pps
       ppx_profiling
       ppx_deriving.show
+      commons.ppx
       telemetry.ppx
     )
  )

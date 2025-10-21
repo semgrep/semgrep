@@ -1653,7 +1653,7 @@ and m_compatible_type lang typed_mvar t e =
          * `(List<$T> $X)), take a token from the expression so that we have a
          * real location to associate with the metavariable. *)
         let tok =
-          lazy
+          lazy_safe
             (match H.ii_of_any (G.E e) |> List.filter Tok.is_origintok with
             | hd :: _ -> Some hd
             | [] -> None)
@@ -2328,7 +2328,7 @@ and m_generic_type_vs_type_t lang tok a b =
   match (a.G.t, b) with
   | G.TyN (Id ((str, idtok), _)), _ when Mvar.is_metavar_name str -> (
       match
-        Type.to_ast_generic_type_ ?tok:(Lazy.force tok) lang
+        Type.to_ast_generic_type_ ?tok:(Lazy_safe.force tok) lang
           (fun name _alts -> name)
           b
       with

@@ -484,7 +484,7 @@ let all_elem_and_rest_of_list xs =
   let rec loop acc prev_xs = function
     | [] -> acc
     | x :: next_xs ->
-        let other_xs = lazy (List.rev_append prev_xs next_xs) in
+        let other_xs = lazy_safe (List.rev_append prev_xs next_xs) in
         let acc' = (x, other_xs) :: acc in
         let prev_xs' = x :: prev_xs in
         loop acc' prev_xs' next_xs
@@ -503,7 +503,7 @@ let rec all_splits = function
   * computing the rest of the list *)
 let lazy_rest_of_list v =
   Profiling.profile_code "Matching_generic.eval_rest_of_list" (fun () ->
-      Lazy.force v)
+      Lazy_safe.force v)
 
 let return () = return
 let fail () = fail
@@ -720,7 +720,7 @@ let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
   |> List_.filter_map (fun (b, other_bs) ->
          match m a b tin with
          | [] -> None
-         | tout -> Some (Lazy.force other_bs, tout))
+         | tout -> Some (Lazy_safe.force other_bs, tout))
 
 let m_comb_1toN m_1toN a bs : _ comb_result =
  fun tin ->

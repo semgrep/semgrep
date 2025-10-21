@@ -656,8 +656,8 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
                    internal_path_to_content = file;
                  };
                analyzer = Analyzer.L (lang, []);
-               lazy_content = lazy (UFile.read_file file);
-               lazy_ast_and_errors = lazy (ast, []);
+               lazy_content = lazy_safe (UFile.read_file file);
+               lazy_ast_and_errors = lazy_safe (ast, []);
              }
            in
            let results, _errors =

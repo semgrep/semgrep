@@ -39,7 +39,7 @@ module H = Eval_jsonnet_common
 (* Creates std so that we can add it to the environment when we switch back to
  * environment model for handling standard library functions
  *)
-let pre_std = lazy (Std_jsonnet.get_std_jsonnet ())
+let pre_std = lazy_safe (Std_jsonnet.get_std_jsonnet ())
 
 (* This is an arbitrary path, used as a placeholder, since we aren't
  * desugaring from a file *)
@@ -48,7 +48,8 @@ let path =
   | Ok p -> p
   | Error _ -> failwith ""
 
-let std = lazy (Desugar_jsonnet.desugar_program path Lazy.(force pre_std))
+let std =
+  lazy_safe (Desugar_jsonnet.desugar_program path Lazy_safe.(force pre_std))
 
 (*****************************************************************************)
 (* Helpers *)
@@ -385,7 +386,7 @@ and eval_expr_for_call env e0 =
       (Id ("std", _), (_, L (Str (None, DoubleQuote, (_, [ _ ], _))), _)) ->
       (* set locals so that "std" shows up in the environment when evaluating *)
       let e0_and_std =
-        Local (fk, [ B (("std", fk), fk, Lazy.force std) ], fk, e0)
+        Local (fk, [ B (("std", fk), fk, Lazy_safe.force std) ], fk, e0)
       in
       (* !!! Switch to Eval_jsonnet !!! but just to access the code of the
        * function; the function itself is still executed below

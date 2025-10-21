@@ -132,7 +132,7 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
             Tracing.with_span "prefilter.file.evaluation" ~__FILE__ ~__LINE__
               (fun _span ->
                 Prefiltering.File.check_many prefilters
-                  (Lazy.force xtarget.lazy_content))
+                  (Lazy_safe.force xtarget.lazy_content))
           in
           let rule_results = List_.combine rules prefilter_results in
           let relevant_filtered, irrelevant_filtered =
@@ -271,7 +271,7 @@ let check ~matches_hook ~(timeout : timeout_config option)
   | Profiling.ProfAll, Analyzer.L (_lang, []) ->
       Log.debug (fun m ->
           m "forcing parsing of AST outside of rules, for better profile");
-      Lazy.force lazy_ast_and_errors |> ignore
+      Lazy_safe.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
 
   let profiling =

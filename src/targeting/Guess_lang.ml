@@ -120,8 +120,10 @@ let get_first_block ?(block_size = 4096) path =
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
-let shebang_re = lazy (Pcre2_.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
-let split_cmd_re = lazy (Pcre2_.regexp "[ \t]+")
+let shebang_re =
+  lazy_safe (Pcre2_.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
+
+let split_cmd_re = lazy_safe (Pcre2_.regexp "[ \t]+")
 
 (*
    A shebang supports at most the name of the script and one argument:
@@ -147,7 +149,7 @@ let split_cmd_re = lazy (Pcre2_.regexp "[ \t]+")
      "#!/usr/bin/env -S bash -e -u" -> ["/usr/bin/env"; "bash"; "-e"; "-u"]
 *)
 let parse_shebang_line s =
-  let matched = Pcre2_.exec_noerr ~rex:(Lazy.force shebang_re) s in
+  let matched = Pcre2_.exec_noerr ~rex:(Lazy_safe.force shebang_re) s in
   match matched with
   | None -> None
   | Some matched -> (
@@ -159,7 +161,8 @@ let parse_shebang_line s =
           match string_chop_prefix ~pref:"-S" arg1 with
           | Some packed_args ->
               let args =
-                Pcre2_.split_noerr ~rex:(Lazy.force split_cmd_re)
+                Pcre2_.split_noerr
+                  ~rex:(Lazy_safe.force split_cmd_re)
                   ~on_error:[ packed_args ] packed_args
                 |> List.filter (fun fragment -> fragment <> "")
               in

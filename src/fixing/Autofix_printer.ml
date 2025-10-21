@@ -185,7 +185,7 @@ let make_external_printer ~metavars ~target_contents ~fix_pattern_ast
     in
     let/ str =
       (match node with
-      | Target -> original_source_of_ast (Lazy.force target_contents) any
+      | Target -> original_source_of_ast (Lazy_safe.force target_contents) any
       | FixPattern -> original_source_of_ast fix_pattern any)
       |> Option.to_result
            ~none:"Failed to extract original text for AST node during printing"

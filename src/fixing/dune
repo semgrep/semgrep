@@ -9,5 +9,5 @@
    semgrep.reporting
  )
  (inline_tests)
- (preprocess (pps ppx_deriving.show ppx_profiling ppx_inline_test))
+ (preprocess (pps ppx_deriving.show ppx_profiling ppx_inline_test commons.ppx))
 )

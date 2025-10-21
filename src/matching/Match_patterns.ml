@@ -192,7 +192,9 @@ let match_rules_and_recurse
                           (show_any (any x)));
                     ()
                 | Some range_loc ->
-                    let tokens = lazy (AST_generic_helpers.ii_of_any (any x)) in
+                    let tokens =
+                      lazy_safe (AST_generic_helpers.ii_of_any (any x))
+                    in
                     let rule_id = rule_id_of_mini_rule rule in
                     let pm =
                       {
@@ -452,7 +454,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                      |> List.iter (fun (env : MG.tin) ->
                             let mv = env.mv in
                             let tokens =
-                              lazy (AST_generic_helpers.ii_of_any (E x))
+                              lazy_safe (AST_generic_helpers.ii_of_any (E x))
                             in
                             let rule_id = rule_id_of_mini_rule rule in
                             let pm =
@@ -519,7 +521,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                               ()
                           | Some range_loc ->
                               let tokens =
-                                lazy (AST_generic_helpers.ii_of_any (S x))
+                                lazy_safe (AST_generic_helpers.ii_of_any (S x))
                               in
                               let facts = get_facts_of_stmt x in
                               let rule_id = rule_id_of_mini_rule rule in
@@ -574,7 +576,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                             | Some range_loc ->
                                 let mv = env.mv in
                                 let tokens =
-                                  lazy (list_original_tokens_stmts matched)
+                                  lazy_safe (list_original_tokens_stmts matched)
                                 in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 let pm =
@@ -674,7 +676,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                             | Some range_loc ->
                                 let mv = env.mv in
                                 let tokens =
-                                  lazy (list_original_tokens_stmts matched)
+                                  lazy_safe (list_original_tokens_stmts matched)
                                 in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 let pm =

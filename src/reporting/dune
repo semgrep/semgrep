@@ -11,5 +11,5 @@
    semgrep_core
 
 )
- (preprocess (pps ppx_deriving.show ppx_profiling))
+ (preprocess (pps ppx_deriving.show ppx_profiling commons.ppx))
 )
