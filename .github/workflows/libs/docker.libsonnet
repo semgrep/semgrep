@@ -16,6 +16,7 @@ local gha = import 'gha.libsonnet';
 
 local default_platforms = 'linux/amd64,linux/arm64';
 local archs = ['amd64', 'arm64', 'x86'];
+local ecr_repo = '338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary';
 // Needed to find the binaries when making the artifact
 local arch_to_docker_arch = {
   amd64: 'amd64',
@@ -118,6 +119,27 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
   |||,
 };
 
+local github_sha = gha.ref_expr;
+local debug_local_template = |||
+  🐪 O the camel says: it looks like %(step_name)s failed. You can try to debug it locally by running:
+  ```bash
+  make ecr-login
+  docker run -it --rm %(ecr_repo)s:%(prefix)ssha-%(github_sha)s%(suffix)s
+  ```
+|||;
+local debug_local_header_template = 'debug-local-%(step_id)s-%(github_sha)s';
+local suggest_debug_local(step_name, step_id, prefix='', suffix='') = [
+  gha.sticky_pull_request_comment(
+    debug_local_template % { step_name: step_name, prefix: prefix, github_sha: github_sha, suffix: suffix, ecr_repo: ecr_repo },
+    debug_local_header_template % { step_id: step_id, github_sha: github_sha },
+  ) + {
+    'if': "failure() && steps.%s.outcome == 'failure'" % step_id,
+  },
+  gha.delete_sticky_pull_request_comment(debug_local_header_template % { step_id: step_id, github_sha: github_sha }) + {
+    'if': "steps.%s.outcome == 'success'" % step_id,
+  },
+];
+
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
@@ -141,7 +163,7 @@ local build_steps(
     // In summary, this step prepares the right tags (and docker registries)
     // for us to push to in the build-pro-docker-image below.
     {
-      id: 'prepare-metadata',
+      id: '%s-prepare-metadata' % target,
       name: 'Set tags and labels',
       uses: 'docker/metadata-action@v5',
       with: {
@@ -175,8 +197,8 @@ local build_steps(
                    returntocorp/%(name)s
                    semgrep/%(name)s
                  ||| % { name: name } else '') + (if push || push_ecr then |||
-                                                    338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary
-                                                  ||| else ''),
+                                                    %(ecr_repo)s
+                                                  ||| % { ecr_repo: ecr_repo } else ''),
         // latest=true the tag will be PREFIX-latest-SUFFIX. Since we always
         // promote from canary to latest manually, we never want to do this
         //
@@ -222,9 +244,6 @@ local build_steps(
         ||| % { prefix: prefix, ref_expr: gha.ref_expr },
       },
     },
-    {
-      uses: 'depot/setup-action@v1',
-    },
     // The tags should be setup correctly from the prepare-metadata step
     // above, so this step knows that it needs to push to both
     // docker hub and Amazon ECR.
@@ -255,7 +274,7 @@ local build_steps(
     // where you can look up available images at go/ecr and navigate to the
     // semgrep/semgrep-proprietary registry.
     {
-      id: 'build-%s-docker-image' % name,
+      id: 'build-%s-docker-image' % target,
       // job name = "WHAT: HOW"
       name: gha_job_name
             + (if gha_job_name == '' then '' else ': ')
@@ -281,8 +300,8 @@ local build_steps(
         platforms: platforms,
 
         // tags and labels populated from the 'meta' step above
-        tags: '${{ steps.prepare-metadata.outputs.tags }}',
-        labels: '${{ steps.prepare-metadata.outputs.labels }}',
+        tags: '${{ steps.%s-prepare-metadata.outputs.tags }}' % target,
+        labels: '${{ steps.%s-prepare-metadata.outputs.labels }}' % target,
 
         // The file used to build the image. Depot seems to default
         // to whatever's in the top-level git directory, but putting
@@ -330,17 +349,18 @@ local job(
   needs=[],  // prereq GHA steps
   script='OSS/scripts/validate-docker-build.sh',  // script to verify docker image ok
   checkout_steps=actions.checkout_with_submodules,
-  push=false,  // push to registry
+  push=false,  // push to registries including PUBLIC ONES! Do NOT push our code to public plz
   push_ecr=false,  // push only to ecr
   file='Dockerfile',
   build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
-  platforms=default_platforms
+  platforms=default_platforms,
+  post_steps=[],
       ) =
   (if needs != [] then { needs: needs } else {}) +
   {
     'runs-on': 'ubuntu-latest',
     outputs: {
-      digest: '${{ steps.build-%s-docker-image.outputs.digest }}' % name,
+      digest: '${{ steps.build-%s-docker-image.outputs.digest }}' % target,
     },
     permissions: gha.read_permissions,
     steps: checkout_steps(ref=gha.ref_expr) +
@@ -373,6 +393,12 @@ local job(
                     uses: 'aws-actions/amazon-ecr-login@v2',
                   },
                 ] else []) +
+           [
+
+             {
+               uses: 'depot/setup-action@v1',
+             },
+           ] +
            build_steps(
              name=name,
              gha_job_name=gha_job_name,
@@ -397,8 +423,37 @@ local job(
                   ], archs)
               )
 
-            ) else []),
+            ) else []) + post_steps,
   };
+
+local test_with_suggest(
+  name,
+  gha_job_name,
+  target,
+  needs=[],
+  checkout_steps=checkout_steps,
+  suffix='',
+      ) = job(
+  name=name,
+  target=target + '-build',
+  suffix=suffix + '-test-build',
+  gha_job_name='Build %s' % gha_job_name,
+  needs=needs,
+  checkout_steps=checkout_steps,
+  push=false,
+  push_ecr=true,
+  post_steps=
+  build_steps(
+    name=name,
+    target=target,
+    gha_job_name='Run %s' % gha_job_name,
+    push=false,
+    push_ecr=false,
+  ) +
+  suggest_debug_local(gha_job_name, 'build-%s-docker-image' % target, suffix=suffix + '-test-build'),
+) + {
+  permissions: gha.pull_request_permissions,
+};
 
 local inputs = {
   ref: gha.ref_input,
@@ -429,4 +484,5 @@ local inputs = {
   copy_from_docker_step: copy_from_docker_step,
   validate: validate,
   retag_step: retag_step,
+  test_with_suggest: test_with_suggest,
 }
