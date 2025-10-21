@@ -95,7 +95,8 @@ type t = {
   *)
   ast_node : (AST_generic.any[@sexp.opaque]) option;
   (* less: do we need to be lazy? *)
-  tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
+  tokens : (Tok.t list Lazy_safe.t[@sexp.opaque]);
+      [@equal fun _a _b -> true] [@compare fun _a _b -> 0] [@opaque]
   (* Lazy since construction involves forcing lazy token lists
 
      We used to have `[@equal fun _a _b -> true]` here, but this causes issues
@@ -104,7 +105,28 @@ type t = {
      We now rely on equality of taint traces, which in turn relies on equality
      of `Parse_info.t`.
   *)
-  taint_trace : (Taint_trace.t[@sexp.opaque]) Lazy.t option; (* secrets stuff *)
+  taint_trace : (Taint_trace.t Lazy_safe.t[@sexp.opaque]) option;
+      [@opaque]
+      [@equal
+        fun a b ->
+          match (a, b) with
+          | None, None -> true
+          | Some a, Some b ->
+              let a = Lazy_safe.force a in
+              let b = Lazy_safe.force b in
+              Taint_trace.equal a b
+          | _ -> false]
+      [@compare
+        fun a b ->
+          match (a, b) with
+          | None, None -> 0
+          | None, Some _ -> -1
+          | Some _, None -> 1
+          | Some a, Some b ->
+              let a = Lazy_safe.force a in
+              let b = Lazy_safe.force b in
+              Taint_trace.compare a b]
+  (* secrets stuff *)
   (* SCA extra info about a match (e.g., the satisfied version constraint) *)
   sca_match : (SCA_match.t[@sexp.opaque]) option;
   (* Secrets. Indicates whether a postprocessor ran and validated this result. *)

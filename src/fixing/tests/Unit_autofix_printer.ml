@@ -86,7 +86,7 @@ let check lang { target; pattern; fix_pattern; expected } =
       let fix_text =
         match
           Autofix_printer.print_ast ~lang ~metavars
-            ~target_contents:(lazy fake_target_contents)
+            ~target_contents:(lazy_safe fake_target_contents)
             ~fix_pattern_ast ~fix_pattern:fake_fix_pattern fixed_pattern_ast
         with
         | Ok x -> x

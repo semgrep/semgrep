@@ -424,7 +424,8 @@ let unsafe_match_to_match
   let min_loc, max_loc = pm.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
-    Option.bind pm.taint_trace (function (lazy trace) ->
+    Option.bind pm.taint_trace (function trace ->
+        let trace = Lazy_safe.force trace in
         taint_trace_to_dataflow_trace trace)
   in
 

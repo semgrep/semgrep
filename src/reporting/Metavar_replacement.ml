@@ -25,7 +25,7 @@ module G = AST_generic
 (*****************************************************************************)
 
 type replacement = {
-  mval_content : string Lazy.t;
+  mval_content : string Lazy_safe.t;
   propagated_content : string option;
 }
 
@@ -74,14 +74,16 @@ let of_bindings bindings =
          match MV.range_of_mvalue mval with
          | None -> None
          | Some (file, mval_range) ->
-             let mval_content = lazy (Range.content_at_range file mval_range) in
+             let mval_content =
+               lazy_safe (Range.content_at_range file mval_range)
+             in
              let propagated_content = propagated_value_string_of_mval mval in
              Some (mvar, { mval_content; propagated_content }))
 
 let of_out (metavars : OutJ.metavars) =
   metavars
   |> List_.map (fun (mvar, metavar_value) ->
-         let mval_content = lazy metavar_value.OutJ.abstract_content in
+         let mval_content = lazy_safe metavar_value.OutJ.abstract_content in
          let propagated_content =
            Option.map
              (fun svalue -> svalue.OutJ.svalue_abstract_content)
@@ -112,9 +114,9 @@ let interpolate_metavars ?fmt (text : string) (ctx : replacement_ctx) : string =
               (fun _whole_str ->
                 match propagated_content with
                 | Some s -> s (* default to the matched value *)
-                | None -> Lazy.force mval_content)
+                | None -> Lazy_safe.force mval_content)
          |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
-                let mval_content = Lazy.force mval_content in
+                let mval_content = Lazy_safe.force mval_content in
                 Option.fold ~none:mval_content
                   ~some:(fun fmt -> fmt mval_content)
                   fmt))
