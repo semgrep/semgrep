@@ -122,4 +122,20 @@ local on_pull_request_config = {
       echo "TMP=D:\\Temp" >> $env:GITHUB_ENV
     |||,
   },
+  sticky_pull_request_comment(message, header): {
+    uses: 'marocchino/sticky-pull-request-comment@v2',
+    with: {
+      header: header,
+      message: message,
+      recreate: true,
+      skip_unchanged: true,
+    },
+  },
+  delete_sticky_pull_request_comment(header): {
+    uses: 'marocchino/sticky-pull-request-comment@v2',
+    with: {
+      header: header,
+      delete: true,
+    },
+  },
 }
