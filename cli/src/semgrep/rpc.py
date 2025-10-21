@@ -191,6 +191,8 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         finally:
             try:
                 proc.wait(timeout=SUBPROC_TIMEOUT_S)
+                if proc.returncode != 0:
+                    logger.error(f"RPC subprocess exited with code {proc.returncode}")
             except subprocess.TimeoutExpired:
                 logger.error(f"RPC subprocess did not exit cleanly. Killing it.")
                 proc.kill()
