@@ -167,7 +167,8 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
 
             ret_str = _read_packet(proc_stdout)
             if ret_str is None:
-                logger.error(f"Unable to read RPC response")
+                # No need to log here. _read_packet logs anyway if if returns
+                # None.
                 return None
             ret = _parse_function_return(ret_str)
             if ret is None:
