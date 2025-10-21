@@ -122,6 +122,204 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
 // The job
 // ----------------------------------------------------------------------------
 
+local build_steps(
+  name,  // Name of docker image if uploaded (i.e. semgrep/NAME)
+  gha_job_name='',  // User-friendly name to appear in the GitHub Actions job name
+  target,  // Target docker layer (i.e. build, semgrep-cli, etc.)
+  prefix='',  // prefix for image tags
+  suffix='',  // suffix for image tags
+  push=false,  // push to registries including PUBLIC ONES! Do NOT push our code to public plz
+  push_ecr=false,  // push only to ecr
+  file='Dockerfile',
+  build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
+  platforms=default_platforms,
+      ) =
+  [
+    // Documentation for this step is here:
+    // https://github.com/docker/metadata-action
+    //
+    // In summary, this step prepares the right tags (and docker registries)
+    // for us to push to in the build-pro-docker-image below.
+    {
+      id: 'prepare-metadata',
+      name: 'Set tags and labels',
+      uses: 'docker/metadata-action@v5',
+      with: {
+        // The image will be pushed to semgrep/semgrep and Amazon ECR
+        // but with the tags being prefixed with "pro-"
+        //
+        // semgrep/semgrep pushes to the semgrep/semgrep registry on docker hub.
+        // *.ecr.*.amazonaws.com pushes to Amazon ECR which is
+        // our private image repository.
+        //
+        // Currently we're pushing to both, but ideally we probably want to
+        // keep Pro-related features private.
+        //
+        // We're pushing to docker hub because it's the simpler thing. But docker
+        // hub images also have issues. We have some argo workflows which pull from
+        // docker hub through a read-only repository in Amazon ECR with a feature
+        // called pull-through cache. Whenever we request for an image that's not
+        // in ECR, Amazon automatically pulls that image from docker hub and caches
+        // it. The problem is that if we make more pushes to the same docker hub tag
+        // then ECR does not detect this, resulting in our argo workflow using an
+        // outdated docker image.
+        //
+        // Because of this, we push directly to ECR in a non-pull-through registry
+        // called semgrep/semgrep-proprietary. To get more information about this
+        // registry and the AWS roles that can access it (aka the roles that appear
+        // in the configure-aws-credentials step below), login to the company's
+        // AWS portal at go/aws and go to our ECR registry at go/ecr. Search
+        // for the registry semgrep/semgrep-proprietary and from there, the URL and
+        // the role to assume that is used in this workflow will be present.
+        images: (if push then |||
+                   returntocorp/%(name)s
+                   semgrep/%(name)s
+                 ||| % { name: name } else '') + (if push || push_ecr then |||
+                                                    338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary
+                                                  ||| else ''),
+        // latest=true the tag will be PREFIX-latest-SUFFIX. Since we always
+        // promote from canary to latest manually, we never want to do this
+        //
+        // suffix=SUFFIX will suffix always suffix a tag set by `tags` with said
+        // suffix
+        //
+        // prefix works the same as suffix but -- prefix!
+        flavor: |||
+          latest=false
+          prefix=%(prefix)s
+          suffix=%(suffix)s
+        ||| % { prefix: prefix, suffix: suffix },
+        // Previously used type=sha for pro-sha-* but it queries github for the
+        // sha associated with the event instead of using the actual sha that we
+        // checked out!
+        //
+        // TODO: When we trigger this manually, the pro-<branch> tag is applied
+        // based on the branch that the workflow is on, not the sha provided (if
+        // any). We should set this tag only if no sha is provided.
+        //
+        // if run on push to a PR, tag image with the PR number (ex. "123")
+        // NOTE: we need to set prefix here again if we want "-pr-" to be
+        // included in the tag
+        // type=ref,event=pr,prefix=%(prefix)-pr-
+        //
+        // if run on push to branch, tag image with the branch name (ex. "main")
+        // type=ref,event=branch
+        //
+        // if not a PR or branch push, tag image with the sha (ex. "abcdef123456")
+        // type=raw,prefix=%s-sha-,value=%s
+        //
+        // if pushed to a GH tag, tag image with full version (ex. "1.2.3")
+        // type=semver,pattern={{version}}
+        //
+        // if pushed to a GH tag, tag image with major.minor (ex. "1.2")
+        // type=semver,pattern={{major}}.{{minor}}
+        tags: |||
+          type=ref,event=pr,prefix=%(prefix)spr-
+          type=ref,event=branch
+          type=raw,value=sha-%(ref_expr)s
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+        ||| % { prefix: prefix, ref_expr: gha.ref_expr },
+      },
+    },
+    {
+      uses: 'depot/setup-action@v1',
+    },
+    // The tags should be setup correctly from the prepare-metadata step
+    // above, so this step knows that it needs to push to both
+    // docker hub and Amazon ECR.
+    //
+    // To test the docker image from docker hub, you can do something like
+    //   docker run -it --rm \
+    //     -v $(pwd):/src \
+    //     semgrep/semgrep:pro-pr-XXXX
+    //     semgrep scan /src
+    // at a directory with some source code.
+    //
+    // To test the docker image from Amazon ECR, you can do something similar
+    // but also requires logging in to AwS and ECR.
+    //
+    //   aws sso login --sso-session semgrep
+    //
+    //   aws ecr get-login-password --region us-west-2 | \
+    //     docker login --username AWS --password-stdin \
+    //     338683922796.dkr.ecr.us-west-2.amazonaws.com
+    //
+    //
+    //   docker run -it --rm \
+    //     -v $(pwd):/src \
+    //     semgrep/semgrep:pro-pr-XXXX
+    //     338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary:pro-pr-XXXX
+    //     semgrep scan /src
+    //
+    // where you can look up available images at go/ecr and navigate to the
+    // semgrep/semgrep-proprietary registry.
+    {
+      id: 'build-%s-docker-image' % name,
+      // job name = "WHAT: HOW"
+      name: gha_job_name
+            + (if gha_job_name == '' then '' else ': ')
+            + (
+              'Build docker image in Depot%s'
+              % ((if push then ' and push to Docker Hub/ECR' else '') +
+                 (if push_ecr then ' and push to Amazon ECR' else ''))
+            ),
+      uses: 'depot/build-push-action@v1.9.0',
+      with: {
+        project: '${{ secrets.DEPOT_PROJECT_ID }}',
+
+        // By default, build-push-action (depot/ and docker/) git clone the
+        // repo and remove the .git, which is a sane default for most
+        // Dockerfile, but in our case wee call 'git lfs fetch' so
+        // we need the .git, so the context below just says to
+        // copy the files from the current dir, hence the need also for
+        // the pro.checkout_step above.
+        // alt: use build-args: "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1"
+        // TODO: we do not call `git lfs fetch` anymore in the Dockerfile
+        // so do we still need this line?
+        context: '.',
+        platforms: platforms,
+
+        // tags and labels populated from the 'meta' step above
+        tags: '${{ steps.prepare-metadata.outputs.tags }}',
+        labels: '${{ steps.prepare-metadata.outputs.labels }}',
+
+        // The file used to build the image. Depot seems to default
+        // to whatever's in the top-level git directory, but putting
+        // it in here to be explicit.
+        file: file,
+
+        target: target,
+
+        // Set the build args for the docker image
+        // VCS_* just specify what commit/branch this was built on
+        // These have no effect if ARG isn't used in the Dockerfile
+        'build-args': |||
+          VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
+          VCS_REF_HEAD_REVISION=%(ref_expr)s%(build_args)s
+        ||| % { ref_expr: gha.ref_expr, build_args: if build_args == '' then '' else '\n' + build_args }
+        ,
+        // This flag controls if for whatever reason depot fails to
+        // build the docker image on their fast native arm64 runners, whether
+        // depot will fallback to docker-buildx which uses emulation (which is
+        // really slow). So if this job suddently takes more than 15min,
+        // it's probably because there is a problem somewhere and the
+        // fallback is activated. A common solution is to reset the depot.dev
+        // cache (especially useful when depot.dev gets confused by changes
+        // in submodules in a PR) by clicking "Reset cache" at the bottom of
+        // https://depot.dev/orgs/9ks3jwp44z/projects/t321zh0146/settings
+        // We used to set this to true, just in case Depot had some bugs
+        // but this would fallback for any error, not just Depot error,
+        // and then you need to wait 1h30min to actually see the error
+        // so better to set this to false
+        'buildx-fallback': false,
+
+        // Also maybe push to Docker hub and/or ec2
+        push: push || push_ecr,
+      },
+    },
+  ];
+
 local job(
   name,  // Name of docker image if uploaded (i.e. semgrep/NAME)
   gha_job_name='',  // User-friendly name to appear in the GitHub Actions job name
@@ -133,6 +331,7 @@ local job(
   script='OSS/scripts/validate-docker-build.sh',  // script to verify docker image ok
   checkout_steps=actions.checkout_with_submodules,
   push=false,  // push to registry
+  push_ecr=false,  // push only to ecr
   file='Dockerfile',
   build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
   platforms=default_platforms
@@ -144,216 +343,49 @@ local job(
       digest: '${{ steps.build-%s-docker-image.outputs.digest }}' % name,
     },
     permissions: gha.read_permissions,
-    steps: checkout_steps(ref=gha.ref_expr) + [
-             // Documentation for this step is here:
-             // https://github.com/docker/metadata-action
-             //
-             // In summary, this step prepares the right tags (and docker registries)
-             // for us to push to in the build-pro-docker-image below.
-             {
-               id: 'prepare-metadata',
-               name: 'Set tags and labels',
-               uses: 'docker/metadata-action@v5',
-               with: {
-                 // The image will be pushed to semgrep/semgrep and Amazon ECR
-                 // but with the tags being prefixed with "pro-"
-                 //
-                 // semgrep/semgrep pushes to the semgrep/semgrep registry on docker hub.
-                 // *.ecr.*.amazonaws.com pushes to Amazon ECR which is
-                 // our private image repository.
-                 //
-                 // Currently we're pushing to both, but ideally we probably want to
-                 // keep Pro-related features private.
-                 //
-                 // We're pushing to docker hub because it's the simpler thing. But docker
-                 // hub images also have issues. We have some argo workflows which pull from
-                 // docker hub through a read-only repository in Amazon ECR with a feature
-                 // called pull-through cache. Whenever we request for an image that's not
-                 // in ECR, Amazon automatically pulls that image from docker hub and caches
-                 // it. The problem is that if we make more pushes to the same docker hub tag
-                 // then ECR does not detect this, resulting in our argo workflow using an
-                 // outdated docker image.
-                 //
-                 // Because of this, we push directly to ECR in a non-pull-through registry
-                 // called semgrep/semgrep-proprietary. To get more information about this
-                 // registry and the AWS roles that can access it (aka the roles that appear
-                 // in the configure-aws-credentials step below), login to the company's
-                 // AWS portal at go/aws and go to our ECR registry at go/ecr. Search
-                 // for the registry semgrep/semgrep-proprietary and from there, the URL and
-                 // the role to assume that is used in this workflow will be present.
-                 images: |||
-                   returntocorp/%(name)s
-                   semgrep/%(name)s
-                   338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary
-                 ||| % { name: name },
-                 // latest=true the tag will be PREFIX-latest-SUFFIX. Since we always
-                 // promote from canary to latest manually, we never want to do this
-                 //
-                 // suffix=SUFFIX will suffix always suffix a tag set by `tags` with said
-                 // suffix
-                 //
-                 // prefix works the same as suffix but -- prefix!
-                 flavor: |||
-                   latest=false
-                   prefix=%(prefix)s
-                   suffix=%(suffix)s
-                 ||| % { prefix: prefix, suffix: suffix },
-                 // Previously used type=sha for pro-sha-* but it queries github for the
-                 // sha associated with the event instead of using the actual sha that we
-                 // checked out!
-                 //
-                 // TODO: When we trigger this manually, the pro-<branch> tag is applied
-                 // based on the branch that the workflow is on, not the sha provided (if
-                 // any). We should set this tag only if no sha is provided.
-                 //
-                 // if run on push to a PR, tag image with the PR number (ex. "123")
-                 // NOTE: we need to set prefix here again if we want "-pr-" to be
-                 // included in the tag
-                 // type=ref,event=pr,prefix=%(prefix)-pr-
-                 //
-                 // if run on push to branch, tag image with the branch name (ex. "main")
-                 // type=ref,event=branch
-                 //
-                 // if not a PR or branch push, tag image with the sha (ex. "abcdef123456")
-                 // type=raw,prefix=%s-sha-,value=%s
-                 //
-                 // if pushed to a GH tag, tag image with full version (ex. "1.2.3")
-                 // type=semver,pattern={{version}}
-                 //
-                 // if pushed to a GH tag, tag image with major.minor (ex. "1.2")
-                 // type=semver,pattern={{major}}.{{minor}}
-                 tags: |||
-                   type=ref,event=pr,prefix=%(prefix)spr-
-                   type=ref,event=branch
-                   type=raw,value=sha-%(ref_expr)s
-                   type=semver,pattern={{version}}
-                   type=semver,pattern={{major}}.{{minor}}
-                 ||| % { prefix: prefix, ref_expr: gha.ref_expr },
-               },
-             },
-             {
-               uses: 'depot/setup-action@v1',
-             },
-           ] +
-           (if !push then [] else [
-              // This is needed so we can push images to docker hub successfully.
-              actions.docker_login_step,
-
-              // The configure-aws-credentials and login-ecr steps are needed so
-              // we can push to Amazon ECR successfully.
-              {
-                id: 'configure-aws-credentials',
-                name: 'Configure AWS credentials',
-                uses: 'aws-actions/configure-aws-credentials@v4',
-                // These fields are different than what's in semgrep_pro.libjsonnet
-                // because they're used for different purposes.
-                // Here is the role used to access ECR, while in semgrep_pro.libjsonnet
-                // is the role to upload pro binary buckets to a specific S3 location.
-                with: {
-                  'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-semgrep-proprietary-deploy-role',
-                  'role-duration-seconds': 900,
-                  'role-session-name': 'semgrep-proprietary-build-test-docker-gha',
-                  'aws-region': 'us-west-2',
-                },
-              },
-              {
-                id: 'login-ecr',
-                name: 'Login to Amazon ECR',
-                uses: 'aws-actions/amazon-ecr-login@v2',
-              },
-            ]) +
-           // The tags should be setup correctly from the prepare-metadata step
-           // above, so this step knows that it needs to push to both
-           // docker hub and Amazon ECR.
-           //
-           // To test the docker image from docker hub, you can do something like
-           //   docker run -it --rm \
-           //     -v $(pwd):/src \
-           //     semgrep/semgrep:pro-pr-XXXX
-           //     semgrep scan /src
-           // at a directory with some source code.
-           //
-           // To test the docker image from Amazon ECR, you can do something similar
-           // but also requires logging in to AwS and ECR.
-           //
-           //   aws sso login --sso-session semgrep
-           //
-           //   aws ecr get-login-password --region us-west-2 | \
-           //     docker login --username AWS --password-stdin \
-           //     338683922796.dkr.ecr.us-west-2.amazonaws.com
-           //
-           //
-           //   docker run -it --rm \
-           //     -v $(pwd):/src \
-           //     semgrep/semgrep:pro-pr-XXXX
-           //     338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary:pro-pr-XXXX
-           //     semgrep scan /src
-           //
-           // where you can look up available images at go/ecr and navigate to the
-           // semgrep/semgrep-proprietary registry.
-           [
-             {
-               id: 'build-%s-docker-image' % name,
-               // job name = "WHAT: HOW"
-               name: gha_job_name
-                     + (if gha_job_name == '' then '' else ': ')
-                     + ('Build docker image in Depot%s'
-                        % (if push then ' and push to Docker Hub' else '')),
-               uses: 'depot/build-push-action@v1.9.0',
-               with: {
-                 project: '${{ secrets.DEPOT_PROJECT_ID }}',
-
-                 // By default, build-push-action (depot/ and docker/) git clone the
-                 // repo and remove the .git, which is a sane default for most
-                 // Dockerfile, but in our case wee call 'git lfs fetch' so
-                 // we need the .git, so the context below just says to
-                 // copy the files from the current dir, hence the need also for
-                 // the pro.checkout_step above.
-                 // alt: use build-args: "BUILDKIT_CONTEXT_KEEP_GIT_DIR=1"
-                 // TODO: we do not call `git lfs fetch` anymore in the Dockerfile
-                 // so do we still need this line?
-                 context: '.',
-                 platforms: platforms,
-
-                 // tags and labels populated from the 'meta' step above
-                 tags: '${{ steps.prepare-metadata.outputs.tags }}',
-                 labels: '${{ steps.prepare-metadata.outputs.labels }}',
-
-                 // The file used to build the image. Depot seems to default
-                 // to whatever's in the top-level git directory, but putting
-                 // it in here to be explicit.
-                 file: file,
-
-                 target: target,
-
-                 // Set the build args for the docker image
-                 // VCS_* just specify what commit/branch this was built on
-                 // These have no effect if ARG isn't used in the Dockerfile
-                 'build-args': |||
-                   VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
-                   VCS_REF_HEAD_REVISION=%(ref_expr)s%(build_args)s
-                 ||| % { ref_expr: gha.ref_expr, build_args: if build_args == '' then '' else '\n' + build_args }
-                 ,
-                 // This flag controls if for whatever reason depot fails to
-                 // build the docker image on their fast native arm64 runners, whether
-                 // depot will fallback to docker-buildx which uses emulation (which is
-                 // really slow). So if this job suddently takes more than 15min,
-                 // it's probably because there is a problem somewhere and the
-                 // fallback is activated. A common solution is to reset the depot.dev
-                 // cache (especially useful when depot.dev gets confused by changes
-                 // in submodules in a PR) by clicking "Reset cache" at the bottom of
-                 // https://depot.dev/orgs/9ks3jwp44z/projects/t321zh0146/settings
-                 // We used to set this to true, just in case Depot had some bugs
-                 // but this would fallback for any error, not just Depot error,
-                 // and then you need to wait 1h30min to actually see the error
-                 // so better to set this to false
-                 'buildx-fallback': false,
-
-                 // Also maybe push to Docker hub and ec2
-                 push: push,
-               },
-             },
-           ] +
+    steps: checkout_steps(ref=gha.ref_expr) +
+           (
+             if push then [
+               // This is needed so we can push images to docker hub successfully.
+               actions.docker_login_step,
+             ] else []
+           ) + (if push_ecr || push then [
+                  // The configure-aws-credentials and login-ecr steps are needed so
+                  // we can push to Amazon ECR successfully.
+                  {
+                    id: 'configure-aws-credentials',
+                    name: 'Configure AWS credentials',
+                    uses: 'aws-actions/configure-aws-credentials@v4',
+                    // These fields are different than what's in semgrep_pro.libjsonnet
+                    // because they're used for different purposes.
+                    // Here is the role used to access ECR, while in semgrep_pro.libjsonnet
+                    // is the role to upload pro binary buckets to a specific S3 location.
+                    with: {
+                      'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-semgrep-proprietary-deploy-role',
+                      'role-duration-seconds': 900,
+                      'role-session-name': 'semgrep-proprietary-build-test-docker-gha',
+                      'aws-region': 'us-west-2',
+                    },
+                  },
+                  {
+                    id: 'login-ecr',
+                    name: 'Login to Amazon ECR',
+                    uses: 'aws-actions/amazon-ecr-login@v2',
+                  },
+                ] else []) +
+           build_steps(
+             name=name,
+             gha_job_name=gha_job_name,
+             target=target,
+             prefix=prefix,
+             suffix=suffix,
+             push=push,
+             push_ecr=push_ecr,
+             file=file,
+             build_args=build_args,
+             platforms=platforms,
+           )
+           +
            (if artifact_name != null then (
               [
                 copy_from_docker_step(target='%s-binaries' % target, output_dir='binaries', platforms=platforms),
@@ -378,6 +410,7 @@ local inputs = {
 
 {
   job: job,
+  build_steps: build_steps,
   // Called from other workflows (e.g. build-and-test.jsonnet)
   on_docker_workflow: function(output_digest_job_name='job') {
     workflow_dispatch: {
