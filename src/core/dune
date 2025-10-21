@@ -30,6 +30,7 @@
      ppx_hash
      visitors.ppx
      ppx_sexp_conv
+     commons.ppx
    )
  )
 )

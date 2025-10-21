@@ -101,7 +101,7 @@ let preferred_label_of_sink ({ rule_sink; _ } : Effect.sink) =
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.tokens |> List.filter Tok.is_origintok in
+      let toks = Lazy_safe.force pm.tokens |> List.filter Tok.is_origintok in
       Taint_trace.Toks toks
   | Taint.Call (expr, toks, ct) ->
       Taint_trace.Call
@@ -247,7 +247,7 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
                       m "Rule %s produced a taint finding with no taint trace"
                         (Rule_ID.to_string sink_pm.rule_id.id));
                   None
-              | _ :: _ -> Some (lazy traces)
+              | _ :: _ -> Some (lazy_safe traces)
             in
             [ { sink_pm with env = merged_env; taint_trace } ]
         | `Source ->
@@ -266,7 +266,7 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
                    {
                      src_pm with
                      env = merged_env;
-                     taint_trace = Some (lazy [ trace ]);
+                     taint_trace = Some (lazy_safe [ trace ]);
                    }))
 
 let matches_of_effects options effects =

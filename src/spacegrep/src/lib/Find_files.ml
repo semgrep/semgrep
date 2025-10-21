@@ -19,11 +19,11 @@ let memoize f =
       match Hashtbl.find_opt tbl x with
       | Some run -> run
       | None ->
-          let run = lazy (f x) in
+          let run = lazy_safe (f x) in
           Hashtbl.add tbl x run;
           run
     in
-    Lazy.force run
+    Lazy_safe.force run
 
 (* TODO: should probably lift this `Fpath.t` to the API of `Find_files` *)
 let stat path = UUnix.stat (Fpath.v path)

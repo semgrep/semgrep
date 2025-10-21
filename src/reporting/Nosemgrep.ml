@@ -136,7 +136,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
     (* bugfix: This is only needed in relatively rare cases, and it's costly to
      * compute both in time and memory. Making it lazy avoids this computation
      * when it's not needed. *)
-    lazy (Pos.full_converters_large path).linecol_to_bytepos_fun
+    lazy_safe (Pos.full_converters_large path).linecol_to_bytepos_fun
   in
 
   let previous_line, line =
@@ -205,7 +205,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
           *)
           let id = Common2.strip '"' id in
           let loc =
-            lazy
+            lazy_safe
               Loc.
                 {
                   str = id;
@@ -213,7 +213,8 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
                     Pos.
                       {
                         bytepos =
-                          (Lazy.force linecol_to_bytepos_fun) (line_num, col);
+                          (Lazy_safe.force linecol_to_bytepos_fun)
+                            (line_num, col);
                         line = line_num;
                         column = col;
                         file = path;
@@ -257,7 +258,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
                   Core_error.rule_id = None;
                   typ = SemgrepWarning;
                   msg;
-                  loc = Some (Lazy.force loc);
+                  loc = Some (Lazy_safe.force loc);
                   details = None;
                 }
               in

@@ -27,6 +27,7 @@
      ppx_deriving_yojson
      ppx_deriving.eq
      ppx_hash
+     commons.ppx
    )
  )
 )

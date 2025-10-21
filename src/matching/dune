@@ -18,7 +18,7 @@
    ; we use parsers in Unit_matcher.ml but they are passed in
    ; via a parameter in tests().
  )
- (preprocess (pps ppx_deriving.show ppx_profiling))
+ (preprocess (pps ppx_deriving.show ppx_profiling commons.ppx))
 ; restore once can compile semgrep with working ppxlib and
 ; bisect_ppx together
 ; (instrumentation (backend bisect_ppx))

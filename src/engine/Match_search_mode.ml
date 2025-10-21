@@ -422,7 +422,7 @@ let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
                ast_node =
                  (if env.has_as_metavariable then Some (MV.mvalue_to_any mval)
                   else None);
-               tokens = lazy (MV.ii_of_mval mval);
+               tokens = lazy_safe (MV.ii_of_mval mval);
                env = range.mvars;
                taint_trace = None;
                engine_of_match = `OSS;
@@ -500,7 +500,7 @@ let apply_as_on_ranges ranges as_ =
              (match range.origin.ast_node with
              | Some node -> (as_, MV.mvalue_of_any node) :: range.mvars
              | None -> (
-                 let tokens = Lazy.force range.origin.tokens in
+                 let tokens = Lazy_safe.force range.origin.tokens in
                  match (range.origin.path.origin, tokens) with
                  | (Unfilterable_target_file _ | Target_file _), [] ->
                      Log.warn (fun m ->
@@ -717,7 +717,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                    | Analyzer.LAliengrep ->
                        raise Impossible
                  in
-                 let ast, _ = Lazy.force env.xtarget.lazy_ast_and_errors in
+                 let ast, _ = Lazy_safe.force env.xtarget.lazy_ast_and_errors in
                  (* This call iterates over the program's top-level statements, and
                     thus incurs some cost, but it shouldn't be much.
                  *)

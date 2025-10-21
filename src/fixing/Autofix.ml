@@ -206,7 +206,7 @@ let ast_based_fix ~fix (start, end_) (pm : Core_match.t) : Textedit.t option =
   let* lang = List.nth_opt pm.rule_id.langs 0 in
   let metavars = pm.env in
   let target_contents =
-    lazy (UFile.read_file pm.path.internal_path_to_content)
+    lazy_safe (UFile.read_file pm.path.internal_path_to_content)
   in
   let result =
     try
@@ -265,7 +265,7 @@ let ast_based_fix ~fix (start, end_) (pm : Core_match.t) : Textedit.t option =
       in
 
       (* Perform sanity checks for the resulting fix. *)
-      validate_fix lang (Lazy.force target_contents) edit
+      validate_fix lang (Lazy_safe.force target_contents) edit
     with
     | Time_limit.Timeout _ as e -> Exception.catch_and_reraise e
     | e ->

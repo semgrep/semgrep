@@ -137,7 +137,7 @@ let mk_str_metavars_regexp metavar_tbl =
   if Hashtbl.length metavar_tbl =|= 0 then
     Log.warn (fun m ->
         m "no metavariables, mk_str_metavars_regexp should not be called");
-  lazy
+  lazy_safe
     ((* List of metavars that were bound in this match, quoted so that they
       * can be used safely in a regex *)
      let quoted_metavars =
@@ -154,7 +154,7 @@ let mk_str_metavars_regexp metavar_tbl =
 type find_remaining_metavars_env = {
   metavar_tbl : (string, MV.mvalue) Hashtbl.t;
   seen_metavars : string list ref;
-  str_metavars_regexp : string Lazy.t;
+  str_metavars_regexp : string Lazy_safe.t;
 }
 
 let find_remaining_metavars_visitor =
@@ -175,7 +175,7 @@ let find_remaining_metavars_visitor =
        * `foo("bar $X")`. So, we have to look for a lingering metavariable
        * anywhere within a string, and abort if we find one that hasn't been
        * replaced. *)
-      if str =~ Lazy.force env.str_metavars_regexp then
+      if str =~ Lazy_safe.force env.str_metavars_regexp then
         Stack_.push (Common.matched1 str) env.seen_metavars;
       super#visit_String env lit
   end

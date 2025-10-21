@@ -20,9 +20,9 @@ type t = {
   engine_of_match : Engine_kind.engine_of_finding;
   env : Metavariable.bindings;
   ast_node : AST_generic.any option;
-  tokens : Tok.t list Lazy.t;
+  tokens : Tok.t list Lazy_safe.t;
   (* trace *)
-  taint_trace : Taint_trace.t Lazy.t option;
+  taint_trace : Taint_trace.t Lazy_safe.t option;
   (* for SCA *)
   sca_match : SCA_match.t option;
   (* for Secrets *)

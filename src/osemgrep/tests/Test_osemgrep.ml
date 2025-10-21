@@ -127,10 +127,10 @@ let test_absolute_target_path caps =
   in
   t "absolute path as target" func
 
-let random_init = lazy (Random.self_init ())
+let random_init = lazy_safe (Random.self_init ())
 
 let create_named_pipe () =
-  Lazy.force random_init;
+  Lazy_safe.force random_init;
   let path =
     !!(UTmp.get_unique_temp_name ~prefix:"semgrep-test" ~suffix:".py" ())
   in

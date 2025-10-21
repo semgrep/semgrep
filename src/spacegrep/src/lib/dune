@@ -12,6 +12,7 @@
    (pps
      ppx_deriving.show
      ppx_deriving.eq
+     commons.ppx
    ))
 )
 
