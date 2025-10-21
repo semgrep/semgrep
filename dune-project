@@ -76,9 +76,9 @@ For more information see https://semgrep.dev
     ; https://github.com/janestreet/base/issues/146
     ; https://github.com/janestreet/base/issues/178
     (base (>= v0.17.3))
-    fpath
-    bos
-    fileutils
+    (fpath (>= 0.7.3))
+    (bos (>= 0.2.1))
+    (fileutils (>= 0.6.6))
     ; > 0.9 fails to compile w/tsan on linux
     ;
     ; Dune doesn't pass the -fsanitize=thread flag to compile C stubs when
@@ -92,55 +92,55 @@ For more information see https://semgrep.dev
     (uring (and (= :os linux) (= 0.9)))
     ; unit testing (note that testo is vendored in libs/)
     testo
-    alcotest
-    alcotest-lwt
-    calendar
+    (alcotest (>= 1.9.1))
+    (alcotest-lwt (>= 1.9.1))
+    (calendar (>= 3.0.0))
     ; text and terminal formating
-    fmt
-    ocolor
-    ANSITerminal
-    terminal_size
+    (fmt (>= 0.11.0))
+    (ocolor (>= 1.3.1))
+    (ANSITerminal (>= 0.8.5))
+    (terminal_size (>= 0.2.0))
     ; Unicode - used via python-str-repr
-    uucp
-    uutf
+    (uucp (>= 17.0.0))
+    (uutf (>= 1.0.4))
     ; logging
-    logs
+    (logs (>= 0.9.0))
     ; JSON/YAML/XML
-    atdgen
-    (yojson ( >= 2.0.0 ))
-    yaml
-    xmlm
-    (sarif ( >= 0.3.0 ))
+    (atdgen (>= 2.16.0))
+    (yojson (>= 2.2.2))
+    (yaml (>= 3.2.0))
+    (xmlm (>= 1.4.0))
+    (sarif (>= 0.3.1 ))
     ; CLI
-    cmdliner
+    (cmdliner (>= 1.3.0))
     ; PPX
-    ppxlib
-    ppx_blob
-    (ppx_deriving ( >= 6.0.3 ))
-    ppx_deriving_yojson
-    ppx_hash
-    ppx_inline_test
+    (ppxlib (>= 0.35.0))
+    (ppx_blob (>= 0.9.0))
+    (ppx_deriving (>= 6.0.3 ))
+    (ppx_deriving_yojson (>= 3.9.1))
+    (ppx_hash (>= v0.17.0))
+    (ppx_inline_test (>= v0.17.0))
     (ppx_sexp_conv ( = v0.17.0))
-    ppx_expect
+    (ppx_expect (>= v0.17.2))
     (visitors (= 20250212))
     ; regexps
-    re
-    conf-libpcre
-    pcre
+    (re ( >= 1.14.0))
+    (conf-libpcre (= 2))
+    (pcre (>= 8.0.5))
     ; we're currently "vendoring" pcre2 in libs/pcre2
     pcre2
     ; obackward, vendored in libs/obackward
     obackward
     ; misc
-    ocamlgraph
-    parmap
-    semver
-    (timedesc (>= 2.0.0)) ; used via git-wrapper
+    (ocamlgraph (>= 2.2.0))
+    (parmap (>= 1.2.5))
+    (semver (>= 0.2.1))
+    (timedesc (>= 3.1.0)) ; used via git-wrapper
     (lsp (= 1.22.0))
-    git
+    (git (>= 3.18.0))
     ; tracing
-    memtrace
-    ppx_trace
+    (memtrace (>= 0.2.3))
+    (ppx_trace (>= 0.10))
     (opentelemetry (>= 0.12))
     (opentelemetry-client-ocurl (>= 0.12))
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
@@ -150,32 +150,32 @@ For more information see https://semgrep.dev
     (opentelemetry-client-ocurl (>= 0.12))
     (opentelemetry-client-cohttp-eio (>= 0.12))
     (opentelemetry-logs (>= 0.12))
-    ambient-context-lwt
-    conf-libcurl
+    (ambient-context-lwt (>= 0.1.0))
+    (conf-libcurl (= 2))
     ; web stuff
-    uri
-    (uuidm (>= 0.9.9))
-    (cohttp (>= 6.1.0))
-    cohttp-lwt-unix
-    cohttp-eio
-    tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
-    emile
-    (digestif (>= 1.0.0))
+    (uri (>= 4.4.0))
+    (uuidm (>= 0.9.10))
+    (cohttp (>= 6.1.1))
+    (cohttp-lwt-unix (>= 6.1.1))
+    (cohttp-eio (>= 6.1.1))
+    (tls-lwt (>= 2.0.3)) ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
+    (emile (>= 1.1))
+    (digestif (>= 1.3.0))
     ; concurrency
-    lwt
-    lwt_ppx
-    (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
+    (lwt (>= 5.9.2))
+    (lwt_ppx (>= 5.9.1))
+    (conf-libev (and (<> :os win32) (= 4-13))) ; for lwt, to get better FD perf
     ;TODO: this is for secrets and should be in ../dune-project but doing so
     ; slows down a lot our CI because it pulls dependencies that seem
     ; to cause the removal and recompilation of many packages (e.g., tls) and
     ; make our GHA opam cache useless. We might need to install here instead
     ; packages that would avoid this effect.
-    git-unix
+    (git-unix (>= 3.18.0))
     ; Eio
     ; eio 1.3 appears broken on Windows https://github.com/semgrep/semgrep-proprietary/pull/4322
     (eio (= 1.2))
-    eio_main ; Picks a suitable backend (i.e eio_{posix, linux, windows})
-    tls-eio
+    (eio_main (= 1.2)); Picks a suitable backend (i.e eio_{posix, linux, windows})
+    (tls-eio (>= 2.0.3))
   )
 )
 
