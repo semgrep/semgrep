@@ -103,6 +103,15 @@
 - Semgrep no longer fails to validate a config when a rule lang is capitalized (Introduced 1.137.0) (saf-2247)
 
 
+## [1.137.1](https://github.com/semgrep/semgrep/releases/tag/v1.137.1) - 2025-09-23
+
+
+### Fixed
+
+
+- Semgrep no longer fails to validate a config when a rule lang is capitalized (Introduced 1.137.0) (saf-2247)
+
+
 ## [1.137.0](https://github.com/semgrep/semgrep/releases/tag/v1.137.0) - 2025-09-17
 
 
