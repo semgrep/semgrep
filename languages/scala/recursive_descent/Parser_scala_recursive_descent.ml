@@ -28,7 +28,7 @@ module Log = Log_parser_scala.Log
 (* A recursive-descent Scala parser.
  *
  * This is mostly an OCaml port of the Scala2 parser found in
- * https://github.com/scala/scala/src/compiler/scala/tools/nsc/ast/parser/Parsers.scala
+ * https://github.com/scala/scala/blob/2.13.x/src/compiler/scala/tools/nsc/ast/parser/Parsers.scala
  *
  * alt:
  *  - use Parsers.scala of dotty? but the source is longer, and most of
@@ -1864,7 +1864,8 @@ and simplePattern in_ : pattern =
                    None
              in
              match (t, typeAppliedTree, args) with
-             | (Id (s, ii), []), None, None when AST.is_variable_name s ->
+             | (Id (s, ii), []), None, None
+               when AST.is_variable_name s || AST_generic.is_metavar_name s ->
                  PatVarid (s, ii)
              | t, None, None -> PatName t
              | t, x1, x2 -> PatApply (t, x1, x2))
