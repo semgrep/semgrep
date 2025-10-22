@@ -78,6 +78,11 @@
   "sent_at": "2017-03-03T00:00:00+09:00",
   "started_at": "2017-03-03T00:00:00+09:00",
   "value": {
+    "engineConfig": {
+      "analysis_type": "Intraprocedural",
+      "code_config": {},
+      "pro_langs": true
+    },
     "engineRequested": "OSS",
     "features": [
       "cli-flag/config",

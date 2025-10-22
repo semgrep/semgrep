@@ -67,6 +67,7 @@ from semgrep.types import FilteredMatches
 from semgrep.types import TargetInfo
 from semgrep.verbose_logging import getLogger
 
+# Used below but can't be imported normally due to a circular dependency
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
 
@@ -192,6 +193,10 @@ class Metrics:
         secrets: Optional[SecretsConfig],
         supply_chain: Optional[SupplyChainConfig],
     ) -> None:
+        # Needs to be imported with narrow scope due to a circular dependency if
+        # it is imported at the top level.
+        from semgrep.engine import EngineType
+
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
