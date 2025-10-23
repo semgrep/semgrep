@@ -1,2 +1,0 @@
-Scala: Parser now accepts an $MVAR as a pattern alias (`@`), so
-e.g. `case $X @ ... => ...` is now a valid pattern.
