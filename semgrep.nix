@@ -23,7 +23,7 @@ let
         });
       patchesOverlay = final: prev: {
         # For the custom temp OCaml fork
-        ocaml-base-compiler = prev.ocaml-base-compiler.overrideAttrs (old: {
+        ocaml-compiler = prev.ocaml-compiler.overrideAttrs (old: {
           src = pkgs.fetchFromGitHub {
             owner = "semgrep";
             repo = "ocaml";
