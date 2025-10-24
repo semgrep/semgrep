@@ -329,7 +329,9 @@ def _print_detailed_sca_table(
     """
     Pretty print the plan to stdout with the detailed CLI UX.
     """
-    if rule_count:
+    # even if no rules, we still want to print the subproject table to
+    # show any resolution failures (rules get filtered out when resolution fails)
+    if rule_count or sca_plan.all_subprojects:
         _print_sca_table(sca_plan, rule_count)
         return
 
