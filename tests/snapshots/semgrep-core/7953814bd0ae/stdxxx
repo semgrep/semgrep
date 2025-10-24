@@ -1,3 +1,4 @@
 --- begin input files ---
 settings.yml
 --- end input files ---
+ SUCCESS  You are logged in as {"identity":"cli_fake_user_valid-from-fake-date"}

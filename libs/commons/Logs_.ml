@@ -103,20 +103,6 @@ let default_tag_set = create_tag_set [ default_tag ]
 (* Helpers *)
 (*****************************************************************************)
 
-(* ANSI escape sequences for colored output, depending on log level *)
-let color level =
-  match level with
-  | Logs.Warning -> Some "33" (*yellow*)
-  | Logs.Error -> Some "31" (*red*)
-  | _else -> None
-
-(* print an ANSI escape sequence - not worth to use an extra library
-   (such as ANSIterminal) for this *)
-let pp_sgr ppf style =
-  Format.pp_print_as ppf 0 "\027[";
-  Format.pp_print_as ppf 0 style;
-  Format.pp_print_as ppf 0 "m"
-
 (* a complicated way of saying (not (is_empty (inter a b))) *)
 let has_nonempty_intersection tag_str_list tag_set =
   Logs.Tag.fold
@@ -159,7 +145,7 @@ let create_formatter opt_file =
 let mk_reporter
     ?(additional_reporters : (Logs.reporter -> Logs.reporter) list = []) ~dst
     ~require_one_of_these_tags ~read_tags_from_env_vars:(env_vars : string list)
-    ~highlight () =
+    () =
   let require_one_of_these_tags =
     match read_comma_sep_strs_from_env_vars env_vars with
     | Some tags -> tags
@@ -176,52 +162,41 @@ let mk_reporter
   let report src level ~over k msgf =
     let src_name = Logs.Src.name src in
     let is_default_src = src_name = "application" in
-    let pp_style, _style, style_off =
-      match color level with
-      | Some x when highlight -> (pp_sgr, x, "0")
-      | Some _
-      | None ->
-          ((fun _ppf _style -> ()), "", "")
-    in
     let k _ =
       over ();
       k ()
     in
-    let r =
-      msgf (fun ?header ?(tags = default_tag_set) fmt ->
-          let pp_w_time ~tags =
-            let current = now () in
-            (* Add a header that will look like [00.02][ERROR](lib):
-             * coupling: if you modify the format, please update
-             * the Testutil_logs.mask* regexps.
-             *)
-            Format.kfprintf k dst
-              ("@[[%05.2f]%a%a%s: " ^^ fmt ^^ "@]@.")
-              (current -. time_program_start)
-              Logs_fmt.pp_header (level, header) pp_tags tags
-              (if is_default_src then "" else "(" ^ src_name ^ ")")
-          in
-          match level with
-          | App ->
-              (* App level: no timestamp, tags, or other decorations *)
-              Format.kfprintf k dst (fmt ^^ "@.")
-          | Error
-          | Warning
-          | Info ->
-              (* Print no tags for levels other than Debug since we can't
-                 filter these messages by tag. *)
-              pp_w_time ~tags:Logs.Tag.empty
-          | Debug ->
-              (* Tag-based filtering *)
-              if
-                select_all_debug_messages
-                || has_nonempty_intersection require_one_of_these_tags tags
-              then pp_w_time ~tags
-              else (* print nothing *)
-                Format.ikfprintf k dst fmt)
-    in
-    Format.fprintf dst "%a" pp_style style_off;
-    r
+    msgf (fun ?header ?(tags = default_tag_set) fmt ->
+        let pp_w_time ~tags =
+          let current = now () in
+          (* Add a header that will look like [00.02][ERROR](lib):
+           * coupling: if you modify the format, please update
+           * the Testutil_logs.mask* regexps.
+           *)
+          Format.kfprintf k dst
+            ("@[[%05.2f]%a%a%s: " ^^ fmt ^^ "@]@.")
+            (current -. time_program_start)
+            Logs_fmt.pp_header (level, header) pp_tags tags
+            (if is_default_src then "" else "(" ^ src_name ^ ")")
+        in
+        match level with
+        | App ->
+            (* App level: no timestamp, tags, or other decorations *)
+            Format.kfprintf k dst (fmt ^^ "@.")
+        | Error
+        | Warning
+        | Info ->
+            (* Print no tags for levels other than Debug since we can't
+               filter these messages by tag. *)
+            pp_w_time ~tags:Logs.Tag.empty
+        | Debug ->
+            (* Tag-based filtering *)
+            if
+              select_all_debug_messages
+              || has_nonempty_intersection require_one_of_these_tags tags
+            then pp_w_time ~tags
+            else (* print nothing *)
+              Format.ikfprintf k dst fmt)
   in
   List.fold_left
     (fun reporter add_reporter -> add_reporter reporter)
@@ -343,7 +318,7 @@ let with_basic_setup ?(level = Some Logs.Warning) func =
   let dst = Format.get_err_formatter () in
   with_reporter
     (mk_reporter ~dst ~require_one_of_these_tags:[] ~read_tags_from_env_vars:[]
-       ~highlight:false ()) (fun () -> with_level level func)
+       ()) (fun () -> with_level level func)
 
 (*
    Logs should be used as follows:
@@ -368,11 +343,11 @@ let with_setup ?(highlight_setting : Console.highlight_setting option)
     ?(read_level_from_env_vars = [ "LOG_LEVEL" ])
     ?(read_srcs_from_env_vars = [ "LOG_SRCS" ])
     ?(read_tags_from_env_vars = [ "LOG_TAGS" ]) ?quiet_log_setup ~level func =
-  (* Override the log level if it's provided by an environment variable!
-     This is for debugging a command that gets called by some wrapper. *)
   if not (Domain.is_main_domain ()) then
     invalid_arg
       "Logs_.setup may not be called from another domain than the main domain";
+  (* Override the log level if it's provided by an environment variable!
+     This is for debugging a command that gets called by some wrapper. *)
   let level : Logs.level option =
     match read_level_from_env read_level_from_env_vars with
     | Some level_from_env -> level_from_env
@@ -405,15 +380,10 @@ let with_setup ?(highlight_setting : Console.highlight_setting option)
         | true -> Some `Ansi_tty
         | false -> None)
   in
-  let highlight =
-    match style_renderer with
-    | Some `Ansi_tty -> true
-    | _ -> false
-  in
   with_style_renderer style_renderer @@ fun () ->
   let reporter =
     mk_reporter ~additional_reporters ~dst ~require_one_of_these_tags
-      ~read_tags_from_env_vars ~highlight ()
+      ~read_tags_from_env_vars ()
   in
   with_reporter reporter (fun () ->
       with_level ?quiet_log_setup ~sources:active_source_names level func)

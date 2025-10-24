@@ -2,6 +2,8 @@
 test.py
 test.yaml
 --- end input files ---
+[<MASKED TIMESTAMP>][[33mWARNING[0m]: nothing matched for ./test.yaml
+[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target ./test.py (missing findings lines 3, 5.)
 0/1: 1 unit tests did not pass:
 --------------------------------------------------------------------------------
 TODO: print(check_output_lines)

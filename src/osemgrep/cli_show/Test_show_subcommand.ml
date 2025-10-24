@@ -228,17 +228,7 @@ let test_identity (caps : < caps ; .. >) : Testo.t =
         (* we need to be logged in otherwise we will not contact the server *)
         with_fake_login fake_settings (fun () ->
             with_fake_identity_response fake_identity (fun () ->
-                Show_subcommand.main caps
-                  [|
-                    "semgrep-show";
-                    "identity";
-                    (* Don't log so as to avoid flaky results.
-                        TODO: re-enable the output and consider not
-                        using Log.app but a proper printing function.
-                        See issues in Unit_Logs_.ml.
-                     *)
-                    "--quiet";
-                  |]))
+                Show_subcommand.main caps [| "semgrep-show"; "identity" |]))
       in
       (* TODO: please don't capture alcotest output
 
@@ -253,17 +243,7 @@ let test_deployment (caps : < caps ; .. >) : Testo.t =
       let exit_code =
         with_fake_login fake_settings (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
-                Show_subcommand.main caps
-                  [|
-                    "semgrep-show";
-                    "deployment";
-                    (* Don't log so as to avoid flaky results.
-                        TODO: re-enable the output and consider not
-                        using Log.app but a proper printing function.
-                        See issues in Unit_Logs_.ml.
-                     *)
-                    "--quiet";
-                  |]))
+                Show_subcommand.main caps [| "semgrep-show"; "deployment" |]))
       in
       Exit_code.Check.ok exit_code)
 

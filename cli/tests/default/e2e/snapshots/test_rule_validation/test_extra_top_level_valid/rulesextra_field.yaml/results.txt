@@ -1,2 +1,2 @@
 [x.xxx][[33mWARNING[0m]: Skipping unknown field 'some-other-extra-field' in rule "eqeq-bad"
-[0mConfiguration is valid - found 0 configuration error(s), and 1 rule(s).
+Configuration is valid - found 0 configuration error(s), and 1 rule(s).
