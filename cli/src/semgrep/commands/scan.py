@@ -777,6 +777,8 @@ def scan(
             force_color=force_color,
             output_format=output_format,
         )
+        if trace:
+            logger.debug(f"Trace ID: {state.traces.get_trace_id():x}")
         # to capture the stderr of semgrep-core or to let semgrep-core reuse
         # the stderr of pysemgrep to display logs as soon as they are produced
         # pysemgrep-only: not needed for osemgrep obviously

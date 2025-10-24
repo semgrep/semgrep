@@ -302,6 +302,9 @@ def ci(
             output_format=output_format,
         )
 
+        if trace:
+            logger.debug(f"Trace ID: {state.traces.get_trace_id():x}")
+
         state.metrics.configure(metrics)
         state.error_handler.configure(suppress_errors)
         scan_handler = None

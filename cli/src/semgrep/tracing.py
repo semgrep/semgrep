@@ -50,6 +50,7 @@ from opentelemetry.sdk.trace import Span
 from opentelemetry.sdk.trace import SpanProcessor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.trace import SpanContext
 from opentelemetry.trace import SpanKind
 from typing_extensions import ParamSpec
 
@@ -274,14 +275,20 @@ class Traces:
         os.environ[OTEL_RESOURCE_ATTRIBUTES] = resource_attributes
 
         # Set current context info for semgrep-core
-        current_span = otrace.get_current_span()
-        current_context = current_span.get_span_context()
+        current_context = self._get_current_context()
         os.environ[_SEMGREP_TRACE_PARENT_TRACE_ID] = otrace.format_trace_id(
             current_context.trace_id
         )
         os.environ[_SEMGREP_TRACE_PARENT_SPAN_ID] = otrace.format_span_id(
             current_context.span_id
         )
+
+    def _get_current_context(self) -> SpanContext:
+        current_span = otrace.get_current_span()
+        return current_span.get_span_context()
+
+    def get_trace_id(self) -> int:
+        return self._get_current_context().trace_id
 
     def set_scan_info(self, scan_info: ScanInfo) -> None:
         self.scan_info_span_processor.scan_info = scan_info
