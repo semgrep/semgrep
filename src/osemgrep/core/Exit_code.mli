@@ -65,7 +65,7 @@ module Equal : sig
   val not_implemented_in_osemgrep : t -> bool
 end
 
-(*
+(**
    Alcotest check. This is for tests only.
 
    Usage:
@@ -77,16 +77,18 @@ end
 
    Use this to avoid the log message occurring when creating a new
    exit code object.
+
+   [quiet]: don't print ASSERT message normally printed by Alcotest
 *)
 module Check : sig
-  val ok : t -> unit
-  val findings : t -> unit
-  val fatal : t -> unit
-  val invalid_code : t -> unit
-  val invalid_pattern : t -> unit
-  val unparseable_yaml : t -> unit
-  val missing_config : t -> unit
-  val invalid_language : t -> unit
-  val invalid_api_key : t -> unit
-  val not_implemented_in_osemgrep : t -> unit
+  val ok : ?quiet:bool -> t -> unit
+  val findings : ?quiet:bool -> t -> unit
+  val fatal : ?quiet:bool -> t -> unit
+  val invalid_code : ?quiet:bool -> t -> unit
+  val invalid_pattern : ?quiet:bool -> t -> unit
+  val unparseable_yaml : ?quiet:bool -> t -> unit
+  val missing_config : ?quiet:bool -> t -> unit
+  val invalid_language : ?quiet:bool -> t -> unit
+  val invalid_api_key : ?quiet:bool -> t -> unit
+  val not_implemented_in_osemgrep : ?quiet:bool -> t -> unit
 end

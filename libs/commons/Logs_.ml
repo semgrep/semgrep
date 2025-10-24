@@ -250,26 +250,129 @@ let read_level_from_env (vars : string list) : Logs.level option option =
 (* Entry points *)
 (*****************************************************************************)
 
+let default_is_active_source src =
+  match Logs.Src.name src with
+  | "application" -> true
+  | _ -> false
+
+(* This hook is set during setup. *)
+let is_active_source_ref = Atomic.make default_is_active_source
+let is_active_source src = (Atomic.get is_active_source_ref) src
+
+(** Take a list of source names and return a function [is_active_src]
+    suitable to activate log sources of that name and deactivate the rest. *)
+let make_is_active_source source_names =
+  let tbl = Hashtbl.create 10 in
+  List.iter (fun name -> Hashtbl.add tbl name ()) source_names;
+  fun src -> Hashtbl.mem tbl (Logs.Src.name src)
+
+(* This hook is set during setup. *)
+let style_renderer_state = Atomic.make None
+
+let set_style_renderer opt_style_renderer =
+  Atomic.set style_renderer_state opt_style_renderer;
+  Fmt_tty.setup_std_outputs ?style_renderer:opt_style_renderer ()
+
+let with_style_renderer renderer func =
+  let orig = Atomic.get style_renderer_state in
+  Common.protect
+    (fun () ->
+      set_style_renderer renderer;
+      func ())
+    ~finally:(fun () -> set_style_renderer orig)
+
+let set_level_for_all_sources ?(quiet_log_setup = false) ~is_active_src level =
+  (* From https://github.com/mirage/ocaml-cohttp#debugging.
+     Disable all (third-party) libs logs unless specified in show_srcs
+     (which itself is derived from LOG_SRCS or similar environment variable).
+  *)
+  let active_sources, inactive_sources =
+    Logs.Src.list () |> List.partition is_active_src
+  in
+  List.iter (fun src -> Logs.Src.set_level src level) active_sources;
+  List.iter (fun src -> Logs.Src.set_level src None) inactive_sources;
+  (* Using the application logger, show which sources are active and which
+     ones are inactive. *)
+  if not quiet_log_setup then (
+    Logs.debug (fun m ->
+        m "Skipping logs for: [%s]"
+          (inactive_sources |> List_.map Logs.Src.name |> String.concat ", "));
+    Logs.debug (fun m ->
+        m "Showing logs for: [%s]"
+          (active_sources |> List_.map Logs.Src.name |> String.concat ", ")))
+
+(* Temporarily change the log level and optionally change which log sources
+   are active. All active sources log at the same level. *)
+let with_level ?quiet_log_setup ?sources level func =
+  let is_active_src =
+    match sources with
+    | None -> Atomic.get is_active_source_ref
+    | Some source_names -> make_is_active_source source_names
+  in
+  if not (Domain.is_main_domain ()) then
+    invalid_arg
+      "Logs_.with_level may not be called from another domain than the main \
+       domain";
+  let orig_is_active = Atomic.get is_active_source_ref in
+  (* Assume the application is always active, so its log level is the
+     log level used by all the active sources. *)
+  let orig_level = Logs.Src.level Logs.default in
+  Common.protect
+    (fun () ->
+      set_level_for_all_sources ?quiet_log_setup ~is_active_src level;
+      Atomic.set is_active_source_ref is_active_src;
+      func ())
+    ~finally:(fun () ->
+      (* Restore all globals to their original state *)
+      set_level_for_all_sources ?quiet_log_setup ~is_active_src:orig_is_active
+        orig_level;
+      Atomic.set is_active_source_ref orig_is_active)
+
+let with_reporter reporter func =
+  let orig = Logs.reporter () in
+  Common.protect
+    (fun () ->
+      Logs.set_reporter reporter;
+      func ())
+    ~finally:(fun () -> Logs.set_reporter orig)
+
 (* Enable basic logging so that you can use Logging calls even before a
  * precise call to setup_logging.
  *)
-let setup_basic ?(level = Some Logs.Warning) () =
+let with_basic_setup ?(level = Some Logs.Warning) func =
   let dst = Format.get_err_formatter () in
-  Logs.set_level ~all:true level;
-  Logs.set_reporter
+  with_reporter
     (mk_reporter ~dst ~require_one_of_these_tags:[] ~read_tags_from_env_vars:[]
-       ~highlight:false ());
-  ()
+       ~highlight:false ()) (fun () -> with_level level func)
 
-let setup ?(highlight_setting = Console.get_highlight_setting ())
+(*
+   Logs should be used as follows:
+   - Each library identifies as one or more log sources.
+   - Only the application may identify as the default source.
+   Each source has its own log level. If we want, we can set these log
+   levels for each source independently.
+
+   Here, we use the following simplification:
+   - activation of a list of sources other the default
+   - all activated sources use the same log level
+
+   TODO: takes sources and levels as a key/value list in addition to
+   the environment variables. This will allow easily changing log levels
+   for specific tests.
+   TODO: remove tags since we don't use them or used them wrong and it's
+   complicated
+*)
+let with_setup ?(highlight_setting : Console.highlight_setting option)
     ?log_to_file:opt_file ?(additional_reporters = [])
     ?(require_one_of_these_tags = default_tags)
     ?(read_level_from_env_vars = [ "LOG_LEVEL" ])
     ?(read_srcs_from_env_vars = [ "LOG_SRCS" ])
-    ?(read_tags_from_env_vars = [ "LOG_TAGS" ]) ?(quiet_log_setup = false)
-    ~level () =
+    ?(read_tags_from_env_vars = [ "LOG_TAGS" ]) ?quiet_log_setup ~level func =
   (* Override the log level if it's provided by an environment variable!
      This is for debugging a command that gets called by some wrapper. *)
+  if not (Domain.is_main_domain ()) then
+    invalid_arg
+      "Logs_.setup may not be called from another domain than the main domain";
   let level : Logs.level option =
     match read_level_from_env read_level_from_env_vars with
     | Some level_from_env -> level_from_env
@@ -279,46 +382,41 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
     read_comma_sep_strs_from_env_vars read_srcs_from_env_vars
     |> List_.optlist_to_list |> List_.map Re.Pcre.regexp
   in
+  let is_active_src src =
+    match Logs.Src.name src with
+    | "application" -> true
+    | x -> show_srcs |> List.exists (fun re -> Re.execp re x)
+  in
+  let active_source_names =
+    Logs.Src.list () |> List.filter is_active_src |> List_.map Logs.Src.name
+  in
   let isatty, dst = create_formatter opt_file in
-  let highlight =
-    match highlight_setting with
-    | On -> true
-    | Off -> false
-    | Auto -> isatty
-  in
   let style_renderer =
-    match highlight with
-    | true -> Some `Ansi_tty
-    | false -> None
+    match highlight_setting with
+    | None -> Atomic.get style_renderer_state
+    | Some highlight_setting -> (
+        let highlight =
+          match highlight_setting with
+          | On -> true
+          | Off -> false
+          | Auto -> isatty
+        in
+        match highlight with
+        | true -> Some `Ansi_tty
+        | false -> None)
   in
-  Fmt_tty.setup_std_outputs ?style_renderer ();
-  Logs.set_level ~all:true level;
-  Logs.set_reporter
-    (mk_reporter ~additional_reporters ~dst ~require_one_of_these_tags
-       ~read_tags_from_env_vars ~highlight ());
-  Logs.debug (fun m ->
-      m "setup_logging: highlight_setting=%s, highlight=%B"
-        (Console.show_highlight_setting highlight_setting)
-        highlight);
-  (* From https://github.com/mirage/ocaml-cohttp#debugging.
-   * Disable all (third-party) libs logs unless specified in show_srcs
-   * (which itself is derived from LOG_SRCS or similar environment variable).
-   *)
-  Logs.Src.list ()
-  |> List.iter (fun src ->
-         let src_name = Logs.Src.name src in
-         let show_log =
-           match src_name with
-           (* those are the one we are really interested in *)
-           | "application" -> true
-           | x -> show_srcs |> List.exists (fun re -> Re.execp re x)
-         in
-         if not show_log then Logs.Src.set_level src None;
-         if not quiet_log_setup then
-           Logs.debug (fun m ->
-               m "%s logs for %s"
-                 (if show_log then "Showing" else "Skipping")
-                 src_name))
+  let highlight =
+    match style_renderer with
+    | Some `Ansi_tty -> true
+    | _ -> false
+  in
+  with_style_renderer style_renderer @@ fun () ->
+  let reporter =
+    mk_reporter ~additional_reporters ~dst ~require_one_of_these_tags
+      ~read_tags_from_env_vars ~highlight ()
+  in
+  with_reporter reporter (fun () ->
+      with_level ?quiet_log_setup ~sources:active_source_names level func)
 
 (*****************************************************************************)
 (* Poor's man tracing *)

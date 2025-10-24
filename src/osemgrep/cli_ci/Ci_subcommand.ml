@@ -870,6 +870,10 @@ let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
    exit code. *)
 let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let conf = ci_conf.scan_conf in
+  CLI_common.with_logging
+    ~color:(if conf.output_conf.force_color then On else Auto)
+    ~level:conf.common.logging_level
+  @@ fun () ->
   (match conf.common.maturity with
   (* coupling: copy-pasted from Scan_subcommand.ml *)
   | Maturity.Default -> (
@@ -893,8 +897,6 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   in
 
   (* step1: initialization *)
-  CLI_common.setup_logging ~force_color:conf.output_conf.force_color
-    ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
 
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)

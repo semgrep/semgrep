@@ -23,15 +23,19 @@ module F = Testutil_files
 (* Prelude *)
 (*****************************************************************************)
 (* Testing end-to-end (e2e) the scan subcommand.
- *
- * Note that we already have lots of e2e pytest tests for the scan command, but
- * here we add a few tests using Testo and testing just osemgrep. Indeed,
- * in the past we had osemgrep regressions that could not be catched by our
- * pytests because many of those pytests are still marked as @osemfail and
- * so do not exercise osemgrep.
- *
- * This is similar to part of cli/tests/e2e/test_output.py
- * LATER: we should port all of test_output.py to Testo in this file.
+
+   Note that we already have lots of e2e pytest tests for the scan command, but
+   here we add a few tests using Testo and testing just osemgrep. Indeed,
+   in the past we had osemgrep regressions that could not be catched by our
+   pytests because many of those pytests are still marked as @osemfail and
+   so do not exercise osemgrep.
+
+   This is similar to part of cli/tests/e2e/test_output.py
+   LATER: we should port all of test_output.py to Testo in this file.
+
+   TODO: run true end-to-end tests by creating a fresh process running the
+   'semgrep' command. By not creating a new process, we inherit a dirty
+   global state and leave another dirty state behind.
  *)
 
 (*****************************************************************************)
@@ -108,30 +112,34 @@ let test_nosettings ~env_app_token_set () =
     "default settings loaded with app token and no env" true
     (settings_with_no_include_env =*= Semgrep_settings.default)
 
+(* TODO: create a process so as to not inherit global settings
+   such as log level and whatnot *)
 let test_basic_output (caps : Scan_subcommand.caps) () =
-  Log_semgrep.setup ~force_color:false ~level:(Some Info) ();
-  with_env_app_token (fun () ->
-      let repo_files =
-        [
-          F.File ("rules.yml", eqeq_basic_content);
-          F.File ("stupid.py", stupid_py_content);
-        ]
+  (* Log git commands and other things happening before entering 'main'
+     which then uses its own log settings. *)
+  Log_semgrep.with_setup ~color:On ~level:(Some Info) @@ fun () ->
+  with_env_app_token @@ fun () ->
+  let repo_files =
+    [
+      F.File ("rules.yml", eqeq_basic_content);
+      F.File ("stupid.py", stupid_py_content);
+    ]
+  in
+  Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
+      let exit_code =
+        without_settings (fun () ->
+            Scan_subcommand.main caps
+              [|
+                "semgrep-scan";
+                "--experimental";
+                "--x-eio";
+                (* explicitly turn metrics on to ensure debug text prints to console *)
+                "--metrics=on";
+                "--config";
+                "rules.yml";
+              |])
       in
-      Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
-          let exit_code =
-            without_settings (fun () ->
-                Scan_subcommand.main caps
-                  [|
-                    "semgrep-scan";
-                    "--experimental";
-                    "--x-eio";
-                    (* explicitly turn metrics on to ensure debug text prints to console *)
-                    "--metrics=on";
-                    "--config";
-                    "rules.yml";
-                  |])
-          in
-          Exit_code.Check.ok exit_code))
+      Exit_code.Check.ok exit_code)
 
 (* This test fails for me (Martin) when run alone with e.g.
 
@@ -191,7 +199,7 @@ let test_basic_output_with_metrics_off (caps : Scan_subcommand.caps) () =
           in
           Exit_code.Check.ok exit_code))
 
-let test_metrics_output_supressed_on_subsequent_runs
+let test_metrics_output_suppressed_on_subsequent_runs
     (caps : Scan_subcommand.caps) () =
   with_env_app_token (fun () ->
       let repo_files =
@@ -253,5 +261,5 @@ let tests (caps : < Scan_subcommand.caps >) =
       t "basic output with metrics on only prints debug text once"
         ?skipped:Testutil.skip_on_windows ~checked_output:(Testo.stdxxx ())
         ~normalize
-        (test_metrics_output_supressed_on_subsequent_runs caps);
+        (test_metrics_output_suppressed_on_subsequent_runs caps);
     ]

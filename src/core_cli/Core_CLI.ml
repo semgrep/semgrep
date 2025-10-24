@@ -490,7 +490,6 @@ let all_actions (caps : Cap.all_caps) () =
  * in the future this might not always be the case, so hence being proactive
  * about this right now. *)
 let reset_options () =
-  Logs_.setup_basic ~level:None ();
   rule_source := None;
   target_file := None;
   lang := None;
@@ -754,8 +753,8 @@ let maybe_with_tracing function_name engine analysis_flags
 (*****************************************************************************)
 
 let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
+  Logs_.with_basic_setup ~level:None @@ fun () ->
   reset_options ();
-
   (* coupling: lots of similarities with what we do in CLI.main *)
   register_exception_printers ();
 
@@ -802,16 +801,16 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
   let is_rpc_call = !action = "-rpc" in
 
   (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
-  Log_semgrep.setup ~log_to_otel:!trace ?log_to_file:!log_to_file
-    ?require_one_of_these_tags:None ~quiet_log_setup:is_rpc_call
-    ~force_color:true ~level ();
-
+  Log_semgrep.with_setup ~log_to_otel:!trace ?log_to_file:!log_to_file
+    ?require_one_of_these_tags:None ~quiet_log_setup:is_rpc_call ~color:On
+    ~level
+  @@ fun () ->
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m "Version: %s" Version.version);
 
   (* coupling: if you add an init() call here, you probably need to modify
-   * also tests/Test.ml, CLI.ml, and Pro_core_CLI.ml
-   *)
+     also tests/Test.ml, CLI.ml, and Pro_core_CLI.ml
+  *)
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
@@ -838,8 +837,8 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                 Targets [ Target.mk_unfilterable_lang_target lang file ]
             | _ ->
                 (* alt: use the file targeting in Find_targets_lang but better
-                 * to "dumb-down" semgrep-core to its minimum.
-                 *)
+                 to "dumb-down" semgrep-core to its minimum.
+              *)
                 failwith
                   "this combination of targets and flags is not supported; \
                    semgrep-core supports either the use of -targets, or -lang \

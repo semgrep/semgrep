@@ -315,7 +315,7 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
    * even before we fully parse the command-line arguments.
    * alt: we could analyze [argv] and do it sooner for all subcommands here.
    *)
-  Logs_.setup_basic ();
+  Logs_.with_basic_setup @@ fun () ->
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
   if profile then Profiling.profile := Profiling.ProfAll;

@@ -22,6 +22,10 @@ let t = Testo.create ?skipped:Testutil.skip_on_windows
 (* Prelude *)
 (*****************************************************************************)
 (* Testing end-to-end (e2e) the show subcommand.
+
+   TODO: run true end-to-end tests by creating a fresh process running the
+   'semgrep' command. By not creating a new process, we inherit a dirty
+   global state and leave another dirty state behind.
  *)
 
 (*****************************************************************************)
@@ -224,16 +228,42 @@ let test_identity (caps : < caps ; .. >) : Testo.t =
         (* we need to be logged in otherwise we will not contact the server *)
         with_fake_login fake_settings (fun () ->
             with_fake_identity_response fake_identity (fun () ->
-                Show_subcommand.main caps [| "semgrep-show"; "identity" |]))
+                Show_subcommand.main caps
+                  [|
+                    "semgrep-show";
+                    "identity";
+                    (* Don't log so as to avoid flaky results.
+                        TODO: re-enable the output and consider not
+                        using Log.app but a proper printing function.
+                        See issues in Unit_Logs_.ml.
+                     *)
+                    "--quiet";
+                  |]))
       in
-      Exit_code.Check.ok exit_code)
+      (* TODO: please don't capture alcotest output
+
+         No idea why Alcotest prints an ASSERT message in color when it
+         shouldn't, depending on the host, just for this test.
+         The 'quiet' argument circumvents the problem.
+      *)
+      Exit_code.Check.ok ~quiet:true exit_code)
 
 let test_deployment (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       let exit_code =
         with_fake_login fake_settings (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
-                Show_subcommand.main caps [| "semgrep-show"; "deployment" |]))
+                Show_subcommand.main caps
+                  [|
+                    "semgrep-show";
+                    "deployment";
+                    (* Don't log so as to avoid flaky results.
+                        TODO: re-enable the output and consider not
+                        using Log.app but a proper printing function.
+                        See issues in Unit_Logs_.ml.
+                     *)
+                    "--quiet";
+                  |]))
       in
       Exit_code.Check.ok exit_code)
 

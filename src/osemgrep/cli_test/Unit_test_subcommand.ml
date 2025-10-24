@@ -156,6 +156,9 @@ let mk_matching_explanation_tests (caps : Test_subcommand.caps) =
   List_.map
     (fun (test_name, rule, test_content) ->
       t ~checked_output:(Testo.stdxxx ()) ~normalize test_name (fun () ->
+          (* TODO: please do not capture logs to avoid flaky results!
+            See Unit_Logs_.ml for details. *)
+          Logs_.with_setup ~level:None @@ fun () ->
           Logs.app (fun m -> m "Snapshot for %s" test_name);
           let files =
             [ F.File ("test.yaml", rule); F.File ("test.py", test_content) ]
@@ -164,7 +167,13 @@ let mk_matching_explanation_tests (caps : Test_subcommand.caps) =
             (fun _cwd ->
               let exit_code =
                 Test_subcommand.main caps
-                  [| "semgrep-test"; "."; "--matching-diagnosis" |]
+                  [|
+                    "semgrep-test";
+                    ".";
+                    "--matching-diagnosis";
+                    (* No logs to avoid flaky results *)
+                    "--quiet";
+                  |]
               in
               Exit_code.Check.findings exit_code)))
     tests

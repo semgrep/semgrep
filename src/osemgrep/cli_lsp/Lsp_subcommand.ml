@@ -35,7 +35,8 @@ let hook_pro_language_server :
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (caps : < caps ; .. >) (conf : Lsp_CLI.conf) : Exit_code.t =
-  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
+  CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
+  @@ fun () ->
   Logs.debug (fun m -> m "Starting semgrep-lsp");
   match Hook.get hook_pro_language_server with
   | Some run_pro_language_server when conf.x_eio_ls ->

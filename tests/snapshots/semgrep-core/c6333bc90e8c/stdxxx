@@ -2,12 +2,12 @@
 rules.yml
 stupid.py
 --- end input files ---
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'init' '-b' 'main'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'init' '-b' 'main'
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.name' 'Tester'
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'add' '.'
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'commit' '-m' 'Add files'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.name' 'Tester'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'add' '.'
+[<MASKED TIMESTAMP>][[34mINFO[0m]: Running external command: 'git' 'commit' '-m' 'Add files'
 [main (root-commit) <MASKED>] Add files
  2 files changed, 11 insertions(+)
  create mode 100644 rules.yml
@@ -106,5 +106,3 @@ Some files were skipped or only partially analyzed.
   Scan was limited to files tracked by git.
 
 Ran 1 rule on 1 file: 1 finding.
-ASSERT exit code
-ASSERT exit code

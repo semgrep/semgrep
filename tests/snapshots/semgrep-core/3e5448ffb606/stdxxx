@@ -1,9 +1,7 @@
-Snapshot for matching diagnosis unexpected match
 --- begin input files ---
 test.py
 test.yaml
 --- end input files ---
-[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target ./test.py (unexpected findings lines 5.)
 0/1: 1 unit tests did not pass:
 --------------------------------------------------------------------------------
 TODO: print(check_output_lines)
@@ -21,4 +19,3 @@ Maybe the match was supposed to be filtered out by one of these patterns?
           all:
           - pattern: foo(...)
           - not: foo(goood)
-[0m[33mASSERT[0m exit code

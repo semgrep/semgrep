@@ -16,6 +16,7 @@
 
 let spinner = [| "⠋"; "⠙"; "⠹"; "⠸"; "⠼"; "⠴"; "⠦"; "⠧"; "⠇"; "⠏" |]
 
+(* TODO: obey the global color settings instead: Console.get_highlight () *)
 let should_show_spinner () = !ANSITerminal.isatty Unix.stdout && Sys.unix
 
 let show_spinner delay_ms : unit =

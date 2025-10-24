@@ -738,6 +738,10 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
+  CLI_common.with_logging
+    ~color:(if conf.output_conf.force_color then On else Auto)
+    ~level:conf.common.logging_level
+  @@ fun () ->
   (match conf.common.maturity with
   | Maturity.Default -> (
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
@@ -763,12 +767,6 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
   | Maturity.Develop ->
       ());
 
-  (* Note that basic logging (Logs_.setup_basic()) was done in CLI.ml before, but
-   * in CLI_common.setup_logging() we do the full setup (Logs_.setup()) now
-   * that we have a conf object.
-   *)
-  CLI_common.setup_logging ~force_color:conf.output_conf.force_color
-    ~level:conf.common.logging_level;
   Logs.info (fun m -> m "Semgrep version: %s" Version.version);
 
   let conf =

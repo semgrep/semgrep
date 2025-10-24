@@ -92,7 +92,6 @@ type highlight_setting = Auto | On | Off [@@deriving show]
 (* The result of applying 'highlight_setting' *)
 type highlight = On | Off [@@deriving show]
 
-(* set by UConsole.setup() *)
 (* nosemgrep: no-ref-declarations-at-top-scope *)
 let highlight_setting : highlight_setting ref = ref Auto
 
@@ -102,6 +101,21 @@ let highlight : highlight ref = ref (Off : highlight)
 (* accessors *)
 let get_highlight_setting () = !highlight_setting
 let get_highlight () = !highlight
+
+let with_highlight_setting ~isatty setting func =
+  let orig_setting = !highlight_setting in
+  let orig_highlight = !highlight in
+  let hl : highlight =
+    match setting with
+    | Auto -> if isatty then On else Off
+    | On -> On
+    | Off -> Off
+  in
+  highlight_setting := setting;
+  highlight := hl;
+  Common.protect func ~finally:(fun () ->
+      highlight_setting := orig_setting;
+      highlight := orig_highlight)
 
 (*****************************************************************************)
 (* Partial copy of ANSITerminal.ml *)

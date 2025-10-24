@@ -100,12 +100,13 @@ let o_logging : Logs.level option Term.t =
   in
   Term.(const combine $ o_debug $ o_quiet $ o_verbose)
 
-let setup_logging ~force_color ~level =
-  Log_semgrep.setup ~force_color ~level ();
-  Logs.debug (fun m ->
-      m "Logging setup for osemgrep: force_color=%B level=%s" force_color
-        (Logs.level_to_string level));
-  (* TOPORT
+let with_logging ~color ~level func =
+  Log_semgrep.with_setup ~color ~level (fun () ->
+      Logs.debug (fun m ->
+          m "Logging setup for osemgrep: color=%s level=%s"
+            (Console.show_highlight_setting color)
+            (Logs.level_to_string level));
+      (* TOPORT
         # Setup file logging
         # env.user_log_file dir must exist
         env.user_log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -117,8 +118,9 @@ let setup_logging ~force_color ~level =
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
   *)
-  Logs.debug (fun m ->
-      m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "))
+      Logs.debug (fun m ->
+          m "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " "));
+      func ())
 
 (*************************************************************************)
 (* Profiling options *)

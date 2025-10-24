@@ -40,7 +40,11 @@ val blurb_pro : string
 val o_logging : Logs.level option Cmdliner.Term.t
 
 (* small wrapper around Logs_helper.setup_logging and Logging_helpers.setup *)
-val setup_logging : force_color:bool -> level:Logs.level option -> unit
+val with_logging :
+  color:Console.highlight_setting ->
+  level:Logs.level option ->
+  (unit -> 'a) ->
+  'a
 
 (* for --profile *)
 val o_profile : bool Cmdliner.Term.t

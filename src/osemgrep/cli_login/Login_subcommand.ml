@@ -93,6 +93,7 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
 
 (* Print out the flow, create the activation url and open the url in a browser *)
 let start_interactive_flow (caps : < Cap.exec ; .. >) : Uuidm.t option =
+  (* TODO: use 'Console.get_highlight ()' to obey the global color settings. *)
   if not Unix.(isatty stdin) then (
     let msg =
       Ocolor_format.asprintf
@@ -150,7 +151,8 @@ let fetch_token caps session_id =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
-  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
+  CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
+  @@ fun () ->
   Logs.debug (fun m -> m "conf = %s" (Login_CLI.show_conf conf));
   (* stricter: the login/logout metrics are actually not tracked in pysemgrep *)
   Metrics_.configure Metrics_.On;

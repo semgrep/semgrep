@@ -1,0 +1,9 @@
+[<MASKED TIMESTAMP>][[34mINFO[0m]: I am color info
+[<MASKED TIMESTAMP>][[33mWARNING[0m]: I am color warning
+[0m[<MASKED TIMESTAMP>][[31mERROR[0m]: I am color error
+[0m[<MASKED TIMESTAMP>][INFO]: I am nocolor info
+[<MASKED TIMESTAMP>][WARNING]: I am nocolor warning
+[<MASKED TIMESTAMP>][ERROR]: I am nocolor error
+[<MASKED TIMESTAMP>][[34mINFO[0m]: I am color info again
+[<MASKED TIMESTAMP>][[33mWARNING[0m]: I am color warning again
+[0m[<MASKED TIMESTAMP>][[31mERROR[0m]: I am color error again

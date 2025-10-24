@@ -106,17 +106,26 @@ let testable : t Alcotest.testable =
   let print fmt x = Format.fprintf fmt "%i (%s)" x.code x.description in
   Alcotest.testable print equal
 
-let check expected actual = Alcotest.check testable "exit code" expected actual
+let check ?(quiet = true) expected actual =
+  let msg =
+    if quiet then
+      (* suppress the output of "ASSERT <msg>" with tty-dependent color *)
+      ""
+    else "exit code"
+  in
+  Alcotest.check testable msg expected actual
 
 module Check = struct
-  let ok = check Value.ok
-  let findings = check Value.findings
-  let fatal = check Value.fatal
-  let invalid_code = check Value.invalid_code
-  let invalid_pattern = check Value.invalid_pattern
-  let unparseable_yaml = check Value.unparseable_yaml
-  let missing_config = check Value.missing_config
-  let invalid_language = check Value.invalid_language
-  let invalid_api_key = check Value.invalid_api_key
-  let not_implemented_in_osemgrep = check Value.not_implemented_in_osemgrep
+  let ok ?quiet = check ?quiet Value.ok
+  let findings ?quiet = check ?quiet Value.findings
+  let fatal ?quiet = check ?quiet Value.fatal
+  let invalid_code ?quiet = check ?quiet Value.invalid_code
+  let invalid_pattern ?quiet = check ?quiet Value.invalid_pattern
+  let unparseable_yaml ?quiet = check ?quiet Value.unparseable_yaml
+  let missing_config ?quiet = check ?quiet Value.missing_config
+  let invalid_language ?quiet = check ?quiet Value.invalid_language
+  let invalid_api_key ?quiet = check ?quiet Value.invalid_api_key
+
+  let not_implemented_in_osemgrep ?quiet =
+    check ?quiet Value.not_implemented_in_osemgrep
 end

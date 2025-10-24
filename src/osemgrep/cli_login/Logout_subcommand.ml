@@ -31,7 +31,8 @@ let logout_message = "Logged out (log back in with `semgrep login`)"
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (caps : caps) (conf : Logout_CLI.conf) : Exit_code.t =
-  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
+  CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
+  @@ fun () ->
   Logs.debug (fun m -> m "conf = %s" (Logout_CLI.show_conf conf));
   (* stricter: the login/logout metrics are actually not tracked in pysemgrep *)
   Metrics_.configure Metrics_.On;

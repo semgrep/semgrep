@@ -460,7 +460,8 @@ let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_ci_CLI.conf)
 (*****************************************************************************)
 
 let run_conf (caps : < caps ; .. >) (conf : Install_ci_CLI.conf) : Exit_code.t =
-  CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
+  CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
+  @@ fun () ->
   (* In theory, we should use the same --metrics=xxx as in scan,
      but given that this is an experimental command that we need to validate
      in the wild, we are hard-coding the metrics config to On for now. We can

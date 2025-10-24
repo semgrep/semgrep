@@ -27,4 +27,6 @@ let tests =
        * but this require caps so better to include directly from Test.ml
        *)
       Unit_external.tests;
+      Unit_Common.tests;
+      Unit_Logs_.tests;
     ]

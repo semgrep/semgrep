@@ -95,17 +95,6 @@ let any_gen_of_string str =
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
 
-(* alt: could be in Testutil_files.ml or even Testo library *)
-let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
-    Testo.t list =
-  tests
-  |> List_.map (fun (test : Testo.t) ->
-         Testo.update
-           ~func:(fun () ->
-             reset ();
-             test.func ())
-           test)
-
 (*****************************************************************************)
 (* All tests *)
 (*****************************************************************************)
@@ -235,23 +224,18 @@ let main (caps : Cap.all_caps) : unit =
   let project_root = Legacy_test_ls_e2e.project_root () in
   (* Don't read ~/.gitconfig since it varies from one developer to another,
      resulting in variable output *)
-  Unix.putenv "GIT_CONFIG_NOGLOBAL" "true";
+  Testo.with_environment_variables [ ("GIT_CONFIG_NOGLOBAL", "true") ]
+  @@ fun () ->
   Testutil_files.with_chdir project_root (fun () ->
       (* coupling: partial copy of the content of CLI.main() *)
       Core_CLI.register_exception_printers ();
       Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
-      let reset () =
-        (* Some tests change this configuration so we have to reset
-           it before each test. In particular, tests that check the semgrep
-           output can or should change these settings. *)
-        UConsole.setup ~highlight_setting:On ();
-        (* TODO? use Log_semgrep.setup? *)
-        Logs_.setup_basic ~level:(Some Logs.Debug) ()
-      in
-      (* Show log messages produced when building the list of tests *)
-      reset ();
+      (* Show log messages produced when building the list of tests.
+         Log_semgrep.setup prints a lengthy welcome message that we
+         don't want in the output of each unit test. *)
+      Log_semgrep.with_setup ~color:On ~level:(Some Info) @@ fun () ->
       (* let's go *)
       Testo.interpret_argv ~project_name:"semgrep-core" (fun _env ->
-          tests_with_delayed_error caps |> cleanup_before_each_test reset))
+          tests_with_delayed_error caps))
 
 let () = Cap.main (fun all_caps -> main all_caps)

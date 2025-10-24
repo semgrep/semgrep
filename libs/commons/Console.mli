@@ -127,6 +127,6 @@ val tables :
 val get_highlight_setting : unit -> highlight_setting
 val get_highlight : unit -> highlight
 
-(* internals, you should not change that, only UConsole.setup can *)
-val highlight_setting : highlight_setting ref
-val highlight : highlight ref
+(* Set and restore the global state. *)
+val with_highlight_setting :
+  isatty:bool -> highlight_setting -> (unit -> 'a) -> 'a

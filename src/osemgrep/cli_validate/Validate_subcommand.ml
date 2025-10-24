@@ -254,13 +254,14 @@ let report_errors (_caps : < Cap.stdout >) ~metacheck_errors ~num_errors
 (*****************************************************************************)
 
 let run_conf (caps : < caps ; .. >) (conf : Validate_CLI.conf) : Exit_code.t =
-  CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* Metrics_.configure Metrics_.On; ?? and allow to disable it?
    * semgrep-rules/Makefile is running semgrep --validate with metrics=off
    * (and also --disable-version-check), but maybe because it is used from
    * 'semgrep scan'; in 'osemgrep validate' context, we should not even have
    * those options and we should disable metrics (and version-check) by default.
    *)
+  CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
+  @@ fun () ->
   Logs.debug (fun m -> m "conf = %s" (Validate_CLI.show_conf conf));
   if conf.pro then (Hook.get hook_pro_init) ();
 

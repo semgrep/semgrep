@@ -46,47 +46,63 @@
    See also Testutil_logs.mli if you need to mask logs in tests.
 *)
 
-(* Enable basic logging (default level = Logs.Warning) so you can use Logging
- * calls even before a precise call to setup().
- *)
-val setup_basic : ?level:Logs.level option -> unit -> unit
+val with_basic_setup : ?level:Logs.level option -> (unit -> 'a) -> 'a
+(** Enable basic logging (default level = [Logs.Warning]) so you can use
+    logging call even before a precise call to {!with_setup}. *)
 
-(* Setup the Logs library. This call is necessary before any logging
-   calls, otherwise your log will not go anywhere (not even on stderr,
-   unless you used setup_basic() below).
+val with_setup :
+  ?highlight_setting:Console.highlight_setting ->
+  ?log_to_file:Fpath.t ->
+  ?additional_reporters:(Logs.reporter -> Logs.reporter) list ->
+  ?require_one_of_these_tags:string list ->
+  ?read_level_from_env_vars:string list ->
+  ?read_srcs_from_env_vars:string list ->
+  ?read_tags_from_env_vars:string list ->
+  ?quiet_log_setup:bool ->
+  level:Logs.level option ->
+  (unit -> 'a) ->
+  'a
+(** Set up the Logs library and restore the settings when done with the
+    function passed as argument. This call is necessary before any logging
+    calls, otherwise your log will not go anywhere (not even on stderr,
+    unless you used setup_basic() below).
 
-   'highlight_setting': whether the output should be formatted with color
+    Concurrency: not supported. This function will raise an exception
+    if run outside of the main domain.
+
+   [highlight_setting]: whether the output should be formatted with color
    and font effects. It defaults to the current setting we have for stderr
-   in Console.ml. This option can be useful when redirecting the logs to
-   a file with the 'log_to_file' option.
+   in [Console.ml]. This option can be useful when redirecting the logs to
+   a file with the [log_to_file] option.
 
-   'require_one_of_these_tags': if a list of tags is provided, at least one
+   [require_one_of_these_tags]: if a list of tags is provided, at least one
    of these tags must be set for a log instruction to be printed.
 
-   'read_level_from_env_var': environment variables that override the
-   'level' argument. The default is ["LOG_LEVEL"].
+   [read_level_from_env_var]: environment variables that override the
+   [level] argument. The default is ["LOG_LEVEL"].
 
-   'read_srcs_from_env_vars': specifies environment variables
+   [read_srcs_from_env_vars]: specifies environment variables
    from which a list of comma-separated pcre-compliant regexps will be
    read if the variable is set, in which case the list of regexps will be
    used to enable logging for third-party libraries whose src is matching
    one of the regexp.
-   This variable is "LOG_SRCS" by default.
+   This variable is ["LOG_SRCS"] by default.
 
-   'read_tags_from_env_vars': specifies environment variables
+   [read_tags_from_env_vars]: specifies environment variables
    from which a list of comma-separated tags will be read if the variable
    is set, in which case the list of tags will override any value set
-   via 'require_one_of_these_tags'. This variable is "LOG_TAGS"
+   via [require_one_of_these_tags]. This variable is ["LOG_TAGS"]
    by default.
 
-   'additional_reporters' is a list of additonal loggers that will be called
+   [additional_reporters] is a list of additonal loggers that will be called
    after the default logger. Useful for writing the logs to multiple
    destinations, e.g. an opentelemetry collector, a log file, etc.
 
    The following shell command shows for example how to
    make semgrep run at the debug level but only show lines tagged with
-   'Match_rules' or 'Core_scan'.
+   [Match_rules] or [Core_scan].
 
+{v
      $ LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
      ...
      [00.45][INFO](Core_scan): Analyzing TCB/CapStdlib.ml
@@ -103,20 +119,27 @@ val setup_basic : ?level:Logs.level option -> unit -> unit
      [00.45][INFO](Core_scan): Analyzing src/fixing/tests/Unit_autofix_printer.mli
      [00.45][DEBUG](Match_rules): checking tests/parsing/ocaml/basic.mli with 1 rules
      ...
+v}
 *)
 
-val setup :
-  ?highlight_setting:Console.highlight_setting ->
-  ?log_to_file:Fpath.t ->
-  ?additional_reporters:(Logs.reporter -> Logs.reporter) list ->
-  ?require_one_of_these_tags:string list ->
-  ?read_level_from_env_vars:string list ->
-  ?read_srcs_from_env_vars:string list ->
-  ?read_tags_from_env_vars:string list ->
+val with_level :
   ?quiet_log_setup:bool ->
-  level:Logs.level option ->
-  unit ->
-  unit
+  ?sources:string list ->
+  Logs.level option ->
+  (unit -> 'a) ->
+  'a
+(** Temporarily change the log level. The log level applies to all active
+    sources. Replacing the set of active sources is done by specifying
+    the list [active_sources] of source names. Note that
+    the name of the default source, ["application"], must be included
+    explicitly if you want to see log messages from the default source.
+
+    This is meant for running specific tests at different log levels
+    and log from certain libraries for the duration of the test.
+
+    Concurrency: not supported. This function will raise an exception
+    if run outside of the main domain.
+*)
 
 (*
    String tags to be included in log messages for easy filtering.
@@ -164,7 +187,7 @@ val debug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
  * with_debug_trace will use the debug_trace_src below
  * and so you might need to run your program with
  * LOG_SRCS=debug_trace ...
- * Note, execeptions are always logged on the application src.
+ * Note, exceptions are always logged on the application src.
  * If pp_input is given then the function will be invoked when
  * logging at the start of the function and when an exception occurs.
  *)
