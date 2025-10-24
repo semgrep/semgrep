@@ -31,6 +31,7 @@ PTT_OCAML_PARSER_SUBPROJECT_KINDS: List[SubprojectKind] = [
 ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PomXml()), None),
     (out.ManifestKind(out.BuildGradle()), None),
+    (out.ManifestKind(out.BuildGradleKts()), None),
     (out.ManifestKind(out.SettingsGradle()), None),
     (
         out.ManifestKind(out.SetupPy()),
