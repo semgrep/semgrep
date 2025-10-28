@@ -41,10 +41,8 @@ def handle_command_errors(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> NoReturn:
         # When running semgrep as a command line tool
-        # silence root level logger otherwise logs higher
-        # than warning are handled twice
+        # semgrep logger propagates to root logger where handlers are attached
         logger = getLogger("semgrep")
-        logger.propagate = False
         exc: Optional[BaseException] = None
 
         try:

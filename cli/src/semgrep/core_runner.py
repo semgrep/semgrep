@@ -14,6 +14,7 @@ import asyncio
 import collections
 import contextlib
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -108,6 +109,13 @@ def setrlimits_preexec_fn() -> None:
     # which have their own output requirements so that CLI can parse its stdout,
     # we use a different logger than the usual "semgrep" one
     core_logger = getLogger("semgrep_core")
+
+    handler = logging.StreamHandler(stream=sys.stderr)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    handler.setLevel(logging.WARNING)
+    core_logger.addHandler(handler)
+    core_logger.propagate = False
+
     if IS_WINDOWS:
         core_logger.info("Skipping setting stack limits on Windows")
         return

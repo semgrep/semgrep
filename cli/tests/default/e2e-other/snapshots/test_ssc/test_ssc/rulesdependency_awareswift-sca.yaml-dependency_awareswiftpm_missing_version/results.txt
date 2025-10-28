@@ -19,6 +19,7 @@
 === end of stdout - plain
 
 === stderr - plain
+no version in lockfile targets/dependency_aware/swiftpm_missing_version/Package.resolved
 
 
 ┌─────────────┐

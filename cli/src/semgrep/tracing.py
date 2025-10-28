@@ -220,7 +220,8 @@ class Traces:
         logger_provider.add_log_record_processor(log_processor)
         tracer_provider.add_span_processor(self.scan_info_span_processor)
 
-        # add logging handler so we can send logs to Otel and therefore datadog
+        # add logging handler to root logger only so we can send logs to Otel and therefore datadog.
+        # child loggers will propagate to root logger by default
         logging_handler = LoggingHandler(
             # COUPLING: we do something similar in Tracing.ml. If we want to
             # enable sending debug logs here we probably want to send them from
@@ -228,15 +229,14 @@ class Traces:
             level=logging.INFO,
             logger_provider=logger_provider,
         )
-        logging.getLogger().addHandler(logging_handler)
-        # get all existing loggers and add the handler to them, since at this
-        # point we will have already set up loggers most/all places NOTE: we
-        # don't set this up beforehand because we need to parse which
-        # environment we're in and then set the resource attributes before we
-        # can setup the logging handler
-        for logger in logging.Logger.manager.loggerDict.values():
-            if isinstance(logger, logging.Logger):
-                logger.addHandler(logging_handler)
+        logging_handler.set_name("otel-logging-handler")
+        # only add handler if it's not already present. it is possible for us to call configure multiple times
+        # from the MCP. in that case, we would add the handler multiple times without this check.
+        if not any(
+            handler.get_name() == "otel-logging-handler"
+            for handler in logging.getLogger().handlers
+        ):
+            logging.getLogger().addHandler(logging_handler)
 
         RequestsInstrumentor().instrument()
         self.extract()

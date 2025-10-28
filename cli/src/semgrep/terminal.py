@@ -65,11 +65,7 @@ class Terminal:
             multiple_streams_available = False
 
         # Assumes only one of verbose, debug, quiet is True
-        logger = logging.getLogger("semgrep")
-        # Reset to no handlers
-        for handler in list(logger.handlers):
-            logger.removeHandler(handler)
-            handler.close()
+        root_logger = logging.getLogger()
 
         stdout_level = logging.INFO
         if verbose:
@@ -83,10 +79,10 @@ class Terminal:
         stdout_handler = logging.StreamHandler(
             stream=sys.stderr if multiple_streams_available else sys.stdout
         )
+        stdout_handler.set_name("semgrep-stdout-handler")
         stdout_formatter = logging.Formatter("%(message)s")
         stdout_handler.setFormatter(stdout_formatter)
         stdout_handler.setLevel(stdout_level)
-        logger.addHandler(stdout_handler)
 
         # Setup file logging
         # Env and Terminal get initialized together, but Terminal depends on env
@@ -94,15 +90,42 @@ class Terminal:
         # env.user_log_file dir must exist
         env.user_log_file.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(env.user_log_file, "w", encoding="utf-8")
+        file_handler.set_name("semgrep-file-handler")
         file_formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
 
-        # Needs to be DEBUG otherwise will filter before sending to handlers
-        logger.setLevel(logging.DEBUG)
+        # there are code paths that call configure multiple times. we only want to keep the latest stdout and file handlers.
+        # remove any old stdout or file handlers set up by previous calls to configure.
+        for handler in list(root_logger.handlers):
+            if (
+                handler.get_name() == "semgrep-stdout-handler"
+                or handler.get_name() == "semgrep-file-handler"
+            ):
+                root_logger.removeHandler(handler)
+                handler.close()
+
+        root_logger.addHandler(stdout_handler)
+        root_logger.addHandler(file_handler)
+
+        # Root logger needs to be DEBUG to not filter propagated logs
+        root_logger.setLevel(logging.DEBUG)
+
+        # Prevent any child loggers that are not semgrep or semdep from propagating to root logger
+        # we need to create the semgrep and semdep loggers so the child loggers are not direct
+        # children of the root logger.
+        logging.getLogger("semgrep")
+        logging.getLogger("semdep")
+        for logger in logging.Logger.manager.loggerDict.values():
+            if isinstance(logger, logging.Logger):
+                if (
+                    logger.parent == root_logger
+                    and logger.name != "semgrep"
+                    and logger.name != "semdep"
+                ):
+                    logger.propagate = False
 
         self.log_level = stdout_level
 
