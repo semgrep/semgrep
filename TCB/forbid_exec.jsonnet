@@ -19,6 +19,16 @@ local unix_funcs = [
   'open_process_args_full',
 ];
 
+local ucmd_funcs = [
+  'run_subprocess',
+  'string_of_run',
+  'string_of_run_with_stderr',
+  'lines_of_run',
+  'status_of_run',
+  'with_open_process_in',
+  'cmd_to_list',
+];
+
 // The rule
 {
   rules: [
@@ -36,7 +46,7 @@ local unix_funcs = [
           // Feather
           ['Feather.run'] +
           // UCmd
-          ['UCmd.$F'] +
+          [('UCmd.' + p) for p in ucmd_funcs] +
           [],
       },
       languages: ['ocaml'],

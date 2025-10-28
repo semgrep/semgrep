@@ -165,3 +165,60 @@ let with_open_process_in (cmd : string) f =
       (* nosemgrep: forbid-exec *)
       let chan = Unix.open_process_in cmd in
       Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan))
+
+(*
+   A superset of Bash alphanumeric keywords that don't behave like ordinary
+   command names or command arguments.
+   All these will be quoted because they have or may have a specific
+   meaning in some contexts.
+
+   This list also works for POSIX shells.
+*)
+let bash_non_arg_keywords =
+  [
+    "case";
+    "coproc";
+    "do";
+    "done";
+    "elif";
+    "else";
+    "esac";
+    "fi";
+    "for";
+    "function";
+    "if";
+    "in";
+    "select";
+    "then";
+    "until";
+    "while";
+  ]
+
+let is_bash_keyword =
+  let tbl = Hashtbl.create 50 in
+  List.iter (fun kw -> Hashtbl.add tbl kw ()) bash_non_arg_keywords;
+  fun str -> Hashtbl.mem tbl str
+
+let is_safe_arg str =
+  String.length str > 0
+  && (not (is_bash_keyword str))
+  && String.for_all
+       (function
+         (* These are the most common known safe characters.
+         It's not all of them and it's ok. *)
+         | 'A' .. 'Z'
+         | 'a' .. 'z'
+         | '0' .. '9'
+         | '_'
+         | '-'
+         | '.' ->
+             true
+         | _ -> false)
+       str
+
+let quote_arg arg = if is_safe_arg arg then arg else Filename.quote arg
+
+(*
+   A safe and pretty converter from a list of arguments to a shell command.
+*)
+let quote_command_for_bash args = List_.map quote_arg args |> String.concat " "

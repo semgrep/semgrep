@@ -57,3 +57,8 @@ val with_open_process_in : string -> (in_channel -> 'a) -> 'a
 exception CmdError of Unix.process_status * string
 
 val cmd_to_list : ?verbose:bool -> string -> string list
+
+val quote_command_for_bash : string list -> string
+(** Convert a list of arguments into a valid Bash command without excessive
+    quoting. This is intended primarily for printing out
+    commands to be read and copy-pasted by humans. *)

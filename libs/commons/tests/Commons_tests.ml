@@ -29,4 +29,5 @@ let tests =
       Unit_external.tests;
       Unit_Common.tests;
       Unit_Logs_.tests;
+      Unit_UCmd.tests;
     ]
