@@ -4,21 +4,21 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Expected a list for patterns",
+      "long_msg": "{'pattern-inside': 'def foo($X):\\n    ...\\n', 'pattern': '$X = 1'} is not of type 'array'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {
           "end": {
-            "col": 13,
-            "line": 3,
-            "offset": 40
+            "col": 5,
+            "line": 8,
+            "offset": -1
           },
           "file": "rules/syntax/bad4.yaml",
           "source_hash": "df19d059fbcde7ca517f3dcbd6d58733d738f332467bc02d1d11051ab62e2549",
           "start": {
-            "col": 5,
-            "line": 3,
-            "offset": 32
+            "col": 7,
+            "line": 4,
+            "offset": -1
           }
         }
       ],

@@ -160,4 +160,4 @@ def test_login_and_use_registry(tmp_path, mocker):
     )
     assert result.exit_code == 7
     assert mocked_config.called
-    assert "missing rules entry as top-level key" in result.output
+    assert "remote-registry_0 was not a mapping" in result.output

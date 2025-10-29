@@ -1,0 +1,1 @@
+Rule parsing in 1.139.0 was switched to happen solely in semgrep-core. This caused some users to exit with code 7, so this change has been reverted.
