@@ -94,6 +94,10 @@ T = TypeVar("T", bound=LocatedYamlValue)
 
 
 class YamlTree(Generic[T]):
+    # __slots__ pre-allocates a fixed size array for the attributes of instances of this class.
+    # This speeds up object creation at the cost of losing the ability to add attributes dynamically.
+    __slots__ = ("value", "span")
+
     def __init__(self, value: T, span: Span):
         self.value = value
         self.span = span
@@ -160,6 +164,8 @@ class YamlMap:
     make a custom map type that is indexable by str, but provides views into all
     necessary spans
     """
+
+    __slots__ = ("_internal",)
 
     def __init__(self, internal: Dict[YamlTree[str], YamlTree]):
         self._internal = internal
