@@ -116,6 +116,7 @@ repos:
           - types-colorama~=0.4.0
           - types-freezegun
           - types-Jinja2
+          - types-jsonschema~=4.25.1.20251009
           - types-python-dateutil
           - types-requests
           - types-setuptools
