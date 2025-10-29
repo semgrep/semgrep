@@ -10,9 +10,20 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import os
 import socket
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def mcp_test_env():
+    # Disable tracing for MCP tests. We don't want tests to send tracing data to Datadog since
+    # they show up as abnormally short spans. This also implicitly disables metrics.
+    os.environ["SEMGREP_MCP_DISABLE_TRACING"] = "true"
+    yield
+    if "SEMGREP_MCP_DISABLE_TRACING" in os.environ:
+        del os.environ["SEMGREP_MCP_DISABLE_TRACING"]
 
 
 @pytest.fixture

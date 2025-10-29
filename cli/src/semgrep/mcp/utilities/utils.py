@@ -65,15 +65,15 @@ def get_anonymous_user_id() -> str:
     return "unknown"
 
 
-def get_deployment_id_from_token(token: str | None) -> str:
+def get_deployment_id_from_token(token: str | None) -> int | None:
     """
     Returns the deployment ID the token is for, if token is valid
     """
     if not token:
-        return ""
+        return None
 
     deployment = auth.get_deployment_from_token(token)
-    return str(deployment.id) if deployment else ""
+    return deployment.id if deployment else None
 
 
 def run_git_command(workspace_dir: str | None, args: list[str]) -> str:

@@ -31,6 +31,7 @@ from semgrep.mcp.utilities.utils import get_deployment_id_from_token
 from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
+from semgrep.metrics import MetricsState
 from semgrep.state import get_state
 from semgrep.tracing import _DEFAULT_ENDPOINT
 from semgrep.tracing import _DEV_ENDPOINT
@@ -130,24 +131,28 @@ def is_tracing_disabled() -> bool:
 @contextmanager
 def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
     """Initialize OpenTelemetry tracing."""
+    state = get_state()
+
     if is_tracing_disabled():
+        state.metrics.configure(MetricsState.OFF)
         yield None
     else:
         (endpoint, env) = get_trace_endpoint()
 
-        token = os.environ.get("SEMGREP_APP_TOKEN", get_semgrep_app_token())
+        deployment_id = get_deployment_id_from_token(get_semgrep_app_token())
 
-        state = get_state()
         state.traces.configure(
             True,
             endpoint,
             MCP_SERVICE_NAME,
             {
                 "metrics.is_hosted": is_hosted(),
-                "metrics.deployment_id": get_deployment_id_from_token(token),
+                "metrics.deployment_id": str(deployment_id) if deployment_id else "",
                 "metrics.anonymous_user_id": get_anonymous_user_id(),
             },
         )
+
+        state.metrics.configure(MetricsState.ON)
 
         with TRACER.start_as_current_span(name) as span:
             trace_id = trace.format_trace_id(span.get_span_context().trace_id)
@@ -183,6 +188,7 @@ P = ParamSpec("P")
 
 def with_tool_span(
     span_name: str | None = None,
+    send_metrics: bool = True,
 ) -> Callable[
     [Callable[Concatenate[Context, P], Awaitable[R]]],
     Callable[Concatenate[Context, P], Awaitable[R]],
@@ -204,8 +210,18 @@ def with_tool_span(
             context = ctx.request_context.lifespan_context
             name = span_name or func.__name__
 
+            state = get_state()
+            # Clear the metrics set by the previous tool call
+            state.metrics.clear_mcp()
+            state.metrics.add_mcp(
+                deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
+                tool_name=name,
+            )
+
             with with_span(context.top_level_span, name):
-                return await func(ctx, *args, **kwargs)
+                result = await func(ctx, *args, **kwargs)
+                state.metrics.send()
+                return result
 
         return wrapper
 

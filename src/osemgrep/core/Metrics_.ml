@@ -230,6 +230,7 @@ let default_payload =
         git_username = None;
         git_repo = None;
         git_branch = None;
+        tool_name = None;
       };
   }
 

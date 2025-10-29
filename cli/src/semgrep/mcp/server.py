@@ -915,7 +915,9 @@ async def semgrep_scan_cli(
             shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-@with_tool_span()
+@with_tool_span(
+    send_metrics=False
+)  # Don't send metrics for this because we send metrics for each RPC call from the daemon
 async def semgrep_scan_rpc(
     ctx: Context,
     workspace_dir: str | None,
@@ -1005,7 +1007,9 @@ async def semgrep_scan_remote(
     return await semgrep_scan_core(ctx, None, validated_code_files)
 
 
-@with_tool_span()
+@with_tool_span(
+    send_metrics=False
+)  # Don't send metrics for this because it is a wrapper for either the rpc scan or the cli scan
 async def semgrep_scan(
     ctx: Context,
     code_files: list[CodePath] = LOCAL_CODE_FILES_FIELD,

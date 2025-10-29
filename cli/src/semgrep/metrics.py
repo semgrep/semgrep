@@ -493,16 +493,21 @@ class Metrics:
         except Exception as e:
             self.log_exception("add_extension", e)
 
+    def clear_mcp(self) -> None:
+        self.payload.mcp = Mcp()
+        self.payload.performance.totalBytesScanned = None
+        self.payload.performance.numRules = None
+        self.payload.environment.deployment_id = None
+
     def add_mcp(
         self,
         deployment_id: Optional[int],
-        session_id: Optional[str],
-        num_findings: Optional[int],
+        tool_name: Optional[str],
     ) -> None:
         try:
+            self.payload.environment.deployment_id = deployment_id
             self.payload.mcp = Mcp(
-                session_id=session_id,
-                num_findings=num_findings,
+                tool_name=tool_name,
             )
         except Exception as e:
             self.log_exception("add_mcp", e)
