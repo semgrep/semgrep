@@ -39,12 +39,6 @@ let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
     l
 [@@tracing]
 
-let wrap_timeout ~clock t f =
- fun x -> Eio.Time.with_timeout clock t (fun () -> Ok (f x))
-
-let wrap_timeout_exn ~clock t f =
- fun x -> Eio.Time.with_timeout_exn clock t (fun () -> f x)
-
 let yield () =
   (* If we fail to get the context during yielding, we're not running in Eio. *)
   try Eio.Fiber.yield () with

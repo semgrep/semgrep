@@ -12,8 +12,11 @@
 *)
 type 'a t = 'a Lazy.t * 'a Eio.Lazy.t
 
-(* Protect is closest to normal Lazy behavior *)
-let default_cancel_kind = `Protect
+(* Record is closest to normal Lazy behavior *)
+(* From Lazy.force_val: *)
+(* If the computation of x raises an exception, it is unspecified whether
+   force_val x raises the same exception or Lazy.Undefined. *)
+let default_cancel_kind = `Record
 let from_val v = (Lazy.from_val v, Eio.Lazy.from_val v)
 
 let from_fun ?(cancel = default_cancel_kind) f =

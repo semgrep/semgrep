@@ -867,17 +867,17 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   let caps = (caps :> < Cap.time_limit >) in
   let timeout : Match_rules.timeout_config option =
     let caps = (caps :> < Cap.time_limit >) in
-    let clock : float Eio.Time.clock_ty Eio.Std.r option =
+    let eio =
       match config.par_conf with
-      | Parallelism_config.Process -> None
-      | Parallelism_config.Eio_executor pf -> Some pf.env#clock
+      | Parallelism_config.Process -> false
+      | Parallelism_config.Eio_executor _ -> true
     in
     Some
       {
         timeout = config.timeout;
         threshold = config.timeout_threshold;
         caps;
-        clock;
+        eio;
       }
   in
   (* !!Calling Match_rules!! Calling the matching engine!! *)

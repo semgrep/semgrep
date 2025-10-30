@@ -35,7 +35,7 @@ val string_of_timeout_info : timeout_info -> string
 val set_timeout :
   < Cap.time_limit > ->
   name:string ->
-  eio_clock:_ Eio.Time.clock option ->
+  ?eio:bool ->
   float ->
   (unit -> 'a) ->
   'a option
@@ -45,7 +45,7 @@ val set_timeout :
 *)
 val set_timeout_opt :
   name:string ->
-  eio_clock:_ Eio.Time.clock option ->
+  ?eio:bool ->
   (float * < Cap.time_limit >) option ->
   (unit -> 'a) ->
   'a option
