@@ -31,6 +31,7 @@ from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import CodePath
 from semgrep.mcp.models import Finding
 from semgrep.mcp.models import SemgrepScanResult
+from semgrep.mcp.semgrep import is_tracing_disabled
 from semgrep.mcp.semgrep import mk_context
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.semgrep import run_semgrep_process_sync
@@ -225,6 +226,8 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
     # if no config is provided to allow for either the default "auto"
     # or whatever the logged in config is
     args = ["scan", "--json", "--experimental"]  # avoid the extra exec
+    if not is_tracing_disabled():
+        args.extend(["--x-output-mcp-scan-results"])
     if config:
         args.extend(["--config", config])
     args.append(temp_dir)
@@ -700,7 +703,9 @@ async def semgrep_scan_with_custom_rule(
         output = await run_semgrep_output(top_level_span=None, args=args)
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
 
-        attach_scan_metrics(get_current_span(), results, workspace_dir)
+        attach_scan_metrics(
+            get_current_span(), results, workspace_dir, validated_code_files
+        )
 
         remove_temp_dir_from_results(results, temp_dir)
         return results
@@ -892,7 +897,7 @@ async def semgrep_scan_cli(
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
         remove_temp_dir_from_results(results, temp_dir)
 
-        attach_scan_metrics(get_current_span(), results, workspace_dir)
+        attach_scan_metrics(get_current_span(), results, workspace_dir, code_files)
 
         return results
 
@@ -935,7 +940,7 @@ async def semgrep_scan_rpc(
         context: SemgrepContext = ctx.request_context.lifespan_context
         results = await run_semgrep_via_rpc(context, workspace_dir, code_files)
 
-        attach_scan_metrics(get_current_span(), results, workspace_dir)
+        attach_scan_metrics(get_current_span(), results, workspace_dir, code_files)
 
         return results
     except McpError as e:

@@ -143,6 +143,7 @@ val o_x_ignore_semgrepignore_files : bool Cmdliner.Term.t
 val o_x_tr : bool Cmdliner.Term.t
 val o_x_pro_naming : bool Cmdliner.Term.t
 val o_x_group_taint_rules : bool Cmdliner.Term.t
+val o_x_output_mcp_scan_results : bool Cmdliner.Term.t
 
 val engine_type_conf :
   oss:bool ->

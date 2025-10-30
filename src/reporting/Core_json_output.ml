@@ -774,6 +774,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     version = Version.version;
     symbol_analysis = res.symbol_analysis;
     subprojects = None;
+    mcp_scan_results = None;
   }
 [@@profiling]
 

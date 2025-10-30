@@ -25,6 +25,7 @@ from mcp.server.fastmcp.server import Context
 from opentelemetry import trace
 from ruamel.yaml import YAML
 
+from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.utilities.utils import get_anonymous_user_id
 from semgrep.mcp.utilities.utils import get_deployment_id_from_token
@@ -60,6 +61,8 @@ def attach_git_info(span: trace.Span | None, workspace_dir: str | None) -> None:
     span.set_attribute("metrics.git_info.username", git_info["username"])
     span.set_attribute("metrics.git_info.repo", git_info["repo"])
     span.set_attribute("metrics.git_info.branch", git_info["branch"])
+    state = get_state()
+    state.metrics.add_mcp_git_info(git_info)
 
 
 def attach_metrics(
@@ -70,6 +73,7 @@ def attach_metrics(
     findings: list[dict[str, Any]],
     errors: list[dict[str, Any]],
     workspace_dir: str | None,
+    num_lines_scanned: int,
 ) -> None:
     if span is None:
         return
@@ -80,6 +84,7 @@ def attach_metrics(
     span.set_attribute("metrics.num_errors", len(errors))
     attach_git_info(span, workspace_dir)
     span.set_attribute("metrics.anonymous_user_id", get_anonymous_user_id())
+    span.set_attribute("metrics.num_lines_scanned", num_lines_scanned)
     # TODO: the actual findings and errors (not just the number). This might require
     # us setting up Datadog metrics and not just tracing.
 
@@ -88,9 +93,11 @@ def attach_scan_metrics(
     span: trace.Span | None,
     results: SemgrepScanResult,
     workspace_dir: str | None,
+    code_files: list[CodeFile],
 ) -> None:
     if span is None:
         return
+    num_lines_scanned = sum(len(file.content.splitlines()) for file in code_files)
     attach_metrics(
         span,
         results.version,
@@ -99,7 +106,10 @@ def attach_scan_metrics(
         results.results,
         results.errors,
         workspace_dir,
+        num_lines_scanned,
     )
+    state = get_state()
+    state.metrics.add_mcp_scan_metrics(results, num_lines_scanned)
 
 
 ################################################################################
@@ -211,16 +221,18 @@ def with_tool_span(
             name = span_name or func.__name__
 
             state = get_state()
-            # Clear the metrics set by the previous tool call
-            state.metrics.clear_mcp()
-            state.metrics.add_mcp(
-                deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
-                tool_name=name,
-            )
+            if send_metrics:
+                # Clear the metrics set by the previous tool call
+                state.metrics.clear_mcp()
+                state.metrics.add_mcp(
+                    deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
+                    tool_name=name,
+                )
 
             with with_span(context.top_level_span, name):
                 result = await func(ctx, *args, **kwargs)
-                state.metrics.send()
+                if send_metrics:
+                    state.metrics.send()
                 return result
 
         return wrapper
