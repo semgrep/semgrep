@@ -6,6 +6,15 @@
 
 <!-- insertion point -->
 
+## [1.141.1](https://github.com/semgrep/semgrep/releases/tag/v1.141.1) - 2025-10-29
+
+
+### Fixed
+
+
+- Rule parsing in 1.139.0 was switched to happen solely in semgrep-core. This caused some users to exit with code 7, so this change has been reverted. (saf-2265)
+
+
 ## [1.141.0](https://github.com/semgrep/semgrep/releases/tag/v1.141.0) - 2025-10-23
 
 
