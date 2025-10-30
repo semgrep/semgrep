@@ -156,11 +156,13 @@ let rlvals_of_node = function
   | NGoto _
   | Join ->
       []
+  | NCase (scrutinee, _pattern) -> [ lval_of_var scrutinee ]
   | NInstr x -> rlvals_of_instr x
   | NCond (_, e)
   | NReturn (_, e)
   | NThrow (_, e) ->
       lvals_of_exp e
+  | NMatch _scrutinee -> []
   | NOther _
   | NTodo _ ->
       []
@@ -180,6 +182,8 @@ let orig_of_node = function
       | Related _ ->
           Some e.eorig
       | NoOrig -> orig_of_tok tok)
+  | NMatch _ -> None
+  | NCase (scrutinee, _) -> orig_of_tok (snd scrutinee.ident)
   | NInstr i -> Some i.iorig
   | TrueNode e
   | FalseNode e ->

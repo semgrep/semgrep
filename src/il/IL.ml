@@ -430,6 +430,7 @@ and stmt_kind =
   | Instr of instr
   (* Switch are converted to a series of If *)
   | If of tok * exp * stmt list * stmt list
+  | Match of pattern_match
   (* While/DoWhile/For are converted in a unified Loop construct.
    * Break/Continue are handled via Label.
    * alt: we could go further and transform in If+Goto, but nice to
@@ -457,6 +458,15 @@ and other_stmt =
   | Noop of (* for debugging purposes *) string
 
 and label = ident * G.sid
+and pattern_match = { scrutinee : name; branches : pattern_branch list }
+and pattern_branch = { pattern : pattern_spec; body : stmt list }
+
+and pattern_spec =
+  | PatLiteral of G.literal
+  | PatWildcard
+  | PatVariable of name
+  | PatConstructor of
+      name * name list (* name option list? for internal wildcards? *)
 
 (*****************************************************************************)
 (* Defs *)
@@ -495,6 +505,12 @@ and node_kind =
   | NGoto of tok * label
   | NReturn of tok * exp
   | NThrow of tok * exp
+  | NMatch of name
+  (* NCase follows NMatch, and the pattern spec is some condition to
+     test against the scrutinee. The scrutinee is stored redundantly here
+     to allow the transfer function to operate locally without looking at
+     predecessor nodes. *)
+  | NCase of name * pattern_spec
   | NOther of other_stmt
   | NTodo of stmt
 [@@deriving

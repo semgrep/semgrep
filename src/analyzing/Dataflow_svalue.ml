@@ -346,6 +346,9 @@ let rec transfer :
     | NGoto _
     | NReturn _
     | NThrow _
+    | NMatch _
+    (* TODO: can register some assumptions *)
+    | NCase _
     | NOther _
     | NTodo _ ->
         inp'

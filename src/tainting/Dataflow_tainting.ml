@@ -1719,6 +1719,29 @@ let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
   in
   (taints, shape, lval_env)
 
+(* Check taint for a pattern case and bind pattern variables to the scrutinee's taint *)
+let check_tainted_case env scrutinee pattern : Lval_env.t =
+  (* Get taint from the scrutinee *)
+  let taints, shape, _sub, lval_env =
+    check_tainted_lval env (IL_helpers.lval_of_var scrutinee)
+  in
+  let taints =
+    taints |> Taints.union (Shape.gather_all_taints_in_shape shape)
+  in
+  let bound_vars =
+    match pattern with
+    | PatLiteral _
+    | PatWildcard ->
+        (* Nothing to bind, so no taint to add. *)
+        []
+    | PatVariable var -> [ var ]
+    | PatConstructor (_ctor, args) -> args
+  in
+  List.fold_left
+    (fun env arg ->
+      env |> Lval_env.add_lval { base = Var arg; rev_offset = [] } taints)
+    lval_env bound_vars
+
 let effects_from_arg_updates_at_exit (pro_hooks : Taint_pro_hooks.t option)
     ~in_lambda ~enter_env exit_env : Effect.poly list =
   match pro_hooks with
@@ -1810,6 +1833,9 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
         let effects = effects_of_tainted_return env taints shape tok in
         record_effects env effects;
         lval_env'
+    | NCase (scrutinee, pattern) -> check_tainted_case env scrutinee pattern
+    (* Do nothing here - pattern bindings are handled in NCase *)
+    | NMatch _
     | NGoto _
     | Enter
     | Exit

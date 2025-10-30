@@ -341,6 +341,27 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let newi = state.g#add_node (IL.mk_node (F.NOther x)) in
       state.g |> add_arc_from_opt (previ, newi);
       CfgFirstLast (newi, Some newi, false)
+  | Match { scrutinee; branches } ->
+      let matchi = state.g#add_node (IL.mk_node (F.NMatch scrutinee)) in
+      state.g |> add_arc_from_opt (previ, matchi);
+      let nodes =
+        List_.map
+          (fun ({ pattern; body } : IL.pattern_branch) ->
+            let casei =
+              state.g#add_node (IL.mk_node (F.NCase (scrutinee, pattern)))
+            in
+            state.g |> add_arc (matchi, casei);
+            cfg_stmt_list state (Some casei) body)
+          branches
+      in
+      let throws =
+        List.fold_left
+          (fun any_branch_throws (_, throws) -> any_branch_throws || throws)
+          false nodes
+      in
+      let lasti = state.g#add_node (IL.mk_node F.Join) in
+      List.iter (fun (node, _) -> add_arc_from_opt (node, lasti) state.g) nodes;
+      CfgFirstLast (matchi, Some lasti, throws)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
 and cfg_todo state previ stmt =
@@ -410,6 +431,8 @@ and mark_at_exit_nodes cfg =
     | NCond _
     | TrueNode _
     | FalseNode _
+    | NMatch _
+    | NCase _
     | Enter ->
         ()
   in

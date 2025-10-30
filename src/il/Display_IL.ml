@@ -130,6 +130,17 @@ let short_string_of_node_kind nkind =
             (IL.show_call_special call_special)
             (string_of_arguments args)
       | FixmeInstr _ -> "<fix-me instr>")
+  | NMatch scrutinee -> Common.spf "match %s" (str_of_name scrutinee)
+  | NCase (_scrutinee, case) ->
+      Common.spf "with %s"
+        (match case with
+        | PatLiteral lit -> string_of_literal lit
+        | PatWildcard -> "_"
+        | PatVariable var -> str_of_name var
+        | PatConstructor (ctor, params) ->
+            fst ctor.ident ^ "("
+            ^ String.concat ", " (List_.map str_of_name params)
+            ^ ")")
   | NTodo _ -> "<to-do stmt>"
 
 let short_string_of_node node =
