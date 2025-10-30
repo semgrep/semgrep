@@ -24,7 +24,7 @@ let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
    *)
   Eio.Switch.run @@ fun sw ->
   let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
-  let pool = Eio.Executor_pool.create ~sw ~domain_count domain_mgr in
+  let pool = Executor_pool.create ~sw ~domain_count domain_mgr in
 
   (* nosemgrep: no-logs-in-library *)
   Logs.debug (fun m ->
@@ -35,7 +35,7 @@ let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)
       (* Please see the comment block in [Hook.ml] concerning safe values of
        * [weight], if you are intending on changing it! *)
-      Eio.Executor_pool.submit pool ~weight:1.0 (fun () -> f elem))
+      Executor_pool.submit pool ~weight:1.0 (fun () -> f elem))
     l
 [@@tracing]
 
