@@ -9,11 +9,11 @@ object MatchTaintLiteral3 {
 
     x match {
       case 1 if y > 0 =>
-        // todoproruleid: taint-match-literal
+        // ruleid: taint-match-literal
         sink(tainted)
       case 2 => ()
       case 3 =>
-        // todoproruleid: taint-match-literal
+        // ruleid: taint-match-literal
         sink(tainted)
       case _ => ()
     }

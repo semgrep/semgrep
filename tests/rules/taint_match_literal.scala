@@ -9,7 +9,7 @@ object MatchTaintLiteral {
 
     status match {
       case 200 =>
-        // todoproruleid: taint-match-literal
+        // ruleid: taint-match-literal
         sink(tainted)
       case 404 => ()
       case _ => ()

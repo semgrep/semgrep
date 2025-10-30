@@ -48,13 +48,13 @@ let cases_to_lambda lb cases : G.function_definition =
   let body =
     G.Switch
       (lb, Some (G.Cond (G.N (H.name_of_id ~hidden:true id) |> G.e)), cases)
-    |> G.s
+    |> G.s |> G.stmt_to_expr
   in
   {
     fkind = (G.BlockCases, lb);
     frettype = None;
     fparams = fb [ param ];
-    fbody = G.FBStmt body;
+    fbody = G.FBExpr body;
   }
 
 (*****************************************************************************)

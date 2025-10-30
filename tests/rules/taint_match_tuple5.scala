@@ -11,9 +11,9 @@ object MatchTaintTuple5 {
 
     tup match {
       case (x, y) =>
-        // ok: taint-match-tuple
+        // protodook: taint-match-tuple
         sink(x)
-        // todoproruleid: taint-match-tuple
+        // proruleid: taint-match-tuple
         sink(y)
     }
   }
