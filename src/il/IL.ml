@@ -17,66 +17,69 @@ module G = AST_generic
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Intermediate Language (IL) for static analysis.
- *
- * Just like for the CST -> AST, the goal of an AST -> IL transformation
- * is to simplify things even more for program analysis purposes.
- *
- * Here are the simplifications done compared to the generic AST:
- *  - intermediate 'instr' type (instr for instruction), for expressions with
- *    side effects and statements without any control flow,
- *    moving Assign/Seq/Call/Conditional out of 'expr' and
- *    moving Assert out of 'stmt'
- *  - new expression type 'exp' for side-effect free expressions
- *  - intermediate 'lvalue' type; expressions are split into
- *    lvalue vs regular expressions, moved Dot/Index out of expr
- *
- *  - Assign/Calls are now instructions, not expressions, and no more Seq
- *  - no AssignOp, or Decr/Incr, just Assign
- *  - Lambdas are now instructions (not nested again)
- *
- *  - no For/Foreach/DoWhile/While, converted all to Loop,
- *  - no Foreach, converted to a Loop and 2 new special
- *  - no Switch, converted to Ifs
- *  - no Continue/Break, converted to goto
- *  - less use of expr option (in Return/Assert/...), use Unit in those cases
- *
- *  - no Sgrep constructs
- *  - Naming has been performed, no more ident vs name
- *
- * TODO:
- *   - TODO? have all arguments of Calls be variables?
- *
- *
- * Note that we still want to be close to the original code so that
- * error reported on the IL can be mapped back to error on the original code
- * (source "maps"), or more importantly semantic information computed
- * on the IL (e.g., types, svalue, match range, taint) can be mapped back
- * to the generic AST.
- * This is why you will see some 'eorig', 'iorig' fields below and the use of
- * refs such as svalue shared with the generic AST.
- * TODO? alt: store just the range and id_info_id, so easy to propagate back
- * info to generic AST or to return match ranges to semgrep.
- *
- * history:
- *  - cst_php.ml (was actually called ast_php.ml)
- *  - ast_php.ml (was called ast_php_simple.ml)
- *  - pil.ml, still for PHP
- *  - IL.ml for AST generic
- *
- * related work:
- *  - CIL, C Intermediate Language, Necula et al, CC'00
- *  - RIL, The Ruby Intermediate Language, Furr et al, DLS'09
- *  - SIL? in Infer? or more a generic AST than a generic IL?
- *  - Rust IL?
- *  - C-- in OCaml? too low-level?
- *  - LLVM IR (but too far away from original code? complicated
- *    source maps)
- *  - BRIL https://capra.cs.cornell.edu/bril/ used for teaching
- *  - gcc RTL (too low-level? similar to 3-address code?)
- *  - SiMPL language in BAP/BitBlaze dynamic analysis libraries
- *    but probably too close to assembly/bytecode
- *  - Jimpl in Soot/Wala
+(** Intermediate Language (IL) for static analysis.
+
+  = Key Design Principles =
+
+  1. 3-address-code intermediate representation inspired by CIL.
+      Complex expressions with side effects are broken down into
+      sequences of simpler statements.
+     Example: f(g()) becomes: tmp1 = g(); tmp2 = f(tmp1)
+
+  2. Control Flow de-sugaring: control structures are translated into
+     plain loops and ifs.
+
+  3. Error Recovery: Unsupported or problematic constructs are wrapped in
+     {!fixme} nodes ({!FixmeExp}, {!FixmeInstr}, {!FixmeStmt}.
+     Please refer to {!fixme_kind} for kinds of Fixme nodes.
+
+  4. Connection to original source code.
+     To generate findings, IL and semantic information computed
+     on the IL (e.g., types, svalue, match range, taint) can be mapped back
+     to the generic AST (source "maps").
+     To do this, IL records have 'eorig', 'iorig' fields and use of refs to
+     generic AST objects such as svalue.
+
+  = Additional simplifications =
+   - instruction type: {!instr}, for expressions with
+     side effects and statements without any control flow,
+     moving Assign/Seq/Call/Conditional out of 'expr' and
+     moving Assert out of 'stmt'
+   - expression type: {!exp} for side-effect free expressions
+   - intermediate {!lvalue} type; expressions are split into
+     lvalue vs regular expressions, moved Dot/Index out of expr
+   - Assign/Calls are instructions, not expressions, and no more Seq
+   - no AssignOp, or Decr/Incr, just Assign
+   - Lambdas are instructions (not nested again)
+   - less use of expr option (in Return/Assert/...), use Unit in those cases
+
+   - no Sgrep constructs
+   - Naming has been performed, no more ident vs name
+
+  = TODO =
+    - Have all arguments of Calls be variables?
+    - Store just the range and id_info_id, so easy to propagate back
+      info to generic AST or to return match ranges to semgrep?
+
+  history:
+   - cst_php.ml (was actually called ast_php.ml)
+   - ast_php.ml (was called ast_php_simple.ml)
+   - pil.ml, still for PHP
+   - IL.ml for AST generic
+
+  related work:
+   - CIL, C Intermediate Language, Necula et al, CC'00
+   - RIL, The Ruby Intermediate Language, Furr et al, DLS'09
+   - SIL? in Infer? or more a generic AST than a generic IL?
+   - Rust IL?
+   - C-- in OCaml? too low-level?
+   - LLVM IR (but too far away from original code? complicated
+     source maps)
+   - BRIL https://capra.cs.cornell.edu/bril/ used for teaching
+   - gcc RTL (too low-level? similar to 3-address code?)
+   - SiMPL language in BAP/BitBlaze dynamic analysis libraries
+     but probably too close to assembly/bytecode
+   - Jimpl in Soot/Wala
  *)
 
 (*****************************************************************************)
@@ -96,15 +99,20 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 
 type ident = G.ident [@@deriving show]
 
-(* 'sid' below is the result of name resolution and variable disambiguation
- * using a gensym (see Naming_AST.ml). A name is guaranteed to be
- * global and unique (no need to handle variable shadowing, block scoping,
- * etc; this has been done already).
+(*
  * TODO: use it to also do SSA! so some control-flow insensitive analysis
  * can become control-flow sensitive? (e.g., DOOP)
  *
  *)
-type name = { ident : ident; sid : G.sid; id_info : G.id_info }
+type name = {
+  ident : ident;  (** In-code identifier *)
+  sid : G.sid;
+      (** Globally unique identifier for analysis.
+          Result of name resolution and variable disambiguation using a gensym (see Naming_AST.ml).
+          No need to handle variable shadowing, block scoping, etc; this has been done already).
+          {!Gensym.MkId.unsafe_default} if unresolved. *)
+  id_info : G.id_info;  (** Additional information about this identifier *)
+}
 [@@deriving show]
 
 let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
