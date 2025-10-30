@@ -381,6 +381,7 @@ def _handle_lockfile_source(
             # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
             return DependencyResolutionResult(
                 deps=(
+                    # TODO: move resolution method determination into ocaml
                     out.ResolutionMethod(out.LockfileParsing())
                     if use_nondynamic_ocaml_parsing
                     else out.ResolutionMethod(out.DynamicResolution()),
@@ -391,6 +392,16 @@ def _handle_lockfile_source(
             )
         else:
             logger.verbose(f"Falling back to Python implementation")
+
+            if parser is None:
+                logger.verbose(
+                    f"No python parser available, marking resolution as failed"
+                )
+                return DependencyResolutionResult(
+                    deps=out.UnresolvedReason(out.UnresolvedFailed()),
+                    errors=resolved_deps.new_errors,
+                    targets=resolved_deps.new_targets,
+                )
     # if there is no parser or ecosystem for the lockfile, we can't resolve it
     # also skip resolving with python parsers is use_experimental_ocaml_parsers
     # is enabled, since this flag means that _only_ ocaml parsers should be used

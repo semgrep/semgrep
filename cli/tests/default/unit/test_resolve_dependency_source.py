@@ -39,7 +39,7 @@ def test_handle_missing_parser_for_lockfile(mock_parsers_dict) -> None:
                 out.Fpath("pyproject.toml"),
             ),
             out.Lockfile(
-                out.LockfileKind(value=out.UvLock()),
+                out.LockfileKind(value=out.GradleLockfile()),
                 out.Fpath("uv.lock"),
             ),
         ),

@@ -1,0 +1,1 @@
+Failures in parsing UV lockfiles are now correctly reported as "Failed" rather than "Unsupported"
