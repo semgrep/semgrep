@@ -1,1 +1,0 @@
-UV lockfiles that include editable and local dependencies without versions are now parsed correctly. The unversioned dependencies will be ignored.
