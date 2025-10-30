@@ -1,0 +1,11 @@
+rules:
+  - id: taint-match-literal
+    message: Tainted data reaches sink through match expression with literal patterns
+    languages:
+      - scala
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink($X)

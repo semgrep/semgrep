@@ -1,0 +1,11 @@
+rules:
+  - id: taint-match-tuple
+    message: Tainted data reaches sink through match expression with tuple/record patterns
+    languages:
+      - scala
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink($X)
