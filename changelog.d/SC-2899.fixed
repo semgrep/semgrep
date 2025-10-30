@@ -1,1 +1,0 @@
-build.gradle.kts files now resolve correctly when `--allow-local-builds` is passed.
