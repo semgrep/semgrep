@@ -404,7 +404,7 @@ let parsing_common
                    (fun () ->
                      Time_limit.set_timeout
                        (caps :> < Cap.time_limit >)
-                       ~name:"Test_parsing.parsing_common" ~eio_clock:None
+                       ~name:"Test_parsing.parsing_common" ~eio:false
                        timeout_seconds
                        (fun () -> Parse_target.parse_and_resolve_name lang file))
                with

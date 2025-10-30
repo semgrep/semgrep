@@ -38,7 +38,7 @@ let tests (caps : < Cap.time_limit >)
                  let lang = Lang.lang_of_filename_exn file in
                  Naming_AST.resolve lang ast;
                  match
-                   Time_limit.set_timeout caps ~name:"cst_prop" ~eio_clock:None
+                   Time_limit.set_timeout caps ~name:"cst_prop" ~eio:false
                      timeout_secs (fun () ->
                        Constant_propagation.propagate_basic lang ast;
                        Constant_propagation.propagate_dataflow lang ast)

@@ -288,8 +288,8 @@ let parse2 opt_timeout (filename : Fpath.t) =
   in
   let items =
     match
-      Time_limit.set_timeout_opt ~eio_clock:None ~name:"Parse_js.parse"
-        opt_timeout (fun () -> aux tr)
+      Time_limit.set_timeout_opt ~eio:false ~name:"Parse_js.parse" opt_timeout
+        (fun () -> aux tr)
     with
     | Some res -> res
     | None ->
