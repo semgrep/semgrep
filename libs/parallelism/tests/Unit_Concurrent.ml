@@ -80,6 +80,83 @@ let test_fiber_local_concurrent_map () =
   assert (Result.is_ok (Result_.collect res));
   Alcotest.(check int) __LOC__ 0 (H.get h)
 
+type test_t = { x : int; y : string }
+
+(* Executor_pool.ml is like the eio executor pool but with the property that if
+   an exception happens not on the normal stack and is not caught, it resolves
+   the promise and restarts the domain, continuing on with more work.
+
+   One example of where this can happen an asynchronous exception being raised
+   in effect code, e.g. a gc alarm in eio scheduling code. *)
+let test_concurrent_map_async_exception () =
+  let f i =
+    (* Use atomic to ensure that we only run the gc alarm in code we can recover
+       and retry on*)
+    let alarm_running = Atomic.make false in
+    let _ =
+      Gc.create_alarm (fun () ->
+          if Atomic.get alarm_running then
+            raise (Failure (Printf.sprintf "GC Alarm triggered: %d" i)))
+    in
+    (* Functon that will allocate some stuff while yielding a lot in hopes we
+       trigger a gc alarm in eio scheduling code *)
+    let rec f' () =
+      try
+        Atomic.set alarm_running true;
+        let random_list =
+          List.init 1000 (fun _ ->
+              Eio.Fiber.yield ();
+              { x = Random.int 100000; y = string_of_int (Random.int 100000) })
+        in
+        let _sorted = List.sort compare random_list in
+        Eio.Fiber.yield ();
+        Atomic.set alarm_running false;
+        (* if we reach here we haven't triggered the gc alarm so let's retry *)
+        f' ()
+      with
+      | Failure _ ->
+          (* If we reach here we HAVE triggered the gc alarm but not in eio
+           scheduling code so retry *)
+          Atomic.set alarm_running false;
+          f' ()
+    in
+    f' ()
+  in
+  Eio_main.run @@ fun env ->
+  let conf =
+    match Parallelism_config.create env with
+    | Parallelism_config.Eio_executor conf -> conf
+    | _ ->
+        Alcotest.fail
+          "Failed to get a Parallelism_config.Eio_executor from a \
+           Parallelism_config.create"
+  in
+  (* Run 3 jobs on 2 domains to ensure that domains restart *)
+  let l = List.init 3 (fun i -> i + 1) in
+  let res = Concurrent.map ~conf ~domain_count:2 f l in
+  let search ~term str =
+    try Some (Str.search_forward (Str.regexp_string term) str 0) with
+    | Not_found -> None
+  in
+
+  let contains ~term str = search ~term str <> None in
+  match Result_.collect res with
+  | Ok _ -> Alcotest.fail "Expected exception but got Ok"
+  | Error e when contains ~term:"GC Alarm triggered" (Printexc.to_string e) ->
+      (* Make sure length of res is 3 exceptions, i.e. we actually restarted a
+         domain and kept trying work *)
+      (* assume that the rest of the exceptions are the same :shrug: *)
+      let exns =
+        (* nosemgrep: no-list-filter-map *)
+        List.filter_map
+          (function
+            | Error e -> Some e
+            | Ok _ -> None)
+          res
+      in
+      Alcotest.(check int) "All 3 jobs returned exceptions" 3 (List.length exns)
+  | Error e -> Alcotest.failf "Unexpected exception: %s" (Printexc.to_string e)
+
 (* Ensures that we can set a deadline on a fiber with the exceptions-oriented API. *)
 let test_wrap_timeout_exn () =
   let result_of_exn f () =
@@ -204,4 +281,6 @@ let tests =
       t "test_wrap_timeout" test_wrap_timeout;
       t "test_concurrent_map_timeouts" test_concurrent_map_timeouts;
       t "test_burn" test_burn;
+      t "test_concurrent_map_async_exception"
+        test_concurrent_map_async_exception;
     ]
