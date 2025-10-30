@@ -28,7 +28,7 @@ let
             owner = "semgrep";
             repo = "ocaml";
             rev = "5.3.0-semgrep";
-            sha256 = "sha256-FUzl8OZQDGhvEMwP6BGft9UAQXG/LrDMxG1NvviGlkM=";
+            sha256 = "sha256-AS7NGKvkP2ChFYpy763hAHdHx1feluS4VgBrszZz4vU=";
           };
         });
         conf-libpcre = addPkgConfig prev.conf-libpcre;
