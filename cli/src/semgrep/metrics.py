@@ -504,12 +504,14 @@ class Metrics:
     def add_mcp(
         self,
         deployment_id: Optional[int],
+        session_id: str,
         tool_name: Optional[str],
     ) -> None:
         try:
             self.payload.environment.deployment_id = deployment_id
             self.payload.mcp = Mcp(
                 tool_name=tool_name,
+                session_id=session_id,
             )
         except Exception as e:
             self.log_exception("add_mcp", e)
