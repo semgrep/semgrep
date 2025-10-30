@@ -40,6 +40,7 @@ from semgrep import __VERSION__
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
+from semgrep.mcp.models import SemgrepScanResult
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
@@ -51,6 +52,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Environment
 from semgrep.semgrep_interfaces.semgrep_metrics import Errors
 from semgrep.semgrep_interfaces.semgrep_metrics import Extension
 from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
+from semgrep.semgrep_interfaces.semgrep_metrics import Finding
 from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
 from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
@@ -511,6 +513,50 @@ class Metrics:
             )
         except Exception as e:
             self.log_exception("add_mcp", e)
+
+    def add_mcp_scan_metrics(
+        self,
+        results: SemgrepScanResult,
+        num_lines_scanned: int,
+    ) -> None:
+        try:
+            total_bytes_scanned = int(
+                results.mcp_scan_results.get("total_bytes_scanned") or 0
+            )
+            rules = list(results.mcp_scan_results.get("rules") or [])
+            # Fill in the some of the performance fields from the MCP scan results that we actually use
+            self.payload.performance.totalBytesScanned = total_bytes_scanned
+            self.payload.performance.numRules = len(rules)
+            self.payload.mcp.num_skipped_rules = len(results.skipped_rules)
+            self.payload.mcp.rules = rules
+            self.payload.mcp.num_scanned_files = len(results.paths["scanned"])
+            self.payload.mcp.num_findings = len(results.results)
+            self.payload.mcp.findings = [
+                (
+                    finding["check_id"],
+                    Finding(
+                        path=finding["path"],
+                        line=finding["start"]["line"],
+                        col=finding["start"]["col"],
+                        offset=finding["start"]["offset"],
+                        severity=finding["extra"]["severity"],
+                    ),
+                )
+                for finding in results.results
+            ]
+            self.payload.mcp.errors = [error["message"] for error in results.errors]
+            self.payload.mcp.num_lines = num_lines_scanned
+        except Exception as e:
+            self.log_exception("add_mcp_scan", e)
+
+    def add_mcp_git_info(self, git_info: Optional[dict[str, str]]) -> None:
+        try:
+            if git_info:
+                self.payload.mcp.git_username = git_info["username"]
+                self.payload.mcp.git_repo = git_info["repo"]
+                self.payload.mcp.git_branch = git_info["branch"]
+        except Exception as e:
+            self.log_exception("add_mcp_git_info", e)
 
     def as_json(self) -> str:
         value = self.payload.to_json()

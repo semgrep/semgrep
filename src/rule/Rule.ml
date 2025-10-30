@@ -782,6 +782,11 @@ let hrules_of_rules (rules : 'mode rule_info list) :
     (Rule_ID.t, 'mode rule_info) Hashtbl.t =
   rules |> List_.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
 
+let rules_of_hrules (hrules : hrules) : string list =
+  hrules |> Hashtbl.to_seq
+  |> Seq.map (fun (rule_id, _) -> Rule_ID.to_string rule_id)
+  |> List.of_seq
+
 let partition_rules (rules : rules) :
     search_rule list * taint_rule list * extract_rule list * steps_rule list =
   let rec part_rules search taint extract step = function

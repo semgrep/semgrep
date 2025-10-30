@@ -113,6 +113,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       interfile_languages_used = Some [];
       symbol_analysis = None;
       subprojects = None;
+      mcp_scan_results = None;
     }
   in
   Core_runner_result.{ core; hrules; scanned }

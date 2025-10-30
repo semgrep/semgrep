@@ -55,6 +55,8 @@ type conf = {
   skipped_files : bool;
   (* alt: in CLI_common.conf *)
   max_log_list_entries : int;
+  (* Used when outputting MCP scan results. *)
+  output_mcp_scan_results : bool;
 }
 [@@deriving show]
 
@@ -70,6 +72,7 @@ let default : conf =
     fips_mode = false;
     skipped_files = false;
     max_log_list_entries = 100;
+    output_mcp_scan_results = false;
   }
 
 (* used with max_log_list_entries *)
@@ -252,6 +255,24 @@ let output_result (caps : < Cap.stdout >) (conf : conf)
       {
         cli_output with
         paths = { scanned = cli_output.paths.scanned; skipped = None };
+      }
+    else cli_output
+  in
+  let cli_output =
+    if conf.output_mcp_scan_results then
+      let total_bytes_scanned =
+        res.scanned |> Fpath_.Fpath_set.elements
+        |> List_.map (fun path ->
+               match UFile.filesize path with
+               | Ok n -> n
+               | Error _ -> 0)
+        |> Common2.sum_int
+      in
+      {
+        cli_output with
+        mcp_scan_results =
+          Some
+            { rules = res.hrules |> Rule.rules_of_hrules; total_bytes_scanned };
       }
     else cli_output
   in

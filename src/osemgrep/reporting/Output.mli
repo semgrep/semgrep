@@ -34,6 +34,8 @@ type conf = {
    * in the log output.
    *)
   max_log_list_entries : int;
+  (* Used when outputting MCP scan results. *)
+  output_mcp_scan_results : bool;
 }
 [@@deriving show]
 

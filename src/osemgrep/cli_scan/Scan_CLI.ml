@@ -1031,6 +1031,16 @@ let o_x_group_taint_rules : bool Term.t =
   let info = Arg.info [ "x-group-taint-rules" ] ~doc:"<internal, do not use>" in
   Arg.value (Arg.flag info)
 
+let o_x_output_mcp_scan_results : bool Term.t =
+  let info =
+    Arg.info
+      [ "x-output-mcp-scan-results" ]
+      ~doc:
+        {|[INTERNAL] Outputs extra info (e.g. rules, num bytes scanned) at the end of the scan for the MCP server to use.|}
+      ~docs:Cmdliner.Manpage.s_none
+  in
+  Arg.value (Arg.flag info)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -1368,7 +1378,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
       use_git _use_semgrepignore_v2 validate version version_check vim
       vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long x_tr x_pro_naming
-      x_group_taint_rules =
+      x_group_taint_rules x_output_mcp_scan_results =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
@@ -1422,6 +1432,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
           | Some (Info | Debug) -> true
           | _else_ -> false);
         max_log_list_entries;
+        output_mcp_scan_results = x_output_mcp_scan_results;
       }
     in
 
@@ -1599,7 +1610,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_timeout_interfile $ o_timeout_threshold $ o_use_git
     $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
     $ o_vim_outputs $ o_x_ignore_semgrepignore_files $ o_x_ls $ o_x_ls_long
-    $ o_x_tr $ o_x_pro_naming $ o_x_group_taint_rules)
+    $ o_x_tr $ o_x_pro_naming $ o_x_group_taint_rules
+    $ o_x_output_mcp_scan_results)
 
 let doc = "run semgrep rules on files"
 

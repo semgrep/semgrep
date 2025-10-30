@@ -49,6 +49,9 @@ class SemgrepScanResult(BaseModel):
     skipped_rules: list[str] = Field(
         description="List of rules that were skipped during scan", default_factory=list
     )
+    mcp_scan_results: dict[str, Any] = Field(
+        description="MCP scan results", default_factory=dict
+    )
 
 
 class ExternalTicket(BaseModel):
