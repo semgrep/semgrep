@@ -10,7 +10,7 @@ object MatchTaintLiteral2 {
     code match {
       case 1 => ()
       case 2 =>
-        // todoproruleid: taint-match-literal
+        // ruleid: taint-match-literal
         sink(tainted)
       case 3 => ()
       case _ => ()

@@ -10,7 +10,7 @@ object MatchTaintTuple2 {
 
     tup match {
       case (a, b, c) =>
-        // todoproruleid: taint-match-tuple
+        // proruleid: taint-match-tuple
         sink(b)
     }
   }

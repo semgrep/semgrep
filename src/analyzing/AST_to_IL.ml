@@ -288,6 +288,21 @@ let is_constructor env ret_ty id_info =
       | _ -> false)
   | _ -> false
 
+type compile_pattern_matching_fn =
+  env ->
+  cond_with_pre_stmts:(env -> G.condition -> stmt list * exp) ->
+  stmt_expr_with_pre_stmts:(env -> G.stmt -> stmt list * exp) ->
+  G.condition ->
+  G.case_and_body list ->
+  stmt list * exp
+(** Hook for Pro pattern matching compilation.
+
+    The implementation is provided by Pro code via Pro_AST_to_IL.with_pro_hooks.
+    If not set, pattern matching features will not be available (OSS limitation). *)
+
+let hook_compile_pattern_matching : compile_pattern_matching_fn option Hook.t =
+  Hook.create None
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -1343,6 +1358,19 @@ and stmt_expr env ?g_expr st =
         | Some e_gen -> SameAs e_gen
       in
       mk_e (Fetch fresh) eorig
+  | G.Switch (_tok, Some scrutinee, branches) when Lang.(equal env.lang Scala)
+    -> (
+      match Hook.get hook_compile_pattern_matching with
+      | Some compile_fn ->
+          let ss, e =
+            compile_fn env ~cond_with_pre_stmts ~stmt_expr_with_pre_stmts
+              scrutinee branches
+          in
+          add_stmts env ss;
+          e
+      | None ->
+          stmt env st |> add_stmts env;
+          todo ())
   | G.Block (_, block, _) -> (
       (* See 'AST_generic.stmt_to_expr' *)
       match List.rev block with
@@ -1513,7 +1541,8 @@ and type_opt_with_pre_stmts env opt_ty =
 and no_switch_fallthrough : Lang.t -> bool = function
   | Go
   | Ruby
-  | Rust ->
+  | Rust
+  | Scala ->
       true
   | _ -> false
 
@@ -1806,7 +1835,7 @@ and stmt_aux env st =
     ->
       (* Python's `raise E1 from E2` *)
       let todo_stmt = fixme_stmt ToDo (G.E from) in
-      todo_stmt @ stmt_aux env throw_stmt
+      todo_stmt @ stmt env throw_stmt
   | G.Try (_tok, try_st, catches, opt_else, opt_finally) ->
       try_catch_else_finally env ~try_st ~catches ~opt_else ~opt_finally
   | G.WithUsingResource (_, stmt1, stmt2) ->
@@ -1985,7 +2014,10 @@ and cases_and_bodies_to_stmts env tok break_label translate_cases = function
       (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
 
 and stmt env st =
-  try stmt_aux env st with
+  try
+    let pre, post = with_pre_stmts env (fun env -> stmt_aux env st) in
+    pre @ post
+  with
   | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 and function_body env fbody =

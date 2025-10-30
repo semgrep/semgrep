@@ -9,7 +9,7 @@ object MatchTaintConstructor {
     val wrapped = Some(tainted)
 
     wrapped match {
-      // todoproruleid: taint-match-constructor
+      // proruleid: taint-match-constructor
       case Some(x) => sink(x)
       case None => ()
     }

@@ -1,0 +1,8 @@
+Pro: improved taint handling of `match` expressions in Scala. In examples like
+```scala
+val x = taint match {
+    case Some(t) => t
+    case None => return "example"
+}
+```
+dataflow should now track taint from `taint` to `x`.
