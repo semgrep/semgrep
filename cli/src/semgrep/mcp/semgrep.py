@@ -14,6 +14,7 @@ import asyncio
 import json
 import os
 import subprocess
+import uuid
 from typing import Any
 
 from mcp.shared.exceptions import McpError
@@ -44,6 +45,7 @@ class SemgrepContext:
     stdin: asyncio.StreamWriter | None
     stdout: asyncio.StreamReader | None
     top_level_span: trace.Span | None
+    session_id: str
 
     is_hosted: bool
     pro_engine_available: bool
@@ -55,6 +57,7 @@ class SemgrepContext:
         is_hosted: bool,
         pro_engine_available: bool,
         use_rpc: bool | None,
+        session_id: str,
         process: asyncio.subprocess.Process | None = None,
     ) -> None:
         self.process = process
@@ -62,6 +65,7 @@ class SemgrepContext:
         self.is_hosted = is_hosted
         self.pro_engine_available = pro_engine_available
         self.use_rpc = use_rpc
+        self.session_id = session_id
 
         if process is None:
             self.stdin = None
@@ -208,10 +212,11 @@ async def run_semgrep_process_sync(
 
 async def spawn_semgrep_daemon(
     top_level_span: trace.Span | None,
+    session_id: str,
 ) -> asyncio.subprocess.Process:
-    logger.info("Spawning `semgrep mcp` daemon...")
+    logger.info("Spawning `semgrep mcp` daemon with session_id: %s", session_id)
     return await run_semgrep_process_async(
-        top_level_span, ["mcp", "--experimental", "--pro"]
+        top_level_span, ["mcp", "--experimental", "--pro", "--session-id", session_id]
     )
 
 
@@ -227,6 +232,7 @@ async def mk_context(top_level_span: trace.Span | None) -> SemgrepContext:
     """
     process = None
     pro_engine_available = True
+    session_id = str(uuid.uuid4())
 
     # TODO: Should rename this env var if we ever use the daemon for non-strictly RPC scanning
     use_rpc_value = os.environ.get("USE_SEMGREP_RPC", None)
@@ -267,20 +273,23 @@ async def mk_context(top_level_span: trace.Span | None) -> SemgrepContext:
                     """
                 )
             else:
-                process = await spawn_semgrep_daemon(top_level_span)
+                process = await spawn_semgrep_daemon(top_level_span, session_id)
         elif use_rpc_value.lower() == "true":
-            process = await spawn_semgrep_daemon(top_level_span)
+            process = await spawn_semgrep_daemon(top_level_span, session_id)
         elif use_rpc_value.lower() == "false":
             logger.info(
                 f"USE_SEMGREP_RPC env var is {use_rpc_value}, not running `semgrep mcp` daemon..."
             )
-    return SemgrepContext(
+
+    context = SemgrepContext(
         top_level_span=top_level_span,
         is_hosted=is_hosted(),
         pro_engine_available=pro_engine_available,
         process=process,
         use_rpc=None if use_rpc_value is None else use_rpc_value.lower() == "true",
+        session_id=session_id,
     )
+    return context
 
 
 async def run_semgrep_output(top_level_span: trace.Span | None, args: list[str]) -> str:

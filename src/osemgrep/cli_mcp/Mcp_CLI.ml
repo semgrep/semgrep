@@ -25,15 +25,20 @@ module H = Cmdliner_
 (* Types and constants *)
 (*****************************************************************************)
 
-type conf = { common : CLI_common.conf } [@@deriving show]
+type conf = { common : CLI_common.conf; session_id : string } [@@deriving show]
 
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
 
+let o_session_id : string Term.t =
+  let open Cmdliner in
+  let doc = "Session ID to use for this MCP daemon instance (required)" in
+  Arg.(required & opt (some string) None & info [ "session-id" ] ~doc)
+
 let cmdline_term : conf Term.t =
-  let combine common = { common } in
-  Term.(const combine $ CLI_common.o_common)
+  let combine common session_id = { common; session_id } in
+  Term.(const combine $ CLI_common.o_common $ o_session_id)
 
 let doc = "(experimental) MCP server mode!!"
 

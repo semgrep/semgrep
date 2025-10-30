@@ -226,6 +226,7 @@ def with_tool_span(
                 state.metrics.clear_mcp()
                 state.metrics.add_mcp(
                     deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
+                    session_id=context.session_id,
                     tool_name=name,
                 )
 
