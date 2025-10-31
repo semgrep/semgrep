@@ -63,7 +63,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import Language
-from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
@@ -259,6 +258,7 @@ class StreamingSemgrepCore:
         """
         stdout_lines: List[bytes] = []
         num_total_targets: int = self._total
+        completed_targets: int = 0
 
         # Progress indicator bytes that we see from semgrep-core stdout
         progress_bytes = b".\r\n" if IS_WINDOWS else b".\n"
@@ -340,6 +340,7 @@ class StreamingSemgrepCore:
                 # So a dot counts as 1 progress if running Pro, but 3 progress if
                 # running the OSS engine.
                 advanced_targets = 1 if self._engine_type.is_interfile else 3
+                completed_targets += advanced_targets
 
                 if self._progress_bar and self._progress_bar_task_id is not None:
                     self._progress_bar.update(
@@ -360,6 +361,33 @@ class StreamingSemgrepCore:
                 # so increase the buffer read size.
                 reading_json = True
                 get_input = lambda s: s.read(n=LARGE_READ_SIZE)
+
+        # Check to make sure all targets were reported by semgrep-core as completed. See
+        # SAF-2079 for a discussion of when they haven't all been.
+        #
+        # NOTE: If you change this error message, please also change the message in
+        # test_progress_report_when_errors in
+        # e2e/test_semgrep_core_parse_error.py. (Should there instead be a shared
+        # constant?)
+        if completed_targets < num_total_targets:
+            logger.debug(
+                "Not all targets were reported by semgrep-core as completed, only %d/%d",
+                completed_targets,
+                num_total_targets,
+            )
+            # It's hard to get progress reporting totally correct, but we're all done now,
+            # so force the progress bar to 100%.
+            if self._progress_bar and self._progress_bar_task_id is not None:
+                self._progress_bar.update(
+                    self._progress_bar_task_id,
+                    advance=num_total_targets - completed_targets,
+                )
+        elif completed_targets > num_total_targets:
+            logger.debug(
+                "More targets were reported by semgrep-core as completed than total registered, %d/%d",
+                completed_targets,
+                num_total_targets,
+            )
 
     async def _core_stderr_processor(
         self, stream: Optional[asyncio.StreamReader]
@@ -1086,10 +1114,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             if state.terminal.is_debug:
                 cmd += ["-debug"]
 
-            show_progress = state.get_cli_ux_flavor() != DesignTreatment.MINIMAL
-            total = (
-                plan.num_targets * 3 if show_progress else 0
-            )  # Multiply by 3 for Pro Engine
+            # Multiply by 3 for Pro Engine
+            total = plan.num_targets * 3
 
             logger.debug("Running Semgrep engine with command:")
             logger.debug(" ".join(cmd))
@@ -1322,9 +1348,9 @@ Exception raised: `{e}`
                 *configs,
             ]
 
-            # only scanning combined rules
-            show_progress = get_state().get_cli_ux_flavor() != DesignTreatment.MINIMAL
-            total = 1 if show_progress else 0
+            # only scanning combined rules. Only 1 target, but total is 3 to account for
+            # Pro Engine
+            total = 3
 
             runner = StreamingSemgrepCore(
                 cmd, total=total, engine_type=self._engine_type, capture_stderr=True
