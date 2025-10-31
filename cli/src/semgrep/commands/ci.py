@@ -465,6 +465,7 @@ def ci(
 
         fix_head_if_github_action(metadata)
 
+        rules_string = None
         try:
             # Note this needs to happen within fix_head_if_github_action
             # so that metadata of current commit is correct
@@ -542,7 +543,7 @@ def ci(
                 if partial_config:
                     config = (str(partial_config),)
                 else:
-                    config = (scan_handler.rules,)
+                    rules_string = scan_handler.rules
 
         except Exception as e:
             import traceback
@@ -682,7 +683,8 @@ def ci(
             "scanning_roots": [scanning_root],
             "pattern": None,
             "lang": None,
-            "configs": config,
+            "rules_string": rules_string,
+            "config_strs": config,
             "no_rewrite_rule_ids": (not rewrite_rule_ids),
             "dump_command_for_core": dump_command_for_core,
             "jobs": jobs,

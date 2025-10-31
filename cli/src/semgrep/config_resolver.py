@@ -63,7 +63,6 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
 from semgrep.util import is_config_suffix
-from semgrep.util import is_rules
 from semgrep.util import is_semgrep_url
 from semgrep.util import is_url
 from semgrep.util import with_color
@@ -152,10 +151,13 @@ class ConfigLoader:
             self._origin = ConfigType.REGISTRY
 
     @classmethod
-    def includes_remote_config(cls, configs: Sequence[str]) -> bool:
+    def includes_remote_config(cls, configs: Optional[Sequence[str]]) -> bool:
         """
         Returns True if any of the configs are remote
         """
+        if not configs:
+            return False
+
         return any(
             config == AUTO_CONFIG_KEY
             or config == "r2c"
@@ -1029,41 +1031,3 @@ def is_secrets(config_str: str) -> bool:
 
 def is_pack_id(config_str: str) -> bool:
     return config_str[:2] == "p/"
-
-
-@tracing.trace()
-def get_config(
-    pattern: Optional[str],
-    lang: Optional[str],
-    config_strs: Sequence[str],
-    *,
-    project_url: Optional[str],
-    replacement: Optional[str] = None,
-    no_rewrite_rule_ids: bool = False,
-    force_jsonschema: bool = False,
-    no_python_schema_validation: bool = False,
-) -> Tuple[Config, List[SemgrepError]]:
-    if pattern:
-        if not lang:
-            raise SemgrepError("language must be specified when a pattern is passed")
-        config, errors = Config.from_pattern_lang(pattern, lang, replacement)
-    elif len(config_strs) == 1 and is_rules(config_strs[0]):
-        config, errors = Config.from_rules_yaml(
-            config_strs[0],
-            no_rewrite_rule_ids=no_rewrite_rule_ids,
-            force_jsonschema=force_jsonschema,
-            no_python_schema_validation=no_python_schema_validation,
-        )
-    elif replacement:
-        raise SemgrepError(
-            "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
-        )
-    else:
-        config, errors = Config.from_config_list(
-            config_strs,
-            project_url,
-            force_jsonschema=force_jsonschema,
-            no_python_schema_validation=no_python_schema_validation,
-        )
-
-    return config, errors

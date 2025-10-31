@@ -23,7 +23,7 @@ import click
 
 from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
-from semgrep.config_resolver import get_config
+from semgrep.config_resolver import Config
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.git import get_project_url
 from semgrep.state import get_state
@@ -167,7 +167,10 @@ def _upload_rule(
         test_code_file: optional test case to attach with the rule
     """
     state = get_state()
-    config, errors = get_config(None, None, [str(rule_file)], project_url=None)
+    config, errors = Config.from_config_list(
+        configs=[str(rule_file)],
+        project_url=None,
+    )
 
     if errors:
         click.echo(

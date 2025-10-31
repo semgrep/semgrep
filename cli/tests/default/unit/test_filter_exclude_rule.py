@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from semgrep.config_resolver import get_config
+from semgrep.config_resolver import Config
 from semgrep.exclude_rules import filter_exclude_rule
 
 MAX_RULES_TO_EXCLUDE = 10
@@ -23,12 +23,11 @@ MAX_RULES_TO_EXCLUDE = 10
 
 @pytest.mark.slow
 def test_parse_exclude_rules_auto() -> None:
-    configs_obj, _ = get_config(
-        pattern=None,
-        lang=None,
-        config_strs=("auto",),
+    configs_obj, _ = Config.from_config_list(
+        configs=("auto",),
         project_url="git@github.com/returntocorp/semgrep",
     )
+
     all_rules = configs_obj.get_rules(False)
     rule_excluded: Any = map(lambda r: r.id, sample(all_rules, MAX_RULES_TO_EXCLUDE))
 

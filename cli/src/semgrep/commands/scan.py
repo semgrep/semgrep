@@ -34,7 +34,6 @@ from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
 import semgrep.app.auth as auth
-import semgrep.config_resolver
 import semgrep.run_scan
 import semgrep.test
 from semgrep import __VERSION__
@@ -45,6 +44,8 @@ from semgrep.app.version import get_too_many_findings_msg
 from semgrep.app.version import TOO_MANY_FINDINGS_THRESHOLD
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
+from semgrep.config_resolver import adjust_for_docker
+from semgrep.config_resolver import Config
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
@@ -818,7 +819,7 @@ def scan(
 
         # change cwd if using docker
         if not scanning_roots:
-            semgrep.config_resolver.adjust_for_docker()
+            adjust_for_docker()
             scanning_roots = (os.curdir,)
 
         outputs = collect_additional_outputs(
@@ -888,20 +889,24 @@ def scan(
             if validate:
                 if not (pattern or lang or config):
                     logger.error(
-                        f"Nothing to validate, use the --config or --pattern flag to specify a rule"
+                        "Nothing to validate, use the --config or --pattern flag to specify a rule"
                     )
                 else:
-                    (
-                        resolved_configs,
-                        config_errors,
-                    ) = semgrep.config_resolver.get_config(
-                        pattern,
-                        lang,
-                        config or [],
-                        project_url=get_project_url(),
-                        force_jsonschema=True,
-                        no_python_schema_validation=x_no_python_schema_validation,
-                    )
+                    if pattern:
+                        if not lang:
+                            raise SemgrepError(
+                                "language must be specified when a pattern is passed"
+                            )
+                        resolved_configs, config_errors = Config.from_pattern_lang(
+                            pattern, lang
+                        )
+                    else:
+                        resolved_configs, config_errors = Config.from_config_list(
+                            config or [],
+                            get_project_url(),
+                            force_jsonschema=True,
+                            no_python_schema_validation=x_no_python_schema_validation,
+                        )
 
                     # Run `semgrep-core -check_rules` on the config files. This
                     # checks that the files are parsable by the OCaml rule
@@ -973,7 +978,7 @@ def scan(
                         scanning_roots=scanning_roots,
                         pattern=pattern,
                         lang=lang,
-                        configs=(config or ["auto"]),
+                        config_strs=(config or ["auto"]),
                         no_rewrite_rule_ids=(not rewrite_rule_ids),
                         jobs=jobs,
                         include=include,
