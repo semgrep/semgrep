@@ -61,3 +61,25 @@ def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
         errors,
         "errors.txt",
     )
+
+
+# Ensure that errors thrown during semgrep-core's analysis don't
+# disrupt it reporting progress for all targets. See SAF-2079.
+#
+# NOTE: This test won't fail if the code that issues the warning is
+# removed or the message is changed. Catching that case would require
+# some more extensive mocking and refactoring to support mocking,
+# which I judged is not warranted just to ensure the progress bar
+# always gets to 100%.
+@pytest.mark.kinda_slow
+@skip_on_windows  # better backslash replacement logic
+def test_progress_report_when_errors(run_semgrep_in_tmp: RunSemgrep):
+    _results, stderr = run_semgrep_in_tmp(
+        config="rules/eqeq-basic-c.yaml",
+        target_name="bad/invalid_c_long.c",
+        options=["--verbose", "--no-time"],
+        output_format=OutputFormat.JSON,
+        force_color=True,
+        assert_exit_code=3,
+    )
+    assert "Not all targets were reported by semgrep-core as completed" not in stderr

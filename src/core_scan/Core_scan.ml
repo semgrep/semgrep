@@ -734,6 +734,10 @@ let iter_targets_and_get_matches_and_exn_to_errors
               in
               (Core_result.mk_match_result [] errors noprof, true))
     in
+    (* This goes *outside* the catch-all exception handler so that we
+     * always report that a target has finished, whether or not it
+     * succeeded. *)
+    print_cli_progress config;
     let scanned_target = if was_scanned then Some target else None in
     (Core_result.add_run_time internal_path (Some run_time) res, scanned_target)
   in
@@ -910,7 +914,6 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
       *)
   config.file_match_hook
   |> Option.iter (fun hook -> hook (Target.internal_path target) matches);
-  print_cli_progress config;
   (matches, was_scanned)
 
 (* coupling: with Pro_scan.core_scan_exn() *)
