@@ -61,7 +61,7 @@ def test_parse_taint_rules():
     config = yaml["testfile"].value
     rules = config.get(RULES_KEY)
     for rule_dict in rules.value:
-        validate_single_rule("testfile", rule_dict)
+        validate_single_rule(rule_dict)
     assert True
 
 

@@ -18,7 +18,6 @@ import time
 from collections import OrderedDict
 from enum import auto
 from enum import Enum
-from functools import lru_cache
 from pathlib import Path
 from tempfile import mkstemp
 from typing import Any
@@ -33,6 +32,7 @@ from urllib.parse import urlencode
 
 import click
 import requests
+from packaging.version import Version
 from ruamel.yaml import YAMLError
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -48,6 +48,7 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import InvalidRuleSchemaError
+from semgrep.error import RULE_PARSE_FAILURE_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.error_location import SourceTracker
@@ -58,7 +59,13 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_config_preserve_spans
 from semgrep.rule_lang import prepend_rule_path
-from semgrep.rule_lang import validate_yaml
+from semgrep.rule_lang import remove_incompatible_version_yamltree
+from semgrep.rule_lang import RpcValidationError
+from semgrep.rule_lang import run_rpc_validate_exn
+from semgrep.rule_lang import validate_file_rpc
+from semgrep.rule_lang import validate_rules
+from semgrep.rule_lang import validate_string_json_schema
+from semgrep.rule_lang import version_error
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
@@ -582,35 +589,29 @@ class Config:
 
     @classmethod
     @tracing.trace()
-    @lru_cache(maxsize=None)
-    def from_rules_yaml(
+    def from_rules_string(
         cls,
-        config: str,
-        no_rewrite_rule_ids: bool = False,
+        raw_rules: str,
         force_jsonschema: bool = False,
         no_python_schema_validation: bool = False,
     ) -> Tuple["Config", List[SemgrepError]]:
-        config_dict: Dict[str, YamlTree] = {}
-        errors: List[SemgrepError] = []
+        if not raw_rules:
+            return cls({}), [
+                SemgrepError(
+                    "Empty rule string cannot be loaded",
+                    code=RULE_PARSE_FAILURE_EXIT_CODE,
+                )
+            ]
 
         try:
-            resolved_config_key = CLOUD_PLATFORM_CONFIG_ID
-            config_data, config_errors = parse_config_string(
-                resolved_config_key,
-                config,
-                filename=None,
-                no_rewrite_rule_ids=no_rewrite_rule_ids,
-                force_jsonschema=force_jsonschema,
-                no_python_schema_validation=no_python_schema_validation,
+            rules, errors = parse_config_string_as_rules(
+                raw_rules,
+                force_jsonschema,
+                no_python_schema_validation,
             )
-            config_dict.update(config_data)
-            errors.extend(config_errors)
+            return cls({CLOUD_PLATFORM_CONFIG_ID: rules}), errors
         except SemgrepError as e:
-            errors.append(e)
-
-        valid, parse_errors, _ = cls._validate(config_dict)
-        errors.extend(parse_errors)
-        return cls(valid), errors
+            return cls({}), [e]
 
     @classmethod
     @tracing.trace()
@@ -716,12 +717,12 @@ class Config:
     @staticmethod
     def _validate(
         config_dict: Mapping[str, YamlTree],
-    ) -> Tuple[Mapping[str, Sequence[Rule]], List[SemgrepError], int]:
+    ) -> Tuple[Mapping[str, List[Rule]], List[SemgrepError], int]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
         errors: List[SemgrepError] = []
-        valid: Dict[str, Any] = {}
+        valid: Dict[str, List[Rule]] = {}
         missed_rule_count = 0
         for config_id, config_yaml_tree in config_dict.items():
             config: YamlMap = config_yaml_tree.value
@@ -746,7 +747,7 @@ class Config:
             valid_rules = []
             for rule_dict in rules.value:
                 try:
-                    rule = validate_single_rule(config_id, rule_dict)
+                    rule = validate_single_rule(rule_dict)
                 except InvalidRuleSchemaError as ex:
                     errors.append(ex)
                 else:
@@ -773,7 +774,7 @@ class Config:
         return valid, errors, missed_rule_count
 
 
-def validate_single_rule(config_id: str, rule_yaml: YamlTree[YamlMap]) -> Rule:
+def validate_single_rule(rule_yaml: YamlTree[YamlMap]) -> Rule:
     """
     Validate that a rule dictionary contains all necessary keys
     and can be correctly parsed.
@@ -837,12 +838,113 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
+def parse_config_string_as_rules(
+    contents: str,
+    force_jsonschema: bool = False,
+    no_python_schema_validation: bool = False,
+) -> Tuple[List[Rule], List[SemgrepError]]:
+    errors: List[SemgrepError] = []
+
+    try:
+        loaded_rules: dict[str, Any] = json.loads(contents)
+        rules = []
+
+        if RULES_KEY not in loaded_rules:
+            raise SemgrepError(
+                f"Rule string (with contents {contents[:40]}...) did not contain rule definitions",
+                code=RULE_PARSE_FAILURE_EXIT_CODE,
+            )
+
+        # Parse all the rules and track which rules need to also be validated by semgrep-core
+        for raw_rule in loaded_rules[RULES_KEY]:
+            try:
+                loaded_rule = Rule.from_json(raw_rule)
+                rules.append(loaded_rule)
+            except Exception as e:
+                errors.append(
+                    SemgrepError(
+                        f"Failed to parse rule: {raw_rule.get('id', 'unknown')}: {str(e)}",
+                        code=RULE_PARSE_FAILURE_EXIT_CODE,
+                    )
+                )
+
+        rules, version_errors = remove_incompatible_version_rules(
+            rules,
+        )
+        errors.extend(version_errors)
+
+        tmp_fd, rules_tmp_path = mkstemp(suffix=".rules", prefix="semgrep-", text=True)
+        with os.fdopen(tmp_fd, "w") as fp:
+            fp.write(contents)
+        logger.debug(f"Saved rules to {rules_tmp_path}")
+
+        source_hash = SourceTracker.add_source(contents)
+        if no_python_schema_validation:
+            validate_file_rpc(
+                source_hash,
+                filename=None,
+                rules_tmp_path=rules_tmp_path,
+            )
+        elif force_jsonschema or not rules_tmp_path:
+            validate_string_json_schema({RULES_KEY: loaded_rules})
+        else:
+            try:
+                if not Path.exists(Path(rules_tmp_path)):
+                    raise NotImplementedError(
+                        "Cannot execute RPC validation without a rules_tmp_path"
+                    )
+                run_rpc_validate_exn(rules_tmp_path=rules_tmp_path)
+                logger.debug("RPC validation succeeded")
+            except (RpcValidationError, NotImplementedError) as e:
+                logger.debug(f"run_rpc_validate failed: {e}")
+                validate_string_json_schema({RULES_KEY: loaded_rules})
+        return (rules, errors)
+
+    finally:
+        os.remove(rules_tmp_path)
+
+
+# This is tightly coupled to remove_incompatible_version_yamltree in rule_lang.py
+# These two functions should be kept in sync, as they perform the same task on slightly
+# different source data.
+@tracing.trace()
+def remove_incompatible_version_rules(
+    rules: List[Rule],
+) -> Tuple[List[Rule], List[SemgrepError]]:
+    errors: List[SemgrepError] = []
+    ok_rules = []
+    for rule in rules:
+        rule_id = rule.id
+        if rule.raw.get("min-version"):
+            min_version = rule.raw["min-version"]
+            if Version(__VERSION__) < Version(min_version):
+                # coupling: we try to print all the same details as
+                # semgrep-core/osemgrep.
+                msg = (
+                    f"This rule requires upgrading Semgrep from version "
+                    f"{__VERSION__} to at least {min_version}"
+                )
+                errors.append(version_error(rule_id, "", msg, min_ver=min_version))
+                continue
+        if rule.raw.get("max-version"):
+            max_version = rule.raw["max-version"]
+            if Version(__VERSION__) > Version(max_version):
+                msg = (
+                    f"This rule is no longer supported by Semgrep. "
+                    f"The last compatible version was {max_version}. "
+                    f"This version of Semgrep is {__VERSION__}"
+                )
+                errors.append(version_error(rule_id, "", msg, max_ver=max_version))
+                continue
+        ok_rules.append(rule)
+    return (ok_rules, errors)
+
+
 @tracing.trace()
 def parse_config_string(
     config_id: str,
     contents: str,
     filename: Optional[str],
-    no_rewrite_rule_ids: bool = False,
     force_jsonschema: bool = False,
     no_python_schema_validation: bool = False,
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
@@ -865,16 +967,17 @@ def parse_config_string(
             # we pretend it came from YAML so we can keep later code simple
             data = YamlTree.wrap(json.loads(contents), EmptySpan)
             source_hash = SourceTracker.add_source(contents)
-            errors.extend(
-                validate_yaml(
-                    data,
-                    source_hash,
-                    filename,
-                    no_rewrite_rule_ids=no_rewrite_rule_ids,
-                    force_jsonschema=force_jsonschema,
-                    no_python_schema_validation=no_python_schema_validation,
-                    rules_tmp_path=rules_tmp_path,
-                )
+            errors = remove_incompatible_version_yamltree(
+                data, filename, no_rewrite_rule_ids=False
+            )
+
+            validate_rules(
+                data,
+                source_hash,
+                filename,
+                force_jsonschema,
+                no_python_schema_validation,
+                rules_tmp_path,
             )
             return ({config_id: data}, errors)
         except json.decoder.JSONDecodeError:

@@ -36,6 +36,8 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
 
+INTERNAL_DEPENDS_ON_KEY = "r2c-internal-project-depends-on"
+
 
 class Rule:
     def __init__(
@@ -183,8 +185,8 @@ class Rule:
 
     @property
     def project_depends_on(self) -> List[Dict[str, str]]:
-        if "r2c-internal-project-depends-on" in self._raw:
-            depends_on = self._raw["r2c-internal-project-depends-on"]
+        if INTERNAL_DEPENDS_ON_KEY in self._raw:
+            depends_on = self._raw[INTERNAL_DEPENDS_ON_KEY]
             if "depends-on-either" in depends_on:
                 dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
                 return dependencies
@@ -195,8 +197,8 @@ class Rule:
 
     @property
     def ecosystems(self) -> Set[Ecosystem]:
-        if "r2c-internal-project-depends-on" in self._raw:
-            depends_on = self._raw["r2c-internal-project-depends-on"]
+        if INTERNAL_DEPENDS_ON_KEY in self._raw:
+            depends_on = self._raw[INTERNAL_DEPENDS_ON_KEY]
             if "depends-on-either" in depends_on:
                 dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
                 return {
