@@ -51,7 +51,6 @@ COPY interfaces ./interfaces
 COPY languages ./languages
 COPY libs ./libs
 COPY src ./src
-COPY tools ./tools
 
 
 ###############################################################################

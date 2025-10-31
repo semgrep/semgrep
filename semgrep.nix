@@ -248,7 +248,6 @@ let
           ./languages
           ./libs
           ./src
-          ./tools
 
           # only needed for testing
           # TODO split out into separate derivation
