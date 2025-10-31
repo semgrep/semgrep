@@ -1108,7 +1108,7 @@ def run_scan(
                 pattern, lang, replacement
             )
         elif rules_string is not None:
-            configs_obj, config_errors = Config.from_rules_yaml(
+            configs_obj, config_errors = Config.from_rules_string(
                 rules_string,
                 no_python_schema_validation=x_no_python_schema_validation,
             )
