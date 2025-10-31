@@ -57,7 +57,6 @@ from semgrep import tracing
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigLoader
-from semgrep.config_resolver import get_config
 from semgrep.console import console
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
@@ -1015,7 +1014,8 @@ def run_scan(
     lang: Optional[str],
     # NOTE: Since the `ci` command reuses this function, we intentionally do
     # not set a default at this level.
-    configs: Sequence[str],
+    config_strs: Optional[Sequence[str]],
+    rules_string: Optional[str] = None,
     no_rewrite_rule_ids: bool = False,
     jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
@@ -1085,7 +1085,7 @@ def run_scan(
     # Step1: loading the rules
     # ----------------------------
     rule_start_time = time.time()
-    includes_remote_config = ConfigLoader.includes_remote_config(configs)
+    includes_remote_config = ConfigLoader.includes_remote_config(config_strs)
     progress_msg = (
         "Loading rules from registry..."
         if includes_remote_config
@@ -1099,15 +1099,30 @@ def run_scan(
         disable=(not sys.stderr.isatty()),
     ) as progress:
         task_id = progress.add_task(f"{progress_msg}", total=1)
-        configs_obj, config_errors = get_config(
-            pattern,
-            lang,
-            configs,
-            replacement=replacement,
-            project_url=project_url,
-            no_rewrite_rule_ids=no_rewrite_rule_ids,
-            no_python_schema_validation=x_no_python_schema_validation,
-        )
+        if pattern:
+            if not lang:
+                raise SemgrepError(
+                    "language must be specified when a pattern is passed"
+                )
+            configs_obj, config_errors = Config.from_pattern_lang(
+                pattern, lang, replacement
+            )
+        elif rules_string is not None:
+            configs_obj, config_errors = Config.from_rules_yaml(
+                rules_string,
+                no_python_schema_validation=x_no_python_schema_validation,
+            )
+        elif config_strs is not None:
+            if replacement:
+                raise SemgrepError(
+                    "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
+                )
+            configs_obj, config_errors = Config.from_config_list(
+                config_strs or [],
+                project_url,
+                no_python_schema_validation=x_no_python_schema_validation,
+            )
+
         progress.remove_task(task_id)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
@@ -1120,7 +1135,7 @@ def run_scan(
         metrics,
         project_url,
         engine_type,
-        configs,
+        config_strs or [],
         configs_obj,
         baseline_commit,
         run_secrets,
@@ -1408,7 +1423,7 @@ def run_scan_and_return_json(
         scanning_roots=[str(t) for t in scanning_roots],
         pattern="",
         lang="",
-        configs=[str(config)],
+        config_strs=[str(config)],
         **kwargs,
     )
 
