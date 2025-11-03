@@ -10,10 +10,10 @@
          attrs = []; tparams = None },
        (TypeDef
           { tbody =
-            (NewType
+            (AliasType
                { t =
                  (TyN
-                    (Id (("A", _),
+                    (Id (("()", _),
                        { id_resolved = ref (None);
                          id_resolved_alternatives = ref ([]);
                          id_type = ref (None); id_svalue = ref (None);
@@ -35,15 +35,32 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("A", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyTuple
+                     (_,
+                      [{ t =
+                         (TyN
+                            (Id (("i32", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         t_attrs = [] };
+                        { t =
+                          (TyN
+                             (Id (("String", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          t_attrs = [] }
+                        ],
+                      _));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -60,15 +77,19 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("A", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyRef (_,
+                     { t =
+                       (TyN
+                          (Id (("B", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -85,15 +106,19 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("C", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyRef (_,
+                     { t =
+                       (TyN
+                          (Id (("str", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -110,16 +135,20 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("D", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
-                  t_attrs = [] })
+                  (TyRef (_,
+                     { t =
+                       (TyN
+                          (Id (("str", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
+                  t_attrs = [(KeywordAttr (Mutable, _))] })
              })));
     s_range = None };
   { s =
@@ -135,15 +164,19 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("A", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyPointer (_,
+                     { t =
+                       (TyN
+                          (Id (("B", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -160,15 +193,19 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("C", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyPointer (_,
+                     { t =
+                       (TyN
+                          (Id (("str", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -185,15 +222,35 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("A", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("B", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyN
+                                           (Id (("C", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (None);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -210,15 +267,48 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("D", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("E", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyN
+                                           (Id (("F", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (None);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] });
+                                    (TA
+                                       { t =
+                                         (TyN
+                                            (Id (("str", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (None);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -235,15 +325,48 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("G", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("H", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyN
+                                           (Id (("a", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (None);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] });
+                                    (TA
+                                       { t =
+                                         (TyN
+                                            (Id (("I", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (None);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -260,15 +383,69 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("J", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("H", _),
+                           (Some (_,
+                                  [(TAExpr
+                                      { e =
+                                        (Assign (
+                                           { e =
+                                             (N
+                                                (Id (("K", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> },
+                                           _,
+                                           { e =
+                                             (OtherExpr (("Type", _),
+                                                [(T
+                                                    { t =
+                                                      (TyN
+                                                         (Id (("L", _),
+                                                            { id_resolved =
+                                                              ref (None);
+                                                              id_resolved_alternatives =
+                                                              ref ([]);
+                                                              id_type =
+                                                              ref (None);
+                                                              id_svalue =
+                                                              ref (None);
+                                                              id_flags =
+                                                              ref (0);
+                                                              id_info_id = _
+                                                              }
+                                                            )));
+                                                      t_attrs = [] })
+                                                  ]
+                                                ));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> }
+                                           ));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -285,10 +462,10 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("A", _),
+                     (Id (("C", _),
                         { id_resolved = ref (None);
                           id_resolved_alternatives = ref ([]);
                           id_type = ref (None); id_svalue = ref (None);
@@ -310,10 +487,10 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("D", _),
+                     (Id (("G", _),
                         { id_resolved = ref (None);
                           id_resolved_alternatives = ref ([]);
                           id_type = ref (None); id_svalue = ref (None);
@@ -335,15 +512,35 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("H", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("J", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyN
+                                           (Id (("K", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (None);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -360,10 +557,10 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("L", _),
+                     (Id (("O", _),
                         { id_resolved = ref (None);
                           id_resolved_alternatives = ref ([]);
                           id_type = ref (None); id_svalue = ref (None);
@@ -385,15 +582,24 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("A", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyArray (
+                     (_,
+                      (Some { e = (L (Int ((Some 4L), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> }),
+                      _),
+                     { t =
+                       (TyN
+                          (Id (("B", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -410,15 +616,24 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("C", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyRef (_,
+                     { t =
+                       (TyArray ((_, None, _),
+                          { t =
+                            (TyN
+                               (Id (("D", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (None);
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )));
+                            t_attrs = [] }
+                          ));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -1197,15 +1412,116 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("F", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyFun (
+                     [(ParamPattern
+                         (PatTyped (
+                            (PatId (("x", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )),
+                            { t =
+                              (TyRef (_,
+                                 { t =
+                                   (TyN
+                                      (Id (("A", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [] }
+                                 ));
+                              t_attrs = [] }
+                            )));
+                       (ParamPattern
+                          (PatTyped (
+                             (PatId (("y", _),
+                                { id_resolved = ref ((Some (Global, _)));
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )),
+                             { t =
+                               (TyRef (_,
+                                  { t =
+                                    (TyN
+                                       (IdQualified
+                                          { name_last =
+                                            (("B", _),
+                                             (Some (_,
+                                                    [(TA
+                                                        { t =
+                                                          (TyN
+                                                             (Id (("i", _),
+                                                                { id_resolved =
+                                                                  ref (None);
+                                                                  id_resolved_alternatives =
+                                                                  ref (
+                                                                  []);
+                                                                  id_type =
+                                                                  ref (None);
+                                                                  id_svalue =
+                                                                  ref (None);
+                                                                  id_flags =
+                                                                  ref (0);
+                                                                  id_info_id =
+                                                                  _ }
+                                                                )));
+                                                          t_attrs = [] });
+                                                      (TA
+                                                         { t =
+                                                           (TyN
+                                                              (Id (("t", _),
+                                                                 { id_resolved =
+                                                                   ref (None);
+                                                                   id_resolved_alternatives =
+                                                                   ref (
+                                                                   []);
+                                                                   id_type =
+                                                                   ref (None);
+                                                                   id_svalue =
+                                                                   ref (None);
+                                                                   id_flags =
+                                                                   ref (0);
+                                                                   id_info_id =
+                                                                   _ }
+                                                                 )));
+                                                           t_attrs = [] })
+                                                      ],
+                                                    _)));
+                                            name_middle = None;
+                                            name_top = None;
+                                            name_info =
+                                            { id_resolved = ref (None);
+                                              id_resolved_alternatives =
+                                              ref ([]); id_type = ref (None);
+                                              id_svalue = ref (None);
+                                              id_flags = ref (0);
+                                              id_info_id = _ }
+                                            }));
+                                    t_attrs = [] }
+                                  ));
+                               t_attrs = [(KeywordAttr (Mutable, _))] }
+                             )))
+                       ],
+                     { t =
+                       (TyN
+                          (Id (("C", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -1222,15 +1538,46 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("a", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyFun (
+                     [(Param
+                         { pname = None;
+                           ptype =
+                           (Some { t =
+                                   (TyPointer (_,
+                                      { t =
+                                        (TyN
+                                           (Id (("c_void", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (None);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] }
+                                      ));
+                                   t_attrs = [] });
+                           pdefault = None; pattrs = [];
+                           pinfo =
+                           { id_resolved = ref (None);
+                             id_resolved_alternatives = ref ([]);
+                             id_type = ref (None); id_svalue = ref (None);
+                             id_flags = ref (0); id_info_id = _ }
+                           })
+                       ],
+                     { t =
+                       (TyN
+                          (Id (("()", _),
+                             { id_resolved = ref (None);
+                               id_resolved_alternatives = ref ([]);
+                               id_type = ref (None); id_svalue = ref (None);
+                               id_flags = ref (0); id_info_id = _ }
+                             )));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -1247,15 +1594,24 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
-                  (TyN
-                     (Id (("b", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                  (TyFun ([],
+                     { t =
+                       (TyPointer (_,
+                          { t =
+                            (TyN
+                               (Id (("c_void", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (None);
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )));
+                            t_attrs = [] }
+                          ));
+                       t_attrs = [] }
+                     ));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -1272,15 +1628,44 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("a", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("Box", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyOr (
+                                           { t =
+                                             (TyN
+                                                (Id (("Something", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             t_attrs = [] },
+                                           _,
+                                           { t =
+                                             (OtherType (("Lifetime", _),
+                                                [(I ("a", _))]));
+                                             t_attrs = [] }
+                                           ));
+                                        t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -1297,15 +1682,35 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("b", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("Rc", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyN
+                                           (Id (("Something", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (None);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };
@@ -1322,15 +1727,86 @@
           attrs = []; tparams = None },
         (TypeDef
            { tbody =
-             (NewType
+             (AliasType
                 { t =
                   (TyN
-                     (Id (("c", _),
-                        { id_resolved = ref (None);
-                          id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
-                          id_flags = ref (0); id_info_id = _ }
-                        )));
+                     (IdQualified
+                        { name_last =
+                          (("A", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyRef (_,
+                                           { t =
+                                             (TyFun (
+                                                [(Param
+                                                    { pname = None;
+                                                      ptype =
+                                                      (Some { t =
+                                                              (TyRef (_,
+                                                                 { t =
+                                                                   (TyN
+                                                                    (Id (
+                                                                    ("B", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                   t_attrs =
+                                                                   [] }
+                                                                 ));
+                                                              t_attrs = [] });
+                                                      pdefault = None;
+                                                      pattrs = [];
+                                                      pinfo =
+                                                      { id_resolved =
+                                                        ref (None);
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (None);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      })
+                                                  ],
+                                                { t =
+                                                  (TyN
+                                                     (Id (("C", _),
+                                                        { id_resolved =
+                                                          ref (None);
+                                                          id_resolved_alternatives =
+                                                          ref ([]);
+                                                          id_type =
+                                                          ref (None);
+                                                          id_svalue =
+                                                          ref (None);
+                                                          id_flags = ref (0);
+                                                          id_info_id = _ }
+                                                        )));
+                                                  t_attrs = [] }
+                                                ));
+                                             t_attrs = [] }
+                                           ));
+                                        t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (None);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
                   t_attrs = [] })
              })));
     s_range = None };

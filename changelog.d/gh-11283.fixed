@@ -1,0 +1,2 @@
+Fixed missing Rust type alias translation. We can now
+accurately match the () type in a `type` declaration.
