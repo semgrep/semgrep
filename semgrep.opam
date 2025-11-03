@@ -50,7 +50,6 @@ depends: [
   "ppx_hash" {>= "v0.17.0"}
   "ppx_inline_test" {>= "v0.17.0"}
   "ppx_sexp_conv" {= "v0.17.0"}
-  "ppx_expect" {>= "v0.17.2"}
   "visitors" {= "20250212"}
   "re" {>= "1.14.0"}
   "conf-libpcre" {= "2"}

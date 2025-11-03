@@ -121,7 +121,6 @@ For more information see https://semgrep.dev
     (ppx_hash (>= v0.17.0))
     (ppx_inline_test (>= v0.17.0))
     (ppx_sexp_conv ( = v0.17.0))
-    (ppx_expect (>= v0.17.2))
     (visitors (= 20250212))
     ; regexps
     (re ( >= 1.14.0))
