@@ -140,7 +140,6 @@ For more information see https://semgrep.dev
     (git (>= 3.18.0))
     ; tracing
     (memtrace (>= 0.2.3))
-    (ppx_trace (>= 0.10))
     (opentelemetry (>= 0.12))
     (opentelemetry-client-ocurl (>= 0.12))
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2

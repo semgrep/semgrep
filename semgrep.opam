@@ -64,7 +64,6 @@ depends: [
   "lsp" {= "1.22.0"}
   "git" {>= "3.18.0"}
   "memtrace" {>= "0.2.3"}
-  "ppx_trace" {>= "0.10"}
   "opentelemetry" {>= "0.12"}
   "opentelemetry-client-ocurl" {>= "0.12"}
   "ocurl" {= "0.9.1"}
