@@ -1398,13 +1398,13 @@ and stmt_expr env ?g_expr st : exp =
       | None ->
           stmt env st |> add_stmts env;
           todo ())
-  | G.Block (_, block, _) -> (
+  | G.Block (t, block, _) -> (
       (* See 'AST_generic.stmt_to_expr' *)
       match List.rev block with
       | st :: rev_sts ->
           rev_sts |> List.rev |> List.concat_map (stmt env) |> add_stmts env;
           stmt_expr env st
-      | __else__ -> todo ())
+      | [] -> mk_unit t (Related (G.S st)))
   | G.Return (t, eorig, _) ->
       mk_s (Return (t, expr_opt env t eorig)) |> add_stmt env;
       expr_opt env t None
