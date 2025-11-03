@@ -60,6 +60,7 @@ For more information see https://semgrep.dev
 ; need to manually trigger the "nix-weekly-update-flake" workflow
   (depends
     ; core deps
+    ; see ppxlib comment for why we can't support 5.4 yet
     (ocaml (>= 5.3.0))
     (dune (>= 3.20.1 ))
     ; parser generators
@@ -114,13 +115,18 @@ For more information see https://semgrep.dev
     ; CLI
     (cmdliner (>= 1.3.0))
     ; PPX
+    ; some ppx libs below don't support 0.36.0 yet
     (ppxlib (>= 0.35.0))
     (ppx_blob (>= 0.9.0))
     (ppx_deriving (>= 6.0.3 ))
     (ppx_deriving_yojson (>= 3.9.1))
+    ; https://github.com/janestreet/ppx_hash/issues/5
     (ppx_hash (>= v0.17.0))
+    ; https://github.com/janestreet/ppx_inline_test/issues/52
     (ppx_inline_test (>= v0.17.0))
+    ; https://github.com/janestreet/ppx_sexp_conv/issues/43
     (ppx_sexp_conv ( = v0.17.0))
+    ; needs bumping once we move to ppxlib 0.36.0
     (visitors (= 20250212))
     ; regexps
     (re ( >= 1.14.0))
@@ -161,6 +167,7 @@ For more information see https://semgrep.dev
     (digestif (>= 1.3.0))
     ; concurrency
     (lwt (>= 5.9.2))
+    ; needs bumping once we move to ppxlib 0.36.0
     (lwt_ppx (>= 5.9.1))
     (conf-libev (and (<> :os win32) (= 4-13))) ; for lwt, to get better FD perf
     ;TODO: this is for secrets and should be in ../dune-project but doing so
@@ -255,7 +262,7 @@ a few other projects developed at r2c.
     ; we're currently "vendoring" pcre2 in libs/pcre2
     ; so no need to get opam to install it
     ;(pcre2 (>= "7.5.3" ))
-    (ppxlib (and (>= "0.25.0") (< "0.36.0")))
+    (ppxlib (>= "0.36.0"))
     (ppx_deriving (>= "5.2.1"))
     (ppx_hash (>= "v0.14.0" ))
     (digestif (>= "1.0.0"))
