@@ -44,11 +44,11 @@ local action_lint_job(checkout_steps, dir='.github/workflows') = {
     {
       uses: 'actions/setup-go@v5',
       with: {
-        'go-version': '1.19',
+        'go-version': '1.24',
       },
     },
     {
-      run: 'go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7',
+      run: 'go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.8',
     },
     {
       run: |||
