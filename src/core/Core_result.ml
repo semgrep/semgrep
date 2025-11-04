@@ -425,5 +425,9 @@ let compare_processed_match (a : processed_match) (b : processed_match) =
   let c = Core_match.compare a.pm b.pm in
   if c <> 0 then c
   else
-    (* fallback for deterministic results *)
-    Stdlib.compare a b
+    try
+      (* fallback for deterministic results *)
+      Stdlib.compare a b
+    with
+    (* If lazy isn't forced this happens sometimes *)
+    | Invalid_argument _ -> 0
