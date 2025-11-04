@@ -16,6 +16,7 @@ import click
 from mcp.server.fastmcp import FastMCP
 
 from semgrep import __VERSION__
+from semgrep.mcp.hooks.post_tool import run_post_tool_scan_cli
 from semgrep.mcp.server import deregister_tools
 from semgrep.mcp.server import register
 from semgrep.mcp.server import server_lifespan
@@ -23,6 +24,8 @@ from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
+
+POST_TOOL_CLI_SCAN_FLAG = "post-tool-cli-scan"
 
 # ---------------------------------------------------------------------------------
 # MCP Server Entry Point
@@ -52,13 +55,32 @@ logger = getLogger(__name__)
     envvar="SEMGREP_MCP_PORT",
     help="Port to use for the MCP server",
 )
-def semgrep_mcp(transport: str, port: int) -> None:
+@click.option(
+    "-k",
+    "--hook",
+    type=click.Choice([POST_TOOL_CLI_SCAN_FLAG]),
+    default=None,
+    help="""Run specified functionality for agent hooks.
+    Currently supports running a Semgrep CLI scan (via PostToolHook)
+    with the Claude Code Agent (post-tool-cli-scan).
+    """,
+)
+def semgrep_mcp(transport: str, port: int, hook: str | None) -> None:
     """Entry point for the MCP server
 
     Supports stdio, streamable-http, and sse transports.
     For stdio, it will read from stdin and write to stdout.
     For streamable-http and sse, it will start an HTTP server on port 8000.
     """
+    # Set environment variable to track scans by MCP
+    os.environ["SEMGREP_MCP"] = "true"
+    os.environ["SEMGREP_USER_AGENT_APPEND"] = "(MCP)"
+
+    if hook == POST_TOOL_CLI_SCAN_FLAG:
+        run_post_tool_scan_cli()
+        return
+
+    # Log the start of the MCP server
     logger.info(f"Starting Semgrep MCP server version v{__VERSION__}")
 
     # Create a fast MCP server
@@ -71,10 +93,6 @@ def semgrep_mcp(transport: str, port: int) -> None:
         lifespan=server_lifespan,
         port=port,
     )
-
-    # Set environment variable to track scans by MCP
-    os.environ["SEMGREP_MCP"] = "true"
-    os.environ["SEMGREP_USER_AGENT_APPEND"] = "(MCP)"
 
     # based on env vars, disable certain tools
     register(mcp)
