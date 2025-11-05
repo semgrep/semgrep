@@ -1,0 +1,1 @@
+Enabled taint tracking into Goroutines, by treating them as regular Go function calls.

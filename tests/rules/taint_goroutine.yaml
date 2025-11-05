@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    languages:
+      - go
+    mode: taint
+    severity: ERROR
+    message: Sample message.
+    pattern-sources:
+      - pattern: $VALUE := source()
+    pattern-sinks:
+      - pattern: sink($VALUE)

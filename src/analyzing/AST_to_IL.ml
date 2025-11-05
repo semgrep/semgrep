@@ -1865,6 +1865,16 @@ and stmt_aux env st : stmt list =
       (* Python's `raise E1 from E2` *)
       let todo_stmt = fixme_stmt ToDo (G.E from) in
       todo_stmt @ stmt env throw_stmt
+  | G.OtherStmt (OS_Go, [ G.E ({ e = G.Call _; _ } as eorig) ]) ->
+      (* Translate the goroutine call as a plain function call.
+         Goroutines' return value, if any, is dismissed. The call
+         is effectively void. *)
+      let ss, _unit = expr_with_pre_stmts env ~void:true eorig in
+      (* This statement is there to document the approximation *)
+      let todo_stmt =
+        fixme_stmt ToDo (G.TodoK ("goroutine", G.fake "goroutine"))
+      in
+      todo_stmt @ ss
   | G.Try (_tok, try_st, catches, opt_else, opt_finally) ->
       try_catch_else_finally env ~try_st ~catches ~opt_else ~opt_finally
   | G.WithUsingResource (_, stmt1, stmt2) ->
