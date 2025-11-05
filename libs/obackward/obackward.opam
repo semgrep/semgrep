@@ -4,8 +4,6 @@ synopsis: "Bindings to backward-cpp"
 description:
   "obackward provides bindings to backward-cpp, a library for catching and pretty printing segfaults"
 license: "LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception"
-homepage: "https://github.com/ajbt200128/obackward"
-bug-reports: "https://github.com/ajbt200128/obackward/issues"
 depends: [
   "dune" {>= "2.7"}
   "ocaml" {>= "5"}
@@ -30,7 +28,6 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/ajbt200128/obackward.git"
 depexts: [
    ["dwarfutils"] {os-family = "homebrew"}
    ["bzip2-static"] {os-family = "alpine"}
