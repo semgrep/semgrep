@@ -69,4 +69,18 @@ val with_pre_stmts : env -> (env -> IL.exp) -> IL.stmt list * IL.exp
 val locate : ?tok:Tok.t -> string -> string
 (** Prepend the token location to [s], if found. *)
 
+val fixme_exp :
+  ?partial:IL.exp -> IL.fixme_kind -> AST_generic.any -> IL.orig -> IL.exp
+(** Translates the given ast node as an expression in the IL whose translation
+    implementation has an issue of the given kind, logging appropriately. A
+    [partial] translation may be recorded. *)
+
+val fixme_instr : IL.fixme_kind -> AST_generic.any -> IL.orig -> IL.instr
+(** Translates the given ast node as an instruction in the IL whose translation
+    implementation has an issue of the given kind, logging appropriately. *)
+
+val fixme_stmt : IL.fixme_kind -> AST_generic.any -> IL.stmt list
+(** Translates the given ast node as a statement in the IL which translation
+    implementation has an issue of the given kind, logging appropriately. *)
+
 val lval_of_base : IL.base -> IL.lval
