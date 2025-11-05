@@ -31,7 +31,6 @@ from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import CodePath
 from semgrep.mcp.models import Finding
 from semgrep.mcp.models import SemgrepScanResult
-from semgrep.mcp.semgrep import is_tracing_disabled
 from semgrep.mcp.semgrep import mk_context
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.semgrep import run_semgrep_process_sync
@@ -226,8 +225,7 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
     # if no config is provided to allow for either the default "auto"
     # or whatever the logged in config is
     args = ["scan", "--json", "--experimental"]  # avoid the extra exec
-    if not is_tracing_disabled():
-        args.extend(["--x-output-mcp-scan-results"])
+    args.extend(["--x-mcp"])
     if config:
         args.extend(["--config", config])
     args.append(temp_dir)
@@ -803,7 +801,7 @@ async def semgrep_scan_sca(
 
     # Do this from the repo so we only scan stuff in there
     os.chdir(workspace_dir)
-    args = ["scan", "--config", "supply-chain", "--json"]
+    args = ["scan", "--config", "supply-chain", "--json", "--x-mcp"]
     output = await run_semgrep_process_sync(context.top_level_span, args)
     os.chdir(cwd)
 

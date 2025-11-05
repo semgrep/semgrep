@@ -629,6 +629,11 @@ class ScanResult:
     "run_secrets_flag",
     is_flag=True,
 )
+@click.option(
+    "--x-mcp",
+    is_flag=True,
+    default=False,
+)
 @scan_options
 @handle_command_errors
 def scan(
@@ -707,6 +712,7 @@ def scan(
     path_sensitive: bool,
     allow_local_builds: bool,
     x_group_taint_rules: bool,
+    x_mcp: bool,
 ) -> Optional[ScanResult]:
     if version:
         print(__VERSION__)
@@ -777,7 +783,9 @@ def scan(
         if dataflow_traces is None:
             dataflow_traces = engine_type.has_dataflow_traces
 
-        state.metrics.configure(metrics)
+        state.metrics.configure(
+            metrics if not x_mcp else MetricsState.OFF
+        )  # the MCP handles metrics separately so metrics should be turn off here to avoid duplicates
         state.terminal.configure(
             verbose=verbose,
             debug=debug,
