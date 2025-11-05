@@ -1,0 +1,17 @@
+rules:
+  - id: doc-string-multi-rule
+    options:
+      match_on_doc_comments: true
+    patterns:
+      - pattern: |
+          /** $X */
+          function $FUNC(...) { ... }
+      - metavariable-pattern:
+          language: generic
+          metavariable: $X
+          pattern: >-
+            @special
+    message: >-
+      This is what is in the docstring: $X
+    languages: [php]
+    severity: INFO

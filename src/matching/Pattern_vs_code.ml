@@ -57,7 +57,9 @@ let hook_r2c_pro_was_here = Hook.create false
  *  - the underlying AST uses some normalization (!= is transformed in !(..=))
  *    to support certain code equivalences (see equivalence: tag)
  *  - we do not care about differences in spaces/indentations/comments.
- *    we work at the AST-level.
+ *    we work at the AST-level -- however, doc-string comments can be matched
+ *    in case the option to do so is enabled (see "match_on_doc_comments" in
+ *    Rule_options)
  *  - other equivalences using global analysis (see deep: tag)
  *
  * alternatives:
@@ -72,6 +74,91 @@ let hook_r2c_pro_was_here = Hook.create false
 (*****************************************************************************)
 (* Extra Helpers *)
 (*****************************************************************************)
+
+
+(**
+ Removes leading /** and trailing */ from the input if present along with any
+ leading and trailing whitespace.
+ *)
+let remove_php_doc_string_delimiters raw =
+  let doc = String.trim raw in
+  if String.starts_with ~prefix:"/**" doc && String.ends_with ~suffix:"*/" doc
+  then String.sub doc 3 (String.length doc - 5) |> String.trim
+  else doc
+
+(**
+ Given a doc-string assumed to occur in a php context, remove
+ the doc-string delimiters and check what remains is a valid
+ meta-variable name.
+
+ For any string of the form "/** $X */", the string "$X" is
+ returned.
+
+ The following string would result in `None` being returned
+ because of the `*` preceding `$X`:
+
+  /**
+   * $X
+   */
+
+  *)
+let extract_metavariable_only s =
+    let trimmed = remove_php_doc_string_delimiters s in
+      if Mvar.is_metavar_name trimmed
+      then Some trimmed
+      else None
+
+(**
+  Remove php doc-string delimiters /** and */ if present
+  and adjust the token range accordingly.
+ *)
+let adjust_info_remove_doc_string_delimiters (s, tok) =
+  match Tok.loc_of_tok tok with
+  | Error _ -> (s, tok)
+  | Ok loc ->
+    let trimmed = remove_php_doc_string_delimiters s in
+    let re = Str.regexp_string trimmed in
+    try
+      let new_pos = Str.search_forward re loc.str 0 in
+      let new_loc = {
+        Loc.str = trimmed;
+        pos = {
+          loc.pos with
+            bytepos = loc.pos.bytepos + new_pos;
+            column = loc.pos.column + new_pos;
+        };
+      }
+      in
+      (trimmed, Tok.OriginTok new_loc)
+    with
+    | Not_found ->
+      Log.debug (fun m ->
+        m "could not find doc-string contents in %s" s);
+      (s, tok)
+
+(**
+  Returns a matcher for doc-string comments.
+
+  In this version, a doc-string pattern can be either interpreted as
+  completely concrete or entirely abstract and bind a given metvariable.
+
+  A doc-string pattern with a meta-variable is of the form "/** $X */".
+  That is, doc-string delimiters surrounding a valid metavariable name.
+  Anything else, is taken as a concrete string pattern.
+*)
+let m_doc_string_metavar_or_string (pat_str, pat_tok) (code_str, code_tok) =
+  with_lang (fun lang ->
+    if Lang.equal Lang.Php lang
+    then
+      let extracted_meta = extract_metavariable_only pat_str in
+      match extracted_meta with
+      | None -> m_string pat_str code_str
+      | Some mv ->
+        let (trimmed_str, trimmed_tok) =
+          adjust_info_remove_doc_string_delimiters (code_str, code_tok) in
+        envf (mv, pat_tok) (MV.Text (trimmed_str, trimmed_tok, code_tok))
+    else m_string pat_str code_str
+  )
 
 let env_add_matched_stmt rightmost_stmt (tin : tin) =
   [ extend_stmts_matched rightmost_stmt tin ]
@@ -2489,6 +2576,9 @@ and m_attribute a b =
   | ( G.NamedAttr (_, a1, a2),
       B.OtherAttribute (_, [ B.E { e = B.Call (b1, b2); _ } ]) ) ->
       m_expr (G.N a1 |> G.e) b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
+  | G.DocStringAttr (pstr, pt), G.DocStringAttr (cstr, ct) ->
+      m_doc_string_metavar_or_string (pstr, pt) (cstr, ct)
+  | G.DocStringAttr _, _
   | G.KeywordAttr _, _
   | G.NamedAttr _, _
   | G.OtherAttribute _, _ ->

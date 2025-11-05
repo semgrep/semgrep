@@ -89,7 +89,11 @@ let parse_pattern_by_lang options lang str =
       let any = Parse_go.any_of_string str in
       Go_to_generic.any any
   | Lang.Php ->
-      let any_cst = Parse_php.any_of_string str in
+      let keep_func_doc =
+        match options with
+        | None -> false
+        | Some opt -> opt.Rule_options_t.match_on_doc_comments in
+      let any_cst = Parse_php.any_of_string str ~keep_func_doc in
       let any = Ast_php_build.any any_cst in
       Php_to_generic.any any
   | Lang.Ocaml ->

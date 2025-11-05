@@ -35,7 +35,7 @@ let tests =
   let assert_invalid p =
     Hook.with_hook_set Flag.show_parsing_error false (fun () ->
         Alcotest.match_raises __LOC__ is_syn_err (fun () ->
-            ignore (Parse_php.program_of_string p)))
+            ignore (Parse_php.program_of_string p ~keep_func_doc:false)))
   in
 
   Testo.categorize "parsing_php"
@@ -43,11 +43,11 @@ let tests =
       (* Parsing *)
       (*-----------------------------------------------------------------------*)
       t "parsing regular code" (fun () ->
-          let _ast = Parse_php.program_of_string "echo 1+2;" in
+          let _ast = Parse_php.program_of_string "echo 1+2;" ~keep_func_doc:false in
           ());
       (* had such a bug one day ... *)
       t "parsing empty comments" (fun () ->
-          let _ast = Parse_php.program_of_string "$a/**/ =1;" in
+          let _ast = Parse_php.program_of_string "$a/**/ =1;" ~keep_func_doc:false in
           ());
       t "rejecting bad code" (fun () -> assert_invalid "echo 1+");
       (* old:
@@ -75,7 +75,7 @@ let tests =
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_php.parse_program file in
+                   let _ = Parse_php.parse_program file ~keep_func_doc:false in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
@@ -86,7 +86,7 @@ let tests =
       t "sphp" (fun () ->
           let t x =
             try
-              let _ = Parse_php.program_of_string x in
+              let _ = Parse_php.program_of_string x ~keep_func_doc:false in
               ()
             with
             | Parsing_error.Syntax_error _ ->

@@ -126,6 +126,8 @@ let str_of_info x = Tok.content_of_tok x
 (* not mentionned in this grammar. filtered in parse_php.ml *)
 %token <Tok.t> T_COMMENT T_DOC_COMMENT
 
+%token <Tok.t> T_FUNC_DOC_COMMENT
+
 (* when use preprocessor and want to mark removed tokens as commented *)
 %token <Tok.t> TCommentPP
 
@@ -555,8 +557,8 @@ constant_declaration:
 (*************************************************************************)
 (* Function declaration *)
 (*************************************************************************)
-function_declaration: ioption(attributes) unticked_function_declaration
-   { { $2 with f_attrs = $1 } }
+function_declaration: ioption(T_FUNC_DOC_COMMENT) ioption(attributes) unticked_function_declaration
+   { { $3 with f_attrs = $2; f_doc_comment = $1 } }
 
 unticked_function_declaration:
  async_opt T_FUNCTION is_reference ident type_params_opt
@@ -568,6 +570,7 @@ unticked_function_declaration:
        f_return_type = $9; f_body = $10;
        f_attrs = None;
        f_type = FunctionRegular; f_modifiers = $1;
+       f_doc_comment = None;
     } }
 
 function_body:
@@ -753,7 +756,7 @@ member_declaration:
      { ClassVariables($1, $2, $3, $4)  }
 
 (* class methods *)
- | ioption(attributes) method_declaration { Method { $2 with f_attrs = $1 } }
+ | ioption(T_FUNC_DOC_COMMENT) ioption(attributes) method_declaration { Method { $3 with f_attrs = $2; f_doc_comment = $1 } }
 
 (* php 5.4 traits *)
  | T_USE class_name_list ";"
@@ -777,7 +780,7 @@ method_declaration:
        ({ f_tok = $2; f_ref = $3; f_name = Name $4; f_tparams = $5;
           f_params = ($6, $7, $8); f_return_type = $9;
           f_body = body; f_type = function_type; f_modifiers = $1;
-          f_attrs = None;
+          f_attrs = None; f_doc_comment = None;
         })
      }
 
@@ -1025,6 +1028,7 @@ expr:
                      f_return_type = $8; f_type = FunctionLambda;
                      f_modifiers = $1;
                      f_attrs = None;
+                     f_doc_comment = None; (* no doc-strings on anonymous functions *)
        })
    }
  (* php-facebook-ext: lambda (short closure)s *)

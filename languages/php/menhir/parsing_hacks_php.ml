@@ -114,6 +114,27 @@ let rec is_variable toks =
   | T_VARIABLE _ :: _ -> true
   | x :: xs -> if TH.is_comment x then is_variable xs else false
 
+
+let rec is_function_ahead toks =
+  match toks with
+  | [] -> false
+  | T_FUNCTION _ :: _ -> true
+  (* Skip whitespace and other comments *)
+  | (TSpaces _ | TNewline _ | T_COMMENT _) :: xs -> is_function_ahead xs
+  (* Skip attributes *)
+  | TOATTR _ :: xs -> skip_until_close_bracket xs
+  (* Skip modifiers that can precede function declarations *)
+  | ( T_PUBLIC _ | T_PROTECTED _ | T_PRIVATE _ | T_STATIC _ | T_ABSTRACT _
+    | T_FINAL _ | T_ASYNC _ ) :: xs -> is_function_ahead xs
+  | _ -> false
+
+(* Helper to skip tokens until we find the closing bracket of attributes *)
+and skip_until_close_bracket toks =
+  match toks with
+  | [] -> false
+  | TCBRA _ :: xs -> is_function_ahead xs
+  | _ :: xs -> skip_until_close_bracket xs
+
 (*
  * Find the next group of parenthesized tokens, being sure to balance parens.
  * Returns an empty list if the parens were imbalanced or the first non-comment
@@ -192,11 +213,24 @@ let find_typehint toks =
 (* Fix tokens *)
 (*****************************************************************************)
 
-let fix_tokens xs =
+let fix_tokens xs ~keep_func_doc =
   let rec aux env acc xs =
     match xs with
     (* need an acc, to be tail recursive, otherwise get some stack overflow *)
     | [] -> List.rev acc
+    (* If keep_func_doc is true and a T_DOC_COMMENT token is followed by a
+     * T_FUNCTION token (ignoring tokens as defined in is_function_ahead), we
+     * rewrite the T_DOC_COMMENT token into a T_FUNC_DOC_COMMENT token which
+     * the parser can pick up on to attach the doc-string to the function
+     * declaration
+     *)
+    | T_DOC_COMMENT ii :: xs' when keep_func_doc ->
+        let new_acc =
+          if is_function_ahead xs'
+          then  (T_FUNC_DOC_COMMENT ii :: acc)
+          else T_DOC_COMMENT ii :: acc
+        in
+        aux env new_acc xs'
     (* '>>', maybe should be split in two tokens '>' '>' when in generic
      * context
      *)

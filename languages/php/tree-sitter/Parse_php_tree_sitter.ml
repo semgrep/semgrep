@@ -1566,6 +1566,7 @@ and map_method_declaration (env : env)
       A.f_attrs = v1;
       A.l_uses = [];
       A.f_body = v4;
+      A.f_doc_comment = None;
     }
 
 and map_nullsafe_member_access_expression (env : env)
@@ -1684,6 +1685,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
           A.f_attrs = [];
           A.l_uses = v5;
           A.f_body = v7;
+          A.f_doc_comment = None;
         }
   | `Arrow_func (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
@@ -1713,6 +1715,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : A.expr =
           A.f_attrs = [];
           A.l_uses = [];
           A.f_body = Expr (v7, Tok.unsafe_sc);
+          A.f_doc_comment = None;
         }
   | `Obj_crea_exp x -> map_object_creation_expression env x
   | `Update_exp x -> map_update_expression env x
@@ -2003,6 +2006,7 @@ and map_statement (env : env) (x : CST.statement) =
           A.f_attrs = v1;
           A.l_uses = [];
           A.f_body = v3;
+          A.f_doc_comment = None;
         }
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =

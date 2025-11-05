@@ -73,6 +73,9 @@ let brace (_, x, _) = x
 let bracket f (a, b, c) = (a, f b, c)
 let noop tok = A.Block (fb tok [])
 
+let doc_comment_wrap doc_comment_opt =
+  doc_comment_opt |> Option.map (fun tok -> (Tok.content_of_tok tok, tok))
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -657,7 +660,8 @@ and func_def env f =
     A.f_kind = (A.Function, f.f_tok);
     A.m_modifiers = [];
     A.l_uses = [];
-  }
+    A.f_doc_comment = doc_comment_wrap f.f_doc_comment;
+    }
 
 and lambda_def env (l_use, ld) =
   let _, params, _ = ld.f_params in
@@ -680,6 +684,8 @@ and lambda_def env (l_use, ld) =
           comma_list xs
           |> List_.map (function LexicalVar (is_ref, name) ->
                  (is_ref <> None, dname name)));
+    A.f_doc_comment =
+      Option.map (fun tok -> Tok.content_of_tok tok, tok) ld.f_doc_comment;
   }
 
 and short_lambda_def env def =
@@ -706,6 +712,7 @@ and short_lambda_def env def =
     m_modifiers = [];
     f_attrs = [];
     l_uses = [];
+    f_doc_comment = None;
   }
 
 and type_def env def =
@@ -879,6 +886,7 @@ and method_def env m =
       A.f_body = (* implicit_assigns @ *) method_body env m.f_body;
       A.f_kind = (A.Method, m.f_tok);
       A.l_uses = [];
+      A.f_doc_comment = doc_comment_wrap m.f_doc_comment;
     },
     implicit_flds )
 

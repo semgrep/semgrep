@@ -179,6 +179,24 @@ type t = {
    * inline, static, etc, are not affected by this option
    *)
   ~decorators_order_matters <ocaml default="false"> : bool;
+
+  (* Enable matching on doc-string comments attached to function definitions.
+     An example pattern for PHP is
+
+     /** $X */
+     function f() { ... }
+
+     This pattern matches any function `f` with a doc-string comment attached.
+     The metavariable will be bound to the text that is between the initial /**
+     and trailing */
+
+     A doc-string pattern can only be of the shape
+
+     <doc-string-leading-symbol> <metavar> <doc-string-trailing-symbol>
+
+     For now, doc-string matching only works for PHP.
+   *)
+  ~match_on_doc_comments <ocaml default="false"> : bool;
 }
 
 type cpp_parsing_opt = [

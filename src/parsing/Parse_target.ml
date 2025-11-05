@@ -125,7 +125,7 @@ let just_parse_with_lang lang file : Parsing_result2.t =
               (* TODO: at some point parser_php.mly should go directly
                * to ast_php.ml and we should get rid of cst_php.ml
                *)
-              let cst, stat = throw_tokens Parse_php.parse file in
+              let cst, stat = throw_tokens (Parse_php.parse ~keep_func_doc:true) file in
               (Ast_php_build.program cst, stat));
           (* TODO: can't put TreeSitter first, because we still use Pfff
            * to parse the pattern, and there must be mismatch between the

@@ -1,0 +1,14 @@
+rules:
+  - id: doc-string-ignored
+    options:
+      match_on_doc_comments: false
+    patterns:
+      - pattern: |
+          /**
+           * This doc-string comment is ignored when matching.
+           */
+          function $FUNC(...) { ... }
+    message: >-
+      This is what is in the docstring: $X
+    languages: [php]
+    severity: INFO

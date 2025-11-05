@@ -415,6 +415,7 @@ and expr e : G.expr =
        f_params = ps;
        f_return_type = rett;
        f_body = body;
+       f_doc_comment = _doc;
       } ->
           let _lusesTODO =
             list
@@ -526,6 +527,7 @@ and func_def
       l_uses;
       f_attrs;
       f_body;
+      f_doc_comment;
     } =
   let id = ident f_name in
   let fkind = function_kind f_kind in
@@ -545,8 +547,13 @@ and func_def
   in
   let attrs = list attribute f_attrs in
   let body = stmt f_body in
+  let doc_string_attr = match f_doc_comment with
+    | None -> []
+    | Some (s, t) -> [G.DocStringAttr (s, t)] in
   let ent =
-    G.basic_entity id ~attrs:(modifiers @ attrs) ~case_insensitive:true
+    G.basic_entity id
+      ~attrs:(modifiers @ attrs @ doc_string_attr)
+      ~case_insensitive:true
   in
   let def =
     { G.fparams = fb params; frettype = fret; fbody = G.FBStmt body; fkind }

@@ -1,0 +1,13 @@
+rules:
+  - id: doc-string-focus
+    options:
+      match_on_doc_comments: true
+    patterns:
+      - pattern: |
+          /** $X */
+          function $FUNC(...) { ... }
+      - focus-metavariable: $X
+    message: >-
+      This is what is in the docstring: $X
+    languages: [php]
+    severity: INFO

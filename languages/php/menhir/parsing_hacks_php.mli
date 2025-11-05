@@ -10,4 +10,4 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val fix_tokens : Parser_php.token list -> Parser_php.token list
+val fix_tokens : Parser_php.token list -> keep_func_doc:bool -> Parser_php.token list

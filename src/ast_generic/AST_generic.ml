@@ -1593,6 +1593,9 @@ and attribute =
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
   | NamedAttr of tok (* '@' *) * name * arguments (* less: option *)
+  (* documentation comment; a pair of the comment string and the token from which
+     it originates. The first component is redundant, but convenient. *)
+  | DocStringAttr of string * tok
   (* e.g,, per-language specific keywords like 'transient', 'synchronized'
    * todo: Expr used for Python, but should transform in NamedAttr when can *)
   | OtherAttribute of todo_kind * any list

@@ -1,0 +1,12 @@
+rules:
+  - id: doc-string-comment
+    options:
+      match_on_doc_comments: true
+    patterns:
+      - pattern: |
+          /** $X */
+          function $FUNC(...) { ... }
+    message: >-
+      This is what is in the docstring: $X
+    languages: [php]
+    severity: INFO

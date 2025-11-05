@@ -560,6 +560,7 @@ and func_def = {
   f_return_type : (tok (* : *) * hint_type) option;
   (* the opening/closing brace can be (fakeInfo(), ';') for abstract methods *)
   f_body : stmt_and_def list brace;
+  f_doc_comment : tok option; (* doc-string *)
 }
 
 and function_type =

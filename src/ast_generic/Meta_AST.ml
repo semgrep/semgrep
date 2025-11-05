@@ -803,6 +803,7 @@ and vof_attribute = function
   | OtherAttribute (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherAttribute", [ v1; v2 ])
+  | DocStringAttr (docstr, _tok) -> OCaml.VSum("DocStringAttr", [VString docstr])
 
 and vof_stmt st =
   (* todo: dump also the s_id? *)

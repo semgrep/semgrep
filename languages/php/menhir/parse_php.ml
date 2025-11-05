@@ -85,12 +85,12 @@ let is_comment v =
 (* Main entry point *)
 (*****************************************************************************)
 
-let parse filename =
+let parse filename ~keep_func_doc =
   let stat = Parsing_stat.default_stat !!filename in
   let filelines = UFile.cat_array filename in
 
   let toks = tokens (Parsing_helpers.file !!filename) in
-  let toks = Parsing_hacks_php.fix_tokens toks in
+  let toks = Parsing_hacks_php.fix_tokens toks ~keep_func_doc in
 
   let tr, lexer, lexbuf_fake =
     Parsing_helpers.mk_lexer_for_yacc toks is_comment
@@ -147,26 +147,26 @@ let parse filename =
       }
 [@@profiling]
 
-let parse_program file =
-  let res = parse file in
+let parse_program file ~keep_func_doc =
+  let res = parse file ~keep_func_doc in
   res.Parsing_result.ast
 
 (*****************************************************************************)
 (* Sub parsers *)
 (*****************************************************************************)
 
-let any_of_string s =
+let any_of_string s ~keep_func_doc =
   Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       let toks =
         tokens ~init_state:Lexer_php.ST_IN_SCRIPTING (Parsing_helpers.Str s)
       in
-      let toks = Parsing_hacks_php.fix_tokens toks in
+      let toks = Parsing_hacks_php.fix_tokens toks ~keep_func_doc in
       let _tr, lexer, lexbuf_fake =
         Parsing_helpers.mk_lexer_for_yacc toks is_comment
       in
       Parser_php.semgrep_pattern lexer lexbuf_fake)
 
-let program_of_string s =
-  match any_of_string s with
+let program_of_string s ~keep_func_doc =
+  match any_of_string s ~keep_func_doc with
   | Cst_php.Program x -> x
   | _else_ -> failwith ("not a program: " ^ s)

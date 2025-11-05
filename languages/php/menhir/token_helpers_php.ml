@@ -144,6 +144,7 @@ let visitor_info_of_tok f = function
   | T_DIR ii -> T_DIR (f ii)
   | T_COMMENT ii -> T_COMMENT (f ii)
   | T_DOC_COMMENT ii -> T_DOC_COMMENT (f ii)
+  | T_FUNC_DOC_COMMENT ii -> T_FUNC_DOC_COMMENT (f ii)
   | T_OPEN_TAG ii -> T_OPEN_TAG (f ii)
   | T_OPEN_TAG_WITH_ECHO ii -> T_OPEN_TAG_WITH_ECHO (f ii)
   | T_CLOSE_TAG_OF_ECHO ii -> T_CLOSE_TAG_OF_ECHO (f ii)

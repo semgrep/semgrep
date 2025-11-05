@@ -347,6 +347,7 @@ and func_def = {
   l_uses : (bool (* is_ref *) * var) list;
   f_attrs : attribute list;
   f_body : stmt;
+  f_doc_comment : string wrap option;
 }
 
 and function_kind =

@@ -11,11 +11,11 @@
    LICENSE for more details.
 *)
 (* This is the main function. raise Parse_error when not Flag.error_recovery.*)
-val parse : Fpath.t -> (Cst_php.program, Parser_php.token) Parsing_result.t
-val parse_program : Fpath.t -> Cst_php.program
+val parse : Fpath.t -> keep_func_doc:bool -> (Cst_php.program, Parser_php.token) Parsing_result.t
+val parse_program : Fpath.t -> keep_func_doc:bool -> Cst_php.program
 
 (* for sgrep/spatch patterns *)
-val any_of_string : string -> Cst_php.any
+val any_of_string : string -> keep_func_doc:bool -> Cst_php.any
 
 val tokens :
   ?init_state:Lexer_php.state_mode ->
@@ -23,4 +23,4 @@ val tokens :
   Parser_php.token list
 
 (* useful in tests *)
-val program_of_string : string -> Cst_php.program
+val program_of_string : string -> keep_func_doc:bool -> Cst_php.program
