@@ -505,11 +505,13 @@ class Metrics:
         self,
         deployment_id: Optional[int],
         session_id: str,
+        deployment_name: Optional[str],
         tool_name: Optional[str],
     ) -> None:
         try:
             self.payload.environment.deployment_id = deployment_id
             self.payload.mcp = Mcp(
+                deployment_name=deployment_name,
                 tool_name=tool_name,
                 session_id=session_id,
             )

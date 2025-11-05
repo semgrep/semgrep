@@ -29,6 +29,7 @@ from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.utilities.utils import get_anonymous_user_id
 from semgrep.mcp.utilities.utils import get_deployment_id_from_token
+from semgrep.mcp.utilities.utils import get_deployment_name_from_token
 from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
@@ -158,6 +159,10 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
             {
                 "metrics.is_hosted": is_hosted(),
                 "metrics.deployment_id": str(deployment_id) if deployment_id else "",
+                "metrics.deployment_name": get_deployment_name_from_token(
+                    get_semgrep_app_token()
+                )
+                or "",
                 "metrics.anonymous_user_id": get_anonymous_user_id(),
             },
         )
@@ -226,6 +231,10 @@ def with_tool_span(
                 state.metrics.clear_mcp()
                 state.metrics.add_mcp(
                     deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
+                    deployment_name=get_deployment_name_from_token(
+                        get_semgrep_app_token()
+                    )
+                    or "",
                     session_id=context.session_id,
                     tool_name=name,
                 )

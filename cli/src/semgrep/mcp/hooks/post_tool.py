@@ -27,6 +27,7 @@ from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_span
 from semgrep.mcp.utilities.utils import get_deployment_id_from_token
+from semgrep.mcp.utilities.utils import get_deployment_name_from_token
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.state import get_state
 
@@ -64,6 +65,8 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookRespons
         state.metrics.clear_mcp()
         state.metrics.add_mcp(
             deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
+            deployment_name=get_deployment_name_from_token(get_semgrep_app_token())
+            or "",
             session_id="hook",  # TODO: No session id for hooks yet, using a placeholder
             tool_name="semgrep_scan_cli (hook)",
         )

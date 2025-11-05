@@ -219,6 +219,7 @@ let default_payload =
       };
     mcp =
       {
+        deployment_name = None;
         session_id = None;
         num_findings = None;
         num_skipped_rules = None;
