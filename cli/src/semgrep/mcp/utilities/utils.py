@@ -27,14 +27,14 @@ from semgrep.state import get_state
 
 SETTINGS_FILENAME = "settings.yml"
 
-# A regex to match { "identity": "... roles=[<content>] ..." }
+# A regex to match { "identity": "... roles=(<content>) ..." }
 # We need this because the form of the response from the /agent/identity
 # endpoint looks like:
-# {"identity":"id=<id> deployment_id=<d_id> user_id=<u_id> created_at=<time> roles=[<roles>] ...}
+# {"identity":"id=<id> deployment_id=<d_id> user_id=<u_id> created_at=<time> roles=(<roles>) ...}
 # The string mapped to by `"identity"` is not an actual JSON, its a whitespace-separated
 # list of fields, so we have to manually extract the `roles` field.
-# We really just need to match "roles=[<stuff>]"
-re_identity_string = re.compile(r"roles=\[(.*)\]")
+# We really just need to match "roles=(<stuff>)"
+re_identity_string = re.compile(r"roles=\((.*)\)")
 
 
 def is_hosted() -> bool:

@@ -510,7 +510,7 @@ async def get_deployment_slug() -> str:
 @with_tool_span()
 async def semgrep_findings(
     ctx: Context,
-    issue_type: list[str] = ["sast", "sca"],  # noqa: B006
+    issue_type: str = "sast",  # noqa: B006
     repos: list[str] | None = None,  # pyright: ignore  # noqa: RUF013
     status: str = "open",
     severities: list[str] | None = None,  # pyright: ignore  # noqa: RUF013
@@ -547,8 +547,8 @@ async def semgrep_findings(
     Semgrep. For new scans, use the appropriate scanning function.
 
     Args:
-        issue_type (Optional[List[str]]): Filter findings by type. Use 'sast' for code analysis
-            findings and 'sca' for supply chain analysis findings (e.g., ['sast'], ['sca']).
+        issue_type (str): Filter findings by type. Use 'sast' for code analysis
+            findings and 'sca' for supply chain analysis findings (e.g., 'sast', 'sca').
         status (Optional[str]): Filter findings by status (default: 'open').
         repos (Optional[List[str]]): List of repository names to filter results. By default, should
             include the current repository name to scope findings appropriately. Can be overridden
@@ -566,13 +566,11 @@ async def semgrep_findings(
         guidance if available.
     """
     allowed_issue_types = {"sast", "sca"}
-    if not set(issue_type).issubset(allowed_issue_types):
-        invalid_types = ", ".join(set(issue_type) - allowed_issue_types)
+    if issue_type not in allowed_issue_types:
         raise McpError(
             ErrorData(
                 code=INVALID_PARAMS,
-                message=f"Invalid issue_type(s): {invalid_types}. "
-                "Allowed values are 'sast' and 'sca'.",
+                message=f"Invalid issue_type: {issue_type}. Allowed values are 'sast' or 'sca'.",
             )
         )
 
