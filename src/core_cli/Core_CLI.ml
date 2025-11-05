@@ -102,7 +102,7 @@ let max_match_per_file = ref Core_scan_config.default.max_match_per_file
 
 (* -j *)
 let num_jobs = ref Core_scan_config.default.num_jobs
-let use_eio = ref false
+let use_parmap = ref false
 
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
@@ -334,7 +334,7 @@ let mk_config () : Core_scan_config.t =
     fips_mode = false;
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
-    use_eio = !use_eio;
+    use_parmap = !use_parmap;
     par_conf = Parallelism_config.default;
   }
 
@@ -503,7 +503,7 @@ let reset_options () =
   timeout_threshold := Core_scan_config.default.timeout_threshold;
   max_memory_mb := Core_scan_config.default.max_memory_mb;
   max_match_per_file := Core_scan_config.default.max_match_per_file;
-  use_eio := false;
+  use_parmap := false;
   filter_irrelevant_rules := Core_scan_config.default.filter_irrelevant_rules;
   symbol_analysis := Core_scan_config.default.symbol_analysis;
   action := ""
@@ -636,9 +636,9 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
         "  The version of OCaml that was used to build this binary" );
     ]
   @ [
-      ( "-use_eio",
-        Arg.Set use_eio,
-        "  Rely on a multicore implementation of `-j` instead of Parmap" );
+      ( "-use_parmap",
+        Arg.Set use_parmap,
+        "  Rely on a legacy Parmap implementation of `-j`" );
     ]
 
 (*****************************************************************************)
@@ -691,8 +691,8 @@ let run caps (config : Core_scan_config.t) : unit =
     (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
     res config
 
-(* We want to only run the Eio async runtime (i.e Eio_main.run) iff --x-eio is
- * set. coupling: Pro_CLI.ml
+(* We want to only run the Parmap runtime iff --x-parmap is set.
+ * coupling: Pro_CLI.ml
  *)
 let maybe_with_eio (f : Core_scan_config.t -> 'a) : 'a =
   let config = mk_config () in
@@ -705,18 +705,18 @@ let maybe_with_eio (f : Core_scan_config.t -> 'a) : 'a =
     else config.num_jobs
   in
   let config = { config with num_jobs } in
-  if !use_eio then
+  if !use_parmap then f config
+  else
     Eio_main.run (fun env ->
         Logs_threaded.enable ();
         f { config with par_conf = Parallelism_config.create env })
-  else f config
 
 let maybe_with_tracing function_name engine analysis_flags
     (config : Core_scan_config.t) (f : Core_scan_config.t -> 'a) : 'a =
   match config.telemetry with
   | None -> f config
   | Some tracing ->
-      let eio = !use_eio in
+      let eio = not !use_parmap in
       let resource_attrs =
         (* Let's make sure all traces/logs/metrics etc. are tagged as
                    coming from the pro invocation *)

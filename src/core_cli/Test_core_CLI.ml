@@ -32,7 +32,7 @@ let t = Testo.create ?skipped:Testutil.skip_on_windows
 type exn_res = ExnExit of int
 
 let run_main (caps : Cap.all_caps) (cmd : string) : (unit, exn_res) result =
-  let args = String_.split ~sep:"[ \t]+" cmd @ [ "-use_eio" ] in
+  let args = String_.split ~sep:"[ \t]+" cmd in
   try
     print_string (spf "executing: semgrep-core %s\n" cmd);
     Ok (Core_CLI.main_exn caps (Array.of_list ("semgrep-core" :: args)))

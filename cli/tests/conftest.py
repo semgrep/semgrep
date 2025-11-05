@@ -429,7 +429,7 @@ def _run_semgrep(
     strict: bool = False,
     quiet: bool = False,
     env: Optional[Dict[str, str]] = None,
-    use_eio: bool = True,
+    use_parmap: bool = False,
     j: int = 1,
     assert_exit_code: Union[None, int, Set[int]] = 0,
     force_color: Optional[bool] = None,
@@ -515,10 +515,10 @@ def _run_semgrep(
             if quiet:
                 options.append("--quiet")
 
-            if use_eio:
-                options.append("--x-eio")
+            if use_parmap:
+                options.append("--x-parmap")
                 # Currently `semgrep test` does not consume `-j`.  We should contemplate
-                # running those tests in parallel with Domains.map, but until then, just
+                # running those tests in parallel with Concurrent.map, but until then, just
                 # elide the argument.
                 if subcommand is None or subcommand == "scan" or subcommand == "ci":
                     assert j >= 1

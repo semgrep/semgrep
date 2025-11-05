@@ -389,7 +389,7 @@ def baseline_run(
     ptt_enabled: bool,
     dry_run: bool,
     fips_mode: bool,
-    x_eio: bool,
+    x_parmap: bool,
 ) -> RuleMatchMap:
     """
     Run baseline scan and return the updated rule_matches_by_rule with baseline matches removed.
@@ -506,7 +506,7 @@ def baseline_run(
                     ptt_enabled=ptt_enabled,
                     dry_run=dry_run,
                     fips_mode=fips_mode,
-                    x_eio=x_eio,
+                    x_parmap=x_parmap,
                 )
                 rule_matches_by_rule = remove_matches_in_baseline(
                     rule_matches_by_rule,
@@ -863,7 +863,7 @@ def run_rules(
     dry_run: bool = False,
     fips_mode: bool,
     x_tr: bool = False,
-    x_eio: bool = False,
+    x_parmap: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -948,7 +948,7 @@ def run_rules(
         disable_secrets_validation,
         target_mode_config,
         all_subprojects,
-        x_eio,
+        x_parmap,
     )
     # ---------------------------------------
     # Step5: Adjusting rule_matches_by_rule
@@ -1048,7 +1048,7 @@ def run_scan(
     x_ls: bool = False,
     x_ls_long: bool = False,
     x_tr: bool = False,
-    x_eio: bool = False,
+    x_parmap: bool = False,
     x_pro_naming: bool = False,
     x_no_python_schema_validation: bool = False,
     path_sensitive: bool = False,
@@ -1282,7 +1282,7 @@ def run_scan(
         fips_mode=fips_mode,
         dry_run=dryrun,
         x_tr=x_tr,
-        x_eio=x_eio,
+        x_parmap=x_parmap,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
@@ -1323,7 +1323,7 @@ def run_scan(
             ptt_enabled=ptt_enabled,
             dry_run=dryrun,
             fips_mode=fips_mode,
-            x_eio=x_eio,
+            x_parmap=x_parmap,
         )
 
     # ---------------------------------

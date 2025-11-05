@@ -78,6 +78,8 @@ def assert_sentinel_results(repo_path, sentinel_path, language):
         "--json",
         repo_path,
         "--metrics=off",
+        # Multicore w/ a parallel runner can cause thrashing and timeouts.
+        "-j1",
         # Turn off optimizations since it skips parsing when it can and this test is testing parsing
         "--optimizations=none",
     ]
@@ -186,6 +188,8 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo):
         "--strict",
         "--json",
         "--metrics=off",
+        # Multicore w/ a parallel runner can cause thrashing and timeouts.
+        "-j1",
         # Turn off optimizations since it skips parsing when it can and this test is testing parsing
         "--optimizations=none",
         repo_path,

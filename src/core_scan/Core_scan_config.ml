@@ -119,10 +119,10 @@ type t = {
   telemetry : Telemetry.config option;
   symbol_analysis : bool;
   fips_mode : bool;
-  (* Rely on a EIO impl of `-j` v.s Parmap
-   * logic redundancy: par_conf is [Effect _] only if use_eio was
-   * previously set to true. *)
-  use_eio : bool;
+  (* Rely on a multicore ocaml impl of `-j` v.s Parmap
+   * logic redundancy: par_conf is [Effect _] only if [use_parmap] was
+   * not set to true. *)
+  use_parmap : bool;
   par_conf : Parallelism_config.t;
 }
 [@@deriving show]
@@ -155,6 +155,6 @@ let default =
     telemetry = None;
     symbol_analysis = false;
     fips_mode = false;
-    use_eio = false;
+    use_parmap = false;
     par_conf = Parallelism_config.Process;
   }

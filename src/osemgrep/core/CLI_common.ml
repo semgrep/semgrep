@@ -32,7 +32,7 @@ type conf = {
   profile : bool;
   (* osemgrep-only: mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
-  x_eio : bool;
+  x_parmap : bool;
   (* Telemetry *)
   (* currently only used by `semgrep lsp` *)
   telemetry : Telemetry.config option;
@@ -81,9 +81,13 @@ let o_debug : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_eio : bool Term.t =
+  let info = Arg.info [ "x-eio" ] ~doc:"[INTERNAL] <deprecated>" in
+  Arg.value (Arg.flag info)
+
+let o_parmap : bool Term.t =
   let info =
-    Arg.info [ "x-eio" ]
-      ~doc:"[INTERNAL] Rely on an EIO based implementation for the -j flag"
+    Arg.info [ "x-parmap" ]
+      ~doc:"[INTERNAL] Rely on legacy Parmap-based parallelism"
   in
   Arg.value (Arg.flag info)
 
@@ -205,15 +209,18 @@ let o_telemetry : Telemetry.config option Term.t =
 (*************************************************************************)
 
 let o_common : conf Term.t =
-  let combine logging profile maturity x_eio x_no_python_schema_validation
-      telemetry =
+  let combine logging profile maturity x_eio x_parmap
+      x_no_python_schema_validation telemetry =
     (* experimental flag only used by pysemgrep *)
     ignore x_no_python_schema_validation;
-    { logging_level = logging; profile; maturity; x_eio; telemetry }
+    (* --x-eio will be passed to pysemgrep, which will report a deprecation
+     * warning. *)
+    ignore x_eio;
+    { logging_level = logging; profile; maturity; x_parmap; telemetry }
   in
   Term.(
     const combine $ o_logging $ o_profile $ Maturity.o_maturity $ o_eio
-    $ o_no_python_schema_validation $ o_telemetry)
+    $ o_parmap $ o_no_python_schema_validation $ o_telemetry)
 
 (*************************************************************************)
 (* Misc *)

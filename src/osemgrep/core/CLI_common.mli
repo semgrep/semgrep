@@ -23,7 +23,7 @@ type conf = {
   profile : bool;
   (* mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
-  x_eio : bool;
+  x_parmap : bool;
   (* Telemetry *)
   (* `osemgrep` is not yet the default entry point, so this will not
      activate telemetry for the entire `osemgrep` command! This is

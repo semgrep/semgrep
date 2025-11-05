@@ -910,7 +910,7 @@ class CoreRunner:
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
-        x_eio: bool,
+        x_parmap: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -987,8 +987,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             # adding multi-core option
             # rely on the domains/thread-based impl instead of Parmap
-            if x_eio:
-                cmd.extend(["-use_eio"])
+            if x_parmap:
+                cmd.extend(["-use_parmap"])
 
             if self._jobs is not None:
                 cmd.extend(["-j", str(self._jobs)])
@@ -1211,8 +1211,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
-        x_eio: bool,
-    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
+        x_parmap: bool,
+    ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
         These issues may possibly cause a failure if a user, for instance, updates their
@@ -1234,7 +1234,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 disable_secrets_validation,
                 target_mode_config,
                 all_subprojects,
-                x_eio=x_eio,
+                x_parmap=x_parmap,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1275,7 +1275,7 @@ Exception raised: `{e}`
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
-        x_eio: bool,
+        x_parmap: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and returns object with findings
@@ -1298,7 +1298,7 @@ Exception raised: `{e}`
             disable_secrets_validation,
             target_mode_config,
             all_subprojects,
-            x_eio,
+            x_parmap,
         )
 
         logger.debug(

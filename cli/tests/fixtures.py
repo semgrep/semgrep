@@ -56,7 +56,7 @@ class RunSemgrep(Protocol):
         strict: bool = True,
         quiet: bool = False,
         env: dict[str, str] | None = None,
-        use_eio: bool = True,
+        use_parmap: bool = False,
         j: int = 1,
         assert_exit_code: None | int | set[int] = 0,
         force_color: bool | None = None,

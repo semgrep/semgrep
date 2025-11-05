@@ -749,7 +749,6 @@ let iter_targets_and_get_matches_and_exn_to_errors
           targets
         |> List_.map2 exception_handler targets
     | Parallelism_config.Process ->
-        assert (not config.use_eio);
         parmap_map
           (caps :> < Cap.fork >)
           ~num_jobs:config.num_jobs process_target targets

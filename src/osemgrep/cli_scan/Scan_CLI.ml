@@ -103,7 +103,8 @@ let default : conf =
         profile = false;
         logging_level = Some Logs.Warning;
         maturity = Maturity.Default;
-        x_eio = false;
+        x_parmap = true;
+        (* TODO: migrate this away to multicore *)
         telemetry = None;
       };
     engine_type = OSS;
@@ -1383,9 +1384,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
-      x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr
-      (* common.CLI_common.x_eio || *)
-      || x_pro_naming
+      x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr || x_pro_naming
       || x_group_taint_rules || x_mcp
     then
       Logs.warn (fun m ->
@@ -1470,7 +1469,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         strict;
         time_flag;
         matching_explanations;
-        use_eio = common.CLI_common.x_eio;
+        use_parmap = common.CLI_common.x_parmap;
         (* only relevant for CI scans, but must be here for when we make
            the `Core_runner_conf.t`
         *)

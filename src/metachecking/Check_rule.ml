@@ -281,7 +281,7 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
       target_source = Targets targets;
       (* we're used from pysemgrep --validate *)
       output_format = Json true;
-      use_eio = true;
+      use_parmap = false;
       par_conf = Parallelism_config.create env;
     }
   in

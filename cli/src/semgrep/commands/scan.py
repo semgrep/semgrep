@@ -442,6 +442,12 @@ _scan_options: List[Callable] = [
         default=False,
     ),
     optgroup.option(
+        "--x-parmap",
+        "x_parmap",
+        is_flag=True,
+        default=False,
+    ),
+    optgroup.option(
         "--x-pro-naming",
         "x_pro_naming",
         is_flag=True,
@@ -706,6 +712,7 @@ def scan(
     x_ls_long: bool,
     x_tr: bool,
     x_eio: bool,
+    x_parmap: bool,
     x_pro_naming: bool,
     x_no_python_schema_validation: bool,
     x_semgrepignore_filename: Optional[str],
@@ -721,6 +728,23 @@ def scan(
 
             version_check()
         return None
+
+    if x_eio:
+        if x_parmap:
+            logger.warning(
+                with_color(
+                    Colors.yellow,
+                    "WARN: --x-eio and --x-parmap both set.  Choosing the latter.",
+                )
+            )
+        else:
+            logger.warning(
+                with_color(
+                    Colors.yellow,
+                    "WARN: --x-eio (Multicore Semgrep) now enabled by default.  "
+                    + "This flag will be removed in a future version of Semgrep.",
+                )
+            )
 
     # 2025-04-14: Feel free to remove these messages after a while.
     # This was a temporary flag for the Semgrepignore v1->v2 transition.
@@ -1017,7 +1041,7 @@ def scan(
                         x_ls=x_ls,
                         x_ls_long=x_ls_long,
                         x_tr=x_tr,
-                        x_eio=x_eio,
+                        x_parmap=x_parmap,
                         x_pro_naming=x_pro_naming,
                         x_no_python_schema_validation=x_no_python_schema_validation,
                         path_sensitive=path_sensitive,

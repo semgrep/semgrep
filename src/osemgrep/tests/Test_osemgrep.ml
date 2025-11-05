@@ -90,7 +90,6 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
              [|
                "semgrep-scan";
                "--experimental";
-               "--x-eio";
                "--config";
                "r/python.lang.correctness.useless-eqeq.useless-eqeq";
              |]
@@ -116,7 +115,6 @@ let test_absolute_target_path caps =
           [|
             "semgrep-scan";
             "--experimental";
-            "--x-eio";
             "-l";
             "python";
             "-e";
@@ -173,7 +171,6 @@ let test_named_pipe (caps : Scan_subcommand.caps) =
           [|
             "semgrep-scan";
             "--experimental";
-            "--x-eio";
             "-l";
             "python";
             "-e";
