@@ -394,7 +394,7 @@ async def server_lifespan(_server: FastMCP) -> AsyncIterator[SemgrepContext]:
 # ---------------------------------------------------------------------------------
 
 
-@with_tool_span()
+@with_tool_span(is_semgrep_scan=False)
 async def semgrep_rule_schema(ctx: Context) -> str:
     """
     Get the schema for a Semgrep rule
@@ -424,7 +424,7 @@ async def semgrep_rule_schema(ctx: Context) -> str:
         ) from e
 
 
-@with_tool_span()
+@with_tool_span(is_semgrep_scan=False)
 async def get_supported_languages(ctx: Context) -> list[str]:
     """
     Returns a list of supported languages by Semgrep
@@ -507,7 +507,7 @@ async def get_deployment_slug() -> str:
         ) from e
 
 
-@with_tool_span()
+@with_tool_span(is_semgrep_scan=False)
 async def semgrep_findings(
     ctx: Context,
     issue_type: str = "sast",  # noqa: B006
@@ -725,7 +725,7 @@ async def semgrep_scan_with_custom_rule(
             shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-@with_tool_span()
+@with_tool_span(is_semgrep_scan=False)
 async def get_abstract_syntax_tree(
     ctx: Context,
     code: str = CODE_FIELD,
