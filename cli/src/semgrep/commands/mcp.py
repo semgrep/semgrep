@@ -74,7 +74,6 @@ def semgrep_mcp(transport: str, port: int, hook: str | None) -> None:
     """
     # Set environment variable to track scans by MCP
     os.environ["SEMGREP_MCP"] = "true"
-    os.environ["SEMGREP_USER_AGENT_APPEND"] = "(MCP)"
 
     if hook == POST_TOOL_CLI_SCAN_FLAG:
         run_post_tool_scan_cli()
