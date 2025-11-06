@@ -269,16 +269,16 @@ By default, the server will run in `stdio` mode, so you will have to include `-t
 #### Docker
 
 ```
-docker run -p 8000:0000 semgrep/semgrep semgrep mcp
+docker run -p 8000:8000 semgrep/semgrep semgrep mcp
 ```
 
 
-### Server-sent events (SSE)
+### Server-Sent Events (SSE)
 
 > [!WARNING]
-> The MCP community considers this a legacy transport portcol and is really intended for backwards compatibility. [Streamable HTTP](#streamable-http) is the recommended replacement.
+> The MCP community considers this a legacy transport protocol and is really intended for backwards compatibility. [Streamable HTTP](#streamable-http) is the recommended replacement.
 
-SSE transport enables server-to-client streaming with Server-Send Events for client-to-server and server-to-client communication. See the [spec](https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse) for more details.
+SSE transport enables server-to-client streaming with Server-Sent Events for client-to-server and server-to-client communication. See the [spec](https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse) for more details.
 
 By default, the server listens on [127.0.0.1:8000/sse](https://127.0.0.1/sse) for client connections. To change any of this, set [FASTMCP\_\*](https://github.com/modelcontextprotocol/python-sdk/blob/71889d7387f070cd872cab7c9aa3d1ff1fa5a5d2/src/mcp/server/fastmcp/server.py#L59-L60) environment variables. _The server must be running for clients to connect to it._
 
@@ -445,7 +445,7 @@ See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/tutorials#
 
 ### OpenAI
 
-See the offical docs:
+See the official docs:
 - https://platform.openai.com/docs/mcp
 - https://platform.openai.com/docs/guides/tools-remote-mcp
 
