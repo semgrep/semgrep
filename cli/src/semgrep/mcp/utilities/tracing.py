@@ -204,6 +204,7 @@ P = ParamSpec("P")
 def with_tool_span(
     span_name: str | None = None,
     send_metrics: bool = True,
+    is_semgrep_scan: bool = True,
 ) -> Callable[
     [Callable[Concatenate[Context, P], Awaitable[R]]],
     Callable[Concatenate[Context, P], Awaitable[R]],
@@ -242,7 +243,10 @@ def with_tool_span(
             with with_span(context.top_level_span, name):
                 result = await func(ctx, *args, **kwargs)
                 if send_metrics:
+                    if not is_semgrep_scan:
+                        state.app_session.user_agent.tags.add("(non-scan-mcp-tool)")
                     state.metrics.send()
+                    state.app_session.user_agent.tags.discard("(non-scan-mcp-tool)")
                 return result
 
         return wrapper
