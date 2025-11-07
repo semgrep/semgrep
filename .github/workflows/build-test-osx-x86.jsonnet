@@ -101,7 +101,7 @@ local test_wheels_job = {
     },
     {
       name: 'install package',
-      run: 'pip3 install dist/*.whl',
+      run: 'pip3 install --break-system-packages dist/*.whl',
     },
   ] + test_semgrep_steps,
 };

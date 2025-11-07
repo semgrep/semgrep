@@ -67,7 +67,7 @@ jobs:
           name: osx-x86-wheel
       - run: unzip dist.zip
       - name: install package
-        run: pip3 install dist/*.whl
+        run: pip3 install --break-system-packages dist/*.whl
       - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
