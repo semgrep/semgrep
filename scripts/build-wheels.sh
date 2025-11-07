@@ -9,10 +9,10 @@
 
 set -ex
 # Need latest pip otherwise twine fails to install
-python3 -m pip install --upgrade pip
+python3 -m pip install --break-system-packages --upgrade pip
 # Need latest versions here otherwise we end up with a malformed package where
 # it marks the README as an RST file which fails to parse.
-python3 -m pip install --upgrade setuptools wheel twine
+python3 -m pip install --break-system-packages --upgrade setuptools wheel twine
 cd cli && python3 setup.py sdist bdist_wheel "$@"
 
 # Do some sanity checks on the built packages. These checks are done as part of
