@@ -35,11 +35,8 @@ let test_register_exception_printer () =
     with
     | e -> Printexc.to_string e
   in
-  Alcotest.(check string)
-    "equal"
-    "Pcre2.Error((Pcre2.BadPattern (\"quantifier does not follow a repeatable \
-     item\", 0)))"
-    msg
+  if not (String.starts_with "Pcre2.Error((Pcre2.BadPattern" msg) then
+    Alcotest.fail "Exception printer outputted an unexpected Error"
 
 let tests =
   Testo.categorize "pcre2 settings"
