@@ -9,7 +9,7 @@
 
 set -ex
 
-pip_version=$(pip --version | awk '{print $2}')
+pip_version=$(python3 -m pip --version | awk '{print $2}')
 if [ "$(printf '%s\n' "23.1" "$pip_version" | sort -V | head -n1)" = "23.1" ] && [ "$pip_version" != "23.1" ]; then
     # pip_version is greater than 23.1
     extra_flag="--break-system-packages"
