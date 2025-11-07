@@ -8,11 +8,20 @@
 # for pip to package semgrep correctly.
 
 set -ex
+
+pip_version=$(pip --version | awk '{print $2}')
+if [ "$(printf '%s\n' "23.1" "$pip_version" | sort -V | head -n1)" = "23.1" ] && [ "$pip_version" != "23.1" ]; then
+    # pip_version is greater than 23.1
+    extra_flag="--break-system-packages"
+else
+    extra_flag=""
+fi
+
 # Need latest pip otherwise twine fails to install
-python3 -m pip install --break-system-packages --upgrade pip
+python3 -m pip install "$extra_flag" --upgrade pip
 # Need latest versions here otherwise we end up with a malformed package where
 # it marks the README as an RST file which fails to parse.
-python3 -m pip install --break-system-packages --upgrade setuptools wheel twine
+python3 -m pip install "$extra_flag" --upgrade setuptools wheel twine
 cd cli && python3 setup.py sdist bdist_wheel "$@"
 
 # Do some sanity checks on the built packages. These checks are done as part of
