@@ -184,6 +184,7 @@ def test_flags_actual_send(run_semgrep_in_tmp: RunSemgrep):
         options=["--debug"],
         env={"SEMGREP_SEND_METRICS": "on"},
         force_metrics_off=False,
+        use_click_runner=True,
     )
     assert "Sending pseudonymous metrics" in stderr
     assert "Failed to send pseudonymous metrics" not in stderr
