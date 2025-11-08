@@ -6,6 +6,7 @@
       "targets/spacegrep/root.Dockerfile"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.spacegrep.double-root",

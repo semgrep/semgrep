@@ -12,6 +12,7 @@
       "targets/dependency_aware/swiftpm/v2/Package.swift"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.swift-swiftpm-sca",

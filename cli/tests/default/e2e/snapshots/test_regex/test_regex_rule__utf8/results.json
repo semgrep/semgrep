@@ -6,6 +6,7 @@
       "targets/basic/regex-utf8.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.regex.test-regex",

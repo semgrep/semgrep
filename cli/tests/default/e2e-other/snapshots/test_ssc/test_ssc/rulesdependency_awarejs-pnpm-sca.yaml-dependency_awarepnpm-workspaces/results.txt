@@ -12,6 +12,7 @@
       "targets/dependency_aware/pnpm-workspaces/pnpm-lock.yaml"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.js-pnpm-sca",

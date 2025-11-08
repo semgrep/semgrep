@@ -11,6 +11,7 @@
       "targets/dependency_aware/maven_dep_tree_joined/maven_dep_tree.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.maven-guice",

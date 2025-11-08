@@ -6,6 +6,7 @@
       "targets/spacegrep/httpresponse.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.spacegrep.content-type-text-html",

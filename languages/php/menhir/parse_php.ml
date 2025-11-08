@@ -104,7 +104,7 @@ let parse filename =
       (* Call parser *)
       (* -------------------------------------------------- *)
       Either.Left
-        (Profiling.profile_code "Parser_php.main" (fun () ->
+        (Profiling.measure "Parser_php.main" (fun () ->
              Parser_php.main lexer lexbuf_fake))
     with
     | Parsing.Parse_error ->

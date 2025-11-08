@@ -6,6 +6,7 @@
       "targets/metavariable-pattern/test2.php"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.metavariable-pattern.test",

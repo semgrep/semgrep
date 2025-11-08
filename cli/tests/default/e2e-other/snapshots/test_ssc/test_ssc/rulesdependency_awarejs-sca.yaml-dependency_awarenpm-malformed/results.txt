@@ -11,6 +11,7 @@
       "targets/dependency_aware/npm-malformed/package-lock.json"
     ]
   },
+  "profiling_results": [],
   "results": [],
   "skipped_rules": [],
   "time": "<masked in tests>",

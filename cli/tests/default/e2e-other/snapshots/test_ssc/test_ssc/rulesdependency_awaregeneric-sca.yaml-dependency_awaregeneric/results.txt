@@ -12,6 +12,7 @@
       "targets/dependency_aware/generic/package-lock.json"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.generic-sca",

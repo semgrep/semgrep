@@ -6,6 +6,7 @@
       "targets/autofix/two-autofixes.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.remove-two",

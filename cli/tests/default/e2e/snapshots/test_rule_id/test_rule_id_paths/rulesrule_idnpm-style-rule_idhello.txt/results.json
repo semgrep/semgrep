@@ -6,6 +6,7 @@
       "targets/rule_id/hello.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.rule_id.npm-style.hello",

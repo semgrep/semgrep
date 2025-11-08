@@ -12,6 +12,7 @@
       "targets/dependency_aware/yarn2/yarn.lock"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.js-yarn2-sca",

@@ -6,6 +6,7 @@
       "targets/autofix/redundant.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.replace-ac",

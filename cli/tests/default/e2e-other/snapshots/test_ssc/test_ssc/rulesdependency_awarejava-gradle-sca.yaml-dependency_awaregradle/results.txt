@@ -12,6 +12,7 @@
       "targets/dependency_aware/gradle/sca-gradle.java"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.java-gradle-sca",

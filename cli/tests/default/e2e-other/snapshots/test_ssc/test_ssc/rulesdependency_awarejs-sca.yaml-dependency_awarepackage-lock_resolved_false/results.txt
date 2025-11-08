@@ -11,6 +11,7 @@
       "targets/dependency_aware/package-lock_resolved_false/package-lock.json"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.js-sca",

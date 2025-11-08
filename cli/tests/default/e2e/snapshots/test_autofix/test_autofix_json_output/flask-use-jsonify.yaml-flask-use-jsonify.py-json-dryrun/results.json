@@ -6,6 +6,7 @@
       "targets/autofix/flask-use-jsonify.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",

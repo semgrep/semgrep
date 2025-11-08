@@ -12,6 +12,7 @@
       "targets/dependency_aware/ruby/sca.rb"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.ruby-sca",

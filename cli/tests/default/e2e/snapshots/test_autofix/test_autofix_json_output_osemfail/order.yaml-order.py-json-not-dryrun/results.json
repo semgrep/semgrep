@@ -6,6 +6,7 @@
       "targets/autofix/order.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.slice-ab",

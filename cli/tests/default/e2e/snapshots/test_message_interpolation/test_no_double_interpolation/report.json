@@ -6,6 +6,7 @@
       "targets/message_interpolation/target_with_metavariable.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.message_interpolation.interpolated-message",

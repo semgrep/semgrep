@@ -6,6 +6,7 @@
       "targets/aliengrep/httpresponse.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.aliengrep.content-type-text-html",

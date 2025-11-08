@@ -815,7 +815,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
-  Profiling.profile_code "Main total" (fun () ->
+  Profiling.measure "Main total" (fun () ->
       match args with
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)

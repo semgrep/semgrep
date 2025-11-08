@@ -6,6 +6,7 @@
       "targets/spacegrep/markdown.md"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.spacegrep.header-2",
