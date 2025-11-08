@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -23,6 +22,8 @@ open Common
  * You should probably rely on ocamlprof, perf, memprof, and the
  * many other OCaml profiling tools.
  *)
+
+open Printf
 
 (*****************************************************************************)
 (* Types *)
@@ -36,6 +37,12 @@ type prof = ProfAll | ProfNone | ProfSome of string list
 
 (* nosemgrep: no-ref-declarations-at-top-scope *)
 let profile = ref ProfNone
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
+let report_at_exit = ref false
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
+let report_gc_stats = ref false
 
 (* nosemgrep: no-ref-declarations-at-top-scope *)
 let show_trace_profile = ref false
@@ -112,18 +119,19 @@ let export () : entry list =
 
 (* todo: also put  % ? also add % to see if coherent numbers *)
 let report () : string =
-  if !profile =*= ProfNone then ""
-  else
-    let entries = export () in
-    Buffer_.with_buffer_to_string (fun buf ->
-        let prf fmt = Printf.bprintf buf fmt in
-        prf "\n";
-        prf "---------------------\n";
-        prf "profiling result\n";
-        prf "---------------------\n";
-        entries
-        |> List.iter (fun x ->
-               prf "%-40s : %10.3f sec %10d count\n" x.name x.total_time x.count))
+  let entries = export () in
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+      prf "\n";
+      prf "%s\n" (String.make 78 '-');
+      prf "Simple profiling results\n";
+      prf
+        "                                                       total time \
+         /      count\n";
+      prf "%s\n" (String.make 78 '-');
+      entries
+      |> List.iter (fun x ->
+             prf "%-50s : %10.3f s / %10d\n" x.name x.total_time x.count))
 
 (*****************************************************************************)
 (* Init *)
@@ -131,17 +139,24 @@ let report () : string =
 let flags () =
   [
     ( "-profile",
+      Arg.Unit
+        (fun () ->
+          profile := ProfAll;
+          report_gc_stats := true;
+          report_at_exit := true),
+      " record and output profiling information to stderr" );
+    ( "-simple_profiling",
       Arg.Unit (fun () -> profile := ProfAll),
-      " output profiling information" );
+      " record profiling information for inclusion in JSON results" );
     ("-show_trace_profile", Arg.Set show_trace_profile, " show trace");
   ]
 
 let log_diagnostics_and_gc_stats () =
-  Logs.warn (fun m -> m "%s" (report ()));
-  Gc.print_stat stderr
+  eprintf "%s%!" (report ());
+  if !report_gc_stats then Gc.print_stat stderr
 
 (* ugly *)
-let _ =
+let () =
   UCommon.before_exit :=
-    (fun () -> if !profile <> ProfNone then log_diagnostics_and_gc_stats ())
+    (fun () -> if !report_at_exit then log_diagnostics_and_gc_stats ())
     :: !UCommon.before_exit
