@@ -6,6 +6,7 @@
       "targets/spacegrep/multi-lines.java"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.spacegrep.multi-lines",

@@ -6,6 +6,7 @@
       "targets/pattern-not-regex/issue2465.requirements.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.pattern-not-regex.pattern-not-regex-bug",

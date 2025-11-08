@@ -6,6 +6,7 @@
       "targets/aliengrep/long-match.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.aliengrep.begin-end",

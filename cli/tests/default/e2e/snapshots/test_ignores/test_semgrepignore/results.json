@@ -7,6 +7,7 @@
       "targets/ignores/ok/find.js"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.eqeq-bad",

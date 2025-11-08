@@ -6,6 +6,7 @@
       "targets/basic/stupid_no_extension"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.eqeq-is-bad",

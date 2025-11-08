@@ -12,6 +12,7 @@
       "targets/dependency_aware/requirement_pip/requirement.pip"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.python-requirements-sca",

@@ -12,6 +12,7 @@
       "targets/dependency_aware/multi-dep-rule/package-lock.json"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.multi-dep-rule",

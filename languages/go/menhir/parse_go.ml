@@ -62,7 +62,7 @@ let parse filename =
     (* Call parser *)
     (* -------------------------------------------------- *)
     let xs =
-      Profiling.profile_code "Parser_go.file" (fun () ->
+      Profiling.measure "Parser_go.file" (fun () ->
           Parser_go.file lexer lexbuf_fake)
     in
     {

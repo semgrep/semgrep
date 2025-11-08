@@ -180,7 +180,13 @@ let handle_single_request (caps : < caps ; .. >) =
     | Ok func_return -> func_return
     | Error str -> `RetError str
   in
-  let res_str = Semgrep_output_v1_j.string_of_function_return func_return in
+  let result : Out.function_result =
+    {
+      function_return = func_return;
+      profiling_results = Core_json_output.export_simple_profiling_results ();
+    }
+  in
+  let res_str = Semgrep_output_v1_j.string_of_function_result result in
   write_packet stdout res_str
 
 (*****************************************************************************)

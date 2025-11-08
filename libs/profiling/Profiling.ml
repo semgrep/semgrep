@@ -46,17 +46,17 @@ let check_profile category =
   | ProfNone -> false
   | ProfSome l -> List.mem category l
 
-let _table_lock = Mutex.create ()
-let _profile_table = Hashtbl.create 100
+let table_lock = Mutex.create ()
+let profile_table = Hashtbl.create 100
 
 let adjust_profile_entry category difftime =
-  Mutex.protect _table_lock @@ fun () ->
+  Mutex.protect table_lock @@ fun () ->
   let xtime, xcount =
-    try Hashtbl.find _profile_table category with
+    try Hashtbl.find profile_table category with
     | Not_found ->
         let xtime = ref 0.0 in
         let xcount = ref 0 in
-        Hashtbl.add _profile_table category (xtime, xcount);
+        Hashtbl.add profile_table category (xtime, xcount);
         (xtime, xcount)
   in
   xtime := !xtime +. difftime;
@@ -73,7 +73,7 @@ let adjust_profile_entry category difftime =
  * todo: try also detect when complexity augment each time, so can
  * detect the situation for a function gets worse and worse ?
  *)
-let profile_code category f =
+let measure category f =
   if not (check_profile category) then f ()
   else (
     if !show_trace_profile then Logs.debug (fun m -> m "> %s" category);
@@ -96,68 +96,34 @@ let profile_code category f =
     | Ok res -> res
     | Error e -> Exception.reraise e)
 
-(* nosemgrep: no-ref-declarations-at-top-scope *)
-let _is_in_exclusif = ref (None : string option)
-
-let profile_code_exclusif category f =
-  if not (check_profile category) then f ()
-  else
-    match !_is_in_exclusif with
-    | Some s ->
-        failwith (spf "profile_code_exclusif: %s but already in %s " category s)
-    | None ->
-        _is_in_exclusif := Some category;
-        protect
-          (fun () -> profile_code category f)
-          ~finally:(fun () -> _is_in_exclusif := None)
-
-let profile_code_inside_exclusif_ok _category _f = failwith "Todo"
-
 (*****************************************************************************)
-(* Diagnostic *)
+(* Reports *)
 (*****************************************************************************)
+
+type entry = { name : string; total_time : float; count : int }
+
+let export () : entry list =
+  Mutex.protect table_lock @@ fun () ->
+  Hashtbl.fold
+    (fun name (total_time, count) acc ->
+      { name; total_time = !total_time; count = !count } :: acc)
+    profile_table []
+  |> List.sort (fun a b -> Float.compare b.total_time a.total_time)
 
 (* todo: also put  % ? also add % to see if coherent numbers *)
-let profile_diagnostic () : string =
+let report () : string =
   if !profile =*= ProfNone then ""
   else
-    Mutex.protect _table_lock @@ fun () ->
-    let xs =
-      Hashtbl.fold (fun k v acc -> (k, v) :: acc) _profile_table []
-      |> List.sort (fun (_k1, (t1, _n1)) (_k2, (t2, _n2)) -> compare t2 t1)
-    in
+    let entries = export () in
     Buffer_.with_buffer_to_string (fun buf ->
         let prf fmt = Printf.bprintf buf fmt in
         prf "\n";
         prf "---------------------\n";
         prf "profiling result\n";
         prf "---------------------\n";
-        xs
-        |> List.iter (fun (k, (t, n)) ->
-               prf "%-40s : %10.3f sec %10d count\n" k !t !n))
-
-let warn_if_take_time timethreshold s f =
-  let t = Unix.gettimeofday () in
-  let res = f () in
-  let t' = Unix.gettimeofday () in
-  if t' -. t > float_of_int timethreshold then
-    Logs.warn (fun m -> m "processing took %7.1fs: %s" (t' -. t) s);
-  res
-
-(*****************************************************************************)
-(* Entry points *)
-(*****************************************************************************)
-
-let profile_code2 category f =
-  profile_code category (fun () ->
-      if !profile =*= ProfAll then
-        Logs.info (fun m -> m "starting: %s" category);
-      let t = Unix.gettimeofday () in
-      let res = f () in
-      let t' = Unix.gettimeofday () in
-      if !profile =*= ProfAll then
-        Logs.info (fun m -> m "ending: %s, %fs" category (t' -. t));
-      res)
+        entries
+        |> List.iter (fun x ->
+               prf "%-40s : %10.3f sec %10d count\n" x.name x.total_time x.count))
 
 (*****************************************************************************)
 (* Init *)
@@ -171,7 +137,7 @@ let flags () =
   ]
 
 let log_diagnostics_and_gc_stats () =
-  Logs.warn (fun m -> m "%s" (profile_diagnostic ()));
+  Logs.warn (fun m -> m "%s" (report ()));
   Gc.print_stat stderr
 
 (* ugly *)

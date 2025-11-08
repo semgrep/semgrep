@@ -6,6 +6,7 @@
       "targets/per-rule-include/scan-me.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.example-python",

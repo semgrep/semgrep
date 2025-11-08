@@ -4,6 +4,7 @@
   "paths": {
     "scanned": []
   },
+  "profiling_results": [],
   "results": [],
   "skipped_rules": [],
   "time": "<masked in tests>",

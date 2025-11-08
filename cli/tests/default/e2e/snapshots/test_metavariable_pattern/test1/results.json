@@ -15,6 +15,7 @@
       "targets/metavariable-pattern/test1.yml"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.metavariable-pattern.yaml.github-actions.security.run-shell-injection.run-shell-injection",

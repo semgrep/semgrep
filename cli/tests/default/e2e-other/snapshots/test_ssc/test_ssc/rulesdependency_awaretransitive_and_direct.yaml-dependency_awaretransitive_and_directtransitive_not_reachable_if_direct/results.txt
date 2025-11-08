@@ -12,6 +12,7 @@
       "targets/dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct/package-lock.json"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.transitive_and_direct",

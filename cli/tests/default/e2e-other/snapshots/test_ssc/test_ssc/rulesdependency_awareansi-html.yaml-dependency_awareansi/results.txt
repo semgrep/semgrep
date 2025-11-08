@@ -12,6 +12,7 @@
       "targets/dependency_aware/ansi/yarn.lock"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.ansi-html-redos",

@@ -12,6 +12,7 @@
       "targets/dependency_aware/go_toolchain/sca.go"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.go-sca",

@@ -706,6 +706,13 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
     fixpoint_timeouts = Some fixpoint_timeouts;
   }
 
+let make_simple_profiling_entry (entry : Profiling.entry) : Out.profiling_entry
+    =
+  { name = entry.name; total_time = entry.total_time; count = entry.count }
+
+let export_simple_profiling_results () : Out.profiling_entry list =
+  Profiling.export () |> List_.map make_simple_profiling_entry
+
 (* TODO: We used to return some stats, should we generalize
    that and return what is currently in parsing_data.py instead?
    nfiles below was probably redundant anyway and could be
@@ -775,6 +782,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     symbol_analysis = res.symbol_analysis;
     subprojects = None;
     mcp_scan_results = None;
+    profiling_results = export_simple_profiling_results ();
   }
 [@@profiling]
 

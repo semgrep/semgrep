@@ -6,6 +6,7 @@
       "targets/autofix/requests-use-timeout.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",

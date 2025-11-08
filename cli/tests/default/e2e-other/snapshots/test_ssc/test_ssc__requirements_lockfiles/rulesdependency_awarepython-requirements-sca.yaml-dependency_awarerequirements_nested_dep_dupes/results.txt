@@ -13,6 +13,7 @@
       "targets/dependency_aware/requirements_nested_dep_dupes/requirements.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.python-requirements-sca",

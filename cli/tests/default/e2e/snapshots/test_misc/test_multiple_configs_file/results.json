@@ -19,6 +19,7 @@
       "targets/basic/stupid.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.javascript-basic-eqeq-bad",

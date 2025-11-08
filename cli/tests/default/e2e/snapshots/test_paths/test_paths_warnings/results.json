@@ -8,6 +8,7 @@
       "targets/exclude_include/included/included.js"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.ambiguous-paths-excluded",

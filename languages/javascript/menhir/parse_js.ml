@@ -219,7 +219,7 @@ let parse2 opt_timeout (filename : Fpath.t) =
         (* -------------------------------------------------- *)
         (* Call parser *)
         (* -------------------------------------------------- *)
-        Profiling.profile_code "Parser_js.module_item" (fun () ->
+        Profiling.measure "Parser_js.module_item" (fun () ->
             Parser_js.module_item_or_eof lexer lexbuf_fake)
       in
       (* this seems optional *)
@@ -302,7 +302,7 @@ let parse2 opt_timeout (filename : Fpath.t) =
   { Parsing_result.ast = items; tokens = toks; stat }
 
 let parse ?timeout a =
-  Profiling.profile_code "Parse_js.parse" (fun () -> parse2 timeout a)
+  Profiling.measure "Parse_js.parse" (fun () -> parse2 timeout a)
 
 let parse_program file =
   let res = parse file in

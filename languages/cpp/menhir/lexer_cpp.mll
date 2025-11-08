@@ -471,7 +471,7 @@ rule token = parse
   | letter (letter | digit) *
       { let info = tokinfo lexbuf in
         let s = tok lexbuf in
-        Profiling.profile_code "C parsing.lex_ident" (fun () ->
+        Profiling.measure "C parsing.lex_ident" (fun () ->
           match Hashtbl.find_opt keyword_table s with
           | Some f -> f info
 

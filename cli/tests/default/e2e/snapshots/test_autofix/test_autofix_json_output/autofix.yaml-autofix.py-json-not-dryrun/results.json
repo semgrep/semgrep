@@ -6,6 +6,7 @@
       "targets/autofix/autofix.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.use-dict-get",
