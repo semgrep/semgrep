@@ -770,7 +770,7 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
   Logs.info (fun m -> m "Semgrep version: %s" Version.version);
 
   let conf =
-    if conf.common.profile then (
+    if conf.common.simple_profiling then (
       (* ugly: no need to set Profiling.profile, this was done in CLI.ml
        * See also Core_profiling.profiling set in run_scan_conf() above.
        *)
