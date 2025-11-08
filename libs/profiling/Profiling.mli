@@ -10,23 +10,45 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* Pad's poor's man profiler. See pfff's Main.ml for example of use
- * and the -profile command-line flag
+
+(**
+   Measure how long this or that piece of code takes to run.
+
+   Pad's poor's man profiler. See pfff's Main.ml for example of use
+   and the -profile command-line flag
  *)
+
+(** Configuration *)
 type prof = ProfAll | ProfNone | ProfSome of string list
 
 val profile : prof ref
-val profile_code : string -> (unit -> 'a) -> 'a
-val profile_diagnostic : unit -> string
-val profile_code_exclusif : string -> (unit -> 'a) -> 'a
-val profile_code_inside_exclusif_ok : string -> (unit -> 'a) -> 'a
-val warn_if_take_time : int -> string -> (unit -> 'a) -> 'a
+(** Global configuration *)
 
-(* similar to profile_code but log some information during execution too *)
-val profile_code2 : string -> (unit -> 'a) -> 'a
+type entry = {
+  name : string;
+  total_time : float;
+      (** Total clock time in seconds. Divide by [float count]
+          to get the mean. *)
+  count : int;
+}
+(** Result
 
-(* to use with Arg, to add a -profile that enables profiling *)
+    Sorry, no detailed stats such as the median or other percentiles.
+*)
+
+val measure : string -> (unit -> 'a) -> 'a
+(** Measure how long it takes to execute a block of code under the given
+    name. *)
+
+val export : unit -> entry list
+(** Produce a list of all the timed entries, sorted by decreasing total
+    time. *)
+
+val report : unit -> string
+(** Produce a human-readable report *)
+
 val flags : unit -> (string * Arg.spec * string) list
+(** To use with [Arg], to add a [-profile] that enables profiling *)
 
-(* log and print on stderr, usually called just before exit *)
 val log_diagnostics_and_gc_stats : unit -> unit
+(** Log and print on stderr, usually called just before exit *)

@@ -11,6 +11,7 @@
       "targets/dependency_aware/gradle_empty=/gradle.lockfile"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.java-gradle-sca",

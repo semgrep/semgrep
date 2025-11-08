@@ -450,6 +450,7 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
     engine_requested;
     subprojects = _;
     mcp_scan_results = _;
+    profiling_results;
   } : Out.cli_output =
     x
   in
@@ -523,6 +524,7 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
     engine_requested;
     subprojects = None;
     mcp_scan_results = None;
+    profiling_results;
   }
 
 (*****************************************************************************)
@@ -557,6 +559,7 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
    symbol_analysis = _;
    subprojects = _;
    mcp_scan_results = _;
+   profiling_results;
   } ->
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
@@ -618,6 +621,7 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
         rules_by_engine = None;
         subprojects = None;
         mcp_scan_results = None;
+        profiling_results;
       }
 
 (*****************************************************************************)

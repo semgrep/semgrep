@@ -8,6 +8,7 @@
       "targets/basic/stupid.js"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.test",

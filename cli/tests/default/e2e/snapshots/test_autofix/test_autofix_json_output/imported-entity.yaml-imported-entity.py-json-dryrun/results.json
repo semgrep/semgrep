@@ -6,6 +6,7 @@
       "targets/autofix/imported-entity.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.exception-useless-parentheses",

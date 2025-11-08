@@ -14,6 +14,7 @@
       "targets/bad/invalid_c_long.c"
     ]
   },
+  "profiling_results": [],
   "results": [],
   "skipped_rules": [],
   "time": "<masked in tests>",

@@ -21,7 +21,7 @@ open Ast_helper
 (* A ppx rewriter to automatically transform
  *  let foo frm = ... [@@profiling]
  * into
- *  let foo frm = ... let foo a = Profiling.profile_code "X.foo" (fun () -> foo a)
+ *  let foo frm = ... let foo a = Profiling.measure "X.foo" (fun () -> foo a)
  *
  * News:
  *  - handle now @@[profiling] on functions using labels!
@@ -193,7 +193,7 @@ let impl xs =
                      "@@profiling accepts nothing or a string"
              in
 
-             (* let <fname> a b = Profiling.profile_code <action_name> (fun () ->
+             (* let <fname> a b = Profiling.measure <action_name> (fun () ->
               *         <fname> a b)
               *)
              let item2 =
@@ -205,7 +205,7 @@ let impl xs =
                         (Exp.apply
                            (Exp.ident
                               {
-                                txt = Ldot (Lident "Profiling", "profile_code");
+                                txt = Ldot (Lident "Profiling", "measure");
                                 loc;
                               })
                            [

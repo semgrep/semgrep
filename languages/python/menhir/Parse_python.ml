@@ -111,7 +111,7 @@ let rec parse ?(parsing_mode = Python) (filename : Fpath.t) =
     (* Call parser *)
     (* -------------------------------------------------- *)
     let xs =
-      Profiling.profile_code "Parser_python.main" (fun () ->
+      Profiling.measure "Parser_python.main" (fun () ->
           Parser_python.main lexer lexbuf_fake)
     in
     { Parsing_result.ast = xs; tokens = toks; stat }

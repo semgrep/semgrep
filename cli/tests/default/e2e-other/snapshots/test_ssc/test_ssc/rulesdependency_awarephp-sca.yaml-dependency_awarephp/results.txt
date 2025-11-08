@@ -12,6 +12,7 @@
       "targets/dependency_aware/php/foo.php"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.php-sca",

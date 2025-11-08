@@ -6,6 +6,7 @@
       "targets/metavariable_propagation/metavariable-comparison-propagation.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.metavariable_propagation.my_pattern_id",

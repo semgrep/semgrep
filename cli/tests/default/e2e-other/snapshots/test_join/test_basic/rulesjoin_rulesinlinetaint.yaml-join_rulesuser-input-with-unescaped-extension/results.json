@@ -5,6 +5,7 @@
   "paths": {
     "scanned": []
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.join_rules.inline.flask-likely-xss",

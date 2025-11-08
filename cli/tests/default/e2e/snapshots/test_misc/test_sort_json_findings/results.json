@@ -8,6 +8,7 @@
       "targets/sort-findings/z/a.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.sort-findings-2",

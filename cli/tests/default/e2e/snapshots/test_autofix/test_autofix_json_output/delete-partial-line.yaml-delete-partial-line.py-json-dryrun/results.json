@@ -6,6 +6,7 @@
       "targets/autofix/delete-partial-line.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.delete-default",

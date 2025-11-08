@@ -13,6 +13,7 @@
       "targets/dependency_aware/requirements_multiple_lockfiles_no_src/requirements.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.python-requirements-sca",

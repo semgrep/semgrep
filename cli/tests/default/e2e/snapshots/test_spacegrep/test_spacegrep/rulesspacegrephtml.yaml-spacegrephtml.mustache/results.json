@@ -6,6 +6,7 @@
       "targets/spacegrep/html.mustache"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.spacegrep.var-in-script-tag",

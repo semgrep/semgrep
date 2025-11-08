@@ -34,3 +34,6 @@ val dedup_and_sort : Out.core_match list -> Out.core_match list
 type key [@@deriving show]
 
 val test_core_unique_key : Out.core_match -> key
+
+val export_simple_profiling_results : unit -> Out.profiling_entry list
+(** Export from the Profiling module to JSON *)

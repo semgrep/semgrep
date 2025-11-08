@@ -6,6 +6,7 @@
       "targets/aliengrep/html.mustache"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.aliengrep.var-in-script-tag",

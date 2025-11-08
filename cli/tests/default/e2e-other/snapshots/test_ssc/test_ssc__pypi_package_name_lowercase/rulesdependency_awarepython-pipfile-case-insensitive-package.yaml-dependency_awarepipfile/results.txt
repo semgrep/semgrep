@@ -12,6 +12,7 @@
       "targets/dependency_aware/pipfile/sca-pipfile.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.python-pipfile-sca",

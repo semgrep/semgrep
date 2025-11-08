@@ -6,6 +6,7 @@
       "targets/autofix/java-string-wrap.java"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.wrap-strings",

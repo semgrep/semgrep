@@ -6,6 +6,7 @@
       "targets/aliengrep/nosem.html"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "var-in-href",

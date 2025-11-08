@@ -16,6 +16,7 @@
       "targets/basic/stupid.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.open-from-request",

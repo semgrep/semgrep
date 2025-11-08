@@ -6,6 +6,7 @@
       "targets/autofix/add-metadata-hcl.hcl"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.ec2-instance-metadata-options",

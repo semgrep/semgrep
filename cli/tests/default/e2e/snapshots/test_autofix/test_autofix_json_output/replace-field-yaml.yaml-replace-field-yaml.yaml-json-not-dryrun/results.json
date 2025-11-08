@@ -6,6 +6,7 @@
       "targets/autofix/replace-field-yaml.yaml"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.yaml-excessive-capture",

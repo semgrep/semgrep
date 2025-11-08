@@ -11,6 +11,7 @@
       "targets/dependency_aware/yarn/yarn.lock"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.sass",

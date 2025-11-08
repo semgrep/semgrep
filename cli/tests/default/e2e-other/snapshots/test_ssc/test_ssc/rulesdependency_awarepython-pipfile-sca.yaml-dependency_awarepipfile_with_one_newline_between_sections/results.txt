@@ -12,6 +12,7 @@
       "targets/dependency_aware/pipfile_with_one_newline_between_sections/sca-pipfile.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.python-pipfile-sca",

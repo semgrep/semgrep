@@ -12,6 +12,7 @@
       "targets/dependency_aware/js/sca.js"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.js-sca",

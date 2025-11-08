@@ -16,6 +16,7 @@
       "targets/dependency_aware/monorepo/yarn.lock"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.js-sca",
