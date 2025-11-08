@@ -157,6 +157,7 @@
       "targets/version-constraints/x.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.any-version",

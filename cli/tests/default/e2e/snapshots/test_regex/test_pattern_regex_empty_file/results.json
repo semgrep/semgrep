@@ -6,6 +6,7 @@
       "targets/empty/totally_empty_file"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.any-file",

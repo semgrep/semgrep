@@ -12,6 +12,7 @@
       "targets/dependency_aware/rust/sca.rs"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.rust-sca",

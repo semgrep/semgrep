@@ -6,6 +6,7 @@
       "targets/deduplication/deduplication.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.deduplication.duplicate",

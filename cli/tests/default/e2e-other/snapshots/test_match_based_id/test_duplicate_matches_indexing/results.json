@@ -8,6 +8,7 @@
       "targets/match_based_id/duplicates/duplicate2.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.match_based_id.eqeq-bad",

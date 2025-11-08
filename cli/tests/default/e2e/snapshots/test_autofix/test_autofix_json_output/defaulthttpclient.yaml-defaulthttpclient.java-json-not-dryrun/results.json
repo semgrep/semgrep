@@ -6,6 +6,7 @@
       "targets/autofix/defaulthttpclient.java"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.java.lang.security.audit.crypto.ssl.defaulthttpclient-is-deprecated.defaulthttpclient-is-deprecated",

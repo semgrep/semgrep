@@ -114,6 +114,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       symbol_analysis = None;
       subprojects = None;
       mcp_scan_results = None;
+      profiling_results = [];
     }
   in
   Core_runner_result.{ core; hrules; scanned }

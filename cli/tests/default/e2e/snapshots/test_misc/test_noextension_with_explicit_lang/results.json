@@ -6,6 +6,7 @@
       "targets/basic/simple_python_no_extension"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "-",

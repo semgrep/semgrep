@@ -6,6 +6,7 @@
       "targets/taint/taint.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.classic",

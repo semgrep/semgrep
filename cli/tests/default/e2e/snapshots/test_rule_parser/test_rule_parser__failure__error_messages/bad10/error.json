@@ -44,6 +44,7 @@
   "paths": {
     "scanned": []
   },
+  "profiling_results": [],
   "results": [],
   "skipped_rules": [],
   "version": "0.42"

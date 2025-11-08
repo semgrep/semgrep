@@ -66,7 +66,7 @@ let set_last_matched_rule (rule : Mini_rule.t) f =
    *)
   let res =
     if profile_mini_rules then
-      Profiling.profile_code ("rule:" ^ Rule_ID.to_string rule.id) f
+      Profiling.measure ("rule:" ^ Rule_ID.to_string rule.id) f
     else f ()
   in
   Domain.DLS.set last_matched_rule None;
@@ -564,7 +564,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
            *)
           !stmts_rules
           |> List.iter (fun (pattern, rule) ->
-                 Profiling.profile_code "Semgrep_generic.kstmts" (fun () ->
+                 Profiling.measure "Semgrep_generic.kstmts" (fun () ->
                      let matches_with_env =
                        match_sts_sts rule pattern x m_env
                      in
@@ -663,7 +663,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
           *)
           !stmts_rules
           |> List.iter (fun (pattern, rule) ->
-                 Profiling.profile_code "Semgrep_generic.kfields" (fun () ->
+                 Profiling.measure "Semgrep_generic.kfields" (fun () ->
                      let x = List_.map (fun (F x) -> x) x in
                      let matches_with_env =
                        match_sts_sts rule pattern x m_env

@@ -6,6 +6,7 @@
       "targets/autofix/python-assert-statement.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.autofix.assert_eq-true",

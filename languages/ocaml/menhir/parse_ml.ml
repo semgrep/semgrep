@@ -53,7 +53,7 @@ let parse filename =
     (* Call parser *)
     (* -------------------------------------------------- *)
     let xs =
-      Profiling.profile_code "Parser_ml.main" (fun () ->
+      Profiling.measure "Parser_ml.main" (fun () ->
           if filename =~ ".*\\.mli" then Parser_ml.interface lexer lexbuf_fake
           else Parser_ml.implementation lexer lexbuf_fake)
     in

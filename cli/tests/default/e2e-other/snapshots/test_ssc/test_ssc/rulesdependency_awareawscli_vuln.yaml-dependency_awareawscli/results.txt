@@ -12,6 +12,7 @@
       "targets/dependency_aware/awscli/awscli_vuln.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.unconditional-depends-on-only",

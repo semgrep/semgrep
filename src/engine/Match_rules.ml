@@ -228,7 +228,7 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
     let rule_id = fst rule.R.id in
     Domain.DLS.set Rule.last_matched_rule (Some rule_id);
     let res_opt =
-      Profiling.profile_code
+      Profiling.measure
         (spf "real_rule:%s" (Rule_ID.to_string rule_id))
         (fun () ->
           (* here we handle the rule! *)

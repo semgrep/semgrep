@@ -433,7 +433,7 @@ let parse2 file : (Ast.program, T.token) Parsing_result.t =
   | _ -> failwith (spf "not a C/C++ file: %s" !!file)
 
 let parse file : (Ast.program, T.token) Parsing_result.t =
-  Profiling.profile_code "Parse_cpp.parse" (fun () ->
+  Profiling.measure "Parse_cpp.parse" (fun () ->
       try parse2 file with
       | Stack_overflow ->
           Log.err (fun m -> m "Stack overflow in %s" !!file);

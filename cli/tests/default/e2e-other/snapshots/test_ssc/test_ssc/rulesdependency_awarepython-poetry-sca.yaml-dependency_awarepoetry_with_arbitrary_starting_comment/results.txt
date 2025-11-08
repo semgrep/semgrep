@@ -12,6 +12,7 @@
       "targets/dependency_aware/poetry_with_arbitrary_starting_comment/sca-poetry.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.python-poetry-sca",

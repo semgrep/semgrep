@@ -6,6 +6,7 @@
       "targets/message_interpolation/propagated_constant.py"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.message_interpolation.test_rule_id",

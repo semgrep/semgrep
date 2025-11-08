@@ -13,6 +13,7 @@
       "targets/dependency_aware/requirements_pip_folder/requirements/stage.pip"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.dependency_aware.python-requirements-sca",

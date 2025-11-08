@@ -107,7 +107,8 @@ def _write_packet(io: IO[str], packet: str) -> None:
 
 def _parse_function_return(packet: str) -> Optional[out.FunctionReturn]:
     try:
-        return out.FunctionReturn.from_json_string(packet)
+        res = out.FunctionResult.from_json_string(packet)
+        return res.function_return
     # There are at least two kinds of exceptions that can be raised during
     # deserialization. Instead of enumerating them and hoping that we stay up to
     # date, let's just use a catch-all. In the end it doesn't really matter

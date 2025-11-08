@@ -6,6 +6,7 @@
       "targets/basic/regex-any-language.html"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.pattern-not-regex.test-regex",

@@ -6,6 +6,7 @@
       "targets/aliengrep/dockerfile"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.aliengrep.double-root",

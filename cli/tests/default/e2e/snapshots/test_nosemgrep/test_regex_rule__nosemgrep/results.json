@@ -6,6 +6,7 @@
       "targets/basic/regex-nosemgrep.txt"
     ]
   },
+  "profiling_results": [],
   "results": [
     {
       "check_id": "rules.regex.detected-aws-account-id",
