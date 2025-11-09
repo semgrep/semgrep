@@ -1,4 +1,4 @@
-(lang dune 3.7)
+(lang dune 3.20)
 
 ;; This file is used both to configure 'dune' as usual, and
 ;; to autogenerate the semgrep.opam for 'opam'.
@@ -62,7 +62,6 @@ For more information see https://semgrep.dev
     ; core deps
     ; see ppxlib comment for why we can't support 5.4 yet
     (ocaml (>= 5.3.0))
-    (dune (>= 3.20.1 ))
     ; parser generators
     (menhir (= 20230608))
     ; vendored in libs/ocaml-tree-sitter-core
@@ -227,7 +226,6 @@ the other programming languages supported by atdgen."
   (license "LGPL-2.1-only")
   (depends
     (ocaml (>= 4.13.0))
-    (dune (>= 3.2.0))
     (commons (>= 1.8.0))
     (lib_parsing (>= 1.5.5))
     (profiling (>= 1.5.5))
@@ -251,7 +249,6 @@ a few other projects developed at r2c.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
     (ANSITerminal (>= "0.8.4"))
     (alcotest (>= "1.5.0"))
     (cmdliner (>= "1.1.1" ))
@@ -320,7 +317,6 @@ parsers, especially ocamlyacc/menhir based parsers.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
     (profiling (>= "1.5.5"))
     (fpath (>= "0.7.3"))
@@ -516,7 +512,6 @@ time and memory used by Semgrep.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
   )
 )
@@ -537,7 +532,6 @@ functions.
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
     (process_limits (>= "1.5.5"))
   )
@@ -559,7 +553,6 @@ metrics
 
   (depends
     (ocaml (>= "4.13.0"))
-    (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
   )
 )
@@ -580,7 +573,6 @@ Uses indentation and standard braces to determine a crude parse tree
     atdgen
     ANSITerminal
     cmdliner
-    (dune (>= 2.1))
   )
 )
 ; needed because lots of dune language libs use tree-sitter-lang
