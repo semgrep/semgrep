@@ -31,7 +31,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local wheel_name = 'manylinux-x86-wheel';
 // The '2_28' is the minimum version of GLIBC supported by the image, we need
 // 2.28 since GHA runners use node20, which has 2.28 as a dependancy.
-local manylinux_container = 'quay.io/pypa/manylinux_2_28_x86_64';
+local manylinux_container = 'quay.io/pypa/manylinux_2_34_x86_64';
 
 local default_specific_python_version = semgrep.default_python_version + '.' + semgrep.default_python_patch_version;
 
@@ -46,7 +46,24 @@ local build_wheels_job = {
   +
   [
     // coupling: if you modify the python version, update the cp310-cp310 further below
-    actions.setup_python_step(version='3.10'),
+    {
+      run: |||
+        # history:
+        # we used to `yum install python3.9`
+        # but now that we are on python 3.10, there is no python3.10 in `yum`
+        # so we need to download and install it ourselves
+
+        yum install -y wget zip python3-pip
+        wget https://www.python.org/ftp/python/%(python_version)s/Python-%(python_version)s.tgz
+        tar xzf Python-%(python_version)s.tgz
+        cd Python-%(python_version)s
+        ./configure --with-system-ffi --with-computed-gotos --enable-loadable-sqlite-extensions
+
+        make -j ${nproc}
+        make altinstall
+        python3 -m pip install --upgrade pip
+      ||| % { python_version: default_specific_python_version },
+    },
     actions.download_artifact_step(core_x86.export.artifact_name),
     {
       run: |||
