@@ -31,7 +31,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local wheel_name = 'manylinux-x86-wheel';
 // The '2_28' is the minimum version of GLIBC supported by the image, we need
 // 2.28 since GHA runners use node20, which has 2.28 as a dependancy.
-local manylinux_container = 'quay.io/pypa/manylinux_2_34_x86_64';
+local manylinux_container = 'quay.io/pypa/manylinux_2_28_x86_64';
 
 local default_specific_python_version = semgrep.default_python_version + '.' + semgrep.default_python_patch_version;
 
