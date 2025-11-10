@@ -34,8 +34,6 @@ from semgrep.rule import Rule
 from semgrep.safe_set import intersection
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
-from semgrep.simple_profiling import profiling
-from semgrep.simple_profiling import simple_profiling
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import find_closest_subproject
 from semgrep.subproject import from_resolved_dependencies
@@ -203,7 +201,6 @@ def filter_changed_subprojects(
     return ordered_relevant, unresolved_subprojects
 
 
-@simple_profiling
 def resolve_subprojects(
     target_manager: TargetManager,
     dependency_aware_rules: List[Rule],
@@ -273,71 +270,68 @@ def resolve_subprojects(
     resolved: Dict[Ecosystem, List[out.ResolvedSubproject]] = {}
     unresolved: List[out.UnresolvedSubproject] = irrelevant_subprojects
 
-    with profiling("Resolve dependencies"):
-        # Dispatch each subproject to a resolver for resolution
-        with Progress(
-            SpinnerColumn(style="green"),
-            TextColumn("[bold]{task.description}[/bold]"),
-            MofNCompleteColumn(),
-            TextColumn("({task.fields[subproject_dir]})"),
-            transient=True,
-            console=console,
-            disable=(not sys.stderr.isatty() or len(relevant_subprojects) == 0),
-        ) as progress:
-            task_id = progress.add_task(
-                "Resolving dependencies",
-                total=len(relevant_subprojects),
-                subproject_dir="",
-            )
-            for item_i, subproject in enumerate(relevant_subprojects):
-                progress.update(task_id, subproject_dir=subproject.root_dir.value)
-                if subproject.ecosystem is None:
-                    # no reason to resolve subprojects that we don't support. We only recognize them
-                    # for tracking purposes
-                    unresolved.append(
-                        out.UnresolvedSubproject(
-                            info=subproject,
-                            reason=out.UnresolvedReason(out.UnresolvedUnsupported()),
-                            errors=[],
-                        )
-                    )
-                    continue
-                res = resolve_dependency_source(
-                    subproject.dependency_source,
-                    config,
-                )
-                resolved_info = res.deps
-                errors = res.errors
-                targets = res.targets
-                dependency_targets.extend(targets)
-
-                if not isinstance(resolved_info, out.UnresolvedReason):
-                    # resolved_info is an UnresolvedReason when dependency resolution failed in some way
-                    resolution_method, deps = resolved_info
-                    resolved_subproject = out.ResolvedSubproject(
+    # Dispatch each subproject to a resolver for resolution
+    with Progress(
+        SpinnerColumn(style="green"),
+        TextColumn("[bold]{task.description}[/bold]"),
+        MofNCompleteColumn(),
+        TextColumn("({task.fields[subproject_dir]})"),
+        transient=True,
+        console=console,
+        disable=(not sys.stderr.isatty() or len(relevant_subprojects) == 0),
+    ) as progress:
+        task_id = progress.add_task(
+            "Resolving dependencies", total=len(relevant_subprojects), subproject_dir=""
+        )
+        for item_i, subproject in enumerate(relevant_subprojects):
+            progress.update(task_id, subproject_dir=subproject.root_dir.value)
+            if subproject.ecosystem is None:
+                # no reason to resolve subprojects that we don't support. We only recognize them
+                # for tracking purposes
+                unresolved.append(
+                    out.UnresolvedSubproject(
                         info=subproject,
-                        resolution_method=resolution_method,
-                        ecosystem=subproject.ecosystem,
-                        resolved_dependencies=from_resolved_dependencies(deps),
+                        reason=out.UnresolvedReason(out.UnresolvedUnsupported()),
+                        errors=[],
+                    )
+                )
+                continue
+            res = resolve_dependency_source(
+                subproject.dependency_source,
+                config,
+            )
+            resolved_info = res.deps
+            errors = res.errors
+            targets = res.targets
+            dependency_targets.extend(targets)
+
+            if not isinstance(resolved_info, out.UnresolvedReason):
+                # resolved_info is an UnresolvedReason when dependency resolution failed in some way
+                resolution_method, deps = resolved_info
+                resolved_subproject = out.ResolvedSubproject(
+                    info=subproject,
+                    resolution_method=resolution_method,
+                    ecosystem=subproject.ecosystem,
+                    resolved_dependencies=from_resolved_dependencies(deps),
+                    errors=[to_sca_error(e) for e in errors],
+                )
+
+                if resolved_subproject.ecosystem not in resolved:
+                    resolved[resolved_subproject.ecosystem] = []
+                resolved[resolved_subproject.ecosystem].append(resolved_subproject)
+            else:
+                # we were not able to resolve the subproject, so track it as an
+                # unresolved subproject
+                unresolved.append(
+                    out.UnresolvedSubproject(
+                        info=subproject,
+                        reason=resolved_info,
                         errors=[to_sca_error(e) for e in errors],
                     )
+                )
 
-                    if resolved_subproject.ecosystem not in resolved:
-                        resolved[resolved_subproject.ecosystem] = []
-                    resolved[resolved_subproject.ecosystem].append(resolved_subproject)
-                else:
-                    # we were not able to resolve the subproject, so track it as an
-                    # unresolved subproject
-                    unresolved.append(
-                        out.UnresolvedSubproject(
-                            info=subproject,
-                            reason=resolved_info,
-                            errors=[to_sca_error(e) for e in errors],
-                        )
-                    )
+            progress.update(task_id, completed=item_i + 1)
 
-                progress.update(task_id, completed=item_i + 1)
-
-            progress.remove_task(task_id)
+        progress.remove_task(task_id)
 
     return unresolved, resolved, dependency_targets
