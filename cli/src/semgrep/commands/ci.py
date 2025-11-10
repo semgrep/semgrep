@@ -35,7 +35,6 @@ import semgrep.app.auth as auth
 import semgrep.rpc_call
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep import simple_profiling as simple_profiling_
 from semgrep import tracing
 from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanHandler
@@ -260,7 +259,6 @@ def ci(
     run_secrets_flag: bool,
     disable_secrets_validation_flag: bool,
     allow_untrusted_validators: bool,
-    simple_profiling: bool,
     supply_chain: bool,
     scan_unknown_extensions: bool,
     subdir: Optional[Path],
@@ -292,9 +290,6 @@ def ci(
     partial_output: Optional[Path],
     x_group_taint_rules: bool,
 ) -> None:
-    if simple_profiling:
-        simple_profiling_.enabled = True
-
     state = get_state()
 
     state.traces.configure(trace, trace_endpoint)

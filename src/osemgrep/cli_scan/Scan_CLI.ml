@@ -100,7 +100,7 @@ let default : conf =
     (* could be move in CLI_common.default_conf? *)
     common =
       {
-        simple_profiling = false;
+        profile = false;
         logging_level = Some Logs.Warning;
         maturity = Maturity.Default;
         x_parmap = true;
