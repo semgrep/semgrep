@@ -29,7 +29,6 @@ from typing import Type
 from typing import TypeVar
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep import simple_profiling
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.verbose_logging import getLogger
 
@@ -106,10 +105,9 @@ def _write_packet(io: IO[str], packet: str) -> None:
     io.flush()
 
 
-def _parse_function_result(packet: str) -> Optional[out.FunctionReturn]:
+def _parse_function_return(packet: str) -> Optional[out.FunctionReturn]:
     try:
         res = out.FunctionResult.from_json_string(packet)
-        simple_profiling.import_(res.profiling_results)
         return res.function_return
     # There are at least two kinds of exceptions that can be raised during
     # deserialization. Instead of enumerating them and hoping that we stay up to
@@ -173,7 +171,7 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
                 # No need to log here. _read_packet logs anyway if if returns
                 # None.
                 return None
-            ret = _parse_function_result(ret_str)
+            ret = _parse_function_return(ret_str)
             if ret is None:
                 # No need to log here, it's handled in the error case of
                 # _parse_function_return
