@@ -461,7 +461,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // coupling: if you change this field, also specify a specific patch version
   // for the default_python_patch_version field below!
-  // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
+  // tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11
   default_python_version: '3.10',
   // this is the patch version, the last part of the version string
