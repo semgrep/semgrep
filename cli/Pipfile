@@ -1,3 +1,15 @@
+#
+# Dependency constraints for pipenv. We which we use to manage development
+# environments. This isn't used in production.
+#
+# Packages in the [[packages]] section must be kepts in sync with those
+# specified in 'setup.py' for semgrep to behave identically regardless
+# of whether pipenv is used.
+#
+# When done updating this file, run 'pipenv install --dev' to install
+# the dependencies locally and to update the lockfile (Pipfile.lock).
+#
+
 [[source]]
 name = "pypi"
 url = "https://pypi.org/simple"
@@ -31,12 +43,30 @@ importlib_resources = ">=1.4.0"
 typing_extensions = "*"
 
 [packages]
+# Keep this list of dependencies in sync with those in setup.py
+
+attrs = ">=21.3"
+boltons = "~=21.0"
+click-option-group = "~=0.5"
+click = "~=8.1.8"
+colorama = "~=0.4.0"
+exceptiongroup = "~=1.2.0"
+glom = "~=22.1"
+jsonschema = "~=4.25.1"
 mcp = "==1.16.0"
 opentelemetry-api = "~=1.37.0"
 opentelemetry-sdk = "~=1.37.0"
 opentelemetry-exporter-otlp-proto-http = "~=1.37.0"
 opentelemetry-instrumentation-requests = "~=0.58b0"
-jsonschema = "==4.25.1"
+packaging = ">=21.0"
+peewee = "~=3.14"
+requests = "~=2.22"
+rich = "~=13.5.2"
+"ruamel.yaml" = ">=0.18.15"
 "ruamel.yaml.clib" = "==0.2.14"
+tomli = "~=2.0.1"
+typing-extensions = "~=4.2"
+urllib3 = "~=2.0"
+wcmatch = "~=8.3"
 pywin32 = { version = "==311", markers = "platform_system == 'Windows'" }
 semgrep = {editable = true, path = "."}
