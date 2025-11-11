@@ -43,7 +43,8 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/long.yaml",
-            options=["--timeout", "1"],
+            options=[],
+            timeout=1,
             target_name="equivalence",
             strict=False,
         ).stdout,
@@ -57,7 +58,8 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
 def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results = run_semgrep_in_tmp(
         "rules/multiple-long.yaml",
-        options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
+        options=["--verbose", "--timeout-threshold", "1"],
+        timeout=1,
         target_name="equivalence",
         strict=False,
     ).stdout
@@ -71,7 +73,8 @@ def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
             "rules/multiple-long.yaml",
             output_format=OutputFormat.TEXT,
             force_color=True,
-            options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
+            options=["--verbose", "--timeout-threshold", "1"],
+            timeout=1,
             target_name="equivalence",
             strict=False,
         ).stderr,
@@ -83,7 +86,8 @@ def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
             "rules/multiple-long.yaml",
             output_format=OutputFormat.TEXT,
             force_color=True,
-            options=["--verbose", "--timeout", "1", "--timeout-threshold", "2"],
+            options=["--verbose", "--timeout-threshold", "2"],
+            timeout=1,
             target_name="equivalence",
             strict=False,
         ).stderr,
@@ -106,7 +110,8 @@ def test_spacegrep_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, stderr = run_semgrep_in_tmp(
         config=None,
         target_name="spacegrep_timeout/gnu-lgplv2.txt",
-        options=["--lang=generic", "--pattern", pattern, "--timeout=1"],
+        options=["--lang=generic", "--pattern", pattern],
+        timeout=1,
         output_format=OutputFormat.TEXT,
         strict=False,  # don't fail due to timeout
     )

@@ -58,6 +58,7 @@ class RunSemgrep(Protocol):
         env: dict[str, str] | None = None,
         use_parmap: bool = False,
         j: int = 1,
+        timeout: Optional[int] = None,
         assert_exit_code: None | int | set[int] = 0,
         force_color: bool | None = None,
         assume_targets_dir: bool = True,

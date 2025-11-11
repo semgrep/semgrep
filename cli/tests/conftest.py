@@ -73,7 +73,9 @@ TESTS_PATH = Path(__file__).parent
 RULES_AND_TARGETS_PATH = Path(TESTS_PATH / "default" / "e2e")
 RULES_PATH = Path(RULES_AND_TARGETS_PATH / "rules")
 TARGETS_PATH = Path(RULES_AND_TARGETS_PATH / "targets")
-
+# We probably shouldn't have per-rule timeouts enabled for all cli tests
+# see: pull/4971
+DEFAULT_PER_RULE_TIMEOUT = 0
 ##############################################################################
 # Pytest hacks
 ##############################################################################
@@ -431,6 +433,7 @@ def _run_semgrep(
     env: Optional[Dict[str, str]] = None,
     use_parmap: bool = False,
     j: int = 1,
+    timeout: Optional[int] = None,
     assert_exit_code: Union[None, int, Set[int]] = 0,
     force_color: Optional[bool] = None,
     # See e2e/test_dependency_aware_rule.py for why this is here
@@ -508,6 +511,12 @@ def _run_semgrep(
                 subcommand is None or subcommand == "scan" or subcommand == "ci"
             ) and osemgrep_force_project_root:
                 options.extend(["--project-root", osemgrep_force_project_root])
+
+            if subcommand is None or subcommand == "scan" or subcommand == "ci":
+                if timeout:
+                    options.extend(["--timeout", str(timeout)])
+                else:
+                    options.extend(["--timeout", str(DEFAULT_PER_RULE_TIMEOUT)])
 
             if strict:
                 options.append("--strict")
