@@ -54,7 +54,7 @@ Pipfile.lock: setup.py
 #
 PYTEST ?= \
   pipenv run pytest \
-    -n auto -vv --tb=short --durations=10 $(PYTEST_EXTRA_ARGS)
+    -n auto -vv --tb=short --timeout=300 --durations=10 $(PYTEST_EXTRA_ARGS)
 
 # This is run from .github/workflow/tests.jsonnet (which sets
 # PYTEST_EXTRA_ARGS to some value for snapshot update).
@@ -69,6 +69,8 @@ PYTEST ?= \
 ci-test:
 	# To fail faster, consider running 'make test-dev' instead.
 	$(MAKE) check
+	# We add a timeout of 5 minutes to curb hanging/non-terminating
+	# tests
 	$(PYTEST) -m 'not pysemfail' tests/default
 
 # While 'make typecheck' doesn't work in CI, use 'make ci-test'
