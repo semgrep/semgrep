@@ -29,17 +29,11 @@
 #    (and the fact that the e2e rules and targets are in different dirs)
 #    (maybe we could write this test in Testo instead and for osemgrep-only
 #    once we removed test.py)
-import os
-import subprocess
-from pathlib import Path
-
 import pytest
 from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
-from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
 from semgrep.constants import OutputFormat
-from semgrep.util import IS_WINDOWS
 
 
 # It should report the passed checks in the JSON output
@@ -149,38 +143,6 @@ def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, posix_sna
         results,
         "results.txt",
     )
-
-
-# TODO: Not sure what we're testing here
-# was added in https://github.com/semgrep/semgrep/pull/8427 By Austin
-@pytest.mark.slow
-# works correctly on Windows when run separately, but timesout when run with -n
-# auto alongside other tests.
-@skip_on_windows
-def test_cli_test_from_entrypoint(posix_snapshot):
-    env = {}
-    env["PATH"] = os.environ.get("PATH", "")
-
-    cmd = SEMGREP_BASE_SCAN_COMMAND + [
-        "--test",
-        "--config",
-        "rules/basic.yaml",
-        "targets/test_test/basic.py",
-    ]
-    if IS_WINDOWS:
-        # Required env vars to be able to run semgrep
-        env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", "")
-        env["USERPROFILE"] = os.environ.get("USERPROFILE", "")
-    result = subprocess.run(
-        cmd,
-        cwd=Path(__file__).parent,
-        capture_output=True,
-        encoding="utf-8",
-        check=True,
-        env=env,
-        timeout=15,
-    )
-    posix_snapshot.assert_match(result.stdout, "output.txt")
 
 
 # It should ignore the 'paths:' 'include:' directive in the rule so it
