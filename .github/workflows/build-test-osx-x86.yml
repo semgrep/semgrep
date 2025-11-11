@@ -34,57 +34,6 @@ jobs:
         with:
           name: semgrep-osx-${{ github.sha }}
           path: artifacts.tgz
-  build-wheels:
-    needs:
-      - build-core
-    runs-on: macos-15-intel
-    steps:
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: semgrep-osx-${{ github.sha }}
-      - run: |
-          tar xvfz artifacts.tgz
-          cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: osx-x86-wheel
-          path: cli/dist.zip
-  test-wheels:
-    needs:
-      - build-wheels
-    runs-on: macos-15-intel
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: osx-x86-wheel
-      - run: unzip dist.zip
-      - name: install package
-        run: pip3 install dist/*.whl
-      - run: semgrep --version
-      - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-      - name: test dynamically linked libraries are in /usr/lib/
-        run: |
-          otool -L $(semgrep --dump-engine-path) | tee otool.txt
-          if [ $? -ne 0 ]; then
-             echo "Failed to list dynamically linked libraries.";
-             exit 1;
-          fi
-          NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n +2 otool.txt | grep -v "^\\s*/usr/lib/")
-          if [ $? -eq 0 ]; then
-             echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
-             echo $NON_USR_LIB_DYNAMIC_LIBRARIES
-             exit 1;
-          fi;
-        shell: bash {0}
 name: build-test-osx-x86
 on:
   workflow_call: null
