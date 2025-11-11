@@ -1,0 +1,1 @@
+Semgrep will now emit better error messages when exceptions are raised at the beginning or end of scan
