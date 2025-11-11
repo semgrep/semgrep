@@ -37,24 +37,20 @@ let pr2_gen x = pr2 (Dumper.dump x)
 (* Misc *)
 (*****************************************************************************)
 
+(* NOTE: we use  *)
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  (* If it is a normal exit just info log it *)
-  | UnixExit (0, msg) ->
-      (* nosemgrep: no-logs-in-library *)
-      Logs.info (fun m -> m "UnixExit(0): %s" msg);
+  | UnixExit (0, _) ->
       (* nosemgrep: forbid-exit *)
       Stdlib.exit 0
   | UnixExit (x, msg) ->
-      (* nosemgrep: no-logs-in-library *)
-      Logs.err (fun m -> m "UnixExit(%d): %s" x msg);
+      pr2 (spf "UnixExit(%d): %s%!" x msg);
       (* nosemgrep: forbid-exit *)
       Stdlib.exit x
   | exn ->
       let e = Exception.catch exn in
-      (* nosemgrep: no-logs-in-library *)
-      Logs.err (fun m -> m "UnixExit(1): %s" (Exception.to_string e));
+      pr2 (spf "UnixExit(1):\n%s%!" (Exception.to_string e));
       (* nosemgrep: forbid-exit *)
       Stdlib.exit 1
 
