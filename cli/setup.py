@@ -109,15 +109,11 @@ install_requires = [
     #    and know that a later version breaks Semgrep.
     # 3. ~=x.0 if you don't know the earliest version that works with Semgrep
     #
-    # Try to go from option 3 to 1 over time as you learn more about the
-    # codebase.
-    #
-    # coupling: keep the same list of dependencies in Pipfile (for pipenv)
+    # Try to go from option 3 to 1 over time as you learn more about the codebase.
     #
     # coupling: if you add a dep here, it would be appreciated if you could add
     # it to the top level flake.nix file as well, in
     # pysemgrep.propagatedBuildInputs
-    #
     "attrs>=21.3",
     "boltons~=21.0",
     "click-option-group~=0.5",
@@ -125,8 +121,8 @@ install_requires = [
     "colorama~=0.4.0",
     "exceptiongroup~=1.2.0",
     "glom~=22.1",
-    "jsonschema~=4.25.1",
     "mcp==1.16.0",
+    "jsonschema~=4.25.1",
     "opentelemetry-api~=1.37.0",
     "opentelemetry-sdk~=1.37.0",
     "opentelemetry-exporter-otlp-proto-http~=1.37.0",
