@@ -7,6 +7,7 @@ verify_ssl = true
 appdirs = "*"
 mypy = "==0.931"
 pytest = "*"
+pytest-timeout = "*"
 pytest-snapshot = "*"
 pytest-xdist = "*"
 tox = "*"
