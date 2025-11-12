@@ -1,3 +1,0 @@
-Pro: fixed various bugs relating to Scala match expression handling in dataflow
-analysis (e.g., some branches being misordered, especially when matching
-multiple variables against non-integer literal patterns).

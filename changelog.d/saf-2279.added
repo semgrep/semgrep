@@ -1,1 +1,0 @@
-Add `-k/ --hook` flag to enable Semgrep scans via Claude Code Agent post-tool hooks

@@ -1,1 +1,0 @@
-fixed MCP semgrep_findings tool to accept single issue_type parameter and corrected identity string role parsing

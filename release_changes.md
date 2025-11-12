@@ -1,25 +1,27 @@
-## [1.142.0](https://github.com/semgrep/semgrep/releases/tag/v1.142.0) - 2025-10-30
+## [1.143.0](https://github.com/semgrep/semgrep/releases/tag/v1.143.0) - 2025-11-12
 
 
 ### Added
 
 
-- Pro: improved taint handling of `match` expressions in Scala. In examples like
-  ```scala
-  val x = taint match {
-      case Some(t) => t
-      case None => return "example"
-  }
-  ```
-  dataflow should now track taint from `taint` to `x`. (code-9085)
-- pro: scala: http4s-specific support for `case $M -> ... :? ... +& test +& ... => ...` patterns. (code-9131)
+- Dataflow will now understand empty block expressions as having unit value in
+  more instances. (code-9141)
+- Parallel scans will now use shared-memory parallelism using multicore OCaml
+  domains, rather than the legacy fork-join approach.  Users can opt into the
+  legacy method with the `--x-parmap` CLI flag, and this deprecates the `--x-eio`
+  flag (since it is now the default behaviour). (saf-2271)
+- Add `-k/ --hook` flag to enable Semgrep scans via Claude Code Agent post-tool hooks (saf-2279)
 
 
 ### Fixed
 
 
-- Supply Chain subproject resolution table is now shown even when no subprojects were successfully resolved (SC-2492)
-- UV lockfiles that include editable and local dependencies without versions are now parsed correctly. The unversioned dependencies will be ignored. (SC-2888)
-- Failures in parsing UV lockfiles are now correctly reported as "Failed" rather than "Unsupported" (SC-2895)
-- build.gradle.kts files now resolve correctly when `--allow-local-builds` is passed. (SC-2899)
-- Rule parsing in 1.139.0 was switched to happen solely in semgrep-core. This caused some users to exit with code 7, so this change has been reverted. (saf-2265)
+- When running `semgrep scan` or `semgrep ci`, the progress bar now always ends at 100%. (SAF-2079)
+- Pro: fixed various bugs relating to Scala match expression handling in dataflow
+  analysis (e.g., some branches being misordered, especially when matching
+  multiple variables against non-integer literal patterns). (code-9144)
+- Semgrep will now emit better error messages when exceptions are raised at the beginning or end of scan (exit-message)
+- Enabled taint tracking into Goroutines, by treating them as regular Go function calls. (gh-11207)
+- Fixed missing Rust type alias translation. We can now
+  accurately match the () type in a `type` declaration. (gh-11283)
+- fixed MCP semgrep_findings tool to accept single issue_type parameter and corrected identity string role parsing (saf-2282)

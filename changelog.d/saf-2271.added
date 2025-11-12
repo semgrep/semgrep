@@ -1,4 +1,0 @@
-Parallel scans will now use shared-memory parallelism using multicore OCaml
-domains, rather than the legacy fork-join approach.  Users can opt into the
-legacy method with the `--x-parmap` CLI flag, and this deprecates the `--x-eio`
-flag (since it is now the default behaviour).

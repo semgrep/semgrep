@@ -1,1 +1,0 @@
-When running `semgrep scan` or `semgrep ci`, the progress bar now always ends at 100%.
