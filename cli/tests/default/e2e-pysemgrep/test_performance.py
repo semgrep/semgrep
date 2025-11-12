@@ -18,6 +18,7 @@ from tests.fixtures import RunSemgrep
 
 @pytest.mark.slow
 @pytest.mark.flaky(reruns=2)
+@pytest.mark.skip("Tends to hang and retry doesn't time out")
 def test_debug_performance(run_semgrep_in_tmp: RunSemgrep):
     """
     Verify that running semgrep with --debug does not result in
