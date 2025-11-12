@@ -71,6 +71,7 @@ def chdir(dirname=None):
 def assert_sentinel_results(repo_path, sentinel_path, language):
     cmd = SEMGREP_BASE_SCAN_COMMAND + [
         "--disable-version-check",
+        "--timeout=0",
         "--pattern",
         SENTINEL_PATTERN,
         "--lang",
@@ -185,6 +186,7 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo):
     cmd = SEMGREP_BASE_SCAN_COMMAND + [
         "--disable-version-check",
         "--config=rules/regex-sentinel.yaml",
+        "--timeout=0",
         "--strict",
         "--json",
         "--metrics=off",
