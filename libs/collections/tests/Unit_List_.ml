@@ -54,7 +54,7 @@ let test_fold_right () =
 
 let test_combine () =
   assert (
-    List_.combine [ 1; 2; 3 ] [ "a"; "b"; "c" ]
+    List_.combine_exn [ 1; 2; 3 ] [ "a"; "b"; "c" ]
     = [ (1, "a"); (2, "b"); (3, "c") ])
 
 let test_split () =

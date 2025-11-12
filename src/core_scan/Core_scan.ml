@@ -747,7 +747,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
         let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
         Concurrent_map_targets.map_targets ~conf ~num_jobs process_target
           targets
-        |> List_.map2 exception_handler targets
+        |> List_.map2_exn exception_handler targets
     | Parallelism_config.Process ->
         parmap_map
           (caps :> < Cap.fork >)

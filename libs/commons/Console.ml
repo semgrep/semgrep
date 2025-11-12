@@ -215,7 +215,7 @@ let layout_table (h1, heading) entries =
     List.fold_left
       (fun (n1, needed) (c1, curr) ->
         ( max (String.length c1) n1,
-          List_.map2 max needed (List_.map int_size curr) ))
+          List_.map2_exn max needed (List_.map int_size curr) ))
       (String.length h1, acc)
       entries
   in
@@ -228,15 +228,16 @@ let layout_table (h1, heading) entries =
   String.concat ""
     (List_.flatten
        ([ h1; pad (String.length h1) len1 ]
-       :: List_.map2 (fun h l -> [ pad (String.length h) l; h ]) heading lengths
-       ))
+       :: List_.map2_exn
+            (fun h l -> [ pad (String.length h) l; h ])
+            heading lengths))
   :: line
   :: List_.map
        (fun (e1, entries) ->
          String.concat ""
            (List_.flatten
               ([ e1; pad (String.length e1) len1 ]
-              :: List_.map2
+              :: List_.map2_exn
                    (fun e l -> [ pad (int_size e) l; string_of_int e ])
                    entries lengths)))
        entries

@@ -71,17 +71,25 @@ val tl_exn : string -> 'a list -> 'a list
 val last_opt : 'a list -> 'a option
 (** Returns the last element of the list or none if the list is empty. *)
 
-val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
+exception Map2_different_lengths
+
+val map2_exn : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
 (** Same as [List.map2] but stack-safe and slightly faster on short lists.
     Additionally, we guarantee that the mapping function is applied from
     left to right like for [List.iter].
+    @raise Map2_different_lengths if the lists have different lengths
 *)
+
+val map2_opt : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list option
+(** Same as [map2_exn] but returns [None] if the lists have different lengths. *)
 
 val split : ('a * 'b) list -> 'a list * 'b list
 (** Same as [List.split] but stack-safe. *)
 
-val combine : 'a list -> 'b list -> ('a * 'b) list
-(** Same as [List.combine] but stack-safe. *)
+val combine_exn : 'a list -> 'b list -> ('a * 'b) list
+(** Same as [List.combine] but stack-safe.
+    @raise Map2_different_lengths if the lists have different lengths
+*)
 
 val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
 (** Same as [List.mapi] but stack-safe and slightly faster on short lists.

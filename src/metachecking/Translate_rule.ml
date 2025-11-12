@@ -410,7 +410,7 @@ let translate_files fparser xs =
       match rules with
       | `O [ ("rules", `A rules) ] ->
           let new_rules =
-            List_.map2
+            List_.map2_exn
               (fun rule new_formula ->
                 match rule with
                 | `O rule_fields -> `O (replace_pattern rule_fields new_formula)

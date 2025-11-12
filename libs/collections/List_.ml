@@ -139,6 +139,8 @@ let iter_with_view_into_neighbor_elements
 (* Faster List.map2 *)
 (*****************************************************************************)
 
+exception Map2_different_lengths
+
 let rec slow_map2 acc f l1 l2 =
   match (l1, l2) with
   | [], [] -> rev5 acc
@@ -172,7 +174,7 @@ let rec slow_map2 acc f l1 l2 =
       let d = f d1 d2 in
       let e = f e1 e2 in
       slow_map2 (Tuple (e, d, c, b, a, acc)) f l1 l2
-  | _other -> raise (Failure "List_.map2: lists not equal length")
+  | _other -> raise Map2_different_lengths
 
 let rec fast_map2 rec_calls_remaining f l1 l2 =
   if rec_calls_remaining <= 0 then slow_map2 Empty f l1 l2
@@ -209,7 +211,7 @@ let rec fast_map2 rec_calls_remaining f l1 l2 =
         let d = f d1 d2 in
         let e = f e1 e2 in
         a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
-    | _other -> raise (Failure "List_.map2: lists not equal length")
+    | _other -> raise Map2_different_lengths
 
 (*
    This implementation of List.map makes at most 1000 non-tailrec calls
@@ -217,7 +219,11 @@ let rec fast_map2 rec_calls_remaining f l1 l2 =
 
    Additionally, this implementation guarantees left-to-right evaluation.
 *)
-let map2 f l1 l2 = fast_map2 1000 f l1 l2
+let map2_exn f l1 l2 = fast_map2 1000 f l1 l2
+
+let map2_opt f l1 l2 =
+  try Some (map2_exn f l1 l2) with
+  | Map2_different_lengths -> None
 
 (*****************************************************************************)
 (* Other safer alternatives to List.xxx functions *)
@@ -256,7 +262,7 @@ let rec last_opt xs =
   | [ x ] -> Some x
   | _ :: tl -> last_opt tl
 
-let mapi f l = map2 f (List.init (List.length l) Fun.id) l
+let mapi f l = map2_exn f (List.init (List.length l) Fun.id) l
 
 let rec drop n xs =
   match (n, xs) with
@@ -302,7 +308,7 @@ let rec take_safe n xs =
 let split xs = fold_right (fun (x, y) (xs, ys) -> (x :: xs, y :: ys)) xs ([], [])
 
 (* Safe reimplementation of List.combine *)
-let combine xs ys = map2 (fun a b -> (a, b)) xs ys
+let combine_exn xs ys = map2_exn (fun a b -> (a, b)) xs ys
 
 let null xs =
   match xs with
@@ -311,7 +317,7 @@ let null xs =
 
 let index_list xs =
   if null xs then [] (* enum 0 (-1) generate an exception *)
-  else combine xs (enum 0 (List.length xs - 1))
+  else combine_exn xs (enum 0 (List.length xs - 1))
 
 let index_list_0 xs = index_list xs
 let index_list_1 xs = xs |> index_list |> map (fun (x, i) -> (x, i + 1))

@@ -134,7 +134,7 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
                 Prefiltering.File.check_many prefilters
                   (Lazy_safe.force xtarget.lazy_content))
           in
-          let rule_results = List_.combine rules prefilter_results in
+          let rule_results = List_.combine_exn rules prefilter_results in
           let relevant_filtered, irrelevant_filtered =
             List.partition_map
               (fun ((rule, relevant) : _ Rule.rule_info * bool) ->
