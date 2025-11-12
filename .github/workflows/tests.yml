@@ -65,16 +65,6 @@ jobs:
       file: Dockerfile
       repository-name: semgrep/semgrep
       target: performance-tests
-  build-test-manylinux-aarch64:
-    needs:
-      - build-test-docker
-    secrets: inherit
-    uses: ./.github/workflows/build-test-manylinux-aarch64.yml
-  build-test-manylinux-x86:
-    needs:
-      - build-test-core-x86
-    secrets: inherit
-    uses: ./.github/workflows/build-test-manylinux-x86.yml
   build-test-osx-arm64:
     secrets: inherit
     uses: ./.github/workflows/build-test-osx-arm64.yml

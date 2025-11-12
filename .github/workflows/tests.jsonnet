@@ -424,20 +424,6 @@ local ignore_md = {
       uses: './.github/workflows/build-test-core-x86.yml',
       secrets: 'inherit',
     },
-    'build-test-manylinux-x86': {
-      needs: [
-        'build-test-core-x86',
-      ],
-      uses: './.github/workflows/build-test-manylinux-x86.yml',
-      secrets: 'inherit',
-    },
-    'build-test-manylinux-aarch64': {
-      needs: [
-        'build-test-docker',
-      ],
-      uses: './.github/workflows/build-test-manylinux-aarch64.yml',
-      secrets: 'inherit',
-    },
     'build-test-osx-x86': {
       uses: './.github/workflows/build-test-osx-x86.yml',
       secrets: 'inherit',

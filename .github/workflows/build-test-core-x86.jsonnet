@@ -1,6 +1,5 @@
 // This workflow builds and test semgrep-core. It also generates an artifact
 // which is used in many other workflows such as tests.jsonnet or
-// build-test-manylinux-x86.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
