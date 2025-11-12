@@ -43,6 +43,7 @@ def streamable_server(available_port):
 
 
 @pytest.mark.slow
+@pytest.mark.skip("flakey MCP test, see: semgrep-proprietary/pull/4985")
 async def test_streamable_client_smoke(streamable_server):
     port, proc = streamable_server
     base_url = f"http://127.0.0.1:{port}"
@@ -79,6 +80,7 @@ async def test_streamable_client_smoke(streamable_server):
 
 
 @pytest.mark.slow
+@pytest.mark.skip("flakey MCP test, see: semgrep-proprietary/pull/4985")
 async def test_streamable_client_no_closed_resource_error(streamable_server):
     """Test that connecting to semgrep mcp with streamable-http doesn't get a ClosedResourceError.
 

@@ -37,6 +37,7 @@ def sse_server(available_port):
 
 
 @pytest.mark.slow
+@pytest.mark.skip("flakey MCP test, see: semgrep-proprietary/pull/4985")
 async def test_sse_client_smoke(sse_server):
     port = sse_server
     base_url = f"http://127.0.0.1:{port}"

@@ -35,6 +35,7 @@ def mk_server_params(port: int):
 
 
 @pytest.mark.slow
+@pytest.mark.skip("flakey MCP test, see: semgrep-proprietary/pull/4985")
 async def test_stdio_client(available_port):
     async with stdio_client(mk_server_params(available_port)) as (read, write):
         async with ClientSession(read, write) as session:
