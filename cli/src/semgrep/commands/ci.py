@@ -35,6 +35,7 @@ import semgrep.app.auth as auth
 import semgrep.rpc_call
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep import simple_profiling as simple_profiling_module
 from semgrep import tracing
 from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanHandler
@@ -63,6 +64,7 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
+from semgrep.simple_profiling import profiling
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
@@ -281,6 +283,7 @@ def ci(
     x_pro_naming: bool,
     x_semgrepignore_filename: Optional[str],
     x_no_python_schema_validation: bool,
+    x_simple_profiling: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
     dump_n_rule_partitions: Optional[int],
@@ -290,6 +293,9 @@ def ci(
     partial_output: Optional[Path],
     x_group_taint_rules: bool,
 ) -> None:
+    if x_simple_profiling:
+        simple_profiling_module.enabled_simple_profiling = True
+
     state = get_state()
 
     state.traces.configure(trace, trace_endpoint)
@@ -507,39 +513,40 @@ def ci(
                         out.Product(out.Secrets())
                     )
 
-                with Progress(
-                    TextColumn("  {task.description}"),
-                    SpinnerColumn(spinner_name="simpleDotsScrolling"),
-                    console=console,
-                ) as progress_bar:
-                    start_scan_desc = "Initializing scan"
+                with profiling("Initializing scan"):
+                    with Progress(
+                        TextColumn("  {task.description}"),
+                        SpinnerColumn(spinner_name="simpleDotsScrolling"),
+                        console=console,
+                    ) as progress_bar:
+                        start_scan_desc = "Initializing scan"
 
-                    start_scan_task = progress_bar.add_task(start_scan_desc)
-                    scan_handler.start_scan(project_meta, project_config)
-                    extra_fields = []
-                    if scan_handler.fips_mode:
-                        extra_fields.append("fips=true")
-                    if scan_handler.deployment_name:
-                        extra_fields.append(
-                            f"deployment={scan_handler.deployment_name}"
+                        start_scan_task = progress_bar.add_task(start_scan_desc)
+                        scan_handler.start_scan(project_meta, project_config)
+                        extra_fields = []
+                        if scan_handler.fips_mode:
+                            extra_fields.append("fips=true")
+                        if scan_handler.deployment_name:
+                            extra_fields.append(
+                                f"deployment={scan_handler.deployment_name}"
+                            )
+                        if scan_handler.scan_id:
+                            extra_fields.append(f"scan_id={scan_handler.scan_id}")
+                        if extra_fields:
+                            start_scan_desc += f" ({', '.join(extra_fields)})"
+                        progress_bar.update(
+                            start_scan_task, completed=100, description=start_scan_desc
                         )
-                    if scan_handler.scan_id:
-                        extra_fields.append(f"scan_id={scan_handler.scan_id}")
-                    if extra_fields:
-                        start_scan_desc += f" ({', '.join(extra_fields)})"
-                    progress_bar.update(
-                        start_scan_task, completed=100, description=start_scan_desc
-                    )
 
-                    product_names = [
-                        PRODUCT_NAMES_MAP.get(p) or p
-                        for p in scan_handler.enabled_products
-                    ]
-                    products_str = ", ".join(product_names) or "None"
-                    products_task = progress_bar.add_task(
-                        f"Enabled products: [bold]{products_str}[/bold]"
-                    )
-                    progress_bar.update(products_task, completed=100)
+                        product_names = [
+                            PRODUCT_NAMES_MAP.get(p) or p
+                            for p in scan_handler.enabled_products
+                        ]
+                        products_str = ", ".join(product_names) or "None"
+                        products_task = progress_bar.add_task(
+                            f"Enabled products: [bold]{products_str}[/bold]"
+                        )
+                        progress_bar.update(products_task, completed=100)
 
                 if scan_handler.rules == '{"rules":[]}' and set(
                     scan_handler.enabled_products

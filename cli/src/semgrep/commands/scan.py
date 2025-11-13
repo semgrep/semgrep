@@ -38,6 +38,7 @@ import semgrep.run_scan
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
+from semgrep import simple_profiling as simple_profiling_module
 from semgrep import tracing
 from semgrep.app.version import get_no_findings_msg
 from semgrep.app.version import get_too_many_findings_msg
@@ -208,6 +209,10 @@ _scan_options: List[Callable] = [
         "--optimizations",
         default="all",
         type=click.Choice(["all", "none"]),
+    ),
+    optgroup.option(
+        "--x-simple-profiling/--x-no-simple-profiling",
+        is_flag=True,
     ),
     optgroup.option(
         "--timeout",
@@ -644,6 +649,7 @@ class ScanResult:
 @handle_command_errors
 def scan(
     *,
+    allow_untrusted_validators: bool,
     autofix: bool,
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
@@ -689,7 +695,6 @@ def scan(
     quiet: bool,
     replacement: Optional[str],
     rewrite_rule_ids: bool,
-    allow_untrusted_validators: bool,
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     strict: bool,
@@ -716,6 +721,7 @@ def scan(
     x_pro_naming: bool,
     x_no_python_schema_validation: bool,
     x_semgrepignore_filename: Optional[str],
+    x_simple_profiling: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
     x_group_taint_rules: bool,
@@ -728,6 +734,8 @@ def scan(
 
             version_check()
         return None
+    if x_simple_profiling:
+        simple_profiling_module.enabled_simple_profiling = True
 
     if x_eio:
         if x_parmap:

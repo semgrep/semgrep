@@ -48,6 +48,7 @@ from semgrep.sca_subproject_support import PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KIN
 from semgrep.sca_subproject_support import PTT_OCAML_PARSER_SUBPROJECT_KINDS
 from semgrep.sca_subproject_support import TR_OCAML_RESOLVER_SUBPROJECT_KINDS
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
+from semgrep.simple_profiling import simple_profiling
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_display_paths
 from semgrep.verbose_logging import getLogger
@@ -434,6 +435,7 @@ def _handle_lockfile_source(
     )
 
 
+@simple_profiling
 def resolve_dependency_source(
     dep_source: out.DependencySource,
     config: DependencyResolutionConfig,

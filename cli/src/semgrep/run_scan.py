@@ -94,6 +94,8 @@ from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
+from semgrep.simple_profiling import profiling
+from semgrep.simple_profiling import simple_profiling
 from semgrep.state import get_state
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_all_source_files
@@ -600,6 +602,7 @@ def filter_dependency_aware_rules(
     return filtered_rules
 
 
+@simple_profiling
 def resolve_dependencies(
     dependency_aware_rules: List[Rule],
     target_manager: TargetManager,
@@ -839,6 +842,7 @@ def adjust_matches_for_sca_rules(
 
 # This runs semgrep-core (and also handles SCA and join rules)
 @tracing.trace()
+@simple_profiling
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -999,6 +1003,7 @@ def run_rules(
 # semgrep(entrypoint.py) -> main.py -> cli.py -> commands/scan.py -> run_scan()
 # old: this used to be called semgrep.semgrep_main.main
 @tracing.trace()
+@simple_profiling
 def run_scan(
     *,
     dump_command_for_core: bool = False,
@@ -1091,37 +1096,38 @@ def run_scan(
         if includes_remote_config
         else "Loading rules..."
     )
-    with Progress(
-        SpinnerColumn(style="green"),
-        TextColumn("[bold]{task.description}[/bold]"),
-        transient=True,
-        console=console,
-        disable=(not sys.stderr.isatty()),
-    ) as progress:
-        task_id = progress.add_task(f"{progress_msg}", total=1)
-        if pattern:
-            if not lang:
-                raise SemgrepError(
-                    "language must be specified when a pattern is passed"
+    with profiling(progress_msg):
+        with Progress(
+            SpinnerColumn(style="green"),
+            TextColumn("[bold]{task.description}[/bold]"),
+            transient=True,
+            console=console,
+            disable=(not sys.stderr.isatty()),
+        ) as progress:
+            task_id = progress.add_task(f"{progress_msg}", total=1)
+            if pattern:
+                if not lang:
+                    raise SemgrepError(
+                        "language must be specified when a pattern is passed"
+                    )
+                configs_obj, config_errors = Config.from_pattern_lang(
+                    pattern, lang, replacement
                 )
-            configs_obj, config_errors = Config.from_pattern_lang(
-                pattern, lang, replacement
-            )
-        elif rules_string is not None:
-            configs_obj, config_errors = Config.from_rules_string(
-                rules_string,
-                no_python_schema_validation=x_no_python_schema_validation,
-            )
-        elif config_strs is not None:
-            if replacement:
-                raise SemgrepError(
-                    "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
+            elif rules_string is not None:
+                configs_obj, config_errors = Config.from_rules_string(
+                    rules_string,
+                    no_python_schema_validation=x_no_python_schema_validation,
                 )
-            configs_obj, config_errors = Config.from_config_list(
-                config_strs or [],
-                project_url,
-                no_python_schema_validation=x_no_python_schema_validation,
-            )
+            elif config_strs is not None:
+                if replacement:
+                    raise SemgrepError(
+                        "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
+                    )
+                configs_obj, config_errors = Config.from_config_list(
+                    config_strs or [],
+                    project_url,
+                    no_python_schema_validation=x_no_python_schema_validation,
+                )
 
         progress.remove_task(task_id)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)

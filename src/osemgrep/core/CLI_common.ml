@@ -28,8 +28,7 @@ module H = Cmdliner_
 type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
-  (* osemgrep-only: pad poor's man profiling info for now *)
-  profile : bool;
+  simple_profiling : bool;
   (* osemgrep-only: mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
   x_parmap : bool;
@@ -140,9 +139,13 @@ let with_logging ~color ~level func =
 (* Profiling options *)
 (*************************************************************************)
 
-(* osemgrep-only:  *)
-let o_profile : bool Term.t =
-  let info = Arg.info [ "profile" ] ~doc:{|<undocumented>|} in
+let o_simple_profiling : bool Term.t =
+  let info =
+    Arg.info [ "x-simple-profiling" ]
+      ~doc:
+        "Upon exit, print on stderr a report showing how long certain \
+         operations took, in an unspecified text format."
+  in
   Arg.value (Arg.flag info)
 
 (*************************************************************************)
@@ -209,17 +212,18 @@ let o_telemetry : Telemetry.config option Term.t =
 (*************************************************************************)
 
 let o_common : conf Term.t =
-  let combine logging profile maturity x_eio x_parmap
+  (* keep the arguments in alphabetic order please *)
+  let combine logging maturity simple_profiling x_eio x_parmap
       x_no_python_schema_validation telemetry =
     (* experimental flag only used by pysemgrep *)
     ignore x_no_python_schema_validation;
     (* --x-eio will be passed to pysemgrep, which will report a deprecation
      * warning. *)
     ignore x_eio;
-    { logging_level = logging; profile; maturity; x_parmap; telemetry }
+    { logging_level = logging; simple_profiling; maturity; x_parmap; telemetry }
   in
   Term.(
-    const combine $ o_logging $ o_profile $ Maturity.o_maturity $ o_eio
+    const combine $ o_logging $ Maturity.o_maturity $ o_simple_profiling $ o_eio
     $ o_parmap $ o_no_python_schema_validation $ o_telemetry)
 
 (*************************************************************************)

@@ -63,6 +63,9 @@ from semgrep.rule import Rule
 from semgrep.rule_match import OrderedRuleMatchList
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import Language
+from semgrep.simple_profiling import enabled_simple_profiling
+from semgrep.simple_profiling import import_simple_profiling
+from semgrep.simple_profiling import simple_profiling
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
@@ -90,6 +93,13 @@ LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
 if not IS_WINDOWS:
     import resource
+
+
+def parse_core_output_json(output_json: Any) -> out.CoreOutput:
+    """Convert JSON tree into CoreOutput and import profiling data"""
+    res = out.CoreOutput.from_json(output_json)
+    import_simple_profiling(res.profiling_results)
+    return res
 
 
 def setrlimits_preexec_fn() -> None:
@@ -619,7 +629,7 @@ class CoreRunner:
             )
 
             if "errors" in output_json:
-                parsed_output = out.CoreOutput.from_json(output_json)
+                parsed_output = parse_core_output_json(output_json)
                 errors = parsed_output.errors
                 fail_msg = (
                     "non-zero exit status with one or more errors in json response"
@@ -985,6 +995,10 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             rule_file.flush()
             cmd.extend(["-rules", rule_file.name])
 
+            # Turn on simple profiling. See Profiling.ml and simple_profiling.py
+            if enabled_simple_profiling:
+                cmd.extend(["-simple_profiling"])
+
             # adding multi-core option
             # rely on the domains/thread-based impl instead of Parmap
             if x_parmap:
@@ -1146,7 +1160,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 runner.stdout,
                 runner.stderr,
             )
-            core_output = out.CoreOutput.from_json(output_json)
+            core_output = parse_core_output_json(output_json)
             if core_output.paths.skipped:
                 for skip in core_output.paths.skipped:
                     if skip.rule_id:
@@ -1262,6 +1276,7 @@ Exception raised: `{e}`
 
     # end _run_rules_direct_to_semgrep_core
 
+    @simple_profiling
     def invoke_semgrep_core(
         self,
         target_manager: TargetManager,
@@ -1361,7 +1376,7 @@ Exception raised: `{e}`
             output_json = self._extract_core_output(
                 metachecks, returncode, " ".join(cmd), runner.stdout, runner.stderr
             )
-            core_output = out.CoreOutput.from_json(output_json)
+            core_output = parse_core_output_json(output_json)
 
             parsed_errors += [
                 core_error_to_semgrep_error(e) for e in core_output.errors

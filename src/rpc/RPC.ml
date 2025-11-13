@@ -21,6 +21,20 @@ module Out = Semgrep_output_v1_j
  * See RPC_return.ml for the code implementing the Python RPC calls.
  *)
 
+let name_of_call (call : Out.function_call) : string =
+  match call with
+  | `CallApplyFixes _ -> "CallApplyFixes"
+  | `CallSarifFormat _ -> "CallSarifFormat"
+  | `CallContributions -> "CallContributions"
+  | `CallFormatter _ -> "CallFormatter"
+  | `CallValidate _ -> "CallValidate"
+  | `CallResolveDependencies _ -> "CallResolveDependencies"
+  | `CallUploadSymbolAnalysis _ -> "CallUploadSymbolAnalysis"
+  | `CallDumpRulePartitions _ -> "CallDumpRulePartitions"
+  | `CallTransitiveReachabilityFilter _ -> "CallTransitiveReachabilityFilter"
+  | `CallGetTargets _ -> "CallGetTargets"
+  | `CallMatchSubprojects _ -> "CallMatchSubprojects"
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -37,11 +51,15 @@ type caps =
 (* Dispatcher *)
 (*****************************************************************************)
 
-let handle_call (caps : < caps ; .. >) :
-    Out.function_call -> (Out.function_return, string) result = function
+let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
+    (Out.function_return, string) result =
+  Profiling.measure ("RPC " ^ name_of_call call) @@ fun () ->
+  match call with
   | `CallApplyFixes { dryrun; edits } ->
       let modified_file_count, fixed_lines = RPC_return.autofix dryrun edits in
-      Ok (`RetApplyFixes { modified_file_count; fixed_lines })
+      Ok
+        (`RetApplyFixes { modified_file_count; fixed_lines }
+          : Out.function_return)
   | `CallSarifFormat ({ rules; is_pro; show_dataflow_traces }, ctx, cli_output)
     ->
       let output =
@@ -196,3 +214,4 @@ let handle_single_request (caps : < caps ; .. >) =
 let main (caps : < caps ; .. >) =
   (* For now, just handle one request and then exit. *)
   handle_single_request caps
+[@@profiling]
