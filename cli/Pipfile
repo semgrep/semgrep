@@ -30,6 +30,7 @@ types-jsonschema = "4.25.1.20251009"
 importlib_metadata = "*"
 importlib_resources = ">=1.4.0"
 typing_extensions = "*"
+ddtrace = "*"
 
 [packages]
 mcp = "==1.16.0"

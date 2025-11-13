@@ -29,7 +29,7 @@ local arch_to_docker_arch = {
 //
 // NOTE: This always copies EVERY FILE from the container, so usually you want
 // to copy needed files into a scratch image then output from that
-local copy_from_docker_step(target, output_dir, file='Dockerfile', platforms=default_platforms) = {
+local copy_from_docker_step(target, output_dir, file='Dockerfile', platforms=default_platforms, build_args='') = {
 
   name: 'Copy all files from %s to GHA runner machine' % target,
   uses: 'depot/build-push-action@v1.9.0',
@@ -40,6 +40,29 @@ local copy_from_docker_step(target, output_dir, file='Dockerfile', platforms=def
     file: file,
     target: target,
     outputs: 'type=local,dest=/tmp/%s' % output_dir,
+    // Used for reporting test results back to Datadog to find flaky
+    // or slow tests. It doesn't actually get used in this step (since
+    // it should be cached), but it's necessary to keep in to catch
+    // the cached version.
+    secrets: |||
+      DD_API_KEY=${{ secrets.DD_API_KEY }}
+    |||,
+    // These need to be the same as for the actual build so as to ensure that caching triggers
+    'build-args': |||
+      VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
+      VCS_REF_HEAD_REVISION=%(ref_expr)s%(build_args)s
+      GITHUB_SERVER_URL=${{ github.server_url }}
+      GITHUB_REPOSITORY=${{ github.repository }}
+      GITHUB_SHA=${{ github.sha }}
+      GITHUB_RUN_ID=${{ github.run_id }}
+      GITHUB_RUN_ATTEMPT=${{ github.run_attempt }}
+      GITHUB_HEAD_REF=${{ github.head_ref }}
+      GITHUB_REF=${{ github.ref }}
+      GITHUB_WORKFLOW=${{ github.workflow }}
+      GITHUB_RUN_NUMBER=${{ github.run_number }}
+      GITHUB_JOB=${{ github.job }}
+      GITHUB_WORKSPACE=${{ github.workspace }}
+    ||| % { ref_expr: gha.ref_expr, build_args: if build_args == '' then '' else '\n' + build_args },
   },
 };
 
@@ -313,9 +336,29 @@ local build_steps(
         // Set the build args for the docker image
         // VCS_* just specify what commit/branch this was built on
         // These have no effect if ARG isn't used in the Dockerfile
+        //
+        // All the GITHUB_* args are taken up by the Datadog tests
+        // reporter. We're slightly lying to it by making it think
+        // it's operating directly in a GHA runner. Coupling: these
+        // are received by ARGs in the Dockerfile.
+        //
+        // TODO: Add DD_GIT_COMMIT_* args in order to give the Datadog
+        // tool access to commit message/author/committer. Right now
+        // it picks up on our fake Git repo we initialize...
         'build-args': |||
           VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
           VCS_REF_HEAD_REVISION=%(ref_expr)s%(build_args)s
+          GITHUB_SERVER_URL=${{ github.server_url }}
+          GITHUB_REPOSITORY=${{ github.repository }}
+          GITHUB_SHA=${{ github.sha }}
+          GITHUB_RUN_ID=${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT=${{ github.run_attempt }}
+          GITHUB_HEAD_REF=${{ github.head_ref }}
+          GITHUB_REF=${{ github.ref }}
+          GITHUB_WORKFLOW=${{ github.workflow }}
+          GITHUB_RUN_NUMBER=${{ github.run_number }}
+          GITHUB_JOB=${{ github.job }}
+          GITHUB_WORKSPACE=${{ github.workspace }}
         ||| % { ref_expr: gha.ref_expr, build_args: if build_args == '' then '' else '\n' + build_args }
         ,
         // This flag controls if for whatever reason depot fails to
@@ -335,6 +378,12 @@ local build_steps(
 
         // Also maybe push to Docker hub and/or ec2
         push: push || push_ecr,
+
+        // Used for reporting test results back to Datadog to find
+        // flaky or slow tests.
+        secrets: |||
+          DD_API_KEY=${{ secrets.DD_API_KEY }}
+        |||,
       },
     },
   ];
@@ -414,7 +463,7 @@ local job(
            +
            (if artifact_name != null then (
               [
-                copy_from_docker_step(target='%s-binaries' % target, output_dir='binaries', platforms=platforms),
+                copy_from_docker_step(target='%s-binaries' % target, output_dir='binaries', platforms=platforms, build_args=build_args),
               ] + std.flattenArrays(
                 std.map(function(arch)
                   [
