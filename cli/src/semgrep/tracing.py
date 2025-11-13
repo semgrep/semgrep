@@ -61,6 +61,8 @@ TRACER = otrace.get_tracer(__name__)
 TOP_LEVEL_SPAN_KIND = SpanKind.CLIENT
 # Coupling: these constants need to be kept in sync with Tracing.ml
 
+PYRO_CAML_TAGS = "PYRO_CAML_TAGS"
+PYRO_CAML_SERVICE_NAME = "PYRO_CAML_SERVICE_NAME"
 _SEMGREP_TRACE_PARENT_TRACE_ID = "SEMGREP_TRACE_PARENT_TRACE_ID"
 _SEMGREP_TRACE_PARENT_SPAN_ID = "SEMGREP_TRACE_PARENT_SPAN_ID"
 
@@ -252,9 +254,6 @@ class Traces:
             context.attach(extracted_context)
 
     def inject(self) -> None:
-        if not self.enabled:
-            return
-
         # Inject relevant resource attributes for semgrep-core
         base_resource_attributes = os.environ.get(OTEL_RESOURCE_ATTRIBUTES, "")
         scan_info_dict: dict = (
@@ -272,6 +271,13 @@ class Traces:
             scan_info_kv
             + ([base_resource_attributes] if base_resource_attributes else [])
         )
+        os.environ[PYRO_CAML_TAGS] = f"version={__VERSION__}" + (
+            f",{resource_attributes}" if resource_attributes else ""
+        )
+        os.environ[PYRO_CAML_SERVICE_NAME] = "semgrep-core"
+
+        if not self.enabled:
+            return
         os.environ[OTEL_RESOURCE_ATTRIBUTES] = resource_attributes
 
         # Set current context info for semgrep-core

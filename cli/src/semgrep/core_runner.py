@@ -54,6 +54,7 @@ from semgrep.core_output import core_matches_to_rule_matches
 from semgrep.core_targets_plan import Plan
 from semgrep.core_targets_plan import Task
 from semgrep.engine import EngineType
+from semgrep.env import Env
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import with_color
@@ -579,6 +580,7 @@ class CoreRunner:
         interfile_timeout: int,
         trace: bool,
         trace_endpoint: Optional[str],
+        profile: bool,
         capture_stderr: bool,
         optimizations: str,
         allow_untrusted_validators: bool,
@@ -598,6 +600,7 @@ class CoreRunner:
         self._interfile_timeout = interfile_timeout
         self._trace = trace
         self._trace_endpoint = trace_endpoint
+        self._profile = profile
         self._optimizations = optimizations
         self._allow_untrusted_validators = allow_untrusted_validators
         self._path_sensitive = path_sensitive
@@ -840,6 +843,40 @@ class CoreRunner:
                 )
         return ddprof
 
+    def _check_pyro_caml_preconditions(self) -> bool:
+        """
+        Checks if pyro-caml can be used for profiling.
+        Returns True if pyro-caml can be used, False otherwise.
+
+        We want to add these checks since pyro-caml will fail otherwise
+
+        What we need are:
+        - PYRO_CAML_SERVER_ADDRESS is set
+        - pyro-caml is installed
+        """
+
+        pyro_caml_on_path = shutil.which("pyro-caml")
+
+        pyro_caml_requested = self._profile or (
+            os.environ.get("SEMGREP_PROFILE", "") != ""
+        )
+        pyro_caml = (pyro_caml_on_path is not None) and pyro_caml_requested
+
+        # debug message for pyro-caml
+        if not pyro_caml:
+            reasons = []
+            if pyro_caml_on_path is None:
+                reasons.append("pyro-caml is not in PATH")
+            if not self._profile:
+                reasons.append("trace is not enabled")
+            if reasons:
+                logger.debug(
+                    "pyro-caml will not be used for profiling. Reason(s): "
+                    + "; ".join(reasons)
+                    + "."
+                )
+        return pyro_caml
+
     @staticmethod
     def plan_core_run(
         rules: List[Rule],
@@ -975,13 +1012,28 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 sys.exit(2)
 
             use_ddprof = self._check_ddprof_preconditions()
-
+            use_pyro_caml = self._check_pyro_caml_preconditions()
+            env = Env()
+            pyro_caml_address = os.environ.get(
+                "PYRO_CAML_SERVER_ADDRESS",
+                (
+                    # TODO update to non dev url!
+                    "https://pyroscope.dev.private.semgrep.dev"
+                    if env.sms_scan_id is not None and env.sms_scan_id != ""
+                    else "http://localhost:4040"
+                ),
+            )
             cmd = [
                 # bugfix: self._binary_path is an Optional[Path]. The
                 # recommended way to convert a Path to a string is to use the
                 # str function. However, mypy allows the use of str to convert
                 # Optional values to strings. Make sure to check against None
                 # even though mypy won't warn you.
+                *(
+                    ["pyro-caml", "--address", pyro_caml_address]
+                    if use_pyro_caml
+                    else []
+                ),
                 *(["ddprof"] if use_ddprof else []),
                 str(self._binary_path),
                 "-json",

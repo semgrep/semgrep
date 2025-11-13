@@ -270,6 +270,7 @@ def ci(
     interfile_timeout: Optional[int],
     trace: bool,
     trace_endpoint: str,
+    profile: bool,
     use_git_ignore: bool,
     semgrepignore_v2: Optional[bool],  # ignored legacy option
     force_novcs_project: bool,  # unused but needed to receive options from 'scan'
@@ -725,6 +726,7 @@ def ci(
             "interfile_timeout": interfile_timeout,
             "trace": trace,
             "trace_endpoint": trace_endpoint,
+            "profile": profile,
             "timeout_threshold": timeout_threshold,
             "skip_unknown_extensions": (not scan_unknown_extensions),
             "allow_untrusted_validators": allow_untrusted_validators,
