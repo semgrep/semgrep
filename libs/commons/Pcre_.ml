@@ -63,6 +63,10 @@ type error = Pcre.error =
 *)
 let extra_flag = `UTF8
 
+(* Auto instrument Pcre_ with profiling since we can spend a lot of time here
+   and FFI calls aren't covered by the memprof profiler *)
+[@@@pyro_caml "auto"]
+
 (*
    'limit' and 'limit_recursion' are set explicitly to make semgrep
    fail consistently across platforms (e.g. CI vs. local Mac).

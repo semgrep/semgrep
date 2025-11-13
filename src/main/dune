@@ -6,6 +6,7 @@
   )
  (libraries
   TCB
+  pyro-caml-instruments
   semgrep.core_cli
   semgrep.osemgrep_cli
   ; implementations of dune virtual modules

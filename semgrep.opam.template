@@ -9,6 +9,10 @@ pin-depends: [
   ["testo-diff.dev" "./libs/testo"]
   ["obackward.dev" "./libs/obackward"]
   ["semgrep-interfaces.dev" "./cli/src/semgrep/semgrep_interfaces"]
+  (* TODO: Once we start releasing this as an opam package and it's stable
+     we should just install these as normal opam packages instead of a submodule *)
+  ["pyro-caml-instruments.dev" "./libs/pyro-caml"]
+  ["pyro-caml-ppx.dev" "./libs/pyro-caml"]
 ]
 
 (* Needed for alpine linux docker image. These used to get pulled in *)

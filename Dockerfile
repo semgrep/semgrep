@@ -135,6 +135,7 @@ COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 COPY libs/pcre2 libs/pcre2
 COPY libs/testo libs/testo
+COPY libs/pyro-caml libs/pyro-caml
 COPY libs/obackward libs/obackward
 
 # note that we do not run 'make install-deps-for-semgrep-core' here because it

@@ -282,6 +282,19 @@ install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 
+# This installs pyro caml profiler, which allows us to do some nice continous
+# profiling (--profile passed to pysemgrep). This is separate from
+# install-opam-deps, as it is not compatible with tsan nor windows. This allows
+# us to only install it when needed, in the normal docker image build.
+# Additionally the profiler relies on Rust as a dependency, so this avoids
+# forcing developers to install Rust unless they need it.
+#
+# Note: we do --kind path here since in the docker image opam tries to install this
+# via git vcs and fails since docker wont copy over the .git folder. This also
+# means you don't have to commit to reinstall after changing pyro-caml
+install-pyro-caml:
+	opam pin add pyro-caml.dev ./libs/pyro-caml -y --kind path --confirm-level=unsafe-yes
+
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
 # 'opam install dune' to get started.
@@ -375,6 +388,10 @@ rebuild:
 	-$(MAKE) clean
 	$(MAKE) build
 
+# This starts the profiling backend Pyroscope, for use with the pyro caml
+# profiler. This is needed to collect + visualize profiling data.
+pyroscope:
+	docker run --rm -it -p 4040:4040 grafana/pyroscope:latest
 # Prepare a release branch.
 # This is mainly called by .github/workflows/start-release.yml
 # It is safe to run it multiple times.

@@ -57,6 +57,7 @@
      ; timeouts rely on yielding back to the scheduler, so we do this so we can
      ; yield and check the timeout often
      parallelism.ppx --auto
+     pyro-caml-ppx
    )
  )
 )

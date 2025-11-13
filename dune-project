@@ -146,6 +146,9 @@ For more information see https://semgrep.dev
     (memtrace (>= 0.2.3))
     (opentelemetry (>= 0.12))
     (opentelemetry-client-ocurl (>= 0.12))
+    ; profiling
+    pyro-caml-instruments
+    pyro-caml-ppx
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
