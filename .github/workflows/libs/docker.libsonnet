@@ -146,7 +146,7 @@ local suggest_debug_local(step_name, step_id, prefix='', suffix='') = [
 
 local build_steps(
   name,  // Name of docker image if uploaded (i.e. semgrep/NAME)
-  gha_job_name='',  // User-friendly name to appear in the GitHub Actions job name
+  description='',  // User-friendly name to appear in the GitHub Actions step name
   target,  // Target docker layer (i.e. build, semgrep-cli, etc.)
   prefix='',  // prefix for image tags
   suffix='',  // suffix for image tags
@@ -275,9 +275,9 @@ local build_steps(
     // semgrep/semgrep-proprietary registry.
     {
       id: 'build-%s-docker-image' % target,
-      // job name = "WHAT: HOW"
-      name: gha_job_name
-            + (if gha_job_name == '' then '' else ': ')
+      // step name = "WHAT: HOW"
+      name: description
+            + (if description == '' then '' else ': ')
             + (
               'Build docker image in Depot%s'
               % ((if push then ' and push to Docker Hub/ECR' else '') +
@@ -341,7 +341,7 @@ local build_steps(
 
 local job(
   name,  // Name of docker image if uploaded (i.e. semgrep/NAME)
-  gha_job_name='',  // User-friendly name to appear in the GitHub Actions job name
+  description='',  // User-friendly name to appear in the GitHub Actions
   target,  // Target docker layer (i.e. build, semgrep-cli, etc.)
   prefix='',  // prefix for image tags
   suffix='',  // suffix for image tags
@@ -401,7 +401,7 @@ local job(
            ] +
            build_steps(
              name=name,
-             gha_job_name=gha_job_name,
+             description=description,
              target=target,
              prefix=prefix,
              suffix=suffix,
@@ -428,7 +428,7 @@ local job(
 
 local test_with_suggest(
   name,
-  gha_job_name,
+  description,
   target,
   needs=[],
   checkout_steps=checkout_steps,
@@ -437,7 +437,7 @@ local test_with_suggest(
   name=name,
   target=target + '-build',
   suffix=suffix + '-test-build',
-  gha_job_name='Build %s' % gha_job_name,
+  description='Build %s' % description,
   needs=needs,
   checkout_steps=checkout_steps,
   push=false,
@@ -446,11 +446,11 @@ local test_with_suggest(
   build_steps(
     name=name,
     target=target,
-    gha_job_name='Run %s' % gha_job_name,
+    description='Run %s' % description,
     push=false,
     push_ecr=false,
   ) +
-  suggest_debug_local(gha_job_name, 'build-%s-docker-image' % target, suffix=suffix + '-test-build'),
+  suggest_debug_local(description, 'build-%s-docker-image' % target, suffix=suffix + '-test-build'),
 ) + {
   permissions: gha.pull_request_permissions,
 };
