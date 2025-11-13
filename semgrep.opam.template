@@ -2,6 +2,7 @@
 (* Since we're vendoring all these dependencies instead of pulling them from opam *)
 (* we put them here! *)
 pin-depends: [
+  (* TODO: move pcre2, testo, and obackward to be pinned to git repos *)
   ["pcre2.dev" "./libs/pcre2"]
   ["tree-sitter.dev" "./libs/ocaml-tree-sitter-core"]
   ["testo.dev" "./libs/testo"]
@@ -13,6 +14,10 @@ pin-depends: [
      we should just install these as normal opam packages instead of a submodule *)
   ["pyro-caml-instruments.dev" "./libs/pyro-caml"]
   ["pyro-caml-ppx.dev" "./libs/pyro-caml"]
+  ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
+  ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
+  ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
+  ["opentelemetry-logs.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
 ]
 
 (* Needed for alpine linux docker image. These used to get pulled in *)

@@ -144,18 +144,19 @@ For more information see https://semgrep.dev
     (git (>= 3.18.0))
     ; tracing
     (memtrace (>= 0.2.3))
-    (opentelemetry (>= 0.12))
-    (opentelemetry-client-ocurl (>= 0.12))
     ; profiling
     pyro-caml-instruments
     pyro-caml-ppx
+    ; these are vendored due to https://github.com/imandra-ai/ocaml-opentelemetry/issues/113
+    ; TODO once these changes are released, unvendor them
+    opentelemetry
+    opentelemetry-client-ocurl
+    opentelemetry-client-cohttp-eio
+    opentelemetry-logs
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
     (ocurl (= 0.9.1))
-    (opentelemetry-client-ocurl (>= 0.12))
-    (opentelemetry-client-cohttp-eio (>= 0.12))
-    (opentelemetry-logs (>= 0.12))
     (ambient-context-lwt (>= 0.1.0))
     (conf-libcurl (= 2))
     ; web stuff
