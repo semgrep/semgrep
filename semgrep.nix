@@ -10,7 +10,6 @@ let
   lib =
     let
       on = opam-nix.lib.${system};
-      libunwind-dev = if pkgs.stdenv.isDarwin then pkgs.darwin.libunwind else pkgs.libunwind.dev;
     in
     rec {
       # We need to add the pkg-config path to the PATH for these packages so that
@@ -31,31 +30,6 @@ let
             sha256 = "sha256-AS7NGKvkP2ChFYpy763hAHdHx1feluS4VgBrszZz4vU=";
           };
         });
-        conf-libpcre = addPkgConfig prev.conf-libpcre;
-        conf-libffi = addPkgConfig prev.conf-libffi;
-        conf-libpcre2-8 = addPkgConfig prev.conf-libpcre2-8;
-        conf-unwind = prev.conf-unwind.overrideAttrs (old: {
-          buildInputs = old.buildInputs ++ [ libunwind-dev ];
-          nativeBuildInputs = old.nativeBuildInputs ++ [ libunwind-dev ];
-        });
-        # remove lzma from conf-xz, since we don't have it, and instead add xz
-        conf-libdw = (
-          if !pkgs.stdenv.isDarwin then
-            (prev.conf-libdw.overrideAttrs (old: {
-              buildInputs = prev.conf-libpcre.buildInputs ++ [
-                pkgs.elfutils.dev
-                pkgs.xz.dev
-                pkgs.zstd.dev
-              ];
-              nativeBuildInputs = prev.conf-libpcre.nativeBuildInputs ++ [
-                pkgs.elfutils.dev
-                pkgs.xz.dev
-                pkgs.zstd.dev
-              ];
-            }))
-          else
-            prev.conf-libdw
-        );
       };
 
       # helper to add buildinputs to an existing pkg
@@ -219,7 +193,8 @@ let
     # -xc++ if it detects a c++ file (again sane), but it's included in
     # the :standard var, which we don't add because ??? TODO add and
     # commit them instead of doing this
-    NIX_CFLAGS_COMPILE = "-I${pkgs.libcxx.dev}/include/c++/v1";
+    # NOTE: we pin to 20 here because of https://github.com/llvm/llvm-project/issues/77653
+    NIX_CFLAGS_COMPILE = "-I${pkgs.llvmPackages_20.libcxx.dev}/include/c++/v1";
   };
   env = {
     # Needed so we don't pass any flags in flags.sh
