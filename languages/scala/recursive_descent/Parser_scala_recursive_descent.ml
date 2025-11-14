@@ -2325,17 +2325,9 @@ and interpolatedString ~inPattern in_ =
          * that?
          *)
         | ID_DOLLAR _ ->
-            let ((s, t) as x) = ident in_ in
+            let x = ident in_ in
             (* ast: Ident(x) *)
-            (* if the identifier starts with $, it is a metavariable, not a variable
-             * inside an interpolated string. However, if we are not in semgrep_mode,
-             * we treat these identifiers as normal variables, so we need to strip this $
-             *)
-            if s.[0] =$= '$' then
-              if Hook.get Flag.sgrep_mode then
-                xs += EncapsExpr (Name (Id x, []))
-              else xs += EncapsDollarIdent (Str.string_after s 1, t)
-            else xs += EncapsDollarIdent x
+            xs += EncapsDollarIdent x
         (* actually a ${, but using LBRACE allows to reuse blockExpr *)
         | LBRACE _ ->
             let x = expr in_ in
