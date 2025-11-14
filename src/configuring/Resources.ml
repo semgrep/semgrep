@@ -26,6 +26,6 @@ let show () =
 available CPUs: %i
 default number of parallel jobs: %i|}
     resources.cpu.host_cpus resources.cpu.available_cpus
-    resources.cpu.recommended_parmap_jobs
+    resources.cpu.recommended_multicore_domains
 
 let to_json () = Yojson.Safe.pretty_to_string (to_yojson resources)

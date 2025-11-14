@@ -1,0 +1,3 @@
+pro: interfile scans no longer default to -j 1; instead, the number of
+available CPUs on the system is polled as part of a heuristic to determine how
+many threads should be spawned.

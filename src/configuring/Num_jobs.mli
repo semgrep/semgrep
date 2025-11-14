@@ -22,9 +22,8 @@ type t = {
         cgroup quotas on Linux.
         This is the smallest value that maximizes CPU usage in the
         absence of any other active process. *)
-  recommended_parmap_jobs : int;
-      (** The recommended value for running Parmap.
-        This is set to 1 on Windows. *)
+  recommended_multicore_domains : int;
+      (** The recommended value for running multicore. *)
 }
 [@@deriving yojson]
 

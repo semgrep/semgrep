@@ -18,7 +18,7 @@
 type t = {
   host_cpus : int;
   available_cpus : int;
-  recommended_parmap_jobs : int;
+  recommended_multicore_domains : int;
 }
 [@@deriving yojson]
 
@@ -52,28 +52,29 @@ let detect_available_cpus () =
   (* assume at least one CPU is available otherwise we wouldn't even exist *)
   (host_cpus, max 1 available_cpus)
 
-(*
-   TODO: detect memory limit and reduce the number of concurrent jobs
-   if too little memory is available?
-*)
-let recommend_number_of_parmap_jobs () =
-  (*
-     Hardcode num_jobs to 1 for non-unix (i.e. Windows) because
-     we don't believe that Parmap works in those environments
+let recommended_multicore_domains available_cpus =
+  (* Max out number of cores used to 16 unless more are requested so as to
+   not overload on large machines.
+   TODO: is this still necessary now that we check for cgroup quotas?
+   *)
+  let domains = min 16 available_cpus in
+  (* Each domain is made up of two pthreads, one for the application thread
+   (the so-called "mutator") and another for the conurrent garbage
+   collector. In early testing, the overhead for each GC thread seems to be
+   about 0.10 - 0.15 CPUs per mutator thread.  This also does not take into
+   account the overhead of cross-core traffic for cache coherence, atomics,
+   etc.  (See SAF-2284 for tracking the work of understandng those issues.)
 
-     TODO: remove this limitation once we no longer use Parmap in favor of
-     multicore OCaml. Don't forget to update the help text for -j.
-  *)
+   This overhead can add up when we have lots of spare cores; we don't
+   want to oversubscribe domains' backing threads by default.  Obviously,
+   users can tune this depending on their exact setup but let's give them
+   a plausible default value.
+   *)
+  domains |> Float.of_int |> Float.mul 0.85 |> Float.round |> Int.of_float
+
+let get () =
   let host_cpus, available_cpus = detect_available_cpus () in
-  let recommended_parmap_jobs =
-    let num_usable_cpus = if Sys.unix then available_cpus else 1 in
-    (*
-       Max out number of cores used to 16 unless more are requested so as to
-       not overload on large machines.
-       TODO: is this still necessary now that we check for cgroup quotas?
-     *)
-    min 16 num_usable_cpus
+  let recommended_multicore_domains =
+    recommended_multicore_domains available_cpus
   in
-  { host_cpus; available_cpus; recommended_parmap_jobs }
-
-let get () = recommend_number_of_parmap_jobs ()
+  { host_cpus; available_cpus; recommended_multicore_domains }

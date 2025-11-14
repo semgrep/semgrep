@@ -96,7 +96,7 @@ type func = {
 
 let default_conf : conf =
   {
-    num_jobs = Default Resources.resources.cpu.recommended_parmap_jobs;
+    num_jobs = Default Resources.resources.cpu.recommended_multicore_domains;
     timeout = 5.0;
     (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
     timeout_threshold = 3;

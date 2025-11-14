@@ -29,7 +29,7 @@ type t = {
   exclude : string list; [@default []]
   include_ : string list; [@key "include"] [@default []]
   (* TODO: leave 'jobs' unset unless specified by the user? *)
-  jobs : int; [@default Resources.resources.cpu.recommended_parmap_jobs]
+  jobs : int; [@default Resources.resources.cpu.recommended_multicore_domains]
   max_memory : int; [@key "maxMemory"] [@default 0]
   max_target_bytes : int; [@key "maxTargetBytes"] [@default 1000000]
   timeout : int; [@default 30]
