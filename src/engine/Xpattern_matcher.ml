@@ -112,9 +112,7 @@ let () =
       Mutex.protect mtx (fun () -> Hashtbl.remove ht file))
 
 let full_convs_memoed =
-  SharedMemo.make_with_state
-    ~metrics_id:"Xpattern_matcher.full_converters_large" mtx ht
-    Pos.full_converters_large
+  SharedMemo.make_with_state mtx ht Pos.full_converters_large
 
 let line_col_of_charpos (file : Fpath.t) (charpos : int) : int * int =
   let conv = full_convs_memoed file in

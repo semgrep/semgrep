@@ -87,9 +87,7 @@ let rf_ht = Hashtbl.create 101
 
 (* SAFETY: All accesses to [rf_ht] must occur while holding [rf_mtx]. *)
 let read_file_memoed =
-  Concurrent.yielding
-  @@ SharedMemo.make_with_state ~metrics_id:"Range.read_file" rf_mtx rf_ht
-       UFile.read_file
+  Concurrent.yielding @@ SharedMemo.make_with_state rf_mtx rf_ht UFile.read_file
 
 let () =
   (* nosemgrep: forbid-tmp *)

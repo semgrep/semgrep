@@ -16,19 +16,18 @@
  * shared state.
  *)
 
-val make : metrics_id:string -> ('a -> 'b) -> 'a -> 'b
+val make : ('a -> 'b) -> 'a -> 'b
 (** Memoizes calls to the supplied function, such that reentrant calls across
  * domains is safe.*)
 
-val make_with_state :
-  metrics_id:string -> Mutex.t -> ('a, 'b) Hashtbl.t -> ('a -> 'b) -> 'a -> 'b
+val make_with_state : Mutex.t -> ('a, 'b) Hashtbl.t -> ('a -> 'b) -> 'a -> 'b
 (** Memoizes the given function for concurrent access, given a mutex and
     hashtable.  (This is useful when * the hashtable needs to be explicitly
     exposed outside [make]'s scope, e.g.
     [UTmp.register_temp_file_cleanup_hook].
  *)
 
-val make_with_key_fn : metrics_id:string -> ('a -> 'k) -> ('a -> 'b) -> 'a -> 'b
+val make_with_key_fn : ('a -> 'k) -> ('a -> 'b) -> 'a -> 'b
 (** Memoizes calls to the supplied function, such that reentrant calls across
  * domains is safe.  The [key_fn] argument transforms the input argument for
  * the memoizer.

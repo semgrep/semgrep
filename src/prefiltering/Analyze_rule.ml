@@ -326,11 +326,7 @@ let generate_prefilter_internal ~interfile
 (* Memoized prefilter generation *)
 let generate_prefilter ~interfile =
   let key_fn = fun ({ id = key, _; _ } : Rule.t) -> key in
-  let metrics_id =
-    Printf.sprintf "OSS/Analyze_rule.generate_prefilter_%b" interfile
-  in
-  SharedMemo.make_with_key_fn ~metrics_id key_fn
-    (generate_prefilter_internal ~interfile)
+  SharedMemo.make_with_key_fn key_fn (generate_prefilter_internal ~interfile)
 
 (* Alias for the lower-level function to match the mli *)
 let generate_prefilter_from_formula = prefilter_of_formula

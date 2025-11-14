@@ -6,7 +6,6 @@
    eio
    eio.mock
    logs
-   telemetry
  )
  (preprocess
    (pps
