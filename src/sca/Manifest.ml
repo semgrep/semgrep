@@ -91,6 +91,8 @@ type kind = Out.manifest_kind =
   | Csproj
   (* .opam - https://opam.ocaml.org/doc/Manual.html#Package-definitions *)
   | OpamFile
+  (* build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html *)
+  | BuildSbt
 [@@deriving eq, ord, show]
 
 (* old: used to be path : Target.path but no need complex origin for manifest*)
@@ -118,7 +120,8 @@ let kind_to_ecosystem_opt (kind : kind) : Out.ecosystem option =
   | PomXml
   | BuildGradle
   | BuildGradleKts
-  | SettingsGradle ->
+  | SettingsGradle
+  | BuildSbt ->
       Some Out.Maven
   | ComposerJson -> Some Out.Composer
   | NugetManifestJson
@@ -137,4 +140,5 @@ let kind_to_ecosystem_opt (kind : kind) : Out.ecosystem option =
 let kind_of_filename_exn (file : Fpath.t) : kind =
   match Fpath.basename file with
   | "mix.exs" -> Out.MixExs
+  | "build.sbt" -> Out.BuildSbt
   | str -> failwith (spf "unrecognized manifest: %s" str)

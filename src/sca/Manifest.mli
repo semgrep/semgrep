@@ -70,6 +70,8 @@ type kind = Semgrep_output_v1_j.manifest_kind =
   | Csproj
   (* .opam - https://opam.ocaml.org/doc/Manual.html#Package-definitions *)
   | OpamFile
+  (* build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html *)
+  | BuildSbt
 [@@deriving eq, ord, show]
 
 type t = Semgrep_output_v1_t.manifest = { kind : kind; path : Fpath.t }

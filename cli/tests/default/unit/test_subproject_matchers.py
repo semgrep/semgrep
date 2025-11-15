@@ -19,6 +19,7 @@ import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import ExactLockfileManifestMatcher
+from semdep.matchers.base import ExactManifestOnlyMatcher
 from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
@@ -202,6 +203,102 @@ class TestPatternManifestStaticLockfileMatcher:
         assert len(subprojects) == 1
         subproject = subprojects[0]
         assert isinstance(subproject.dependency_source.value, out.ManifestOnly)
+
+
+class TestExactManifestOnlyMatcher:
+    @pytest.mark.quick
+    def test_is_match_sbt(self):
+        matcher = ExactManifestOnlyMatcher(
+            manifest_kind=out.ManifestKind(out.BuildSbt()),
+            manifest_name="build.sbt",
+            ecosystem=out.Ecosystem(out.Maven()),
+        )
+
+        # Should match build.sbt files
+        assert matcher.is_match(Path("build.sbt")) is True
+        assert matcher.is_match(Path("a/b/c/build.sbt")) is True
+        assert matcher.is_match(Path("project/subproject/build.sbt")) is True
+
+        # Should not match other files
+        assert matcher.is_match(Path("build.gradle")) is False
+        assert matcher.is_match(Path("pom.xml")) is False
+        assert matcher.is_match(Path("package.json")) is False
+        assert matcher.is_match(Path("build.sb")) is False
+        assert matcher.is_match(Path("build.sbt.bak")) is False
+
+    @pytest.mark.quick
+    def test_is_match_setup_py(self):
+        matcher = ExactManifestOnlyMatcher(
+            manifest_kind=out.ManifestKind(out.SetupPy()),
+            manifest_name="setup.py",
+            ecosystem=out.Ecosystem(out.Pypi()),
+        )
+
+        # Should match setup.py files
+        assert matcher.is_match(Path("setup.py")) is True
+        assert matcher.is_match(Path("a/b/c/setup.py")) is True
+
+        # Should not match other files
+        assert matcher.is_match(Path("setup.cfg")) is False
+        assert matcher.is_match(Path("requirements.txt")) is False
+
+    @pytest.mark.quick
+    @pytest.mark.parametrize(
+        ["source_files", "expected_subprojects", "unused_files"],
+        [
+            (
+                [
+                    Path("build.sbt"),
+                    Path("project/plugins.sbt"),
+                ],
+                [
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    out.ManifestKind(out.BuildSbt()),
+                                    out.Fpath("build.sbt"),
+                                )
+                            )
+                        ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
+                    ),
+                ],
+                [
+                    Path("project/plugins.sbt"),
+                ],
+            ),
+        ],
+    )
+    @pytest.mark.quick
+    def test_make_subprojects(
+        self,
+        source_files: List[Path],
+        expected_subprojects: List[out.Subproject],
+        unused_files: List[Path],
+    ):
+        matcher = ExactManifestOnlyMatcher(
+            manifest_kind=out.ManifestKind(out.BuildSbt()),
+            manifest_name="build.sbt",
+            ecosystem=out.Ecosystem(out.Maven()),
+        )
+
+        source_files_set = frozenset(source_files)
+
+        # when we make subprojects from the provided source files
+        subprojects, used_files = matcher.make_subprojects(
+            fake_targets_of_paths(source_files_set)
+        )
+
+        # expect all files to be used except those in unused_files
+        assert used_files == (source_files_set - set(unused_files))
+
+        # and expect the returned subprojects to match, ignoring order
+        expected = set(expected_subprojects)
+        assert len(subprojects) == len(expected_subprojects)
+        for subproject in subprojects:
+            assert subproject in expected
 
 
 class TestRequirementsLockfileMatcher:

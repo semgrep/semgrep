@@ -195,6 +195,12 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="setup.py",
         ecosystem=out.Ecosystem(out.Pypi()),
     ),
+    # SBT
+    ExactManifestOnlyMatcher(
+        manifest_kind=out.ManifestKind(out.BuildSbt()),
+        manifest_name="build.sbt",
+        ecosystem=out.Ecosystem(out.Maven()),
+    ),
 ]
 
 

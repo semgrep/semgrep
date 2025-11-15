@@ -38,6 +38,7 @@ ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
         None,
     ),
     (out.ManifestKind(out.Csproj()), None),
+    (out.ManifestKind(out.BuildSbt()), None),
 ]
 
 # Subproject kinds that we use ocaml parsers for only when dependency paths are
