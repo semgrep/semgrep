@@ -29,6 +29,7 @@ type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   simple_profiling : bool;
+  profile : bool;
   (* osemgrep-only: mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
   x_parmap : bool;
@@ -148,6 +149,14 @@ let o_simple_profiling : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+(* for --profile *)
+let o_profile : bool Term.t =
+  let info =
+    Arg.info [ "profile" ]
+      ~doc:
+        {|Record profiles via Pyro Caml. By default sends them to localhost:4040|}
+  in
+  Arg.value (Arg.flag info)
 (*************************************************************************)
 (* Telemetry options *)
 (*************************************************************************)
@@ -213,18 +222,26 @@ let o_telemetry : Telemetry.config option Term.t =
 
 let o_common : conf Term.t =
   (* keep the arguments in alphabetic order please *)
-  let combine logging maturity simple_profiling x_eio x_parmap
+  let combine logging maturity profile simple_profiling x_eio x_parmap
       x_no_python_schema_validation telemetry =
     (* experimental flag only used by pysemgrep *)
     ignore x_no_python_schema_validation;
     (* --x-eio will be passed to pysemgrep, which will report a deprecation
      * warning. *)
     ignore x_eio;
-    { logging_level = logging; simple_profiling; maturity; x_parmap; telemetry }
+    {
+      logging_level = logging;
+      profile;
+      simple_profiling;
+      maturity;
+      x_parmap;
+      telemetry;
+    }
   in
   Term.(
-    const combine $ o_logging $ Maturity.o_maturity $ o_simple_profiling $ o_eio
-    $ o_parmap $ o_no_python_schema_validation $ o_telemetry)
+    const combine $ o_logging $ Maturity.o_maturity $ o_profile
+    $ o_simple_profiling $ o_eio $ o_parmap $ o_no_python_schema_validation
+    $ o_telemetry)
 
 (*************************************************************************)
 (* Misc *)

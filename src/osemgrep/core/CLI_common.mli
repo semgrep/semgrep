@@ -21,6 +21,7 @@ type conf = {
   (* mix of --debug, --quiet, --verbose *)
   logging_level : Logs.level option;
   simple_profiling : bool;
+  profile : bool;
   (* mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
   x_parmap : bool;
@@ -48,6 +49,7 @@ val with_logging :
 
 (* for --simple-profiling *)
 val o_simple_profiling : bool Cmdliner.Term.t
+val o_profile : bool Cmdliner.Term.t
 
 (* gather all the common flags under one term *)
 val o_common : conf Cmdliner.Term.t

@@ -254,9 +254,7 @@ let safe_run ~debug f : Exit_code.t =
             m "Error: exception %s\n%s%!" (Printexc.to_string e) trace);
         Exit_code.fatal ~__LOC__
 
-let before_exit ~profile caps : unit =
-  (* mostly a copy of Profiling.main_boilerplate finalize code *)
-  if profile then Profiling.log_diagnostics_and_gc_stats ();
+let before_exit caps : unit =
   (* alt: could use Logs.debug, but --profile would require then --debug *)
   CapTmp.erase_temp_files caps#tmp;
   ()
@@ -272,7 +270,6 @@ let before_exit ~profile caps : unit =
 let main (caps : caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
-  let profile = Array.mem "--profile" argv in
 
   (* LATER: move this function from Core_CLI to here at some point.
    * alt: we could have each module defining exns register exns from the
@@ -317,8 +314,6 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
    *)
   Logs_.with_basic_setup @@ fun () ->
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
-  (* pad poor's man profiler *)
-  if profile then Profiling.profile := Profiling.ProfAll;
 
   (* coupling: Core_CLI.ml and Pro_core_CLI.ml *)
   Proxy.configure_proxy (Proxy.settings_from_env ());
@@ -334,5 +329,5 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
 
   Metrics_.add_exit_code exit_code;
   send_metrics (caps :> < Cap.network >);
-  before_exit ~profile (caps :> < Cap.tmp >);
+  before_exit (caps :> < Cap.tmp >);
   exit_code
