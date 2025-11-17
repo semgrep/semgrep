@@ -848,6 +848,7 @@ def parse_config_string_as_rules(
     try:
         loaded_rules: dict[str, Any] = json.loads(contents)
         rules = []
+        rules_to_validate = []
 
         if RULES_KEY not in loaded_rules:
             raise SemgrepError(
@@ -860,6 +861,16 @@ def parse_config_string_as_rules(
             try:
                 loaded_rule = Rule.from_json(raw_rule)
                 rules.append(loaded_rule)
+                if loaded_rule.should_run_on_semgrep_core:
+                    rules_to_validate.append(raw_rule)
+                    continue
+                # All rules need to either run on semgrep-core or be dependency aware rules (or both)
+                if not loaded_rule.project_depends_on:
+                    raise InvalidRuleSchemaError(
+                        short_msg="Invalid rule schema",
+                        long_msg=f"{raw_rule.get('id', 'unknown')} is missing keys for either semgrep-core or dependency analysis, unable to evaluate rule",
+                        spans=[],
+                    )
             except Exception as e:
                 errors.append(
                     SemgrepError(
@@ -873,12 +884,14 @@ def parse_config_string_as_rules(
         )
         errors.extend(version_errors)
 
+        # Only use semgrep-core to validate the rules that are going to run on semgrep-core
+        contents_to_validate = json.dumps({RULES_KEY: rules_to_validate})
         tmp_fd, rules_tmp_path = mkstemp(suffix=".rules", prefix="semgrep-", text=True)
         with os.fdopen(tmp_fd, "w") as fp:
-            fp.write(contents)
+            fp.write(contents_to_validate)
         logger.debug(f"Saved rules to {rules_tmp_path}")
 
-        source_hash = SourceTracker.add_source(contents)
+        source_hash = SourceTracker.add_source(contents_to_validate)
         if no_python_schema_validation:
             validate_file_rpc(
                 source_hash,
