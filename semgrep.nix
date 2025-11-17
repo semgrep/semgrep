@@ -183,24 +183,10 @@ let
   #
   # semgrep
   #
-
-  darwinEnv = {
-    # all the dune files of semgrep treesitter <LANG> are missing the
-    # :standard field. Basically all compilers autodetct if something is c
-    # or c++ based on file extension, and add the c stdlib based on that.
-    # Nix doesn't because reasons:
-    # https://github.com/NixOS/nixpkgs/issues/150655 Dune also passes
-    # -xc++ if it detects a c++ file (again sane), but it's included in
-    # the :standard var, which we don't add because ??? TODO add and
-    # commit them instead of doing this
-    # NOTE: we pin to 20 here because of https://github.com/llvm/llvm-project/issues/77653
-    NIX_CFLAGS_COMPILE = "-I${pkgs.llvmPackages_20.libcxx.dev}/include/c++/v1";
-  };
   env = {
     # Needed so we don't pass any flags in flags.sh
     SEMGREP_NIX_BUILD = "1";
-  }
-  // (if pkgs.stdenv.isDarwin then darwinEnv else { });
+  };
   semgrep = semgrepOpam.overrideAttrs (prev: rec {
     doNixSupport = false;
     # Special environment variables for osemgrep for linking stuff
