@@ -127,11 +127,26 @@ class Result:
         return self.stdout
 
 
+def _update_and_del_dict(mapping: dict[str, str], updates: dict[str, str | None]):
+    """Updates `mapping` with `updates` but with deletion as well.
+
+    That is, for each key in `updates`, the corresponding value is inserted into `mapping` if non-None, but removed from
+    `mapping` if the value is None.
+
+    """
+
+    for key, val in updates.items():
+        if val is not None:
+            mapping[key] = val
+        elif key in mapping:
+            del mapping[key]
+
+
 # Run semgrep in an external process
 def fork_semgrep(
     subcommand: Optional[str],
     args: Optional[List[str]],
-    env: Optional[Dict[str, str]] = None,
+    env: Optional[Dict[str, str | None]] = None,
 ) -> Result:
     argv: List[str] = []
 
@@ -147,11 +162,10 @@ def fork_semgrep(
     if "-h" in args or "--help" in args:
         argv = PYTHON_EXECUTABLE + [_SEMGREP_PATH] + args
 
-    # env preparation
-    env_dict = {}
+    # Inherit from the process's environment, but override with the given variables
+    full_env = dict(os.environ)
     if env:
-        env_dict = env
-    full_env = dict(os.environ, **env_dict)
+        _update_and_del_dict(full_env, env)
 
     # let's fork and use a pipe to communicate with the external semgrep
     print(f"[fork] semgrep command: {' '.join(argv)}", file=sys.stderr)
@@ -185,13 +199,18 @@ class SemgrepRunner:
     If a property is missing on the runner object, please add it here.
     """
 
-    def __init__(self, env=None, mix_stderr=True, use_click_runner=False):
+    def __init__(
+        self,
+        env: dict[str, str | None] | None = None,
+        mix_stderr=True,
+        use_click_runner=False,
+    ):
         if use_click_runner and USE_OSEMGREP:
             use_click_runner = False
             print("disabling Click_runner use because of PYTEST_USE_OSEMGREP")
         self._use_click_runner = use_click_runner
         self._output = ""
-        self._env = env
+        self._env = env if env is not None else {}
         self._mix_stderr = mix_stderr
         if self._use_click_runner:
             self._runner = CliRunner(env=env, mix_stderr=mix_stderr)
@@ -202,7 +221,7 @@ class SemgrepRunner:
         args: Union[str, Sequence[str]],
         subcommand: Optional[str] = None,
         input: Optional[str] = None,
-        env=None,
+        env: dict[str, str | None] | None = None,
     ) -> Result:
         # argv preparation
         arg_list: List[str] = []

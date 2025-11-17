@@ -44,6 +44,7 @@ from io import StringIO
 from pathlib import Path
 from shutil import copytree
 from typing import Callable
+from typing import cast
 from typing import ContextManager
 from typing import Dict
 from typing import Iterable
@@ -463,37 +464,44 @@ def _run_semgrep(
         prepare_workspace()
 
         with context_manager or contextlib.nullcontext():
-            env = {} if not env else env.copy()
+            env_ = cast(dict[str, str | None], {} if not env else env.copy())
 
             if force_color:
-                env["SEMGREP_FORCE_COLOR"] = "true"
-                # NOTE: We should also apply the known color flags to the env
-                env["FORCE_COLOR"] = "1"
-                if "NO_COLOR" in env:
-                    del env["NO_COLOR"]
+                env_["SEMGREP_FORCE_COLOR"] = "true"
+                # NOTE: We should also apply the known color flags to the env_
+                env_["FORCE_COLOR"] = "1"
+                if "NO_COLOR" in env_:
+                    del env_["NO_COLOR"]
 
-            if "SEMGREP_USER_AGENT_APPEND" not in env:
-                env["SEMGREP_USER_AGENT_APPEND"] = "pytest"
+            if "SEMGREP_USER_AGENT_APPEND" not in env_:
+                env_["SEMGREP_USER_AGENT_APPEND"] = "pytest"
 
             # If delete_setting_file is false and a settings file doesnt exist, put a default
             # as we are not testing said setting. Note that if Settings file exists we want to keep it
             # Use a unique settings file so multithreaded pytest works well
-            if "SEMGREP_SETTINGS_FILE" not in env:
+            if "SEMGREP_SETTINGS_FILE" not in env_:
                 unique_settings_file = tempfile.NamedTemporaryFile().name
                 make_settings_file(Path(unique_settings_file))
-                env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
-            if "SEMGREP_VERSION_CACHE_PATH" not in env:
-                env["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name
-            if "SEMGREP_ENABLE_VERSION_CHECK" not in env:
-                env["SEMGREP_ENABLE_VERSION_CHECK"] = "0"
-            if force_metrics_off and "SEMGREP_SEND_METRICS" not in env:
-                env["SEMGREP_SEND_METRICS"] = "off"
+                env_["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+            if "SEMGREP_VERSION_CACHE_PATH" not in env_:
+                env_["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name
+            if "SEMGREP_ENABLE_VERSION_CHECK" not in env_:
+                env_["SEMGREP_ENABLE_VERSION_CHECK"] = "0"
+            if force_metrics_off and "SEMGREP_SEND_METRICS" not in env_:
+                env_["SEMGREP_SEND_METRICS"] = "off"
 
             # In https://github.com/semgrep/semgrep-proprietary/pull/2605
             # we started to gate some JSON fields with an is_logged_in check
             # and certain tests needs those JSON fields hence this parameter
-            if is_logged_in_weak and "SEMGREP_APP_TOKEN" not in env:
-                env["SEMGREP_APP_TOKEN"] = "fake_token"
+            if is_logged_in_weak and "SEMGREP_APP_TOKEN" not in env_:
+                env_["SEMGREP_APP_TOKEN"] = "fake_token"
+
+            # We don't want *our* CI environment variables to be picked up
+            # by semgrep, and env only *overrides* environment variables,
+            # so make sure to explicitly delete any ambient CI variables.
+            for var in os.environ:
+                if (var == "CI" or var.startswith("GITHUB_")) and var not in env_:
+                    env_[var] = None
 
             if options is None:
                 options = []
@@ -559,10 +567,10 @@ def _run_semgrep(
                     else Path(target_name)
                 )
             args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
-            env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
+            env_string = " ".join(f'{k}="{v}"' for k, v in env_.items())
 
             runner = SemgrepRunner(
-                env=env, mix_stderr=False, use_click_runner=use_click_runner
+                env=env_, mix_stderr=False, use_click_runner=use_click_runner
             )
             click_result = runner.invoke(
                 cli, subcommand=subcommand, args=args, input=stdin
