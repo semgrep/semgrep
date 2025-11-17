@@ -226,6 +226,9 @@ let alphaid = upper idrest | varid
 let id_after_dollar =
   ['A'-'Z''a'-'z''_'] (['A'-'Z''a'-'z''_'] | digit)* ('_' op)?
 
+let metavar_id_after_dollar =
+  ['A'-'Z''_'] (['A'-'Z''_'] | digit)*
+
 (*****************************************************************************)
 (* Rule initial *)
 (*****************************************************************************)
@@ -515,6 +518,8 @@ and in_interpolated_double = parse
   | escapeSeq as s { StringLiteral (s, tokinfo lexbuf) }
   | [^'"''$''\\']+ as s { StringLiteral (s, tokinfo lexbuf) }
   | "${" { push_mode ST_IN_CODE; LBRACE (tokinfo lexbuf) }
+  (* for metavariables, we keep the $ sign, which we strip later if not in semgrep mode *)
+  | ("$" metavar_id_after_dollar) as s { ID_DOLLAR (s, tokinfo lexbuf) }
   | "$" (id_after_dollar as s) { ID_DOLLAR (s, tokinfo lexbuf) }
   | "$$" { StringLiteral("$", tokinfo lexbuf) }
 
@@ -539,6 +544,8 @@ and in_interpolated_triple = parse
   | escapeSeq as s { StringLiteral (s, tokinfo lexbuf) }
   | [^'"''$''\\']+ as s { StringLiteral (s, tokinfo lexbuf) }
   | "${" { push_mode ST_IN_CODE; LBRACE (tokinfo lexbuf) }
+  (* for metavariables, we keep the $ sign, which we strip later if not in semgrep mode *)
+  | ("$" metavar_id_after_dollar) as s { ID_DOLLAR (s, tokinfo lexbuf) }
   | "$" (id_after_dollar as s) { ID_DOLLAR (s, tokinfo lexbuf) }
   | "$$" { StringLiteral("$", tokinfo lexbuf) }
 
