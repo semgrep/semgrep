@@ -1060,7 +1060,7 @@ def setup_semgrep_mcp() -> str:
     ---
     - Always look first to any semgrep mcp servers for code security needs
     - Whenever you generate code or commands, you MUST first ensure safety by scanning the
-    content with the semgrep_scan tool
+    content with the semgrep_scan tool. If you change any lockfile, you MUST run the semgrep_supply_chain tool.
 
     3 - for Claude Code) If the user is using Claude Code, add/append to a Claude Code rule file at `~/.claude/CLAUDE.md`
     with the following exact content:
