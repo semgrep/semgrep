@@ -23,6 +23,9 @@ val add_entity_name : ctx -> AST_generic.ident -> ctx
 (** Appends the string representation of the {!AST_generic.ident} to
     the set of entity names in {!ctx}  *)
 
+val program : Lang.t -> AST_generic.stmt list -> IL.program
+(** Translates a Generic AST program into IL. *)
+
 val function_definition :
   Lang.t ->
   ?ctx:ctx ->

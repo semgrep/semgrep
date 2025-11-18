@@ -901,11 +901,12 @@ and map_expr_aux env ?(void = false) g_expr : exp =
       in
       add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) eorig);
       mk_e (Fetch lval) eorig
-  | G.AnonClass def ->
+  | G.AnonClass cdef ->
       (* TODO: should use def.ckind *)
-      let tok = Common2.fst3 def.G.cbody in
+      let tok = Common2.fst3 cdef.G.cbody in
       let lval = fresh_lval env tok in
-      add_instr env (mk_i (AssignAnon (lval, AnonClass def)) eorig);
+      let cdef = map_class_definition env cdef in
+      add_instr env (mk_i (AssignAnon (lval, AnonClass cdef)) eorig);
       mk_e (Fetch lval) eorig
   | G.Special _ -> impossible (G.E g_expr)
   | G.SliceAccess (_, _) -> todo (G.E g_expr)
@@ -1734,7 +1735,9 @@ and map_stmt_aux env st : stmt list =
       (* We want to analyze any expressions in 'ty'. *)
       let ss, _ = map_type_with_pre_stmts env ty in
       ss
-  | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
+  | G.DefStmt def ->
+      let def = map_definition env def in
+      [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (map_stmt env)
   | G.If (tok, cond, st1, st2) ->
@@ -2125,6 +2128,115 @@ and map_function_definition env fdef : function_definition =
   let fbody = map_function_body env fdef.G.fbody in
   { fkind = fdef.fkind; fparams; frettype = fdef.G.frettype; fbody }
 
+and map_class_params env (cparams : G.parameters) :
+    class_field list * fixme_field list =
+  (* Class parameters, like those in Scala, become class fields. *)
+  cparams |> Tok.unbracket
+  |> List.partition_map (function
+       | G.Param { pname = Some id; pinfo; ptype; pattrs; pdefault } ->
+           let entity =
+             {
+               IL.name = EN (var_of_id_info id pinfo);
+               attrs = pattrs;
+               tparams = None;
+             }
+           in
+           let vinit = Option.map (map_expr env) pdefault in
+           let vdef = { IL.vtype = ptype; vinit } in
+           Left (entity, vdef)
+       | ( G.Param { pname = None; _ }
+         | G.ParamPattern _ | G.ParamRest _ | G.ParamHashSplat _
+         | G.ParamEllipsis _ | G.ParamReceiver _ | G.OtherParam _ ) as param ->
+           Right (G.Pa param))
+
+and map_class_body env (cbody : G.field list G.bracket) :
+    class_field list * class_method list * fixme_field list =
+  (* Sepate "fields" into fields (class variables) and methods, and use
+    "fixme"s for what we don't know how to handle yet. *)
+  let body_fields = cbody |> Tok.unbracket in
+  let rev_cfields, rev_cmethods, rev_cfixmes =
+    body_fields
+    |> List.fold_left
+         (fun (fields_acc, methods_acc, fixmes_acc) field ->
+           match field with
+           | G.F
+               {
+                 s =
+                   G.DefStmt
+                     ( ent,
+                       (G.VarDef { G.vtype; vinit; vtok = _ } :
+                         G.definition_kind) );
+                 _;
+               } ->
+               (* Field (class variable) *)
+               let vinit = Option.map (map_expr env) vinit in
+               let vdef = { IL.vtype; vinit } in
+               let entity = map_entity env ent in
+               ((entity, vdef) :: fields_acc, methods_acc, fixmes_acc)
+           | G.F { s = G.DefStmt (ent, G.FuncDef fdef); _ } ->
+               (* Method *)
+               let entity = map_entity env ent in
+               let fdef = map_function_definition env fdef in
+               (fields_acc, (entity, fdef) :: methods_acc, fixmes_acc)
+           | G.F _ as other_field ->
+               (fields_acc, methods_acc, G.Fld other_field :: fixmes_acc))
+         ([], [], [])
+  in
+  (List.rev rev_cfields, List.rev rev_cmethods, List.rev rev_cfixmes)
+
+and map_class_definition env (cdef : G.class_definition) : class_definition =
+  let G.{ ckind; cextends; cimplements; cmixins; cparams; cbody } = cdef in
+  let param_fields, param_fixmes = map_class_params env cparams in
+  let cfields, cmethods, body_fixmes = map_class_body env cbody in
+  {
+    ckind;
+    cextends;
+    cimplements;
+    cmixins;
+    cfields = param_fields @ cfields;
+    cmethods;
+    cfixmes = param_fixmes @ body_fixmes;
+  }
+
+and map_entity env ({ name; attrs; tparams } as entity : G.entity) : IL.entity =
+  let map_entity_name _env (name : G.entity_name) : IL.entity_name =
+    match name with
+    | EN name -> (
+        match name with
+        | G.Id (id, id_info)
+        | G.IdQualified { name_last = id, _; name_info = id_info; _ } ->
+            EN (var_of_id_info id id_info)
+        | G.IdSpecial _ -> FixmeEntity (G.En entity))
+    | EDynamic _
+    | EPattern _
+    | OtherEntity _ ->
+        FixmeEntity (G.En entity)
+  in
+  { name = map_entity_name env name; attrs; tparams }
+
+and map_definition env (def : G.definition) : definition =
+  let entity, def_kind = def in
+  let entity = map_entity env entity in
+  let def_kind = map_definition_kind env def_kind in
+  (entity, def_kind)
+
+and map_definition_kind env (def : G.definition_kind) : definition_kind =
+  match def with
+  | VarDef _ ->
+      (* This should be handled in 'stmt_aux' *)
+      todo (G.Dk def)
+  | FuncDef fdef -> FuncDef (map_function_definition env fdef)
+  | ClassDef cdef -> ClassDef (map_class_definition env cdef)
+  | ModuleDef _ (* TODO *)
+  | FieldDefColon _
+  | EnumEntryDef _
+  | TypeDef _
+  | MacroDef _
+  | Signature _
+  | UseOuterDecl _
+  | OtherDef _ ->
+      todo (G.Dk def)
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -2140,3 +2252,7 @@ let stmt lang st : stmt list =
 let expr lang e : exp =
   let env = empty_env lang in
   map_expr env e
+
+let program lang prog : program =
+  let env = empty_env lang in
+  prog |> List.concat_map (map_stmt env)

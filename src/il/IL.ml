@@ -181,6 +181,8 @@ type fixme_kind =
   | Impossible (* something we thought impossible happened *)
 [@@deriving show]
 
+type fixme_field = G.any [@@deriving show]
+
 (*****************************************************************************)
 (* Mapping back to Generic *)
 (*****************************************************************************)
@@ -269,9 +271,12 @@ class virtual ['self] iter_parent =
     method visit_type_ _env _typ = ()
     method visit_fixme_kind _env _fixme_kind = ()
     method visit_any _env _any = ()
-    method visit_definition _env _def = ()
-    method visit_function_kind _env _def = ()
-    method visit_class_definition _env _class_def = ()
+    method visit_attribute _env _attr = ()
+    method visit_type_parameters _env _typarams = ()
+    method visit_function_kind _env _fkind = ()
+    method visit_class_kind _env _ckind = ()
+    method visit_class_parent _env _cparents = ()
+    method visit_fixme_field _env _gfield = ()
     method visit_directive _env _directive = ()
   end
 
@@ -427,7 +432,7 @@ and call_special =
 *)
 and anonymous_entity =
   | Lambda of function_definition
-  | AnonClass of G.class_definition
+  | AnonClass of class_definition
 
 (*****************************************************************************)
 (* Statement *)
@@ -460,8 +465,11 @@ and stmt_kind =
   | FixmeStmt of fixme_kind * G.any
 
 and other_stmt =
-  (* everything except VarDef (which is transformed in an Assign instr) *)
-  | DefStmt of G.definition
+  (* TODO:
+      Eventually we may want to lift all nested definitions and have
+      a `type top` for these rather than using 'stmt' like in Generic.
+    *)
+  | DefStmt of definition
   | DirectiveStmt of G.directive
   | Noop of (* for debugging purposes *) string
 
@@ -479,6 +487,16 @@ and pattern_spec =
 (*****************************************************************************)
 (* Defs *)
 (*****************************************************************************)
+and entity_name = EN of name | FixmeEntity of G.any
+
+and entity = {
+  name : entity_name;
+  attrs : G.attribute list;
+  tparams : G.type_parameters option;
+}
+
+and variable_definition = { vtype : G.type_ option; vinit : exp option }
+
 (* See AST_generic.ml *)
 and function_definition = {
   fkind : G.function_kind wrap;
@@ -486,6 +504,35 @@ and function_definition = {
   frettype : G.type_ option;
   fbody : stmt list;
 }
+
+and class_definition = {
+  ckind : G.class_kind wrap;
+  cextends : G.class_parent list;
+  cimplements : G.type_ list;
+  cmixins : G.type_ list;
+  cfields : class_field list;
+  (* TODO: We probably want to separate constructors from regular methods. *)
+  (* cconstructors : class_constructor list; *)
+  cmethods : class_method list;
+  cfixmes : fixme_field list;
+}
+
+and class_field = entity * variable_definition
+and class_constructor = entity * function_definition
+and class_method = entity * function_definition
+and definition = entity * definition_kind
+
+and definition_kind =
+  (* THINK: When translating a top-level VarDef, we may want to keep it as is ? *)
+  (* | VarDef of variable_definition *)
+  | FuncDef of function_definition
+  | ClassDef of class_definition
+  | FixmeDef
+
+(*****************************************************************************)
+(* Program *)
+(*****************************************************************************)
+and program = stmt list
 
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)

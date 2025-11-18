@@ -74,7 +74,8 @@ let dump_il_all (caps : < Cap.stdout >) file =
   let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
-  let xs = AST_to_IL.stmt lang (AST_generic.stmt1 ast) in
+  Implicit_return.mark_implicit_return lang ast;
+  let xs = AST_to_IL.program lang ast in
   xs |> List.iter (fun stmt -> CapConsole.print caps#stdout (IL.show_stmt stmt))
 [@@action]
 
