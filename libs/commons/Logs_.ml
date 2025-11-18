@@ -474,3 +474,10 @@ let option to_string opt =
   match opt with
   | None -> "None"
   | Some x -> Printf.sprintf "Some %s" (to_string x)
+
+let if_in_debug src f =
+  match Logs.Src.level src with
+  | Some Logs.Debug -> f ()
+  | Some Logs.(App | Error | Warning | Info)
+  | None ->
+      ()

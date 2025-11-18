@@ -206,3 +206,6 @@ val debug_trace_src : Logs.src
 val list : ('a -> string) -> 'a list -> string
 val option : ('a -> string) -> 'a option -> string
 val array : ('a -> string) -> 'a array -> string
+
+val if_in_debug : Logs.src -> (unit -> unit) -> unit
+(** [if_in_debug src f] executes [f ()] only if [src]'s level is [Logs.Debug]. *)

@@ -800,6 +800,6 @@ module Instantiated_signature = struct
     effects can be computed and consumed as they are needed, and then GCed
     (hopefully) before getting promoted to the major heap. *)
 
-  let show call_effects =
+  let eval_and_show call_effects =
     call_effects |> Seq.map Effect.show |> List.of_seq |> String.concat "; "
 end
