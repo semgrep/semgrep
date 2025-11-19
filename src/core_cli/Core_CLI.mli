@@ -24,7 +24,7 @@ val env_extra : string
 val symbol_analysis : bool ref
 
 (* compute Core_scan_config.t given command-line flags *)
-val mk_config : unit -> Core_scan_config.t
+val mk_config : ?rules:Rule.rules -> unit -> Core_scan_config.t
 
 val output_core_results :
   < Cap.stdout ; Cap.stderr ; Cap.exit > ->

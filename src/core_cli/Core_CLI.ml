@@ -280,11 +280,14 @@ let default_trace_endpoint = Uri.of_string "https://telemetry.semgrep.dev"
 let default_dev_endpoint = Uri.of_string "https://telemetry.dev2.semgrep.dev"
 let default_local_endpoint = Uri.of_string "http://localhost:4318"
 
-let mk_config () : Core_scan_config.t =
+let mk_config ?rules () : Core_scan_config.t =
   {
     rule_source =
       (match !rule_source with
-      | None -> failwith "missing -rules"
+      | None -> (
+          match rules with
+          | None -> failwith "missing -rules"
+          | Some rules -> Rules rules)
       | Some x -> x);
     target_source =
       (match !target_file with
