@@ -26,8 +26,8 @@ let
           src = pkgs.fetchFromGitHub {
             owner = "semgrep";
             repo = "ocaml";
-            rev = "5.3.0-semgrep";
-            sha256 = "sha256-AS7NGKvkP2ChFYpy763hAHdHx1feluS4VgBrszZz4vU=";
+            rev = "d50385f9f68efbcf455af0c8231587ee435fe21b";
+            sha256 = "sha256-UYylbIaXcF4XEGlU1wXbCHdImAKaQYdrzXCucm/dgZ8=";
           };
         });
       };
