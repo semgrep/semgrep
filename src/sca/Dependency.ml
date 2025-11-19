@@ -51,6 +51,10 @@ type kind = Out.dependency_kind =
   | Unknown
 [@@deriving eq, ord, show]
 
+let kind_testable =
+  let format_kind f kind = Format.fprintf f "%s" (show_kind kind) in
+  Alcotest.testable format_kind equal_kind
+
 (* TODO: add other kinds of hashes as needed. The ATD interface is untyped
    wrt hash names. *)
 type hashes = { sha1 : Hex_.t list; sha256 : Hex_.t list; sha512 : Hex_.t list }

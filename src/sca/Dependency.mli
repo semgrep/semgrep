@@ -36,6 +36,8 @@ type kind = Semgrep_output_v1_t.dependency_kind =
   | Unknown
 [@@deriving eq, ord, show]
 
+val kind_testable : kind Alcotest.testable
+
 (* TODO: add other kinds of hashes as needed. The ATD interface is untyped
    wrt hash names.
 
