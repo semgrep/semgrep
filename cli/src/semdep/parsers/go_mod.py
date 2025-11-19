@@ -43,7 +43,8 @@ A = TypeVar("A")
 B = TypeVar("B")
 
 
-consume_line = regex(r"[^\n)]*").result(None)
+# Skip lines starting with ')' but allow ')' within comments like "// (Un)MarshalJSON"
+consume_line = regex(r"(?!\))[^\n]+").result(None)
 
 comment = regex(r" *//([^\n]*)", flags=0, group=1)
 

@@ -9,4 +9,5 @@ require (
 tool (
 	github.com/joho/godotenv/cmd/godotenv
 	github.com/swaggo/swag/cmd/swag
+	github.com/campoy/jsonenums // jsonenums is used for generating (Un)MarshalJSON methods
 )
