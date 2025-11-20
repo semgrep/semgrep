@@ -1,3 +1,15 @@
+#
+# Dependency constraints for pipenv. We which we use to manage development
+# environments. This isn't used in production.
+#
+# When done updating this file, run 'pipenv install --dev' to install
+# the dependencies locally and to update the lockfile (Pipfile.lock).
+#
+# Packages in the [[packages]] section should not duplicate the
+# prod dependencies specified in 'setup.py' unless they don't show up in
+# 'Pipfile.lock' after running 'pipenv install --dev'.
+#
+
 [[source]]
 name = "pypi"
 url = "https://pypi.org/simple"
@@ -30,15 +42,20 @@ types-jsonschema = "4.25.1.20251009"
 importlib_metadata = "*"
 importlib_resources = ">=1.4.0"
 typing_extensions = "*"
+
 ddtrace = "*"
+# 'ddtrace' depends on 'bytecode' but pipenv doesn't always install it (why?)
+bytecode = "*"
 
 [packages]
-mcp = "==1.16.0"
-opentelemetry-api = "~=1.37.0"
-opentelemetry-sdk = "~=1.37.0"
-opentelemetry-exporter-otlp-proto-http = "~=1.37.0"
-opentelemetry-instrumentation-requests = "~=0.58b0"
-jsonschema = "==4.25.1"
-"ruamel.yaml.clib" = "==0.2.14"
-pywin32 = { version = "==311", markers = "platform_system == 'Windows'" }
+# These are the dependencies for the semgrep application.
+# We rely on the fact that semgrep already declares its
+# dependencies (in setup.py)
+
 semgrep = {editable = true, path = "."}
+
+# This dependency is conditional. It appears that we must specify it
+# here if we want it to appear in the lockfile generated on a non-Windows
+# host. This is a duplicate of what we have in setup.py and must
+# be kept in sync.
+pywin32 = { version = "==311", markers = "platform_system == 'Windows'" }
