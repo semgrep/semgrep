@@ -48,7 +48,12 @@ let test_safe_sub () =
 let test_show () =
   print_endline (String_.show "abc");
   print_endline (String_.show ~max_len:5 "123456789");
-  print_endline (String_.show ~max_len:20 "123456789")
+  print_endline (String_.show ~max_len:20 "123456789");
+  print_endline (String_.show ~max_len:5 ~keep_end:true "123456789")
+
+let test_show_ends () =
+  print_endline (String_.show_ends ~max_len:5 "123456789");
+  print_endline (String_.show_ends ~max_len:20 "123456789")
 
 let test_trim_cr () =
   let check expected input =
@@ -117,6 +122,7 @@ let tests =
     [
       t "safe_sub" test_safe_sub;
       t ~checked_output:(Testo.stdout ()) "show" test_show;
+      t ~checked_output:(Testo.stdout ()) "show_ends" test_show_ends;
       t "trim_cr" test_trim_cr;
       t "lines_of_range" test_lines_of_range;
     ]

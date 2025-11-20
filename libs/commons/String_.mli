@@ -42,10 +42,23 @@ val safe_sub : string -> int -> int -> string
 (*
    Print an escaped and quoted string, truncating it to show at most max_len
    bytes. The length in bytes is printed if the string has to be truncated.
+   The string is truncated such that the first max_len bytes are shown by default,
+   or so that the last max_len bytes are shown if keep_end is true.
    The default value for max_len is 200.
    This function is intended for logs.
 *)
-val show : ?max_len:int -> string -> string
+val show : ?max_len:int -> ?keep_end:bool -> string -> string
+
+(*
+   Print an escaped and quoted string, truncating it to show at most max_len
+   bytes. If truncation is necessary, the string is truncated such that the
+   first and last max_len/2 bytes are shown. Text is inserted in the middle of
+   the string indicating that middle bytes were omitted.
+   The default value for max_len is 200.
+   This function is intended for logs where the beginning and ending bytes are
+   expected to be more interesting than only the beginning bytes.
+*)
+val show_ends : ?max_len:int -> string -> string
 
 (* Removes a trailing carriage return ('\r') from the given string. For use when
  * reading an input line from an input stream or when splitting a string by the
