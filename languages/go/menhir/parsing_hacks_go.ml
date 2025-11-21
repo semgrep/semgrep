@@ -115,11 +115,11 @@ let fix_tokens_lbody toks =
     (match trees with
     (* TODO: check that actually a composite literal in it? *)
     | F.Braces (t1, _body, _) :: _ when Hook.get Flag_parsing.sgrep_mode ->
-        Hashtbl.add retag_lbrace_semgrep t1 true
+        Hashtbl.replace retag_lbrace_semgrep t1 true
     (* no way it's a label *)
     | F.Tok (_s, info) :: F.Tok (":", t2) :: _
       when Hook.get Flag_parsing.sgrep_mode && is_identifier horigin info ->
-        Hashtbl.add retag_lcolon_semgrep t2 true
+        Hashtbl.replace retag_lcolon_semgrep t2 true
     (* TODO: could check that xs looks like a parameter list
      * TODO what comes after Parens could be a symbol part of a type
      * instead of just a single type like 'int'?
@@ -128,7 +128,7 @@ let fix_tokens_lbody toks =
       when Hook.get Flag_parsing.sgrep_mode
            && is_identifier horigin info
            && is_identifier horigin info2 ->
-        Hashtbl.add retag_lparen_semgrep l true
+        Hashtbl.replace retag_lparen_semgrep l true
     | _ -> ());
 
     let rec aux env trees =
@@ -140,7 +140,7 @@ let fix_tokens_lbody toks =
         :: F.Braces (lb3, xs3, _rb3)
         :: ys
         when env =*= InIfHeader ->
-          Hashtbl.add retag_lbrace lb3 true;
+          Hashtbl.replace retag_lbrace lb3 true;
           aux Normal xs1;
           xs2
           |> List.iter (function
@@ -154,7 +154,7 @@ let fix_tokens_lbody toks =
         :: F.Braces (lb3, xs3, _rb3)
         :: ys
         when env =*= InIfHeader ->
-          Hashtbl.add retag_lbrace lb3 true;
+          Hashtbl.replace retag_lbrace lb3 true;
           aux Normal xs1;
           aux Normal xs2;
           aux Normal xs3;
@@ -168,7 +168,7 @@ let fix_tokens_lbody toks =
       (* for a := range []int{...} { ... } *)
       | F.Braces (_lb1, xs1, _rb1) :: F.Braces (lb2, xs2, _rb2) :: ys
         when env =*= InIfHeader ->
-          Hashtbl.add retag_lbrace lb2 true;
+          Hashtbl.replace retag_lbrace lb2 true;
           aux Normal xs1;
           aux Normal xs2;
           aux Normal ys (* False Positive (FP): for ... {}[...] *)
@@ -184,7 +184,7 @@ let fix_tokens_lbody toks =
           aux env zs
       | F.Braces (lb, xs, _rb) :: ys ->
           (* for ... { ... } *)
-          if env =*= InIfHeader then Hashtbl.add retag_lbrace lb true;
+          if env =*= InIfHeader then Hashtbl.replace retag_lbrace lb true;
           aux Normal xs;
           aux Normal ys
       | F.Tok (("if" | "for" | "switch" | "select"), _) :: xs ->

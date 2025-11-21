@@ -56,7 +56,7 @@ let detect_available_commands command_names : string -> bool =
                   command_name; *)
               false
         in
-        Hashtbl.add tbl command_name avail)
+        Hashtbl.replace tbl command_name avail)
     command_names;
   let is_available command_name =
     match Hashtbl.find_opt tbl command_name with
