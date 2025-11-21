@@ -69,16 +69,6 @@ let try_with_log_exn_and_reraise (file : Fpath.t) f =
 (* Dumpers *)
 (*****************************************************************************)
 
-(* mostly a copy paste of Test_analyze_generic.ml *)
-let dump_il_all (caps : < Cap.stdout >) file =
-  let ast = Parse_target.parse_program file in
-  let lang = Lang.lang_of_filename_exn file in
-  Naming_AST.resolve lang ast;
-  Implicit_return.mark_implicit_return lang ast;
-  let xs = AST_to_IL.program lang ast in
-  xs |> List.iter (fun stmt -> CapConsole.print caps#stdout (IL.show_stmt stmt))
-[@@action]
-
 let dump_il (caps : < Cap.stdout >) file =
   let module G = AST_generic in
   let print s = CapConsole.print caps#stdout s in
@@ -110,6 +100,16 @@ let dump_il (caps : < Cap.stdout >) file =
     print s
   in
   Visit_function_defs.visit report_func_def_with_name ast
+[@@action]
+
+let pp_il (caps : < Cap.stdout >) file =
+  let ast = Parse_target.parse_program file in
+  let lang = Lang.lang_of_filename_exn file in
+  Naming_AST.resolve lang ast;
+  Implicit_return.mark_implicit_return lang ast;
+  let xs = AST_to_IL.program lang ast in
+  let output = Pretty_IL.program xs in
+  CapConsole.print caps#stdout output
 [@@action]
 
 let dump_exts_of_lang (caps : < Cap.stdout >) () =
