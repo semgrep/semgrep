@@ -129,11 +129,11 @@ let fix_tokens toks =
      * TODO: check that no stmt-like keywords inside body?
      *)
     | F.Braces (t1, _body, _) :: _ when Hook.get Flag_parsing.sgrep_mode ->
-        Hashtbl.add retag_lbrace t1 true
+        Hashtbl.replace retag_lbrace t1 true
     (* TODO: skip keywords, attributes that may be before the method id *)
     | F.Tok (_s, info) :: F.Parens (i1, _, _) :: F.Braces (_, _, _) :: _
       when Hook.get Flag_parsing.sgrep_mode && is_identifier horigin info ->
-        Hashtbl.add retag_lparen_method i1 true
+        Hashtbl.replace retag_lparen_method i1 true
     | _ -> ());
 
     (* visit and tag *)
@@ -145,10 +145,10 @@ let fix_tokens toks =
             (fun (k, _) xs ->
               (match xs with
               | F.Parens (i1, _, _) :: F.Tok ("=>", _) :: _res ->
-                  Hashtbl.add retag_lparen_arrow i1 true
+                  Hashtbl.replace retag_lparen_arrow i1 true
               (* TODO: also handle typed arrows! *)
               | F.Tok ("import", i1) :: F.Parens _ :: _res ->
-                  Hashtbl.add retag_keywords i1 true
+                  Hashtbl.replace retag_keywords i1 true
               | _ -> ());
               k xs);
         }

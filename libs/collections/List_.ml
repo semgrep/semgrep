@@ -412,7 +412,7 @@ let deduplicate_gen ~get_key xs =
       let key = get_key x in
       if Hashtbl.mem tbl key then acc
       else (
-        Hashtbl.add tbl key ();
+        Hashtbl.replace tbl key ();
         x :: acc))
     [] xs
   |> List.rev

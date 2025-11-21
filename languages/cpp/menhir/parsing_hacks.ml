@@ -146,7 +146,7 @@ let fix_tokens_fuzzy toks =
       | [] -> ()
       (* [...] { } *)
       | F.Bracket (l, xs, _r) :: F.Braces _ :: ys ->
-          Hashtbl.add retag_lambda l true;
+          Hashtbl.replace retag_lambda l true;
           aux env xs;
           aux env ys
       | x :: xs ->

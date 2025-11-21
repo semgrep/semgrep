@@ -82,7 +82,7 @@ let remove_overlapping_edits edits =
         if Hashtbl.mem already_applied_edits key then
           (accepted_edits, edit :: redundant_edits, conflicting_edits)
         else (
-          Hashtbl.add already_applied_edits key ();
+          Hashtbl.replace already_applied_edits key ();
           if overlaps_with_an_interval accepted_edits edit then
             (accepted_edits, redundant_edits, edit :: conflicting_edits)
           else (edit :: accepted_edits, redundant_edits, conflicting_edits)))

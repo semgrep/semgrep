@@ -83,7 +83,7 @@ let new_temp_file ?(prefix = default_temp_file_prefix) ?(suffix = "") ?temp_dir
       (spf "%s%d-" prefix pid) suffix
     |> Fpath.v
   in
-  Mutex.protect created_lock (Hashtbl.add temp_files_created temp_file);
+  Mutex.protect created_lock (Hashtbl.replace temp_files_created temp_file);
   temp_file
 
 let erase_this_temp_file f =

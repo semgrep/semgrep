@@ -219,7 +219,7 @@ let do_parse (env : env) : E.t * E.pos =
 let make_node f anchor args env =
   let node_expr = f args env in
   (match anchor with
-  | Some anchor -> Hashtbl.add env.anchors anchor node_expr
+  | Some anchor -> Hashtbl.replace env.anchors anchor node_expr
   | None -> ());
   node_expr
 

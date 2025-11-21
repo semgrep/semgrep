@@ -195,7 +195,7 @@ let add_defs file =
     failwith (spf "Could not find %s, have you set PFFF_HOME correctly?" !!file);
   Log.info (fun m -> m "Using %s macro file" !!file);
   let xs = extract_macros file in
-  xs |> List.iter (fun (k, v) -> Hashtbl.add (Domain.DLS.get _defs) k v)
+  xs |> List.iter (fun (k, v) -> Hashtbl.replace (Domain.DLS.get _defs) k v)
 
 let init_defs file =
   _defs |> Domain.DLS.get |> Hashtbl.clear;
