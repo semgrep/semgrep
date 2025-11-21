@@ -253,6 +253,29 @@ local semgrep_rules = [
     languages: ['ocaml'],
     severity: 'ERROR',
   },
+  {
+    id: 'no-unsafe-lazy',
+    message: |||
+      Please do not use the standard 'lazy' construct. It is not thread-safe.
+      Calling it in a multi-threaded context can lead to data races and exceptions.
+      Instead use 'Lazy_safe' from libs/commons/Lazy_safe.ml which is thread-safe.
+      There is also a ppx macro 'lazy_safe' in libs/commons/ppx_commons, which
+      can be used as a drop-in replacement for 'lazy', e.g. 'lazy_safe expr'.
+    |||,
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    match: {
+      any: [
+        'lazy ...',
+        'Lazy.$X ...',
+        '... Lazy.t',
+        'let lazy $V = ... in ...',
+        'let rec lazy $V = ... in ...',
+        'match ... with | lazy $V -> ...',
+      ],
+    },
+
+  },
 ];
 
 // ----------------------------------------------------------------------------
