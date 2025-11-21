@@ -1033,7 +1033,7 @@ def registry_id_to_url(registry_id: str) -> str:
     Convert from registry_id to semgrep.dev url
     """
     env = get_state().env
-    return f"{env.semgrep_url}/{registry_id}"
+    return f"{env.semgrep_url}/c/{registry_id}"
 
 
 def url_for_policy() -> str:

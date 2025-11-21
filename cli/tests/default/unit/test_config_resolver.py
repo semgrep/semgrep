@@ -66,7 +66,7 @@ class TestConfigLoaderForProducts:
         config_file = ConfigFile(
             None,
             "rules: []",
-            "https://semgrep.dev/p/ci",
+            "https://semgrep.dev/c/p/ci",
         )
 
         patched_fetch = mocker.patch.object(
@@ -91,7 +91,7 @@ class TestConfigLoaderForProducts:
         config_file = ConfigFile(
             None,
             "rules: []",
-            "https://semgrep.dev/p/ci",
+            "https://semgrep.dev/c/p/ci",
         )
 
         patched_download = mocker.patch.object(
@@ -122,7 +122,7 @@ class TestConfigLoaderForProducts:
         config_file = ConfigFile(
             None,
             "rules: []",
-            "https://semgrep.dev/p/ci",
+            "https://semgrep.dev/c/p/ci",
         )
 
         patched_download = mocker.patch.object(

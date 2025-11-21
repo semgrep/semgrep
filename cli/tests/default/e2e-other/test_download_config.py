@@ -40,7 +40,7 @@ def test_new_feature_registry_config(monkeypatch, snapshot, mocker, tmp_path):
               severity: ERROR
             """
         ).lstrip(),
-        "https://semgrep.dev/p/ci",
+        "https://semgrep.dev/c/p/ci",
     )
     mocker.patch.object(
         ConfigLoader, "_download_config_from_url", return_value=config_file
@@ -88,7 +88,7 @@ def test_fallback_config_works(requests_mock, mocker, tmp_path):
         return_value=ConfigFile(
             None,
             "rules: []",
-            "https://semgrep.dev/p/ci",
+            "https://semgrep.dev/c/p/ci",
         ),
     )
 
