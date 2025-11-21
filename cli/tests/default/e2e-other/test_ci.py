@@ -1534,7 +1534,7 @@ def test_config_run(
 ):
     # This test seems to provide coverage over running `semgrep ci --config <registry thing>` while logged out
     # Not actually sure who uses this, but its explicitly supported in code.
-    requests_mock.get("https://semgrep.dev/p/something", text=scan_config)
+    requests_mock.get("https://semgrep.dev/c/p/something", text=scan_config)
     result = run_semgrep(
         "p/something",
         subcommand="ci",
@@ -1560,7 +1560,7 @@ def test_empty_repo_run(
     requests_mock,
     scan_config,
 ):
-    requests_mock.get("https://semgrep.dev/p/something", text=scan_config)
+    requests_mock.get("https://semgrep.dev/c/p/something", text=scan_config)
     # Here we only test that the run exits with an exit code of 0
     # i.e the cli succeeding
     run_semgrep(
@@ -2452,7 +2452,7 @@ def test_subdir(
 ):
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
 
-    requests_mock.get("https://semgrep.dev/p/something", text=scan_config)
+    requests_mock.get("https://semgrep.dev/c/p/something", text=scan_config)
 
     start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")

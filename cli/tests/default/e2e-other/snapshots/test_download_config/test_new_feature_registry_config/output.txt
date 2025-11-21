@@ -1,5 +1,5 @@
 
-Rules downloaded from https://semgrep.dev/p/ci failed to parse.
+Rules downloaded from https://semgrep.dev/c/p/ci failed to parse.
 This is likely because rules have been added that use functionality introduced in later versions of semgrep.
 Please upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.
 
