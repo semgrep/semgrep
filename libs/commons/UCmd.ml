@@ -196,7 +196,7 @@ let bash_non_arg_keywords =
 
 let is_bash_keyword =
   let tbl = Hashtbl.create 50 in
-  List.iter (fun kw -> Hashtbl.add tbl kw ()) bash_non_arg_keywords;
+  List.iter (fun kw -> Hashtbl.replace tbl kw ()) bash_non_arg_keywords;
   fun str -> Hashtbl.mem tbl str
 
 let is_safe_arg str =

@@ -68,7 +68,7 @@ let push (tbl : ('k, 'v list ref) Hashtbl.t) (key : 'k) (value : 'v) =
     try Hashtbl.find tbl key with
     | Not_found ->
         let stack = ref [] in
-        Hashtbl.add tbl key stack;
+        Hashtbl.replace tbl key stack;
         stack
   in
   stack := value :: !stack
@@ -91,7 +91,7 @@ let map (f : 'k -> 'v -> 'w) (h : ('k, 'v) Hashtbl.t) : ('k, 'w) Hashtbl.t =
   h
   |> Hashtbl.iter (fun k v ->
          let w = f k v in
-         Hashtbl.add res k w);
+         Hashtbl.replace res k w);
   res
 
 let sorted_iter ~cmp f h =
@@ -102,7 +102,7 @@ let sorted_iter ~cmp f h =
 let find_default key value_if_not_found h =
   try Hashtbl.find h key with
   | Not_found ->
-      Hashtbl.add h key (value_if_not_found ());
+      Hashtbl.replace h key (value_if_not_found ());
       Hashtbl.find h key
 
 let update_default key ~update:op ~default:value_if_not_found h =

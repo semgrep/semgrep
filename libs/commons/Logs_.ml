@@ -237,7 +237,7 @@ let is_active_source_ref = Atomic.make default_is_active_source
     suitable to activate log sources of that name and deactivate the rest. *)
 let make_is_active_source source_names =
   let tbl = Hashtbl.create 10 in
-  List.iter (fun name -> Hashtbl.add tbl name ()) source_names;
+  List.iter (fun name -> Hashtbl.replace tbl name ()) source_names;
   fun src -> Hashtbl.mem tbl (Logs.Src.name src)
 
 (* This hook is set during setup. *)

@@ -162,7 +162,7 @@ let memoized ?(use_cache = true) h k f =
     try Hashtbl.find h k with
     | Not_found ->
         let v = f () in
-        Hashtbl.add h k v;
+        Hashtbl.replace h k v;
         v
 
 exception Todo
