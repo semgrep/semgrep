@@ -17,9 +17,13 @@ type 'a t = 'a Lazy.t * 'a Eio.Lazy.t
 (* If the computation of x raises an exception, it is unspecified whether
    force_val x raises the same exception or Lazy.Undefined. *)
 let default_cancel_kind = `Record
-let from_val v = (Lazy.from_val v, Eio.Lazy.from_val v)
+
+let from_val v =
+  (* nosemgrep: no-unsafe-lazy *)
+  (Lazy.from_val v, Eio.Lazy.from_val v)
 
 let from_fun ?(cancel = default_cancel_kind) f =
+  (* nosemgrep: no-unsafe-lazy *)
   (Lazy.from_fun f, Eio.Lazy.from_fun ~cancel f)
 
 (* From https://github.com/ocaml-multicore/eio/issues/800:
@@ -36,11 +40,14 @@ let is_eio_context () =
   | Stdlib.Effect.Unhandled _ -> false
 
 let force ((l, el) : 'a t) : 'a =
-  if is_eio_context () then Eio.Lazy.force el else Lazy.force l
+  if is_eio_context () then Eio.Lazy.force el
+  else Lazy.force l (* nosemgrep: no-unsafe-lazy *)
 
 let map ?(cancel = default_cancel_kind) f x =
   let l, el = x in
+  (* nosemgrep: no-unsafe-lazy *)
   (Lazy.map f l, Eio.Lazy.from_fun ~cancel (fun () -> f (Eio.Lazy.force el)))
 
 let is_val ((l, _el) : 'a t) =
+  (* nosemgrep: no-unsafe-lazy *)
   Lazy.is_val l || false (* Eio.Lazy.is_val el does not exist *)
