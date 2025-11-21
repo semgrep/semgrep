@@ -53,10 +53,6 @@
      ppx_sexp_conv
      ppx_inline_test
      lwt_ppx
-     ; annotate all top level functions with [@@maybe_yield]. When using eio,
-     ; timeouts rely on yielding back to the scheduler, so we do this so we can
-     ; yield and check the timeout often
-     parallelism.ppx --auto
      pyro-caml-ppx
    )
  )

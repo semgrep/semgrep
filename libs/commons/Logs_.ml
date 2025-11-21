@@ -232,7 +232,6 @@ let default_is_active_source src =
 
 (* This hook is set during setup. *)
 let is_active_source_ref = Atomic.make default_is_active_source
-let is_active_source src = (Atomic.get is_active_source_ref) src
 
 (** Take a list of source names and return a function [is_active_src]
     suitable to activate log sources of that name and deactivate the rest. *)
