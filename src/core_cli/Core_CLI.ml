@@ -410,14 +410,14 @@ let all_actions (caps : Cap.all_caps) () =
              (caps :> < Cap.stdout ; Cap.exit >)
              (Lang.of_opt_exn !lang))
           file );
-    ( "-dump_il_all",
-      " <file>",
-      Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_il_all (caps :> < Cap.stdout >)) );
     ( "-dump_il",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v
         (Core_actions.dump_il (caps :> < Cap.stdout >)) );
+    ( "-pp_il",
+      " <file> pretty-print IL in familiar-ish syntax",
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.pp_il (caps :> < Cap.stdout >)) );
     ( "-dump_rule",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v Core_actions.dump_rule );

@@ -505,6 +505,8 @@ and function_definition = {
   fbody : stmt list;
 }
 
+(* THINK: Need an initialization section? Note that side-effects in class fields
+  end up as statements outside of the class declaration. *)
 and class_definition = {
   ckind : G.class_kind wrap;
   cextends : G.class_parent list;

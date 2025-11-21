@@ -494,9 +494,132 @@ and for_stmt env (for_tok, hdr, s) =
 (*****************************************************************************)
 
 and type_ t =
-  match t.t with
-  | TyN (Id (id, _)) -> ident id
-  | _ -> todo (T t)
+  let attrs_str =
+    match t.t_attrs with
+    | [] -> ""
+    | attrs ->
+        let attr_strs = attrs |> List_.map (fun _attr -> "@attr") in
+        " " ^ String.concat " " attr_strs
+  in
+  let base_str =
+    match t.t with
+    | TyN name -> name_to_string name
+    | TyApply (base, (_, args, _)) ->
+        let base_str = type_ base in
+        let args_str =
+          args |> List_.map type_argument_to_string |> String.concat ", "
+        in
+        F.sprintf "%s<%s>" base_str args_str
+    | TyFun (params, ret) ->
+        let params_str =
+          params
+          |> List_.map (function
+               | Param p -> (
+                   match (p.pname, p.ptype) with
+                   | Some id, Some ty ->
+                       F.sprintf "%s: %s" (ident id) (type_ ty)
+                   | Some id, None -> ident id
+                   | None, Some ty -> type_ ty
+                   | None, None -> "_")
+               | ParamPattern _ -> "<pattern>"
+               | ParamRest (_, p) -> (
+                   match (p.pname, p.ptype) with
+                   | Some id, Some ty ->
+                       F.sprintf "...%s: %s" (ident id) (type_ ty)
+                   | Some id, None -> F.sprintf "...%s" (ident id)
+                   | None, Some ty -> F.sprintf "...%s" (type_ ty)
+                   | None, None -> "...")
+               | ParamHashSplat (_, p) -> (
+                   match (p.pname, p.ptype) with
+                   | Some id, Some ty ->
+                       F.sprintf "**%s: %s" (ident id) (type_ ty)
+                   | Some id, None -> F.sprintf "**%s" (ident id)
+                   | None, Some ty -> F.sprintf "**%s" (type_ ty)
+                   | None, None -> "**_")
+               | _ -> "_")
+          |> String.concat ", "
+        in
+        F.sprintf "(%s) -> %s" params_str (type_ ret)
+    | TyArray ((_, None, _), ty) -> F.sprintf "%s[]" (type_ ty)
+    | TyArray ((_, Some _size, _), ty) ->
+        (* For expressions, just show simplified form *)
+        F.sprintf "%s[...]" (type_ ty)
+    | TyTuple (_, tys, _) ->
+        let tys_str = tys |> List_.map type_ |> String.concat ", " in
+        F.sprintf "(%s)" tys_str
+    | TyVar id -> F.sprintf "'%s" (ident id)
+    | TyAny _ -> "_"
+    | TyPointer (_, ty) -> F.sprintf "*%s" (type_ ty)
+    | TyRef (_, ty) -> F.sprintf "&%s" (type_ ty)
+    | TyQuestion (ty, _) -> F.sprintf "%s?" (type_ ty)
+    | TyRest (_, ty) -> F.sprintf "...%s" (type_ ty)
+    | TyAnd (t1, _, t2) -> F.sprintf "%s & %s" (type_ t1) (type_ t2)
+    | TyOr (t1, _, t2) -> F.sprintf "%s | %s" (type_ t1) (type_ t2)
+    | TyRecordAnon ((kind, _), (_, fields, _)) ->
+        let kind_str =
+          match kind with
+          | Class -> "class"
+          | Interface -> "interface"
+          | Trait -> "trait"
+          | Object -> "object"
+        in
+        let fields_str =
+          if List.length fields > 3 then
+            F.sprintf "{ %d fields }" (List.length fields)
+          else
+            let field_strs =
+              fields
+              |> List_.map (function
+                   | F { s = DefStmt (ent, FieldDefColon fld); _ } -> (
+                       match (ent.name, fld.vtype) with
+                       | EN (Id (id, _)), Some ty ->
+                           F.sprintf "%s: %s" (ident id) (type_ ty)
+                       | EN (Id (id, _)), None -> ident id
+                       | _ -> "_")
+                   | _ -> "_")
+              |> String.concat "; "
+            in
+            F.sprintf "{ %s }" field_strs
+        in
+        F.sprintf "%s %s" kind_str fields_str
+    | TyEllipsis _ -> "..."
+    | TyExpr e -> (
+        (* For simple expressions, show them, otherwise simplify *)
+        match e.e with
+        | L (String _) -> "<string>"
+        | L (Int (Some i, _)) -> Int64.to_string i
+        | L (Bool (b, _)) -> string_of_bool b
+        | N name -> name_to_string name
+        | _ -> "<expr>")
+    | OtherType (kind, _) -> F.sprintf "<other:%s>" (fst kind)
+  in
+  base_str ^ attrs_str
+
+and name_to_string = function
+  | Id (id, _) -> ident id
+  | IdQualified { name_last = id, _; name_middle = None; _ } -> ident id
+  | IdQualified { name_last = id, _; name_middle = Some (QDots parts); _ } ->
+      let parts_str =
+        parts |> List_.map (fun ((s, _), _) -> s) |> String.concat "."
+      in
+      F.sprintf "%s.%s" parts_str (ident id)
+  | IdQualified { name_last = id, _; name_middle = Some (QExpr (_e, _)); _ } ->
+      F.sprintf "<expr>.%s" (ident id)
+  | IdSpecial ((special, _), _) -> (
+      match special with
+      | This -> "this"
+      | Super -> "super"
+      | Self -> "self"
+      | Cls -> "cls"
+      | Parent -> "parent")
+
+and type_argument_to_string = function
+  | TA ty -> type_ ty
+  | TAWildcard (_, None) -> "?"
+  | TAWildcard (_, Some ((true, _), ty)) -> F.sprintf "? extends %s" (type_ ty)
+  | TAWildcard (_, Some ((false, _), ty)) -> F.sprintf "? super %s" (type_ ty)
+  | TAExpr _ -> "<expr>"
+  | OtherTypeArg _ -> "?"
 
 (*****************************************************************************)
 (* Definitions *)

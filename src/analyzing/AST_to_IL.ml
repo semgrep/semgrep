@@ -2151,7 +2151,7 @@ and map_class_params env (cparams : G.parameters) :
 
 and map_class_body env (cbody : G.field list G.bracket) :
     class_field list * class_method list * fixme_field list =
-  (* Sepate "fields" into fields (class variables) and methods, and use
+  (* Separate "fields" into fields (class variables) and methods, and use
     "fixme"s for what we don't know how to handle yet. *)
   let body_fields = cbody |> Tok.unbracket in
   let rev_cfields, rev_cmethods, rev_cfixmes =

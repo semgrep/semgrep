@@ -18,3 +18,4 @@ val expr_to_string : Lang.t -> AST_generic.expr -> string
 val svalue_to_string : Lang.t -> AST_generic.svalue -> string
 val stmt_to_string : Lang.t -> AST_generic.stmt -> string
 val arguments_to_string : Lang.t -> AST_generic.argument list -> string
+val type_ : AST_generic.type_ -> string
