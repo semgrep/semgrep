@@ -251,6 +251,9 @@ def resolve_subprojects(
     """
     # first, find all subprojects. We ignore the baseline handler because we want
     # to _identify_, but not necessarily resolve, even unchanged subprojects.
+    # TODO: find a faster way to identify subprojects. Getting all the
+    #  target files for a project is pretty slow when we need to only analyze
+    #  a few files for diff scan.
     dependency_source_files = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=True
     )
