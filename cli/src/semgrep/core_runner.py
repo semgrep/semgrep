@@ -790,10 +790,14 @@ class CoreRunner:
         when it is ran without a proper setup.
 
         The setup that ddprof needs is:
+        - We are running inside SMS
         - DDPROF_ON, DD_ENV, DD_AGENT_HOST, and DD_SERVICE are set
         - CAP_PERFMON is set
         - trace is enabled
         """
+        if not os.environ.get("SEMGREP_MANAGED_SCAN"):
+            return False
+
         trace_enabled = self._trace
         ddprof_on_path = shutil.which("ddprof")
         ddprof_env_vars_set = (
