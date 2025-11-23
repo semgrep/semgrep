@@ -1,0 +1,3 @@
+Debug log lines concerning telemetry collection that are only relevant inside
+Semgrep's managed scanning environment are not emitted if a scan runs outside
+that environment.
