@@ -223,6 +223,13 @@ def with_tool_span(
     ) -> Callable[Concatenate[Context, P], Awaitable[R]]:
         @functools.wraps(func)
         async def wrapper(ctx: Context, *args: P.args, **kwargs: P.kwargs) -> R:
+            def send_tool_metrics() -> None:
+                if send_metrics:
+                    if not is_semgrep_scan:
+                        state.app_session.user_agent.tags.add("(non-scan-mcp-tool)")
+                    state.metrics.send()
+                    state.app_session.user_agent.tags.discard("(non-scan-mcp-tool)")
+
             context = ctx.request_context.lifespan_context
             name = span_name or func.__name__
 
@@ -241,13 +248,16 @@ def with_tool_span(
                 )
 
             with with_span(context.top_level_span, name):
-                result = await func(ctx, *args, **kwargs)
-                if send_metrics:
-                    if not is_semgrep_scan:
-                        state.app_session.user_agent.tags.add("(non-scan-mcp-tool)")
-                    state.metrics.send()
-                    state.app_session.user_agent.tags.discard("(non-scan-mcp-tool)")
-                return result
+                try:
+                    result = await func(ctx, *args, **kwargs)
+                    logger.info(f"{name} succeeded")
+                    send_tool_metrics()
+                    return result
+                except Exception as e:
+                    logger.info(f"{name} failed: {e}")
+                    state.metrics.add_mcp_error(str(e))
+                    send_tool_metrics()
+                    raise e
 
         return wrapper
 

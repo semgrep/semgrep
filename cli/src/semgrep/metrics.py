@@ -514,6 +514,7 @@ class Metrics:
                 deployment_name=deployment_name,
                 tool_name=tool_name,
                 session_id=session_id,
+                errors=[],
             )
         except Exception as e:
             self.log_exception("add_mcp", e)
@@ -561,6 +562,15 @@ class Metrics:
                 self.payload.mcp.git_branch = git_info["branch"]
         except Exception as e:
             self.log_exception("add_mcp_git_info", e)
+
+    def add_mcp_error(self, error: str) -> None:
+        try:
+            if self.payload.mcp.errors is None:
+                self.payload.mcp.errors = [error]
+            else:
+                self.payload.mcp.errors.append(error)
+        except Exception as e:
+            self.log_exception("add_mcp_error", e)
 
     def as_json(self) -> str:
         value = self.payload.to_json()
