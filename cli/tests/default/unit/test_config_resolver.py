@@ -20,9 +20,11 @@ from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
 from semgrep.config_resolver import ConfigType
 from semgrep.config_resolver import legacy_url_for_scan
+from semgrep.config_resolver import parse_config_string_as_rules
 from semgrep.config_resolver import PRODUCT_NAMES
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import SemgrepError
+from semgrep.rule_lang import RpcValidationError
 from semgrep.state import SemgrepState
 
 FAKE_USER_AGENT = "user-agent"
@@ -290,3 +292,34 @@ def test_legacy_url_for_scan(
         mocker.patch("os.environ", {"SEMGREP_REPO_NAME": repo_name})
 
     assert legacy_url_for_scan(extra_params) == expected_url
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_parse_config_string_as_rules_jsonschema_fallback(mocker):
+    """
+    Test that when RPC validation fails the fallback to jsonschema validation works correctly.
+    """
+    # Mock RPC validation to fail
+    mocker.patch(
+        "semgrep.config_resolver.run_rpc_validate_exn",
+        side_effect=RpcValidationError("semgrep-core validation failed"),
+    )
+
+    rule_config = """{
+        "rules": [
+            {
+                "id": "test-rule",
+                "message": "Test rule with emoji 🔥",
+                "languages": ["python"],
+                "severity": "WARNING",
+                "pattern": "$X"
+            }
+        ]
+    }"""
+
+    rules, errors = parse_config_string_as_rules(rule_config)
+
+    assert len(rules) == 1
+    assert rules[0].id == "test-rule"
+    assert len(errors) == 0

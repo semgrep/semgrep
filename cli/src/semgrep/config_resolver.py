@@ -899,7 +899,7 @@ def parse_config_string_as_rules(
                 rules_tmp_path=rules_tmp_path,
             )
         elif force_jsonschema or not rules_tmp_path:
-            validate_string_json_schema({RULES_KEY: loaded_rules})
+            validate_string_json_schema(loaded_rules)
         else:
             try:
                 if not Path.exists(Path(rules_tmp_path)):
@@ -910,7 +910,7 @@ def parse_config_string_as_rules(
                 logger.debug("RPC validation succeeded")
             except (RpcValidationError, NotImplementedError) as e:
                 logger.debug(f"run_rpc_validate failed: {e}")
-                validate_string_json_schema({RULES_KEY: loaded_rules})
+                validate_string_json_schema(loaded_rules)
         return (rules, errors)
 
     finally:
