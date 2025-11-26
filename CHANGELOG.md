@@ -18,6 +18,30 @@
 - Semgrep will no longer rarely crash when --trace is passed. (incid-280)
 
 
+## [1.143.3](https://github.com/semgrep/semgrep/releases/tag/v1.143.3) - 2025-11-25
+
+
+No significant changes.
+
+
+## [1.143.2](https://github.com/semgrep/semgrep/releases/tag/v1.143.2) - 2025-11-25
+
+
+### Fixed
+
+
+- Fix issue that could lead to validation failures for certain well-formed rules, such as those with emoji in their messages. (incid-293)
+
+
+## [1.143.1](https://github.com/semgrep/semgrep/releases/tag/v1.143.1) - 2025-11-14
+
+
+### Fixed
+
+
+- Semgrep will no longer rarely crash when --trace is passed. (incid-280)
+
+
 ## [1.143.0](https://github.com/semgrep/semgrep/releases/tag/v1.143.0) - 2025-11-12
 
 
