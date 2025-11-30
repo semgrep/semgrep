@@ -44,6 +44,7 @@ let lang_has_no_dollar_ids =
     | Html
     | Xml
     | Ql
+    | Fga
     | Move_on_aptos ->
         true
     | Move_on_sui
