@@ -298,6 +298,19 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', tim
        },
      ]);
 
+local windows_git_config = [{
+  // On Windows, cloning the repository may fail with a "filename too long
+  // error", if longpaths is not set. Also, we want to disable autocrlf and set
+  // eol to lf to avoid issues with line endings.
+  name: 'Configure git to allow long paths, disable autocrlf, and set eol to lf',
+  run: |||
+    git config --global core.longpaths true
+    git config --global core.autocrlf false
+    git config --global core.eol lf
+  |||,
+}];
+
+
 local copy_executable_dlls(path_to_libs, executable, target_dir) =
   {
     name: 'Copy %s DLLs to %s/' % [executable, target_dir],
@@ -451,6 +464,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   opam_switch: opam_switch,
   opam_setup: opam_setup,
   build_test_steps: build_test_steps,
+  windows_git_config: windows_git_config,
   copy_executable_dlls: copy_executable_dlls,
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
