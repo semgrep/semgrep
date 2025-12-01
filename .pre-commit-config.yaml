@@ -44,7 +44,7 @@ repos:
       - id: end-of-file-fixer
         # Exclude generated files.
         # coupling: apply the same exclusions in semgrep-proprietary
-        exclude: "^\\.github/workflows/.+|semgrep\\.opam|.gitmodules|.dockerignore$"
+        exclude: "^\\.github/workflows/.+|semgrep\\.opam|opam-lockfiles/.+|.gitmodules|.dockerignore$"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]

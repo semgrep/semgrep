@@ -1,0 +1,295 @@
+opam-version: "2.0"
+name: "semgrep"
+version: "1.144.0"
+synopsis:
+  "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
+description: """\
+Semgrep is like grep but for searching patterns at the AST level while
+leveraging semantic information (e.g., types, control flow) for powerful
+matching.
+
+For more information see https://semgrep.dev"""
+maintainer: "Yoann Padioleau <pad@semgrep.com>"
+authors: "Yoann Padioleau <pad@semgrep.com>"
+license: "LGPL-2.1-only"
+homepage: "https://semgrep.dev"
+bug-reports: "https://github.com/semgrep/semgrep/issues"
+depends: [
+  "ANSITerminal" {= "0.8.5"}
+  "alcotest" {= "1.9.1"}
+  "alcotest-lwt" {= "1.9.1"}
+  "ambient-context" {= "0.1.0"}
+  "ambient-context-lwt" {= "0.1.0"}
+  "angstrom" {= "0.16.1"}
+  "arp" {= "4.1.0"}
+  "asn1-combinators" {= "0.3.2"}
+  "astring" {= "0.8.5"}
+  "atd" {= "2.16.0"}
+  "atdgen" {= "2.16.0"}
+  "atdgen-runtime" {= "2.16.0"}
+  "atdpy" {= "2.16.0"}
+  "atdts" {= "2.16.0"}
+  "atomic" {= "base"}
+  "awa" {= "0.5.2"}
+  "awa-mirage" {= "0.5.2"}
+  "base" {= "v0.17.3"}
+  "base-bigarray" {= "base"}
+  "base-bytes" {= "base"}
+  "base-domains" {= "base"}
+  "base-effects" {= "base"}
+  "base-nnp" {= "base"}
+  "base-threads" {= "base"}
+  "base-unix" {= "base"}
+  "base64" {= "3.5.2"}
+  "bigstringaf" {= "0.10.0"}
+  "biniou" {= "1.2.2"}
+  "bos" {= "0.2.1"}
+  "ca-certs" {= "1.0.1"}
+  "ca-certs-nss" {= "3.118"}
+  "calendar" {= "3.0.0"}
+  "camlp-streams" {= "5.0.1"}
+  "carton" {= "0.7.2"}
+  "carton-git" {= "0.7.2"}
+  "carton-lwt" {= "0.7.2"}
+  "checkseum" {= "0.5.2"}
+  "cmdliner" {= "1.3.0"}
+  "cohttp" {= "6.1.1"}
+  "cohttp-eio" {= "6.1.1"}
+  "cohttp-lwt" {= "6.1.1"}
+  "cohttp-lwt-unix" {= "6.1.1"}
+  "conduit" {= "8.0.0"}
+  "conduit-lwt" {= "8.0.0"}
+  "conduit-lwt-unix" {= "8.0.0"}
+  "conf-gmp" {= "5"}
+  "conf-gmp-powm-sec" {= "4"}
+  "conf-libcurl" {= "2"}
+  "conf-libev" {= "4-13"}
+  "conf-libpcre" {= "2"}
+  "conf-libpcre2-8" {= "2"}
+  "conf-pkg-config" {= "4"}
+  "conf-unwind" {= "0"}
+  "conf-zstd" {= "1.3.8"}
+  "cppo" {= "1.8.0"}
+  "csexp" {= "1.5.2"}
+  "cstruct" {= "6.2.0"}
+  "cstruct-lwt" {= "6.2.0"}
+  "cstruct-unix" {= "6.2.0"}
+  "ctypes" {= "0.24.0"}
+  "decompress" {= "1.5.3"}
+  "digestif" {= "1.3.0"}
+  "dns" {= "10.2.2"}
+  "dns-client" {= "10.2.2"}
+  "dns-client-mirage" {= "10.2.2"}
+  "domain-local-await" {= "1.0.1"}
+  "domain-name" {= "0.5.0"}
+  "duff" {= "0.5"}
+  "dune" {= "3.20.2"}
+  "dune-compiledb" {= "0.6.0"}
+  "dune-configurator" {= "3.20.2"}
+  "duration" {= "0.2.1"}
+  "easy-format" {= "1.3.4"}
+  "eio" {= "1.2"}
+  "eio_main" {= "1.2"}
+  "eio_posix" {= "1.2"}
+  "emile" {= "1.1"}
+  "encore" {= "0.8.1"}
+  "eqaf" {= "0.10"}
+  "ethernet" {= "3.2.0"}
+  "ezcurl" {= "0.2.4"}
+  "ezjsonm" {= "1.3.0"}
+  "faraday" {= "0.8.2"}
+  "fileutils" {= "0.6.6"}
+  "fmt" {= "0.11.0"}
+  "fpath" {= "0.7.3"}
+  "git" {= "3.18.0"}
+  "git-mirage" {= "3.18.0"}
+  "git-paf" {= "3.18.0"}
+  "git-unix" {= "3.18.0"}
+  "gmap" {= "0.3.0"}
+  "h1" {= "1.0.0"}
+  "h2" {= "0.13.0"}
+  "happy-eyeballs" {= "2.0.1"}
+  "happy-eyeballs-lwt" {= "2.0.1"}
+  "happy-eyeballs-mirage" {= "2.0.1"}
+  "hex" {= "1.5.0"}
+  "hmap" {= "0.8.1"}
+  "host-arch-x86_64" {= "1"}
+  "host-system-other" {= "1"}
+  "hpack" {= "0.13.0"}
+  "http" {= "6.1.1"}
+  "httpun-types" {= "0.2.0"}
+  "hxd" {= "0.3.5"}
+  "integers" {= "0.7.0"}
+  "iomux" {= "0.4"}
+  "ipaddr" {= "5.6.1"}
+  "ipaddr-cstruct" {= "5.6.1"}
+  "ipaddr-sexp" {= "5.6.1"}
+  "jane-street-headers" {= "v0.17.0"}
+  "jsonm" {= "1.0.2"}
+  "jsonrpc" {= "1.22.0"}
+  "jst-config" {= "v0.17.0"}
+  "kdf" {= "1.0.0"}
+  "ke" {= "0.6"}
+  "logs" {= "0.10.0"}
+  "lru" {= "0.3.1"}
+  "lsp" {= "1.22.0"}
+  "lwt" {= "5.9.2"}
+  "lwt-dllist" {= "1.1.0"}
+  "lwt_ppx" {= "5.9.1"}
+  "macaddr" {= "5.6.1"}
+  "macaddr-cstruct" {= "5.6.1"}
+  "magic-mime" {= "1.3.1"}
+  "memtrace" {= "0.2.3"}
+  "menhir" {= "20230608"}
+  "menhirLib" {= "20230608"}
+  "menhirSdk" {= "20230608"}
+  "metrics" {= "0.5.0"}
+  "mimic" {= "0.0.9"}
+  "mimic-happy-eyeballs" {= "0.0.9"}
+  "mirage-crypto" {= "1.2.0"}
+  "mirage-crypto-ec" {= "1.2.0"}
+  "mirage-crypto-pk" {= "1.2.0"}
+  "mirage-crypto-rng" {= "1.2.0"}
+  "mirage-crypto-rng-eio" {= "1.2.0"}
+  "mirage-flow" {= "5.0.0"}
+  "mirage-kv" {= "6.1.1"}
+  "mirage-mtime" {= "5.2.0"}
+  "mirage-net" {= "4.0.0"}
+  "mirage-ptime" {= "5.2.0"}
+  "mirage-sleep" {= "4.1.0"}
+  "mtime" {= "2.1.0"}
+  "num" {= "1.6"}
+  "obackward" {= "dev"}
+  "ocaml" {= "5.3.0"}
+  "ocaml-compiler-libs" {= "v0.17.0"}
+  "ocaml-config" {= "3"}
+  "ocaml-syntax-shims" {= "1.0.0"}
+  "ocaml-variants" {= "5.3.0"}
+  "ocaml_intrinsics_kernel" {= "v0.17.1"}
+  "ocamlbuild" {= "0.16.1"}
+  "ocamlfind" {= "1.9.8"}
+  "ocamlgraph" {= "2.2.0"}
+  "ocolor" {= "1.3.1"}
+  "ocplib-endian" {= "1.2"}
+  "ocurl" {= "0.9.1"}
+  "ohex" {= "0.2.0"}
+  "opentelemetry" {= "dev"}
+  "opentelemetry-client-cohttp-eio" {= "dev"}
+  "opentelemetry-client-ocurl" {= "dev"}
+  "opentelemetry-logs" {= "dev"}
+  "optint" {= "0.3.0"}
+  "paf" {= "0.8.0"}
+  "parmap" {= "1.2.5"}
+  "parsexp" {= "v0.17.0"}
+  "pbrt" {= "3.1.1"}
+  "pcre" {= "8.0.5"}
+  "pcre2" {= "dev"}
+  "pecu" {= "0.7"}
+  "ppx_assert" {= "v0.17.0"}
+  "ppx_base" {= "v0.17.0"}
+  "ppx_blob" {= "0.9.0"}
+  "ppx_cold" {= "v0.17.0"}
+  "ppx_compare" {= "v0.17.0"}
+  "ppx_derivers" {= "1.2.1"}
+  "ppx_deriving" {= "6.0.3"}
+  "ppx_deriving_yojson" {= "3.9.1"}
+  "ppx_enumerate" {= "v0.17.0"}
+  "ppx_globalize" {= "v0.17.0"}
+  "ppx_hash" {= "v0.17.0"}
+  "ppx_here" {= "v0.17.0"}
+  "ppx_inline_test" {= "v0.17.0"}
+  "ppx_optcomp" {= "v0.17.0"}
+  "ppx_sexp_conv" {= "v0.17.0"}
+  "ppx_yojson_conv_lib" {= "v0.17.0"}
+  "ppxlib" {= "0.35.0"}
+  "ppxlib_jane" {= "v0.17.2"}
+  "psq" {= "0.2.1"}
+  "ptime" {= "1.2.0"}
+  "pyro-caml-instruments" {= "dev"}
+  "pyro-caml-ppx" {= "dev"}
+  "randomconv" {= "0.2.0"}
+  "re" {= "1.14.0"}
+  "result" {= "1.5"}
+  "rresult" {= "0.7.0"}
+  "sarif" {= "0.3.1"}
+  "semgrep-interfaces" {= "dev"}
+  "semver" {= "0.2.1"}
+  "seq" {= "base"}
+  "sexplib" {= "v0.17.0"}
+  "sexplib0" {= "v0.17.0"}
+  "stdio" {= "v0.17.0"}
+  "stdlib-shims" {= "0.3.0"}
+  "stringext" {= "1.6.0"}
+  "tcpip" {= "9.0.1"}
+  "terminal_size" {= "0.2.0"}
+  "testo" {= "dev"}
+  "testo-diff" {= "dev"}
+  "testo-util" {= "dev"}
+  "thread-local-storage" {= "0.2"}
+  "thread-table" {= "1.0.0"}
+  "time_now" {= "v0.17.0"}
+  "timedesc" {= "3.1.0"}
+  "timedesc-tzdb" {= "3.1.0"}
+  "timedesc-tzlocal" {= "3.1.0"}
+  "tls" {= "2.0.3"}
+  "tls-eio" {= "2.0.3"}
+  "tls-lwt" {= "2.0.3"}
+  "tls-mirage" {= "2.0.3"}
+  "topkg" {= "1.1.1"}
+  "tree-sitter" {= "dev"}
+  "tsort" {= "2.2.0"}
+  "uri" {= "4.4.0"}
+  "uri-sexp" {= "4.4.0"}
+  "uucp" {= "17.0.0"}
+  "uuidm" {= "0.9.10"}
+  "uutf" {= "1.0.4"}
+  "visitors" {= "20250212"}
+  "x509" {= "1.0.6"}
+  "xmlm" {= "1.4.0"}
+  "yaml" {= "3.2.0"}
+  "yojson" {= "2.2.2"}
+  "zarith" {= "1.14"}
+]
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+]
+depexts: [
+  ["pcre-static"] {os-distribution = "alpine"}
+  ["pcre2-static"] {os-distribution = "alpine"}
+  ["gmp-static"] {os-distribution = "alpine"}
+]
+dev-repo: "git+https://github.com/semgrep/semgrep.git"
+pin-depends: [
+  [
+    "ocaml-variants.5.3.0"
+    "git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep"
+  ]
+  [
+    "opentelemetry.dev"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+  ]
+  [
+    "opentelemetry-client-cohttp-eio.dev"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+  ]
+  [
+    "opentelemetry-client-ocurl.dev"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+  ]
+  [
+    "opentelemetry-logs.dev"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+  ]
+]
+x-maintenance-intent: ["(latest)"]
