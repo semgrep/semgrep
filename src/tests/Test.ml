@@ -27,7 +27,7 @@ let t = Testo.create
  *
  * to run all the OCaml tests containing foo in their test name.
  *
- * hisyory: this file used to contain lots of tests, but it's better to now
+ * history: this file used to contain lots of tests, but it's better to now
  * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
  *)
 
