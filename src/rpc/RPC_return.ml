@@ -125,3 +125,6 @@ let hook_transitive_reachability_analyzer = ref None
 
 (* nosemgrep: no-ref-declarations-at-top-scope *)
 let hook_match_subprojects = ref None
+
+(* nosemgrep: no-ref-declarations-at-top-scope *)
+let hook_run_symbol_analysis = ref None

@@ -181,3 +181,15 @@ def match_subprojects(dependency_source_files: List[out.Fpath]) -> List[out.Subp
         logger.error("Failed to match subprojects")
         return []
     return ret.value
+
+
+@tracing.trace()
+def run_symbol_analysis(
+    params: out.SymbolAnalysisParams,
+) -> Optional[out.SymbolAnalysis]:
+    call = out.FunctionCall(out.CallRunSymbolAnalysis(params))
+    ret: Optional[out.RetRunSymbolAnalysis] = rpc_call(call, out.RetRunSymbolAnalysis)
+    if ret is None:
+        logger.error("Failed to run symbol analysis")
+        return None
+    return ret.value
