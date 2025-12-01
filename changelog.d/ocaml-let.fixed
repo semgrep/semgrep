@@ -1,0 +1,1 @@
+The correct range for `let ... in` expressions in OCaml is now reported. Previously, the location of the `let` was omitted. This is mainly relevant for autofix.

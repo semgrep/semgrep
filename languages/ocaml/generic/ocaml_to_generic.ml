@@ -370,6 +370,10 @@ and expr e =
       let v3 = expr v3 in
       let defs = defs_of_bindings tlet [] v2 in
       let st = G.Block (fb (defs @ [ G.exprstmt v3 ])) |> G.s in
+      (* Fix: explicitly set the range on the Block statement to include the
+       * 'let' token and the body expression. Without this, the range starts
+       * from the first binding (missing "let "), which breaks autofix. *)
+      H.set_s_range_with_anys [ G.Tk tlet; G.E v3 ] st;
       let x = G.stmt_to_expr st in
       x.G.e |> G.e
   | Fun (t, v1, v2) ->
