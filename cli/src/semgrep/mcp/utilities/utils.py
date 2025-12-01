@@ -44,6 +44,16 @@ def is_hosted() -> bool:
     return os.environ.get("SEMGREP_IS_HOSTED", "false").lower() == "true"
 
 
+def findings_elicitation_enabled() -> bool:
+    """
+    Check if findings elicitation is enabled.
+    """
+    return (
+        os.environ.get("SEMGREP_FINDINGS_ELICITATION_ENABLED", "false").lower()
+        == "true"
+    )
+
+
 def get_semgrep_api_url() -> str:
     url = get_state().env.semgrep_url
     return f"{url}/api"

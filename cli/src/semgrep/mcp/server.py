@@ -30,21 +30,27 @@ from semgrep import __VERSION__
 from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import CodePath
 from semgrep.mcp.models import Finding
+from semgrep.mcp.models import FindingElicitationSchema
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import mk_context
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.semgrep import run_semgrep_process_sync
 from semgrep.mcp.semgrep import run_semgrep_via_rpc
 from semgrep.mcp.semgrep import SemgrepContext
+from semgrep.mcp.utilities.tracing import attach_findings_metrics
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
+from semgrep.mcp.utilities.tracing import with_span
 from semgrep.mcp.utilities.tracing import with_tool_span
+from semgrep.mcp.utilities.utils import findings_elicitation_enabled
 from semgrep.mcp.utilities.utils import get_identity
 from semgrep.mcp.utilities.utils import get_semgrep_api_url
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.mcp.utilities.utils import re_identity_string
+from semgrep.metrics import Finding as MetricsFinding
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
+from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -368,6 +374,55 @@ async def get_workspace_dir(ctx: Context) -> str | None:
         return path
     except Exception:
         return ""
+
+
+async def finding_elicitation(
+    ctx: Context, results: SemgrepScanResult
+) -> tuple[
+    list[tuple[str, MetricsFinding]],
+    list[tuple[str, MetricsFinding]],
+    list[tuple[str, MetricsFinding]],
+]:
+    """
+    Elicit user input for findings to determine if they are true positives or false positives.
+    If findings elicitation is not enabled, throws an error.
+
+    Args:
+        ctx: Context object
+        results: SemgrepScanResult object
+
+    Returns:
+        Tuple of lists of true positive (first item), false positive (second item), and skipped (third item) findings
+    """
+    with with_span(get_current_span(), "finding_elicitation") as _:
+        findings = get_state().metrics.cli_matches_to_findings(results.results)
+        if not findings_elicitation_enabled():
+            raise McpError(
+                ErrorData(
+                    code=INVALID_PARAMS,
+                    message="Findings elicitation is not enabled.",
+                )
+            )
+
+        true_positive_findings, false_positive_findings, skipped_findings = [], [], []
+        logger.info(f"Findings to elicit: {findings}")
+        for rule_id, finding in findings:
+            result = await ctx.elicit(
+                message=f"🔍 Semgrep Finding Detected: [{finding.severity}] {rule_id} ({finding.path}:{finding.line}:{finding.col})",
+                schema=FindingElicitationSchema,
+            )
+            if result.action == "accept" and result.data:
+                if result.data.true_positive:
+                    logger.info(f"Finding {finding} is a true positive.")
+                    true_positive_findings.append((rule_id, finding))
+                elif result.data.false_positive:
+                    logger.info(f"Finding {finding} is a false positive.")
+                    false_positive_findings.append((rule_id, finding))
+                elif result.data.skip:
+                    logger.info(f"Finding {finding} is a skip.")
+                    skipped_findings.append((rule_id, finding))
+
+        return true_positive_findings, false_positive_findings, skipped_findings
 
 
 # ---------------------------------------------------------------------------------
@@ -699,6 +754,12 @@ async def semgrep_scan_with_custom_rule(
         output = await run_semgrep_output(top_level_span=None, args=args)
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
 
+        if findings_elicitation_enabled():
+            tps, fps, skips = await finding_elicitation(ctx, results)
+            attach_findings_metrics(get_current_span(), tps, fps, skips)
+        else:
+            logger.info("Findings elicitation is not enabled, skipping.")
+
         attach_scan_metrics(
             get_current_span(), results, workspace_dir, validated_code_files
         )
@@ -893,6 +954,12 @@ async def semgrep_scan_cli(
         results: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
         remove_temp_dir_from_results(results, temp_dir)
 
+        if findings_elicitation_enabled():
+            tps, fps, skips = await finding_elicitation(ctx, results)
+            attach_findings_metrics(get_current_span(), tps, fps, skips)
+        else:
+            logger.info("Findings elicitation is not enabled, skipping.")
+
         attach_scan_metrics(get_current_span(), results, workspace_dir, code_files)
 
         return results
@@ -935,6 +1002,12 @@ async def semgrep_scan_rpc(
         # TODO: perhaps should return more interpretable results?
         context: SemgrepContext = ctx.request_context.lifespan_context
         results = await run_semgrep_via_rpc(context, workspace_dir, code_files)
+
+        if findings_elicitation_enabled():
+            tps, fps, skips = await finding_elicitation(ctx, results)
+            attach_findings_metrics(get_current_span(), tps, fps, skips)
+        else:
+            logger.info("Findings elicitation is not enabled, skipping.")
 
         attach_scan_metrics(get_current_span(), results, workspace_dir, code_files)
 
