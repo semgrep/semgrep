@@ -33,6 +33,7 @@ from semgrep.mcp.utilities.utils import get_deployment_name_from_token
 from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
+from semgrep.metrics import Finding
 from semgrep.metrics import MetricsState
 from semgrep.state import get_state
 from semgrep.tracing import _DEFAULT_ENDPOINT
@@ -111,6 +112,21 @@ def attach_scan_metrics(
     )
     state = get_state()
     state.metrics.add_mcp_scan_metrics(results, num_lines_scanned)
+
+
+def attach_findings_metrics(
+    span: trace.Span | None,
+    tps: list[tuple[str, Finding]],
+    fps: list[tuple[str, Finding]],
+    skips: list[tuple[str, Finding]],
+) -> None:
+    if span is None:
+        return
+    span.set_attribute("metrics.num_tps", len(tps))
+    span.set_attribute("metrics.num_fps", len(fps))
+    span.set_attribute("metrics.num_skips", len(skips))
+    state = get_state()
+    state.metrics.add_mcp_findings_metrics(tps, fps, skips)
 
 
 ################################################################################
