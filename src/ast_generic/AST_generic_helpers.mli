@@ -164,6 +164,11 @@ val set_e_range : Tok.t -> Tok.t -> AST_generic.expr -> unit
  * Noop if no location information for the anys is available (including if the
  * any list is empty). *)
 val set_e_range_with_anys : AST_generic.any list -> AST_generic.expr -> unit
+
+(* Sets the s_range on the statement to the range defined by the given anys.
+ * Noop if no location information for the anys is available (including if the
+ * any list is empty). *)
+val set_s_range_with_anys : AST_generic.any list -> AST_generic.stmt -> unit
 val ii_of_any : AST_generic.any -> Tok.t list
 val info_of_any : AST_generic.any -> Tok.t
 
