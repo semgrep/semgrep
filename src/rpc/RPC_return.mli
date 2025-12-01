@@ -48,3 +48,10 @@ val hook_dump_rule_partitions :
   (< Cap.random > -> Out.dump_rule_partitions_params -> bool) option ref
 
 val hook_match_subprojects : (Out.fpath list -> Out.subproject list) option ref
+
+val hook_run_symbol_analysis :
+  (< Cap.readdir > ->
+  Out.symbol_analysis_params ->
+  (Out.symbol_analysis, string) result)
+  option
+  ref

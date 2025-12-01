@@ -34,6 +34,7 @@ let name_of_call (call : Out.function_call) : string =
   | `CallTransitiveReachabilityFilter _ -> "CallTransitiveReachabilityFilter"
   | `CallGetTargets _ -> "CallGetTargets"
   | `CallMatchSubprojects _ -> "CallMatchSubprojects"
+  | `CallRunSymbolAnalysis _ -> "CallRunSymbolAnalysis"
 
 (*****************************************************************************)
 (* Types *)
@@ -143,6 +144,17 @@ let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
           Error
             "Subproject matching is a proprietary feature, but semgrep-pro has \
              not been loaded")
+  | `CallRunSymbolAnalysis params -> (
+      let msg =
+        "Symbol analysis is a proprietary feature, but semgrep-pro has not \
+         been loaded"
+      in
+      let/ run_symbol_analysis =
+        Option.to_result ~none:msg !RPC_return.hook_run_symbol_analysis
+      in
+      match run_symbol_analysis (caps :> < Cap.readdir >) params with
+      | Ok analysis -> Ok (`RetRunSymbolAnalysis analysis)
+      | Error msg -> Error msg)
 
 (*****************************************************************************)
 (* Helpers *)
