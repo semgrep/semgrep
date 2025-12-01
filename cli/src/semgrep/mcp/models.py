@@ -18,6 +18,12 @@ from pydantic import Field
 from pydantic import HttpUrl
 
 
+class FindingElicitationSchema(BaseModel):
+    true_positive: bool = Field(description="The finding is a true positive.")
+    false_positive: bool = Field(description="The finding is a false positive.")
+    skip: bool = Field(description="Skip flagging this finding.")
+
+
 class CodeFile(BaseModel):
     # This "path" is mostly for bookkeeping purposes.
     # Depending on whether the server is hosted or not, this path might

@@ -232,6 +232,12 @@ let default_payload =
         git_repo = None;
         git_branch = None;
         tool_name = None;
+        num_tps = None;
+        tps = None;
+        num_fps = None;
+        fps = None;
+        num_skips = None;
+        skips = None;
       };
   }
 
