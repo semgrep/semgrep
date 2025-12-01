@@ -89,14 +89,15 @@
                                                     id_flags = ref (0);
                                                     id_info_id = _ }
                                                   )));
-                                            e_id = 0; e_range = None;
+                                            e_id = 0;
+                                            e_range = (Some (_, _));
                                             is_implicit_return = false;
                                             facts = <opaque> },
                                           _));
                                        s_range = None }
                                      ],
                                    _));
-                               s_range = None });
+                               s_range = (Some (_, _)) });
                           e_id = 0; e_range = None;
                           is_implicit_return = false; facts = <opaque> })
                       ]

@@ -644,6 +644,13 @@ let set_e_range_with_anys anys e =
       Log.warn (fun m -> m "set_e_range_with_anys failed: no locations found");
       ()
 
+let set_s_range_with_anys anys s =
+  match extract_ranges_with_anys anys with
+  | Some (l, r) -> s.s_range <- Some (l, r)
+  | None ->
+      Log.warn (fun m -> m "set_s_range_with_anys failed: no locations found");
+      ()
+
 let range_of_tokens_unsafe tokens =
   List.filter Tok.is_origintok tokens |> Tok_range.min_max_toks_by_pos
 [@@profiling]
