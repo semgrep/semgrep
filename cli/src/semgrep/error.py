@@ -523,6 +523,7 @@ class DependencyResolutionSemgrepError(SemgrepError):
         super().__init__(*args, code=code, level=level)
 
     def __str__(self) -> str:
+        # duplicated mostly in scan_report.py in _print_sca_resolution_error
         def print_resolution_error(err: out.ResolutionErrorKind) -> str:
             if isinstance(err.value, out.UnsupportedManifest):
                 return "Unsupported Manifest"
@@ -530,6 +531,8 @@ class DependencyResolutionSemgrepError(SemgrepError):
                 return f"Missing Requirement ({err.value.value})"
             elif isinstance(err.value, out.ResolutionCmdFailed_):
                 return f"Resolution Command Failed (command: {err.value.value.command}) (result: {err.value.value.message})"
+            elif isinstance(err.value, out.ResourceInaccessible_):
+                return f"Resource Inaccessible (command: {err.value.value.command}) (registry_url: {err.value.value.registry_url}) (message: {err.value.value.message})"
             else:
                 return f"Parsing dependency output failed ({err.value.value})"
 
