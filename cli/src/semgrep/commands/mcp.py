@@ -16,6 +16,7 @@ import click
 from mcp.server.fastmcp import FastMCP
 
 from semgrep import __VERSION__
+from semgrep.mcp.hooks.inject_secure_defaults import run_inject_secure_defaults_hook
 from semgrep.mcp.hooks.post_tool import run_post_tool_scan_cli
 from semgrep.mcp.server import deregister_tools
 from semgrep.mcp.server import register
@@ -26,6 +27,8 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 POST_TOOL_CLI_SCAN_FLAG = "post-tool-cli-scan"
+INJECT_SECURE_DEFAULTS_FLAG = "inject-secure-defaults"
+INJECT_SHORT_CONTEXT_FLAG = "inject-secure-defaults-short"
 
 # ---------------------------------------------------------------------------------
 # MCP Server Entry Point
@@ -58,11 +61,18 @@ POST_TOOL_CLI_SCAN_FLAG = "post-tool-cli-scan"
 @click.option(
     "-k",
     "--hook",
-    type=click.Choice([POST_TOOL_CLI_SCAN_FLAG]),
+    type=click.Choice(
+        [
+            POST_TOOL_CLI_SCAN_FLAG,
+            INJECT_SECURE_DEFAULTS_FLAG,
+            INJECT_SHORT_CONTEXT_FLAG,
+        ]
+    ),
     default=None,
-    help="""Run specified functionality for agent hooks.
-    Currently supports running a Semgrep CLI scan (via PostToolHook)
-    with the Claude Code Agent (post-tool-cli-scan).
+    help=f"""Run specified functionality for agent hooks.
+    Currently supports:
+    1. Running a Semgrep CLI scan (via PostTool hook, flag: `{POST_TOOL_CLI_SCAN_FLAG}`).
+    2. Injecting secure defaults context (via UserPromptSubmit hook or SessionStart hook, flag: `{INJECT_SECURE_DEFAULTS_FLAG}`).
     """,
 )
 def semgrep_mcp(transport: str, port: int, hook: str | None) -> None:
@@ -77,6 +87,14 @@ def semgrep_mcp(transport: str, port: int, hook: str | None) -> None:
 
     if hook == POST_TOOL_CLI_SCAN_FLAG:
         run_post_tool_scan_cli()
+        return
+
+    if hook == INJECT_SECURE_DEFAULTS_FLAG:
+        run_inject_secure_defaults_hook()
+        return
+
+    if hook == INJECT_SHORT_CONTEXT_FLAG:
+        run_inject_secure_defaults_hook(inject_short_context=True)
         return
 
     # Log the start of the MCP server
