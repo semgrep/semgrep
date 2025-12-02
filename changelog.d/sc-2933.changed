@@ -1,0 +1,1 @@
+Symbol analysis upload now runs before scan completion to ensure it is available during initial scan postprocessing.
