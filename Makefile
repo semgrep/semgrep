@@ -341,7 +341,7 @@ nix-check-verbose:
 # As a developer you should not run frequently 'make setup', only when
 # important dependencies change.
 .PHONY: setup
-setup: semgrep.opam
+setup:
 	./scripts/make-symlinks
 	./scripts/check-bash-version
 	LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" $(MAKE) install-deps-for-semgrep-core
