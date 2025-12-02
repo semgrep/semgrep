@@ -210,6 +210,9 @@ let parse_pattern_by_lang options lang str =
   | Lang.Kotlin ->
       let res = Parse_kotlin_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res
+  | Lang.Fga ->
+      let res = Parse_fga_tree_sitter.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res
   | Lang.Julia ->
       let res = Parse_julia_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res
