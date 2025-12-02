@@ -4,7 +4,7 @@
 
 # Many targets in this Makefile assume some commands have been run before to
 # setup the correct build environment supporting the different languages
-# used for Semgrep development:
+# used for Semgrep development.
 #  - for OCaml: 'ocamlc' and 'ocamlopt' (currently 4.14.0), 'dune', 'opam'
 #  - for C: 'gcc', 'ld', 'pkgconfig', but also some C libs like PCRE, gmp
 #  - for Python: 'python3', 'pip', 'pipenv'
@@ -12,8 +12,6 @@
 # You will also need obviously 'make', but also 'git', and many other
 # common dev tools (e.g., 'docker', 'bash').
 #
-# Once this basic building/development environment has been setup
-# (see the different 'install-deps-XXX-yyy' targets later to assist you),
 # you can then use:
 #
 #     $ make install-deps
@@ -31,7 +29,6 @@
 # Most of the targets in this Makefile should work equally under
 # Linux (Alpine, Ubuntu, Arch), macOS (x86 and arm64), Windows (WSL, Cygwin),
 # and from a Dockerfile.
-# The main exceptions are the install-deps-XXX-yyy targets below.
 
 # If you really have to use platform-specific commands or flags, try to use
 # macros like the one below to have a portable Makefile.
@@ -117,22 +114,9 @@ core:
 build-docker:
 	docker build -t semgrep --target semgrep-oss .
 
-.PHONY: build-otarzan
-build-otarzan:
-	dune build $(BUILD)/install/default/bin/otarzan
-
 .PHONY: build-ojsonnet
 build-ojsonnet:
 	dune build $(BUILD)/install/default/bin/ojsonnet
-
-.PHONY: build-pfff
-build-pfff:
-	dune build $(BUILD)/install/default/bin/pfff
-
-# This is an example of how to build one of those parse-xxx ocaml-tree-sitter binaries
-.PHONY: build-parse-cairo
-build-parse-cairo:
-	dune build $(BUILD)/install/default/bin/parse-cairo
 
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
@@ -311,19 +295,6 @@ install-deps: install-deps-for-semgrep-core
 # Platform-dependent dependencies installation
 # **************************************************
 
-# The constants and targets below are used in our Dockerfile and a few
-# GHA workflows. There are pros and cons of having those commands here
-# instead of in the Dockerfile and GHA workflows:
-# cons:
-#  - this requires the Makefile and so to checkout (COPY in Docker
-#    or actions/checkout@v3 in GHA) semgrep first,
-#    which prevent some caching Docker/GHA could do. This is alleviated
-#    a bit by the fact that anyway we use a special returntocorp/ocaml
-#    container with many things pre-installed.
-# pro:
-#  - it avoids repeating yourself everywhere
-#
-# TODO fix issue with windows so we don't need this specific step
 # -------------------------------------------------
 # Nix
 # -------------------------------------------------
@@ -392,74 +363,11 @@ rebuild:
 # profiler. This is needed to collect + visualize profiling data.
 pyroscope:
 	docker run --rm -it -p 4040:4040 grafana/pyroscope:latest
-# Prepare a release branch.
-# This is mainly called by .github/workflows/start-release.yml
-# It is safe to run it multiple times.
-.PHONY: release
-release:
-	./scripts/release/bump
 
 # Run utop with all the semgrep-core libraries loaded.
 .PHONY: utop
 utop:
 	dune utop
-
-# This is for tools/hello_script.ml so it can leverage the semgrep libs
-# (e.g., commons) by installing them in ~/.opam/.../
-.PHONY: install-semgrep-libs
-install-semgrep-libs: semgrep.opam
-	dune build
-	dune install
-
-# for ocamldebug
-core-bc:
-	dune build $(BUILD)/install/default/bin/semgrep-core.bc
-	dune build $(BUILD)/install/default/bin/osemgrep.bc
-test-bc:
-	dune build $(BUILD_DEFAULT)/src/tests/test.bc
-# The bytecode version of semgrep-core needs dlls for tree-sitter
-# stubs installed into ~/.opam/<switch>/lib/stublibs to be able to run.
-install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
-	dune build @install # Generate the treesitter stubs for below
-	dune install # Needed to install treesitter_<lang> stubs for use by bytecode
-
-
-###############################################################################
-# Dogfood!
-###############################################################################
-# There are a few places where we currently dogfood Semgrep:
-#
-# - in this Makefile with 'make check' below, which tests semgrep in PATH
-#   and with 'make check_with_docker' which tests semgrep Docker image,
-#   and where we use semgrep.jsonnet in both targets
-#
-# - in pre-commit in .pre-commit-config.yaml which tests the semgrep
-#   Docker image used in a pre-commit 'language: docker_image' context,
-#   as well as semgrep official pre-commit hooks in .pre-commit-hooks.yaml
-#   in a 'language: python' context (which itself uses setup.py to install semgrep),
-#   with semgrep.jsonnet but also with p/python and p/bandit rulesets.
-#
-# - in circle CI in .circle/config.yml which uses the Docker image
-#   and where we use semgrep.jsonnet
-#
-# - in Github Actions (GHA) in .github/workflows/semgrep.yml where
-#   we use semgrep-actions and the App to get the rules
-#
-# Note that many of those places use semgrep.jsonnet and so would report
-# the same findings, but they are useful anyway to test all the different
-# places where you can plug semgrep (Makefile, pre-commit, circleCI, GHA, GHA+App).
-
-#coupling: see also .circleci/config.yml and its 'semgrep' job
-SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --strict --exclude tests
-# you can add --verbose for debugging
-
-#Dogfooding osemgrep!
-.PHONY: check
-check:
-	./bin/osemgrep$(EXE) $(SEMGREP_ARGS)
-
-check_for_emacs:
-	./bin/osemgrep$(EXE) $(SEMGREP_ARGS) --emacs --quiet
 
 DOCKER_IMAGE=semgrep/semgrep-nightly:develop
 
