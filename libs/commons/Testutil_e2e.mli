@@ -19,27 +19,38 @@
    - running external commands
 *)
 
-val detect_available_commands : string list -> string -> bool
-(** [detect_available_commands command_names] is meant to be called once
-    to return a function [is_cmd_available] that tells quickly whether a command
-    is available. It should run only in a test program. The availability of
-    each command is tested once with Unix [which] or equivalent and is
-    then memoized.
+val command_exists : string -> bool
+(** Call the system command [which] or [where.exe] to determine
+    if the given command name is available. *)
 
-    All the command names must be registered as part of the call to
-    [detect_available]. [is_cmd_available] will raise a fatal exception
-    if it's called on a command that wasn't registered. *)
+val check_prerequisites : (string * (unit -> bool)) list -> string -> bool
+(** [check_prerequisites] takes a list of prerequisites in the form of
+    named predicates, evaluates them, puts the results in a table,
+    and returns a function [prerequisite_exists] for quick lookups.
 
-val skip_tests_if_missing_commands :
-  is_cmd_available:(string -> bool) ->
+    Each test has its own list of prerequisites. Providing the
+    [prerequisite_exists] function to [skip_tests_if_missing_prerequisites]
+    allows skipping the tests for which the prerequisites aren't fulfilled
+    without causing errors.
+
+    For example,
+    [check_prerequisites ["npm", (fun () -> command_exists "npm")]]
+    defines ["npm"] as a prerequisite that is fulfilled if the npm command
+    is available on the system. A more advanced prerequisite would be
+    the presence of a particular version of npm.
+*)
+
+val skip_tests_if_missing_prerequisites :
+  prerequisite_exists:(string -> bool) ->
   string list ->
   Testo.t list ->
   Testo.t list
-(** Rewrite a test suite to be skipped if the required external commands
-    are not available.
+(** Rewrite a test suite to be skipped if the prerequisites, such as
+    certain external commands, are not fulfilled.
     This results in the tests being listed as skipped with an explanation
     rather than missing mysteriously.
 
-    The [is_cmd_available] function should be produced with
-    [detect_available_commands].
+    The [prerequisite_exists] function should be produced with
+    [detect_available_commands] or [check_prerequisites] so it can be fast
+    when checking the same prerequisite repeatedly.
 *)
