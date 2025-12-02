@@ -241,21 +241,29 @@ def _print_sca_parse_error(error: out.DependencyParserError) -> None:
 
 
 def _print_sca_resolution_error(error: out.ScaResolutionError) -> None:
+    def format_resolution_error_message(message: str) -> str:
+        # the Ocaml code returns error messages with \n instead of newlines,
+        # which makes the error output look messy. We switch back to using real
+        # newlines, and then prepend each line of the output with > to show
+        # that it is a replication of third-party output.
+        with_newlines = message.replace("\\n", "\n")
+        processed_message = "\n".join(
+            [f"  > {line}" for line in with_newlines.split("\n")]
+        )
+        return processed_message
+
+    # duplicated mostly in error.py in DependencyResolutionSemgrepError.__str__
     def print_resolution_error(err: out.ResolutionErrorKind) -> str:
         if isinstance(err.value, out.UnsupportedManifest):
             return "Unsupported Manifest"
         elif isinstance(err.value, out.MissingRequirement):
             return f"Missing Requirement ({err.value.value})"
         elif isinstance(err.value, out.ResolutionCmdFailed_):
-            # the Ocaml code returns error messages with \n instead of newlines,
-            # which makes the error output look messy. We switch back to using real
-            # newlines, and then prepend each line of the output with > to show
-            # that it is a replication of third-party output.
-            with_newlines = err.value.value.message.replace("\\n", "\n")
-            processed_message = "\n".join(
-                [f"  > {line}" for line in with_newlines.split("\n")]
-            )
+            processed_message = format_resolution_error_message(err.value.value.message)
             return f"Resolution Command Failed.\nCommand: {err.value.value.command}\nOutput from third-party command:\n{processed_message})"
+        elif isinstance(err.value, out.ResourceInaccessible_):
+            processed_message = format_resolution_error_message(err.value.value.message)
+            return f"Resource Inaccessible (command: {err.value.value.command}) (registry_url: {err.value.value.registry_url}) (output from third-party command:\n{processed_message})"
         else:
             return f"Parsing dependency output failed ({err.value.value})"
 
