@@ -2,6 +2,7 @@
 (* Since we're vendoring all these dependencies instead of pulling them from opam *)
 (* we put them here! *)
 pin-depends: [
+  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#b48f5480b68b80aa1195c8092272715b2939c32b"]
   (* TODO: move pcre2, testo, and obackward to be pinned to git repos *)
   ["pcre2.dev" "./libs/pcre2"]
   ["tree-sitter.dev" "./libs/ocaml-tree-sitter-core"]

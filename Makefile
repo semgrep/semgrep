@@ -235,8 +235,7 @@ install-deps-for-semgrep-core:
 
 pin-ocaml-fork:
 	# NBT: our fork of the compiler
-	opam pin add ocaml-variants.5.3.0 "git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep" --update-invariant -y
-
+	echo "Skipping pinning non-TSAN compiler fork"
 
 pin-ocaml-fork-tsan:
 	# NBT: our fork of the compiler
