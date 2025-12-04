@@ -1,9 +1,18 @@
-(**
-   Boilerplate to be used as a template when mapping the fga CST
-   to another type of tree.
-*)
+(* Alex Useche (hex0punk)
+ *
+ * Copyright (c) 2025 R2C
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
 
-(* open Common *)
 open Fpath_.Operators
 module CST = Tree_sitter_fga.CST
 module H = Parse_tree_sitter_helpers
@@ -58,7 +67,7 @@ let map_operator (env : env) (x : CST.operator) =
   | `And tok -> (And, token env tok)
   | `ButS tok -> 
       let t = token env tok in
-      (Minus, t) (* "but not" - mapped to Minus for now *)
+      (Minus, t) (* "but not" mapped to Minus for now *)
 
 let map_comparative_operator (env : env) (x : CST.comparative_operator) =
   match x with
@@ -68,6 +77,28 @@ let map_comparative_operator (env : env) (x : CST.comparative_operator) =
   | `LTEQ tok -> (LtE, token env tok)
   | `GT tok -> (Gt, token env tok)
   | `GTEQ tok -> (GtE, token env tok)
+
+let map_relation_identifier (env : env) (x : CST.anon_choice_id_096b091) : G.expr =
+  match x with
+  | `Id tok -> 
+      let id = str env tok in
+      N (H2.name_of_id id) |> G.e
+  | `Indi_rela (v1, _from_tok, v3) ->
+      let rel_id = str env v1 in
+      let type_id = str env v3 in
+      let from_name = H2.name_of_id ("from", fake "from") in
+      Call (N from_name |> G.e, fb [
+        Arg (N (H2.name_of_id rel_id) |> G.e);
+        Arg (N (H2.name_of_id type_id) |> G.e)
+      ]) |> G.e
+
+let build_operator_chain (env : env) (base_expr : G.expr) 
+    (ops_and_ids : (CST.operator * CST.anon_choice_id_096b091) list) : G.expr =
+  List.fold_left (fun acc_expr (op, id) ->
+    let op_kind, op_tok = map_operator env op in
+    let id_expr = map_relation_identifier env id in
+    G.opcall (op_kind, op_tok) [acc_expr; id_expr]
+  ) base_expr ops_and_ids
 
 let rec map_expression (env : env) (x : CST.expression) : G.expr =
   match x with
@@ -208,33 +239,25 @@ let map_direct_relationship (env : env) ((v1, v2, v3) : CST.direct_relationship)
 
 let map_relation_def (env : env) (x : CST.relation_def) : G.expr =
   match x with
-  | `Direct_rela x -> map_direct_relationship env x
+  | `Direct_rela x -> 
+      map_direct_relationship env x
+      
   | `Opt_direct_rela_op_choice_id_opt_rep_op_choice_id (direct_opt, v2, rest_opt) ->
-      let base_expr =
-        match direct_opt with
-        (* TODO: incomplete implementation *)
-        | Some (direct, op) ->
-            let e1 = map_direct_relationship env direct in
-            let _op, _tok = map_operator env op in
-            e1 (* Will combine with next part *)
-        | None ->
-            let id_str = 
-              match v2 with
-              | `Id tok -> fst (str env tok)
-              | `Indi_rela (v1, _from, v3) ->
-                  let id1 = fst (str env v1) in
-                  let id2 = fst (str env v3) in
-                  id1 ^ " from " ^ id2
-            in
-            L (String (fb (id_str, fake "relation"))) |> G.e
-      in
-      let _rest = 
+      let base_expr = map_relation_identifier env v2 in
+      let expr_with_rest = 
         match rest_opt with
-        | Some xs -> 
-            List.map (fun (_op, _id) -> ()) xs
-        | None -> []
+        | Some ops_and_ids -> build_operator_chain env base_expr ops_and_ids
+        | None -> base_expr
       in
-      base_expr
+      
+      (* Combine with optional direct relationship at the start *)
+      match direct_opt with
+      | Some (direct, op) ->
+          let direct_expr = map_direct_relationship env direct in
+          let op_kind, op_tok = map_operator env op in
+          G.opcall (op_kind, op_tok) [direct_expr; expr_with_rest]
+      | None ->
+          expr_with_rest
 
 let map_definition (env : env) ((v1, v2, v3, v4) : CST.definition) : G.stmt =
   let _define_tok = token env v1 in
