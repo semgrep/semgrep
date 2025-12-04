@@ -745,7 +745,9 @@ def ci(
             "resolve_all_deps_in_diff_scan": (
                 scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
             ),
-            "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
+            "run_symbol_analysis": scan_handler.symbol_analysis
+            if scan_handler
+            else False,
             "fips_mode": scan_handler.fips_mode if scan_handler else False,
             "semgrepignore_filename": x_semgrepignore_filename,
             "x_group_taint_rules": x_group_taint_rules,
@@ -776,6 +778,7 @@ def ci(
                 _executed_rule_count,
                 _missed_rule_count,
                 all_subprojects,
+                symbol_analysis,
             ) = semgrep.run_scan.run_scan(
                 **run_scan_args  # type: ignore
             )
@@ -848,6 +851,7 @@ def ci(
                     _executed_rule_count,
                     _missed_rule_count,
                     _historical_all_subprojects,
+                    _symbol_analysis,
                 ) = semgrep.run_scan.run_scan(
                     **run_scan_args,  # type: ignore
                     historical_secrets=True,
@@ -964,13 +968,8 @@ def ci(
             # This upload takes place before findings are reported to the app via the
             # /complete endpoint, so that the symbol analysis is available by the time
             # the dependencies are processed.
-            if (
-                output_extra.core.symbol_analysis is not None
-                and scan_handler.scan_id
-                and token
-            ):
+            if symbol_analysis is not None and scan_handler.scan_id and token:
                 try:
-                    symbol_analysis = output_extra.core.symbol_analysis
                     semgrep.rpc_call.upload_symbol_analysis(
                         token, scan_handler.scan_id, symbol_analysis
                     )
