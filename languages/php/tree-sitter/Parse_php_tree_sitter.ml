@@ -99,12 +99,13 @@ let fake_call_to_builtin (env : env) tok args =
     ( A.Id [ (A.builtin str, tok) ],
       Tok.fake_bracket tok (args |> List_.map (fun x -> A.Arg x)) )
 
-let rec chain_else_if (env : env) ifelses (else_ : A.stmt option) : A.stmt option =
+let rec chain_else_if (env : env) ifelses (else_ : A.stmt option) :
+    A.stmt option =
   match ifelses with
   | [] -> else_
   | (tok, expr, stmt) :: tail ->
       let else_chain = chain_else_if env tail else_ in
-        Some (A.If (tok, expr, stmt, else_chain))
+      Some (A.If (tok, expr, stmt, else_chain))
 
 let map_primitive_type (env : env) (x : CST.primitive_type) : A.hint_type =
   match x with

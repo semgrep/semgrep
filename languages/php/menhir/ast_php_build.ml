@@ -331,8 +331,7 @@ and if_elseif env (tok, (_, e, _), st) acc =
 
 and if_else tok env = function
   | None -> None
-  | Some (_, (If _ as st)) ->
-      Some (stmt1 tok (stmt env st []))
+  | Some (_, (If _ as st)) -> Some (stmt1 tok (stmt env st []))
   | Some (tok, st) -> Some (stmt1 tok (stmt env st []))
 
 and new_elseif env (tok, (_, e, _), _, stl) acc =
@@ -342,7 +341,7 @@ and new_elseif env (tok, (_, e, _), _, stl) acc =
 
 and new_else _tok env = function
   | None -> None
-  | Some (tok, _, st) -> 
+  | Some (tok, _, st) ->
       Some (stmt1 tok (List_.fold_right (stmt_and_def env) st []))
 
 and stmt_and_def env st acc = stmt env st acc
