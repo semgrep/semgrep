@@ -290,6 +290,17 @@ semgrep.opam: dune-project semgrep.opam.template
 # and an 'install-deps-for-semgrep-cli' target
 install-deps: install-deps-for-semgrep-core
 
+# ******************************************
+# Release target
+# ******************************************
+
+# Prepare a release branch.
+# This is mainly called by .github/workflow/start-release.yml
+# it is safe to call it multiple times.
+.PHONY: release
+release:
+	./scripts/release/bump
+
 # **************************************************
 # Platform-dependent dependencies installation
 # **************************************************
@@ -375,6 +386,7 @@ DOCKER_IMAGE=semgrep/semgrep-nightly:develop
 #   'docker rmi semgrep/semgrep-nightly:develop`
 check_with_docker:
 	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
+
 
 ###############################################################################
 # Martin's targets
