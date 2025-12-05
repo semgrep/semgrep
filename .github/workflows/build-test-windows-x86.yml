@@ -19,17 +19,6 @@ jobs:
           ocaml-compiler: 5.3.0
           opam-pin: false
           save-opam-post-run: true
-      - name: Install older openssl in Cygwin
-        run: |
-          PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
-          CYGWIN_ROOT=$(cygpath -w /)
-          $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
-      - name: Install flexlink patched to use response files and cygpath -file arg
-        run: |
-          git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
-          cd flexdll/
-          opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
-          cp flexlink.exe ../_opam/bin/
       - name: Debug stuff
         run: |
           ls
@@ -48,43 +37,25 @@ jobs:
           opam repo
           # we should be on 4.14.0~mingw
           opam switch
-      - env:
-          CC: x86_64-w64-mingw32-gcc
-        name: Build tree-sitter
-        run: |
-          cd libs/ocaml-tree-sitter-core
-          ./configure
-          ./scripts/download-tree-sitter --lazy
-          prefix="$(pwd)/tree-sitter"
-          cd downloads/tree-sitter
-          make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
-          make PREFIX="$prefix" install
       - name: Install OPAM deps
         run: |
           # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
-          # Setting PKG_CONFIG_PATH to $(x86_64-w64-mingw32-gcc
-          # -print-sysroot)/mingw/include would set UNIX paths for CFLAG and
-          # LDFLAG, but that doesn't work. Setting Windows PATHs for them gets
-          # the ocurl build to work. To avoid setting these PATHs for all the
-          # package builds, we first try to install all the dependencies, and
-          # then install ocurl and later other dependencies that depend on ocurl.
-          make install-opam-deps || true
+          # Setting PKG_CONFIG_PATH to
+          #    $(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/include
+          # would set Unix paths for CFLAGS and LDFLAGS, but that doesn't
+          # work. Setting Windows paths for them gets the ocurl build to
+          # work. To avoid setting these paths for all the package builds,
+          # we first try to install all the dependencies, and then install
+          # ocurl and later other dependencies that depend on ocurl.
+          make -C OSS install-opam-deps || true
           export CYGWIN_SYS_ROOT="$(x86_64-w64-mingw32-gcc --print-sysroot)"
           CFLAGS="-I$(cygpath -w $CYGWIN_SYS_ROOT/mingw/include)" LDFLAGS="-L$(cygpath -w $CYGWIN_SYS_ROOT/mingw/lib)" opam install -y ocurl.0.9.1
-          make install-opam-deps
+          make install-deps
       - name: Build semgrep-core
         run: |
           export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
           export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
           export TREESITTER_BINDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin
-
-          # We have to strip rpath from the tree-sitter projects because there's no
-          # equivalent in Windows
-          # TODO: investigate removing rpath from the tree-sitter projects
-          for filename in $(find ./languages/ ./libs/ocaml-tree-sitter-core/ -name dune); do
-            grep -v rpath $filename > $filename.new
-            mv $filename.new $filename
-          done
           opam exec -- dune build _build/install/default/bin/semgrep-core.exe
       - name: Test semgrep-core
         run: |
