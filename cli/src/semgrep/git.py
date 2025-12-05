@@ -46,6 +46,7 @@ def zsplit(s: str) -> List[str]:
 def git_check_output(
     command: Sequence[str],
     cwd: Optional[str] = None,
+    env: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     Helper function to run a GIT command that prints out helpful debugging information
@@ -54,7 +55,13 @@ def git_check_output(
     from semgrep.error import SemgrepError
     from semgrep.state import get_state
 
-    env = get_state().env
+    if env is not None:
+        cmd_env = dict(os.environ)
+        cmd_env.update(env)
+    else:
+        cmd_env = None  # will just inherit
+
+    state_env = get_state().env
 
     cwd = cwd if cwd is not None else os.getcwd()
     try:
@@ -63,8 +70,9 @@ def git_check_output(
             command,
             stderr=subprocess.PIPE,
             encoding="utf-8",
-            timeout=env.git_command_timeout,
+            timeout=state_env.git_command_timeout,
             cwd=cwd,
+            env=cmd_env,
         ).strip()
     except subprocess.CalledProcessError as e:
         command_str = " ".join(command)
@@ -479,9 +487,22 @@ class BaselineHandler:
                 try:
                     logger.debug("Running git worktree for baseline context")
                     # Add a new working tree at the temporary directory
-                    git_check_output(["git", "worktree", "add", tmpdir, merge_base_sha])
+                    git_check_output(
+                        [
+                            "git",
+                            "worktree",
+                            "add",
+                            "--no-checkout",
+                            tmpdir,
+                            merge_base_sha,
+                        ]
+                    )
                     # Change the working directory to the new working tree
                     os.chdir(Path(tmpdir) / relative_path)
+                    git_check_output(
+                        ["git", "checkout", merge_base_sha],
+                        env={"GIT_LFS_SKIP_SMUDGE": "1"},
+                    )
                     # We are now in the temporary working tree, and scans should be
                     # identical to as if we had checked out the baseline commit
                     logger.debug("Finished git worktree for baseline context")
