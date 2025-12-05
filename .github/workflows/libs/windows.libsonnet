@@ -45,6 +45,26 @@ local copy_executable_dlls(path_to_libs, executable, target_dir) =
   };
 
 
+local install_deps_steps = [
+  {
+    name: 'Install OPAM deps',
+    run: |||
+      # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
+      # Setting PKG_CONFIG_PATH to
+      #    $(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/include
+      # would set Unix paths for CFLAGS and LDFLAGS, but that doesn't
+      # work. Setting Windows paths for them gets the ocurl build to
+      # work. To avoid setting these paths for all the package builds,
+      # we first try to install all the dependencies, and then install
+      # ocurl and later other dependencies that depend on ocurl.
+      make -C OSS install-opam-deps || true
+      export CYGWIN_SYS_ROOT="$(x86_64-w64-mingw32-gcc --print-sysroot)"
+      CFLAGS="-I$(cygpath -w $CYGWIN_SYS_ROOT/mingw/include)" LDFLAGS="-L$(cygpath -w $CYGWIN_SYS_ROOT/mingw/lib)" opam install -y ocurl.0.9.1
+      make install-deps
+    |||,
+  },
+];
+
 local optimize_temp =
   {
     name: 'Optimize temp directory on Windows runners',
@@ -63,5 +83,6 @@ local optimize_temp =
 {
   copy_executable_dlls: copy_executable_dlls,
   git_config: git_config,
+  install_deps_steps: install_deps_steps,
   optimize_temp: optimize_temp,
 }

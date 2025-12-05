@@ -48,30 +48,20 @@ jobs:
           opam repo
           # we should be on 4.14.0~mingw
           opam switch
-      - env:
-          CC: x86_64-w64-mingw32-gcc
-        name: Build tree-sitter
-        run: |
-          cd libs/ocaml-tree-sitter-core
-          ./configure
-          ./scripts/download-tree-sitter --lazy
-          prefix="$(pwd)/tree-sitter"
-          cd downloads/tree-sitter
-          make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
-          make PREFIX="$prefix" install
       - name: Install OPAM deps
         run: |
           # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
-          # Setting PKG_CONFIG_PATH to $(x86_64-w64-mingw32-gcc
-          # -print-sysroot)/mingw/include would set UNIX paths for CFLAG and
-          # LDFLAG, but that doesn't work. Setting Windows PATHs for them gets
-          # the ocurl build to work. To avoid setting these PATHs for all the
-          # package builds, we first try to install all the dependencies, and
-          # then install ocurl and later other dependencies that depend on ocurl.
-          make install-opam-deps || true
+          # Setting PKG_CONFIG_PATH to
+          #    $(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/include
+          # would set Unix paths for CFLAGS and LDFLAGS, but that doesn't
+          # work. Setting Windows paths for them gets the ocurl build to
+          # work. To avoid setting these paths for all the package builds,
+          # we first try to install all the dependencies, and then install
+          # ocurl and later other dependencies that depend on ocurl.
+          make -C OSS install-opam-deps || true
           export CYGWIN_SYS_ROOT="$(x86_64-w64-mingw32-gcc --print-sysroot)"
           CFLAGS="-I$(cygpath -w $CYGWIN_SYS_ROOT/mingw/include)" LDFLAGS="-L$(cygpath -w $CYGWIN_SYS_ROOT/mingw/lib)" opam install -y ocurl.0.9.1
-          make install-opam-deps
+          make install-deps
       - name: Build semgrep-core
         run: |
           export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
