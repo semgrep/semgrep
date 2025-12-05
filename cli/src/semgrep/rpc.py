@@ -59,7 +59,7 @@ SUBPROC_TIMEOUT_S = 1
 
 
 # Read `size` bytes from `io`. Returns fewer bytes if we hit EOF.
-def _really_read(io: IO[str], size: int) -> str:
+def _really_read(io: IO[bytes], size: int) -> str:
     # Operate on bytes, not str.
     out: bytes = b""
     while len(out) < size:
@@ -73,23 +73,23 @@ def _really_read(io: IO[str], size: int) -> str:
         # clear to me (nmote) whether it is guaranteed to be present on the
         # streams provided by subprocess.Popen. So, to be on the safe side,
         # we'll just do this ourselves.
-        new: str = io.read(size)
+        new: bytes = io.read(size)
         # This happens if we hit EOF. In that case, repeatedly reading will lead
         # to an infinite loop.
         if len(new) == 0:
             logger.error(f"0 bytes read from RPC input stream")
             break
-        out = out + new.encode(ENCODING)
+        out = out + new
     # When we read the RPC call for file targeting, we could encounter files
     # with non-utf8 characters, in that case we replace them with <?>
     # i.e abc.txt -> ab<?>.txt
     return out.decode(ENCODING, errors="replace")
 
 
-def _read_packet(io: IO[str]) -> Optional[str]:
+def _read_packet(io: IO[bytes]) -> Optional[str]:
     # Unlike `read`, `readline` is guaranteed to return a full line unless there
     # is an EOF
-    size_str = io.readline().strip()
+    size_str = io.readline().decode(ENCODING).strip()
     if not size_str.isdigit():
         # Avoid horrific log spew if we somehow got a really long line
         truncated = size_str[:50]
@@ -99,12 +99,12 @@ def _read_packet(io: IO[str]) -> Optional[str]:
     return _really_read(io, size)
 
 
-def _write_packet(io: IO[str], packet: str) -> None:
+def _write_packet(io: IO[bytes], packet: str) -> None:
     # Size in bytes
     size: int = len(packet.encode(ENCODING))
     size_str = str(size) + "\n"
-    io.write(size_str)
-    io.write(packet)
+    io.write(size_str.encode(ENCODING))
+    io.write(packet.encode(ENCODING))
     io.flush()
 
 
@@ -156,8 +156,7 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        text=True,
-        encoding=ENCODING,
+        text=False,
     ) as proc:
         try:
             # These need to be local variables because otherwise mypy doesn't
