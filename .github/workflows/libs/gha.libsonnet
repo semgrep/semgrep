@@ -112,16 +112,6 @@ local on_pull_request_config = {
     type: 'string',
     default: '',
   },
-  // See https://github.com/actions/runner-images/issues/8755
-  optimize_windows_temp: {
-    name: 'Optimize temp directory on Windows runners',
-    'if': "startsWith(runner.os, 'Windows')",
-    run: |||
-      mkdir "D:\\Temp"
-      echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
-      echo "TMP=D:\\Temp" >> $env:GITHUB_ENV
-    |||,
-  },
   sticky_pull_request_comment(message, header): {
     uses: 'marocchino/sticky-pull-request-comment@v2',
     with: {

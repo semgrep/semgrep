@@ -1,6 +1,7 @@
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local windows = import 'libs/windows.libsonnet';
 
 // actually not exported for now to other workflows, but we might,
 // and at least can be downloaded from the GHA job page.
@@ -164,7 +165,7 @@ local build_core_job = {
         opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
-    semgrep.copy_executable_dlls('$(pwd)/libs/', 'bin/semgrep-core.exe', 'extra-artifacts'),
+    windows.copy_executable_dlls('$(pwd)/libs/', 'bin/semgrep-core.exe', 'extra-artifacts'),
     actions.make_artifact_step('bin/semgrep-core.exe extra-artifacts/*'),
     actions.upload_artifact_step(artifact_name),
   ],
