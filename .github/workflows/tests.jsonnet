@@ -101,7 +101,7 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
 local test_semgrep_core_job =
   semgrep.containers.ocaml_alpine.job(
     actions.checkout_with_submodules() +
-    semgrep.build_test_steps(time=true)
+    semgrep.build_test_steps(time=false)
   );
 
 // alt: could factorize with previous job
