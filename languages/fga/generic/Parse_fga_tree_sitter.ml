@@ -38,6 +38,33 @@ let token = H.token
 let str = H.str
 let fb = Tok.unsafe_fake_bracket
 
+(** We do this to be able to support different sorts of type references in direct relationships *)
+let map_type_reference (env : env) (x : CST.anon_choice_id_6cee6b4) : G.expr =
+  match x with
+  | `Id tok -> 
+      (* Simple identifier: [user] *)
+      let id = str env tok in
+      N (H2.name_of_id id) |> G.e
+  | `Rela_ref (v1, _hash, v3) ->
+      (* Relation reference: [group#member] *)
+      let type_id = str env v1 in
+      let rel_id = str env v3 in
+      (* Call: RelationRef(type, relation) *)
+      let func = N (H2.name_of_id ("RelationRef", fake "RelationRef")) |> G.e in
+      Call (func, fb [
+        Arg (N (H2.name_of_id type_id) |> G.e);
+        Arg (N (H2.name_of_id rel_id) |> G.e)
+      ]) |> G.e
+  | `All (v1, _colonstar) ->
+      (* [user:*] *)
+      let type_id = str env v1 in
+      (* Wildcard(type) *)
+      let func = N (H2.name_of_id ("Wildcard", fake "Wildcard")) |> G.e in
+      Call (func, fb [Arg (N (H2.name_of_id type_id) |> G.e)]) |> G.e
+  | `Semg_meta tok -> 
+      let id = str env tok in
+      N (H2.name_of_id id) |> G.e
+
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -225,17 +252,25 @@ let map_anon_choice_id_6cee6b4 (env : env) (x : CST.anon_choice_id_6cee6b4) : st
   | `Semg_meta tok -> str env tok
 
 let map_direct_relationship (env : env) ((v1, v2, v3) : CST.direct_relationship) : G.expr =
-  let _lbracket = token env v1 in
-  let content_str =
+  let lbracket = token env v1 in
+  let rbracket = token env v3 in
+  let items =
     match v2 with
-    | `Choice_id_opt_cond_opt_rep_COMMA_choice_id_opt_cond (v1, _cond_opt, _rest) ->
-        let id, _ = map_anon_choice_id_6cee6b4 env v1 in
-        id
-    | `Semg_ellips _tok -> "..."
+    | `Choice_id_opt_cond_opt_rep_COMMA_choice_id_opt_cond (v1, _cond_opt, rest_opt) ->
+        let first_item = map_type_reference env v1 in
+        let rest_items =
+          match rest_opt with
+          | Some xs ->
+              List.map (fun (_comma, type_ref, _cond_opt) ->
+                map_type_reference env type_ref
+              ) xs
+          | None -> []
+        in
+        first_item :: rest_items
+    | `Semg_ellips tok ->
+        [Ellipsis (token env tok) |> G.e]
   in
-  let _rbracket = token env v3 in
-  (* Represent as a string for now *)
-  L (String (fb (content_str, _lbracket))) |> G.e
+  Container (Array, (lbracket, items, rbracket)) |> G.e
 
 let map_relation_def (env : env) (x : CST.relation_def) : G.expr =
   match x with
@@ -249,8 +284,6 @@ let map_relation_def (env : env) (x : CST.relation_def) : G.expr =
         | Some ops_and_ids -> build_operator_chain env base_expr ops_and_ids
         | None -> base_expr
       in
-      
-      (* Combine with optional direct relationship at the start *)
       match direct_opt with
       | Some (direct, op) ->
           let direct_expr = map_direct_relationship env direct in
