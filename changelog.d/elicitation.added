@@ -1,1 +1,0 @@
-Added optional user-prompting for classifying findings as true/false positives via MCP Elicitation in the MCP server (behind SEMGREP_FINDINGS_ELICITATION_ENABLED, off by default).

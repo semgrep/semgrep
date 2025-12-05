@@ -1,1 +1,0 @@
-Fix issue that could lead to validation failures for certain well-formed rules, such as those with emoji in their messages.

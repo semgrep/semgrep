@@ -1,1 +1,0 @@
-pro: in 1.144.0 interfile scans no longer default to -j 1; instead, the number of available CPUs on the system was used to inform how many jobs should be spawned. This caused a change in timeouts due to how time is measured for certain parts of the pro engine. This change has now been reverted
