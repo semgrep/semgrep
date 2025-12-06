@@ -4,11 +4,12 @@ function foo()
 {
     $var = 10;
 
-    //ERROR: match
+    // MATCH:
     if ($var === 42) {
         echo('matched');
     }
-
+    
+    // MATCH:
     if ($var === 42) {
         echo('matched');
     } else {
