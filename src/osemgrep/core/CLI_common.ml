@@ -48,6 +48,11 @@ let default_trace_endpoint = Uri.of_string "https://telemetry.semgrep.dev"
 let default_dev_endpoint = Uri.of_string "https://telemetry.dev2.semgrep.dev"
 let default_local_endpoint = Uri.of_string "http://localhost:4318"
 
+(*
+   The --help section where all the --x-... options appear:
+*)
+let experimental_section_title = "EXPERIMENTAL OPTIONS"
+
 (*************************************************************************)
 (* Verbosity options (mutually exclusive) *)
 (*************************************************************************)
@@ -57,7 +62,10 @@ let default_local_endpoint = Uri.of_string "http://localhost:4318"
  * TODO: maybe "findings" below is to cli_scan specific
  *)
 let o_quiet : bool Term.t =
-  let info = Arg.info [ "q"; "quiet" ] ~doc:{|Only output findings.|} in
+  let info =
+    Arg.info [ "q"; "quiet" ] ~docs:Cmdliner.Manpage.s_common_options
+      ~doc:{|Only output findings.|}
+  in
   Arg.value (Arg.flag info)
 
 (* TODO: same, maybe we should take the doc as a paramter so each
@@ -65,7 +73,7 @@ let o_quiet : bool Term.t =
  *)
 let o_verbose : bool Term.t =
   let info =
-    Arg.info [ "v"; "verbose" ]
+    Arg.info [ "v"; "verbose" ] ~docs:Cmdliner.Manpage.s_common_options
       ~doc:
         {|Show more details about what rules are running, which files
 failed to parse, etc.
@@ -75,18 +83,21 @@ failed to parse, etc.
 
 let o_debug : bool Term.t =
   let info =
-    Arg.info [ "debug" ]
+    Arg.info [ "debug" ] ~docs:Cmdliner.Manpage.s_common_options
       ~doc:{|All of --verbose, but with additional debugging information.|}
   in
   Arg.value (Arg.flag info)
 
 let o_eio : bool Term.t =
-  let info = Arg.info [ "x-eio" ] ~doc:"[INTERNAL] <deprecated>" in
+  let info =
+    Arg.info [ "x-eio" ] ~docs:experimental_section_title
+      ~doc:"[INTERNAL] <deprecated>"
+  in
   Arg.value (Arg.flag info)
 
 let o_parmap : bool Term.t =
   let info =
-    Arg.info [ "x-parmap" ]
+    Arg.info [ "x-parmap" ] ~docs:experimental_section_title
       ~doc:"[INTERNAL] Rely on legacy Parmap-based parallelism"
   in
   Arg.value (Arg.flag info)
@@ -95,6 +106,7 @@ let o_no_python_schema_validation : bool Term.t =
   let info =
     Arg.info
       [ "x-no-python-schema-validation" ]
+      ~docs:experimental_section_title
       ~doc:
         "[INTERNAL] Skip JSON schema validation; rely on osemgrep parser to \
          validate rules files"
@@ -142,7 +154,7 @@ let with_logging ~color ~level func =
 
 let o_simple_profiling : bool Term.t =
   let info =
-    Arg.info [ "x-simple-profiling" ]
+    Arg.info [ "x-simple-profiling" ] ~docs:experimental_section_title
       ~doc:
         "Upon exit, print on stderr a report showing how long certain \
          operations took, in an unspecified text format."
@@ -152,7 +164,7 @@ let o_simple_profiling : bool Term.t =
 (* for --profile *)
 let o_profile : bool Term.t =
   let info =
-    Arg.info [ "profile" ]
+    Arg.info [ "profile" ] ~docs:Cmdliner.Manpage.s_common_options
       ~doc:
         {|Record profiles via Pyro Caml. By default sends them to localhost:4040|}
   in
@@ -163,6 +175,7 @@ let o_profile : bool Term.t =
 
 let o_trace : bool Term.t =
   H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ] ~default:true
+    ~docs:Cmdliner.Manpage.s_common_options
     ~doc:
       {|Record traces from Semgrep scans to help debugging. This feature is
 meant for internal use and may be changed or removed without warning.
@@ -172,7 +185,7 @@ Currently only used by `semgrep lsp`.
 
 let o_trace_endpoint : string option Term.t =
   let info =
-    Arg.info [ "trace-endpoint" ]
+    Arg.info [ "trace-endpoint" ] ~docs:Cmdliner.Manpage.s_common_options
       ~doc:
         {|Endpoint to send OpenTelemetry traces to, if `--trace` is present.
 The value may be `semgrep-prod` (default), `semgrep-dev`,
@@ -249,6 +262,16 @@ let o_common : conf Term.t =
 
 let help_page_bottom =
   [
+    (* Since 'o_common' contains at least one experimental option,
+       we'll have a nonempty experimental section for all semgrep
+       subcommands. *)
+    `S experimental_section_title;
+    `P
+      "Any option starting with '--x-' is experimental and may be removed from \
+       semgrep without notice.";
+    (* the documentation for each experimental option identified with
+       a matching ~docs:experimental_section will be inserted here
+       by cmdliner *)
     `S Manpage.s_authors;
     `P "Semgrep Inc. <support@semgrep.com>";
     `S Manpage.s_bugs;
@@ -276,3 +299,8 @@ let eval_value ~argv cmd =
       | `Version
       | `Help ->
           Error.exit_code_exn (Exit_code.ok ~__LOC__))
+
+let exits =
+  Exit_code.all
+  |> List_.map (fun (x : Exit_code.t) ->
+         Cmd.Exit.info x.code ~doc:x.description)

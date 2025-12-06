@@ -173,61 +173,89 @@ let o_internal_ci_scan_results : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_x_dump_n_rule_partitions : int Term.t =
-  let info = Arg.info [ "x-dump-rule-partitions" ] ~doc:{|Internal flag.|} in
+  let info =
+    Arg.info
+      [ "x-dump-rule-partitions" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
+  in
   Arg.value (Arg.opt Arg.int 0 info)
 
 let o_x_dump_rule_partitions_dir : string Term.t =
   let info =
-    Arg.info [ "x-dump-rule-partitions-dir" ] ~doc:{|Internal flag.|}
+    Arg.info
+      [ "x-dump-rule-partitions-dir" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt Arg.string "" info)
 
 let o_x_dump_rule_partitions_strategy : string Term.t =
   let info =
-    Arg.info [ "x-dump-rule-partitions-strategy" ] ~doc:{|Internal flag.|}
+    Arg.info
+      [ "x-dump-rule-partitions-strategy" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt Arg.string "" info)
 
 let o_x_partial_config : string Term.t =
-  let info = Arg.info [ "x-partial-config" ] ~doc:{|Internal flag.|} in
+  let info =
+    Arg.info [ "x-partial-config" ] ~docs:CLI_common.experimental_section_title
+      ~doc:{|Internal flag.|}
+  in
   Arg.value (Arg.opt Arg.string "" info)
 
 let o_x_partial_output : string Term.t =
-  let info = Arg.info [ "x-partial-output" ] ~doc:{|Internal flag.|} in
+  let info =
+    Arg.info [ "x-partial-output" ] ~docs:CLI_common.experimental_section_title
+      ~doc:{|Internal flag.|}
+  in
   Arg.value (Arg.opt Arg.string "" info)
 
 let o_x_merge_partial_results_dir : string option Term.t =
   let info =
-    Arg.info [ "x-merge-partial-results-dir" ] ~doc:{|Internal flag.|}
+    Arg.info
+      [ "x-merge-partial-results-dir" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.dir) None info)
 
 let o_x_merge_partial_results_output : string option Term.t =
   let info =
-    Arg.info [ "x-merge-partial-results-output" ] ~doc:{|Internal flag.|}
+    Arg.info
+      [ "x-merge-partial-results-output" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
 let o_x_validate_partial_results_expected : string option Term.t =
   let info =
-    Arg.info [ "x-validate-partial-results-expected" ] ~doc:{|Internal flag.|}
+    Arg.info
+      [ "x-validate-partial-results-expected" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
 let o_x_validate_partial_results_actual : string option Term.t =
   let info =
-    Arg.info [ "x-validate-partial-results-actual" ] ~doc:{|Internal flag.|}
+    Arg.info
+      [ "x-validate-partial-results-actual" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
 let o_x_upload_partial_results_scan_id : int option Term.t =
   let info =
-    Arg.info [ "x-upload-partial-results-scan-id" ] ~doc:{|Internal flag.|}
+    Arg.info
+      [ "x-upload-partial-results-scan-id" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.int) None info)
 
 let o_x_upload_partial_results : string option Term.t =
-  let info = Arg.info [ "x-upload-partial-results" ] ~doc:{|Internal flag.|} in
+  let info =
+    Arg.info
+      [ "x-upload-partial-results" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
+  in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
 (*************************************************************************)
@@ -484,10 +512,13 @@ let man : Cmdliner.Manpage.block list =
       "When logged in, `semgrep ci` runs rules configured on Semgrep App and \
        sends findings to your findings dashboard.";
     `P "Only displays findings that were marked as blocking.";
+    `S Cmdliner.Manpage.s_options;
+    `S Cmdliner.Manpage.s_common_options;
   ]
   @ CLI_common.help_page_bottom
 
-let cmdline_info : Cmd.info = Cmd.info "semgrep ci" ~doc ~man
+let cmdline_info : Cmd.info =
+  Cmd.info "semgrep ci" ~doc ~man ~exits:CLI_common.exits
 
 (*****************************************************************************)
 (* Entry point *)

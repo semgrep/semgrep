@@ -64,13 +64,13 @@ let add_option_dashes option_names =
    backward compatibility with the Python CLI.
    See https://github.com/dbuenzli/cmdliner/issues/164
 *)
-let negatable_flag ?(default = false) ~neg_options ~doc options =
+let negatable_flag ?(default = false) ?docs ~neg_options ~doc options =
   let neg_doc =
     let options_str = add_option_dashes options |> String.concat "/" in
     Printf.sprintf "negates %s" options_str
   in
-  let enable = (true, Arg.info options ~doc) in
-  let disable = (false, Arg.info neg_options ~doc:neg_doc) in
+  let enable = (true, Arg.info options ?docs ~doc) in
+  let disable = (false, Arg.info neg_options ?docs ~doc:neg_doc) in
   Arg.value (Arg.vflag default [ enable; disable ])
 
 (* Cmdliner.Arg.vflag does not support environment variables, thus we use

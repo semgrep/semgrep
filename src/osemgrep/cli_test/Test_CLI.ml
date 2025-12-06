@@ -181,10 +181,13 @@ let man : Cmdliner.Manpage.block list =
   [
     `S Cmdliner.Manpage.s_description;
     `P "See https://semgrep.dev/docs/writing-rules/testing-rules/";
+    `S Cmdliner.Manpage.s_options;
+    `S Cmdliner.Manpage.s_common_options;
   ]
   @ CLI_common.help_page_bottom
 
-let cmdline_info : Cmd.info = Cmd.info "semgrep test" ~doc ~man
+let cmdline_info : Cmd.info =
+  Cmd.info "semgrep test" ~doc ~man ~exits:CLI_common.exits
 
 (*****************************************************************************)
 (* Entry point *)
