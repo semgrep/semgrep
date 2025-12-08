@@ -138,6 +138,8 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
       echo "(dry run)"
       docker buildx imagetools create --dry-run -t ${target_image} ${source_image}
       echo "(dry run)"
+      echo "Confirmation checkbox was not checked. Exiting with an error"
+      exit 1
     fi
   |||,
 };

@@ -34,6 +34,7 @@ type conf = { common : CLI_common.conf; x_eio_ls : bool } [@@deriving show]
 (* TODO: deprecate this once we are ready to switch to Eio finally *)
 let o_x_eio_ls : bool Term.t =
   H.negatable_flag [ "x-eio-ls" ] ~neg_options:[ "no-x-eio-ls" ] ~default:false
+    ~docs:CLI_common.experimental_section_title
     ~doc:
       {|Run with '--x-eio-ls' to use the new, experimental `Eio`-based language server.|}
 

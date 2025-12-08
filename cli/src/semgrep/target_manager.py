@@ -539,12 +539,15 @@ class FileTargetingLog:
 # We could the same mechanism with the list of excludes that depend
 # on the "product". It might clarify the code a bit.
 #
+# Current status: this is unused because baseline_commit isn't supported
+# by the OCaml implementation.
+#
 def copy_and_update_targeting_conf(
-    *, conf: out.TargetingConf, baseline_commit: Optional[str]
+    *, conf: out.TargetingConf, force_novcs_project: bool = False
 ) -> out.TargetingConf:
     # Not sure if a shallow copy (copy.copy) would work or would be preferable
     conf = copy.deepcopy(conf)
-    conf.baseline_commit = baseline_commit
+    conf.force_novcs_project = force_novcs_project
     return conf
 
 
@@ -682,10 +685,8 @@ class ScanningRoot:
         # New: Use semgrep-core to discover target files
         targeting_conf = self.targeting_conf[product]
         if ignore_baseline_handler:
-            # This will request target files for the whole project which is
-            # usually slower than we want for a diff scan.
             targeting_conf = copy_and_update_targeting_conf(
-                conf=targeting_conf, baseline_commit=None
+                conf=targeting_conf, force_novcs_project=True
             )
         arg = out.ScanningRoots(
             root_paths=[out.Fpath(str(self.path))], targeting_conf=targeting_conf

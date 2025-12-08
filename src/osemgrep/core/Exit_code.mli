@@ -49,6 +49,9 @@ val invalid_api_key : __LOC__:string -> t
 (* to remove at some point *)
 val not_implemented_in_osemgrep : __LOC__:string -> t
 
+val all : t list
+(** All the exit codes in use *)
+
 (*
    Test for equality without creating a new exit code that would get logged.
 *)

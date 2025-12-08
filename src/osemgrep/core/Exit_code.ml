@@ -36,6 +36,9 @@ let of_int ~__LOC__:loc ~code ~description = with_log loc { code; description }
 (*
    Legal values. This does not include those created via 'of_int' which
    are deprecated. This module is private so as to force location logging.
+
+   coupling: don't forget to update the 'all' list below for the exit codes
+   to show up in help pages.
 *)
 module Value = struct
   let ok = create 0 "OK"
@@ -58,6 +61,21 @@ module Value = struct
   (* let scan_fail = create 14 "scan failure" *)
   let not_implemented_in_osemgrep = create 99 "not implemented in osemgrep"
 end
+
+let all =
+  Value.
+    [
+      ok;
+      findings;
+      fatal;
+      invalid_code;
+      invalid_pattern;
+      unparseable_yaml;
+      missing_config;
+      invalid_language;
+      invalid_api_key;
+      not_implemented_in_osemgrep;
+    ]
 
 (*
    Exit codes of the semgrep command.

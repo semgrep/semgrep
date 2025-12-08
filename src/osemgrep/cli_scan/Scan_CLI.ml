@@ -275,6 +275,7 @@ let o_x_ignore_semgrepignore_files : bool Term.t =
   let info =
     Arg.info
       [ "x-ignore-semgrepignore-files" ]
+      ~docs:CLI_common.experimental_section_title
       ~doc:
         {|[INTERNAL] Ignore all '.semgrepignore' files found in the project
 tree for the purpose of selecting target files to be scanned by semgrep.
@@ -289,6 +290,7 @@ let o_semgrepignore_filename : string option Term.t =
   let info =
     Arg.info ~docv:"FILENAME"
       [ "x-semgrepignore-filename" ]
+      ~docs:CLI_common.experimental_section_title
       ~doc:
         {|[INTERNAL] Files named $(docv) shall be consulted instead of
 the files named '.semgrepignore'. This option can be useful for testing
@@ -651,7 +653,12 @@ let o_allow_local_builds : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_x_tr : bool Term.t =
-  let info = Arg.info [ "x-tr" ] ~doc:"<internal, do not use>" in
+  let info =
+    Arg.info [ "x-tr" ] ~docs:CLI_common.experimental_section_title
+      ~doc:
+        "[INTERNAL] Enable transitive dependency analysis. Typically used with \
+         '--allow-local-builds'."
+  in
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
@@ -1001,7 +1008,7 @@ let o_remote : string option Term.t =
 *)
 let o_x_ls : bool Term.t =
   let info =
-    Arg.info [ "x-ls" ]
+    Arg.info [ "x-ls" ] ~docs:CLI_common.experimental_section_title
       ~doc:
         {|[INTERNAL] List the selected target files
 before any rule-specific or language-specific filtering. Then exit.
@@ -1014,7 +1021,7 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
 
 let o_x_ls_long : bool Term.t =
   let info =
-    Arg.info [ "x-ls-long" ]
+    Arg.info [ "x-ls-long" ] ~docs:CLI_common.experimental_section_title
       ~doc:
         {|[INTERNAL] Show selected targets and skipped targets with reasons why
 they were skipped, using an unspecified output format.
@@ -1026,11 +1033,21 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
   Arg.value (Arg.flag info)
 
 let o_x_pro_naming : bool Term.t =
-  let info = Arg.info [ "x-pro-naming" ] ~doc:"<internal, do not use>" in
+  let info =
+    Arg.info [ "x-pro-naming" ]
+      ~docs:CLI_common.experimental_section_title
+        (* TODO: please document this *)
+      ~doc:"[INTERNAL] Do not use"
+  in
   Arg.value (Arg.flag info)
 
 let o_x_group_taint_rules : bool Term.t =
-  let info = Arg.info [ "x-group-taint-rules" ] ~doc:"<internal, do not use>" in
+  let info =
+    Arg.info [ "x-group-taint-rules" ]
+      ~docs:CLI_common.experimental_section_title
+        (* TODO: please document this *)
+      ~doc:"[INTERNAL] Do not use"
+  in
   Arg.value (Arg.flag info)
 
 let o_x_mcp : bool Term.t =
@@ -1040,7 +1057,7 @@ let o_x_mcp : bool Term.t =
         {|[INTERNAL] This flag indicates that the scan is run by the MCP server.
         It is used to output extra info (e.g. rules, num bytes scanned) at the end of the scan for the MCP server to use
         and makes sure that metrics are not sent so that the MCP server can send its own metrics.|}
-      ~docs:Cmdliner.Manpage.s_none
+      ~docs:CLI_common.experimental_section_title
   in
   Arg.value (Arg.flag info)
 
@@ -1639,10 +1656,13 @@ let man : Cmdliner.Manpage.block list =
        learn more about how and why these metrics are collected, please see \
        https://semgrep.dev/docs/metrics. To modify this behavior, see the \
        --metrics option below.";
+    `S Cmdliner.Manpage.s_options;
+    `S Cmdliner.Manpage.s_common_options;
   ]
   @ CLI_common.help_page_bottom
 
-let cmdline_info : Cmd.info = Cmd.info "semgrep scan" ~doc ~man
+let cmdline_info : Cmd.info =
+  Cmd.info "semgrep scan" ~doc ~man ~exits:CLI_common.exits
 
 (*****************************************************************************)
 (* Entry point *)

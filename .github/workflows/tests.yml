@@ -277,18 +277,8 @@ jobs:
         run: opam exec -- make install-deps
       - name: Build semgrep-core
         run: opam exec -- make
-      - name: Test semgrep-core (and time it)
-        run: |
-          START=`date +%s`
-          opam exec -- make test
-          opam exec -- make core-test-e2e
-
-          END=`date +%s`
-          TEST_RUN_TIME=$((END-START))
-          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-      - if: github.ref == 'refs/heads/develop'
-        name: Report Number of Tests Stats
-        run: ./scripts/report_test_metrics.sh
+      - name: Test semgrep-core
+        run: opam exec -- make test
 name: tests
 on:
   pull_request:

@@ -490,6 +490,7 @@ def baseline_run(
                     _,
                     _plans,
                     _,
+                    _,
                 ) = run_rules(
                     # only the rules that had a match
                     [rule for rule, matches in rule_matches_by_rule.items() if matches],
@@ -868,6 +869,7 @@ def run_rules(
     fips_mode: bool,
     x_tr: bool = False,
     x_parmap: bool = False,
+    run_symbol_analysis: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -876,6 +878,7 @@ def run_rules(
     List[DependencyParserError],
     List[Plan],
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
+    Optional[out.SymbolAnalysis],
 ]:
     # ---------------------------------------
     # Step1: split the rules (Join, SCA, rest)
@@ -954,6 +957,9 @@ def run_rules(
         all_subprojects,
         x_parmap,
     )
+
+    symbol_analysis = output_extra.core.symbol_analysis
+
     # ---------------------------------------
     # Step5: Adjusting rule_matches_by_rule
     # ---------------------------------------
@@ -992,6 +998,7 @@ def run_rules(
         dependency_parser_errors,
         plans,
         all_subprojects,
+        symbol_analysis,
     )
 
 
@@ -1063,7 +1070,7 @@ def run_scan(
     dump_rule_partitions_params: Optional[out.DumpRulePartitionsParams] = None,
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
-    symbol_analysis: bool = False,
+    run_symbol_analysis: bool = False,
     fips_mode: bool = False,
     x_group_taint_rules: bool = False,
 ) -> Tuple[
@@ -1080,6 +1087,7 @@ def run_scan(
     int,  # Executed Rule Count
     int,  # Missed Rule Count
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
+    Optional[out.SymbolAnalysis],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -1253,7 +1261,7 @@ def run_scan(
         allow_untrusted_validators=allow_untrusted_validators,
         respect_rule_paths=respect_rule_paths,
         path_sensitive=path_sensitive,
-        symbol_analysis=symbol_analysis,
+        symbol_analysis=run_symbol_analysis,
         fips_mode=fips_mode,
         use_pro_naming_for_intrafile=x_pro_naming,
         group_taint_rules=x_group_taint_rules,
@@ -1269,6 +1277,7 @@ def run_scan(
         dependency_parser_errors,
         plans,
         all_subprojects,
+        symbol_analysis,
     ) = run_rules(
         filtered_rules,
         target_manager,
@@ -1291,6 +1300,7 @@ def run_scan(
         dry_run=dryrun,
         x_tr=x_tr,
         x_parmap=x_parmap,
+        run_symbol_analysis=run_symbol_analysis,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
@@ -1387,6 +1397,7 @@ def run_scan(
         executed_rule_count,
         missed_rule_count,
         all_subprojects,
+        symbol_analysis,
     )
 
 
@@ -1426,6 +1437,7 @@ def run_scan_and_return_json(
         _,
         _,
         _all_subprojects,
+        _,
     ) = run_scan(
         output_handler=output_handler,
         scanning_roots=[str(t) for t in scanning_roots],

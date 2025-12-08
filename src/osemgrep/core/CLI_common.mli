@@ -34,6 +34,10 @@ type conf = {
 }
 [@@deriving show]
 
+val experimental_section_title : string
+(** Use [Arg.info ~docs:CLI_common.experimental_section_title] to document
+    an option as experimental. *)
+
 (* stuff to add after an option that is available only in semgrep-pro *)
 val blurb_pro : string
 
@@ -57,3 +61,8 @@ val help_page_bottom : Cmdliner.Manpage.block list
 
 (* small wrapper around Cmdliner.Cmd.eval_value *)
 val eval_value : argv:string array -> 'a Cmdliner.Cmd.t -> 'a
+
+val exits : Cmdliner.Cmd.Exit.info list
+(** All the exit codes to be passed as
+    [Cmd.info ~exits:CLI_common.exits] so that they appear in [--help].
+*)

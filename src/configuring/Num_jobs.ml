@@ -59,11 +59,11 @@ let recommended_multicore_domains available_cpus =
    *)
   let domains = min 16 available_cpus in
   (* Each domain is made up of two pthreads, one for the application thread
-   (the so-called "mutator") and another for the conurrent garbage
+   (the so-called "mutator") and another for the concurrent garbage
    collector. In early testing, the overhead for each GC thread seems to be
    about 0.10 - 0.15 CPUs per mutator thread.  This also does not take into
    account the overhead of cross-core traffic for cache coherence, atomics,
-   etc.  (See SAF-2284 for tracking the work of understandng those issues.)
+   etc.  (See SAF-2284 for tracking the work of understanding those issues.)
 
    This overhead can add up when we have lots of spare cores; we don't
    want to oversubscribe domains' backing threads by default.  Obviously,

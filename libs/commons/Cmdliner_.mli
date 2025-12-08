@@ -16,6 +16,7 @@
 *)
 val negatable_flag :
   ?default:bool ->
+  ?docs:string ->
   neg_options:string list ->
   doc:string ->
   string list ->

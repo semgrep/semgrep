@@ -23,6 +23,13 @@ val trace : bool ref
 val env_extra : string
 val symbol_analysis : bool ref
 
+val dump_ast :
+  ?naming:bool ->
+  < exit : Cap.Process.exit ; stdout : Cap.Console.stdout > ->
+  Language.t ->
+  Fpath.t ->
+  unit
+
 (* compute Core_scan_config.t given command-line flags *)
 val mk_config : ?rules:Rule.rules -> unit -> Core_scan_config.t
 
