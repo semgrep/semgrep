@@ -17,6 +17,9 @@ local gha = import 'gha.libsonnet';
 local default_platforms = 'linux/amd64,linux/arm64';
 local archs = ['amd64', 'arm64', 'x86'];
 local ecr_repo = '338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary';
+
+local digest_output_template = '${{ steps.build-%s-docker-image.outputs.digest }}';
+
 // Needed to find the binaries when making the artifact
 local arch_to_docker_arch = {
   amd64: 'amd64',
@@ -40,13 +43,6 @@ local copy_from_docker_step(target, output_dir, file='Dockerfile', platforms=def
     file: file,
     target: target,
     outputs: 'type=local,dest=/tmp/%s' % output_dir,
-    // Used for reporting test results back to Datadog to find flaky
-    // or slow tests. It doesn't actually get used in this step (since
-    // it should be cached), but it's necessary to keep in to catch
-    // the cached version.
-    secrets: |||
-      DD_API_KEY=${{ secrets.DD_API_KEY }}
-    |||,
     // These need to be the same as for the actual build so as to ensure that caching triggers
     'build-args': |||
       VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
@@ -145,25 +141,36 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
 };
 
 local github_sha = gha.ref_expr;
-local debug_local_template = |||
-  🐪 O the camel says: it looks like %(step_name)s failed. You can try to debug it locally by running:
-  ```bash
-  make ecr-login
-  docker run -it --rm %(ecr_repo)s:%(prefix)ssha-%(github_sha)s%(suffix)s
-  ```
-|||;
-local debug_local_header_template = 'debug-local-%(step_id)s-%(github_sha)s';
-local suggest_debug_local(step_name, step_id, prefix='', suffix='') = [
-  gha.sticky_pull_request_comment(
-    debug_local_template % { step_name: step_name, prefix: prefix, github_sha: github_sha, suffix: suffix, ecr_repo: ecr_repo },
-    debug_local_header_template % { step_id: step_id, github_sha: github_sha },
-  ) + {
-    'if': "failure() && steps.%s.outcome == 'failure'" % step_id,
+
+// pull and run a docker image, optionally copying some files from it
+local pull_and_run_image_steps(image, target_dir=null, output_dir=null, env='') = [
+  {
+    name: 'Make env file for docker run',
+    env: {
+      ENV_VARS: env,
+    },
+    run: 'echo "${ENV_VARS}" > /tmp/docker-env-file.env',
   },
-  gha.delete_sticky_pull_request_comment(debug_local_header_template % { step_id: step_id, github_sha: github_sha }) + {
-    'if': "steps.%s.outcome == 'success'" % step_id,
+  {
+    id: 'run-docker-image',
+    name: 'Run docker image',
+    env: {
+      IMAGE: image,
+    },
+    run: 'docker run --env-file /tmp/docker-env-file.env --name run_step ${IMAGE}',
   },
-];
+] + (if output_dir != null && target_dir != null then [
+       {
+         name: 'Copy files from docker image',
+         // only if prev step failed
+         'if': "failure() && steps.run-docker-image.outcome == 'failure'",
+         env: {
+           TARGET_DIR: target_dir,
+           OUTPUT_DIR: output_dir,
+         },
+         run: 'docker cp run_step:${TARGET_DIR} /tmp/${OUTPUT_DIR}',
+       },
+     ] else []);
 
 // ----------------------------------------------------------------------------
 // The job
@@ -179,7 +186,8 @@ local build_steps(
   push_ecr=false,  // push only to ecr
   file='Dockerfile',
   build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
-  platforms=default_platforms,
+  platforms=default_platforms,  // arm or x86 or both
+  load=false,  // load image after (useful if you want to run it) NOTE: you probably want only want the platform to be the one of the runner
       ) =
   [
     // Documentation for this step is here:
@@ -338,29 +346,9 @@ local build_steps(
         // Set the build args for the docker image
         // VCS_* just specify what commit/branch this was built on
         // These have no effect if ARG isn't used in the Dockerfile
-        //
-        // All the GITHUB_* args are taken up by the Datadog tests
-        // reporter. We're slightly lying to it by making it think
-        // it's operating directly in a GHA runner. Coupling: these
-        // are received by ARGs in the Dockerfile.
-        //
-        // TODO: Add DD_GIT_COMMIT_* args in order to give the Datadog
-        // tool access to commit message/author/committer. Right now
-        // it picks up on our fake Git repo we initialize...
         'build-args': |||
           VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
           VCS_REF_HEAD_REVISION=%(ref_expr)s%(build_args)s
-          GITHUB_SERVER_URL=${{ github.server_url }}
-          GITHUB_REPOSITORY=${{ github.repository }}
-          GITHUB_SHA=${{ github.sha }}
-          GITHUB_RUN_ID=${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT=${{ github.run_attempt }}
-          GITHUB_HEAD_REF=${{ github.head_ref }}
-          GITHUB_REF=${{ github.ref }}
-          GITHUB_WORKFLOW=${{ github.workflow }}
-          GITHUB_RUN_NUMBER=${{ github.run_number }}
-          GITHUB_JOB=${{ github.job }}
-          GITHUB_WORKSPACE=${{ github.workspace }}
         ||| % { ref_expr: gha.ref_expr, build_args: if build_args == '' then '' else '\n' + build_args }
         ,
         // This flag controls if for whatever reason depot fails to
@@ -381,11 +369,8 @@ local build_steps(
         // Also maybe push to Docker hub and/or ec2
         push: push || push_ecr,
 
-        // Used for reporting test results back to Datadog to find
-        // flaky or slow tests.
-        secrets: |||
-          DD_API_KEY=${{ secrets.DD_API_KEY }}
-        |||,
+        // Whether to load the built image into the GHA runner
+        load: load,
       },
     },
   ];
@@ -406,12 +391,14 @@ local job(
   build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
   platforms=default_platforms,
   post_steps=[],
+  load=false,
+  large=false,
       ) =
   (if needs != [] then { needs: needs } else {}) +
   {
-    'runs-on': 'ubuntu-latest',
+    'runs-on': (if large then 'depot-ubuntu-24.04-8' else 'depot-ubuntu-24.04'),
     outputs: {
-      digest: '${{ steps.build-%s-docker-image.outputs.digest }}' % target,
+      digest: digest_output_template % target,
     },
     permissions: gha.read_permissions,
     steps: checkout_steps(ref=gha.ref_expr) +
@@ -461,6 +448,7 @@ local job(
              file=file,
              build_args=build_args,
              platforms=platforms,
+             load=load,
            )
            +
            (if artifact_name != null then (
@@ -477,31 +465,36 @@ local job(
             ) else []) + post_steps,
   };
 
-local test_with_suggest(
+local build_and_run_gha_job(
   name,
   description,
   target,
   needs=[],
   checkout_steps=checkout_steps,
-  suffix='',
+  build_args='',
+  target_dir=null,
+  output_dir=null,
+  platforms=default_platforms,
+  env='',
       ) = job(
   name=name,
-  target=target + '-build',
-  suffix=suffix + '-test-build',
+  target=target,
   description='Build %s' % description,
   needs=needs,
   checkout_steps=checkout_steps,
   push=false,
-  push_ecr=true,
-  post_steps=
-  build_steps(
-    name=name,
-    target=target,
-    description='Run %s' % description,
-    push=false,
-    push_ecr=false,
-  ) +
-  suggest_debug_local(description, 'build-%s-docker-image' % target, suffix=suffix + '-test-build'),
+  push_ecr=false,
+  build_args=build_args,
+  platforms=platforms,
+  // if you're doing some testing lets give you a larger machine
+  large=true,
+  post_steps=pull_and_run_image_steps(
+    'sha-%(ref_expr)s' % { ref_expr: gha.ref_expr },
+    target_dir=target_dir,
+    output_dir=output_dir,
+    env=env,
+  ),
+  load=true
 ) + {
   permissions: gha.pull_request_permissions,
 };
@@ -535,5 +528,5 @@ local inputs = {
   copy_from_docker_step: copy_from_docker_step,
   validate: validate,
   retag_step: retag_step,
-  test_with_suggest: test_with_suggest,
+  build_and_run_gha_job: build_and_run_gha_job,
 }
