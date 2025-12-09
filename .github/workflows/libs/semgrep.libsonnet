@@ -72,7 +72,7 @@ local containers = {
           {
             name: 'setup alpine',
             // needed for ocaml deps
-            run: 'apk add --no-cache git git-lfs bash curl',
+            run: 'apk add --no-cache git git-lfs bash curl build-base make bubblewrap rsync',
           },
         ] + steps,
     },
@@ -145,7 +145,7 @@ local opam_cache_version = 'v2';
 // or move the project to the semgrep org
 // coupling: default is above opam_switch
 local opam_setup = function(opam_switch=opam_switch_default) {
-  uses: 'semgrep/setup-ocaml@87c3580d173df6ea24b4fcb70736eaf82716ded7',
+  uses: 'semgrep/setup-ocaml@3e4c6ff8c9a04c9ec8f6f87701cd4b661b0f1f18',
   with: {
     'ocaml-compiler': opam_switch,
     'opam-pin': false,
