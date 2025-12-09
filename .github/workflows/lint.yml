@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - uses: semgrep/setup-ocaml@latest
+      - uses: semgrep/setup-ocaml@87c3580d173df6ea24b4fcb70736eaf82716ded7
         with:
           cache-prefix: v2
           ocaml-compiler: 5.3.0

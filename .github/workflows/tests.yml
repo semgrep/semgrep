@@ -178,7 +178,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: semgrep/setup-ocaml@latest
+      - uses: semgrep/setup-ocaml@87c3580d173df6ea24b4fcb70736eaf82716ded7
         with:
           cache-prefix: v2
           ocaml-compiler: 5.3.0
@@ -267,7 +267,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: semgrep/setup-ocaml@latest
+      - uses: semgrep/setup-ocaml@87c3580d173df6ea24b4fcb70736eaf82716ded7
         with:
           cache-prefix: v2
           ocaml-compiler: 5.3.0

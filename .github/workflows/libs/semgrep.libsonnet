@@ -171,7 +171,7 @@ local opam_cache_version = 'v2';
 // or move the project to the semgrep org
 // coupling: default is above opam_switch
 local opam_setup = function(opam_switch=opam_switch_default) {
-  uses: 'semgrep/setup-ocaml@latest',
+  uses: 'semgrep/setup-ocaml@87c3580d173df6ea24b4fcb70736eaf82716ded7',
   with: {
     'ocaml-compiler': opam_switch,
     'opam-pin': false,
