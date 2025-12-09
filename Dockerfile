@@ -100,7 +100,7 @@ COPY src ./src
 #    add a package or we wanted to switch to a different OCaml version.
 #    Being able to control everything from a single Dockerfile is simpler.
 
-FROM alpine:3.22 AS semgrep-core-container
+FROM alpine:3.23 AS semgrep-core-container
 
 
 # Install opam and basic build tools
@@ -168,7 +168,7 @@ RUN ./bin/semgrep-core -version
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
 #coupling: if you change this alpine version it might be good to change the
 # previous stage to the same version, and to change the alpine version in the workflows
-FROM alpine:3.22 AS semgrep-oss
+FROM alpine:3.23 AS semgrep-oss
 
 WORKDIR /pysemgrep
 
