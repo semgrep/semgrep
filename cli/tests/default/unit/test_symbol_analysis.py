@@ -24,7 +24,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.subproject import from_resolved_dependencies
 from semgrep.symbol_analysis import _ecosystem_to_language
 from semgrep.symbol_analysis import build_subproject_file_mapping
-from semgrep.symbol_analysis import run_sca_symbol_analysis
+from semgrep.symbol_analysis import run_subproject_symbol_analysis
 from semgrep.symbol_analysis import run_symbol_analysis_for_files
 from semgrep.target_manager import TargetManager
 
@@ -390,7 +390,7 @@ class TestRunScaSymbolAnalysis:
             scanning_root_strings=frozenset([Path(".")]),
         )
 
-        result = run_sca_symbol_analysis({}, target_manager)
+        result = run_subproject_symbol_analysis({}, target_manager)
 
         assert result.value == []
         mock_rpc.assert_not_called()
@@ -414,7 +414,9 @@ class TestRunScaSymbolAnalysis:
         subproject = make_maven_subproject("project", "project/gradle.lockfile")
         subprojects_by_ecosystem = {Ecosystem(Maven()): [subproject]}
 
-        result = run_sca_symbol_analysis(subprojects_by_ecosystem, target_manager)
+        result = run_subproject_symbol_analysis(
+            subprojects_by_ecosystem, target_manager
+        )
 
         assert result.value == []
         mock_rpc.assert_not_called()
@@ -443,7 +445,9 @@ class TestRunScaSymbolAnalysis:
         subproject = make_pypi_subproject("not_scanned", "not_scanned/requirements.txt")
         subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject]}
 
-        result = run_sca_symbol_analysis(subprojects_by_ecosystem, target_manager)
+        result = run_subproject_symbol_analysis(
+            subprojects_by_ecosystem, target_manager
+        )
 
         # No files should be found for the subproject since it's outside scanning roots
         assert result.value == []
@@ -470,7 +474,9 @@ class TestRunScaSymbolAnalysis:
         subproject = make_pypi_subproject(".", "requirements.txt")
         subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject]}
 
-        result = run_sca_symbol_analysis(subprojects_by_ecosystem, target_manager)
+        result = run_subproject_symbol_analysis(
+            subprojects_by_ecosystem, target_manager
+        )
 
         mock_rpc.assert_called_once()
         params = mock_rpc.call_args.kwargs["params"]
@@ -512,7 +518,9 @@ class TestRunScaSymbolAnalysis:
 
         subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject1, subproject2]}
 
-        result = run_sca_symbol_analysis(subprojects_by_ecosystem, target_manager)
+        result = run_subproject_symbol_analysis(
+            subprojects_by_ecosystem, target_manager
+        )
 
         # Should have combined both usages
         assert len(result.value) == 2
@@ -549,7 +557,9 @@ class TestRunScaSymbolAnalysis:
 
         subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject1, subproject2]}
 
-        result = run_sca_symbol_analysis(subprojects_by_ecosystem, target_manager)
+        result = run_subproject_symbol_analysis(
+            subprojects_by_ecosystem, target_manager
+        )
 
         # Should still have the result from the second subproject
         assert len(result.value) == 1
@@ -576,7 +586,7 @@ class TestRunScaSymbolAnalysis:
         subproject = make_npm_subproject(".", "package-lock.json", "package.json")
         subprojects_by_ecosystem = {Ecosystem(Npm()): [subproject]}
 
-        run_sca_symbol_analysis(subprojects_by_ecosystem, target_manager)
+        run_subproject_symbol_analysis(subprojects_by_ecosystem, target_manager)
 
         # Verify language passed to RPC is 'js'
         mock_rpc.assert_called_once()

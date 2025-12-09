@@ -134,8 +134,8 @@ def run_symbol_analysis_for_files(
     return symbol_analysis
 
 
-def run_sca_symbol_analysis(
-    subprojects_by_ecosystem: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
+def run_subproject_symbol_analysis(
+    subprojects_by_ecosystem: Mapping[out.Ecosystem, Sequence[out.ResolvedSubproject]],
     target_manager: TargetManager,
 ) -> out.SymbolAnalysis:
     """

@@ -101,6 +101,7 @@ from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_all_source_files
 from semgrep.subproject import iter_found_dependencies
 from semgrep.subproject import make_dependencies_by_source_path
+from semgrep.symbol_analysis import run_subproject_symbol_analysis
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
@@ -974,7 +975,9 @@ def run_rules(
             fips_mode,
         )
 
-    if len(dependency_aware_rules) > 0:
+    running_sca_scan = len(dependency_aware_rules) > 0
+
+    if running_sca_scan:
         deps_by_lockfile = adjust_matches_for_sca_rules(
             rule_matches_by_rule=rule_matches_by_rule,
             dependency_aware_rules=dependency_aware_rules,
@@ -986,6 +989,24 @@ def run_rules(
             x_tr=x_tr,
             fips_mode=fips_mode,
         )
+
+        if run_symbol_analysis and symbol_analysis is None:
+            logger.debug("Running subproject symbol analysis...")
+
+            try:
+                symbol_analysis = run_subproject_symbol_analysis(
+                    subprojects_by_ecosystem=resolved_subprojects,
+                    target_manager=target_manager,
+                )
+            except Exception as e:
+                logger.error(f"Error running subproject symbol analysis: {e}")
+
+            logger.debug("Subproject symbol analysis complete")
+        else:
+            logger.debug(
+                "Skipping subproject symbol analysis, code symbol analysis already run"
+            )
+
     else:
         logger.verbose("SCA findings adjustment: No SCA rules to adjust")
         deps_by_lockfile = {}
