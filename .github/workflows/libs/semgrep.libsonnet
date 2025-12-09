@@ -82,7 +82,7 @@ local containers = {
           {
             name: 'setup alpine',
             // needed for ocaml deps
-            run: 'apk add --no-cache build-base make git git-lfs bash curl bubblewrap',
+            run: 'apk add --no-cache build-base make git git-lfs bash curl bubblewrap rsync',
           },
         ] + steps,
     },
