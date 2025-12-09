@@ -155,19 +155,13 @@ let create ?split_from_parent default =
   let key = Domain.DLS.new_key ~split_from_parent (Fun.const default) in
   { key; can_unscoped_set = Atomic.make true }
 
-let get { key; _ } =
-  Concurrent.maybe_yield ();
-  Domain.DLS.get key
+let get { key; _ } = Domain.DLS.get key
 
 let with_hook_set { key; can_unscoped_set } v f =
   Atomic.set can_unscoped_set false;
   let old = Domain.DLS.get key in
   Domain.DLS.set key v;
-  Utils.protect
-    ~finally:(fun _ ->
-      Concurrent.maybe_yield ();
-      Domain.DLS.set key old)
-    f
+  Utils.protect ~finally:(fun _ -> Domain.DLS.set key old) f
 
 let with_ h v f () = with_hook_set h v f
 
