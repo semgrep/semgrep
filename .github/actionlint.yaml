@@ -1,6 +1,10 @@
 self-hosted-runner:
   # Labels of self-hosted runner in array of strings.
   labels:
+    - depot-ubuntu-24.04
+    - depot-ubuntu-24.04-8
+    - depot-ubuntu-22.04
+    - depot-ubuntu-22.04-8
     - ubuntu-latest-16-core
     - ghcr.io/cirruslabs/macos-monterey-xcode:latest
     - ghcr.io/cirruslabs/macos-monterey-base:latest
