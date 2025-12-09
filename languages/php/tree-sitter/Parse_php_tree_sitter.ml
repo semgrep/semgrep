@@ -99,13 +99,11 @@ let fake_call_to_builtin (env : env) tok args =
     ( A.Id [ (A.builtin str, tok) ],
       Tok.fake_bracket tok (args |> List_.map (fun x -> A.Arg x)) )
 
-let rec chain_else_if (env : env) ifelses (else_ : A.stmt option) :
-    A.stmt option =
+let rec chain_else_if (env : env) ifelses (else_ : A.stmt) : A.stmt =
   match ifelses with
   | [] -> else_
   | (tok, expr, stmt) :: tail ->
-      let else_chain = chain_else_if env tail else_ in
-      Some (A.If (tok, expr, stmt, else_chain))
+      A.If (tok, expr, stmt, chain_else_if env tail else_)
 
 let map_primitive_type (env : env) (x : CST.primitive_type) : A.hint_type =
   match x with
@@ -1791,8 +1789,8 @@ and map_statement (env : env) (x : CST.statement) =
             let v2 = List_.map (map_else_if_clause env) v2 in
             let v3 =
               match v3 with
-              | Some x -> Some (map_else_clause env x)
-              | None -> None
+              | Some x -> map_else_clause env x
+              | None -> map_empty_block env Tok.unsafe_sc
             in
             (v1, v2, v3)
         | `Colon_blk_rep_else_if_clause_2_opt_else_clause_2_pat_endif_choice_auto_semi
@@ -1801,16 +1799,16 @@ and map_statement (env : env) (x : CST.statement) =
             let v2 = List_.map (map_else_if_clause_2 env) v2 in
             let v3 =
               match v3 with
-              | Some x -> Some (map_else_clause_2 env x)
-              | None -> None
+              | Some x -> map_else_clause_2 env x
+              | None -> map_empty_block env Tok.unsafe_sc
             in
             let v4 = (* pattern [eE][nN][dD][iI][fF] *) token env v4 in
             let v5 = map_semicolon env v5 in
             (v1, v2, v3)
       in
-      let stmt, elseifs, else_opt = v3 in
-      let else_chain = chain_else_if env elseifs else_opt in
-      A.If (v1, v2, stmt, else_chain)
+      let stmt, elseifs, else_ = v3 in
+      let else_ = chain_else_if env elseifs else_ in
+      A.If (v1, v2, stmt, else_)
   | `Switch_stmt (v1, v2, v3) ->
       let v1 = (* pattern [sS][wW][iI][tT][cC][hH] *) token env v1 in
       let v2 = map_parenthesized_expression env v2 in

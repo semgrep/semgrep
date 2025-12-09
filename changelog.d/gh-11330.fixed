@@ -1,1 +1,0 @@
-The PHP AST now distinguishes between if statements with no else clause and those with an explicit but empty else {}.

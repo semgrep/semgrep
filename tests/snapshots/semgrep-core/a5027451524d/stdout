@@ -336,7 +336,7 @@
                           ],
                         _));
                     s_range = None },
-                  None));
+                  (Some { s = (Block (_, [], _)); s_range = None })));
                s_range = None };
               { s =
                 (ExprStmt (
@@ -819,7 +819,7 @@
                            ],
                          _));
                      s_range = None },
-                   None));
+                   (Some { s = (Block (_, [], _)); s_range = None })));
                 s_range = None };
               { s =
                 (If (_,
@@ -1277,7 +1277,9 @@
                                       ],
                                     _));
                                 s_range = None },
-                              None));
+                              (Some { s = (Block (_, [], _)); s_range = None
+                                      })
+                              ));
                            s_range = None })
                    ));
                 s_range = None }

@@ -327,22 +327,24 @@ and stmt env st acc =
 and if_elseif env (tok, (_, e, _), st) acc =
   let e = expr env e in
   let st = stmt1 tok (stmt env st []) in
-  Some (A.If (tok, e, st, acc))
+  A.If (tok, e, st, acc)
 
 and if_else tok env = function
-  | None -> None
-  | Some (_, (If _ as st)) -> Some (stmt1 tok (stmt env st []))
-  | Some (tok, st) -> Some (stmt1 tok (stmt env st []))
+  | None -> noop tok
+  | Some (_, (If _ as st)) -> (
+      match stmt env st [] with
+      | [ x ] -> x
+      | _l -> assert false)
+  | Some (tok, st) -> stmt1 tok (stmt env st [])
 
 and new_elseif env (tok, (_, e, _), _, stl) acc =
   let e = expr env e in
   let st = stmt1 tok (List_.fold_right (stmt_and_def env) stl []) in
-  Some (A.If (tok, e, st, acc))
+  A.If (tok, e, st, acc)
 
-and new_else _tok env = function
-  | None -> None
-  | Some (tok, _, st) ->
-      Some (stmt1 tok (List_.fold_right (stmt_and_def env) st []))
+and new_else tok env = function
+  | None -> noop tok
+  | Some (tok, _, st) -> stmt1 tok (List_.fold_right (stmt_and_def env) st [])
 
 and stmt_and_def env st acc = stmt env st acc
 

@@ -281,8 +281,7 @@ and class_name = hint_type
 and stmt =
   | Expr of expr * tok
   | Block of stmt list bracket
-  (* option to distinguish an empty else branch from an undecl *)
-  | If of tok * expr * stmt * stmt option
+  | If of tok * expr * stmt * stmt
   | Switch of tok * expr * case list
   | While of tok * expr * stmt
   | Do of tok * stmt * expr
