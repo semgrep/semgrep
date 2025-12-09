@@ -3,16 +3,6 @@
 // ----------------------------------------------------------------------------
 // Helpers to be able to use 'gh' (and trigger PRs) from a workflow
 // ----------------------------------------------------------------------------
-// 'gh' is one of the github CLIs (another one is 'hub') and it allows
-// to make PRs (and other github stuff) from scripts (and from workflows).
-
-// From infra:
-// "We use the semgrep-ci bot as the auth. The custom (internally-developed)
-// docker image below is used to get a JWT, which is then used by git to
-// fetch the code. Using the built-in secrets.GITHUB_TOKEN won't allow for
-// downstream jobs to fire.
-// See https://docs.github.com/en/enterprise-cloud@latest/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
-// for more information"
 
 local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
@@ -85,22 +75,6 @@ local containers = {
             run: 'apk add --no-cache git git-lfs bash curl',
           },
         ] + steps,
-    },
-  },
-  // ocaml-layer builds an image based on Alpine and another one based on
-  // Ubuntu.
-  // Alpine is necessary in practice for static linking (especially for C++
-  // libraries). Ubuntu is an alternative Linux distribution people may be
-  // more familiar with. It's been cheap to maintain both so far but we could
-  // decide to keep just one if it makes things simpler.
-  ocaml_ubuntu: {
-    opam_switch: opam_switch,
-    job: {
-      'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:ubuntu-2024-01-18',
-      env: {
-        HOME: '/root',
-      },
     },
   },
 };
@@ -180,11 +154,6 @@ local opam_setup = function(opam_switch=opam_switch_default) {
     'cache-prefix': opam_cache_version,
   },
 };
-
-// We can't use ubuntu-latest (currently 24.04) just yet until
-// https://github.com/ocaml/setup-ocaml/issues/872
-// is fixed.
-local stable_ubuntu_version_for_setup_ocaml = 'ubuntu-22.04';
 
 local osemgrep_test_steps_after_checkout = [
   {
@@ -445,8 +414,6 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
 
   github_bot: github_bot,
   slack: slack,
-
-  stable_ubuntu_version_for_setup_ocaml: stable_ubuntu_version_for_setup_ocaml,
 
   // Reusable sequences of test steps
   osemgrep_test_steps_after_checkout: osemgrep_test_steps_after_checkout,
