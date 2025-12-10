@@ -694,6 +694,20 @@ let report_scan_completed ~blocking_findings ~blocking_rules
 (* Uploading findings *)
 (*****************************************************************************)
 
+(* Returns true if the error type indicates a scan failure (timeout, OOM, etc.)
+   that should cause the file to be added to skipped_paths.
+   See also: SemgrepCoreError.is_scan_failure() in error.py *)
+let is_scan_failure_error (error_type : Out.error_type) : bool =
+  match error_type with
+  | Out.Timeout
+  | Out.OutOfMemory
+  | Out.StackOverflow
+  | Out.FixpointTimeout
+  | Out.TimeoutDuringInterfile
+  | Out.OutOfMemoryDuringInterfile ->
+      true
+  | __else__ -> false
+
 (* from scans.py *)
 let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
     (caps : < Cap.exec >) (cli_output : Out.cli_output) (rules : Rule.rule list)
@@ -736,6 +750,13 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
         | Some _ as t -> t
         | None -> Sys.getenv_opt "BITBUCKET_TOKEN" (* Bitbucket Cloud *))
   in
+  (* Collect paths that failed to scan (timeout, OOM, etc.) *)
+  let skipped_paths =
+    cli_output.errors
+    |> List_.filter_map (fun (err : Out.cli_error) ->
+           if is_scan_failure_error err.type_ then err.path else None)
+    |> List.sort_uniq Fpath.compare
+  in
   (* POST to /api/agent/scans/<scan_id>/results *)
   let results : Out.ci_scan_results =
     {
@@ -746,6 +767,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
       searched_paths = List.sort Fpath.compare targets;
       (* TODO: get renamed_paths, depends on baseline_commit *)
       renamed_paths = [];
+      skipped_paths;
       rule_ids;
       contributions = Some contributions;
       (* TODO: Figure out correct value for this. *)

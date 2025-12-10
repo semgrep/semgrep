@@ -415,6 +415,7 @@ class ScanHandler:
         matches_by_rule: FilteredMatches,
         rules: List[Rule],
         targets: Set[TargetInfo],
+        skipped_paths: Set[Path],
         renamed_targets: Set[Path],
         ignored_targets: FrozenSet[Target],
         cli_suggested_exit_code: int,
@@ -488,6 +489,7 @@ class ScanHandler:
                 out.Fpath(str(t.fpath)) for t in sorted(targets, key=lambda x: x.fpath)
             ],
             renamed_paths=[out.Fpath(str(rt)) for rt in sorted(renamed_targets)],
+            skipped_paths=[out.Fpath(str(sp)) for sp in sorted(skipped_paths)],
             rule_ids=rule_ids,
             contributions=contributions,
         )
