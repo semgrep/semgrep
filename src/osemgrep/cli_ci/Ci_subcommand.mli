@@ -39,3 +39,7 @@ val finding_is_blocking : Semgrep_output_v1_t.cli_match -> bool
 
 (* used by Unit_ci.ml *)
 val scan_metadata : unit -> Semgrep_output_v1_t.scan_metadata
+
+(* Returns true if the error type indicates a scan failure (timeout, OOM, etc.)
+   that should cause the file to be added to skipped_paths. *)
+val is_scan_failure_error : Semgrep_output_v1_t.error_type -> bool

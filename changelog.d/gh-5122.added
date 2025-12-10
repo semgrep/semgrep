@@ -1,0 +1,1 @@
+Added `skipped_paths` field to CI scan results to report files that failed to scan due to errors (timeout, OOM, etc.), preventing the app from incorrectly marking findings in those files as fixed

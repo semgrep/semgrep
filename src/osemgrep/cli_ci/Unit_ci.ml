@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,4 +39,48 @@ let tests =
               let res = Ci_subcommand.scan_metadata () in
               Alcotest.(check (option string))
                 "checking sms_scan_id" (Some sms_scan_id) res.sms_scan_id));
+      (* Tests for is_scan_failure_error - should return true for scan failures *)
+      t "is_scan_failure_error returns true for Timeout" (fun () ->
+          Alcotest.(check bool)
+            "Timeout is scan failure" true
+            (Ci_subcommand.is_scan_failure_error Out.Timeout));
+      t "is_scan_failure_error returns true for OutOfMemory" (fun () ->
+          Alcotest.(check bool)
+            "OutOfMemory is scan failure" true
+            (Ci_subcommand.is_scan_failure_error Out.OutOfMemory));
+      t "is_scan_failure_error returns true for StackOverflow" (fun () ->
+          Alcotest.(check bool)
+            "StackOverflow is scan failure" true
+            (Ci_subcommand.is_scan_failure_error Out.StackOverflow));
+      t "is_scan_failure_error returns true for FixpointTimeout" (fun () ->
+          Alcotest.(check bool)
+            "FixpointTimeout is scan failure" true
+            (Ci_subcommand.is_scan_failure_error Out.FixpointTimeout));
+      t "is_scan_failure_error returns true for TimeoutDuringInterfile"
+        (fun () ->
+          Alcotest.(check bool)
+            "TimeoutDuringInterfile is scan failure" true
+            (Ci_subcommand.is_scan_failure_error Out.TimeoutDuringInterfile));
+      t "is_scan_failure_error returns true for OutOfMemoryDuringInterfile"
+        (fun () ->
+          Alcotest.(check bool)
+            "OutOfMemoryDuringInterfile is scan failure" true
+            (Ci_subcommand.is_scan_failure_error Out.OutOfMemoryDuringInterfile));
+      (* Tests for is_scan_failure_error - should return false for non-failures *)
+      t "is_scan_failure_error returns false for ParseError" (fun () ->
+          Alcotest.(check bool)
+            "ParseError is not scan failure" false
+            (Ci_subcommand.is_scan_failure_error Out.ParseError));
+      t "is_scan_failure_error returns false for LexicalError" (fun () ->
+          Alcotest.(check bool)
+            "LexicalError is not scan failure" false
+            (Ci_subcommand.is_scan_failure_error Out.LexicalError));
+      t "is_scan_failure_error returns false for RuleParseError" (fun () ->
+          Alcotest.(check bool)
+            "RuleParseError is not scan failure" false
+            (Ci_subcommand.is_scan_failure_error Out.RuleParseError));
+      t "is_scan_failure_error returns false for MissingPlugin" (fun () ->
+          Alcotest.(check bool)
+            "MissingPlugin is not scan failure" false
+            (Ci_subcommand.is_scan_failure_error Out.MissingPlugin));
     ]

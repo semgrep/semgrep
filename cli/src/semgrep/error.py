@@ -212,6 +212,31 @@ class SemgrepCoreError(SemgrepError):
         """
         return isinstance(self.core.error_type.value, out.Timeout)
 
+    def is_scan_failure(self) -> bool:
+        """
+        Returns True if this error prevented complete file scanning.
+
+        These error types indicate the file was detected but could not be
+        fully scanned, so findings from this file should not be marked as fixed.
+
+        Note: The authoritative source for scan failure error types is
+        semgrep_output_v1.atd (error_type variants). If new failure types
+        are added to semgrep-core (e.g., new interfile variants), they may
+        need to be added here as well.
+        """
+        error_type = self.core.error_type.value
+        return isinstance(
+            error_type,
+            (
+                out.Timeout,
+                out.OutOfMemory,
+                out.StackOverflow,
+                out.FixpointTimeout,
+                out.TimeoutDuringInterfile,
+                out.OutOfMemoryDuringInterfile,
+            ),
+        )
+
     def is_missing_plugin(self) -> bool:
         """
         Return if this error is due to a missing plugin
