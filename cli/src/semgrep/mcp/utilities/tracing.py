@@ -14,6 +14,7 @@ import functools
 import os
 from collections.abc import Awaitable
 from collections.abc import Callable
+from collections.abc import Coroutine
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
@@ -48,6 +49,8 @@ logger = getLogger(__name__)
 DEPLOYMENT_ROUTE = "/api/agent/deployments/current"
 
 MCP_SERVICE_NAME = "mcp"
+
+NON_SCAN_MCP_TOOL_TAG = "(non-scan-mcp-tool)"
 
 yaml = YAML()
 
@@ -217,6 +220,15 @@ R = TypeVar("R")
 P = ParamSpec("P")
 
 
+def tag_and_send_metrics(send_metrics: bool, is_semgrep_scan: bool) -> None:
+    state = get_state()
+    if send_metrics:
+        if not is_semgrep_scan:
+            state.app_session.user_agent.tags.add(NON_SCAN_MCP_TOOL_TAG)
+        state.metrics.send()
+        state.app_session.user_agent.tags.discard(NON_SCAN_MCP_TOOL_TAG)
+
+
 def with_tool_span(
     span_name: str | None = None,
     send_metrics: bool = True,
@@ -239,13 +251,6 @@ def with_tool_span(
     ) -> Callable[Concatenate[Context, P], Awaitable[R]]:
         @functools.wraps(func)
         async def wrapper(ctx: Context, *args: P.args, **kwargs: P.kwargs) -> R:
-            def send_tool_metrics() -> None:
-                if send_metrics:
-                    if not is_semgrep_scan:
-                        state.app_session.user_agent.tags.add("(non-scan-mcp-tool)")
-                    state.metrics.send()
-                    state.app_session.user_agent.tags.discard("(non-scan-mcp-tool)")
-
             context = ctx.request_context.lifespan_context
             name = span_name or func.__name__
 
@@ -267,13 +272,64 @@ def with_tool_span(
                 try:
                     result = await func(ctx, *args, **kwargs)
                     logger.info(f"{name} succeeded")
-                    send_tool_metrics()
+                    tag_and_send_metrics(send_metrics, is_semgrep_scan)
                     return result
                 except Exception as e:
                     logger.info(f"{name} failed: {e}")
                     state.metrics.add_mcp_error(str(e))
-                    send_tool_metrics()
+                    tag_and_send_metrics(send_metrics, is_semgrep_scan)
                     raise e
+
+        return wrapper
+
+    return decorator
+
+
+def with_hook_span(
+    span_name: str | None = None,
+    send_metrics: bool = True,
+    is_semgrep_scan: bool = True,
+) -> Callable[
+    [Callable[Concatenate[trace.Span | None, P], Coroutine[Any, Any, R]]],
+    Callable[Concatenate[trace.Span | None, P], Coroutine[Any, Any, R]],
+]:
+    """
+    Decorator to wrap hooks with a tracing span.
+
+    All hooks decorated by @with_hook_span must have an top_level_span parameter.
+
+    Args:
+        span_name: Optional name for the span. If not provided, uses the function name.
+        send_metrics: Whether to send metrics for the hook.
+        is_semgrep_scan: Whether the hook is a scan.
+    """
+
+    def decorator(
+        func: Callable[Concatenate[trace.Span | None, P], Coroutine[Any, Any, R]],
+    ) -> Callable[Concatenate[trace.Span | None, P], Coroutine[Any, Any, R]]:
+        @functools.wraps(func)
+        async def wrapper(
+            top_level_span: trace.Span | None, *args: P.args, **kwargs: P.kwargs
+        ) -> R:
+            name = span_name or func.__name__
+
+            state = get_state()
+            if send_metrics:
+                state.metrics.clear_mcp()
+                state.metrics.add_mcp(
+                    deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
+                    deployment_name=get_deployment_name_from_token(
+                        get_semgrep_app_token()
+                    )
+                    or "",
+                    session_id="hook",  # TODO: No session id for hooks yet, using a placeholder
+                    tool_name=name,
+                )
+
+            with with_span(top_level_span, name):
+                result = await func(top_level_span, *args, **kwargs)
+                tag_and_send_metrics(send_metrics, is_semgrep_scan)
+                return result
 
         return wrapper
 

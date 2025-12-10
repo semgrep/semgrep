@@ -22,7 +22,7 @@ from opentelemetry import trace
 from pydantic import BaseModel
 
 from semgrep.mcp.utilities.tracing import start_tracing
-from semgrep.mcp.utilities.tracing import with_span
+from semgrep.mcp.utilities.tracing import with_hook_span
 
 CACHE_FILE = (
     Path(tempfile.gettempdir()) / "semgrep-mcp" / "claude-secure-defaults-cache.md"
@@ -135,27 +135,31 @@ async def get_secure_defaults_context(inject_short_context: bool) -> str:
     return await fetch_readme()
 
 
+@with_hook_span(
+    span_name="inject_secure_defaults_context",
+    send_metrics=True,
+    is_semgrep_scan=False,
+)
 async def run_inject_secure_defaults_hook_async(
     top_level_span: trace.Span | None, inject_short_context: bool
 ) -> UserPromptSubmitHookResponse:
     """Main hook logic to inject security guidance."""
-    with with_span(top_level_span, "inject_secure_defaults_context") as _:
-        content = await get_secure_defaults_context(inject_short_context)
-        additional_context = f"""## Security Guidance: Secure-by-Default Libraries
+    content = await get_secure_defaults_context(inject_short_context)
+    additional_context = f"""## Security Guidance: Secure-by-Default Libraries
 
-        When writing code, consider using these security-focused libraries that follow secure-by-default principles:
+    When writing code, consider using these security-focused libraries that follow secure-by-default principles:
 
-        {content}
+    {content}
 
-        💡 When implementing security features, prefer these well-tested libraries over custom solutions.
-        For detailed information, see: https://github.com/tldrsec/awesome-secure-defaults"""
+    💡 When implementing security features, prefer these well-tested libraries over custom solutions.
+    For detailed information, see: https://github.com/tldrsec/awesome-secure-defaults"""
 
-        return UserPromptSubmitHookResponse(
-            hookSpecificOutput=HookSpecificOutput(
-                hookEventName=get_hook_event_name(),
-                additionalContext=additional_context,
-            )
+    return UserPromptSubmitHookResponse(
+        hookSpecificOutput=HookSpecificOutput(
+            hookEventName=get_hook_event_name(),
+            additionalContext=additional_context,
         )
+    )
 
 
 def run_inject_secure_defaults_hook(inject_short_context: bool = False) -> None:
@@ -167,7 +171,7 @@ def run_inject_secure_defaults_hook(inject_short_context: bool = False) -> None:
     with start_tracing("mcp-hook") as span:
         response = asyncio.run(
             run_inject_secure_defaults_hook_async(
-                top_level_span=span, inject_short_context=inject_short_context
+                span, inject_short_context=inject_short_context
             )
         )
         print(response.model_dump_json(exclude_none=True))
