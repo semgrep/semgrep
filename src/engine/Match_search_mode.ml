@@ -685,8 +685,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   let file = env.xtarget.path.internal_path_to_content in
   xs
-  |> List_.filter_map
-       ( Concurrent.yielding @@ fun (r, new_bindings) ->
+  |> List_.filter_map (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with
@@ -832,7 +831,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              in
              Metavariable_analysis.analyze_string_metavar env bindings mvar
                analyze
-             |> map_bool r )
+             |> map_bool r)
 
 and get_nested_formula_matches env formula range =
   let res, final_ranges =
