@@ -30,10 +30,6 @@ val map :
     or [Err exn] if [f elem] raised the exception [exn].
 *)
 
-val yielding : ('a -> 'b) -> 'a -> 'b
-(* Produces the supplied function, but such that at return time we may elect
- * to return control flow to Eio, via [maybe_yield]. *)
-
 val maybe_yield : unit -> unit
 (** Indicate that now might be a good moment to hand back control of this
  * domain to the Eio runtime.  This is a no-op if we are running outside

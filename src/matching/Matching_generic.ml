@@ -155,22 +155,22 @@ type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
  *)
 
 let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
-  Concurrent.yielding (fun m1 m2 tin ->
-      (* let's get a list of possible environment match (could be
-       * the empty list when it didn't match, playing the role None
-       * had before)
-       *)
-      let xs = m1 tin in
+ fun m1 m2 tin ->
+  (* let's get a list of possible environment match (could be
+   * the empty list when it didn't match, playing the role None
+   * had before)
+   *)
+  let xs = m1 tin in
 
-      (* try m2 on each possible returned bindings *)
-      let xxs = xs |> List_.map (fun binding -> m2 () binding) in
-      List_.flatten xxs)
+  (* try m2 on each possible returned bindings *)
+  let xxs = xs |> List_.map (fun binding -> m2 () binding) in
+  List_.flatten xxs
 
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
-  Concurrent.yielding (fun m1 m2 tin ->
-      (* opti? use set instead of list *)
-      m1 tin @ m2 tin)
+ fun m1 m2 tin ->
+  (* opti? use set instead of list *)
+  m1 tin @ m2 tin
 
 (* the if-fail combinator *)
 let ( >!> ) m1 else_cont tin =

@@ -86,8 +86,7 @@ let rf_mtx = Mutex.create ()
 let rf_ht = Hashtbl.create 101
 
 (* SAFETY: All accesses to [rf_ht] must occur while holding [rf_mtx]. *)
-let read_file_memoed =
-  Concurrent.yielding @@ SharedMemo.make_with_state rf_mtx rf_ht UFile.read_file
+let read_file_memoed = SharedMemo.make_with_state rf_mtx rf_ht UFile.read_file
 
 let () =
   (* nosemgrep: forbid-tmp *)
