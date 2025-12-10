@@ -801,7 +801,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
   (* Duplicated in Pro_core_CLI.ml *)
   let level : Logs.level option = if !debug then Some Debug else Some Warning in
 
-  let is_rpc_call = !action = "-rpc" in
+  let is_rpc_call = !action = "-rpc" || !action = "-rpc-server" in
 
   (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
   Log_semgrep.with_setup ~log_to_otel:!trace ?log_to_file:!log_to_file

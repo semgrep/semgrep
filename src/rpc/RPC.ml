@@ -160,35 +160,45 @@ let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
 (* Helpers *)
 (*****************************************************************************)
 
-let read_packet chan =
-  let/ size_str =
-    try Ok (input_line chan) with
-    | End_of_file -> Error "Reached EOF while reading RPC request header"
-  in
-  let/ size =
-    match int_of_string_opt size_str with
-    | Some i -> Ok i
+type header = Stop | Size of int
+
+(* Read the "header" of a message, which is the message's size in
+   bytes followed by \n.
+
+   This will return Stop if we encounter an EOF before \n, even if there
+   were other characters written to the stream. This runs the risk of
+   masking actual problems (ie a process that got interrupted in the
+   middle of writing the header), but I couldn't figure out a reasonable
+   way to handle this case using the input functions in Stdlib.*)
+let read_header chan_in =
+  let parse_header header =
+    match int_of_string_opt header with
+    | Some i -> Ok (Size i)
     | None ->
-        let truncated = String_.safe_sub size_str 0 50 in
+        let truncated = String_.safe_sub header 0 50 in
         Error
           (spf "Error decoding RPC request: expected integer, got '%s'"
              truncated)
   in
-  try Ok (really_input_string chan size) with
+  try parse_header (input_line chan_in) with
+  | End_of_file -> Ok Stop
+
+let read_packet chan_in size =
+  try Ok (really_input_string chan_in size) with
   | End_of_file -> Error "Reached EOF while reading RPC request"
 
-let write_packet chan str =
+let write_packet chan_out str =
   let size = String.length str in
   let size_str = string_of_int size in
-  output_string chan size_str;
-  output_char chan '\n';
-  output_string chan str;
-  flush chan
+  output_string chan_out size_str;
+  output_char chan_out '\n';
+  output_string chan_out str;
+  flush chan_out
 
 (* Blocks until a request comes in, then handles it and sends the result back *)
-let handle_single_request (caps : < caps ; .. >) =
+let handle_request (caps : < caps ; .. >) chan_in chan_out size =
   let res =
-    let/ call_str = read_packet stdin in
+    let/ call_str = read_packet chan_in size in
     let/ call =
       try Ok (Semgrep_output_v1_j.function_call_of_string call_str) with
       (* It's not immediately clear what exceptions `function_call_of_string`
@@ -217,13 +227,23 @@ let handle_single_request (caps : < caps ; .. >) =
     }
   in
   let res_str = Semgrep_output_v1_j.string_of_function_result result in
-  write_packet stdout res_str
+  write_packet chan_out res_str
+
+let rec handle_multiple_requests (caps : < caps ; .. >) chan_in chan_out =
+  match read_header chan_in with
+  | Ok Stop -> ()
+  | Ok (Size size) -> begin
+      handle_request caps chan_in chan_out size;
+      handle_multiple_requests caps chan_in chan_out
+    end
+  | Error str ->
+      write_packet chan_out
+        (Semgrep_output_v1_j.string_of_function_return (`RetError str))
 
 (*****************************************************************************)
-(* Entry point *)
+(* Entry points *)
 (*****************************************************************************)
 
-let main (caps : < caps ; .. >) =
-  (* For now, just handle one request and then exit. *)
-  handle_single_request caps
+(* For now, just handle one request and then exit. *)
+let main (caps : < caps ; .. >) = handle_multiple_requests caps stdin stdout
 [@@profiling]
