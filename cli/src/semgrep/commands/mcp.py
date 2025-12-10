@@ -18,6 +18,8 @@ from mcp.server.fastmcp import FastMCP
 from semgrep import __VERSION__
 from semgrep.mcp.hooks.inject_secure_defaults import run_inject_secure_defaults_hook
 from semgrep.mcp.hooks.post_tool import run_post_tool_scan_cli
+from semgrep.mcp.hooks.stop import run_after_file_edit_hook
+from semgrep.mcp.hooks.stop import run_stop_scan_cli
 from semgrep.mcp.server import deregister_tools
 from semgrep.mcp.server import register
 from semgrep.mcp.server import server_lifespan
@@ -29,6 +31,8 @@ logger = getLogger(__name__)
 POST_TOOL_CLI_SCAN_FLAG = "post-tool-cli-scan"
 INJECT_SECURE_DEFAULTS_FLAG = "inject-secure-defaults"
 INJECT_SHORT_CONTEXT_FLAG = "inject-secure-defaults-short"
+STOP_CLI_SCAN_FLAG = "stop-cli-scan"
+RECORD_FILE_EDIT_HOOK_FLAG = "record-file-edit"
 
 # ---------------------------------------------------------------------------------
 # MCP Server Entry Point
@@ -64,6 +68,8 @@ INJECT_SHORT_CONTEXT_FLAG = "inject-secure-defaults-short"
     type=click.Choice(
         [
             POST_TOOL_CLI_SCAN_FLAG,
+            STOP_CLI_SCAN_FLAG,
+            RECORD_FILE_EDIT_HOOK_FLAG,
             INJECT_SECURE_DEFAULTS_FLAG,
             INJECT_SHORT_CONTEXT_FLAG,
         ]
@@ -72,10 +78,18 @@ INJECT_SHORT_CONTEXT_FLAG = "inject-secure-defaults-short"
     help=f"""Run specified functionality for agent hooks.
     Currently supports:
     1. Running a Semgrep CLI scan (via PostTool hook, flag: `{POST_TOOL_CLI_SCAN_FLAG}`).
-    2. Injecting secure defaults context (via UserPromptSubmit hook or SessionStart hook, flag: `{INJECT_SECURE_DEFAULTS_FLAG}`).
+    2. Running a Semgrep CLI scan (via Stop hook, flag: `{STOP_CLI_SCAN_FLAG}`), must be used in conjunction with an AfterFileEdit hook (flag: `{RECORD_FILE_EDIT_HOOK_FLAG}`).
+    3. Injecting secure defaults context (via UserPromptSubmit hook or SessionStart hook, flag: `{INJECT_SECURE_DEFAULTS_FLAG}`).
     """,
 )
-def semgrep_mcp(transport: str, port: int, hook: str | None) -> None:
+@click.option(
+    "-a",
+    "--agent",
+    type=click.Choice(["claude", "cursor"]),
+    default="claude",
+    help="Agent to use for the MCP server",
+)
+def semgrep_mcp(transport: str, port: int, hook: str | None, agent: str) -> None:
     """Entry point for the MCP server
 
     Supports stdio, streamable-http, and sse transports.
@@ -86,15 +100,23 @@ def semgrep_mcp(transport: str, port: int, hook: str | None) -> None:
     os.environ["SEMGREP_MCP"] = "true"
 
     if hook == POST_TOOL_CLI_SCAN_FLAG:
-        run_post_tool_scan_cli()
+        run_post_tool_scan_cli(agent)
+        return
+
+    if hook == RECORD_FILE_EDIT_HOOK_FLAG:
+        run_after_file_edit_hook(agent)
+        return
+
+    if hook == STOP_CLI_SCAN_FLAG:
+        run_stop_scan_cli(agent)
         return
 
     if hook == INJECT_SECURE_DEFAULTS_FLAG:
-        run_inject_secure_defaults_hook()
+        run_inject_secure_defaults_hook(agent)
         return
 
     if hook == INJECT_SHORT_CONTEXT_FLAG:
-        run_inject_secure_defaults_hook(inject_short_context=True)
+        run_inject_secure_defaults_hook(agent, inject_short_context=True)
         return
 
     # Log the start of the MCP server

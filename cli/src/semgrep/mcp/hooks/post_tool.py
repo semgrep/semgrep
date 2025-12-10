@@ -56,7 +56,7 @@ def load_file_path() -> tuple[CodeFile, Any]:
 
 
 @with_hook_span(
-    span_name="semgrep_scan_cli (hook)",
+    span_name="semgrep_scan_cli (hook) (post-tool)",
     send_metrics=True,
     is_semgrep_scan=True,
 )
@@ -79,8 +79,20 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookRespons
     return hook_response
 
 
-def run_post_tool_scan_cli() -> None:
+def run_post_tool_scan_cli(agent: str) -> None:
     with start_tracing("mcp-hook") as span:
+        if agent == "cursor":
+            # This hook is not supported for Cursor yet because
+            # Cursor's afterFileEdit hook does not support
+            # any outputs. There is no way to communicate the scan result to Cursor.
+            # See: https://cursor.com/docs/agent/hooks#afterfileedit
+            #
+            # The input format of a Cursor hook is also different
+            # from that of a Claude Code hook. And we are assuming the
+            # Claude Code format here.
+            print("This hook is not supported for Cursor.", file=sys.stderr)
+            sys.exit(2)
+
         response = asyncio.run(run_cli_scan(span))
         print(response.model_dump_json(exclude_none=True))
         sys.exit(0)

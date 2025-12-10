@@ -136,7 +136,7 @@ async def get_secure_defaults_context(inject_short_context: bool) -> str:
 
 
 @with_hook_span(
-    span_name="inject_secure_defaults_context",
+    span_name="inject_secure_defaults_context (hook)",
     send_metrics=True,
     is_semgrep_scan=False,
 )
@@ -162,13 +162,24 @@ async def run_inject_secure_defaults_hook_async(
     )
 
 
-def run_inject_secure_defaults_hook(inject_short_context: bool = False) -> None:
+def run_inject_secure_defaults_hook(
+    agent: str, inject_short_context: bool = False
+) -> None:
     """
     Entry point for the inject secure defaults hook.
     If `inject_short_context` is True, the fallback content will be injected instead of the context
     from the README on the GitHub repo.
     """
     with start_tracing("mcp-hook") as span:
+        if agent == "cursor":
+            # This hook is not supported for Cursor yet because
+            # Cursor's beforeSubmitPrompt does not support
+            # injecting context. See: https://cursor.com/docs/agent/hooks#beforesubmitprompt
+            #
+            # There is also no way to inject context at the start of a Cursor session at the moment.
+            print("This hook is not supported for Cursor.", file=sys.stderr)
+            sys.exit(2)
+
         response = asyncio.run(
             run_inject_secure_defaults_hook_async(
                 span, inject_short_context=inject_short_context
