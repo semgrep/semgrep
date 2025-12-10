@@ -89,13 +89,17 @@ module Legacy = struct
           else loop fd
       | exception Unix.Unix_error (Unix.EINTR, _, _) -> loop fd
     in
-    (* Temporary files created using Python's [tempfile.NamedTemporaryFiles]
+    let rec open_with_retry path =
+      (* Temporary files created using Python's [tempfile.NamedTemporaryFiles]
          on Windows enables the [FILE_SHARE_DELETE] sharing mode. Files that
          have open handles with the [FILE_SHARE_DELETE] sharing mode can only
          be re-opened in that mode. To make sure we won't run into problems
          opening the file, we add the [O_SHARE_DELETE] flag when opening all
          files. *)
-    let fd = Unix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 in
+      try Unix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 with
+      | Unix.Unix_error (Unix.EINTR, _, _) -> open_with_retry path
+    in
+    let fd = open_with_retry path in
     Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
   let write_file ~file s =
