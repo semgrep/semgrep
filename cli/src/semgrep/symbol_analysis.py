@@ -44,7 +44,9 @@ def _ecosystem_to_language(ecosystem: out.Ecosystem) -> Optional[str]:
     if kind == "pypi":
         return "python"
     elif kind == "npm":
-        return "js"
+        # TypeScript is a strict superset of JavaScript, so we can
+        # always parse/analyze raw JavaScript as if it were TypeScript
+        return "ts"
     return None
 
 
@@ -105,7 +107,7 @@ def run_symbol_analysis_for_files(
 
     Args:
         root_path: Root directory of the subproject
-        lang: Language to analyze (e.g., "python", "js")
+        lang: Language to analyze (e.g., "python", "ts")
         files: List of file paths to analyze
 
     Returns:
