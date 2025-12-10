@@ -127,7 +127,7 @@ install_requires = [
     "exceptiongroup~=1.2.0",
     "glom~=22.1",
     "jsonschema~=4.25.1",
-    "mcp==1.16.0",
+    "mcp==1.23.3",
     "opentelemetry-api~=1.37.0",
     "opentelemetry-sdk~=1.37.0",
     "opentelemetry-exporter-otlp-proto-http~=1.37.0",
