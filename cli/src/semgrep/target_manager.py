@@ -922,16 +922,10 @@ class TargetManager:
         path = target.fpath
         if not path.is_file():
             return False
-        try:
-            hline = self.get_shebang_line(path)
-            if hline is None:
-                return False
-            return any(_is_shebang_pattern_for_executable(hline, s) for s in shebangs)
-        except UnicodeDecodeError:
-            logger.debug(
-                f"Encountered likely binary file {path} while reading shebang; skipping this file"
-            )
+        hline = self.get_shebang_line(path)
+        if hline is None:
             return False
+        return any(_is_shebang_pattern_for_executable(hline, s) for s in shebangs)
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def get_shebang_line(self, path: Path) -> Optional[str]:
@@ -943,8 +937,14 @@ class TargetManager:
         elif not path_has_permissions(path, stat.S_IRUSR | stat.S_IXUSR):
             return None
 
-        with path.open() as f:
-            return f.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+        try:
+            with path.open() as f:
+                return f.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+        except UnicodeDecodeError:
+            logger.debug(
+                f"Encountered likely binary file {path} while reading shebang; skipping this file"
+            )
+            return None
 
     @staticmethod
     def _globmatch(path: str, pattern: str) -> bool:
