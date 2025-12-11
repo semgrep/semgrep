@@ -182,7 +182,10 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   },
   // We pin to a specific version just to prevent things from breaking randomly.
   // This has been a source of breakage in the past.
-  pipenv_version: '2024.0.1',
+  //
+  // We also pin pipenv version in the Dockerfile. So, if you are updating
+  // the version here, update it there too.
+  pipenv_version: '2025.1.3',
   pipenv_install_step: {
     run: 'pip install pipenv==%s' % $.pipenv_version,
   },

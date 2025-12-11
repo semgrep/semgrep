@@ -12,7 +12,7 @@ jobs:
         with:
           cache: pipenv
           python-version: "3.10"
-      - run: pip install pipenv==2024.0.1
+      - run: pip install pipenv==2025.1.3
       - uses: actions/download-artifact@v4
         with:
           name: semgrep-core-x86-artifact
@@ -91,7 +91,7 @@ jobs:
         with:
           cache: pipenv
           python-version: ${{ matrix.python }}
-      - run: pip install pipenv==2024.0.1
+      - run: pip install pipenv==2025.1.3
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
@@ -196,7 +196,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           apk add --no-cache python3 py3-pip
-          pip install --no-cache-dir --ignore-installed --break-system-packages distlib pipenv==2024.0.1
+          pip install --no-cache-dir --ignore-installed --break-system-packages distlib pipenv==2025.1.3
           (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         run: |
@@ -216,7 +216,7 @@ jobs:
         with:
           cache: pipenv
           python-version: "3.12"
-      - run: pip install pipenv==2024.0.1
+      - run: pip install pipenv==2025.1.3
       - uses: actions/download-artifact@v4
         with:
           name: semgrep-core-x86-artifact
