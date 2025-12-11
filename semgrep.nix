@@ -12,24 +12,9 @@ let
       on = opam-nix.lib.${system};
     in
     rec {
-      # We need to add the pkg-config path to the PATH for these packages so that
-      # dune can find it
-      # TODO fix on opam side to use pkg-conf on macos
-      addPkgConfig =
-        pkg:
-        pkg.overrideAttrs (prev: {
-          nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
-        });
       patchesOverlay = final: prev: {
-        # For the custom temp OCaml fork
-        ocaml-compiler = prev.ocaml-compiler.overrideAttrs (old: {
-          src = pkgs.fetchFromGitHub {
-            owner = "semgrep";
-            repo = "ocaml";
-            rev = "d50385f9f68efbcf455af0c8231587ee435fe21b";
-            sha256 = "sha256-UYylbIaXcF4XEGlU1wXbCHdImAKaQYdrzXCucm/dgZ8=";
-          };
-        });
+        # If packages need added build inputs to build properly, add them here
+        # Make sure to create an issue on opam-nix to upstream the fix!
       };
 
       # helper to add buildinputs to an existing pkg
@@ -106,13 +91,8 @@ let
           #
           # ocamlfind = "1.9.8";
           baseQuery = {
-            ocaml-base-compiler = ocamlVersion;
-
-            # ppxlib 0.36 breaks our PPX code; once ppx_tracing.ml and
-            # ppx_profiling.ml are updated, we'll need to remove this
-            # (which will be indicated by a compile error involving
-            # `Pexp_function` in both files).
-            ppxlib = "0.35.0";
+            # Not used currently as we pin ocaml-variants in semgrep.opam.template
+            # ocaml-base-compiler = ocamlVersion;
           };
           resolveArgs = {
             # speeds up so we don't get a solver timeout

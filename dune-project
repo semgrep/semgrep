@@ -115,7 +115,7 @@ For more information see https://semgrep.dev
     (cmdliner (>= 1.3.0))
     ; PPX
     ; some ppx libs below don't support 0.36.0 yet
-    (ppxlib (>= 0.35.0))
+    (ppxlib (= 0.35.0))
     (ppx_blob (>= 0.9.0))
     (ppx_deriving (>= 6.0.3 ))
     (ppx_deriving_yojson (>= 3.9.1))
