@@ -313,6 +313,120 @@ class TestBuildSubprojectFileMapping:
         # outside.py should NOT be mapped to the project subproject
         assert (tmp_path / "outside.py").resolve() not in result_paths
 
+    @pytest.mark.quick
+    def test_pypi_only_maps_python_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Pypi subprojects should only map Python files, not JS or other language files."""
+        (tmp_path / "app.py").touch()
+        (tmp_path / "main.js").touch()
+        (tmp_path / "Main.java").touch()
+        (tmp_path / "lib.go").touch()
+        (tmp_path / "requirements.txt").touch()
+
+        monkeypatch.chdir(tmp_path)
+
+        target_manager = TargetManager(
+            scanning_root_strings=frozenset([Path(".")]),
+        )
+
+        subproject = make_pypi_subproject(".", "requirements.txt")
+        subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject]}
+
+        result = build_subproject_file_mapping(subprojects_by_ecosystem, target_manager)
+
+        key = (Ecosystem(Pypi()), Path("."))
+        assert key in result
+        result_paths = {p.resolve() for p in result[key]}
+
+        # Should contain Python files only
+        assert (tmp_path / "app.py").resolve() in result_paths
+
+        # Should NOT contain non-Python files
+        assert (tmp_path / "main.js").resolve() not in result_paths
+        assert (tmp_path / "Main.java").resolve() not in result_paths
+        assert (tmp_path / "lib.go").resolve() not in result_paths
+
+    @pytest.mark.quick
+    def test_npm_only_maps_js_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """NPM subprojects should only map JS/TS files, not Python or other language files."""
+        (tmp_path / "app.js").touch()
+        (tmp_path / "utils.ts").touch()
+        (tmp_path / "main.py").touch()
+        (tmp_path / "Main.java").touch()
+        (tmp_path / "package-lock.json").touch()
+        (tmp_path / "package.json").touch()
+
+        monkeypatch.chdir(tmp_path)
+
+        target_manager = TargetManager(
+            scanning_root_strings=frozenset([Path(".")]),
+        )
+
+        subproject = make_npm_subproject(".", "package-lock.json", "package.json")
+        subprojects_by_ecosystem = {Ecosystem(Npm()): [subproject]}
+
+        result = build_subproject_file_mapping(subprojects_by_ecosystem, target_manager)
+
+        key = (Ecosystem(Npm()), Path("."))
+        assert key in result
+        result_paths = {p.resolve() for p in result[key]}
+
+        # Should contain JS/TS files only
+        assert (tmp_path / "app.js").resolve() in result_paths
+        # Note: whether .ts is included depends on the JS language definition
+
+        # Should NOT contain non-JS files
+        assert (tmp_path / "main.py").resolve() not in result_paths
+        assert (tmp_path / "Main.java").resolve() not in result_paths
+
+    @pytest.mark.quick
+    def test_mixed_ecosystems_map_correct_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """When multiple ecosystems exist, each should only map files for their language."""
+        (tmp_path / "backend").mkdir()
+        (tmp_path / "backend" / "server.py").touch()
+        (tmp_path / "backend" / "requirements.txt").touch()
+        (tmp_path / "frontend").mkdir()
+        (tmp_path / "frontend" / "app.js").touch()
+        (tmp_path / "frontend" / "package-lock.json").touch()
+        (tmp_path / "frontend" / "package.json").touch()
+
+        monkeypatch.chdir(tmp_path)
+
+        target_manager = TargetManager(
+            scanning_root_strings=frozenset([Path(".")]),
+        )
+
+        pypi_subproject = make_pypi_subproject("backend", "backend/requirements.txt")
+        npm_subproject = make_npm_subproject(
+            "frontend", "frontend/package-lock.json", "frontend/package.json"
+        )
+
+        subprojects_by_ecosystem = {
+            Ecosystem(Pypi()): [pypi_subproject],
+            Ecosystem(Npm()): [npm_subproject],
+        }
+
+        result = build_subproject_file_mapping(subprojects_by_ecosystem, target_manager)
+
+        # Pypi subproject should only have Python files
+        pypi_key = (Ecosystem(Pypi()), Path("backend"))
+        assert pypi_key in result
+        pypi_paths = {p.resolve() for p in result[pypi_key]}
+        assert (tmp_path / "backend" / "server.py").resolve() in pypi_paths
+        assert (tmp_path / "frontend" / "app.js").resolve() not in pypi_paths
+
+        # NPM subproject should only have JS files
+        npm_key = (Ecosystem(Npm()), Path("frontend"))
+        assert npm_key in result
+        npm_paths = {p.resolve() for p in result[npm_key]}
+        assert (tmp_path / "frontend" / "app.js").resolve() in npm_paths
+        assert (tmp_path / "backend" / "server.py").resolve() not in npm_paths
+
 
 class TestRunSymbolAnalysisForFiles:
     @pytest.mark.quick

@@ -19,7 +19,10 @@ from typing import Sequence
 from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.error import UnknownLanguageError
 from semgrep.rpc_call import run_symbol_analysis as run_symbol_analysis_rpc
+from semgrep.semgrep_types import LANGUAGE
+from semgrep.semgrep_types import Language
 from semgrep.subproject import find_closest_subproject
 from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import TargetManager
@@ -29,7 +32,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def _ecosystem_to_language(ecosystem: out.Ecosystem) -> Optional[str]:
+def _ecosystem_to_language(ecosystem: out.Ecosystem) -> Optional[Language]:
     """
     Converts an ecosystem to a language in a hacky way based off of semgrep_interfaces/lang.json
 
@@ -41,10 +44,17 @@ def _ecosystem_to_language(ecosystem: out.Ecosystem) -> Optional[str]:
     but that involves a lot more work. For now, this is good enough for the SCRAT project.
     """
     kind = ecosystem.kind.lower()
-    if kind == "pypi":
-        return "python"
-    elif kind == "npm":
-        return "js"
+
+    # We .resolve(id_string) to get the Language object from the LANGUAGE singleton.
+    # You can get the id_string from `lang.json`.
+    try:
+        if kind == "pypi":
+            return LANGUAGE.resolve("python")
+        elif kind == "npm":
+            return LANGUAGE.resolve("js")
+    except UnknownLanguageError:
+        logger.error("Invalid language detected")
+
     return None
 
 
