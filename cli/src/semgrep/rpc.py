@@ -135,7 +135,7 @@ def _parse_function_result(packet: str) -> Optional[out.FunctionReturn]:
 T = TypeVar("T")
 
 
-def _cmd(action: Literal["-rpc", "-rpc-server"]) -> Sequence[str]:
+def _cmd(action: Literal["-rpc"]) -> Sequence[str]:
     """
     Return the base command to run an RPC call or start an RPC server.
     """
@@ -258,11 +258,10 @@ class RpcSession:
         This defaults to using the pro executable if available.
         """
         server = subprocess.Popen(
-            _cmd("-rpc-server"),
+            _cmd("-rpc"),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            text=True,
-            encoding=ENCODING,
+            text=False,
         )
         return RpcSession(server)
 
