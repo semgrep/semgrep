@@ -472,8 +472,7 @@ let all_actions (caps : Cap.all_caps) () =
                  ; Cap.readdir
                  ; Cap.random
                  ; Cap.chdir
-                 ; Core_scan.caps >);
-          Core_exit_code.(exit_semgrep caps#exit Success)) );
+                 ; Core_scan.caps >)) );
   ]
   @ Test_analyze_generic.actions
       (caps :> < Cap.exec ; Cap.tmp >)
