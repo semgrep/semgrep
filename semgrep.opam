@@ -112,6 +112,13 @@ pin-depends: [
   (* coupling: if this is removed, make sure the minimum ocaml version in *)
   (* dune-project is correct, and uncomment the line in semgrep.nix marked *)
   (* with coupling: semgrep.opam.template *)
+  (* coupling: Ensure consistent commit SHA between the following files:
+        - OSS/semgrep.opam.template
+        - OSS/semgrep.opam
+        - semgrep-pro.opam.template
+        - semgrep-pro.opam
+        - OSS/Makefile
+  *)
   ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#b48f5480b68b80aa1195c8092272715b2939c32b"]
   (* TODO: move pcre2, testo, and obackward to be pinned to git repos *)
   ["pcre2.dev" "./libs/pcre2"]
