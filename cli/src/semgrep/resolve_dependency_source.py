@@ -41,6 +41,7 @@ from semdep.parsers.swiftpm import parse_package_resolved
 from semdep.parsers.util import DependencyParser
 from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
+from semgrep.rpc import RpcSession
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.sca_subproject_support import ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
 from semgrep.sca_subproject_support import ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS
@@ -149,16 +150,32 @@ def _resolve_dependencies_rpc(
     ],
     download_dependency_source_code: bool,
     allow_local_builds: bool,
+    rpc_session: Optional[RpcSession] = None,
 ) -> ResolveDependenciesRpcResult:
     """
     Handle the RPC call to resolve dependencies in ocaml
     """
     try:
-        response = resolve_dependencies(
-            [out.DependencySource(dep_src)],
-            download_dependency_source_code,
-            allow_local_builds,
-        )
+        if rpc_session:
+            ret = rpc_session.call(
+                out.FunctionCall(
+                    out.CallResolveDependencies(
+                        out.ResolveDependenciesParams(
+                            [out.DependencySource(dep_src)],
+                            download_dependency_source_code,
+                            allow_local_builds,
+                        )
+                    )
+                ),
+                out.RetResolveDependencies,
+            )
+            response = ret.value if ret else None
+        else:
+            response = resolve_dependencies(
+                [out.DependencySource(dep_src)],
+                download_dependency_source_code,
+                allow_local_builds,
+            )
     except Exception as e:
         logger.verbose(f"RPC call failed: {e}")
         return ResolveDependenciesRpcResult(
@@ -224,6 +241,7 @@ def _resolve_dependencies_rpc(
 def _handle_manifest_only_source(
     dep_source: out.ManifestOnly,
     config: DependencyResolutionConfig,
+    rpc_session: Optional[RpcSession] = None,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for manifest-only sources."""
     logger.verbose(
@@ -234,6 +252,7 @@ def _handle_manifest_only_source(
         dep_src=dep_source,
         download_dependency_source_code=config.download_dependency_source_code,
         allow_local_builds=config.allow_local_builds,
+        rpc_session=rpc_session,
     )
     new_deps = resolved_deps.new_deps
     new_errors = resolved_deps.new_errors
@@ -259,6 +278,7 @@ def _handle_manifest_only_source(
 def _handle_multi_lockfile_source(
     dep_source: out.MultiLockfile,
     config: DependencyResolutionConfig,
+    rpc_session: Optional[RpcSession] = None,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for sources with multiple lockfiles."""
     all_resolved_deps: List[out.ResolvedDependency] = []
@@ -277,6 +297,7 @@ def _handle_multi_lockfile_source(
         res = resolve_dependency_source(
             lockfile_source,
             config,
+            rpc_session=rpc_session,
         )
         new_resolved_info = res.deps
         new_errors = res.errors
@@ -305,6 +326,7 @@ def _handle_multi_lockfile_source(
 def _handle_lockfile_source(
     dep_source: Union[out.LockfileOnly, out.ManifestLockfile],
     config: DependencyResolutionConfig,
+    rpc_session: Optional[RpcSession] = None,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for lockfile-based sources."""
     logger.verbose(
@@ -374,6 +396,7 @@ def _handle_lockfile_source(
             dep_src=dep_source,
             download_dependency_source_code=use_ocaml_resolver_for_tr,
             allow_local_builds=config.allow_local_builds,
+            rpc_session=rpc_session,
         )
         for error in resolved_deps.new_errors:
             logger.verbose(f"\nRPC error: '{error}'")
@@ -439,6 +462,7 @@ def _handle_lockfile_source(
 def resolve_dependency_source(
     dep_source: out.DependencySource,
     config: DependencyResolutionConfig,
+    rpc_session: Optional[RpcSession] = None,
 ) -> DependencyResolutionResult:
     """
     Resolve the dependencies in the dependency source. Returns:
@@ -450,11 +474,12 @@ def resolve_dependency_source(
     if isinstance(dep_source_, out.LockfileOnly) or isinstance(
         dep_source_, out.ManifestLockfile
     ):
-        return _handle_lockfile_source(dep_source_, config)
+        return _handle_lockfile_source(dep_source_, config, rpc_session=rpc_session)
     elif isinstance(dep_source_, out.MultiLockfile):
         return _handle_multi_lockfile_source(
             dep_source_,
             config,
+            rpc_session=rpc_session,
         )
     elif isinstance(dep_source_, out.ManifestOnly) and (
         (dep_source_.value.kind, None) in ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
@@ -467,7 +492,11 @@ def resolve_dependency_source(
         or config.download_dependency_source_code
     ):
         if config.allow_local_builds:
-            return _handle_manifest_only_source(dep_source_, config)
+            return _handle_manifest_only_source(
+                dep_source_,
+                config,
+                rpc_session=rpc_session,
+            )
         else:
             return DependencyResolutionResult(
                 deps=out.UnresolvedReason(out.UnresolvedDisabled()),

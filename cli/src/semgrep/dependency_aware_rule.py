@@ -21,6 +21,7 @@ from typing import Callable
 from typing import Dict
 from typing import Iterator
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from attr import evolve
@@ -31,6 +32,7 @@ from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignor
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.error import SemgrepError
+from semgrep.rpc import RpcSession
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.sca_subproject_support import TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS
@@ -82,6 +84,11 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPatt
         )
 
 
+# use a single RPC process for each call to
+# transitive_reachability_filter to amortize the overhead of starting
+# the process
+
+
 # TODO: should be renamed undetermined_or_unreachable_...
 #  or handle_transitive_findings
 def generate_unreachable_sca_findings(
@@ -91,6 +98,7 @@ def generate_unreachable_sca_findings(
     x_tr: bool,
     fips_mode: bool,
     write_to_tr_cache: bool = True,
+    rpc_session: Optional[RpcSession] = None,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Returns matches to a only a rule's sca-depends-on patterns;
@@ -204,7 +212,17 @@ def generate_unreachable_sca_findings(
                     write_to_cache=write_to_tr_cache,
                 )
                 # to debug: print(params.to_json_string())
-                tr_filtered_matches = rpc_call.transitive_reachability_filter(params)
+                if rpc_session:
+                    ret = rpc_session.call(
+                        out.FunctionCall(out.CallTransitiveReachabilityFilter(params)),
+                        out.RetTransitiveReachabilityFilter,
+                    )
+                    tr_filtered_matches = ret.value if ret else transitive_findings
+                else:
+                    tr_filtered_matches = rpc_call.transitive_reachability_filter(
+                        params
+                    )
+
                 # TODO: associate these in a more robust way. This currently
                 # depends on the RPC call returning the same matches in the
                 # same order.
