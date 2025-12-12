@@ -1,0 +1,1 @@
+Fix a OCaml stdlib bug that would cause nondeterministic UnixErrors on Windows under the multicore runtime due to a race condition in the socketpair implementation
