@@ -5,6 +5,7 @@ self-hosted-runner:
     - depot-ubuntu-24.04-8
     - depot-ubuntu-22.04
     - depot-ubuntu-22.04-8
+    - depot-windows-*
     - ubuntu-latest-16-core
     - ghcr.io/cirruslabs/macos-monterey-xcode:latest
     - ghcr.io/cirruslabs/macos-monterey-base:latest
