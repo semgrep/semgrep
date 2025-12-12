@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Dict
 from typing import FrozenSet
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import Union
@@ -30,6 +31,7 @@ from semdep.subproject_matchers import MATCHERS
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.console import console
 from semgrep.resolve_dependency_source import resolve_dependency_source
+from semgrep.rpc import RpcSession
 from semgrep.rule import Rule
 from semgrep.safe_set import intersection
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -208,6 +210,7 @@ def resolve_subprojects(
     target_manager: TargetManager,
     dependency_aware_rules: List[Rule],
     config: DependencyResolutionConfig,
+    rpc_session: Optional[RpcSession] = None,
 ) -> Tuple[
     List[out.UnresolvedSubproject],
     Dict[Ecosystem, List[out.ResolvedSubproject]],
@@ -305,6 +308,7 @@ def resolve_subprojects(
                 res = resolve_dependency_source(
                     subproject.dependency_source,
                     config,
+                    rpc_session=rpc_session,
                 )
                 resolved_info = res.deps
                 errors = res.errors
