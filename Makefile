@@ -241,8 +241,7 @@ pin-ocaml-fork:
 	#   - OSS/semgrep.opam.template
 	#   - semgrep-pro.opam
 	#   - semgrep-pro.opam.template
-	opam pin add ocaml-variants.5.3.0 git+https://github.com/semgrep/ocaml.git#b48f5480b68b80aa1195c8092272715b2939c32b --update-invariant -y
-
+	opam pin add ocaml-variants.5.3.0 git+https://github.com/semgrep/ocaml.git#81a022a5340cc3af346f85438c7db3c29adbf234 --update-invariant -y
 
 pin-ocaml-fork-tsan:
 	# NBT: our fork of the compiler
