@@ -135,6 +135,9 @@ COPY libs/testo libs/testo
 COPY libs/pyro-caml libs/pyro-caml
 COPY libs/obackward libs/obackward
 
+# Install our fork of the compiler
+RUN make pin-ocaml-fork
+
 # note that we do not run 'make install-deps-for-semgrep-core' here because it
 # configures and builds ocaml-tree-sitter-core too; here we are
 # just concerned about installing external packages to maximize docker caching.
