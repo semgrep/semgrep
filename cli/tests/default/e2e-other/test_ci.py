@@ -1816,8 +1816,8 @@ def test_dryrun(
     )
 
 
-# this test is passing with osemgrep but only because we're using an
-# 'assert not' below on the mock
+# this test is flaky with osemgrep since it does not mock any networking
+@pytest.mark.osemfail
 def test_fail_auth_invalid_key(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
 ):
