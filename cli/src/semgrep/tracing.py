@@ -34,6 +34,7 @@ from opentelemetry.attributes import BoundedAttributes
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.threading import ThreadingInstrumentor
 from opentelemetry.sdk._logs import LogData
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs import LoggingHandler
@@ -241,6 +242,7 @@ class Traces:
             logging.getLogger().addHandler(logging_handler)
 
         RequestsInstrumentor().instrument()
+        ThreadingInstrumentor().instrument()
         self.extract()
 
     def extract(self) -> None:
