@@ -189,10 +189,10 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   pipenv_install_step: {
     run: 'pip install pipenv==%s' % $.pipenv_version,
   },
-  install_python_deps(directory): {
+  install_python_deps(version='3.11', directory): {
     name: 'Install Python dependencies',
     'working-directory': directory,
-    run: 'pipenv install --dev',
+    run: 'pipenv install --dev --python=%s' % version,
   },
 
   // ---------------------------------------------------------
