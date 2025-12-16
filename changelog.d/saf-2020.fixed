@@ -1,0 +1,1 @@
+git-lfs objects are now excluded from baseline scans, as they are usually binary files, or simply too large to scan.
