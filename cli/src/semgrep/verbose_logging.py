@@ -30,6 +30,10 @@ class VerboseLogging(logging.Logger):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
+    def is_verbose(self) -> bool:
+        """Return whether verbose logging is enabled"""
+        return self.isEnabledFor(self.VERBOSE_LOG_LEVEL)
+
     def verbose(self, msg: str, *args: Any, **kwargs: Any) -> None:
         if self.isEnabledFor(self.VERBOSE_LOG_LEVEL):
             self._log(self.VERBOSE_LOG_LEVEL, msg, args, **kwargs)

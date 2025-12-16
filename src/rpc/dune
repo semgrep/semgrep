@@ -25,6 +25,7 @@
     semgrep.osemgrep_reporting
     semgrep.osemgrep_networking
     semgrep.osemgrep_core
+    semgrep.osemgrep_cli_show
     networking.proxy
  )
 )

@@ -12,6 +12,15 @@
 *)
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.readdir >
 
+(* Feel free to move this type to another place in semgrep OSS *)
+
+type pro_sca_output_functions = {
+  show_subprojects : Semgrep_output_v1_t.subproject list -> string;
+}
+(** A bundle of functions for output formatting for Supply Chain (Pro) *)
+
+val pro_sca_output_functions_plugin : pro_sca_output_functions Plugin.t
+
 (*
    Parse a semgrep-show command, execute it and exit.
 

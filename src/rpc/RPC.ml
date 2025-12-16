@@ -35,6 +35,7 @@ let name_of_call (call : Out.function_call) : string =
   | `CallGetTargets _ -> "CallGetTargets"
   | `CallMatchSubprojects _ -> "CallMatchSubprojects"
   | `CallRunSymbolAnalysis _ -> "CallRunSymbolAnalysis"
+  | `CallShowSubprojects _ -> "CallShowSubprojects"
 
 (*****************************************************************************)
 (* Types *)
@@ -155,6 +156,11 @@ let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
       match run_symbol_analysis (caps :> < Cap.readdir >) params with
       | Ok analysis -> Ok (`RetRunSymbolAnalysis analysis)
       | Error msg -> Error msg)
+  | `CallShowSubprojects subprojects ->
+      Ok
+        (`RetShowSubprojects
+           ((Plugin.get Show_subcommand.pro_sca_output_functions_plugin)
+              .show_subprojects subprojects))
 
 (*****************************************************************************)
 (* Helpers *)

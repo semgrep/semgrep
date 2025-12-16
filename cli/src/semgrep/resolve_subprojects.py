@@ -88,6 +88,7 @@ class HashableSubproject:
         )
 
 
+@simple_profiling
 def find_subprojects(
     dependency_source_files: FrozenSet[Target], matchers: List[SubprojectMatcher]
 ) -> List[out.Subproject]:
@@ -257,6 +258,9 @@ def resolve_subprojects(
     dependency_source_files = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=True
     )
+    # To list all the subprojects discovered by the function, use
+    # 'semgrep show subprojects'
+    # TODO: implement 'semgrep show subprojects'
     found_subprojects = find_subprojects(dependency_source_files, MATCHERS)
 
     # A subproject is relevant if one of its dependency source files is a target

@@ -31,6 +31,22 @@ module Out = Semgrep_output_v1_t
  *)
 
 (*****************************************************************************)
+(* Pro hooks *)
+(*****************************************************************************)
+
+(* A bundle of functions for output formatting for Supply Chain (Pro) *)
+type pro_sca_output_functions = {
+  show_subprojects : Semgrep_output_v1_t.subproject list -> string;
+}
+
+let default_pro_sca_output_functions = { show_subprojects = (fun _ -> "") }
+
+(* A module in Semgrep Pro is supposed to initialize this to a bundle
+   of functions that do something meaningful. *)
+let pro_sca_output_functions_plugin =
+  Plugin.create_slot ~name:__FUNCTION__ default_pro_sca_output_functions
+
+(*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)

@@ -193,3 +193,18 @@ def run_symbol_analysis(
         logger.error("Failed to run symbol analysis")
         return None
     return ret.value
+
+
+@tracing.trace()
+def show_subprojects(*, subprojects: List[out.Subproject]) -> str:
+    """Show subproject info
+
+    This is intended to be used to implement 'semgrep show subprojects.'
+    """
+    call = out.FunctionCall(out.CallShowSubprojects(subprojects))
+    ret: Optional[out.RetShowSubprojects] = rpc_call(call, out.RetShowSubprojects)
+    if ret is None:
+        logger.error("Failed to show subprojects")
+        return ""
+    else:
+        return ret.value
