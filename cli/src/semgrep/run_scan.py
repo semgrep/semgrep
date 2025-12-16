@@ -710,8 +710,8 @@ def adjust_matches_for_sca_rules(
     output_extra: OutputExtra,
     fips_mode: bool,
     dry_run: bool = False,
-    x_tr: bool = False,
     rpc_session: Optional[RpcSession] = None,
+    enable_transitive_reachability: Optional[bool] = False,
 ) -> Dict[str, List[out.FoundDependency]]:
     """
     Generates SCA findings based on the dependency-aware rules and the resolved subprojects.
@@ -762,7 +762,7 @@ def adjust_matches_for_sca_rules(
                 already_reachable,
                 resolved_subprojects,
                 fips_mode=fips_mode,
-                x_tr=x_tr,
+                enable_transitive_reachability=enable_transitive_reachability,
                 write_to_tr_cache=not dry_run,
                 rpc_session=rpc_session,
             )
@@ -779,7 +779,7 @@ def adjust_matches_for_sca_rules(
                 lambda p, d: False,
                 resolved_subprojects,
                 fips_mode=fips_mode,
-                x_tr=False,
+                enable_transitive_reachability=False,
                 write_to_tr_cache=not dry_run,
                 rpc_session=rpc_session,
             )
@@ -878,7 +878,7 @@ def run_rules(
     resolve_all_deps_in_diff_scan: bool = False,
     dry_run: bool = False,
     fips_mode: bool,
-    x_tr: bool = False,
+    enable_transitive_reachability: Optional[bool] = None,
     x_parmap: bool = False,
     run_symbol_analysis: bool = False,
     rpc_session: Optional[RpcSession] = None,
@@ -917,8 +917,8 @@ def run_rules(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
-        download_dependency_source_code=x_tr,
         rpc_session=rpc_session,
+        download_dependency_source_code=(enable_transitive_reachability or False),
     )
     dependency_parser_errors = [
         e.value.value
@@ -998,7 +998,7 @@ def run_rules(
             output_handler=output_handler,
             output_extra=output_extra,
             dry_run=dry_run,
-            x_tr=x_tr,
+            enable_transitive_reachability=enable_transitive_reachability,
             fips_mode=fips_mode,
             rpc_session=rpc_session,
         )
@@ -1094,7 +1094,7 @@ def run_scan(
     baseline_commit_is_mergebase: bool = False,
     x_ls: bool = False,
     x_ls_long: bool = False,
-    x_tr: bool = False,
+    enable_transitive_reachability: Optional[bool] = None,
     x_parmap: bool = False,
     x_pro_naming: bool = False,
     x_no_python_schema_validation: bool = False,
@@ -1333,7 +1333,7 @@ def run_scan(
             resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
             fips_mode=fips_mode,
             dry_run=dryrun,
-            x_tr=x_tr,
+            enable_transitive_reachability=enable_transitive_reachability,
             x_parmap=x_parmap,
             run_symbol_analysis=run_symbol_analysis,
             rpc_session=rpc_session,

@@ -162,6 +162,7 @@ let o_simple_profiling : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* for --profile *)
+(* TODO: --no-profile using H.negatable_flag *)
 let o_profile : bool Term.t =
   let info =
     Arg.info [ "profile" ] ~docs:Cmdliner.Manpage.s_common_options
@@ -169,6 +170,7 @@ let o_profile : bool Term.t =
         {|Record profiles via Pyro Caml. By default sends them to localhost:4040|}
   in
   Arg.value (Arg.flag info)
+
 (*************************************************************************)
 (* Telemetry options *)
 (*************************************************************************)

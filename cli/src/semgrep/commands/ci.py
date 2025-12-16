@@ -281,7 +281,7 @@ def ci(
     verbose: bool,
     x_eio: bool,
     x_parmap: bool,
-    x_tr: bool,
+    enable_transitive_reachability: Optional[bool],
     x_pro_naming: bool,
     x_semgrepignore_filename: Optional[str],
     x_no_python_schema_validation: bool,
@@ -405,6 +405,7 @@ def ci(
                 dry_run = True
 
             scan_handler = ScanHandler(
+                enable_transitive_reachability=enable_transitive_reachability,
                 dry_run=dry_run,
                 partial_output=partial_output,
                 dump_scan_id_path=dump_scan_id_path,
@@ -738,8 +739,10 @@ def ci(
             "capture_core_stderr": capture_core_stderr,
             "allow_local_builds": allow_local_builds,
             "x_parmap": x_parmap,
-            "x_tr": (
-                scan_handler.transitive_reachability_enabled if scan_handler else x_tr
+            "enable_transitive_reachability": (
+                scan_handler.transitive_reachability_enabled
+                if scan_handler
+                else enable_transitive_reachability
             ),
             "x_pro_naming": x_pro_naming,
             "dump_rule_partitions_params": dump_rule_partitions_params,

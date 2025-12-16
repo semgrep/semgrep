@@ -95,7 +95,7 @@ def generate_unreachable_sca_findings(
     rule: Rule,
     already_reachable: Callable[[Path, out.FoundDependency], bool],
     resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
-    x_tr: bool,
+    enable_transitive_reachability: Optional[bool],
     fips_mode: bool,
     write_to_tr_cache: bool = True,
     rpc_session: Optional[RpcSession] = None,
@@ -185,7 +185,10 @@ def generate_unreachable_sca_findings(
                 match_based_keys[rule_match.match_based_key] += 1
                 subproject_matches.append(new_rule_match)
 
-            if x_tr and subproject_kind in TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS:
+            if (
+                enable_transitive_reachability
+                and subproject_kind in TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS
+            ):
                 # TODO: consider only the matches with reachable rules
                 # For now we run TR only for supported subproject kinds. If TR
                 # RPC perf were better, we would ideally remove this duplication

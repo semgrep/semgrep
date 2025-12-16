@@ -652,14 +652,28 @@ let o_allow_local_builds : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let o_x_tr : bool Term.t =
-  let info =
-    Arg.info [ "x-tr" ] ~docs:CLI_common.experimental_section_title
-      ~doc:
-        "[INTERNAL] Enable transitive dependency analysis. Typically used with \
-         '--allow-local-builds'."
+let o_x_tr : bool option Term.t =
+  let docs = CLI_common.experimental_section_title in
+  let doc_enable =
+    "[INTERNAL] Enable transitive reachability analysis regardless\n\
+    \     of app-based configuration.\n\
+    \     Typically used with '--allow-local-builds'."
   in
-  Arg.value (Arg.flag info)
+  let doc_disable =
+    "[INTERNAL] Disable transitive reachability analysis regardless\n\
+    \     of app-based configuration."
+  in
+  let enable =
+    ( Some true,
+      Arg.info
+        [ "x-enable-transitive-reachability"; "x-tr" ]
+        ~docs ~doc:doc_enable )
+  in
+  let disable =
+    ( Some false,
+      Arg.info [ "x-disable-transitive-reachability" ] ~docs ~doc:doc_disable )
+  in
+  Arg.value (Arg.vflag None [ enable; disable ])
 
 (* ------------------------------------------------------------------ *)
 (* Run Secrets Post Processors                                  *)
@@ -1243,8 +1257,13 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
   (* This first bit just rules out mutually exclusive options. *)
   if oss && secrets then
     Error.abort "Cannot run Secrets scan with OSS engine (--oss specified).";
-  if oss && (x_tr || allow_local_builds) then
-    Error.abort "Cannot run SCA scan with OSS engine (--oss specified).";
+  if
+    oss
+    && ((match x_tr with
+        | Some true -> true
+        | _ -> false)
+       || allow_local_builds)
+  then Error.abort "Cannot run SCA scan with OSS engine (--oss specified).";
   if
     [ oss; pro_lang; pro_intrafile; pro ]
     |> List.filter Fun.id |> List.length > 1
@@ -1273,7 +1292,17 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
       else None
     in
     let sca_config : Engine_type.sca_config option =
-      if x_tr || allow_local_builds then Some { tr = x_tr; allow_local_builds }
+      let enable_transitive_reachability =
+        (* In pysemgrep, there's a difference between Some false and None.
+           See note in Engine_type.ml *)
+        match x_tr with
+        | Some true -> true
+        | Some false
+        | None ->
+            false
+      in
+      if enable_transitive_reachability || allow_local_builds then
+        Some { enable_transitive_reachability; allow_local_builds }
       else None
     in
     match (extra_languages, analysis, secrets_config, sca_config) with
@@ -1287,6 +1316,7 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
             sca_config;
             path_sensitive = pro_path_sensitive;
           }
+
 (*****************************************************************************)
 (* Alternate subcommand subconf *)
 (*****************************************************************************)
@@ -1402,8 +1432,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
-      x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr || x_pro_naming
-      || x_group_taint_rules || x_mcp
+      x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr <> None
+      || x_pro_naming || x_group_taint_rules || x_mcp
     then
       Logs.warn (fun m ->
           m

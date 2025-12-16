@@ -75,7 +75,10 @@ and secrets_config = {
 and sca_config = {
   (* for lockfiless project (and also transitive reachability) *)
   allow_local_builds : bool;
-  (* transitive reachability *)
-  tr : bool;
+  (* In pysemgrep, this is normally a bool option: if unspecified, the
+     config is the user setting obtained from the Semgrep App server.
+     In the OCaml implementation, we don't consult that setting, so
+     a None is equivalent to Some false = disable TR. *)
+  enable_transitive_reachability : bool;
 }
 [@@deriving show]

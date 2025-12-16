@@ -140,7 +140,7 @@ val o_version_check : bool Cmdliner.Term.t
 val o_vim : bool Cmdliner.Term.t
 val o_vim_outputs : string list Cmdliner.Term.t
 val o_x_ignore_semgrepignore_files : bool Cmdliner.Term.t
-val o_x_tr : bool Cmdliner.Term.t
+val o_x_tr : bool option Cmdliner.Term.t
 val o_x_pro_naming : bool Cmdliner.Term.t
 val o_x_group_taint_rules : bool Cmdliner.Term.t
 val o_x_mcp : bool Cmdliner.Term.t
@@ -155,7 +155,7 @@ val engine_type_conf :
   allow_untrusted_validators:bool ->
   pro_path_sensitive:bool ->
   allow_local_builds:bool ->
-  x_tr:bool ->
+  x_tr:bool option ->
   Engine_type.t
 
 val output_format_conf :

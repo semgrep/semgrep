@@ -84,6 +84,8 @@ def prepare_matches_for_app(matches: list[RuleMatch]) -> list[RuleMatch]:
 class ScanHandler:
     def __init__(
         self,
+        *,
+        enable_transitive_reachability: Optional[bool],
         dry_run: bool = False,
         partial_output: Optional[Path] = None,
         dump_scan_id_path: Optional[Path] = None,
@@ -94,6 +96,11 @@ class ScanHandler:
 
         When partial_output is not None, the scan results for semgrep ci
         will also be saved to disk on the path that is specified.
+
+        :param enable_transitive_reachability: if this parameter
+        is not None, override the transitive_reachability_enabled setting
+        obtained from EngineConfiguration (from the Semgrep App server),
+        and enable or disable transitive reachability accordingly.
         """
         state = get_state()
         self.local_id = str(state.local_scan_id)
@@ -110,6 +117,7 @@ class ScanHandler:
         self.ci_scan_results: Optional[out.CiScanResults] = None
         self.partial_output = partial_output
         self.dump_scan_id_path = dump_scan_id_path
+        self.enable_transitive_reachability = enable_transitive_reachability
 
     @property
     def scan_id(self) -> Optional[int]:
@@ -237,7 +245,11 @@ class ScanHandler:
     def transitive_reachability_enabled(self) -> bool:
         """
         Separate property for easy of mocking in test
+
+        CLI flags override user config
         """
+        if self.enable_transitive_reachability is not None:
+            return self.enable_transitive_reachability
         if self.scan_response:
             return self.scan_response.engine_params.transitive_reachability_enabled
         return False
