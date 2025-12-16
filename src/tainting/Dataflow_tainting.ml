@@ -1455,7 +1455,7 @@ let check_function_call_callee env e =
       (`Fun, taints, shape, lval_env)
 
 (* TODO: Move to Taint_lambdas *)
-let mk_lambda_input_env env lcfg =
+let mk_lambda_input_env env (lcfg : Fun_CFG.t) =
   (* We do some processing of the lambda parameters but it's mainly
    * to enable taint propagation, e.g.
    *
@@ -1783,7 +1783,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 [@@profiling]
 
-let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
+let rec transfer : env -> fun_cfg:Fun_CFG.t -> Lval_env.t D.transfn =
  fun enter_env ~fun_cfg
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -2107,7 +2107,7 @@ and (fixpoint :
       Taint_rule_inst.t ->
       ?in_env:Lval_env.t ->
       ?name:IL.name ->
-      F.fun_cfg ->
+      Fun_CFG.t ->
       Effects.t * mapping) =
  fun taint_inst ?(in_env = Lval_env.empty) ?name:opt_name fun_cfg ->
   let best_matches =

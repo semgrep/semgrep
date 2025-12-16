@@ -65,5 +65,5 @@ val is_best_match : Best_matches.t -> 'spec t -> bool
 (** Similar to 'is_exact' but based on "top matches". *)
 
 val best_matches_in_nodes :
-  sub_matches_of_orig:(IL.orig -> any Seq.t) -> IL.fun_cfg -> Best_matches.t
+  sub_matches_of_orig:(IL.orig -> any Seq.t) -> Fun_CFG.t -> Best_matches.t
 (** Collect the top-level matches in a CFG. *)

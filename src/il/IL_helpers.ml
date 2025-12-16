@@ -193,28 +193,3 @@ let orig_of_node = function
   | NOther _
   | NTodo _ ->
       None
-
-(***********************************************)
-(* CFG *)
-(***********************************************)
-
-let rec reachable_nodes fun_cfg =
-  let main_nodes = CFG.reachable_nodes fun_cfg.cfg in
-  let lambdas_nodes =
-    fun_cfg.lambdas |> NameMap.to_seq
-    |> Seq.map (fun (_lname, lcfg) -> reachable_nodes lcfg)
-  in
-  Seq.concat (Seq.cons main_nodes lambdas_nodes)
-
-(***********************************************)
-(* Lambdas *)
-(***********************************************)
-
-let lval_is_lambda lambdas_cfgs lval =
-  match lval with
-  | { base = Var name; rev_offset = [] } ->
-      let* lambda_cfg = IL.NameMap.find_opt name lambdas_cfgs in
-      Some (name, lambda_cfg)
-  | { base = Var _ | VarSpecial _ | Mem _; rev_offset = _ } ->
-      (* Lambdas are only assigned to plain variables without any offset. *)
-      None

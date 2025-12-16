@@ -419,7 +419,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
                 let (init_effects, _mapping), taint_time =
                   Common.with_time (fun () ->
                       Dataflow_tainting.fixpoint taint_inst ?name:opt_name
-                        IL.{ params = []; cfg; lambdas })
+                        Fun_CFG.{ params = []; cfg; lambdas })
                 in
                 prof_add_taint_time tainting_stats file.path opt_name rule
                   taint_time;
@@ -442,7 +442,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
               let (top_effects, _mapping), taint_time =
                 Common.with_time (fun () ->
                     Dataflow_tainting.fixpoint taint_inst
-                      IL.{ params = []; cfg; lambdas })
+                      Fun_CFG.{ params = []; cfg; lambdas })
               in
               prof_add_taint_time tainting_stats file.path None rule taint_time;
               record_matches top_effects

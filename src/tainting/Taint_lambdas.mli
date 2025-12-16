@@ -16,16 +16,16 @@
 type env
 (** Environment, keeps track of the lambdas under analysis. *)
 
-val new_env : IL.fun_cfg -> env
+val new_env : Fun_CFG.t -> env
 
-val push : env -> IL.name (** lambda's name *) -> IL.fun_cfg -> env
+val push : env -> IL.name (** lambda's name *) -> Fun_CFG.t -> env
 (** Push a new lambda to be analyzed. *)
 
 val find_lambda_cfg_in_current_scope :
-  env -> IL.lval -> (IL.name * IL.fun_cfg) option
+  env -> IL.lval -> (IL.name * Fun_CFG.t) option
 
 val find_lambdas_to_analyze_in_node :
-  env -> IL.node -> (IL.name * IL.fun_cfg) list
+  env -> IL.node -> (IL.name * Fun_CFG.t) list
 (** Given a CFG node, finds the lambdas to be analyzed:
 
       - If the node declares a lambda, and this lambda is not used anywhere.

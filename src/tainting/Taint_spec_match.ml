@@ -187,7 +187,7 @@ let best_matches_in_nodes ~sub_matches_of_orig fun_cfg =
    * thus has a range that contains them all, is the chosen as the "best"
    * match of the sink spec.
    *)
-  fun_cfg |> IL_helpers.reachable_nodes
+  fun_cfg |> Fun_CFG.reachable_nodes
   |> Seq.concat_map (fun node ->
          let all_origs : IL.orig Seq.t =
            let origs = ref Seq.empty in

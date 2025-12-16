@@ -73,7 +73,7 @@ let test_cfg_il (caps : < Cap.exec ; Cap.tmp >) ~parse_program file =
   let i = ref 0 in
   Visit_function_defs.visit
     (fun ent fdef ->
-      let IL.{ params = _; cfg; lambdas = _ } =
+      let Fun_CFG.{ params = _; cfg; lambdas = _ } =
         CFG_build.cfg_of_gfdef lang fdef
       in
       Display_IL.display_cfg

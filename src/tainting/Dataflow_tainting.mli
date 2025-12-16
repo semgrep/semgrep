@@ -41,7 +41,7 @@ val hook_infer_sig_for_lambda :
   in_env:Taint_lval_env.t ->
   IL.name ->
   IL.function_definition ->
-  IL.fun_cfg ->
+  Fun_CFG.t ->
   Shape_and_sig.Signature.t)
   option
   Hook.t
@@ -51,7 +51,7 @@ val fixpoint_aux :
   lambdas:Taint_lambdas.env ->
   enter_lval_env:Taint_lval_env.t ->
   in_lambda:IL.name option ->
-  IL.fun_cfg ->
+  Fun_CFG.t ->
   Shape_and_sig.Effects.t * mapping
 (** Pro: inter-proc lambdas *)
 
@@ -59,7 +59,7 @@ val fixpoint :
   Taint_rule_inst.t ->
   ?in_env:Taint_lval_env.t ->
   ?name:IL.name ->
-  IL.fun_cfg ->
+  Fun_CFG.t ->
   Shape_and_sig.Effects.t * mapping
 (** Main entry point, [fixpoint taint_inst cfg] returns a mapping (effectively a set)
   * containing all the tainted variables in [cfg]. Besides, if it infers any taint

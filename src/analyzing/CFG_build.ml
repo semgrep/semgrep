@@ -70,10 +70,10 @@ type state = {
    *)
   throw_destination : F.nodei option;
   (* The CFG of each lambda is kept here separately; it is not part of the
-   * CFG of its enclosing function. Note that an 'IL.fun_cfg' gives you the
+   * CFG of its enclosing function. Note that an 'Fun_CFG.t' gives you the
    * "main" CFG as well as the lambdas' CFGs, and each analysis chooses how to
    * handle the lambdas. *)
-  lambdas_cfgs : IL.lambdas_cfgs ref;
+  lambdas_cfgs : Fun_CFG.lambdas_cfgs ref;
 }
 
 (*****************************************************************************)
@@ -180,7 +180,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
         | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->
             let lambda_cfg = cfg_of_fdef fdef in
             state.lambdas_cfgs :=
-              IL.NameMap.add name lambda_cfg !(state.lambdas_cfgs);
+              Fun_CFG.record_lambda !(state.lambdas_cfgs) name lambda_cfg;
             false
         | __else__ -> false
       in
@@ -442,7 +442,7 @@ and mark_at_exit_nodes cfg =
 (* Main entry point *)
 (*****************************************************************************)
 
-and cfg_of_stmts ?tok (xs : stmt list) : IL.cfg * IL.lambdas_cfgs =
+and cfg_of_stmts ?tok (xs : stmt list) : IL.cfg * Fun_CFG.lambdas_cfgs =
   (* yes, I sometimes use objects, and even mutable objects in OCaml ... *)
   let g = new Ograph_extended.ograph_mutable in
 
@@ -459,7 +459,7 @@ and cfg_of_stmts ?tok (xs : stmt list) : IL.cfg * IL.lambdas_cfgs =
       labels = Hashtbl.create 10;
       gotos = ref [];
       throw_destination = None;
-      lambdas_cfgs = ref NameMap.empty;
+      lambdas_cfgs = ref Fun_CFG.empty_lambdas;
     }
   in
   let last_node_opt, _ignore_may_throw_ = cfg_stmt_list state (Some newi) xs in
@@ -475,7 +475,7 @@ and cfg_of_stmts ?tok (xs : stmt list) : IL.cfg * IL.lambdas_cfgs =
 and cfg_of_fdef fdef =
   let cfg, lambdas = cfg_of_stmts ~tok:(snd fdef.fkind) fdef.fbody in
   mark_at_exit_nodes cfg;
-  IL.{ params = fdef.fparams; cfg; lambdas }
+  Fun_CFG.{ params = fdef.fparams; cfg; lambdas }
 
 let cfg_of_gfdef lang ?ctx fdef =
   let fdef_il = AST_to_IL.function_definition lang ?ctx fdef in

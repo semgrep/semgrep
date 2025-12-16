@@ -16,7 +16,7 @@ type mapping = AST_generic.svalue Dataflow_var_env.mapping
 
 val is_symbolic_expr : AST_generic.expr -> bool
 
-val fixpoint : Lang.t -> IL.fun_cfg -> mapping
+val fixpoint : Lang.t -> Fun_CFG.t -> mapping
 (** Flow-sensitive constant-propagation.
  * !Note that this assumes Naming_AST.resolve has been called before!
 *)

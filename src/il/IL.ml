@@ -580,9 +580,6 @@ and node_kind =
 type edge = Direct
 type cfg = (node, edge) CFG.t
 
-type fun_cfg = { params : param list; cfg : cfg; lambdas : lambdas_cfgs }
-and lambdas_cfgs = fun_cfg NameMap.t
-
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei
 

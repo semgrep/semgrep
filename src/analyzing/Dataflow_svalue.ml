@@ -326,7 +326,7 @@ let transfer_of_assume (assume : bool) (cond : IL.exp_kind)
 let rec transfer :
     lang:Lang.t ->
     enter_env:G.svalue Var_env.t ->
-    fun_cfg:F.fun_cfg ->
+    fun_cfg:Fun_CFG.t ->
     G.svalue Var_env.transfn =
  fun ~lang ~enter_env ~fun_cfg
      (* the transfer function to update the mapping at node index ni *)
@@ -431,7 +431,7 @@ and do_lambdas lang lambdas in_env node =
    * happens inside the lambda is not visible outside it. *)
   match node.F.n with
   | NInstr { i = AssignAnon (lval, Lambda _); _ } -> (
-      match LV.lval_is_lambda lambdas lval with
+      match Fun_CFG.is_lambda lambdas lval with
       | Some (_name, lambda_cfg) ->
           let mapping = fixpoint_with_env lang in_env lambda_cfg in
           update_svalue lambda_cfg.cfg mapping;
@@ -484,7 +484,7 @@ and fixpoint_with_env lang enter_env fun_cfg =
 (* Entry point *)
 (*****************************************************************************)
 
-and (fixpoint : Lang.t -> IL.fun_cfg -> mapping) =
+and (fixpoint : Lang.t -> Fun_CFG.t -> mapping) =
  fun lang fun_cfg ->
   let enter_env = VarMap.empty in
   fixpoint_with_env lang enter_env fun_cfg
