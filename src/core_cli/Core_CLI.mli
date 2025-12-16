@@ -73,6 +73,9 @@ val options :
   Arg_.cmdline_options
 
 val action : string ref
+
+(* Checks if the action is an RPC call *)
+val is_rpc_call : unit -> bool
 val all_actions : Cap.all_caps -> unit -> Arg_.action_spec list
 val register_exception_printers : unit -> unit
 

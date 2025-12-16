@@ -124,6 +124,7 @@ let symbol_analysis = ref Core_scan_config.default.symbol_analysis
 
 (* action mode *)
 let action = ref ""
+let is_rpc_call () = !action = "-rpc"
 
 (*****************************************************************************)
 (* Dumpers (see also Core_actions.ml) *)
@@ -800,11 +801,9 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
   (* Duplicated in Pro_core_CLI.ml *)
   let level : Logs.level option = if !debug then Some Debug else Some Warning in
 
-  let is_rpc_call = !action = "-rpc" in
-
   (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
   Log_semgrep.with_setup ~log_to_otel:!trace ?log_to_file:!log_to_file
-    ?require_one_of_these_tags:None ~quiet_log_setup:is_rpc_call ~color:On
+    ?require_one_of_these_tags:None ~quiet_log_setup:(is_rpc_call ()) ~color:On
     ~level
   @@ fun () ->
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
