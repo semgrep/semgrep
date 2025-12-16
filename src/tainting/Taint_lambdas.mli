@@ -10,26 +10,44 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(** Taint analysis for lambdas *)
 
-(* TODO: Move most lambda-related code to here. *)
+(** Lambda-environment for taint analysis. *)
 
-val find_vars_to_track_across_lambdas : IL.fun_cfg -> IL.NameSet.t
-(**
-Computes a set variables that must be tracked across lambdas: this is used
-to filter what tainted variables, of those discovered while analyzing a lambda,
-may be relevant for the enclosing function.
+type env
+(** Environment, keeps track of the lambdas under analysis. *)
 
-This is a rough flow-insensitive and cheap approximation of a liveness analysis.
+val new_env : IL.fun_cfg -> env
 
-In the example below, `y` can be discarded after `foo(...)` but `x` must be kept
-because it is later passed into a sink:
+val push : env -> IL.name (** lambda's name *) -> IL.fun_cfg -> env
+(** Push a new lambda to be analyzed. *)
 
-    let x;
-    foo(() => { y = taint; x = taint; });
-    sink(x);
+val find_lambda_cfg_in_current_scope :
+  env -> IL.lval -> (IL.name * IL.fun_cfg) option
 
-ALT: We could just do liveness analysis (and we tried) but that seems to be slower
-    overall, the cost of the liveness analysis may be higher than the benefit of
-    the added precision.
-*)
+val find_lambdas_to_analyze_in_node :
+  env -> IL.node -> (IL.name * IL.fun_cfg) list
+(** Given a CFG node, finds the lambdas to be analyzed:
+
+      - If the node declares a lambda, and this lambda is not used anywhere.
+      - Any other lambda being referenced/used in the node.
+ *)
+
+val live_vars_needed_for_taint : env -> IL.NameSet.t
+(** The set of variables that must be tracked across lambdas.
+
+    This is used to filter what tainted variables, of those discovered while
+    analyzing a lambda, may be relevant for the enclosing function.
+
+    This is a rough flow-insensitive and cheap approximation of a liveness analysis.
+
+    In the example below, `y` can be discarded after `foo(...)` but `x` must be kept
+    because it is later passed into a sink:
+
+        let x;
+        foo(() => { y = taint; x = taint; });
+        sink(x);
+
+    ALT: We could just do liveness analysis (and we tried) but that seems to be slower
+        overall, the cost of the liveness analysis may be higher than the benefit of
+        the added precision.
+ *)

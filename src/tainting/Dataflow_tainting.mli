@@ -19,12 +19,10 @@ type java_props_cache
   * to their corresponding property, we cache the results here. *)
 
 type func = {
+  taint_inst : Taint_rule_inst.t;
   fname : IL.name option;
   best_matches : Taint_spec_match.Best_matches.t;
       (** Best matches for the taint sources/etc, see 'Taint_spec_match'. *)
-  used_lambdas : IL.NameSet.t;
-      (** Set of lambda names that are *used* within the function. If a lambda
-        is used, we analyze it at use-site, otherwise we analyze it at def site. *)
 }
 
 val mk_empty_java_props_cache : unit -> java_props_cache
@@ -38,8 +36,8 @@ type hook_function_taint_signature =
 val hook_function_taint_signature : hook_function_taint_signature option Hook.t
 
 val hook_infer_sig_for_lambda :
-  (Taint_rule_inst.t ->
-  func ->
+  (func ->
+  lambdas:Taint_lambdas.env ->
   in_env:Taint_lval_env.t ->
   IL.name ->
   IL.function_definition ->
@@ -49,9 +47,8 @@ val hook_infer_sig_for_lambda :
   Hook.t
 
 val fixpoint_aux :
-  Taint_rule_inst.t ->
   func ->
-  ?needed_vars:IL.NameSet.t ->
+  lambdas:Taint_lambdas.env ->
   enter_lval_env:Taint_lval_env.t ->
   in_lambda:IL.name option ->
   IL.fun_cfg ->
