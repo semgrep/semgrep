@@ -121,12 +121,16 @@ class TestEcosystemToLanguage:
     @pytest.mark.quick
     def test_pypi_returns_python(self):
         ecosystem = Ecosystem(Pypi())
-        assert _ecosystem_to_language(ecosystem) == "python"
+        language = _ecosystem_to_language(ecosystem)
+        assert language is not None
+        assert language.base == "python"
 
     @pytest.mark.quick
-    def test_npm_returns_js(self):
+    def test_npm_returns_ts(self):
         ecosystem = Ecosystem(Npm())
-        assert _ecosystem_to_language(ecosystem) == "js"
+        language = _ecosystem_to_language(ecosystem)
+        assert language is not None
+        assert language.base == "ts"
 
     @pytest.mark.quick
     def test_maven_returns_none(self):
@@ -259,7 +263,9 @@ class TestBuildSubprojectFileMapping:
     def test_npm_subproject_maps_js_files(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
-        """JavaScript files should be mapped to their NPM subproject."""
+        """JavaScript and TypeScript files should be mapped to their
+        NPM subproject.
+        """
         (tmp_path / "app.js").touch()
         (tmp_path / "utils.ts").touch()
         (tmp_path / "package-lock.json").touch()
@@ -281,6 +287,7 @@ class TestBuildSubprojectFileMapping:
         # JS language should pick up both .js and .ts files
         result_paths = {p.resolve() for p in result[key]}
         assert (tmp_path / "app.js").resolve() in result_paths
+        assert (tmp_path / "utils.ts").resolve() in result_paths
 
     @pytest.mark.quick
     def test_files_outside_subproject_not_mapped(
@@ -351,7 +358,9 @@ class TestBuildSubprojectFileMapping:
     def test_npm_only_maps_js_files(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
-        """NPM subprojects should only map JS/TS files, not Python or other language files."""
+        """NPM subprojects should only map JS/TS files, not Python or
+        other language files.
+        """
         (tmp_path / "app.js").touch()
         (tmp_path / "utils.ts").touch()
         (tmp_path / "main.py").touch()
@@ -376,7 +385,7 @@ class TestBuildSubprojectFileMapping:
 
         # Should contain JS/TS files only
         assert (tmp_path / "app.js").resolve() in result_paths
-        # Note: whether .ts is included depends on the JS language definition
+        assert (tmp_path / "utils.ts").resolve() in result_paths
 
         # Should NOT contain non-JS files
         assert (tmp_path / "main.py").resolve() not in result_paths
@@ -681,10 +690,13 @@ class TestRunScaSymbolAnalysis:
 
     @pytest.mark.quick
     @patch("semgrep.symbol_analysis.run_symbol_analysis_rpc")
-    def test_npm_subproject_uses_js_language(
+    def test_npm_subproject_uses_ts_language(
         self, mock_rpc, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
-        """NPM subprojects should use 'js' as the language."""
+        """NPM subprojects should use 'ts' as the language, but still
+        run even if the project only has .js files.
+        """
+        # intentionally not including a .ts file
         (tmp_path / "app.js").touch()
         (tmp_path / "package-lock.json").touch()
         (tmp_path / "package.json").touch()
@@ -702,7 +714,7 @@ class TestRunScaSymbolAnalysis:
 
         run_subproject_symbol_analysis(subprojects_by_ecosystem, target_manager)
 
-        # Verify language passed to RPC is 'js'
+        # Verify language passed to RPC is 'ts'
         mock_rpc.assert_called_once()
         params = mock_rpc.call_args.kwargs["params"]
-        assert params.lang == "js"
+        assert params.lang == "ts"

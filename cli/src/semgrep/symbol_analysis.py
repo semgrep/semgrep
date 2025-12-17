@@ -10,8 +10,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
+from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -32,7 +34,25 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def _ecosystem_to_language(ecosystem: out.Ecosystem) -> Optional[Language]:
+@dataclass
+class _Language:
+    """Use lang.base as the parameter for symbol analysis, but pull
+    files in for lang.base + lang.additional.
+
+    This lets us deal with NPM, where we want to specify "ts" as the
+    language, but run the code over both .ts *and* .js files (since
+    JavaScript is a strict subset of TypeScript).
+    """
+
+    base: Language
+    additional: Sequence[Language]
+
+    def all_languages(self) -> Iterator[Language]:
+        yield self.base
+        yield from self.additional
+
+
+def _ecosystem_to_language(ecosystem: out.Ecosystem) -> Optional[_Language]:
     """
     Converts an ecosystem to a language in a hacky way based off of semgrep_interfaces/lang.json
 
@@ -49,9 +69,9 @@ def _ecosystem_to_language(ecosystem: out.Ecosystem) -> Optional[Language]:
     # You can get the id_string from `lang.json`.
     try:
         if kind == "pypi":
-            return LANGUAGE.resolve("python")
+            return _Language(LANGUAGE.resolve("python"), [])
         elif kind == "npm":
-            return LANGUAGE.resolve("js")
+            return _Language(LANGUAGE.resolve("ts"), [LANGUAGE.resolve("js")])
     except UnknownLanguageError:
         logger.error("Invalid language detected")
 
@@ -80,25 +100,26 @@ def build_subproject_file_mapping(
     subproject_files = defaultdict[Tuple[out.Ecosystem, Path], List[Path]](list)
 
     for ecosystem, subprojects in subprojects_by_ecosystem.items():
-        lang = _ecosystem_to_language(ecosystem)
-        if lang is None:
+        ecosystem_lang = _ecosystem_to_language(ecosystem)
+        if ecosystem_lang is None:
             continue
 
         # Get all code files for this language
-        for code_file in target_manager.get_files_for_language(
-            lang=lang, product=SCA_PRODUCT
-        ).kept:
-            # Find which subproject this file belongs to (note that this logic re-implements the logic in `dependency_aware_rule.py`)
-            closest_subproject = find_closest_subproject(
-                code_file,
-                ecosystem,
-                [
-                    sp.info for sp in subprojects
-                ],  # convert ResolvedSubproject to Subproject
-            )
-            if closest_subproject is not None:
-                key = (ecosystem, Path(closest_subproject.root_dir.value))
-                subproject_files[key].append(code_file.fpath)
+        for lang in ecosystem_lang.all_languages():
+            for code_file in target_manager.get_files_for_language(
+                lang=lang, product=SCA_PRODUCT
+            ).kept:
+                # Find which subproject this file belongs to (note that this logic re-implements the logic in `dependency_aware_rule.py`)
+                closest_subproject = find_closest_subproject(
+                    code_file,
+                    ecosystem,
+                    [
+                        sp.info for sp in subprojects
+                    ],  # convert ResolvedSubproject to Subproject
+                )
+                if closest_subproject is not None:
+                    key = (ecosystem, Path(closest_subproject.root_dir.value))
+                    subproject_files[key].append(code_file.fpath)
 
     return subproject_files
 
@@ -115,7 +136,7 @@ def run_symbol_analysis_for_files(
 
     Args:
         root_path: Root directory of the subproject
-        lang: Language to analyze (e.g., "python", "js")
+        lang: Language to analyze (e.g., "python", "ts")
         files: List of file paths to analyze
 
     Returns:
@@ -185,7 +206,7 @@ def run_subproject_symbol_analysis(
 
             symbol_analysis = run_symbol_analysis_for_files(
                 root_path=Path(subproject.info.root_dir.value),
-                lang=lang,
+                lang=lang.base,
                 files=files,
             )
 
