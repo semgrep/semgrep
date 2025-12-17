@@ -11,6 +11,7 @@
 # LICENSE for more details.
 #
 from dataclasses import dataclass
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import FrozenSet
 from typing import List
@@ -42,15 +43,21 @@ class GradleMatcher(SubprojectMatcher):
 
     BUILD_FILENAMES = ["build.gradle", "build.gradle.kts"]
     SETTINGS_FILENAMES = ["settings.gradle", "settings.gradle.kts"]
-    LOCKFILE_FILENAME = "gradle.lockfile"
+    # Gradle allows setting arbitrary filenamese for its lockfiles
+    # (https://docs.gradle.org/current/userguide/dependency_locking.html#sec:configuring-the-per-project-lock-file-name-and-location).
+    # Our framework does not support arbitrary filenames, but we attempt to handle the most
+    # common cases with this pattern.
+    LOCKFILE_PATTERN = "gradle*.lockfile"
     ECOSYSTEM = out.Ecosystem(out.Maven())
+
+    def _is_lockfile_match(self, path: Path) -> bool:
+        return fnmatch(str(path.name), self.LOCKFILE_PATTERN)
 
     def is_match(self, path: Path) -> bool:
         return path.name in [
             *self.BUILD_FILENAMES,
             *self.SETTINGS_FILENAMES,
-            self.LOCKFILE_FILENAME,
-        ]
+        ] or self._is_lockfile_match(path)
 
     def _lockfile_to_settings_and_build(
         self, lockfile_path: Path, candidates: FrozenSet[Path]
@@ -96,7 +103,7 @@ class GradleMatcher(SubprojectMatcher):
                 build_files.add(path)
             elif path.name in self.SETTINGS_FILENAMES:
                 settings_files.add(path)
-            elif path.name == self.LOCKFILE_FILENAME:
+            elif self._is_lockfile_match(path):
                 lockfiles.add(path)
         return settings_files, build_files, lockfiles
 

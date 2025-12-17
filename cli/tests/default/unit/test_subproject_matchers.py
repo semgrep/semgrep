@@ -766,6 +766,10 @@ class TestGradleMatcher:
             (Path("a/b/c/requirements.txt"), False),
             (Path("unknown.lock"), False),
             (Path("a/b/c/requirements/hello/unknown.lock"), False),
+            (Path("java/gradle.whatever.lockfile"), True),
+            (Path("java/gradle-whatever.lockfile"), True),
+            (Path("java/gradle.whatever-lockfile"), False),
+            (Path("java/gradlelockfile"), False),
         ],
     )
     def test_is_match(self, path: Path, expected_match: bool) -> None:
@@ -1041,6 +1045,36 @@ class TestGradleMatcher:
                                 out.Manifest(
                                     kind=out.ManifestKind(value=out.BuildGradleKts()),
                                     path=out.Fpath("build.gradle.kts"),
+                                )
+                            ),
+                        ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
+                    ),
+                ],
+                [],
+            ),
+            (
+                # using a custom-named gradle lockfile
+                [
+                    Path("build.gradle"),
+                    Path("gradle.custom.lockfile"),
+                ],
+                [
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        kind=out.ManifestKind(value=out.BuildGradle()),
+                                        path=out.Fpath("build.gradle"),
+                                    ),
+                                    out.Lockfile(
+                                        kind=out.LockfileKind(
+                                            value=out.GradleLockfile()
+                                        ),
+                                        path=out.Fpath("gradle.custom.lockfile"),
+                                    ),
                                 )
                             ),
                         ),
