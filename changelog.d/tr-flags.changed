@@ -1,4 +1,0 @@
-pro: [experimental] enabling and disabling transitive reachability
-analysis in `semgrep ci` regardless of app settings is now possible with
-`--x-enable-transitive-reachability` (or `--x-tr`)
-and `--x-disable-transitive-reachability`.

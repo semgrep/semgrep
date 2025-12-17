@@ -1,1 +1,0 @@
-Added support for Cursor post-code-generation hooks via new `record-file-edit` and `stop-cli-scan` semgrep mcp flags

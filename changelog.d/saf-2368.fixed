@@ -1,1 +1,0 @@
-Fixed an issue that in rare cases could lead timeouts to be mishandled. This typically manifested only through slightly different warning messages, but it is possible that more serious consequences could have occasionally resulted.

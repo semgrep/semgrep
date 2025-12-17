@@ -1,1 +1,0 @@
-Symbol analysis, if enabled, now runs for Supply Chain only scans when calling `semgrep ci`.
