@@ -125,6 +125,7 @@ let symbol_analysis = ref Core_scan_config.default.symbol_analysis
 (* action mode *)
 let action = ref ""
 let is_rpc_call () = !action = "-rpc"
+let is_action () = !action <> ""
 
 (*****************************************************************************)
 (* Dumpers (see also Core_actions.ml) *)
@@ -287,7 +288,9 @@ let mk_config ?rules () : Core_scan_config.t =
       (match !rule_source with
       | None -> (
           match rules with
-          | None -> failwith "missing -rules"
+          | None ->
+              (* Actions don't need rules *)
+              if is_action () then Rules [] else failwith "missing -rules"
           | Some rules -> Rules rules)
       | Some x -> x);
     target_source =
@@ -817,40 +820,44 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.measure "Main total" (fun () ->
-      match args with
-      (* --------------------------------------------------------- *)
-      (* actions, useful to debug subpart *)
-      (* --------------------------------------------------------- *)
-      | xs when List.mem !action (Arg_.action_list (all_actions caps ())) ->
-          Arg_.do_action !action xs (all_actions caps ())
-      | _ when not (String_.empty !action) ->
-          failwith ("unrecognized action or wrong params: " ^ !action)
-      (* --------------------------------------------------------- *)
-      (* main entry *)
-      (* --------------------------------------------------------- *)
-      | roots ->
-          let roots = Fpath_.of_strings roots in
-          let target_source : Core_scan_config.target_source =
-            match (!target_file, !lang, roots) with
-            | Some file, None, [] -> Target_file file
-            | None, Some lang, [ file ]
-              when UFile.is_reg ~follow_symlinks:true file ->
-                Targets [ Target.mk_unfilterable_lang_target lang file ]
-            | _ ->
-                (* alt: use the file targeting in Find_targets_lang but better
+      maybe_with_eio (fun config ->
+          let analysis_flags = Trace_data.no_analysis_features () in
+          (* Enclose action execution to enable tracing for actions. *)
+          maybe_with_tracing "Core_command.semgrep_core_dispatch" "oss"
+            analysis_flags config (fun config ->
+              match args with
+              (* --------------------------------------------------------- *)
+              (* actions, useful to debug subpart *)
+              (* --------------------------------------------------------- *)
+              | xs
+                when List.mem !action (Arg_.action_list (all_actions caps ()))
+                ->
+                  Arg_.do_action !action xs (all_actions caps ())
+              | _ when not (String_.empty !action) ->
+                  failwith ("unrecognized action or wrong params: " ^ !action)
+              (* --------------------------------------------------------- *)
+              (* main entry *)
+              (* --------------------------------------------------------- *)
+              | roots ->
+                  let roots = Fpath_.of_strings roots in
+                  let target_source : Core_scan_config.target_source =
+                    match (!target_file, !lang, roots) with
+                    | Some file, None, [] -> Target_file file
+                    | None, Some lang, [ file ]
+                      when UFile.is_reg ~follow_symlinks:true file ->
+                        Targets [ Target.mk_unfilterable_lang_target lang file ]
+                    | _ ->
+                        (* alt: use the file targeting in Find_targets_lang but better
                  to "dumb-down" semgrep-core to its minimum.
               *)
-                failwith
-                  "this combination of targets and flags is not supported; \
-                   semgrep-core supports either the use of -targets, or -lang \
-                   and a single target file; if you need more complex file \
-                   targeting use semgrep"
-          in
-          maybe_with_eio (fun config ->
-              let config = { config with target_source } in
-              let analysis_flags = Trace_data.no_analysis_features () in
-              maybe_with_tracing "Core_command.semgrep_core_dispatch" "oss"
-                analysis_flags config (fun config -> run caps config)))
+                        failwith
+                          "this combination of targets and flags is not \
+                           supported; semgrep-core supports either the use of \
+                           -targets, or -lang and a single target file; if you \
+                           need more complex file targeting use semgrep"
+                  in
+                  let config = { config with target_source } in
+                  run caps config)))
 
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () -> main_exn caps argv)

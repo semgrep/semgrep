@@ -234,6 +234,7 @@ let handle_request (caps : < caps ; .. >) chan_in chan_out size =
   in
   let res_str = Semgrep_output_v1_j.string_of_function_result result in
   write_packet chan_out res_str
+[@@trace]
 
 let rec handle_multiple_requests (caps : < caps ; .. >) chan_in chan_out =
   match read_header chan_in with

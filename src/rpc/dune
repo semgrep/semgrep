@@ -28,4 +28,5 @@
     semgrep.osemgrep_cli_show
     networking.proxy
  )
+ (preprocess (pps telemetry.ppx))
 )

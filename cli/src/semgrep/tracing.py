@@ -145,6 +145,7 @@ class ScanInfoLogProcessor(LogRecordProcessor):
 @define
 class Traces:
     enabled: bool = False
+    trace_endpoint: Optional[str] = None
     scan_info_span_processor = ScanInfoSpanProcessor()
     scan_info_log_processor: Optional[ScanInfoLogProcessor] = None
 
@@ -161,6 +162,8 @@ class Traces:
 
         if not self.enabled:
             return
+
+        self.trace_endpoint = trace_endpoint
 
         env_name = _ENV_ALIASES.get(
             _DEFAULT_ENDPOINT if trace_endpoint is None else trace_endpoint
