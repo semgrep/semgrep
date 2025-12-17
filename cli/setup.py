@@ -132,7 +132,6 @@ install_requires = [
     "opentelemetry-sdk~=1.37.0",
     "opentelemetry-exporter-otlp-proto-http~=1.37.0",
     "opentelemetry-instrumentation-requests~=0.58b0",
-    "opentelemetry-instrumentation-threading~=0.58b0",
     "packaging>=21.0",
     "peewee~=3.14",
     "requests~=2.22",

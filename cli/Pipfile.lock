@@ -512,14 +512,6 @@
             "markers": "python_version >= '3.9'",
             "version": "==0.58b0"
         },
-        "opentelemetry-instrumentation-threading": {
-            "hashes": [
-                "sha256:eacc072881006aceb5b9b6831bcdce718c67ef6f31ac0b32bd6a23a94d979b4a",
-                "sha256:f68c61f77841f9ff6270176f4d496c10addbceacd782af434d705f83e4504862"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==0.58b0"
-        },
         "opentelemetry-proto": {
             "hashes": [
                 "sha256:30f5c494faf66f77faeaefa35ed4443c5edb3b0aa46dad073ed7210e1a789538",
