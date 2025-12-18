@@ -54,7 +54,7 @@ Pipfile.lock: setup.py
 #
 PYTEST ?= \
   pipenv run pytest \
-    -n auto -vv --tb=short --timeout=300 --durations=10 $(PYTEST_EXTRA_ARGS)
+    -n auto -vv --tb=long --timeout=300 --durations=10 $(PYTEST_EXTRA_ARGS)
 
 # This is run from .github/workflow/tests.jsonnet (which sets
 # PYTEST_EXTRA_ARGS to some value for snapshot update).
