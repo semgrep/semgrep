@@ -271,7 +271,8 @@ install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	opam update -y
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
-
+	# Validate that after installing deps the pinned compiler hasn't changed
+	./scripts/validate-compiler-sha.sh
 # This installs pyro caml profiler, which allows us to do some nice continous
 # profiling (--profile passed to pysemgrep). This is separate from
 # install-opam-deps, as it is not compatible with tsan nor windows. This allows
