@@ -4,7 +4,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: windows-2025
+    runs-on: depot-windows-2022-16
     steps:
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
@@ -112,7 +112,7 @@ jobs:
         shell: bash
     needs:
       - build-core
-    runs-on: windows-2025
+    runs-on: depot-windows-2022-16
     steps:
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
@@ -141,7 +141,7 @@ jobs:
         shell: bash
     needs:
       - build-wheels
-    runs-on: windows-2025
+    runs-on: depot-windows-2022-16
     steps:
       - uses: actions/setup-python@v5
         with:
