@@ -1,0 +1,1 @@
+`semgrep login` now supports a `--force` flag, which ignores existing tokens and starts a new login session.
