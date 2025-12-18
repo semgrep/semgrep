@@ -128,6 +128,7 @@ WORKDIR /src/semgrep
 COPY Makefile cygwin-env.mk semgrep.opam ./
 COPY dev/required.opam dev/
 COPY scripts/build-static-libcurl.sh scripts/
+COPY scripts/validate-compiler-sha.sh scripts/
 COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 COPY libs/pcre2 libs/pcre2
@@ -158,6 +159,7 @@ RUN opam exec -- make core
 
 # Sanity check
 RUN ./bin/semgrep-core -version
+RUN ./scripts/validate-compiler-sha.sh bin/semgrep-core
 
 ###############################################################################
 # Step2: Combine the Python wrapper (pysemgrep) and semgrep-core binary
