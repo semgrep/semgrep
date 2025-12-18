@@ -11,7 +11,7 @@ pin-depends: [
         - semgrep-pro.opam
         - OSS/Makefile
   *)
-  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#81a022a5340cc3af346f85438c7db3c29adbf234"]
+  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#20c7ee45ba6e44b2e659665032a18ccd9dedaca7"]
   (* TODO: move pcre2, testo, and obackward to be pinned to git repos *)
   ["pcre2.dev" "./libs/pcre2"]
   ["tree-sitter.dev" "./libs/ocaml-tree-sitter-core"]

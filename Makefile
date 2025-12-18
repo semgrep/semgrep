@@ -241,7 +241,8 @@ pin-ocaml-fork:
 	#   - OSS/semgrep.opam.template
 	#   - semgrep-pro.opam
 	#   - semgrep-pro.opam.template
-	opam pin add ocaml-variants.5.3.0 git+https://github.com/semgrep/ocaml.git#81a022a5340cc3af346f85438c7db3c29adbf234 --update-invariant -y
+	# coupling: Please ensure to invalidate the setup-ocaml cache as described in ./.github/workflows/semgrep.libsonnet
+	opam pin add ocaml-variants.5.3.0 git+https://github.com/semgrep/ocaml.git#20c7ee45ba6e44b2e659665032a18ccd9dedaca7 --update-invariant -y
 
 pin-ocaml-fork-tsan:
 	# NBT: our fork of the compiler
