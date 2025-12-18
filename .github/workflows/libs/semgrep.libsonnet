@@ -137,7 +137,13 @@ local slack = {
 
 // This is the version of the cache we use below. If you need to invalidate it
 // for some reason then bump this.
-local opam_cache_version = 'v2';
+//
+// NOTE: When the compiler fork SHA is bumped, it's very common that you will
+// observe failures in our pipelines that use setup-ocaml's cache.
+//
+// coupling: if you modify the compiler pin sha you will need to bump this
+// prefix (or similar) to invalidate the cache
+local opam_cache_version = 'v3';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
