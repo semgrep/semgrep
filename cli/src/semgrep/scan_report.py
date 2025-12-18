@@ -483,7 +483,12 @@ def print_scan_status(
         )
         return plans
 
-    if not has_sca_rules and not has_secret_rules and legacy_ux:
+    if (
+        not has_sca_rules
+        and not has_secret_rules
+        and legacy_ux
+        and not dependency_resolution_errors
+    ):
         # Print these SAST table without section headers
         _print_sast_table(
             sast_plan=sast_plan,
@@ -531,7 +536,6 @@ def print_scan_status(
         # Show the basic table for supply chain
         console.print(Title("Supply Chain Rules", order=2))
         _print_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
-        _print_sca_resolution_errors(dependency_resolution_errors)
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
@@ -542,7 +546,9 @@ def print_scan_status(
             # without supply-chain to upgrade their usage to the `ci` command
             with_supply_chain=with_supply_chain,
         )
-        _print_sca_resolution_errors(dependency_resolution_errors)
+    # always show SCA resolution errors regardless of if there are rules,
+    # since if resolution fails the rules will be filtered out
+    _print_sca_resolution_errors(dependency_resolution_errors)
 
     if detailed_ux:
         console.print(Title("Progress", order=2))
