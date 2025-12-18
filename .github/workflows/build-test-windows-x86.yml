@@ -24,12 +24,6 @@ jobs:
           PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
           CYGWIN_ROOT=$(cygpath -w /)
           $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
-      - name: Install flexlink patched to use response files and cygpath -file arg
-        run: |
-          git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
-          cd flexdll/
-          opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
-          cp flexlink.exe ../_opam/bin/
       - name: Debug stuff
         run: |
           ls

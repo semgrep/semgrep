@@ -52,29 +52,6 @@ local build_core_job = {
              |||,
            },
            {
-             // TODO: We can remove this once these flexdll PRs are merged and a new
-             // version of flexdll is released:
-             // - https://github.com/ocaml/flexdll/pull/151
-             // - https://github.com/ocaml/flexdll/pull/152
-
-             // Currently, flexlink only uses response files with MSVC and LIGHTLD
-             // compilers. With the MINGW64 compiler, we get an "argument list too
-             // long error". We use a patched version of flexlink that uses response
-             // files with MINGW64.
-
-             // flexlink also calls cygpath to normalize a bunch of paths, and our
-             // build has too many search paths which causes an "argument list too
-             // long" error. We use a patched flexlink which passes these arguments
-             // in a file to cygpath.
-             name: 'Install flexlink patched to use response files and cygpath -file arg',
-             run: |||
-               git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
-               cd flexdll/
-               opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
-               cp flexlink.exe ../_opam/bin/
-             |||,
-           },
-           {
              name: 'Debug stuff',
              run: |||
                ls
