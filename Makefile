@@ -234,15 +234,8 @@ install-deps-for-semgrep-core:
 	$(MAKE) install-opam-deps
 
 pin-ocaml-fork:
-	# NBT: our fork of the compiler
-	# coupling: Please ensure that the commit SHAs are consistent between:
-	#   - OSS/Makefile
-	#   - OSS/semgrep.opam
-	#   - OSS/semgrep.opam.template
-	#   - semgrep-pro.opam
-	#   - semgrep-pro.opam.template
-	# coupling: Please ensure to invalidate the setup-ocaml cache as described in ./.github/workflows/semgrep.libsonnet
-	opam pin add ocaml-variants.5.3.0 git+https://github.com/semgrep/ocaml.git#20c7ee45ba6e44b2e659665032a18ccd9dedaca7 --update-invariant -y
+	# the fork without TSan is pinned via our `semgrep.opam.template` file + `semgrep.opam`
+	echo "skipping pinning ocaml fork via make"
 
 pin-ocaml-fork-tsan:
 	# NBT: our fork of the compiler
@@ -269,8 +262,11 @@ pin-ocaml-fork-tsan:
 #   install the pcre system package, this ensures those are reinstalled
 install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	opam update -y
-	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
-	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
+	# we want to install our forked OCaml compiler, however this contradicts
+	# the default 5.3.0 invariant of `ocaml-base-compiler = 5.3.0`.
+	# --update-invariant does just that
+	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --update-invariant --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
+	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --update-invariant --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 	# Validate that after installing deps the pinned compiler hasn't changed
 	./scripts/validate-compiler-sha.sh
 # This installs pyro caml profiler, which allows us to do some nice continous
