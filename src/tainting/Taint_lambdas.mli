@@ -14,25 +14,15 @@
 (** Lambda-environment for taint analysis. *)
 
 type env
-(** Environment, keeps track of the lambdas under analysis.
-
-  Maintains a stack of lambda scopes for a function CFG. The top-level
-  (wrt to the main function) lambda declarations are in the "root" scope.
-  Nested lambda declarations are in corresponding nested scopes.
-*)
+(** Environment, keeps track of the lambdas under analysis. *)
 
 val new_env : Fun_CFG.t -> env
-(** Create environment for the main function under analysis. *)
 
 val push : env -> IL.name (** lambda's name *) -> Fun_CFG.t -> env
-(** Push a new lambda that is going to be analyzed within the
-    main function, this introduces a new scope. *)
+(** Push a new lambda to be analyzed. *)
 
 val find_lambda_cfg_in_current_scope :
   env -> IL.lval -> (IL.name * Fun_CFG.t) option
-(** Finds if 'lval' is a lambda that is declared in the current scope of
-    the analysis. Even if there is a lambda declared with that name in
-    a parent scope, it will not be returned here. *)
 
 val find_lambdas_to_analyze_in_node :
   env -> IL.node -> (IL.name * Fun_CFG.t) list
@@ -40,10 +30,6 @@ val find_lambdas_to_analyze_in_node :
 
       - If the node declares a lambda, and this lambda is not used anywhere.
       - Any other lambda being referenced/used in the node.
-
-    For Semgrep to be able to instantiate a lambda at use site, the lambda
-    must have a unique name. In any other case we instante the lambdas at
-    declaration site.
  *)
 
 val live_vars_needed_for_taint : env -> IL.NameSet.t
