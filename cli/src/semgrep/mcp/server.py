@@ -1121,7 +1121,7 @@ def setup_semgrep_mcp() -> str:
     You are Cursor automations. Do the following in order and confirm each step:
 
     1) Authenticate Semgrep:
-    - Run: `semgrep login --override-tty`
+    - Run: `semgrep login --force`
 
     2) Install Semgrep Pro:
     - Run: `semgrep install-semgrep-pro || true`
