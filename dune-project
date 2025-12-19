@@ -62,6 +62,9 @@ For more information see https://semgrep.dev
     ; core deps
     ; see ppxlib comment for why we can't support 5.4 yet
     (ocaml (>= 5.3.0))
+    ; needed for opam to understand that we are using a variant of the ocaml
+    ; compiler (namily semgrep/ocaml).
+    ocaml-variants
     ; parser generators
     (menhir (= 20230608))
     ; vendored in libs/ocaml-tree-sitter-core
