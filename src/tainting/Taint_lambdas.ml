@@ -20,22 +20,16 @@ module ILH = IL_helpers
 (* Environment *)
 (*****************************************************************************)
 
-type in_parent_scope = IL.NameSet.t
-(** Lambda names visible in the parent scope. *)
-
 type env = {
   root : Fun_CFG.lambdas_cfgs;
       (** Lambda declarations in the main function under analysis. *)
-  in_lambda : (IL.name * Fun_CFG.lambdas_cfgs * in_parent_scope) list;
-      (** Stack of lambda scopes, most recent at the top. *)
+  in_lambda : (IL.name * Fun_CFG.lambdas_cfgs) list;
+      (** Lambda scopes, stack, most recent at the top. *)
   used_somewhere : IL.NameSet.t;
       (** Lambdas that we know are used somewhere.
 
-        If a lambda is *not* used anywhere, then we instantiate it already at
-        declaration site, so it's useful to have this pre-computed.
-
-        Recursive calls are not considered as uses here.
-      *)
+      If a lambda is *not* use anywhere, then we instantiate it already at
+      declaration site, so it's useful to have this pre-computed.. *)
   needed_vars : IL.NameSet.t;
       (** Vars that we need to track in the current function/lambda under analysis,
       other vars can be filtered out, see 'Dataflow_tainting.fixpoint_lambda' as
@@ -51,28 +45,23 @@ let rec lambdas_used_in_cfg ?(lambdas = Fun_CFG.empty_lambdas)
   let union_all seq = seq |> Seq.fold_left IL.NameSet.union IL.NameSet.empty in
   let lambdas =
     (* A previously declared lambda may be used inside another lambda, so we
-      need to union the lambda "environments". There should be no name clashing,
-      but if there was, we would keep the most recent declaration. *)
+      need union the lambda "environments". There should be no name clashing, but
+      if there was, we would keep the most recent declaration. *)
     fun_cfg.lambdas |> Fun_CFG.union_lambdas ~base:lambdas
   in
-  let lambdas_used_in_node node =
+  let lambdas_in_node node =
     ILH.rlvals_of_node node.IL.n
     |> List.to_seq
-    |> Seq.filter_map (fun lval ->
-           (* We only consider a lambda ref as an use if we can uniquely
-              identify its corresponding lambda declaration. *)
-           Fun_CFG.is_lambda lambdas lval |> Result.to_option)
+    |> Seq.filter_map (Fun_CFG.is_lambda lambdas)
     |> Seq.map (fun (lname, _) -> lname)
     |> IL.NameSet.of_seq
   in
   let used_in_main =
-    fun_cfg.cfg |> CFG.reachable_nodes
-    |> Seq.map lambdas_used_in_node
-    |> union_all
+    fun_cfg.cfg |> CFG.reachable_nodes |> Seq.map lambdas_in_node |> union_all
   in
   let used_in_lambdas =
     fun_cfg.lambdas |> Fun_CFG.seq_of_lambdas
-    |> Seq.map (fun (lname, _pos, lcfg) ->
+    |> Seq.map (fun (lname, lcfg) ->
            (* Take into account recursive definitions:
 
                   foo = (...) => ... foo(...) ...
@@ -87,7 +76,7 @@ let rec lambdas_used_in_cfg ?(lambdas = Fun_CFG.empty_lambdas)
 (* Pre-analysis to find vars to track across lambdas *)
 (*****************************************************************************)
 
-let visitor_to_find_used_vars =
+let visitor_for_find_used_vars =
   object (_self : 'self)
     inherit [_] IL.iter
 
@@ -96,14 +85,12 @@ let visitor_to_find_used_vars =
       ()
   end
 
-let find_vars_used_outside_lamdas (fun_cfg : Fun_CFG.t) =
+let findvars_used_outside_lamdas (fun_cfg : Fun_CFG.t) =
   let acc = ref IL.NameSet.empty in
   let visit_node node =
     match node.IL.n with
-    | NInstr { i = AssignAnon (_, Lambda _); _ } ->
-        (* don't look inside lambdas *)
-        ()
-    | __else__ -> visitor_to_find_used_vars#visit_node acc node
+    | NInstr { i = AssignAnon (_, Lambda _); _ } -> ()
+    | __else__ -> visitor_for_find_used_vars#visit_node acc node
   in
   fun_cfg.cfg |> CFG.reachable_nodes |> Seq.iter visit_node;
   !acc
@@ -114,7 +101,7 @@ let find_vars_used_in_multiple_lambdas (fun_cfg : Fun_CFG.t) =
     let used_acc = ref IL.NameSet.empty in
     (match node.IL.n with
     | NInstr { i = AssignAnon (_, Lambda _); _ } ->
-        visitor_to_find_used_vars#visit_node used_acc node
+        visitor_for_find_used_vars#visit_node used_acc node
     | __else__ -> ());
     !used_acc
     |> IL.NameSet.iter (fun var ->
@@ -131,7 +118,7 @@ let find_vars_used_in_multiple_lambdas (fun_cfg : Fun_CFG.t) =
 (* If we analyzed a lambda in 'fun_cfg', these would be the variables that
   we need to track outside that lambda, so we can discard other variables. *)
 let find_vars_to_track_across_lambdas fun_cfg =
-  find_vars_used_outside_lamdas fun_cfg
+  findvars_used_outside_lamdas fun_cfg
   |> IL.NameSet.union (find_vars_used_in_multiple_lambdas fun_cfg)
 
 (*****************************************************************************)
@@ -143,22 +130,16 @@ let new_env fcfg =
   let needed_vars = find_vars_to_track_across_lambdas fcfg in
   { root = fcfg.lambdas; in_lambda = []; used_somewhere; needed_vars }
 
-let current { root; in_lambda; _ } =
+let top { root; in_lambda; _ } =
   match in_lambda with
-  | (_name, lambdas, _in_parent) :: _ -> lambdas
+  | (_name, lambdas) :: _ -> lambdas
   | [] -> root
 
-let in_scope { root; in_lambda; _ } =
-  match in_lambda with
-  | (_name, lambdas, in_parent) :: _ ->
-      Fun_CFG.lambdas_names lambdas |> IL.NameSet.union in_parent
-  | [] -> Fun_CFG.lambdas_names root
-
-let push ({ root; in_lambda; used_somewhere; needed_vars } as env) lname
+let push { root; in_lambda; used_somewhere; needed_vars } lname
     (fcfg : Fun_CFG.t) =
   {
     root;
-    in_lambda = (lname, fcfg.lambdas, in_scope env) :: in_lambda;
+    in_lambda = (lname, fcfg.lambdas) :: in_lambda;
     used_somewhere;
     needed_vars =
       needed_vars |> IL.NameSet.union (find_vars_to_track_across_lambdas fcfg);
@@ -167,9 +148,7 @@ let push ({ root; in_lambda; used_somewhere; needed_vars } as env) lname
 let find_lambda_cfg_in_current_scope env (lval : IL.lval) =
   match lval with
   | { base = Var name; rev_offset = [] } ->
-      let* lambda_cfg =
-        Fun_CFG.find_lambda (current env) name |> Result.to_option
-      in
+      let* lambda_cfg = Fun_CFG.find_lambda (top env) name in
       Some (name, lambda_cfg)
   | { base = Var _ | VarSpecial _ | Mem _; rev_offset = _ } ->
       (* Lambdas are only assigned to plain variables without any offset. *)
@@ -180,43 +159,16 @@ let find { root; in_lambda; _ } name =
     match scopes with
     | [] ->
         (* Could not find in nested lambdas, try in the "root" scope *)
-        Fun_CFG.find_lambda root name |> Result.to_option
-    | (name_i, lambdas_i, in_parent) :: scopes -> (
+        Fun_CFG.find_lambda root name
+    | (name_i, lambdas_i) :: scopes -> (
         if IL.equal_name name name_i then
           (* We are looking for a lambda that is already under analysis,
             this is probably a recursive call, which we don't support. *)
           None
         else
           match Fun_CFG.find_lambda lambdas_i name with
-          | Ok res when not (IL.NameSet.mem name in_parent) (* unique *) ->
-              Some res
-          | Ok _ (* not unique *)
-          | Error `Multi ->
-              (*
-              E.g.
-
-                  foo = () => ...;
-                  foo = () => ...;
-
-              or
-
-                  foo = () => ...;
-                  bar = function () {
-                    foo = () => ...;
-                    ...
-                  };
-            *)
-              None
-          | Error `NotLambda ->
-              (*
-              E.g. in the body of lambda `bar` below we have a call to `fn`,
-              but to find the declaration of `fn` we need to look into the
-              outer scope.
-
-                  const fn = () => sink(source());
-                  bar = function () { fn(baz) };
-            *)
-              go_find scopes)
+          | Some res -> Some res
+          | None -> go_find scopes)
   in
   let* cfg = go_find in_lambda in
   Some (name, cfg)
@@ -236,7 +188,7 @@ let find_lambdas_used_in_node env node =
   ILH.rlvals_of_node node.IL.n |> List_.filter_map (is_use_of_lambda env)
 
 let find_lambdas_to_analyze_in_node env node =
-  let lambdas = current env in
+  let lambdas = top env in
   let unused_lambda_def =
     (* If the node declares a lambda, and this lambda is not used anywhere,
       we want to instantiate it here. *)
@@ -246,9 +198,7 @@ let find_lambdas_to_analyze_in_node env node =
       | __else__ -> None
     in
     let* lval = ILH.lval_of_instr_opt instr in
-    let* ((lname, _) as lambda) =
-      Fun_CFG.is_lambda lambdas lval |> Result.to_option
-    in
+    let* ((lname, _) as lambda) = Fun_CFG.is_lambda lambdas lval in
     if is_used_somewhere env lname then None else Some lambda
   in
   Option.to_list unused_lambda_def @ find_lambdas_used_in_node env node

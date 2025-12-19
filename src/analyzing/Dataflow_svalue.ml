@@ -432,7 +432,7 @@ and do_lambdas lang lambdas in_env node =
   match node.F.n with
   | NInstr { i = AssignAnon (lval, Lambda _); _ } -> (
       match Fun_CFG.is_lambda lambdas lval with
-      | Ok (_name, lambda_cfg) ->
+      | Some (_name, lambda_cfg) ->
           let mapping = fixpoint_with_env lang in_env lambda_cfg in
           update_svalue lambda_cfg.cfg mapping;
           let lambda_env =
@@ -463,7 +463,7 @@ and do_lambdas lang lambdas in_env node =
               in_env lambda_env
           in
           out_env
-      | Error _ -> in_env)
+      | None -> in_env)
   | __else__ -> in_env
 
 and fixpoint_with_env lang enter_env fun_cfg =
