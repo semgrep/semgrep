@@ -109,6 +109,9 @@ For more information see https://semgrep.dev
     ; logging
     (logs (>= 0.9.0))
     ; JSON/YAML/XML
+    ; atdgen's runtime library must be compatible with the generated code in
+    ; semgrep-interfaces:
+    (atdgen-runtime (>= 3.0.0))  ; requires yojson 3
     (atdgen (>= 2.16.0))
     (yojson (>= 2.2.2))
     (yaml (>= 3.2.0))
@@ -143,7 +146,7 @@ For more information see https://semgrep.dev
     (parmap (>= 1.2.5))
     (semver (>= 0.2.1))
     (timedesc (>= 3.1.0)) ; used via git-wrapper
-    (lsp (= 1.22.0))
+    (lsp (>= 1.22.0))
     (git (>= 3.18.0))
     ; tracing
     (memtrace (>= 0.2.3))
