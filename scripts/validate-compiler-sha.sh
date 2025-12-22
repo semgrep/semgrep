@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -xeu
+set -x -e -u
 
 # usage
 # ./scripts/validate-compiler-sha.sh [path/to/semgrep-core]
