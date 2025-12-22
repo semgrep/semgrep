@@ -57,4 +57,3 @@ if [ -n "$SHA_SEMGREP_WAS_BUILT_WITH" ] && [ "$SHA_PINNED_IN_OPAM" != "$SHA_SEMG
     echo "They are not equal!"
     exit 1
 fi
-
