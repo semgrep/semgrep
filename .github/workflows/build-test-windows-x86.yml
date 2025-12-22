@@ -30,6 +30,8 @@ jobs:
           git config --global core.longpaths true
           git config --global core.autocrlf false
           git config --global core.eol lf
+      - name: Sanity check compiler version SHA
+        run: ./OSS/scripts/validate-compiler-sha.sh
       - name: Install older openssl in Cygwin
         run: |
           PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
