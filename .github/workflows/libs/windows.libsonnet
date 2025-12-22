@@ -3,6 +3,22 @@
 local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
 
+// NB: When we run on Depot runners, all uses of the GHA cache (including
+// those used internally be setup-ocaml, setup-python, etc.) instead use the
+// *Depot* cache, which is not visible within GHA UI. The same functionality
+// is available within the Depot cache interface, though. Additionally, Depot
+// caching does not have any branch-based segregation/inheritance like GHA's
+// does. Beware.
+local runs_on = 'depot-windows-2022-16';
+
+local defaults = {
+  run: {
+    // Windows GHA runners default to pwsh (PowerShell). We want to use bash
+    // to be consistent with our other workflows.
+    shell: 'bash',
+  },
+};
+
 local git_config = {
   // On Windows, cloning the repository may fail with a "filename too long
   // error", if longpaths is not set. Also, we want to disable autocrlf and set
@@ -49,17 +65,6 @@ local install_deps_steps = [
   {
     name: 'Install OPAM deps',
     run: |||
-      # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
-      # Setting PKG_CONFIG_PATH to
-      #    $(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/include
-      # would set Unix paths for CFLAGS and LDFLAGS, but that doesn't
-      # work. Setting Windows paths for them gets the ocurl build to
-      # work. To avoid setting these paths for all the package builds,
-      # we first try to install all the dependencies, and then install
-      # ocurl and later other dependencies that depend on ocurl.
-      make -C OSS install-opam-deps || true
-      export CYGWIN_SYS_ROOT="$(x86_64-w64-mingw32-gcc --print-sysroot)"
-      CFLAGS="-I$(cygpath -w $CYGWIN_SYS_ROOT/mingw/include)" LDFLAGS="-L$(cygpath -w $CYGWIN_SYS_ROOT/mingw/lib)" opam install -y ocurl.0.9.1
       make install-deps
     |||,
   },
@@ -81,6 +86,8 @@ local optimize_temp =
 // ----------------------------------------------------------------------------
 
 {
+  runs_on: runs_on,
+  defaults: defaults,
   copy_executable_dlls: copy_executable_dlls,
   git_config: git_config,
   install_deps_steps: install_deps_steps,

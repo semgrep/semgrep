@@ -8,18 +8,6 @@ local windows = import 'libs/windows.libsonnet';
 local artifact_name = 'semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}';
 
 local wheel_name = 'windows-x86-wheel';
-local runs_on = 'windows-2025';
-local defaults = {
-  run: {
-    // Windows GHA runners default to pwsh (PowerShell). We want to use bash
-    // to be consistent with our other workflows.
-    shell: 'bash',
-  },
-};
-// TODO: We can remove this and switch to semgrep.opam_switch once we move to
-// OCaml 5 everywhere.
-local opam_switch = '5.3.0';
-
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
@@ -28,8 +16,8 @@ local build_core_job = {
   // github action, which we need for the latest cohttp and for OCaml 5. Currently,
   // `ocamlfind` fails to build when we run this workflow in CI. The ticket for
   // re-enabling the job is https://linear.app/semgrep/issue/SAF-1728/restore-windows-workflow
-  'runs-on': runs_on,
-  defaults: defaults,
+  'runs-on': windows.runs_on,
+  defaults: windows.defaults,
   steps: actions.checkout_with_submodules() + [
            semgrep.opam_setup(semgrep.opam_switch),
            {
@@ -113,8 +101,8 @@ local build_core_job = {
 };
 
 local build_wheels_job = {
-  'runs-on': runs_on,
-  defaults: defaults,
+  'runs-on': windows.runs_on,
+  defaults: windows.defaults,
   needs: [
     'build-core',
   ],
@@ -140,8 +128,8 @@ local build_wheels_job = {
 };
 
 local test_wheels_job = {
-  'runs-on': runs_on,
-  defaults: defaults,
+  'runs-on': windows.runs_on,
+  defaults: windows.defaults,
   needs: [
     'build-wheels',
   ],

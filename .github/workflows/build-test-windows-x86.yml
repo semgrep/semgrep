@@ -4,7 +4,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: windows-2025
+    runs-on: depot-windows-2022-16
     steps:
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
@@ -44,17 +44,6 @@ jobs:
           opam switch
       - name: Install OPAM deps
         run: |
-          # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
-          # Setting PKG_CONFIG_PATH to
-          #    $(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/include
-          # would set Unix paths for CFLAGS and LDFLAGS, but that doesn't
-          # work. Setting Windows paths for them gets the ocurl build to
-          # work. To avoid setting these paths for all the package builds,
-          # we first try to install all the dependencies, and then install
-          # ocurl and later other dependencies that depend on ocurl.
-          make -C OSS install-opam-deps || true
-          export CYGWIN_SYS_ROOT="$(x86_64-w64-mingw32-gcc --print-sysroot)"
-          CFLAGS="-I$(cygpath -w $CYGWIN_SYS_ROOT/mingw/include)" LDFLAGS="-L$(cygpath -w $CYGWIN_SYS_ROOT/mingw/lib)" opam install -y ocurl.0.9.1
           make install-deps
       - name: Build semgrep-core
         run: |
@@ -106,7 +95,7 @@ jobs:
         shell: bash
     needs:
       - build-core
-    runs-on: windows-2025
+    runs-on: depot-windows-2022-16
     steps:
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
@@ -135,7 +124,7 @@ jobs:
         shell: bash
     needs:
       - build-wheels
-    runs-on: windows-2025
+    runs-on: depot-windows-2022-16
     steps:
       - uses: actions/setup-python@v5
         with:
