@@ -19,6 +19,17 @@ jobs:
           ocaml-compiler: 5.3.0
           opam-pin: false
           save-opam-post-run: true
+      - if: startsWith(runner.os, 'Windows')
+        name: Optimize temp directory on Windows runners
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
+          echo "TMP=D:\\Temp" >> $env:GITHUB_ENV
+      - name: Configure git to allow long paths, disable autocrlf, and set eol to lf
+        run: |
+          git config --global core.longpaths true
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - name: Install older openssl in Cygwin
         run: |
           PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
