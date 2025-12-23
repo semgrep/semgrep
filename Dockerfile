@@ -131,10 +131,6 @@ COPY scripts/build-static-libcurl.sh scripts/
 COPY scripts/validate-compiler-sha.sh scripts/
 COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
-COPY libs/pcre2 libs/pcre2
-COPY libs/testo libs/testo
-COPY libs/pyro-caml libs/pyro-caml
-COPY libs/obackward libs/obackward
 
 # Install our fork of the compiler
 RUN make pin-ocaml-fork
