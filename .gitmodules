@@ -110,14 +110,6 @@ url = https://github.com/returntocorp/semgrep-promql.git
 path = languages/dart/tree-sitter/semgrep-dart
 url = https://github.com/returntocorp/semgrep-dart.git
 
-[submodule "OSS/libs/testo"]
-path = libs/testo
-url = https://github.com/semgrep/testo.git
-
-[submodule "OSS/libs/pcre2"]
-path = libs/pcre2
-url = https://github.com/semgrep/pcre2-ocaml
-
 [submodule "OSS/languages/ql/tree-sitter/semgrep-ql"]
 path = languages/ql/tree-sitter/semgrep-ql
 url = https://github.com/semgrep/semgrep-ql
@@ -145,8 +137,4 @@ url = https://github.com/semgrep/semgrep-move-on-sui.git
 [submodule "OSS/languages/circom/tree-sitter/semgrep-circom"]
 path = languages/circom/tree-sitter/semgrep-circom
 url = https://github.com/semgrep/semgrep-circom.git
-
-[submodule "OSS/libs/pyro-caml"]
-path = libs/pyro-caml
-url = https://github.com/semgrep/pyro-caml.git
 
