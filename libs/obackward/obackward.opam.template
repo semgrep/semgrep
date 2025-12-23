@@ -1,7 +1,0 @@
-depexts: [
-   ["dwarfutils"] {os-family = "homebrew"}
-   ["bzip2-static"] {os-family = "alpine"}
-   ["xz-static"] {os-family = "alpine"}
-   ["zstd-static"] {os-family = "alpine"}
-   ["libunwind-static"] {os-family = "alpine"}
-]
