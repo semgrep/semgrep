@@ -93,8 +93,9 @@ For more information see https://semgrep.dev
     ; that is resolved until filing an issue on this
     ; alt: only choose an old uring if the tsan option is enabled?
     (uring (and (= :os linux) (= 0.9)))
-    ; unit testing (note that testo is vendored in libs/)
+    ; unit testing (note that testo is pinned in semgrep.opam.template)
     testo
+    testo-lwt
     (alcotest (>= 1.9.1))
     (alcotest-lwt (>= 1.9.1))
     (calendar (>= 3.0.0))
@@ -137,9 +138,9 @@ For more information see https://semgrep.dev
     (re ( >= 1.14.0))
     (conf-libpcre (= 2))
     (pcre (>= 8.0.5))
-    ; we're currently "vendoring" pcre2 in libs/pcre2
+    ; we're currently pinning pcre2 to semgrep/pcre2.git
     pcre2
-    ; obackward, vendored in libs/obackward
+    ; obackward, pinned to semgrep/obackward.git
     obackward
     ; misc
     (ocamlgraph (>= 2.2.0))
