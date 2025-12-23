@@ -11,18 +11,18 @@ pin-depends: [
         - semgrep-pro.opam
   *)
   ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#20c7ee45ba6e44b2e659665032a18ccd9dedaca7"]
-  (* TODO: move pcre2, testo, and obackward to be pinned to git repos *)
-  ["pcre2.dev" "./libs/pcre2"]
-  ["tree-sitter.dev" "./libs/ocaml-tree-sitter-core"]
-  ["testo.dev" "./libs/testo"]
-  ["testo-util.dev" "./libs/testo"]
-  ["testo-diff.dev" "./libs/testo"]
-  ["obackward.dev" "./libs/obackward"]
-  ["semgrep-interfaces.dev" "./cli/src/semgrep/semgrep_interfaces"]
+  ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#4e0a44486bb518b7a24ca11286c4b03a8d51e17e"]
+  ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#d54d4801e1223df89e07c74dfa491a52114f4992"]
+  ["testo.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
+  ["testo-util.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
+  ["testo-diff.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
+  ["testo-lwt.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
+  ["obackward.dev" "git+https://github.com/semgrep/obackward.git#060ebb528e88b27124b33b5cfaf8ed04b7da6e41"]
+  ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#533177d79c471320b73f9e63d4d41095e8019391"]
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
-  ["pyro-caml-instruments.dev" "./libs/pyro-caml"]
-  ["pyro-caml-ppx.dev" "./libs/pyro-caml"]
+  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#348f659e0c53f39ee7347b476f5ee6f97df4a4c2"]
+  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#348f659e0c53f39ee7347b476f5ee6f97df4a4c2"]
   ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
   ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
   ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
