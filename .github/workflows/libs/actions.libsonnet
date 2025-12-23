@@ -159,8 +159,8 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
         uses: 'actions/checkout@v4',
         with: {
           submodules: true,
-        } + (if ref == '' then {} else { ref: ref }),
-      },
+        },
+      } + (if ref == '' then {} else { ref: ref }),
     ],
 
   // ---------------------------------------------------------
@@ -206,16 +206,6 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
     with: {
       username: '${{ secrets.DOCKER_USERNAME }}',
       password: '${{ secrets.DOCKER_PASSWORD }}',
-    },
-  },
-
-  // Login to GitHub Container Registry (ghcr.io)
-  ghcr_login_step: {
-    uses: 'docker/login-action@v3',
-    with: {
-      registry: 'ghcr.io',
-      username: '${{ github.actor }}',
-      password: '${{ secrets.GITHUB_TOKEN }}',
     },
   },
 

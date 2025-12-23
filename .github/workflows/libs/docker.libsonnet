@@ -229,7 +229,6 @@ local build_steps(
         images: (if push then |||
                    returntocorp/%(name)s
                    semgrep/%(name)s
-                   ghcr.io/semgrep/%(name)s
                  ||| % { name: name } else '') + (if push || push_ecr then |||
                                                     %(ecr_repo)s
                                                   ||| % { ecr_repo: ecr_repo } else ''),
@@ -407,8 +406,6 @@ local job(
              if push then [
                // This is needed so we can push images to docker hub successfully.
                actions.docker_login_step,
-               // Login to GitHub Container Registry (ghcr.io)
-               actions.ghcr_login_step,
              ] else []
            ) + (if push_ecr || push then [
                   // The configure-aws-credentials and login-ecr steps are needed so
