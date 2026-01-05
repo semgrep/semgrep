@@ -1287,6 +1287,7 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
   match res with
   | Error (err : Rule_error.t) -> Error (Rule_error.augment_with_file file err)
   | other -> other
+[@@trace]
 
 (* We can't call just Yaml_to_generic.program below because when we parse
  * YAML Semgrep rules, we preprocess unicode characters differently.
@@ -1296,10 +1297,23 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
  * because we don't want parsing/other/ to depend on core/.
  *)
 let parse_yaml_rule_file ~is_target (file : Fpath.t) =
-  let str = UFile.read_file file in
-  try Ok (Yaml_to_generic.parse_yaml_file ~is_target file str) with
+  let str =
+    (* Tracing here rather than at the definition site of these functions to
+     * avoid excessive tracing when reading other files, which we do a lot. *)
+    let%trace span = "UFile.read_file" in
+    let str = UFile.read_file file in
+    Tracing.add_data_to_span span [ ("file_bytes", `Int (String.length str)) ];
+    str
+  in
+  try
+    (* Tracing here rather than at the definition site of these functions to
+     * avoid excessive tracing when parsing YAML targets. *)
+    let%trace _span = "Yaml_to_generic.parse_yaml_file" in
+    Ok (Yaml_to_generic.parse_yaml_file ~is_target file str)
+  with
   | Parsing_error.Other_error (s, t) ->
       Error (Rule_error.mk_error (InvalidYaml (s, t)))
+[@@trace]
 
 let parse_file ?error_recovery ?rewrite_rule_ids file :
     (Rule.rules * Rule_error.invalid_rule list, Rule_error.t) result =
@@ -1330,9 +1344,17 @@ let parse_file ?error_recovery ?rewrite_rule_ids file :
          * Note that this is handled correctly by Yaml_to_generic.parse_rule
          * below.
          *)
-        Ok
-          (Json_to_generic.program ~unescape_strings:true
-             (Parse_json.parse_program file))
+        (* Tracing here rather than at the definition site of these functions to
+         * avoid excessive tracing when parsing JSON targets. *)
+        let json =
+          let%trace _span = "Parse_json.parse_program" in
+          Parse_json.parse_program file
+        in
+        let generic =
+          let%trace _span = "Json_to_generic.program" in
+          Json_to_generic.program ~unescape_strings:true json
+        in
+        Ok generic
     | FT.Config FT.Jsonnet ->
         (* old: via external jsonnet program
            Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
@@ -1364,6 +1386,7 @@ let parse_file ?error_recovery ?rewrite_rule_ids file :
         parse_yaml_rule_file ~is_target:true file
   in
   parse_generic_ast ?error_recovery ?rewrite_rule_ids file ast
+[@@trace]
 
 (*****************************************************************************)
 (* Main Entry point *)

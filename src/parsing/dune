@@ -74,7 +74,7 @@
    parser_circom.ast_generic
 
  )
- (preprocess (pps ppx_profiling ppx_deriving.show))
+ (preprocess (pps ppx_profiling ppx_deriving.show telemetry.ppx))
 )
 
 (rule
