@@ -1,6 +1,7 @@
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local uses = import 'libs/uses.libsonnet';
 local windows = import 'libs/windows.libsonnet';
 
 // actually not exported for now to other workflows, but we might,
@@ -118,7 +119,7 @@ local build_wheels_job = {
       |||,
     },
     {
-      uses: 'actions/upload-artifact@v4',
+      uses: uses.actions.upload_artifact,
       with: {
         path: 'cli/dist.tgz',
         name: wheel_name,

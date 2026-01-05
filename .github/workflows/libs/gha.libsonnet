@@ -1,6 +1,7 @@
 // Factorize Github Actions (GHA) boilerplate.
 // See https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions
 // for more information on GHA or our Notion page on "Github actions".
+local uses = import './uses.libsonnet';
 
 local on_pull_request_config = {
   types: ['opened', 'reopened', 'synchronize'],
@@ -113,7 +114,7 @@ local on_pull_request_config = {
     default: '',
   },
   sticky_pull_request_comment(message, header): {
-    uses: 'marocchino/sticky-pull-request-comment@v2',
+    uses: uses.marocchino.sticky_pull_request_comment,
     with: {
       header: header,
       message: message,
@@ -122,7 +123,7 @@ local on_pull_request_config = {
     },
   },
   delete_sticky_pull_request_comment(header): {
-    uses: 'marocchino/sticky-pull-request-comment@v2',
+    uses: uses.marocchino.sticky_pull_request_comment,
     with: {
       header: header,
       delete: true,

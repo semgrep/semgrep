@@ -8,6 +8,7 @@
 //   to add tags and labels to the docker image properly, and also
 //   to build for multiple platforms.
 
+local uses = import './uses.libsonnet';
 local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
 
@@ -35,7 +36,7 @@ local arch_to_docker_arch = {
 local copy_from_docker_step(target, output_dir, file='Dockerfile', platforms=default_platforms, build_args='') = {
 
   name: 'Copy all files from %s to GHA runner machine' % target,
-  uses: 'depot/build-push-action@v1.9.0',
+  uses: uses.depot.build_push_action,
   with: {
     project: '${{ secrets.DEPOT_PROJECT_ID }}',
     context: '.',
@@ -198,7 +199,7 @@ local build_steps(
     {
       id: '%s-prepare-metadata' % target,
       name: 'Set tags and labels',
-      uses: 'docker/metadata-action@v5',
+      uses: uses.docker.metadata_action,
       with: {
         // The image will be pushed to semgrep/semgrep and Amazon ECR
         // but with the tags being prefixed with "pro-"
@@ -316,7 +317,7 @@ local build_steps(
               % ((if push then ' and push to Docker Hub/ECR' else '') +
                  (if push_ecr then ' and push to Amazon ECR' else ''))
             ),
-      uses: 'depot/build-push-action@v1.9.0',
+      uses: uses.depot.build_push_action,
       with: {
         project: '${{ secrets.DEPOT_PROJECT_ID }}',
 
@@ -413,7 +414,7 @@ local job(
                   {
                     id: 'configure-aws-credentials',
                     name: 'Configure AWS credentials',
-                    uses: 'aws-actions/configure-aws-credentials@v4',
+                    uses: uses.aws_actions.configure_aws_credentials,
                     // These fields are different than what's in semgrep_pro.libjsonnet
                     // because they're used for different purposes.
                     // Here is the role used to access ECR, while in semgrep_pro.libjsonnet
@@ -428,13 +429,13 @@ local job(
                   {
                     id: 'login-ecr',
                     name: 'Login to Amazon ECR',
-                    uses: 'aws-actions/amazon-ecr-login@v2',
+                    uses: uses.aws_actions.amazon_ecr_login,
                   },
                 ] else []) +
            [
 
              {
-               uses: 'depot/setup-action@v1',
+               uses: uses.depot.setup_action,
              },
            ] +
            build_steps(

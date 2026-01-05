@@ -9,6 +9,7 @@
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local uses = import 'libs/uses.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Constants
@@ -212,7 +213,7 @@ local semgrep_ci_on_pr_job = {
   },
   steps: semgrep.github_bot.get_token_steps + [
     {
-      uses: 'actions/checkout@v4',
+      uses: uses.actions.checkout,
       with: {
         repository: 'semgrep/e2e',
         ref: '${{ github.event.repository.default_branch }}',
