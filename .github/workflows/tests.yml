@@ -5,15 +5,15 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           cache: pipenv
           python-version: "3.10"
       - run: pip install pipenv==2025.1.3
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
@@ -84,10 +84,10 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           cache: pipenv
           python-version: ${{ matrix.python }}
@@ -95,7 +95,7 @@ jobs:
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
@@ -128,7 +128,7 @@ jobs:
       - id: snapshot-commit
         if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
         name: Commit snapshot updates
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
         with:
           add: cli/tests/default/e2e/snapshots
           default_author: github_actions
@@ -175,10 +175,10 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           submodules: true
-      - uses: semgrep/setup-ocaml@latest
+      - uses: semgrep/setup-ocaml@3e4c6ff8c9a04c9ec8f6f87701cd4b661b0f1f18
         with:
           cache-prefix: v3
           ocaml-compiler: 5.3.0
@@ -209,15 +209,15 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           cache: pipenv
           python-version: "3.12"
       - run: pip install pipenv==2025.1.3
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
@@ -230,7 +230,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
         working-directory: cli
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}
           path: ~/.cache/qa-public-repos
@@ -264,10 +264,10 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           submodules: true
-      - uses: semgrep/setup-ocaml@latest
+      - uses: semgrep/setup-ocaml@3e4c6ff8c9a04c9ec8f6f87701cd4b661b0f1f18
         with:
           cache-prefix: v3
           ocaml-compiler: 5.3.0

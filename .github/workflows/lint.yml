@@ -3,8 +3,8 @@ jobs:
   github-actions:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
           go-version: "1.24"
       - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.8
@@ -14,7 +14,7 @@ jobs:
   jsonnet-gha:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Check GitHub workflow files are up to date
         run: |
           sudo apt-get update
@@ -30,22 +30,22 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           submodules: true
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
-      - uses: semgrep/setup-ocaml@latest
+      - uses: semgrep/setup-ocaml@3e4c6ff8c9a04c9ec8f6f87701cd4b661b0f1f18
         with:
           cache-prefix: v3
           ocaml-compiler: 5.3.0
           opam-pin: false
           save-opam-post-run: true
       - run: opam install -y ocamlformat.0.27.0
-      - uses: pre-commit/action@v3.0.0
+      - uses: pre-commit/action@646c83fcd040023954eafda54b4db0192ce70507
 name: lint
 on:
   pull_request:

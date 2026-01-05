@@ -1,4 +1,17 @@
-local lockfile = (import './uses.json').dependencies;
+// This file pulls in the action versions from useslockfile.json and converts
+// them into a jsonnet structure for easy use in GitHub Actions workflows.
+//
+// To bump the pinned commit version, run bump-uses.py
+//
+// To add an action, add it to uses.json file and then run bump-uses.py -r action-repo/action-name
+//
+// To remove an action, remove it from uses.json and then run bump-uses.py.
+// Alternatively instead of running bump-uses.py you can manually remove it from
+// useslockfile.json
+//
+// To update an action to a new version, update it in uses.json and then run
+// bump-uses.py -r action-repo/action-name
+local lockfile = (import './useslockfile.json').dependencies;
 
 // Convert the lockfile structure of
 // {
