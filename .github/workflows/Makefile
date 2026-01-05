@@ -7,7 +7,7 @@
 LIBS = \
 	$(wildcard libs/*.libsonnet) \
 	$(wildcard *.libsonnet) \
-	libs/uses.json
+	libs/useslockfile.json
 
 OBJS = \
   semgrep.yml lint.yml \
