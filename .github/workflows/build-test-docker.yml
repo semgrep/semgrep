@@ -7,19 +7,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - if: ${{ matrix.architecture != 'amd64' }}
-        uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
       - id: meta
         name: Set tags and labels
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
         with:
           flavor: ${{ inputs.docker-flavor }}
           images: ${{ inputs.repository-name }}
           tags: ${{ inputs.docker-tags }}
-      - uses: depot/setup-action@v1
+      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5
       - id: build-image
         name: Build image
-        uses: depot/build-push-action@v1.9.0
+        uses: depot/build-push-action@fe21fca271114de9237a9b1129b9ef38c77a1c21
         with:
           buildx-fallback: false
           file: ${{ inputs.file }}
@@ -34,13 +34,13 @@ jobs:
         name: Load image
         run: docker load --input /tmp/image.tar
       - if: ${{ inputs.enable-tests }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - env:
           IMAGEID: ${{ steps.build-image.outputs.imageid }}
         if: ${{ inputs.enable-tests }}
         name: Test Image
         run: ./scripts/validate-docker-build.sh "$IMAGEID" linux/${{ matrix.architecture }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}
           path: /tmp/image.tar
