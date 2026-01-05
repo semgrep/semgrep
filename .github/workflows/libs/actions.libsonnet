@@ -1,8 +1,9 @@
 // Factorize GHA "actions" (=~ plugins) boilerplate.
 local gha = import './gha.libsonnet';
+local uses = import './uses.libsonnet';
 
 local download_artifact_step(artifact_name, run_id=null, path=null) = {
-  uses: 'actions/download-artifact@v4',
+  uses: uses.actions.download_artifact,
   with: {
     [if path != null then 'path']: path,
     [if artifact_name != null then 'name']: artifact_name,
@@ -145,7 +146,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   checkout: function(ref='') (
     [
       {
-        uses: 'actions/checkout@v4',
+        uses: uses.actions.checkout,
       } + (if ref == '' then {} else { with: { ref: ref } }),
     ]
   ),
@@ -156,7 +157,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
       gha.git_safedir,
       gha.speedy_checkout_step,
       {
-        uses: 'actions/checkout@v4',
+        uses: uses.actions.checkout,
         with: {
           submodules: true,
         },
@@ -170,7 +171,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   // Small wrapper around https://github.com/actions/setup-python
   // TODO: maybe simplify callers now that has default version to 3.11
   setup_python_step: function(version='3.11', cache='pipenv') {
-    uses: 'actions/setup-python@v5',
+    uses: uses.actions.setup_python,
     with: {
       'python-version': version,
     } + (if (cache == false) then {} else {
@@ -202,7 +203,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   // alt: run: docker-login -u USER -p PASS
   // alt: run a .github/docker-login
   docker_login_step: {
-    uses: 'docker/login-action@v3',
+    uses: uses.docker.login_action,
     with: {
       username: '${{ secrets.DOCKER_USERNAME }}',
       password: '${{ secrets.DOCKER_PASSWORD }}',
@@ -226,7 +227,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
     ||| % path,
   },
   upload_artifact_step: function(artifact_name, path='artifacts.tgz') {
-    uses: 'actions/upload-artifact@v4',
+    uses: uses.actions.upload_artifact,
     with: {
       path: path,
       name: artifact_name,
@@ -246,7 +247,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   guard_cache_hit: {
     step(path, key='${{ github.sha}}', bump_cache=1): {
       name: 'Set GHA cache for ' + key + ' in ' + path,
-      uses: 'actions/cache@v4',
+      uses: uses.actions.cache,
       env: {
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
       },
@@ -290,7 +291,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   // ??
   inc_version_steps: function(id='inc-version', fragment, ref='develop', target_feature_version='') [
     {
-      uses: 'actions/checkout@v4',
+      uses: uses.actions.checkout,
       with: {
         ref: ref,
       },
@@ -333,7 +334,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
     {
       name: 'Bump Feature',
       id: id,
-      uses: 'christian-draeger/increment-semantic-version@1.1.0',
+      uses: uses.christian_draeger.increment_semantic_version,
       with: {
         'current-version': '${{ steps.latest-version-%s.outputs.version }}' % id,
         'version-fragment': fragment,

@@ -1,4 +1,5 @@
 // Factorize utility jobs or steps for repeated use across multiple workflows
+local uses = import './uses.libsonnet';
 
 {
   setup_docker_tag: function() {
@@ -34,7 +35,7 @@
     },
     steps: [
       {
-        uses: 'actions/checkout@v4',
+        uses: uses.actions.checkout,
       },
       {
         id: 'get-sha',

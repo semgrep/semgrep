@@ -1,0 +1,63 @@
+{
+  "dependencies": {
+    "DeterminateSystems": {
+      "flake-checker-action": "v12",
+      "nix-installer-action": "v16"
+    },
+    "EndBug": {
+      "add-and-commit": "v9"
+    },
+    "actions": {
+      "cache": "v4",
+      "checkout": "v4",
+      "download-artifact": "v4",
+      "setup-go": "v5",
+      "setup-python": "v5",
+      "upload-artifact": "v4"
+    },
+    "aws-actions": {
+      "amazon-ecr-login": "v2",
+      "configure-aws-credentials": "v4"
+    },
+    "cachix": {
+      "cachix-action": "v16"
+    },
+    "christian-draeger": {
+      "increment-semantic-version": "1.1.0"
+    },
+    "depot": {
+      "build-push-action": "v1.9.0",
+      "setup-action": "v1"
+    },
+    "docker": {
+      "login-action": "v3",
+      "metadata-action": "v5",
+      "setup-buildx-action": "v3",
+      "setup-qemu-action": "v3"
+    },
+    "jtmullen": {
+      "submodule-branch-check-action": "v1"
+    },
+    "marocchino": {
+      "sticky-pull-request-comment": "v2"
+    },
+    "pre-commit": {
+      "action": "v3.0.0"
+    },
+    "pypa": {
+      "gh-action-pypi-publish": "v1.13.0"
+    },
+    "semgrep": {
+      "setup-ocaml": "latest"
+    },
+    "slackapi": {
+      "slack-github-action": "v1.23.0"
+    },
+    "softprops": {
+      "action-gh-release": "v2"
+    },
+    "tibdex": {
+      "github-app-token": "v2"
+    }
+  }
+}
