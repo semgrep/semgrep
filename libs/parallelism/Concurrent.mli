@@ -50,7 +50,3 @@ val maybe_yield : unit -> unit
  * Cross-cutting places like bind-combinators and blocking IO operations are not
  * a bad place to think about.
  *)
-
-val yield_attempts : unit -> int
-(** [yield_attempts ()] returns the number of times [maybe_yield] has been *
-    called before yielding. This can be used for testing and metric purposes. *)
