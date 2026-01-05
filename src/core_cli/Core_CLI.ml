@@ -823,8 +823,8 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       maybe_with_eio (fun config ->
           let analysis_flags = Trace_data.no_analysis_features () in
           (* Enclose action execution to enable tracing for actions. *)
-          maybe_with_tracing "Core_command.semgrep_core_dispatch" "oss"
-            analysis_flags config (fun config ->
+          maybe_with_tracing "Core_CLI.main_exn" "oss" analysis_flags config
+            (fun config ->
               match args with
               (* --------------------------------------------------------- *)
               (* actions, useful to debug subpart *)
