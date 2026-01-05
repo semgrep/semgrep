@@ -65,5 +65,3 @@ let yield_attempts = Atomic.make 0
 let maybe_yield () =
   if Atomic.fetch_and_add yield_attempts 1 land (yield_frequency - 1) = 0 then
     yield ()
-
-let yield_attempts () = Atomic.get yield_attempts

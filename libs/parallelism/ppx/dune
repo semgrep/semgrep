@@ -1,7 +1,0 @@
-(library
- (name ppx_parallelism)
- (public_name parallelism.ppx)
- (private_modules mapper register)
- (kind ppx_rewriter)
- (libraries ppxlib)
- (ppx_runtime_libraries parallelism))
