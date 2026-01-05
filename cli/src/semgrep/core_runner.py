@@ -54,7 +54,6 @@ from semgrep.core_output import core_matches_to_rule_matches
 from semgrep.core_targets_plan import Plan
 from semgrep.core_targets_plan import Task
 from semgrep.engine import EngineType
-from semgrep.env import Env
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import with_color
@@ -861,9 +860,8 @@ class CoreRunner:
 
         pyro_caml_on_path = shutil.which("pyro-caml")
 
-        pyro_caml_requested = self._profile or (
-            os.environ.get("SEMGREP_PROFILE", "") != ""
-        )
+        profile_env_set = os.environ.get("SEMGREP_PROFILE", "") != ""
+        pyro_caml_requested = self._profile or (profile_env_set)
         pyro_caml = (pyro_caml_on_path is not None) and pyro_caml_requested
 
         # debug message for pyro-caml
@@ -871,8 +869,8 @@ class CoreRunner:
             reasons = []
             if pyro_caml_on_path is None:
                 reasons.append("pyro-caml is not in PATH")
-            if not self._profile:
-                reasons.append("trace is not enabled")
+            if not (self._profile or profile_env_set):
+                reasons.append("profile is not enabled")
             if reasons:
                 logger.debug(
                     "pyro-caml will not be used for profiling. Reason(s): "
@@ -1017,27 +1015,13 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             use_ddprof = self._check_ddprof_preconditions()
             use_pyro_caml = self._check_pyro_caml_preconditions()
-            env = Env()
-            pyro_caml_address = os.environ.get(
-                "PYRO_CAML_SERVER_ADDRESS",
-                (
-                    # TODO update to non dev url!
-                    "https://pyroscope.dev.private.semgrep.dev"
-                    if env.sms_scan_id is not None and env.sms_scan_id != ""
-                    else "http://localhost:4040"
-                ),
-            )
             cmd = [
                 # bugfix: self._binary_path is an Optional[Path]. The
                 # recommended way to convert a Path to a string is to use the
                 # str function. However, mypy allows the use of str to convert
                 # Optional values to strings. Make sure to check against None
                 # even though mypy won't warn you.
-                *(
-                    ["pyro-caml", "--address", pyro_caml_address]
-                    if use_pyro_caml
-                    else []
-                ),
+                *(["pyro-caml", "-vv"] if use_pyro_caml else []),
                 *(["ddprof"] if use_ddprof else []),
                 str(self._binary_path),
                 "-json",
