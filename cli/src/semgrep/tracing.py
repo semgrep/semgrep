@@ -157,7 +157,6 @@ class ScanInfoLogProcessor(LogRecordProcessor):
 @define
 class Traces:
     enabled: bool = False
-    trace_endpoint: Optional[str] = None
     scan_info_span_processor = ScanInfoSpanProcessor()
     scan_info_log_processor: Optional[ScanInfoLogProcessor] = None
     trace_endpoint: Optional[str] = None
