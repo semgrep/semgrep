@@ -3,6 +3,7 @@
 
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local uses = import 'libs/uses.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Input
@@ -69,15 +70,15 @@ local job = {
   steps: [
     {
       'if': "${{ matrix.architecture != 'amd64' }}",
-      uses: 'docker/setup-qemu-action@v3',
+      uses: uses.docker.setup_qemu_action,
     },
     {
-      uses: 'docker/setup-buildx-action@v3',
+      uses: uses.docker.setup_buildx_action,
     },
     {
       id: 'meta',
       name: 'Set tags and labels',
-      uses: 'docker/metadata-action@v5',
+      uses: uses.docker.metadata_action,
       with: {
         images: '${{ inputs.repository-name }}',
         flavor: '${{ inputs.docker-flavor }}',
@@ -87,12 +88,12 @@ local job = {
     // We're now using depot.dev to build our docker image which is
     // more efficient, especially for arm64.
     {
-      uses: 'depot/setup-action@v1',
+      uses: uses.depot.setup_action,
     },
     {
       name: 'Build image',
       id: 'build-image',
-      uses: 'depot/build-push-action@v1.9.0',
+      uses: uses.depot.build_push_action,
       with: {
         project: semgrep.depot_project_id,
         platforms: 'linux/${{ matrix.architecture }}',
@@ -115,7 +116,7 @@ local job = {
       run: 'docker load --input /tmp/image.tar',
     },
     {
-      uses: 'actions/checkout@v4',
+      uses: uses.actions.checkout,
       'if': '${{ inputs.enable-tests }}',
     },
     {
@@ -129,7 +130,7 @@ local job = {
     // usually called semgrep-docker-image-artifcact-*, but I see no reference
     // to this in the rest of the code. Do we need this?
     {
-      uses: 'actions/upload-artifact@v4',
+      uses: uses.actions.upload_artifact,
       with: {
         name: '${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}',
         path: '/tmp/image.tar',

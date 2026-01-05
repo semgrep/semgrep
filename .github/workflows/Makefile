@@ -5,10 +5,9 @@
 # and run `jsonnetfmt <(cat foo.yml | yq -p yml -o json)` to get a first draft.
 
 LIBS = \
-  libs/actions.libsonnet \
-  libs/gha.libsonnet \
-  libs/semgrep.libsonnet \
-  libs/docker.libsonnet
+	$(wildcard libs/*.libsonnet) \
+	$(wildcard *.libsonnet) \
+	libs/uses.json
 
 OBJS = \
   semgrep.yml lint.yml \

@@ -276,6 +276,33 @@ local semgrep_rules = [
     },
 
   },
+  {
+    id: 'no-jsonnet-uses-string',
+    message: |||
+      Please do not use hardcoded string for GHA 'uses' fields. Instead specify
+      the action using the 'uses' helper from libs/uses.libsonnet, e.g., instead
+      of `uses: 'action-org-name/action-name@version'` use `uses: uses.action_org_name.action_name`
+      so we can centralize and easily update action versions.
+    |||,
+    severity: 'ERROR',
+    languages: ['generic'],
+    paths: {
+      include: ['*.jsonnet', '*.libsonnet'],
+      exclude: ['semgrep.jsonnet'],
+    },
+    patterns: [
+      { pattern: "uses: '$...X' " },
+      { 'focus-metavariable': '$...X' },
+      {
+        'metavariable-regex': {
+          metavariable: '$...X',
+          // regex: '("|\').*("|\')',
+          regex: '.*/.*@.*',
+        },
+      },
+    ],
+
+  },
 ];
 
 // ----------------------------------------------------------------------------

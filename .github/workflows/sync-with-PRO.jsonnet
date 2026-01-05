@@ -11,6 +11,7 @@
 
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local uses = import 'libs/uses.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Main job
@@ -22,7 +23,7 @@ local job = {
   steps: semgrep.github_bot.get_token_steps + [
     {
       name: 'Checkout OSS',
-      uses: 'actions/checkout@v4',
+      uses: uses.actions.checkout,
       with: {
         ref: 'develop',
         // fetch all history, seems needed to reference develop^ below
@@ -33,7 +34,7 @@ local job = {
     },
     {
       name: 'Checkout PRO',
-      uses: 'actions/checkout@v4',
+      uses: uses.actions.checkout,
       with: {
         repository: 'semgrep/semgrep-proprietary',
         path: 'PRO',

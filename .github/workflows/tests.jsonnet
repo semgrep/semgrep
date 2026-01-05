@@ -9,6 +9,7 @@
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local uses = import 'libs/uses.libsonnet';
 
 // some jobs rely on artifacts produced by these workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
@@ -54,7 +55,7 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
     name: 'Commit snapshot updates',
     id: 'snapshot-commit',
     'if': failure_and_right_event,
-    uses: 'EndBug/add-and-commit@v9',
+    uses: uses.EndBug.add_and_commit,
     with: {
       add: add_paths,
       default_author: 'github_actions',
@@ -237,7 +238,7 @@ local test_qa_job = {
         |||,
       },
       {
-        uses: 'actions/cache@v4',
+        uses: uses.actions.cache,
         with: {
           path: '~/.cache/qa-public-repos',
           key: "qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}",

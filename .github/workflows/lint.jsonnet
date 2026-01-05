@@ -6,6 +6,7 @@
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local uses = import 'libs/uses.libsonnet';
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
@@ -25,7 +26,7 @@ local pre_commit_steps() = [
   // subdir. Don't bother, just add whatever check you need to the top level
   // pre-commit config. You have been warned!!
   {
-    uses: 'pre-commit/action@v3.0.0',
+    uses: uses.pre_commit.action,
   },
 ];
 
@@ -42,7 +43,7 @@ local action_lint_job(checkout_steps, dir='.github/workflows') = {
   'runs-on': 'ubuntu-latest',
   steps: checkout_steps + [
     {
-      uses: 'actions/setup-go@v5',
+      uses: uses.actions.setup_go,
       with: {
         'go-version': '1.24',
       },

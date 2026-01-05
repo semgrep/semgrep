@@ -4,6 +4,7 @@
 // Helpers to be able to use 'gh' (and trigger PRs) from a workflow
 // ----------------------------------------------------------------------------
 
+local uses = import './uses.libsonnet';
 local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
 
@@ -151,7 +152,7 @@ local opam_cache_version = 'v3';
 // or move the project to the semgrep org
 // coupling: default is above opam_switch
 local opam_setup = function(opam_switch=opam_switch_default) {
-  uses: 'semgrep/setup-ocaml@3e4c6ff8c9a04c9ec8f6f87701cd4b661b0f1f18',
+  uses: uses.semgrep.setup_ocaml,
   with: {
     'ocaml-compiler': opam_switch,
     'opam-pin': false,
@@ -201,7 +202,7 @@ local osemgrep_test_steps_after_checkout = [
 local setup_nix_step = [
   {
     name: 'Set up Nix',
-    uses: 'DeterminateSystems/nix-installer-action@v16',
+    uses: uses.DeterminateSystems.nix_installer_action,
     with: {
       // pin for more stability
       // this is just the version of
@@ -228,7 +229,7 @@ local setup_nix_step = [
   // This will automatically install cachix and upload to cachix
   {
     name: 'Install Cachix',
-    uses: 'cachix/cachix-action@v16',
+    uses: uses.cachix.cachix_action,
     'continue-on-error': true,
     with: {
       name: 'semgrep',
@@ -384,7 +385,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
 
   aws_credentials_step(role, session_name): {
     name: 'Configure AWS credentials for %s' % role,
-    uses: 'aws-actions/configure-aws-credentials@v4',
+    uses: uses.aws_actions.configure_aws_credentials,
     with: {
       // This seems to be a semgrep specific magic number
       'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
