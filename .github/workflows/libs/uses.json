@@ -15,6 +15,9 @@
       "setup-python": "v5",
       "upload-artifact": "v4"
     },
+    "astral-sh": {
+      "setup-uv": "v7"
+    },
     "aws-actions": {
       "amazon-ecr-login": "v2",
       "configure-aws-credentials": "v4"
