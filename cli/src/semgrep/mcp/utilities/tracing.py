@@ -37,9 +37,9 @@ from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.metrics import Finding
 from semgrep.metrics import MetricsState
 from semgrep.state import get_state
-from semgrep.tracing import _DEFAULT_ENDPOINT
-from semgrep.tracing import _DEV_ENDPOINT
-from semgrep.tracing import _LOCAL_ENDPOINT
+from semgrep.tracing import _DEFAULT_OTEL_ENDPOINT
+from semgrep.tracing import _DEV_OTEL_ENDPOINT
+from semgrep.tracing import _LOCAL_DEV_OTEL_ENDPOINT
 from semgrep.tracing import TRACER
 from semgrep.verbose_logging import getLogger
 
@@ -142,11 +142,11 @@ def get_trace_endpoint() -> tuple[str, str]:
     env = os.environ.get("SEMGREP_OTEL_ENDPOINT", "semgrep-prod").lower()
 
     if env == "semgrep-dev":
-        return (_DEV_ENDPOINT, "semgrep-dev")
+        return (_DEV_OTEL_ENDPOINT, "semgrep-dev")
     elif env == "semgrep-local":
-        return (_LOCAL_ENDPOINT, "semgrep-local")
+        return (_LOCAL_DEV_OTEL_ENDPOINT, "semgrep-local")
     else:
-        return (_DEFAULT_ENDPOINT, "semgrep-prod")
+        return (_DEFAULT_OTEL_ENDPOINT, "semgrep-prod")
 
 
 def is_tracing_disabled() -> bool:
