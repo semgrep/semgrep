@@ -13,7 +13,6 @@ OBJS = \
   semgrep.yml lint.yml \
   build-test-core-x86.yml \
   build-test-osx-x86.yml build-test-osx-arm64.yml \
-  build-test-windows-x86.yml \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
   build-test-docker.yml \
