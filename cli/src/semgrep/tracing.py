@@ -171,7 +171,6 @@ class Traces:
         ] = None,  # for adding extra attributes to the resource
     ) -> None:
         self.enabled = enabled
-        self.trace_endpoint = trace_endpoint
 
         if not self.enabled:
             return
