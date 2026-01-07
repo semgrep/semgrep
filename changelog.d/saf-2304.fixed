@@ -1,9 +1,0 @@
-Deduplication should now pick the exact same findings across scans. Previously,
-findings were always *equivalent*, but not guaranteed to be *exactly* the same
-(e.g. metavariable bindings could differ). Depending on the rule and target code,
-this could cause findings' fingerprints to change from one scan to another, thus
-leading to finding flakiness and "cycling" in Semgrep App. Note that when
-upgrading to this Semgrep version, you may see different (but equivalent) findings
-wrt your current Semgrep version in the first scan, one more time. However, in
-subsequent scans/upgrades, this problem should go away or at least be greatly
-reduced.

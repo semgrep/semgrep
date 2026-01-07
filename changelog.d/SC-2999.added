@@ -1,1 +1,0 @@
-Gradle lockfiles of the form `gradle*.lockfile` are now supported. Previously, only lockfiles named exactly `gradle.lockfile` were supported.
