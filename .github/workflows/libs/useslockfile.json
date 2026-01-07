@@ -16,7 +16,7 @@
       "upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02"
     },
     "astral-sh": {
-      "setup-uv": "681c641aba71e4a1c380be3ab5e12ad51f415867"
+      "setup-uv": "61cb8a9741eeb8a550a1b8544337180c0fc8476b"
     },
     "aws-actions": {
       "amazon-ecr-login": "062b18b96a7aff071d4dc91bc00c4c1a7945b076",
@@ -51,7 +51,7 @@
       "gh-action-pypi-publish": "ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e"
     },
     "semgrep": {
-      "setup-ocaml": "3e4c6ff8c9a04c9ec8f6f87701cd4b661b0f1f18"
+      "setup-ocaml": "c0776a273da09a7787c22790f992c8daed3363bd"
     },
     "slackapi": {
       "slack-github-action": "007b2c3c751a190b6f0f040e47ed024deaa72844"
