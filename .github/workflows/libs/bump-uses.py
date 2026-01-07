@@ -278,10 +278,13 @@ def main() -> None:
     # for sorted keys we have to do this
     # see: https://github.com/pydantic/pydantic/issues/7424
     instance_dict = new_uses_lockfile.model_dump()
-    json_str = json.dumps(
-        instance_dict,
-        indent=2,
-        sort_keys=True,
+    json_str = (
+        json.dumps(
+            instance_dict,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
     )
     if parser.dry_run:
         console.print("Dry run enabled, not writing changes to useslockfile.json")
