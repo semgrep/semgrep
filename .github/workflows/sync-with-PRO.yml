@@ -47,19 +47,29 @@ jobs:
           # Get PR information and store it for later
           gh pr view $PR_NUMBER --json title --jq .title > /tmp/pr_title
           gh pr view $PR_NUMBER --json body --jq .body > /tmp/pr_body
-          AUTHOR=$(gh pr view $PR_NUMBER --json author --jq .author.login)
-          # Add original attribution
-          echo "" >> /tmp/pr_body
-          echo "Synced from OSS PR https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
-          echo "Closes https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
-          echo "Author: @$AUTHOR" >> /tmp/pr_body
-          echo "Imported by: @${{ github.actor }}" >> /tmp/pr_body
 
           BASE_BRANCH=$(gh pr view $PR_NUMBER --json baseRefName --jq .baseRefName)
 
           # Get the merge base and current HEAD
           git fetch origin $BASE_BRANCH
           MERGE_BASE=$(git merge-base origin/$BASE_BRANCH HEAD)
+
+          # Author's GitHub username
+          AUTHOR=$(gh pr view $PR_NUMBER --json author --jq .author.login)
+          # Add original attribution
+          echo "" >> /tmp/pr_body
+          echo "Synced from OSS PR https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
+          echo "Author: @$AUTHOR" >> /tmp/pr_body
+          echo "Imported by: @${{ github.actor }}" >> /tmp/pr_body
+          echo "" >> /tmp/pr_body
+          echo "Closes https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
+          # Add a `Co-authored-by` byline with the name and email of the author of
+          # each commit in the PR, as reported by Git. This is added by GitHub
+          # automatically when the PR is merged, but it ends up below the line
+          # that we use to delineate sensitive content that should not be synced
+          # out. Duplicating it here seems safer than complicating the logic to
+          # remove sensitive content.
+          git log "$MERGE_BASE..HEAD" --format='format:%aN <%aE>' | sort | uniq | sed -e 's/^/Co-authored-by: /' >> /tmp/pr_body
 
           # Check if any commits are already synced from Pro
           if git log $MERGE_BASE..HEAD --oneline | grep -q "synced from Pro"; then
