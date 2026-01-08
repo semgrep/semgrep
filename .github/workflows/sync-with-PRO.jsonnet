@@ -127,7 +127,7 @@ local job = {
     workflow_dispatch: {
       inputs: {
         pr_number: {
-          description: 'PR number to sync to PRO',
+          description: 'PR number to sync to PRO (e.g. "11420")',
           required: true,
           type: 'number',
         },
