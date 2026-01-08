@@ -88,6 +88,7 @@ RULE_TARGET_PAIRS_JSON_OSEMPASS = [
     ("add-metadata-hcl.yaml", "add-metadata-hcl.hcl"),
     ("delete-partial-line.yaml", "delete-partial-line.py"),
     ("utf-8.yaml", "utf-8.py"),
+    ("print-no-fix-key.yaml", "print-no-fix-key.py"),
 ]
 
 

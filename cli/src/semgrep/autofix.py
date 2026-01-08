@@ -89,6 +89,8 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
         object.__setattr__(match, "_fixed_lines", lines)
     if not dryrun:
         if modified_files:
-            logger.info(f"successfully modified {unit_str(modified_files, 'file')}.")
+            logger.info(
+                f"Autofix successfully modified {unit_str(modified_files, 'file')}."
+            )
         else:
-            logger.info(f"no files modified.")
+            logger.info(f"No files modified by autofix.")

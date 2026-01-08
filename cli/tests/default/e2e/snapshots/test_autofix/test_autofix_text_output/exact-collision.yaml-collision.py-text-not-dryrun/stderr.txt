@@ -5,7 +5,7 @@
 └─────────────┘
   Scanning 1 file tracked by git with 2 Code rules:
   Scanning 1 file with 2 python rules.
-successfully modified 1 file.
+Autofix successfully modified 1 file.
 
 
 ┌──────────────┐

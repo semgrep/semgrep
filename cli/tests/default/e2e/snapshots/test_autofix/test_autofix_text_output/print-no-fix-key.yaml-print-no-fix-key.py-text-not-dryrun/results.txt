@@ -1,0 +1,12 @@
+
+
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+
+    targets/autofix/print-no-fix-key.py
+    ❯❱ rules.autofix.print-no-fix-key
+          Semgrep found a print call
+
+            1┆ print("Hello world")
+

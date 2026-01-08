@@ -1,0 +1,6 @@
+rules:
+  - id: print-no-fix-key
+    pattern: print("...")
+    message: Semgrep found a print call
+    languages: [python]
+    severity: WARNING

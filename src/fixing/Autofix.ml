@@ -407,17 +407,17 @@ let apply_fixes ?(dryrun = false) (edits : Textedit.t list) : unit =
   (match modified_files with
   | _ :: _ ->
       Log.info (fun m ->
-          m "%smodified %s."
+          m "Autofix %smodified %s."
             (match failed_fixes with
             | [] -> "successfully "
             | _ -> "")
             (String_.unit_str (List.length modified_files) "file(s)"))
-  | [] -> Log.info (fun m -> m "no files modified."));
+  | [] -> Log.info (fun m -> m "No files modified by autofix."));
   match failed_fixes with
   | [] -> ()
   | _ ->
       Log.warn (fun m ->
-          m "failed to apply %i fix(es)." (List.length failed_fixes))
+          m "Autofix failed to apply %i fix(es)." (List.length failed_fixes))
 
 let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) : unit
     =
