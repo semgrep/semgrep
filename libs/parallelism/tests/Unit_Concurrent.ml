@@ -142,7 +142,8 @@ let test_concurrent_map_async_exception () =
   let contains ~term str = search ~term str <> None in
   match Result_.collect res with
   | Ok _ -> Alcotest.fail "Expected exception but got Ok"
-  | Error e when contains ~term:"GC Alarm triggered" (Printexc.to_string e) ->
+  | Error (_, e) when contains ~term:"GC Alarm triggered" (Printexc.to_string e)
+    ->
       (* Make sure length of res is 3 exceptions, i.e. we actually restarted a
          domain and kept trying work *)
       (* assume that the rest of the exceptions are the same :shrug: *)
@@ -155,7 +156,8 @@ let test_concurrent_map_async_exception () =
           res
       in
       Alcotest.(check int) "All 3 jobs returned exceptions" 3 (List.length exns)
-  | Error e -> Alcotest.failf "Unexpected exception: %s" (Printexc.to_string e)
+  | Error (_, e) ->
+      Alcotest.failf "Unexpected exception: %s" (Printexc.to_string e)
 
 let tests =
   Testo.categorize "Concurrent"

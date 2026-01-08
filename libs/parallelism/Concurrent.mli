@@ -22,7 +22,7 @@ val map :
   domain_count:int ->
   ('a -> 'b) ->
   'a list ->
-  ('b, exn) result list
+  ('b, 'a * exn) result list
 (** [map ~pool f xs] applies [f] to every element of [xs] in parallel via
     [domain_count] domains spawned via [conf].
 

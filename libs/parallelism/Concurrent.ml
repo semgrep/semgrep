@@ -35,6 +35,8 @@ let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)
       (* Please see the comment block in [Hook.ml] concerning safe values of
        * [weight], if you are intending on changing it! *)
-      Executor_pool.submit pool ~weight:1.0 (fun () -> f elem))
+      match Executor_pool.submit pool ~weight:1.0 (fun () -> f elem) with
+      | Ok res -> Ok res
+      | Error err -> Error (elem, err))
     l
 [@@tracing]
