@@ -122,7 +122,7 @@ REPOS = [
     Repo("https://github.com/preset-io/elasticsearch-dbapi"),
     Repo("https://github.com/apache/libcloud"),
     Repo("https://github.com/keybase/pykeybasebot"),
-    Repo("https://gitbox.apache.org/repos/asf/cassandra"),
+    Repo("https://github.com/apache/cassandra"),
     Repo("https://github.com/keybase/python-triplesec"),
     Repo("https://github.com/psycopg/psycopg2"),
     Repo("https://github.com/preset-io/flask-jwt-extended"),
