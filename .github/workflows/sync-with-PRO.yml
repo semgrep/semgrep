@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
-          ref: develop
+          ref: refs/pull/${{ inputs.pr_number }}/head
           token: ${{ steps.token.outputs.token }}
       - name: Checkout PRO
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -41,31 +41,66 @@ jobs:
       - env:
           BRANCHNAME: sync-with-PRO-${{ github.run_id }}-${{ github.run_attempt }}
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
         name: Creating the branch and commiting to it
         run: |
-          if git show --stat develop | grep -q "synced from Pro"; then
-             echo "error: HEAD commit already comes from Pro and cannot be synced"
+          # Get PR information and store it for later
+          gh pr view $PR_NUMBER --json title --jq .title > /tmp/pr_title
+          gh pr view $PR_NUMBER --json body --jq .body > /tmp/pr_body
+          AUTHOR=$(gh pr view $PR_NUMBER --json author --jq .author.login)
+          # Add original attribution
+          echo "" >> /tmp/pr_body
+          echo "Synced from OSS PR https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
+          echo "Closes https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
+          echo "Author: @$AUTHOR" >> /tmp/pr_body
+          echo "Imported by: @${{ github.actor }}" >> /tmp/pr_body
+
+          BASE_BRANCH=$(gh pr view $PR_NUMBER --json baseRefName --jq .baseRefName)
+
+          # Get the merge base and current HEAD
+          git fetch origin $BASE_BRANCH
+          MERGE_BASE=$(git merge-base origin/$BASE_BRANCH HEAD)
+
+          # Check if any commits are already synced from Pro
+          if git log $MERGE_BASE..HEAD --oneline | grep -q "synced from Pro"; then
+             echo "error: PR contains commits that already come from Pro and cannot be synced"
              exit 1
           fi
-          # will generate a 0001-xxx patch
-          git format-patch develop^
-          OSSREF=`git rev-parse develop`
+
+          # Generate patches for all commits in the PR
+          PATCHES=$(git format-patch $MERGE_BASE..HEAD)
+
           cd PRO
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "<>"
           git checkout -b $BRANCHNAME
-          git am --directory=OSS ../0001-*
-          git log -1 --pretty=%B >message
-          echo "" >>message
-          echo "synced from OSS $OSSREF" >>message
-          git commit --amend -F message
+
+          # Apply all patches
+          for patch in $PATCHES; do
+            git am --directory=OSS "../$patch"
+          done
+
           git push origin $BRANCHNAME
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         name: Create the Pull request with gh
         run: |
           cd PRO
-          gh pr create --fill --base develop
+          PR_TITLE=$(cat /tmp/pr_title)
+          PR_BODY=$(cat /tmp/pr_body)
+
+          # Append PR template if it exists
+          if [ -f .github/pull_request_template.md ]; then
+            TEMPLATE_CONTENT=$(cat .github/pull_request_template.md)
+            PR_BODY="$PR_BODY$TEMPLATE_CONTENT"
+          fi
+
+          gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base develop
 name: sync-with-PRO
 on:
-  workflow_dispatch: null
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to sync to PRO (e.g. "11420")
+        required: true
+        type: number
