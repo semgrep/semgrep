@@ -44,15 +44,21 @@ jobs:
           PR_NUMBER: ${{ inputs.pr_number }}
         name: Creating the branch and commiting to it
         run: |
-          # Get PR information
-          PR_TITLE=$(gh pr view $PR_NUMBER --json title --jq .title)
-          PR_BODY=$(gh pr view $PR_NUMBER --json body --jq .body)
+          # Get PR information and store it for later
+          gh pr view $PR_NUMBER --json title --jq .title > /tmp/pr_title
+          gh pr view $PR_NUMBER --json body --jq .body > /tmp/pr_body
+          AUTHOR=$(gh pr view $PR_NUMBER --json author --jq .author.login)
+          # Add original attribution
+          echo "" >> /tmp/pr_body
+          echo "Closes $PR_NUMBER" >> /tmp/pr_body
+          echo "Author: $AUTHOR" >> /tmp/pr_body
+          # TODO add who imported the PR
+
           BASE_BRANCH=$(gh pr view $PR_NUMBER --json baseRefName --jq .baseRefName)
 
           # Get the merge base and current HEAD
           git fetch origin $BASE_BRANCH
           MERGE_BASE=$(git merge-base origin/$BASE_BRANCH HEAD)
-          OSSREF=$(git rev-parse HEAD)
 
           # Check if any commits are already synced from Pro
           if git log $MERGE_BASE..HEAD --oneline | grep -q "synced from Pro"; then
@@ -61,11 +67,7 @@ jobs:
           fi
 
           # Generate patches for all commits in the PR
-          git format-patch $MERGE_BASE..HEAD
-
-          # Store PR info for later
-          echo "$PR_TITLE" > /tmp/pr_title
-          echo "$PR_BODY" > /tmp/pr_body
+          PATCHES=$(git format-patch $MERGE_BASE..HEAD)
 
           cd PRO
           git config --global user.name "GitHub Actions Bot"
@@ -73,16 +75,14 @@ jobs:
           git checkout -b $BRANCHNAME
 
           # Apply all patches
-          for patch in ../*.patch; do
-            if [ -f "$patch" ]; then
-              git am --directory=OSS "$patch"
-            fi
+          for patch in $PATCHES; do
+            git am --directory=OSS "../$patch"
           done
 
           # Amend the last commit to add sync reference
           git log -1 --pretty=%B >message
           echo "" >>message
-          echo "synced from OSS https://github.com/semgrep/semgrep/pull/$PR_NUMBER ($OSSREF)" >>message
+          echo "synced from OSS https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >>message
           git commit --amend -F message
           git push origin $BRANCHNAME
       - env:
