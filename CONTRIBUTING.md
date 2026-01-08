@@ -3,6 +3,8 @@
    this file would be a symlink.
 -->
 
+Random change to test PR syncing
+
 Thank you for your interest in contributing to the Semgrep source code!
 
 Find contribution guidelines in **[Semgrep documentation](https://semgrep.dev/docs/contributing/contributing/)**.
