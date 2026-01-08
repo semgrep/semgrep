@@ -57,6 +57,7 @@ local job = {
         AUTHOR=$(gh pr view $PR_NUMBER --json author --jq .author.login)
         # Add original attribution
         echo "" >> /tmp/pr_body
+        echo "Synced from OSS PR https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
         echo "Closes https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
         echo "Author: @$AUTHOR" >> /tmp/pr_body
         echo "Imported by: @${{ github.actor }}" >> /tmp/pr_body
