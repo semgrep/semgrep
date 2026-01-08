@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "semgrep"
-version: "1.144.0"
+version: "1.146.0"
 synopsis:
   "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
 description: """\
@@ -25,10 +25,10 @@ depends: [
   "arp" {= "4.1.0"}
   "asn1-combinators" {= "0.3.2"}
   "astring" {= "0.8.5"}
-  "atd" {= "2.16.0"}
-  "atdgen" {= "2.16.0"}
-  "atdgen-runtime" {= "2.16.0"}
-  "atdpy" {= "2.16.0"}
+  "atd" {= "3.0.1"}
+  "atdgen" {= "3.0.1"}
+  "atdgen-runtime" {= "3.0.1"}
+  "atdpy" {= "3.0.1"}
   "atdts" {= "2.16.0"}
   "atomic" {= "base"}
   "awa" {= "0.5.2"}
@@ -85,9 +85,9 @@ depends: [
   "ctypes" {= "0.24.0"}
   "decompress" {= "1.5.3"}
   "digestif" {= "1.3.0"}
-  "dns" {= "10.2.2"}
-  "dns-client" {= "10.2.2"}
-  "dns-client-mirage" {= "10.2.2"}
+  "dns" {= "10.2.3"}
+  "dns-client" {= "10.2.3"}
+  "dns-client-mirage" {= "10.2.3"}
   "domain-local-await" {= "1.0.1"}
   "domain-name" {= "0.5.0"}
   "duff" {= "0.5"}
@@ -127,20 +127,20 @@ depends: [
   "hpack" {= "0.13.0"}
   "http" {= "6.1.1"}
   "httpun-types" {= "0.2.0"}
-  "hxd" {= "0.3.5"}
+  "hxd" {= "0.3.6"}
   "integers" {= "0.7.0"}
   "ipaddr" {= "5.6.1"}
   "ipaddr-cstruct" {= "5.6.1"}
   "ipaddr-sexp" {= "5.6.1"}
   "jane-street-headers" {= "v0.17.0"}
   "jsonm" {= "1.0.2"}
-  "jsonrpc" {= "1.22.0"}
+  "jsonrpc" {= "1.25.0"}
   "jst-config" {= "v0.17.0"}
   "kdf" {= "1.0.0"}
   "ke" {= "0.6"}
   "logs" {= "0.10.0"}
   "lru" {= "0.3.1"}
-  "lsp" {= "1.22.0"}
+  "lsp" {= "1.25.0"}
   "lwt" {= "5.9.2"}
   "lwt-dllist" {= "1.1.0"}
   "lwt_ppx" {= "5.9.1"}
@@ -235,6 +235,7 @@ depends: [
   "terminal_size" {= "0.2.0"}
   "testo" {= "dev"}
   "testo-diff" {= "dev"}
+  "testo-lwt" {= "dev"}
   "testo-util" {= "dev"}
   "thread-local-storage" {= "0.2"}
   "thread-table" {= "1.0.0"}
@@ -258,7 +259,7 @@ depends: [
   "x509" {= "1.0.6"}
   "xmlm" {= "1.4.0"}
   "yaml" {= "3.2.0"}
-  "yojson" {= "2.2.2"}
+  "yojson" {= "3.0.0"}
   "zarith" {= "1.14"}
 ]
 build: [
@@ -283,8 +284,12 @@ depexts: [
 dev-repo: "git+https://github.com/semgrep/semgrep.git"
 pin-depends: [
   [
+    "obackward.dev"
+    "git+https://github.com/semgrep/obackward.git#060ebb528e88b27124b33b5cfaf8ed04b7da6e41"
+  ]
+  [
     "ocaml-variants.5.3.0"
-    "git+https://github.com/semgrep/ocaml.git#5.3.0-semgrep"
+    "git+https://github.com/semgrep/ocaml.git#20c7ee45ba6e44b2e659665032a18ccd9dedaca7"
   ]
   [
     "opentelemetry.dev"
@@ -301,6 +306,42 @@ pin-depends: [
   [
     "opentelemetry-logs.dev"
     "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+  ]
+  [
+    "pcre2.dev"
+    "git+https://github.com/semgrep/pcre2-ocaml.git#4e0a44486bb518b7a24ca11286c4b03a8d51e17e"
+  ]
+  [
+    "pyro-caml-instruments.dev"
+    "git+https://github.com/semgrep/pyro-caml.git#348f659e0c53f39ee7347b476f5ee6f97df4a4c2"
+  ]
+  [
+    "pyro-caml-ppx.dev"
+    "git+https://github.com/semgrep/pyro-caml.git#348f659e0c53f39ee7347b476f5ee6f97df4a4c2"
+  ]
+  [
+    "semgrep-interfaces.dev"
+    "git+https://github.com/semgrep/semgrep-interfaces.git#533177d79c471320b73f9e63d4d41095e8019391"
+  ]
+  [
+    "testo.dev"
+    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
+  ]
+  [
+    "testo-diff.dev"
+    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
+  ]
+  [
+    "testo-lwt.dev"
+    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
+  ]
+  [
+    "testo-util.dev"
+    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
+  ]
+  [
+    "tree-sitter.dev"
+    "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#d54d4801e1223df89e07c74dfa491a52114f4992"
   ]
 ]
 x-maintenance-intent: ["(latest)"]

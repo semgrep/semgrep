@@ -40,7 +40,7 @@ depends: [
   "uutf" {>= "1.0.4"}
   "logs" {>= "0.9.0"}
   "atdgen-runtime" {>= "3.0.0"}
-  "atdgen" {>= "2.16.0"}
+  "atdgen" {>= "3.0.0"}
   "yojson" {>= "2.2.2"}
   "yaml" {>= "3.2.0"}
   "xmlm" {>= "1.4.0"}

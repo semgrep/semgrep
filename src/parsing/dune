@@ -80,7 +80,7 @@
 (rule
  (targets Parsing_stats_j.ml Parsing_stats_j.mli)
  (deps    Parsing_stats.atd)
- (action  (run atdgen -j -j-std %{deps})))
+ (action  (run atdgen -j %{deps})))
 
 (rule
  (targets Parsing_stats_t.ml Parsing_stats_t.mli)
