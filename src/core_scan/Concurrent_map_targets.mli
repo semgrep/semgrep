@@ -15,7 +15,7 @@ val map_targets :
   num_jobs:int ->
   (Target.t -> 'a) ->
   Target.t list ->
-  ('a, exn) result list
+  ('a, Target.t * exn) result list
 (** [map_targets] basically wraps {!Concurrent.map} but with some extra Semgrep
     specific tweaks, such as hacks to get telemetry to work across domain
     spawns *)

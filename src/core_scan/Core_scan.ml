@@ -616,10 +616,10 @@ let exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
  TODO: Once we rip out parmap; we won't need to support two different types of
  [('a,exn/Exception.t) Result.t] results.
 *)
-let exception_handler (target : Target.t) (res : ('a, exn) Result.t) =
+let exception_handler (res : ('a, Target.t * exn) Result.t) =
   match res with
   | Ok match_ -> match_
-  | Error exn ->
+  | Error (target, exn) ->
       exception_to_core_error target (Exception.catch exn)
       |> core_error_to_match_result target
 
@@ -747,7 +747,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
         let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
         Concurrent_map_targets.map_targets ~conf ~num_jobs process_target
           targets
-        |> List_.map2_exn exception_handler targets
+        |> List_.map exception_handler
     | Parallelism_config.Process ->
         parmap_map
           (caps :> < Cap.fork >)
