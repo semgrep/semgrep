@@ -64,7 +64,7 @@ Creating git worktree from '<MASKED>' to scan baseline.
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        3                  1
 
-successfully modified 1 file.
+Autofix successfully modified 1 file.
   Uploading scan results
   Finalizing scan
 
