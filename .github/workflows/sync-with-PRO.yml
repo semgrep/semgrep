@@ -92,6 +92,13 @@ jobs:
           cd PRO
           PR_TITLE=$(cat /tmp/pr_title)
           PR_BODY=$(cat /tmp/pr_body)
+
+          # Append PR template if it exists
+          if [ -f .github/pull_request_template.md ]; then
+            TEMPLATE_CONTENT=$(cat .github/pull_request_template.md)
+            PR_BODY="$PR_BODY$TEMPLATE_CONTENT"
+          fi
+
           gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base develop
 name: sync-with-PRO
 on:
