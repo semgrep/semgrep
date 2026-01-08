@@ -86,11 +86,6 @@ local job = {
           git am --directory=OSS "../$patch"
         done
 
-        # Amend the last commit to add sync reference
-        git log -1 --pretty=%B >message
-        echo "" >>message
-        echo "synced from OSS https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >>message
-        git commit --amend -F message
         git push origin $BRANCHNAME
       |||,
     },
