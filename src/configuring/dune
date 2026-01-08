@@ -24,7 +24,7 @@
 (rule
  (targets Rule_options_j.ml Rule_options_j.mli)
  (deps    Rule_options.atd)
- (action  (run atdgen -j -j-strict-fields -j-std %{deps})))
+ (action  (run atdgen -j -j-strict-fields %{deps})))
 
 (rule
  (targets Rule_options_t.ml Rule_options_t.mli)

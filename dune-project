@@ -113,7 +113,7 @@ For more information see https://semgrep.dev
     ; atdgen's runtime library must be compatible with the generated code in
     ; semgrep-interfaces:
     (atdgen-runtime (>= 3.0.0))  ; requires yojson 3
-    (atdgen (>= 2.16.0))
+    (atdgen (>= 3.0.0))  ; no longer requires -j-std
     (yojson (>= 2.2.2))
     (yaml (>= 3.2.0))
     (xmlm (>= 1.4.0))

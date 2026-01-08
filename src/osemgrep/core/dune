@@ -34,7 +34,7 @@
 (rule
  (targets semgrep_metrics_j.ml semgrep_metrics_j.mli)
  (deps    semgrep_metrics.atd)
- (action  (run atdgen -j -j-std %{deps})))
+ (action  (run atdgen -j %{deps})))
 (rule
  (targets semgrep_metrics_t.ml semgrep_metrics_t.mli)
  (deps    semgrep_metrics.atd)

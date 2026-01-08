@@ -21,7 +21,7 @@
 (rule
  (targets Semgrep_prefilter_j.ml Semgrep_prefilter_j.mli)
  (deps    Semgrep_prefilter.atd)
- (action  (run atdgen -j -j-strict-fields -j-std %{deps})))
+ (action  (run atdgen -j -j-strict-fields %{deps})))
 
 (rule
  (targets Semgrep_prefilter_t.ml Semgrep_prefilter_t.mli)
