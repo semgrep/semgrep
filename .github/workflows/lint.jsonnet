@@ -27,6 +27,13 @@ local pre_commit_steps() = [
   // pre-commit config. You have been warned!!
   {
     uses: uses.pre_commit.action,
+    env: {
+      // check-opam-conflicts will report an error about missing vendored
+      // dependencies in CI (like tree-sitter), but for local development
+      // we would expect those to be installed.  So, ignore this conflict
+      // check in CI.
+      SKIP: 'check-opam-conflicts',
+    },
   },
 ];
 
