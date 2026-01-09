@@ -35,6 +35,8 @@ let name_of_call (call : Out.function_call) : string =
   | `CallGetTargets _ -> "CallGetTargets"
   | `CallMatchSubprojects _ -> "CallMatchSubprojects"
   | `CallRunSymbolAnalysis _ -> "CallRunSymbolAnalysis"
+  | `CallUploadSubprojectSymbolAnalysis _ ->
+      "CallUploadSubprojectSymbolAnalysis"
   | `CallShowSubprojects _ -> "CallShowSubprojects"
 
 (*****************************************************************************)
@@ -156,6 +158,16 @@ let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
       match run_symbol_analysis (caps :> < Cap.readdir >) params with
       | Ok analysis -> Ok (`RetRunSymbolAnalysis analysis)
       | Error msg -> Error msg)
+  | `CallUploadSubprojectSymbolAnalysis
+      { token; scan_id; manifest; lockfile; symbol_analysis } -> (
+      let token = Auth.unsafe_token_of_string token in
+      match
+        Semgrep_App.upload_subproject_symbol_analysis
+          (caps :> < Cap.network >)
+          ~token ~scan_id ~manifest ~lockfile symbol_analysis
+      with
+      | Error msg -> Error msg
+      | Ok msg -> Ok (`RetUploadSubprojectSymbolAnalysis msg))
   | `CallShowSubprojects subprojects ->
       Ok
         (`RetShowSubprojects
