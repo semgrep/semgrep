@@ -1,6 +1,6 @@
 (* Alex Useche (hex0punk)
  *
- * Copyright (c) 2025 R2C
+ * Copyright (c) 2026 Alex Useche (hex0punk)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -437,3 +437,4 @@ let parse_pattern str =
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern } in
       map_source_file env cst)
+      
