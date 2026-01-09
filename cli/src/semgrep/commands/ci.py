@@ -294,6 +294,7 @@ def ci(
     partial_config: Optional[Path],
     partial_output: Optional[Path],
     x_group_taint_rules: bool,
+    x_dump_symbol_analysis: bool,
 ) -> None:
     if x_simple_profiling:
         simple_profiling_module.enabled_simple_profiling = True
@@ -756,6 +757,7 @@ def ci(
             "fips_mode": scan_handler.fips_mode if scan_handler else False,
             "semgrepignore_filename": x_semgrepignore_filename,
             "x_group_taint_rules": x_group_taint_rules,
+            "x_dump_symbol_analysis": x_dump_symbol_analysis,
         }
 
         try:

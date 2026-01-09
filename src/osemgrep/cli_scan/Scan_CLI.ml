@@ -530,6 +530,20 @@ let o_output : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+(* This is implemented in pysemgrep only and is used for the SCRAT project
+   which may at some point become independent of the semgrep CLI. *)
+let o_x_dump_symbol_analysis : bool Term.t =
+  let info =
+    Arg.info
+      [ "x-dump-symbol-analysis" ]
+      ~docs:CLI_common.experimental_section_title
+      ~doc:
+        {|[INTERNAL] Dump symbol analysis results in JSON format, \
+          ATD type 'symbol_analysis'.
+|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Output formats (mutually exclusive) *)
 (* ------------------------------------------------------------------ *)
@@ -1427,8 +1441,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       show_supported_languages strict target_roots test test_ignore_todo text
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
       use_git _use_semgrepignore_v2 validate version version_check vim
-      vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long x_tr x_pro_naming
-      x_group_taint_rules x_mcp =
+      vim_outputs _x_dump_symbol_analysis x_ignore_semgrepignore_files x_ls
+      x_ls_long x_tr x_pro_naming x_group_taint_rules x_mcp =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
@@ -1658,8 +1672,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_use_git
     $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
-    $ o_vim_outputs $ o_x_ignore_semgrepignore_files $ o_x_ls $ o_x_ls_long
-    $ o_x_tr $ o_x_pro_naming $ o_x_group_taint_rules $ o_x_mcp)
+    $ o_vim_outputs $ o_x_dump_symbol_analysis $ o_x_ignore_semgrepignore_files
+    $ o_x_ls $ o_x_ls_long $ o_x_tr $ o_x_pro_naming $ o_x_group_taint_rules
+    $ o_x_mcp)
 
 let doc = "run semgrep rules on files"
 

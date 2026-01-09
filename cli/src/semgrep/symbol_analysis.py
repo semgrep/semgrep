@@ -9,6 +9,7 @@
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
+import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,9 +23,11 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import UnknownLanguageError
+from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc_call import run_symbol_analysis as run_symbol_analysis_rpc
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import find_closest_subproject
 from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import TargetManager
@@ -216,3 +219,24 @@ def run_subproject_symbol_analysis(
             combined_symbol_analysis.extend(symbol_analysis.value)
 
     return out.SymbolAnalysis(value=combined_symbol_analysis)
+
+
+def dump_symbol_analysis_and_exit(target_manager: TargetManager) -> None:
+    _, resolved_subprojects, _ = resolve_subprojects(
+        target_manager=target_manager,
+        dependency_aware_rules=[],
+        config=DependencyResolutionConfig(
+            allow_local_builds=False,
+            ptt_enabled=False,
+            resolve_untargeted_subprojects=True,
+            download_dependency_source_code=False,
+        ),
+    )
+
+    symbol_analysis = run_subproject_symbol_analysis(
+        subprojects_by_ecosystem=resolved_subprojects,
+        target_manager=target_manager,
+    )
+
+    print(symbol_analysis.to_json_string())
+    sys.exit(0)

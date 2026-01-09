@@ -483,6 +483,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--x-dump-symbol-analysis",
+        "x_dump_symbol_analysis",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -740,6 +746,7 @@ def scan(
     allow_local_builds: bool,
     x_group_taint_rules: bool,
     x_mcp: bool,
+    x_dump_symbol_analysis: bool,
 ) -> Optional[ScanResult]:
     if version:
         print(__VERSION__)
@@ -1073,6 +1080,7 @@ def scan(
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,
                         x_group_taint_rules=x_group_taint_rules,
+                        x_dump_symbol_analysis=x_dump_symbol_analysis,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])

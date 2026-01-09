@@ -102,6 +102,7 @@ from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_all_source_files
 from semgrep.subproject import iter_found_dependencies
 from semgrep.subproject import make_dependencies_by_source_path
+from semgrep.symbol_analysis import dump_symbol_analysis_and_exit
 from semgrep.symbol_analysis import run_subproject_symbol_analysis
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
@@ -611,7 +612,6 @@ def filter_dependency_aware_rules(
 def resolve_dependencies(
     dependency_aware_rules: List[Rule],
     target_manager: TargetManager,
-    output_handler: OutputHandler,
     allow_local_builds: bool,
     ptt_enabled: bool,
     resolve_all_deps_in_diff_scan: bool,
@@ -630,7 +630,6 @@ def resolve_dependencies(
     Args:
         dependency_aware_rules: Rules that depend on project dependencies
         target_manager: Manager for scan targets
-        output_handler: Handler for semgrep errors
         allow_local_builds: Whether to allow local builds
         ptt_enabled: Whether PTT is enabled
         resolve_all_deps_in_diff_scan: Whether to resolve all dependencies in diff scan
@@ -913,7 +912,6 @@ def run_rules(
     ) = resolve_dependencies(
         dependency_aware_rules=dependency_aware_rules,
         target_manager=target_manager,
-        output_handler=output_handler,
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
@@ -1107,6 +1105,7 @@ def run_scan(
     run_symbol_analysis: bool = False,
     fips_mode: bool = False,
     x_group_taint_rules: bool = False,
+    x_dump_symbol_analysis: bool = False,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1275,6 +1274,9 @@ def run_scan(
     target_mode_config = target_mode_conf(
         historical_secrets, baseline_handler, engine_type, target_manager
     )
+
+    if x_dump_symbol_analysis:
+        dump_symbol_analysis_and_exit(target_manager)
 
     # ----------------------------
     # Step3: running the core engine
