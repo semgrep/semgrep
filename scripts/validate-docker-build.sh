@@ -8,7 +8,7 @@ prog_name=$(basename "$0")
 default_image=semgrep
 
 usage() {
-  cat <<EOF
+    cat <<EOF
 Usage: $prog_name [IMAGE]
 Run basic tests to ensure a semgrep docker image is usable.
 Default docker image to use: $default_image
@@ -16,26 +16,27 @@ EOF
 }
 
 error() {
-  cat >&2 <<EOF
+    cat >&2 <<EOF
 Error in $(basename "$0"): $*
 EOF
-  usage >&2
-  exit 1
+    usage >&2
+    exit 1
 }
 
 image=$default_image
 if [[ $# -gt 0 ]]; then
-  if [[ $# -gt 2 ]]; then
-    error "too many arguments"
-  fi
-  case "$1" in
+    if [[ $# -gt 2 ]]; then
+        error "too many arguments"
+    fi
+    case "$1" in
     --help)
-      usage
-      exit 0
-      ;;
+        usage
+        exit 0
+        ;;
     *)
-      image=$1
-  esac
+        image=$1
+        ;;
+    esac
 fi
 
 platform=${2:-}
@@ -43,7 +44,7 @@ platform=${2:-}
 docker_args=()
 
 if [[ -n $platform ]]; then
-  docker_args+=(--platform "$platform")
+    docker_args+=(--platform "$platform")
 fi
 
 echo "Running just the image should print help without error"
@@ -74,7 +75,7 @@ echo " -> OK"
 
 echo "Semgrep should be able to return findings (file)"
 TEMP_DIR=$(mktemp -d)
-echo "if 1 == 1: pass" > "${TEMP_DIR}/bar.py"
+echo "if 1 == 1: pass" >"${TEMP_DIR}/bar.py"
 result=$(docker run "${docker_args[@]}" -v "${TEMP_DIR}:/src" -i "$image" semgrep -l python -e '$X == $X')
 echo "${result}" | grep -q "1 == 1"
 echo " -> OK"
@@ -90,4 +91,8 @@ echo " -> OK"
 
 echo "Curl should be in the docker image"
 docker run "${docker_args[@]}" "$image" curl --version
+echo " -> OK"
+
+echo "Pyro Caml should be in the docker image"
+docker run "${docker_args[@]}" "$image" pyro-caml --version
 echo " -> OK"
