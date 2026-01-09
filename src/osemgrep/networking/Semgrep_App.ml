@@ -91,6 +91,9 @@ let pro_binary_route (platform_kind : pro_engine_arch) =
 let symbol_analysis_route scan_id =
   spf "/api/agent/scans/%d/symbols_upload_url" scan_id
 
+let subproject_symbol_analysis_route scan_id =
+  spf "/api/agent/scans/%d/subproject_symbols_upload_url" scan_id
+
 (* Transitive reachability caching routes *)
 let tr_cache_route = "/api/cli/tr_cache"
 let tr_cache_lookup_route = "/api/cli/tr_cache/lookup"
@@ -589,69 +592,106 @@ let upload_rule_to_registry_async caps json =
 let upload_rule_to_registry caps json =
   Lwt_platform.run (upload_rule_to_registry_async caps json)
 
-let upload_symbol_analysis_async caps ~token ~scan_id symbol_analysis :
+(* TODO: (2025-12-11) we can remove this once we fully switch over to
+   the new style of per-subproject symbol analysis *)
+let get_symbol_analysis_s3_url caps ~token ~scan_id :
+    (Uri.t, string) result Lwt.t =
+  let url =
+    Uri.with_path !Semgrep_envvars.v.semgrep_url (symbol_analysis_route scan_id)
+  in
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token token;
+    ]
+  in
+  match%lwt Http_helpers.get ~headers caps#network url with
+  | Ok { body = Ok body_json; _ } -> (
+      (* Parse the JSON to extract the upload_url *)
+      match Out.symbol_analysis_upload_response_of_string body_json with
+      | { upload_url } -> Lwt.return_ok upload_url)
+  | Ok { body = Error msg; code; _ } ->
+      let msg =
+        spf
+          "Failed to get symbol analysis upload url, API server returned %u, \
+           this error: %s"
+          code msg
+      in
+      Lwt.return_error msg
+      (* Handle the case where the server rejects the connection *)
+  | Error e ->
+      let msg = spf "Failed to get symbol analysis upload url: %s" e in
+      Lwt.return_error msg
+
+let get_subproject_symbol_analysis_s3_url caps ~token ~scan_id ~manifest
+    ~lockfile : (Uri.t, string) result Lwt.t =
+  let url =
+    Uri.with_path !Semgrep_envvars.v.semgrep_url
+      (subproject_symbol_analysis_route scan_id)
+  in
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token token;
+    ]
+  in
+  let body =
+    Out.string_of_subproject_symbol_analysis_url_request
+      { manifest_path = manifest; lockfile_path = lockfile }
+  in
+  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  | Ok { body = Ok body_json; _ } -> (
+      (* Parse the JSON to extract the upload_url *)
+      match Out.symbol_analysis_upload_response_of_string body_json with
+      | { upload_url } -> Lwt.return_ok upload_url)
+  | Ok { body = Error msg; code; _ } ->
+      let msg =
+        spf
+          "Failed to get subproject symbol analysis upload url, API server \
+           returned %u, this error: %s"
+          code msg
+      in
+      Lwt.return_error msg
+      (* Handle the case where the server rejects the connection *)
+  | Error e ->
+      let msg =
+        spf "Failed to get subproject symbol analysis upload url: %s" e
+      in
+      Lwt.return_error msg
+
+let upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis :
     (string, string) result Lwt.t =
   try
-    let url =
-      Uri.with_path !Semgrep_envvars.v.semgrep_url
-        (symbol_analysis_route scan_id)
-    in
     Logs.debug (fun m ->
         m "Uploading symbol analysis for %d symbols"
           (List.length symbol_analysis));
-
-    let headers =
+    let upload_headers =
       [
         ("Content-Type", "application/json");
         ("User-Agent", spf "Semgrep/%s" Version.version);
-        Auth.auth_header_of_token token;
       ]
     in
     let body = Out.string_of_symbol_analysis symbol_analysis in
-    match%lwt Http_helpers.get ~headers caps#network url with
-    | Ok { body = Ok body_json; _ } -> (
-        (* Parse the JSON to extract the upload_url *)
-        match Out.symbol_analysis_upload_response_of_string body_json with
-        | { upload_url; _ } -> (
-            let upload_headers =
-              [
-                ("Content-Type", "application/json");
-                ("User-Agent", spf "Semgrep/%s" Version.version);
-              ]
-            in
-            (* Upload the symbol analysis to the S3 upload_url *)
-            match%lwt
-              Http_helpers.put ~body ~headers:upload_headers caps#network
-                upload_url
-            with
-            (* Handle the good case *)
-            | Ok { body = Ok _; _ } -> Lwt.return_ok "Symbol analysis uploaded"
-            | Ok { body = Error msg; code; _ } ->
-                (* Handle the case where the server returns an error code*)
-                let msg =
-                  spf
-                    "Failed to upload symbol analysis to S3, S3 returned %u, \
-                     this error: %s"
-                    code msg
-                in
-                Lwt.return_error msg
-            | Error e ->
-                (* Handle the case where the server rejects the connection *)
-                let msg = spf "Failed to upload symbol analysis to S3: %s" e in
-                Lwt.return_error msg
-            (* Handle the server accepting the connection but throwing an error *)
-            ))
+    (* Upload the symbol analysis to the S3 upload_url *)
+    match%lwt
+      Http_helpers.put ~body ~headers:upload_headers caps#network upload_url
+    with
+    (* Handle the good case *)
+    | Ok { body = Ok _; _ } -> Lwt.return_ok "Symbol analysis uploaded"
     | Ok { body = Error msg; code; _ } ->
+        (* Handle the case where the server returns an error code*)
         let msg =
           spf
-            "Failed to get symbol analysis upload url, API server returned %u, \
-             this error: %s"
+            "Failed to upload symbol analysis to S3, S3 returned %u, this \
+             error: %s"
             code msg
         in
         Lwt.return_error msg
-        (* Handle the case where the server rejects the connection *)
     | Error e ->
-        let msg = spf "Failed to get symbol analysis upload url: %s" e in
+        (* Handle the case where the server rejects the connection *)
+        let msg = spf "Failed to upload symbol analysis to S3: %s" e in
         Lwt.return_error msg
   with
   | exn ->
@@ -663,6 +703,31 @@ let upload_symbol_analysis_async caps ~token ~scan_id symbol_analysis :
       in
       Lwt.return_error msg
 
+(* TODO: (2025-12-11) we can remove this once we fully switch over to
+   the new style of per-subproject symbol analysis *)
+let upload_symbol_analysis_async caps ~token ~scan_id symbol_analysis :
+    (string, string) result Lwt.t =
+  match%lwt get_symbol_analysis_s3_url caps ~token ~scan_id with
+  | Ok upload_url ->
+      upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis
+  | Error msg -> Lwt.return_error msg
+
+let upload_subproject_symbol_analysis_async caps ~token ~scan_id ~manifest
+    ~lockfile symbol_analysis : (string, string) result Lwt.t =
+  match%lwt
+    get_subproject_symbol_analysis_s3_url caps ~token ~scan_id ~manifest
+      ~lockfile
+  with
+  | Ok upload_url ->
+      upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis
+  | Error msg -> Lwt.return_error msg
+
 let upload_symbol_analysis caps ~token ~scan_id symbol_analysis =
   Lwt_platform.run
     (upload_symbol_analysis_async caps ~token ~scan_id symbol_analysis)
+
+let upload_subproject_symbol_analysis caps ~token ~scan_id ~manifest ~lockfile
+    symbol_analysis =
+  Lwt_platform.run
+    (upload_subproject_symbol_analysis_async caps ~token ~scan_id ~manifest
+       ~lockfile symbol_analysis)

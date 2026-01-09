@@ -133,6 +133,15 @@ val upload_symbol_analysis :
   Semgrep_output_v1_t.symbol_analysis ->
   (string, string) result
 
+val upload_subproject_symbol_analysis :
+  < Cap.network ; .. > ->
+  token:Auth.token ->
+  scan_id:int ->
+  manifest:Fpath.t option ->
+  lockfile:Fpath.t option ->
+  Semgrep_output_v1_t.symbol_analysis ->
+  (string, string) result
+
 (*****************************************************************************)
 (* Async variants of functions above *)
 (*****************************************************************************)
@@ -168,5 +177,14 @@ val upload_symbol_analysis_async :
   < Cap.network ; .. > ->
   token:Auth.token ->
   scan_id:int ->
+  Semgrep_output_v1_t.symbol_analysis ->
+  (string, string) result Lwt.t
+
+val upload_subproject_symbol_analysis_async :
+  < Cap.network ; .. > ->
+  token:Auth.token ->
+  scan_id:int ->
+  manifest:Fpath.t option ->
+  lockfile:Fpath.t option ->
   Semgrep_output_v1_t.symbol_analysis ->
   (string, string) result Lwt.t

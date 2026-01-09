@@ -196,6 +196,33 @@ def run_symbol_analysis(
 
 
 @tracing.trace()
+def upload_subproject_symbol_analysis(
+    token: str,
+    scan_id: int,
+    manifest: Optional[out.Fpath],
+    lockfile: Optional[out.Fpath],
+    symbol_analysis: out.SymbolAnalysis,
+) -> None:
+    params = out.UploadSubprojectSymbolAnalysisParams(
+        token,
+        scan_id,
+        manifest,
+        lockfile,
+        symbol_analysis,
+    )
+    call = out.FunctionCall(out.CallUploadSubprojectSymbolAnalysis(params))
+    ret: Optional[out.RetUploadSymbolAnalysis] = rpc_call(
+        call, out.RetUploadSymbolAnalysis
+    )
+    if ret is None:
+        logger.warning(
+            "Failed to upload symbol analysis, somehow. Continuing with scan..."
+        )
+    else:
+        logger.debug(f"Uploading symbol analysis succeeded with {ret.value}")
+
+
+@tracing.trace()
 def show_subprojects(*, subprojects: List[out.Subproject]) -> str:
     """Show subproject info
 

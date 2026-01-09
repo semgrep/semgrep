@@ -171,6 +171,7 @@ let tests (caps : Cap.all_caps) =
         Unit_http_helpers.tests (caps :> < Cap.network >);
         (* osemgrep unit tests *)
         Unit_Login.tests caps;
+        Unit_app.tests caps;
         Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
         Unit_reporting.tests (caps :> < >);
         Unit_ci.tests;
