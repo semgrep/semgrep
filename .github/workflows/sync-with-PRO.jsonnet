@@ -63,6 +63,7 @@ local job = {
 
         # Author's GitHub username
         AUTHOR=$(gh pr view $PR_NUMBER --json author --jq .author.login)
+        echo $AUTHOR > /tmp/pr_author
         # Add original attribution
         echo "" >> /tmp/pr_body
         echo "Synced from OSS PR https://github.com/semgrep/semgrep/pull/$PR_NUMBER" >> /tmp/pr_body
@@ -117,7 +118,28 @@ local job = {
           PR_BODY="$PR_BODY$TEMPLATE_CONTENT"
         fi
 
-        gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base develop
+        PRO_PR_URL=$(gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base develop)
+        echo "Created pro PR $PRO_PR_URL"
+        echo "$PRO_PR_URL" > /tmp/pro_pr_url
+      |||,
+    },
+    {
+      name: 'Comment on OSS PR with link to PRO PR',
+      env: {
+        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        PR_NUMBER: '${{ inputs.pr_number }}',
+      },
+      run: |||
+        PRO_PR_URL=$(cat /tmp/pro_pr_url)
+        AUTHOR=$(cat /tmp/pr_author)
+        echo -en "@${{ github.actor }} has imported this pull request. " >> /tmp/comment_body
+        echo -en "Semgrep employees can find it at $PRO_PR_URL.\n" >> /tmp/comment_body
+        echo -en "\n" >> /tmp/comment_body
+        echo -en "@$AUTHOR, thank you for your contribution! " >> /tmp/comment_body
+        echo -en "Once the internal PR has been merged, this PR will be " >> /tmp/comment_body
+        echo -en "automatically marked as closed. Later, the resulting commit " >> /tmp/comment_body
+        echo -en "will be synced back out to this repository and will reference this PR.\n" >> /tmp/comment_body
+        gh pr comment $PR_NUMBER --body-file /tmp/comment_body
       |||,
     },
 
