@@ -120,6 +120,11 @@ let remove path =
         let names = get_dir_entries path in
         List.iter (fun name -> remove (path / name)) names;
         Unix.rmdir !!path
+    | Ok { st_kind = S_REG; _ } ->
+        (* On Unix, Sys.remove can remove write-protected files, but it
+           cannot on Windows, so preemptively make the file writable. *)
+        Unix.chmod !!path 0o600;
+        Sys.remove !!path
     | _ -> Sys.remove !!path
   in
   if Sys_.Fpath.exists path then remove path

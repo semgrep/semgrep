@@ -1,0 +1,1 @@
+Fix rare "bad file descriptor" when performing Git operations on Windows

@@ -56,7 +56,3 @@ val status_of_run :
 
 (* Deprecated: you should use lines_of_run *)
 val cmd_to_list : Cap.Exec.t -> ?verbose:bool -> string (* cmd *) -> string list
-
-(* Deprecated: you should probably use one of the xxx_of_run above *)
-val with_open_process_in :
-  Cap.Exec.t -> string (* cmd *) -> (in_channel -> 'a) -> 'a

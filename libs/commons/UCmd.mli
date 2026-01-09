@@ -51,8 +51,6 @@ val status_of_run :
   Cmd.t ->
   (Bos.OS.Cmd.status, [> Rresult.R.msg ]) result
 
-val with_open_process_in : string -> (in_channel -> 'a) -> 'a
-
 (* old style *)
 exception CmdError of Unix.process_status * string
 

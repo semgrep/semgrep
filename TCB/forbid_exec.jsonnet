@@ -25,7 +25,6 @@ local ucmd_funcs = [
   'string_of_run_with_stderr',
   'lines_of_run',
   'status_of_run',
-  'with_open_process_in',
   'cmd_to_list',
 ];
 

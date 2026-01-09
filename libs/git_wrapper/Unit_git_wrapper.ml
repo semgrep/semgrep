@@ -38,9 +38,28 @@ let test_user_identity () =
       let nobody = Git_wrapper.config_get_exn "user.name" in
       Alcotest.(check (option string)) "new user name" (Some "nobody") nobody)
 
+(* Stress test for git ls-files to reproduce Windows EBADF issue; see
+   SAF-2358. This number of iterations probably won't catch the error
+   we were seeing, but I'm leaving this here in case the issue keeps
+   popping up. Setting iterations = 10000 consistently failed before
+   the patch in #5268. *)
+let test_ls_files_stress () =
+  let iterations = 10 in
+  Testutil_git.with_git_repo ~verbose:false
+    [ File ("test.txt", "hello") ]
+    (fun cwd ->
+      for i = 1 to iterations do
+        match Git_wrapper.ls_files ~cwd [] with
+        | Ok _files -> ()
+        | Error msg ->
+            Alcotest.fail (sprintf "ls_files failed on iteration %d: %s" i msg)
+      done;
+      printf "ls_files stress test: %d iterations passed\\n" iterations)
+
 let tests =
   [
     t ?skipped:Testutil.skip_on_windows "user identity" test_user_identity;
+    t "ls_files stress test" test_ls_files_stress;
     t "get git project root" (fun () ->
         let cwd = Sys.getcwd () |> Fpath.v in
         match Git_wrapper.project_root_for_files_in_dir cwd with

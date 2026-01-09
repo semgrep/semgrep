@@ -36,18 +36,23 @@ let log_command cmd =
   (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m -> m "Running external command: %s" (Cmd.to_string cmd))
 
-let log_shell_command cmd =
-  (* nosemgrep: no-logs-in-library *)
-  Logs.info (fun m -> m "Running shell command: %s" cmd)
+(* Create a new temporary file, invoke the passed function on the temporary
+   file, delete the temporary file, and return what was in the temporary file
+   before it was closed. *)
+let with_temp_file_out (f : Fpath.t -> 'a) : 'a * string =
+  (* This is an internal implementation detail, so no need to worry about
+     using CapTmp. *)
+  (* nosemgrep: forbid-tmp *)
+  UTmp.with_temp_file (fun path ->
+      let res = f path in
+      let out = UFile.read_file path in
+      (res, out))
 
-(* Capture error output and log it at the same level as 'log_command' above.
-
-   This uses a utility function from Testo which is weird since it's
-   not a general-purpose library. Bos doesn't seem to provide a simple
-   equivalent (?)
-*)
-let capture_and_log_stderr func =
-  let res, err = Testo.with_capture Stdlib.stderr func in
+(* Create a new temporary file, invoke the passed function on the temporary
+   file, delete the temporary file, and log what was in the temporary file if
+   it was nonempty, at the same level as 'log_command' above. *)
+let with_logging_err_temp_file (f : Fpath.t -> 'a) : 'a =
+  let res, err = with_temp_file_out f in
   if err <> "" then
     (* nosemgrep: no-logs-in-library *)
     Logs.info (fun m -> m "error output: %s" err);
@@ -76,7 +81,6 @@ let env_of_env (env : Cmd.env option) : Bos.OS.Env.t option =
 exception CmdError of Unix.process_status * string
 
 let process_output_to_list ?(verbose = false) command =
-  (* alt: use Cmd.with_open_process_in *)
   (* nosemgrep: forbid-exec *)
   let chan = Unix.open_process_in command in
   let res = ref ([] : string list) in
@@ -118,35 +122,35 @@ let run_subprocess ?env cmd =
 let string_of_run ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in
-  capture_and_log_stderr (fun () ->
+  with_logging_err_temp_file (fun err_path ->
       (* nosemgrep: forbid-exec *)
-      let out = Cmd.bos_apply (Bos.OS.Cmd.run_out ?env) cmd in
+      let out =
+        Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
+      in
       (* nosemgrep: forbid-exec *)
       Bos.OS.Cmd.out_string ~trim out)
 
-(* The method of using Testo.with_capture here is odd, but is copied from
- * capture_and_log_stderr as defined above--see that function for the
- * reasoning for doing it this way. *)
 (* TODO: this is potentially a source of high memory usage if the captured program
  * outputs a lot of log spew. We should add a limit on the data read. *)
 let string_of_run_with_stderr ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in
-  let res, err =
-    Testo.with_capture Stdlib.stderr (fun () ->
-        (* nosemgrep: forbid-exec *)
-        let out = Cmd.bos_apply (Bos.OS.Cmd.run_out ?env) cmd in
-        (* nosemgrep: forbid-exec *)
-        Bos.OS.Cmd.out_string ~trim out)
-  in
-  (res, err)
+  with_temp_file_out (fun err_path ->
+      (* nosemgrep: forbid-exec *)
+      let out =
+        Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
+      in
+      (* nosemgrep: forbid-exec *)
+      Bos.OS.Cmd.out_string ~trim out)
 
 let lines_of_run ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in
-  capture_and_log_stderr (fun () ->
+  with_logging_err_temp_file (fun err_path ->
       (* nosemgrep: forbid-exec *)
-      let out = Cmd.bos_apply (Bos.OS.Cmd.run_out ?env) cmd in
+      let out =
+        Cmd.bos_apply Bos.OS.Cmd.(run_out ~err:(err_file err_path) ?env) cmd
+      in
       (* nosemgrep: forbid-exec *)
       Bos.OS.Cmd.out_lines ~trim out)
 
@@ -154,17 +158,11 @@ let lines_of_run ~trim ?env cmd =
 let status_of_run ?quiet ?env cmd =
   log_command cmd;
   let env = env_of_env env in
-  capture_and_log_stderr (fun () ->
+  with_logging_err_temp_file (fun err_path ->
       (* nosemgrep: forbid-exec *)
-      Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet ?env) cmd)
-
-(* TODO: switch to type Cmd.t for cmd *)
-let with_open_process_in (cmd : string) f =
-  log_shell_command cmd;
-  capture_and_log_stderr (fun () ->
-      (* nosemgrep: forbid-exec *)
-      let chan = Unix.open_process_in cmd in
-      Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan))
+      Cmd.bos_apply
+        Bos.OS.Cmd.(run_status ?quiet ~err:(err_file err_path) ?env)
+        cmd)
 
 (*
    A superset of Bash alphanumeric keywords that don't behave like ordinary
