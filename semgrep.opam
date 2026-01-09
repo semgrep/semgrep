@@ -128,6 +128,7 @@ pin-depends: [
   ["testo-diff.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
   ["testo-lwt.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
   ["obackward.dev" "git+https://github.com/semgrep/obackward.git#060ebb528e88b27124b33b5cfaf8ed04b7da6e41"]
+  (* coupling: update the submodule in cli/src/semgrep too *)
   ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#533177d79c471320b73f9e63d4d41095e8019391"]
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
