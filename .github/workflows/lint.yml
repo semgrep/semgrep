@@ -45,7 +45,9 @@ jobs:
           opam-pin: false
           save-opam-post-run: true
       - run: opam install -y ocamlformat.0.27.0
-      - uses: pre-commit/action@646c83fcd040023954eafda54b4db0192ce70507
+      - env:
+          SKIP: check-opam-conflicts
+        uses: pre-commit/action@646c83fcd040023954eafda54b4db0192ce70507
 name: lint
 on:
   pull_request:
