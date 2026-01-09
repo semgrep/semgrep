@@ -1849,11 +1849,17 @@ and transfer_instr env x =
               let taints, lval_shape, _sub, lval_env =
                 check_tainted_lval { env with lval_env } lval
               in
-              (* We check if the instruction is a sink, and if so the taints
-                  from the `lval` could make a finding. *)
               let lval_env' =
-                check_orig_if_sink { env with lval_env } x.iorig taints
-                  lval_shape
+                (* If the lval is a sink, we check if the whole instruction is
+                   also a sink, and if so the taints from the `lval` could make
+                   a finding. If not, we don't do to do anything, since
+                   'check_tainted_instr' already checks the instruction without
+                   the 'lval'. *)
+                match lval_is_sink env lval with
+                | [] -> lval_env
+                | _ :: _ ->
+                    check_orig_if_sink { env with lval_env } x.iorig taints
+                      lval_shape
               in
               lval_env'
           | None -> lval_env
