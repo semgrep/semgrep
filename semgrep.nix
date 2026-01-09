@@ -39,30 +39,6 @@ let
           root = src;
           fileset = (intersection (fromSource (pkgs.lib.sources.cleanSource src)) (unions paths));
         });
-      mapDev =
-        pkg: field:
-        builtins.map (
-          dep:
-          if
-            (
-              (builtins.isAttrs dep)
-              && (builtins.hasAttr "pname" dep)
-              && pkgs.lib.strings.hasSuffix "-dev" dep.name
-            )
-          then
-            (mapDev dep field)
-          else
-            dep
-        ) pkg.${field};
-      filterDevDeps =
-        pkg:
-        let
-        in
-        pkg.overrideAttrs (prev: {
-          buildInputs = mapDev prev "buildInputs";
-
-          nativeBuildInputs = mapDev prev "nativeBuildInputs";
-        });
 
       # set doNixSupport to false so we don't accidentally drag in any conflicting deps
       # (since we only care about binaries for these)
@@ -111,9 +87,8 @@ let
               ;
           } name src (baseQuery // query);
           inputsFromQuery = scopeToPkgs query scope;
-          pkgWithInputs = addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
         in
-        filterDevDeps pkgWithInputs;
+        addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
 
       # make sure we have submodules
       # See https://github.com/NixOS/nix/pull/7862

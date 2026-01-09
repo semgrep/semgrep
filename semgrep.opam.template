@@ -12,7 +12,7 @@ pin-depends: [
   *)
   ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#20c7ee45ba6e44b2e659665032a18ccd9dedaca7"]
   ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#4e0a44486bb518b7a24ca11286c4b03a8d51e17e"]
-  ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#d54d4801e1223df89e07c74dfa491a52114f4992"]
+  ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#abb14bfa9ce2bb983f425f091b0cffe44fdb6848"]
   ["testo.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
   ["testo-util.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
   ["testo-diff.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
