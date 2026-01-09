@@ -194,6 +194,22 @@ core-test-e2e:
 	$(MAKE) -C interfaces/semgrep_interfaces test
 
 ###############################################################################
+# Validation targets
+###############################################################################
+
+# Regenerate all .opam files from dune-project and validate dependencies
+# This ensures .opam files stay in sync with dune-project and don't have conflicts
+.PHONY: check-opam-conflicts
+check-opam-conflicts: dune-project
+	@dune build *.opam 2>/dev/null || true
+	@OUT=$$(find . -maxdepth 1 -name "*.opam" -type f | xargs opam install --deps-only --dry-run 2>&1); \
+	if echo "$$OUT" | grep -q "No solution found"; then \
+		echo "ERROR: OPAM package conflicts detected:" >&2; \
+		echo "$$OUT" >&2; \
+		exit 1; \
+	fi
+
+###############################################################################
 # External dependencies installation targets
 ###############################################################################
 
