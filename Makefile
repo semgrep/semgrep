@@ -270,6 +270,16 @@ install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	# Validate that after installing deps the pinned compiler hasn't changed
 	./scripts/validate-compiler-sha.sh
 
+# This installs pyro caml profiler, which allows us to do some nice continous
+# profiling (--profile passed to pysemgrep). This is separate from
+# install-opam-deps, as it is not compatible with tsan nor windows. This allows
+# us to only install it when needed, in the normal docker image build.
+# Additionally the profiler relies on Rust as a dependency, so this avoids
+# forcing developers to install Rust unless they need it.
+.PHONY: install-pyro-caml
+install-pyro-caml:
+	opam install pyro-caml -y  --confirm-level=unsafe-yes
+
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
 # 'opam install dune' to get started.
