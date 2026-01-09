@@ -395,12 +395,17 @@ and instr = { i : instr_kind; iorig : orig }
 and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
   | Assign of lval * exp
+  | AssignCall of lval option * call
   | AssignAnon of lval * anonymous_entity
-  | Call of lval option * exp (* less: enforce lval? *) * exp argument list
-  | CallSpecial of lval option * call_special wrap * exp argument list
   | New of lval * G.type_ * exp option (* constructor *) * exp argument list
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
+
+and call = { c : call_kind; corig : orig }
+
+and call_kind =
+  | Call of exp * exp argument list
+  | CallSpecial of call_special wrap * exp argument list
 
 and call_special =
   | Eval

@@ -152,6 +152,10 @@ let best_matches_in_nodes ~sub_matches_of_orig fun_cfg =
         acc := Seq.cons i.iorig !acc;
         super#visit_instr acc i
 
+      method! visit_call acc c =
+        acc := Seq.cons c.corig !acc;
+        super#visit_call acc c
+
       method! visit_exp acc e =
         acc := Seq.cons e.eorig !acc;
         super#visit_exp acc e

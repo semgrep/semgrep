@@ -295,7 +295,7 @@ let rec pretty_instr_kind ?(indent = 0) = function
           spf "%s = %s" (pretty_lval lv)
             (pretty_class_definition ~name:"<anon class>" ~indent ~inline:true
                cdef))
-  | IL.Call (lv_opt, fn, args) ->
+  | IL.AssignCall (lv_opt, { c = IL.Call (fn, args); _ }) ->
       let lv_str =
         match lv_opt with
         | Some lv -> spf "%s = " (pretty_lval lv)
@@ -306,7 +306,7 @@ let rec pretty_instr_kind ?(indent = 0) = function
         args |> List_.map (pretty_argument pretty_exp) |> String.concat ", "
       in
       spf "%s%s(%s)" lv_str fn_str args_str
-  | IL.CallSpecial (lv_opt, (special, _), args) ->
+  | IL.AssignCall (lv_opt, { c = IL.CallSpecial ((special, _), args); _ }) ->
       let lv_str =
         match lv_opt with
         | Some lv -> spf "%s = " (pretty_lval lv)

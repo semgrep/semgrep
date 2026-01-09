@@ -210,7 +210,8 @@ let mk_aux_var ?(force = false) ?str env tok exp : name * lval =
       add_instr env (mk_i (Assign (lval, exp)) NoOrig);
       (var, lval)
 
-let add_call env tok eorig ~void mk_call : exp =
+let add_call env tok eorig ~void call : exp =
+  let mk_call res = AssignCall (res, { c = call; corig = eorig }) in
   if void then (
     add_instr env (mk_i (mk_call None) eorig);
     mk_unit tok NoOrig)
@@ -632,8 +633,7 @@ and map_expr_aux env ?(void = false) g_expr : exp =
             let offset = { o = Dot method_name; oorig = NoOrig } in
             let method_lval = { base = Var obj_var; rev_offset = [ offset ] } in
             let method_ = { e = Fetch method_lval; eorig = related_tok tok } in
-            add_call env tok eorig ~void (fun res -> Call (res, method_, args'))
-      )
+            add_call env tok eorig ~void (Call (method_, args')))
   | G.Call
       ( ({
            e =
@@ -704,7 +704,14 @@ and map_expr_aux env ?(void = false) g_expr : exp =
         | _ -> fresh_lval env tok
       in
       add_instr env
-        (mk_i (CallSpecial (Some res, (Concat, tok), obj_arg' :: args')) eorig);
+        (mk_i
+           (AssignCall
+              ( Some res,
+                {
+                  c = CallSpecial ((Concat, tok), obj_arg' :: args');
+                  corig = eorig;
+                } ))
+           eorig);
       mk_e (Fetch res) eorig
   (* todo: if the xxx_to_generic forgot to generate Eval *)
   | G.Call
@@ -718,7 +725,11 @@ and map_expr_aux env ?(void = false) g_expr : exp =
       let lval = fresh_lval env tok in
       let special = (Eval, tok) in
       let args = map_arguments env (Tok.unbracket args) in
-      add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
+      add_instr env
+        (mk_i
+           (AssignCall
+              (Some lval, { c = CallSpecial (special, args); corig = eorig }))
+           eorig);
       mk_e (Fetch lval) (related_tok tok)
   | G.Call ({ e = G.Special (G.InterpolatedElement, _); _ }, (_, [ G.Arg e ], _))
     ->
@@ -739,12 +750,11 @@ and map_expr_aux env ?(void = false) g_expr : exp =
       let args = map_arguments env (Tok.unbracket args) in
       try
         let special = map_call_special env spec in
-        add_call env tok eorig ~void (fun res ->
-            CallSpecial (res, special, args))
+        add_call env tok eorig ~void (CallSpecial (special, args))
       with
       | Fixme (kind, any_generic) ->
           let fixme = fixme_exp kind any_generic (related_exp g_expr) in
-          add_call env tok eorig ~void (fun res -> Call (res, fixme, args)))
+          add_call env tok eorig ~void (Call (fixme, args)))
   | G.Call (e, args) ->
       let tok = G.fake "call" in
       map_call_generic env ~void tok eorig e args
@@ -789,7 +799,7 @@ and map_expr_aux env ?(void = false) g_expr : exp =
           when env.lang =*= Lang.Ruby
                && IdentSet.mem (H.str_of_ident ident) env.ctx.entity_names ->
             let tok = G.fake "call" in
-            add_call env tok eorig ~void (fun res -> Call (res, exp, []))
+            add_call env tok eorig ~void (Call (exp, []))
         | _ -> exp
       in
       ident_function_call_hack exp
@@ -943,7 +953,14 @@ and map_expr_aux env ?(void = false) g_expr : exp =
       let e1 = map_expr env e1orig in
       let tmp = fresh_lval env tok in
       add_instr env
-        (mk_i (CallSpecial (Some tmp, (Await, tok), [ Unnamed e1 ])) eorig);
+        (mk_i
+           (AssignCall
+              ( Some tmp,
+                {
+                  c = CallSpecial ((Await, tok), [ Unnamed e1 ]);
+                  corig = eorig;
+                } ))
+           eorig);
       mk_e (Fetch tmp) NoOrig
   | G.Yield (tok, e1orig_opt, _) ->
       let yield_args =
@@ -953,14 +970,24 @@ and map_expr_aux env ?(void = false) g_expr : exp =
       in
       add_instr env
         (mk_i
-           (CallSpecial (None, (Yield, tok), mk_unnamed_args yield_args))
+           (AssignCall
+              ( None,
+                {
+                  c = CallSpecial ((Yield, tok), mk_unnamed_args yield_args);
+                  corig = eorig;
+                } ))
            eorig);
       mk_unit tok NoOrig
   | G.Ref (tok, e1orig) ->
       let e1 = map_expr env e1orig in
       let tmp = fresh_lval env tok in
       add_instr env
-        (mk_i (CallSpecial (Some tmp, (Ref, tok), [ Unnamed e1 ])) eorig);
+        (mk_i
+           (AssignCall
+              ( Some tmp,
+                { c = CallSpecial ((Ref, tok), [ Unnamed e1 ]); corig = eorig }
+              ))
+           eorig);
       mk_e (Fetch tmp) NoOrig
   | G.Constructor (cname, (tok1, esorig, tok2)) ->
       let cname = var_of_name cname in
@@ -1038,7 +1065,7 @@ and map_call_generic env ?(void = false) tok eorig e args : exp =
    * worth it.
    *)
   let args = map_arguments env (Tok.unbracket args) in
-  add_call env tok eorig ~void (fun res -> Call (res, e, args))
+  add_call env tok eorig ~void (Call (e, args))
 
 and map_call_special _env (x, tok) =
   ( (match x with
@@ -1311,7 +1338,7 @@ and map_xml_expr env ~void eorig xml : exp =
       in
       let record = mk_e (RecordOrDict fields) fields_orig in
       let args = [ Unnamed record ] in
-      add_call env tok eorig ~void (fun res -> Call (res, e, args))
+      add_call env tok eorig ~void (Call (e, args))
   | Some _
   | None ->
       let attrs =
@@ -1349,7 +1376,14 @@ and map_stmt_expr env ?g_expr st : exp =
       let e = map_expr env eorig in
       let special = (Delete, tok) in
       add_instr env
-        (mk_i (CallSpecial (None, special, [ Unnamed e ])) (Related atok));
+        (mk_i
+           (AssignCall
+              ( None,
+                {
+                  c = CallSpecial (special, [ Unnamed e ]);
+                  corig = Related atok;
+                } ))
+           (Related atok));
       mk_unit tok (Related atok)
   | G.If (tok, cond, st1, opt_st2) ->
       (* if cond then e1 else e2
@@ -1856,7 +1890,15 @@ and map_stmt_aux env st : stmt list =
       ss
       @ [
           mk_s
-            (Instr (mk_i (CallSpecial (None, special, args)) (Related (G.S st))));
+            (Instr
+               (mk_i
+                  (AssignCall
+                     ( None,
+                       {
+                         c = CallSpecial (special, args);
+                         corig = Related (G.S st);
+                       } ))
+                  (Related (G.S st))));
         ]
   | G.Throw (tok, e, _) ->
       let ss, e = map_expr_with_pre_stmts env e in
@@ -1936,15 +1978,24 @@ and map_for_each_aux env tok pat tok2 e stmts cont_label_s break_label_s :
     mk_s
       (Instr
          (mk_i
-            (CallSpecial
-               (Some hasnext_lval, (ForeachHasNext, tok2), [ Unnamed e' ]))
+            (AssignCall
+               ( Some hasnext_lval,
+                 {
+                   c = CallSpecial ((ForeachHasNext, tok2), [ Unnamed e' ]);
+                   corig = related_tok tok2;
+                 } ))
             (related_tok tok2)))
   in
   let next_call =
     mk_s
       (Instr
          (mk_i
-            (CallSpecial (Some next_lval, (ForeachNext, tok2), [ Unnamed e' ]))
+            (AssignCall
+               ( Some next_lval,
+                 {
+                   c = CallSpecial ((ForeachNext, tok2), [ Unnamed e' ]);
+                   corig = related_tok tok2;
+                 } ))
             (related_tok tok2)))
   in
   (* same semantic? or need to take Ref? or pass lval

@@ -109,7 +109,7 @@ let short_string_of_node_kind nkind =
       match x.i with
       | Assign (lval, exp) -> string_of_lval lval ^ " = " ^ string_of_exp exp
       | AssignAnon (lval, _) -> string_of_lval lval ^ " = " ^ "<lambda|class>"
-      | Call (lval_opt, exp, args) ->
+      | AssignCall (lval_opt, { c = Call (exp, args); _ }) ->
           let lval_str =
             match lval_opt with
             | None -> ""
@@ -117,10 +117,8 @@ let short_string_of_node_kind nkind =
           in
           "CALL " ^ lval_str ^ string_of_exp exp ^ "("
           ^ string_of_arguments args ^ ")"
-      | New (lval, ty, _cons, args) ->
-          Common.spf "%s = new %s(%s)" (string_of_lval lval) (string_of_type ty)
-            (string_of_arguments args)
-      | CallSpecial (lval_opt, (call_special, _tok), args) ->
+      | AssignCall
+          (lval_opt, { c = CallSpecial ((call_special, _tok), args); _ }) ->
           let lval_str =
             match lval_opt with
             | None -> ""
@@ -128,6 +126,9 @@ let short_string_of_node_kind nkind =
           in
           Common.spf "<special>%s%s(%s)" lval_str
             (IL.show_call_special call_special)
+            (string_of_arguments args)
+      | New (lval, ty, _cons, args) ->
+          Common.spf "%s = new %s(%s)" (string_of_lval lval) (string_of_type ty)
             (string_of_arguments args)
       | FixmeInstr _ -> "<fix-me instr>")
   | NMatch scrutinee -> Common.spf "match %s" (str_of_name scrutinee)

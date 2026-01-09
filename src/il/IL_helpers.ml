@@ -35,10 +35,11 @@ let rexps_of_instr x =
       [ { e = Fetch { lval with rev_offset = [] }; eorig = NoOrig }; exp ]
   | Assign (_, exp) -> [ exp ]
   | AssignAnon _ -> []
-  | Call (_, e1, args) -> e1 :: List_.map exp_of_arg args
-  | New (_, _, _, args)
-  | CallSpecial (_, _, args) ->
+  | AssignCall (_, { c = Call (e1, args); _ }) ->
+      e1 :: List_.map exp_of_arg args
+  | AssignCall (_, { c = CallSpecial (_, args); _ }) ->
       List_.map exp_of_arg args
+  | New (_, _, _, args) -> List_.map exp_of_arg args
   | FixmeInstr _ -> []
 
 (* opti: could use a set *)
@@ -131,13 +132,9 @@ let lval_of_instr_opt x =
   match x.i with
   | Assign (lval, _)
   | AssignAnon (lval, _)
-  | Call (Some lval, _, _)
-  | New (lval, _, _, _)
-  | CallSpecial (Some lval, _, _) ->
+  | New (lval, _, _, _) ->
       Some lval
-  | Call _
-  | CallSpecial _ ->
-      None
+  | AssignCall (lval_opt, _) -> lval_opt
   | FixmeInstr _ -> None
 
 let lvar_of_instr_opt x =

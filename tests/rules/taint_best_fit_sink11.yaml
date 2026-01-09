@@ -1,0 +1,13 @@
+rules:
+- id: test
+  languages:
+  - java
+  message: Test
+  severity: WARNING
+  mode: taint
+  pattern-sources:
+  - pattern: source()
+  pattern-sinks:
+  - pattern-either:
+    - pattern: (foo.bar.Sink $SINK) = ...;
+    - pattern: $VAR = sink(...)

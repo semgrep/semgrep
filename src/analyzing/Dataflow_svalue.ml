@@ -363,7 +363,9 @@ let rec transfer :
             (* var = exp *)
             let cexp = eval_or_sym_prop eval_env exp in
             update_env_with inp' var cexp
-        | Call (Some { base = Var var; rev_offset = [] }, func, args) -> (
+        | AssignCall
+            ( Some { base = Var var; rev_offset = [] },
+              { c = Call (func, args); corig } ) -> (
             let args_val =
               List_.map
                 (fun arg -> Eval.eval eval_env (IL_helpers.exp_of_arg arg))
@@ -379,13 +381,14 @@ let rec transfer :
                     (* Call to an arbitrary function, we are intraprocedural so we cannot
                      * propagate actual constants in this case, but we can propagate the
                      * call itself as a symbolic expression. *)
-                    let ccall = sym_prop instr.iorig in
+                    let ccall = sym_prop corig in
                     update_env_with inp' var ccall
                 | Some cexp -> update_env_with inp' var cexp))
         | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
             update_env_with inp' var (sym_prop instr.iorig)
-        | CallSpecial
-            (Some { base = Var var; rev_offset = [] }, (special, _), args) ->
+        | AssignCall
+            ( Some { base = Var var; rev_offset = [] },
+              { c = CallSpecial ((special, _), args); corig } ) ->
             let args = List_.map IL_helpers.exp_of_arg args in
             let cexp =
               (* We try to evaluate the special function, if we know how. *)
@@ -397,18 +400,27 @@ let rec transfer :
             let cexp =
               (* If we don't know how to evaluate this function, or if the
                * evaluation fails, then we do sym-prop. *)
-              if cexp =*= G.NotCst then sym_prop instr.iorig else cexp
+              if cexp =*= G.NotCst then sym_prop corig else cexp
             in
             update_env_with inp' var cexp
-        | Call
+        | AssignCall
             ( None,
               {
-                e =
-                  Fetch
-                    { base = Var var; rev_offset = { o = Dot _; _ } :: _; _ };
+                c =
+                  Call
+                    ( {
+                        e =
+                          Fetch
+                            {
+                              base = Var var;
+                              rev_offset = { o = Dot _; _ } :: _;
+                              _;
+                            };
+                        _;
+                      },
+                      _ );
                 _;
-              },
-              _ ) ->
+              } ) ->
             (* Method call `var.f(args)` that returns void, we conservatively
              * assume that it may be updating `var`; e.g. in Ruby strings are
              * mutable so given `x.concat(y)` we will assume that the value of

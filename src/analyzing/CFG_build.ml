@@ -167,7 +167,8 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let throws =
         match x.i with
         | New _
-        | Call _ ->
+        (* TOOD: CallSpecial too *)
+        | AssignCall (_, { c = Call _; _ }) ->
             (* If we are inside a try-catch, we consider the possibility of this call
              * raising an exception, then we add a jump to catch-blocks. This could
              * lead to some false positives when running taint rules (since it's a
