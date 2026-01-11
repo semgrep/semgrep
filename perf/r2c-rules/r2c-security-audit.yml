@@ -8046,7 +8046,7 @@ rules:
       path separator to the end of the path.
     metadata:
       references:
-        - https://github.com/yandex/gixy/blob/master/docs/en/plugins/aliastraversal.md
+        - https://github.com/dvershinin/gixy/blob/master/docs/en/plugins/aliastraversal.md
   - id: generic.nginx.security.dynamic-proxy-host.dynamic-proxy-host
     patterns:
       - pattern-either:
@@ -8068,7 +8068,7 @@ rules:
       with 'map' or something similar.
     metadata:
       references:
-        - https://github.com/yandex/gixy/blob/master/docs/en/plugins/ssrf.md
+        - https://github.com/dvershinin/gixy/blob/master/docs/en/plugins/ssrf.md
         - https://nginx.org/en/docs/http/ngx_http_map_module.html
   - id: generic.nginx.security.dynamic-proxy-scheme.dynamic-proxy-scheme
     patterns:
@@ -8088,7 +8088,7 @@ rules:
       alter the connection scheme. Consider hardcoding a scheme for this proxy.
     metadata:
       references:
-        - https://github.com/yandex/gixy/blob/master/docs/en/plugins/ssrf.md
+        - https://github.com/dvershinin/gixy/blob/master/docs/en/plugins/ssrf.md
   - id: generic.nginx.security.header-injection.header-injection
     pattern: |
       location ... <$VARIABLE> ... {
@@ -8112,7 +8112,7 @@ rules:
       path parameter: ''[^\s]+''.'
     metadata:
       references:
-        - https://github.com/yandex/gixy/blob/master/docs/en/plugins/httpsplitting.md
+        - https://github.com/dvershinin/gixy/blob/master/docs/en/plugins/httpsplitting.md
         - https://owasp.org/www-community/attacks/HTTP_Response_Splitting
   - id: generic.nginx.security.header-redefinition.header-redefinition
     patterns:
@@ -8146,7 +8146,7 @@ rules:
       the server block.
     metadata:
       references:
-        - https://github.com/yandex/gixy/blob/master/docs/en/plugins/addheaderredefinition.md
+        - https://github.com/dvershinin/gixy/blob/master/docs/en/plugins/addheaderredefinition.md
   - id: generic.nginx.security.insecure-redirect.insecure-redirect
     patterns:
       - pattern-either:
@@ -8223,7 +8223,7 @@ rules:
       block to limit exposure.
     metadata:
       references:
-        - https://github.com/yandex/gixy/blob/master/docs/en/plugins/ssrf.md
+        - https://github.com/dvershinin/gixy/blob/master/docs/en/plugins/ssrf.md
         - https://nginx.org/en/docs/http/ngx_http_core_module.html#internal
   - id: generic.nginx.security.missing-ssl-version.missing-ssl-version
     patterns:
