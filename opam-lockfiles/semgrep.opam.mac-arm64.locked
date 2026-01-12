@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "semgrep"
-version: "1.146.0"
+version: "1.147.0"
 synopsis:
   "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
 description: """\
