@@ -192,6 +192,7 @@ let tests (caps : Cap.all_caps) =
         (* Inline tests *)
         Testo.get_registered_tests ();
         Parallelism_tests.tests;
+        Test_compiler_version.tests;
       ]
 
 (*****************************************************************************)
