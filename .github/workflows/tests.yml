@@ -177,7 +177,7 @@ jobs:
           submodules: true
       - uses: semgrep/setup-ocaml@c0776a273da09a7787c22790f992c8daed3363bd
         with:
-          cache-prefix: v3
+          cache-prefix: v4
           ocaml-compiler: 5.3.0
           opam-pin: false
           save-opam-post-run: true
@@ -266,7 +266,7 @@ jobs:
           submodules: true
       - uses: semgrep/setup-ocaml@c0776a273da09a7787c22790f992c8daed3363bd
         with:
-          cache-prefix: v3
+          cache-prefix: v4
           ocaml-compiler: 5.3.0
           opam-pin: false
           save-opam-post-run: true
