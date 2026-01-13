@@ -28,7 +28,7 @@ depends: [
   "atdgen" {= "3.0.1"}
   "atdgen-runtime" {= "3.0.1"}
   "atdpy" {= "3.0.1"}
-  "atdts" {= "2.16.0"}
+  "atdts" {= "3.0.1"}
   "atomic" {= "base"}
   "awa" {= "0.5.2"}
   "awa-mirage" {= "0.5.2"}
@@ -278,7 +278,7 @@ pin-depends: [
   ]
   [
     "ocaml-variants.5.3.0"
-    "git+https://github.com/semgrep/ocaml.git#20c7ee45ba6e44b2e659665032a18ccd9dedaca7"
+    "git+https://github.com/semgrep/ocaml.git#8521d35f98c3bbd7fdcb6678bf120b334b4b6a9c"
   ]
   [
     "opentelemetry.dev"
@@ -330,7 +330,7 @@ pin-depends: [
   ]
   [
     "tree-sitter.dev"
-    "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#d54d4801e1223df89e07c74dfa491a52114f4992"
+    "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#abb14bfa9ce2bb983f425f091b0cffe44fdb6848"
   ]
 ]
 x-maintenance-intent: ["(latest)"]
