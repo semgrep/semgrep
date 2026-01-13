@@ -41,10 +41,14 @@ module Out = Semgrep_output_v1_t
    with_git: make this a git repository
    non_git_files: extra files that must be created but won't be git-added
                   (only relevant if with_git is true)
+   respect_gitignore: the usual meaning of this option as in targeting_conf
+   i.e. whether to enable or disable Gitignore filtering when listing the
+   files.
 *)
 let test_find_targets ?expected_outcome ?includes ?(excludes = [])
-    ?(non_git_files : F.t list = []) ~with_git ?(scanning_root = ".")
-    (caps : < Cap.readdir ; .. >) name (files : F.t list) =
+    ?(non_git_files : F.t list = []) ?(respect_gitignore = true)
+    ?(scanning_root = ".") ~with_git (caps : < Cap.readdir ; .. >) name
+    (files : F.t list) =
   let category = if with_git then "with git" else "without git" in
   let test_func () =
     printf "Test name: %s > %s\n" category name;
@@ -63,7 +67,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
         printf "--- Files not added to git ---\n";
         F.print_files non_git_files);
 
-    Testutil_git.with_git_repo ~verbose:true ~honor_gitignore:true
+    Testutil_git.with_git_repo ~verbose:true ~force_add_gitignored_files:false
       ~really_create_git_repo:with_git git_files (fun root ->
         F.write root non_git_files;
 
@@ -72,6 +76,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
             Find_targets.default_conf with
             include_ = includes;
             exclude = excludes;
+            respect_gitignore;
           }
         in
         let targets, errors, skipped_targets =
@@ -192,6 +197,14 @@ let tests_with_git_only caps =
       ];
     test_find_targets caps ~with_git "symlinks from git are filtered too"
       [ F.Symlink ("lnk", "missing"); F.File ("a", "some content") ];
+    test_find_targets caps ~with_git "respect gitignore"
+      [ F.File (".gitignore", "package-lock.json\n"); F.file "package.json" ]
+      ~non_git_files:[ F.file "package-lock.json" ]
+      ~respect_gitignore:true;
+    test_find_targets caps ~with_git "disable gitignore"
+      [ F.File (".gitignore", "package-lock.json\n"); F.file "package.json" ]
+      ~non_git_files:[ F.file "package-lock.json" ]
+      ~respect_gitignore:false;
   ]
 
 let tests (caps : < Cap.readdir ; .. >) =

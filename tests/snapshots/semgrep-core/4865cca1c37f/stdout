@@ -1,0 +1,20 @@
+Test name: with git > respect gitignore
+--- Files added before 'git add' ---
+.gitignore
+package.json
+--- Files not added to git ---
+package-lock.json
+--- begin input files ---
+.gitignore
+package.json
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 1 insertion(+)
+ create mode 100644 .gitignore
+ create mode 100644 package.json
+--- Errors ---
+--- Selected targets ---
+selected .gitignore
+selected package.json
+--- Skipped targets ---

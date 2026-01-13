@@ -25,12 +25,13 @@
    'really_create_git_repo:false' allows for tests to not create a git repo but
    create temporary files and remove them when done. Default is true.
 
-   'honor_gitignore:false' will cause gitignored files to be added anyway.
-   Default is true.
+   'force_add_gitignored_files:true' will cause gitignored files to be
+   added anyway.
+   Default is false.
 *)
 val with_git_repo :
   ?verbose:bool ->
-  ?honor_gitignore:bool ->
+  ?force_add_gitignored_files:bool ->
   ?really_create_git_repo:bool ->
   ?user_email:string ->
   ?user_name:string ->

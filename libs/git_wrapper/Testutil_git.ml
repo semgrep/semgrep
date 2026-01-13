@@ -22,7 +22,7 @@
 (* Helpers *)
 (*****************************************************************************)
 
-let create_git_repo ?(honor_gitignore = true)
+let create_git_repo ?(force_add_gitignored_files = false)
     ?(user_email = "tester@example.com") ?(user_name = "Tester") () =
   (* to not mess with git commands output *)
   flush stdout;
@@ -32,10 +32,11 @@ let create_git_repo ?(honor_gitignore = true)
      versions. *)
   Git_wrapper.config_set_exn "user.name" user_name;
   Git_wrapper.config_set_exn "user.email" user_email;
-  Git_wrapper.add_exn ~force:(not honor_gitignore) [ Fpath.v "." ];
+  Git_wrapper.add_exn ~force:force_add_gitignored_files [ Fpath.v "." ];
   let msg =
-    if honor_gitignore then "Add files"
-    else "Add all the files (including gitignored files)"
+    if force_add_gitignored_files then
+      "Add all the files (including gitignored files)"
+    else "Add files"
   in
   Git_wrapper.commit_exn msg
 
@@ -56,9 +57,10 @@ let mask_temp_git_hash =
 (* Entry point *)
 (*****************************************************************************)
 
-let with_git_repo ?verbose ?honor_gitignore ?(really_create_git_repo = true)
-    ?user_email ?user_name (files : Testutil_files.t list) func =
+let with_git_repo ?verbose ?force_add_gitignored_files
+    ?(really_create_git_repo = true) ?user_email ?user_name
+    (files : Testutil_files.t list) func =
   Testutil_files.with_tempfiles ?verbose ~chdir:true files (fun cwd ->
       if really_create_git_repo then
-        create_git_repo ?honor_gitignore ?user_email ?user_name ();
+        create_git_repo ?force_add_gitignored_files ?user_email ?user_name ();
       func cwd)

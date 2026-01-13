@@ -139,6 +139,6 @@ let tests caps : Testo.t list =
                     (* Create a temporary git repo and force-add all the
                        files even if they're gitignored *)
                     Testutil_git.with_git_repo ~verbose:true
-                      ~honor_gitignore:false repo_files (fun _cwd ->
+                      ~force_add_gitignored_files:true repo_files (fun _cwd ->
                         test_func caps))))
   |> List_.flatten

@@ -253,10 +253,19 @@ def resolve_subprojects(
         2. Resolved subprojects, grouped by ecosystem
         4. Dependency source paths that were used in the resolution process
     """
-    # first, find all subprojects. We ignore the baseline handler because we want
+    # First, find all subprojects. We ignore the baseline handler because we want
     # to _identify_, but not necessarily resolve, even unchanged subprojects.
+    #
+    # Here, we override targeting_conf.respect_gitignore and disable Gitignore
+    # filtering so as to find all possible manifests and lockfiles, including
+    # those that are not under Git control (possibly generated during a CI job).
+    #
+    # TODO: find a faster way to identify subprojects. Getting all the
+    #  target files for a project is pretty slow when we need to only analyze
+    #  a few files for a diff scan.
     dependency_source_files = target_manager.get_all_dependency_source_files(
-        ignore_baseline_handler=True
+        ignore_baseline_handler=True,
+        respect_gitignore=False,
     )
     # To list all the subprojects discovered by the function, use
     # 'semgrep show subprojects'
