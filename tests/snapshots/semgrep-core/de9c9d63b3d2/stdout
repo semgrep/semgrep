@@ -1,0 +1,24 @@
+Test name: with git > disable gitignore with exclude
+--- Files added before 'git add' ---
+.gitignore
+src/package.json
+--- Files not added to git ---
+src/garbage
+src/package-lock.json
+src/uv.lock
+--- begin input files ---
+.gitignore
+src/package.json
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 2 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 src/package.json
+--- Errors ---
+--- Selected targets ---
+selected .gitignore
+selected src/package-lock.json
+selected src/package.json
+selected src/uv.lock
+--- Skipped targets ---

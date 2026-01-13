@@ -1561,6 +1561,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         explicit_targets;
         respect_gitignore;
         respect_semgrepignore_files = not x_ignore_semgrepignore_files;
+        (* extra_gitignore_patterns_to_exclude_git_untracked_files is not
+           (and probably should not be) supported by the CLI *)
+        extra_gitignore_patterns_to_exclude_git_untracked_files = [];
         semgrepignore_filename;
         exclude_minified_files;
       }

@@ -47,6 +47,29 @@ type conf = {
   respect_semgrepignore_files : bool;
       (** Whether to respect or ignore the '.semgrepignore' files found
           in the project. *)
+  extra_gitignore_patterns_to_exclude_git_untracked_files : string list;
+      (** Extra Gitignore patterns to be passed to [git ls-files
+          --others] with the [--exclude] option.
+
+          This option is provided as an optimization. Git is very fast
+          at listing files (even untracked files) so we prefer to use
+          it. Unfortunately, applying Semgrepignore filters is done on
+          the expanded list of paths returned by Git which can be very
+          time-consuming (O(number of paths × number of patterns)).
+          Reducing the list of paths returned by Git can be a
+          significant time-saver and it is possible with this option
+          when we're only interested in a small subset of the
+          untracked files, typically when Gitignore filtering is
+          disabled with [respect_semgrepignore_files = false].
+
+          Note that the patterns can be negated so as to de-exclude paths.
+          This can be used to specify which paths to add to the empty set
+          similar to semgrep's [--include] option.
+          For examples, the patterns [["*"; "!*/"; "!*.ml"; "!*.mli"]] will
+          select all the untracked ml and mli files
+          (assuming Gitignore filtering is turned off with
+          [respect_semgrepignore_files = false]).
+      *)
   semgrepignore_filename : string option;
       (** An alternate name for '.semgrepignore'. This is intended for
           testing semgrep and prevent test targets from being excluded by the

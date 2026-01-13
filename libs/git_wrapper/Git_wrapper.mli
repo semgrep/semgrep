@@ -47,7 +47,27 @@ type ls_files_kind =
    *)
   | Others
 
-(*
+(** Options for excluding files when listing untracked files with
+    [git ls-files --others]. The default for [--others] is to not
+    use any Gitignore exclusion. *)
+type untracked_exclude_option =
+  | Exclude_standard
+      (** pass ["--exclude-standard"] to consult the standard
+          Gitignore files. *)
+  | Exclude_pattern of string
+      (** pass a Gitignore pattern using [--exclude]. Supports [!] to
+          de-exclude matching paths. *)
+  | Exclude_from of Fpath.t
+      (** pass [--exclude-from] to specify a nonstandard Gitignore
+          file. *)
+
+val ls_files :
+  ?cwd:Fpath.t ->
+  ?untracked_exclude:untracked_exclude_option list ->
+  ?kinds:ls_files_kind list ->
+  Fpath.t list ->
+  (Fpath.t list, string) result
+(**
    cwd: directory to cd into (-C)
 
    The argument is the list of files to start scanning from which defaults
@@ -55,16 +75,10 @@ type ls_files_kind =
 
    This returns a list of paths relative to cwd.
 *)
-val ls_files :
-  ?cwd:Fpath.t ->
-  ?exclude_standard:bool ->
-  ?kinds:ls_files_kind list ->
-  Fpath.t list ->
-  (Fpath.t list, string) result
 
 val ls_files_exn :
   ?cwd:Fpath.t ->
-  ?exclude_standard:bool ->
+  ?untracked_exclude:untracked_exclude_option list ->
   ?kinds:ls_files_kind list ->
   Fpath.t list ->
   Fpath.t list

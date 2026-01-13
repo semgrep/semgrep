@@ -204,6 +204,7 @@ type conf = {
   max_target_bytes : int;
   respect_gitignore : bool;
   respect_semgrepignore_files : bool;
+  extra_gitignore_patterns_to_exclude_git_untracked_files : string list;
   semgrepignore_filename : string option;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
@@ -233,6 +234,7 @@ let default_conf : conf =
     max_target_bytes = 1000000;
     respect_gitignore = true;
     respect_semgrepignore_files = true;
+    extra_gitignore_patterns_to_exclude_git_untracked_files = [];
     semgrepignore_filename = None;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
@@ -473,9 +475,9 @@ let git_files_changed_since_commit ~baseline_commit ~cwd =
   let status = Git_wrapper.status_exn ~cwd ~commit:merge_base () in
   status.added @ status.modified
 
-let git_ls_files ~baseline_commit ~cwd ~exclude_standard ~kinds =
+let git_ls_files ~baseline_commit ~cwd ~untracked_exclude ~kinds =
   match baseline_commit with
-  | None -> Git_wrapper.ls_files_exn ~cwd ~exclude_standard ~kinds []
+  | None -> Git_wrapper.ls_files_exn ~cwd ~untracked_exclude ~kinds []
   | Some baseline_commit -> git_files_changed_since_commit ~baseline_commit ~cwd
 
 (*
@@ -488,7 +490,7 @@ let git_ls_files ~baseline_commit ~cwd ~exclude_standard ~kinds =
    obtaining the list of tracked files because some files can be tracked
    despite being excluded by gitignore.
 *)
-let git_list_files ~(baseline_commit : string option) ~exclude_standard
+let git_list_files ~(baseline_commit : string option) ~untracked_exclude
     (file_kinds : Git_wrapper.ls_files_kind list)
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
   Log.debug (fun m ->
@@ -519,7 +521,7 @@ let git_list_files ~(baseline_commit : string option) ~exclude_standard
                     is known to be a folder. *)
                  git_ls_files ~baseline_commit
                    ~cwd:(sc_root.rpath |> Rpath.to_fpath)
-                   ~exclude_standard ~kinds:file_kinds
+                   ~untracked_exclude ~kinds:file_kinds
                  |> List_.map (fun rel_target_fpath ->
                         Fppath.append_relative_fpath sc_root_fppath
                           rel_target_fpath)
@@ -550,8 +552,7 @@ let git_list_files ~(baseline_commit : string option) ~exclude_standard
 *)
 let git_list_tracked_files ~baseline_commit
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
-  git_list_files ~baseline_commit ~exclude_standard:false [ Cached ]
-    project_roots
+  git_list_files ~baseline_commit ~untracked_exclude:[] [ Cached ] project_roots
 
 (*
    List all the files that are not being tracked by git except those in
@@ -560,8 +561,16 @@ let git_list_tracked_files ~baseline_commit
    This is the complement of git_list_tracked_files (except for '.git/').
 *)
 let git_list_untracked_files ~baseline_commit ~respect_gitignore
-    (project_roots : Project.scanning_roots) : Fppath_set.t option =
-  git_list_files ~baseline_commit ~exclude_standard:respect_gitignore [ Others ]
+    ~exclude_patterns (project_roots : Project.scanning_roots) :
+    Fppath_set.t option =
+  let exclude =
+    if respect_gitignore then [ Git_wrapper.Exclude_standard ] else []
+  in
+  let exclude =
+    exclude
+    @ List_.map (fun pat -> Git_wrapper.Exclude_pattern pat) exclude_patterns
+  in
+  git_list_files ~baseline_commit ~untracked_exclude:exclude [ Others ]
     project_roots
 
 (*************************************************************************)
@@ -805,7 +814,10 @@ let get_targets_for_project (caps : < Cap.readdir ; .. >) (conf : conf)
   in
   let git_untracked =
     git_list_untracked_files ~baseline_commit:conf.baseline_commit
-      ~respect_gitignore:conf.respect_gitignore project_roots
+      ~respect_gitignore:conf.respect_gitignore
+      ~exclude_patterns:
+        conf.extra_gitignore_patterns_to_exclude_git_untracked_files
+      project_roots
   in
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with

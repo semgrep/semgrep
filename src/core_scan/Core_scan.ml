@@ -293,6 +293,8 @@ let translate_targeting_conf_from_pysemgrep (conf : Out.targeting_conf) :
     max_target_bytes = conf.max_target_bytes;
     respect_gitignore = conf.respect_gitignore;
     respect_semgrepignore_files = conf.respect_semgrepignore_files;
+    extra_gitignore_patterns_to_exclude_git_untracked_files =
+      conf.extra_gitignore_patterns_to_exclude_git_untracked_files;
     semgrepignore_filename = conf.semgrepignore_filename;
     always_select_explicit_targets = conf.always_select_explicit_targets;
     explicit_targets =

@@ -359,6 +359,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         explicit_targets = Find_targets.Explicit_targets.empty;
         respect_gitignore = use_git;
         respect_semgrepignore_files = not ignore_semgrepignore_files;
+        (* extra_gitignore_patterns_to_exclude_git_untracked_files is not
+           (and probably should not be) supported by the CLI *)
+        extra_gitignore_patterns_to_exclude_git_untracked_files = [];
         semgrepignore_filename;
         exclude_minified_files;
       }

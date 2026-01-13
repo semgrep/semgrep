@@ -336,18 +336,32 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
 let parse_nul_separated_list_of_files str =
   String.split_on_char '\000' str |> List.filter (( <> ) "")
 
-let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
+(* Filtering options for 'git ls-files --others' *)
+type untracked_exclude_option =
+  | Exclude_standard
+  | Exclude_pattern of string
+  | Exclude_from of Fpath.t
+
+let make_untracked_exclude_option (option : untracked_exclude_option) =
+  match option with
+  | Exclude_standard -> [ "--exclude-standard" ]
+  | Exclude_pattern pat -> [ "--exclude"; pat ]
+  | Exclude_from path -> [ "--exclude-from"; !!path ]
+
+let ls_files ?(cwd = Fpath.v ".") ?(untracked_exclude = []) ?(kinds = [])
     root_paths =
   let roots = root_paths |> List_.map Fpath.to_string in
   let kinds = kinds |> List_.map string_of_ls_files_kind in
+  let exclude_options =
+    untracked_exclude
+    |> List_.map make_untracked_exclude_option
+    |> List_.flatten
+  in
   let cmd =
     ( git,
       (* Unlike the default, '-z' causes the file path to not be quoted
          when they contain special characters, simplifying parsing. *)
-      [ "-C"; !!cwd; "ls-files"; "-z" ]
-      @ kinds
-      @ flag "--exclude-standard" exclude_standard
-      @ roots )
+      [ "-C"; !!cwd; "ls-files"; "-z" ] @ kinds @ exclude_options @ roots )
   in
   let/ data =
     UCmd.string_of_run ~trim:true cmd
@@ -357,8 +371,8 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
   let files = parse_nul_separated_list_of_files data in
   Ok (files |> Fpath_.of_strings)
 
-let ls_files_exn ?cwd ?exclude_standard ?kinds root_paths =
-  ls_files ?cwd ?exclude_standard ?kinds root_paths |> fatal
+let ls_files_exn ?cwd ?untracked_exclude ?kinds root_paths =
+  ls_files ?cwd ?untracked_exclude ?kinds root_paths |> fatal
 
 (* TODO: somehow avoid error message on stderr in case this is not a git repo *)
 let project_root_for_files_in_dir dir =

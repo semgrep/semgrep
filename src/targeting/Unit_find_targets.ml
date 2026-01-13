@@ -47,6 +47,7 @@ module Out = Semgrep_output_v1_t
 *)
 let test_find_targets ?expected_outcome ?includes ?(excludes = [])
     ?(non_git_files : F.t list = []) ?(respect_gitignore = true)
+    ?(extra_gitignore_patterns_to_exclude_git_untracked_files = [])
     ?(scanning_root = ".") ~with_git (caps : < Cap.readdir ; .. >) name
     (files : F.t list) =
   let category = if with_git then "with git" else "without git" in
@@ -77,6 +78,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
             include_ = includes;
             exclude = excludes;
             respect_gitignore;
+            extra_gitignore_patterns_to_exclude_git_untracked_files;
           }
         in
         let targets, errors, skipped_targets =
@@ -205,6 +207,27 @@ let tests_with_git_only caps =
       [ F.File (".gitignore", "package-lock.json\n"); F.file "package.json" ]
       ~non_git_files:[ F.file "package-lock.json" ]
       ~respect_gitignore:false;
+    test_find_targets caps ~with_git "disable gitignore with exclude"
+      [
+        F.File (".gitignore", "package-lock.json\ngarbage\n");
+        F.dir "src" [ F.file "package.json" ];
+      ]
+      ~non_git_files:
+        [
+          F.dir "src"
+            [ F.file "package-lock.json"; F.file "uv.lock"; F.file "garbage" ];
+        ]
+      ~respect_gitignore:false
+      ~extra_gitignore_patterns_to_exclude_git_untracked_files:
+        [
+          (* Clever hack to exclude all regular files but still visit
+           all folders *)
+          "*";
+          "!*/";
+          (* Here start the de-exclusions of files *)
+          "!package-lock.json";
+          "!*.lock";
+        ];
   ]
 
 let tests (caps : < Cap.readdir ; .. >) =
