@@ -17,13 +17,11 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
-exception DomainRaised of (exn * Printexc.raw_backtrace)
-(* captures an exception that was raised on a remote domain, with a given
- * backtrace.  Since backtraces are lost when crossing domain boundaries
- * (see https://github.com/ocaml/ocaml/issues/11074 for discussion), we
- * explicitly capture and store the backtrace rather than re-raising.*)
-
 let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
+  (* The main thread concurrently maps over the list of tasks via spawning
+   * fibers (i.e weak threads) that submit and wait for the Domain pool to
+   * return the result of submitting the task.
+   *)
   Eio.Switch.run @@ fun sw ->
   let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
   let pool = Executor_pool.create ~sw ~domain_count domain_mgr in
@@ -34,35 +32,11 @@ let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
 
   Eio.Fiber.List.map ~max_fibers:domain_count
     (fun elem ->
+      (* NOTE: [submit] blocks the fiber until the task returns a result.*)
       (* Please see the comment block in [Hook.ml] concerning safe values of
        * [weight], if you are intending on changing it! *)
-      match
-        Executor_pool.submit pool ~weight:1.0 (fun () ->
-            try f elem with
-            | e ->
-                (* If an exception is propagated all the way up to the executor pool,
-                 * we need to make sure we capture the backtrace _before_ we return;
-                 * otherwise, the original exn will be re-raised when the domain joins
-                 * but the stack trace will only contain the parent domain's frames. *)
-                let bt = Printexc.get_raw_backtrace () in
-                raise (DomainRaised (e, bt)))
-      with
+      match Executor_pool.submit pool ~weight:1.0 (fun () -> f elem) with
       | Ok res -> Ok res
       | Error err -> Error (elem, err))
     l
 [@@tracing]
-
-let () =
-  let open Printexc in
-  register_printer (function
-    | DomainRaised (exn, bt) ->
-        let exn_desc =
-          match Printexc.use_printers exn with
-          | None -> "with no registered printer"
-          | Some s -> s
-        in
-        let str_of_bt = Printexc.raw_backtrace_to_string bt in
-        Some
-          (Printf.sprintf "Exception %s\nraised on child domain at\n %s"
-             exn_desc str_of_bt)
-    | _ -> None)
