@@ -20,6 +20,10 @@ let exnt = Alcotest.testable Fmt.exn ( = )
 let timeout : [ `Timeout ] Alcotest.testable =
   Alcotest.testable (fun pff _ -> Format.fprintf pff "`Timeout") ( = )
 
+let search ~term str =
+  try Some (Str.search_forward (Str.regexp_string term) str 0) with
+  | Not_found -> None
+
 (* Ensures that when new Domains are spawned, the assigned value
  * is read from the parent. *)
 let test_hook_inherit_val () =
@@ -80,6 +84,37 @@ let test_fiber_local_concurrent_map () =
   assert (Result.is_ok (Result_.collect res));
   Alcotest.(check int) __LOC__ 0 (H.get h)
 
+exception WasOdd of int
+
+let test_concurrent_map_exn_wrapping () =
+  let assert_even i = if i mod 2 = 0 then i else raise (WasOdd i) in
+
+  Eio_main.run @@ fun env ->
+  let conf =
+    match Parallelism_config.create env with
+    | Parallelism_config.Eio_executor conf -> conf
+    | _ ->
+        Alcotest.fail
+          "Failed to get a Parallelism_config.Eio_executor from a \
+           Parallelism_config.create"
+  in
+  (* This test depends on us recording backtraces, so enable it just
+   * to be sure. *)
+  Printexc.record_backtrace true;
+
+  match Concurrent.map ~conf ~domain_count:1 assert_even [ 31 ] with
+  | [ Error (31, Concurrent.DomainRaised (WasOdd 31, bt)) ] -> (
+      let str_of_bt = Printexc.raw_backtrace_to_string bt in
+      match search ~term:"assert_even" str_of_bt with
+      | Some _ -> ()
+      | None ->
+          (* If this assert fires, we may not have been compiled with an OCaml
+           * compiler that contains https://github.com/ocaml/ocaml/pull/14416 ,
+           * and thus our backtrace won't contain anything involving the
+           * [assert_even] call stack. *)
+          Alcotest.fail "Missing backtrace from the child domain")
+  | _ -> Alcotest.fail "Got an unexpected exn!"
+
 type test_t = { x : int; y : string }
 
 (* Executor_pool.ml is like the eio executor pool but with the property that if
@@ -134,10 +169,6 @@ let test_concurrent_map_async_exception () =
   (* Run 3 jobs on 2 domains to ensure that domains restart *)
   let l = List.init 3 (fun i -> i + 1) in
   let res = Concurrent.map ~conf ~domain_count:2 f l in
-  let search ~term str =
-    try Some (Str.search_forward (Str.regexp_string term) str 0) with
-    | Not_found -> None
-  in
 
   let contains ~term str = search ~term str <> None in
   match Result_.collect res with
@@ -166,4 +197,5 @@ let tests =
       t "Fiber with Concurrent.map" test_fiber_local_concurrent_map;
       t "test_concurrent_map_async_exception"
         test_concurrent_map_async_exception;
+      t "test_concurrent_map_exn_wrapping" test_concurrent_map_exn_wrapping;
     ]

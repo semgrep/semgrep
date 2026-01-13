@@ -17,6 +17,10 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
+exception DomainRaised of (exn * Printexc.raw_backtrace)
+(* captures an exception that was raised on a remote domain, with a given
+ * backtrace on that domain. *)
+
 val map :
   conf:Parallelism_config.eio_state ->
   domain_count:int ->

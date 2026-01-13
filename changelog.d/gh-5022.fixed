@@ -1,0 +1,2 @@
+Fixed an issue where exceptions raised during a parallel scan may not report
+complete backtraces.
