@@ -1,0 +1,11 @@
+rules:
+  - id: loop-else
+    languages:
+      - python
+    mode: taint
+    pattern-sources:
+      - pattern: source
+    pattern-sinks:
+      - pattern: sink(...)
+    message: bad bad bad
+    severity: ERROR

@@ -1208,9 +1208,10 @@ and map_comp_to_nested_loop env e xs : exp =
             let cont_label, break_label, st_env =
               mk_break_continue_labels env t_for
             in
+            let cont_label_s = [ mk_s (Label cont_label) ] in
             let body_stmts = fold_comps st_env stmts in
-            map_for_each_aux env t_for pat t_in iter body_stmts cont_label
-              break_label
+            map_for_each_aux env t_for pat t_in iter body_stmts cont_label_s
+            @ [ mk_s (Label break_label) ]
         | G.CompIf (t_if, e) ->
             let ss, e' = map_expr_with_pre_stmts env e in
             let st = fold_comps env stmts in
@@ -1683,7 +1684,12 @@ and no_switch_fallthrough : Lang.t -> bool = function
       true
   | _ -> false
 
-and mk_break_continue_labels env tok : stmt list * stmt list * env =
+(** [add_break_label env label] adds an existing [label] to the top of the
+[break_labels] list. *)
+and add_break_label env label =
+  { env with break_labels = label :: env.break_labels }
+
+and mk_break_continue_labels env tok : label * label * env =
   let cont_label = fresh_label ~label:"__loop_continue" env tok in
   let break_label = fresh_label ~label:"__loop_break" env tok in
   let st_env =
@@ -1693,9 +1699,7 @@ and mk_break_continue_labels env tok : stmt list * stmt list * env =
       cont_label = Some cont_label;
     }
   in
-  let cont_label_s = [ mk_s (Label cont_label) ] in
-  let break_label_s = [ mk_s (Label break_label) ] in
-  (cont_label_s, break_label_s, st_env)
+  (cont_label, break_label, st_env)
 
 and mk_switch_break_label env tok : label * stmt list * env =
   let break_label = fresh_label ~label:"__switch_break" env tok in
@@ -1864,7 +1868,38 @@ and map_stmt_aux env st : stmt list =
       let def = map_definition env def in
       [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> Tok.unbracket |> List.concat_map (map_stmt env)
+  | G.Block xs -> (
+      let any_to_stmt s =
+        match s with
+        (* Intended only to be used for the ForOrElse and WhileOrElse statements. *)
+        | G.S s -> s
+        | _ -> impossible s
+      in
+      let xs = Tok.unbracket xs in
+      match List_.map (fun x -> x.G.s) xs with
+      | [
+       G.For (tok, G.ForEach (pat, tok2, e), main_st);
+       G.OtherStmt (G.OS_ForOrElse, else_st);
+      ] ->
+          (* Python:
+            for <pat> in <e>:
+                <main_st>
+            else:
+                <else_st>
+           *)
+          let else_st = else_st |> List_.map any_to_stmt in
+          map_for_each env tok (pat, tok2, e) main_st (Some else_st)
+      | [ G.While (tok, e, main_st); G.OtherStmt (G.OS_WhileOrElse, else_st) ]
+        ->
+          (* Python:
+            while <e>:
+                <main_st>
+            else:
+                <else_st>
+           *)
+          let else_st = else_st |> List_.map any_to_stmt in
+          map_while_aux env tok e main_st (Some else_st)
+      | __else__ -> List.concat_map (map_stmt env) xs)
   | G.If (tok, cond, st1, st2) ->
       let ss, e' = map_cond_with_pre_stmts env cond in
       let st1 = map_stmt env st1 in
@@ -1889,36 +1924,32 @@ and map_stmt_aux env st : stmt list =
           cases_and_bodies
       in
       ss @ jumps @ bodies @ break_label_s
-  | G.While (tok, e, st) ->
-      let cont_label_s, break_label_s, st_env =
-        mk_break_continue_labels env tok
-      in
-      let ss, e' = map_cond_with_pre_stmts env e in
-      let st = map_stmt st_env st in
-      ss @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ] @ break_label_s
+  | G.While (tok, e, st) -> map_while_aux env tok e st None
   | G.DoWhile (tok, st, e) ->
-      let cont_label_s, break_label_s, st_env =
-        mk_break_continue_labels env tok
-      in
+      let cont_label, break_label, st_env = mk_break_continue_labels env tok in
+      let cont_label_s = [ mk_s (Label cont_label) ] in
+      let break_label_s = [ mk_s (Label break_label) ] in
       let st = map_stmt st_env st in
       let ss, e' = map_expr_with_pre_stmts env e in
       st @ ss
       @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
       @ break_label_s
   | G.For (tok, G.ForEach (pat, tok2, e), st) ->
-      map_for_each env tok (pat, tok2, e) st
+      map_for_each env tok (pat, tok2, e) st None
   | G.For (_, G.MultiForEach [], st) -> map_stmt env st
   | G.For (_, G.MultiForEach (FEllipsis _ :: _), _) -> sgrep_construct (G.S st)
   | G.For (tok, G.MultiForEach (FECond (fr, tok2, e) :: for_eachs), st) ->
       let loop = G.For (tok, G.MultiForEach for_eachs, st) |> G.s in
       let st = G.If (tok2, Cond e, loop, None) |> G.s in
-      map_for_each env tok fr st
+      map_for_each env tok fr st None
   | G.For (tok, G.MultiForEach (FE fr :: for_eachs), st) ->
-      map_for_each env tok fr (G.For (tok, G.MultiForEach for_eachs, st) |> G.s)
+      map_for_each env tok fr
+        (G.For (tok, G.MultiForEach for_eachs, st) |> G.s)
+        None
   | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
-      let cont_label_s, break_label_s, st_env =
-        mk_break_continue_labels env tok
-      in
+      let cont_label, break_label, st_env = mk_break_continue_labels env tok in
+      let cont_label_s = [ mk_s (Label cont_label) ] in
+      let break_label_s = [ mk_s (Label break_label) ] in
       let ss1 = map_for_var_or_expr_list env xs in
       let st = map_stmt st_env st in
       let ss2, cond =
@@ -2049,13 +2080,40 @@ and map_stmt_aux env st : stmt list =
       todo (G.S st)
   | G.RawStmt _ -> todo (G.S st)
 
-and map_for_each env tok (pat, tok2, e) st : stmt list =
-  let cont_label_s, break_label_s, st_env = mk_break_continue_labels env tok in
-  let stmts = map_stmt st_env st in
-  map_for_each_aux env tok pat tok2 e stmts cont_label_s break_label_s
+and map_while_aux env tok e main_st else_st =
+  let cont_label, break_label, main_env = mk_break_continue_labels env tok in
+  let cont_label_s = [ mk_s (Label cont_label) ] in
+  let break_label_s = [ mk_s (Label break_label) ] in
+  let ss, e' = map_cond_with_pre_stmts env e in
+  let main_st = map_stmt main_env main_st in
+  let else_st =
+    match else_st with
+    | None -> []
+    | Some else_st ->
+        let else_env = add_break_label env break_label in
+        List.concat_map (map_stmt else_env) else_st
+  in
+  ss
+  @ [ mk_s (Loop (tok, e', main_st @ cont_label_s @ ss)) ]
+  @ else_st @ break_label_s
 
-and map_for_each_aux env tok pat tok2 e stmts cont_label_s break_label_s :
-    stmt list =
+and map_for_each env tok (pat, tok2, e) main_st else_st =
+  let cont_label, break_label, st_env = mk_break_continue_labels env tok in
+  let cont_label_s = [ mk_s (Label cont_label) ] in
+  let break_label_s = [ mk_s (Label break_label) ] in
+  let stmts = map_stmt st_env main_st in
+  let main_st = map_for_each_aux env tok pat tok2 e stmts cont_label_s in
+  let else_st =
+    match else_st with
+    | None -> []
+    | Some else_st ->
+        let else_env = add_break_label env break_label in
+        let else_stmts = List.concat_map (map_stmt else_env) else_st in
+        else_stmts @ break_label_s
+  in
+  main_st @ else_st @ break_label_s
+
+and map_for_each_aux env tok pat tok2 e stmts cont_label_s =
   let ss, e' =
     match e.e with
     | Call ({ e = Special (ForOf, _); _ }, (_, [ Arg e ], _)) ->
@@ -2108,7 +2166,6 @@ and map_for_each_aux env tok pat tok2 e stmts cont_label_s break_label_s :
              [ next_call ] @ assign_st @ stmts @ cont_label_s
              @ [ (* ss @ ?*) hasnext_call ] ));
     ]
-  @ break_label_s
 
 (* TODO: Maybe this and the following function could be merged *)
 and map_switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases
