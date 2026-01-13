@@ -60,7 +60,7 @@ type t =
 
 (* if you prefer a curried syntax to build the tree *)
 
-val file : string (* filename *) -> t
+val file : ?contents:string -> string (* filename *) -> t
 val dir : string (* name *) -> t list -> t
 val symlink : string (* name *) -> string (* dest *) -> t
 
@@ -92,18 +92,31 @@ val print_files : t list -> unit
 *)
 val flatten : ?root:Fpath.t -> ?include_dirs:bool -> t list -> Fpath.t list
 
-(*
-   Read the file tree starting from a root folder. Don't follow symlinks.
+val read : Fpath.t -> t
+(**
+   Read the file tree. Don't follow symlinks.
    Fail with an exception if we can't read the files or if they're of an
    exotic kind.
 *)
-val read : Fpath.t -> t list
 
-(*
-   Write a file hierarchy into the given root folder,
+val read_dir : Fpath.t -> t list
+(**
+   Read the file tree starting from a root folder. The result is the list
+   of entries in that folder.
+
+   Don't follow symlinks. Fail with an exception if we can't read the
+   files or if they're of an exotic kind.
+*)
+
+val write : Fpath.t -> t -> unit
+(** Write a file hierarchy into the given root folder, which must
+    already exist. *)
+
+val write_dir : Fpath.t -> t list -> unit
+(**
+   Write a list of files or folders into the given root folder,
    which must already exist.
 *)
-val write : Fpath.t -> t list -> unit
 
 (* Other utilities independent of 't' but useful in tests working on
  * file trees.

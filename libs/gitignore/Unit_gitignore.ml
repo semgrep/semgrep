@@ -27,7 +27,7 @@ let gitignore lines : Testutil_files.t = File (".gitignore", concat_lines lines)
 (* Test that Testutil_files works as it should *)
 let test_list (files : F.t list) () =
   F.with_tempfiles ~verbose:true files (fun root ->
-      let files2 = F.read root |> F.sort in
+      let files2 = F.read_dir root |> F.sort in
       printf "Output files:\n";
       F.print_files files2;
       assert (files2 = files))
@@ -41,8 +41,8 @@ let test_filter (files : F.t list) () =
       let files = F.sort files in
       printf "--- All files ---\n";
       F.print_files files;
-      F.write root files;
-      let files2 = F.read root |> F.sort in
+      F.write_dir root files;
+      let files2 = F.read_dir root |> F.sort in
       assert (files2 = files);
       printf "--- Filtered files ---\n";
       let filter = Gitignore_filter.create ~project_root:root () in

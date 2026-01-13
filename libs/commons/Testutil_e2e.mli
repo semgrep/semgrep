@@ -19,9 +19,14 @@
    - running external commands
 *)
 
-val command_exists : string -> bool
+val command_exists : string -> unit -> bool
 (** Call the system command [which] or [where.exe] to determine
-    if the given command name is available. *)
+    if the given command name is available.
+
+    The extra unit argument is to facilitate partial application such that
+    we'd write [command_exists "foo"] to produce a function of type
+    [unit -> unit] that checks for the prerequisite.
+*)
 
 val check_prerequisites : (string * (unit -> bool)) list -> string -> bool
 (** [check_prerequisites] takes a list of prerequisites in the form of
@@ -40,17 +45,33 @@ val check_prerequisites : (string * (unit -> bool)) list -> string -> bool
     the presence of a particular version of npm.
 *)
 
-val skip_tests_if_missing_prerequisites :
-  prerequisite_exists:(string -> bool) ->
-  string list ->
-  Testo.t list ->
-  Testo.t list
-(** Rewrite a test suite to be skipped if the prerequisites, such as
+val skip_test_if_missing_prerequisites :
+  prerequisite_exists:(string -> bool) -> string list -> Testo.t -> Testo.t
+(** Rewrite a test to be skipped if the prerequisites, such as
     certain external commands, are not fulfilled.
-    This results in the tests being listed as skipped with an explanation
+    This results in the test being skipped with an explanation
     rather than missing mysteriously.
 
     The [prerequisite_exists] function should be produced with
     [detect_available_commands] or [check_prerequisites] so it can be fast
     when checking the same prerequisite repeatedly.
+*)
+
+val skip_tests_if_missing_prerequisites :
+  prerequisite_exists:(string -> bool) ->
+  string list ->
+  Testo.t list ->
+  Testo.t list
+(** Same as [skip_test_if_missing_prerequisites] but applies to a list
+    of tests instead just one test. *)
+
+val run_command :
+  ?expected_exit_code:int -> ?on_error:(unit -> unit) -> string list -> unit
+(** Run an external command provided as a string list.
+    The command is logged to stderr.
+    Raise an exception if the command doesn't terminate with the
+    expected exit code.
+
+    @param expected_exit_code the expected exit code. Defaults to 0.
+    @param on_error a function to call if the command doesn't exit as expected
 *)

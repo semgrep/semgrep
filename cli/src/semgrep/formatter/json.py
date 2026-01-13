@@ -21,9 +21,16 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class JsonFormatter(base.BaseFormatter):
+    """Filter out some fields depending on the context and format the result
+    into a JSON string.
+    """
+
     def format(
         self,
         rules: Iterable[Rule],
@@ -36,9 +43,6 @@ class JsonFormatter(base.BaseFormatter):
         output = base.to_CliOutput(
             rule_matches, semgrep_structured_errors, cli_output_extra
         )
-        # alt: we could call json.dumps() directly here, but more consistent with
-        # the other formatters to call instead rpc_call.format (this will also
-        # help to avoid code duplication when we need to some post-processing of
-        # the JSON output in osmegrep).
-        # old: return json.dumps(output.to_json(), sort_keys=True, default=to_json)
+        # Filter out some fields depending on context ctx!
+        # This filtering is implemented on the OCaml side.
         return semgrep.rpc_call.format(out.OutputFormat(out.Json()), ctx, output)

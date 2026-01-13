@@ -32,8 +32,7 @@ type t =
   | File of string * string
   | Symlink of string * string
 
-(* if you prefer a curried syntax *)
-let file name : t = File (name, "")
+let file ?(contents = "") name : t = File (name, contents)
 let dir name entries : t = Dir (name, entries)
 let symlink name dest : t = Symlink (name, dest)
 
@@ -180,34 +179,34 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
 let print_files files =
   flatten files |> List.iter (fun path -> Printf.printf "%s\n" !!path)
 
-let rec write root files = List.iter (write_one root) files
+let rec write_dir dst_dir files = List.iter (write dst_dir) files
 
-and write_one root file =
+and write dst_dir file =
   match file with
   | Dir (name, entries) ->
-      let dir = root / name in
+      let dir = dst_dir / name in
       if not (Sys_.Fpath.exists dir) then Unix.mkdir !!dir 0o777;
-      write dir entries
+      write_dir dir entries
   | File (name, contents) ->
-      let path = root / name in
+      let path = dst_dir / name in
       UFile.write_file ~file:path contents
   | Symlink (name, dest) ->
-      let path = !!(root / name) in
+      let path = !!(dst_dir / name) in
       Unix.symlink dest path
 
-let read root =
-  let rec read path =
-    let name = Fpath.basename path in
-    match UUnix.lstat path with
-    | Ok { st_kind = S_DIR; _ } ->
-        let names = get_dir_entries path in
-        Dir (name, List_.map (fun name -> read (path / name)) names)
-    | Ok { st_kind = S_REG; _ } -> File (name, UFile.read_file path)
-    | Ok { st_kind = S_LNK; _ } -> Symlink (name, Unix.readlink !!path)
-    | Ok _ -> failwith ("Testutil_files.read: unsupported file type: " ^ !!path)
-    | Error (err, _, _) ->
-        failwith (spf "Cannot read %s: %s" !!path (Unix.error_message err))
-  in
+let rec read path =
+  let name = Fpath.basename path in
+  match UUnix.lstat path with
+  | Ok { st_kind = S_DIR; _ } ->
+      let names = get_dir_entries path in
+      Dir (name, List_.map (fun name -> read (path / name)) names)
+  | Ok { st_kind = S_REG; _ } -> File (name, UFile.read_file path)
+  | Ok { st_kind = S_LNK; _ } -> Symlink (name, Unix.readlink !!path)
+  | Ok _ -> failwith ("Testutil_files.read: unsupported file type: " ^ !!path)
+  | Error (err, _, _) ->
+      failwith (spf "Cannot read %s: %s" !!path (Unix.error_message err))
+
+let read_dir root =
   match UUnix.stat root with
   | Ok { st_kind = S_DIR; _ } ->
       let names = get_dir_entries root in
@@ -225,7 +224,7 @@ let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
         print_files files;
         Printf.printf "--- end input files ---\n";
         flush stdout);
-      write root files;
+      write_dir root files;
       func root)
 
 (*****************************************************************************)
@@ -235,8 +234,8 @@ let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
 let () =
   Testo.test ?skipped:Testutil.skip_on_windows "Testutil_files" (fun () ->
       with_tempdir ~chdir:true (fun root ->
-          assert (read root =*= []);
-          assert (read (Fpath.v ".") =*= []);
+          assert (read_dir root =*= []);
+          assert (read_dir (Fpath.v ".") =*= []);
           let tree =
             [
               File ("a", "hello");
@@ -245,8 +244,8 @@ let () =
               Dir ("d", [ File ("e", "42"); Dir ("empty", []) ]);
             ]
           in
-          write root tree;
-          let tree2 = read root in
+          write_dir root tree;
+          let tree2 = read_dir root in
           assert (sort tree2 =*= sort tree);
 
           let paths = flatten tree |> Fpath_.to_strings in

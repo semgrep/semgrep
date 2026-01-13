@@ -1,0 +1,13 @@
+; Utilities for testing the semgrep command
+;
+; This not a test suite.
+
+(library
+ (public_name semgrep.testing)
+ (name semgrep_testing)
+ (libraries
+   commons
+   ; Type definitions for the output of semgrep commands
+   semgrep_core_rule
+ )
+)

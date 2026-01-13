@@ -433,7 +433,7 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
  * https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#json
  * alt: move in Gated_data.ml
  *)
-let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
+let adjust_fields_cli_output_logged_out (x : Out.cli_output) : Out.cli_output =
   (* note: I could use { x with ... } but better to explicitely list the fields
    * here so we see explicitely what we filter and what we do not.
    *)
@@ -631,6 +631,6 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
 let json_output (ctx : Out.format_context) (cli_output : Out.cli_output) =
   let cli_output =
     if ctx.is_logged_in then cli_output
-    else adjust_fields_cli_outpout_logged_out cli_output
+    else adjust_fields_cli_output_logged_out cli_output
   in
   Out.string_of_cli_output cli_output

@@ -39,8 +39,8 @@ let test_filter ?excludes:cli_patterns (files : F.t list) selection () =
       let files = F.sort files in
       printf "--- All files ---\n";
       print_files files;
-      F.write root files;
-      let files2 = F.read root |> F.sort in
+      F.write_dir root files;
+      let files2 = F.read_dir root |> F.sort in
       assert (files2 = files);
       printf "--- Filtered files ---\n";
       let filter =

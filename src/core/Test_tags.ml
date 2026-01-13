@@ -50,3 +50,13 @@ let tags_of_langs (langs : Lang.t list) =
       langs |> List_.map tags_of_lang |> List_.flatten
       |> List.sort Testo.Tag.compare
       |> List_.deduplicate_gen ~get_key:Testo.Tag.to_string
+
+(* Supply Chain Analysis *)
+let sca = Testo.Tag.declare "sca"
+
+(*
+   Declare the tag 'tr' for Transitive Reachability tests.
+   It's also used for the end-to-end tests that are defined in another
+   module.
+*)
+let tr = Testo.Tag.declare "tr"

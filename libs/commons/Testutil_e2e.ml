@@ -56,7 +56,7 @@ let which command_name =
   in
   if success then Some (String.trim out) else None
 
-let command_exists command_name =
+let command_exists command_name () =
   match which command_name with
   | Some path ->
       Log.info (fun m -> m "Command '%s' is available: %s" command_name path);
@@ -81,19 +81,46 @@ let skip_if_missing_prerequisites ~prerequisite_exists names =
         (sprintf "missing prerequisite(s): %s"
            (String.concat ", " missing_prerequisites))
 
-(* Rewrite a test suite to be skipped if the required external commands
+(* Mark a test to be skipped if the required external commands
    are not available or if other conditions are not fulfilled.
    This results in the test suite being listed as skipped with an explanation
    rather than missing mysteriously.
 *)
-let skip_tests_if_missing_prerequisites ~prerequisite_exists command_names tests
-    =
+let skip_test_if_missing_prerequisites ~prerequisite_exists command_names
+    (test : Testo.t) =
   let skipped =
     skip_if_missing_prerequisites ~prerequisite_exists command_names
   in
+  match test.skipped with
+  | Some _ -> test
+  | None -> Testo.update ~skipped test
+
+let skip_tests_if_missing_prerequisites ~prerequisite_exists command_names tests
+    =
   List_.map
-    (fun (test : Testo.t) ->
-      match test.skipped with
-      | Some _ -> test
-      | None -> Testo.update ~skipped test)
+    (skip_test_if_missing_prerequisites ~prerequisite_exists command_names)
     tests
+
+let run_command ?(expected_exit_code = 0) ?(on_error = fun () -> ()) argv =
+  let cmd : Cmd.t =
+    match argv with
+    | [] -> (Name "", [])
+    | argv0 :: args -> (Name argv0, args)
+  in
+  let command_string = UCmd.quote_command_for_bash argv in
+  eprintf "Command: %s\n%!" command_string;
+  (* nosemgrep: forbid-exec *)
+  match UCmd.run_subprocess cmd with
+  | Ok (`Exited n) when n = expected_exit_code ->
+      eprintf "Command '%s' exited with expected code %i\n" command_string n
+  | Ok (`Exited n) ->
+      on_error ();
+      failwith
+        (sprintf "Command '%s' exited with unexpected code %i" command_string n)
+  | Ok (`Signaled n) ->
+      on_error ();
+      failwith
+        (sprintf "Command '%s' was killed with signal %i" command_string n)
+  | Error (`Msg msg) ->
+      on_error ();
+      failwith (sprintf "Command '%s' failed to run: %s" command_string msg)

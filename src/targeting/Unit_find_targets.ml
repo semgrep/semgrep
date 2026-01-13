@@ -69,7 +69,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
 
     Testutil_git.with_git_repo ~verbose:true ~force_add_gitignored_files:false
       ~really_create_git_repo:with_git git_files (fun root ->
-        F.write root non_git_files;
+        F.write_dir root non_git_files;
 
         let conf =
           {
