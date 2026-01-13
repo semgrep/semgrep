@@ -294,6 +294,7 @@ install-opam-deps: pin-ocaml-fork$(OPTIONS)
 # forcing developers to install Rust unless they need it.
 .PHONY: install-pyro-caml
 install-pyro-caml:
+	opam pin add --confirm-level=unsafe-yes  pyro-caml.dev git+https://github.com/semgrep/pyro-caml.git#348f659e0c53f39ee7347b476f5ee6f97df4a4c2
 	opam install pyro-caml -y  --confirm-level=unsafe-yes
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
