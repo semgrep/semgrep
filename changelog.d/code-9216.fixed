@@ -1,0 +1,2 @@
+pro: Improved handling of parse errors during inter-file analysis. Now, these
+errors should be adequately reported back to users and in the JSON output.
