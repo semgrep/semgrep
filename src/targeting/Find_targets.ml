@@ -363,6 +363,7 @@ let filter_paths
          | Ignore_silently ->
              Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath)));
   (Fppath_set.of_list !selected_paths, !skipped)
+[@@profiling]
 
 let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
   let selected_fppaths, skipped_size =
@@ -553,6 +554,7 @@ let git_list_files ~(baseline_commit : string option) ~untracked_exclude
 let git_list_tracked_files ~baseline_commit
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
   git_list_files ~baseline_commit ~untracked_exclude:[] [ Cached ] project_roots
+[@@profiling]
 
 (*
    List all the files that are not being tracked by git except those in
@@ -572,6 +574,7 @@ let git_list_untracked_files ~baseline_commit ~respect_gitignore
   in
   git_list_files ~baseline_commit ~untracked_exclude:exclude [ Others ]
     project_roots
+[@@profiling]
 
 (*************************************************************************)
 (* Grouping *)

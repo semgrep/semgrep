@@ -156,7 +156,7 @@ def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
             s = ", ".join([str(x) for x in xs[:threshold]])
             if len(xs) > threshold:
                 s += f" (and {len(xs) - threshold} others)"
-            logger.debug(f"get_targets resp: {desc}: {s}")
+            logger.debug(f"  - {desc}: {s}")
 
     logger.debug(f"get_targets request: {scanning_roots}")
 
@@ -166,6 +166,7 @@ def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
         logger.error("Failed to obtain target files from semgrep-core")
         return out.TargetDiscoveryResult([], [], [])
 
+    logger.debug(f"get_targets response:")
     summarize("target paths", ret.value.target_paths)
     summarize("core errors", ret.value.errors)
     summarize("skipped targets", ret.value.skipped)

@@ -1,0 +1,3 @@
+Performance: subproject discovery in Supply Chain scans is no longer
+significantly slowed down by the presence of Git-untracked files
+resulting in faster diff scans in such cases.

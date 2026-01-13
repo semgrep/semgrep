@@ -10,6 +10,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import functools
+import glob
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -52,6 +54,20 @@ class SubprojectMatcher(ABC):
         Returns:
         - the list of created subprojects
         - the set of files that were used to construct the returned subprojects.
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def subproject_identifying_glob_filters(self) -> FrozenSet[str]:
+        """A set of one of more 'include' patterns matching manifests,
+        lock files, or any file needed in the identification of an SCA
+        subproject.
+
+        These glob patterns are used as extra filters that will be passed to
+        'git ls-files --others' when requesting project files for the sole
+        purpose of identifying subprojects. They must be compatible with the
+        Gitignore glob pattern syntax and may not be negated with a '!'.
         """
         raise NotImplementedError
 
@@ -255,6 +271,13 @@ class ExactLockfileManifestMatcher(LockfileManifestMatcher):
             else manifest_lockfile_paths[1].parent
         )
 
+    @functools.cached_property
+    def subproject_identifying_glob_filters(self) -> FrozenSet[str]:
+        patterns = [glob.escape(self.lockfile_name)]
+        if self.manifest_name is not None:
+            patterns.append(glob.escape(self.manifest_name))
+        return frozenset(patterns)
+
 
 @dataclass(frozen=True)
 class PatternManifestStaticLockfileMatcher(LockfileManifestMatcher):
@@ -268,6 +291,15 @@ class PatternManifestStaticLockfileMatcher(LockfileManifestMatcher):
 
     manifest_pattern: str
     lockfile_name: str
+
+    @functools.cached_property
+    def subproject_identifying_glob_filters(self) -> FrozenSet[str]:
+        return frozenset(
+            [
+                self.manifest_pattern,
+                glob.escape(self.lockfile_name),
+            ]
+        )
 
     def _is_lockfile_match(self, path: Path) -> bool:
         return path.name == self.lockfile_name
@@ -369,3 +401,7 @@ class ExactManifestOnlyMatcher(ManifestOnlyMatcher):
 
     def _is_manifest_match(self, path: Path) -> bool:
         return path.name == self.manifest_name
+
+    @functools.cached_property
+    def subproject_identifying_glob_filters(self) -> FrozenSet[str]:
+        return frozenset([glob.escape(self.manifest_name)])

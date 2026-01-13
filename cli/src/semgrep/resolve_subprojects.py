@@ -27,6 +27,7 @@ from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semdep.subproject_matchers import get_all_subproject_identifying_glob_filters
 from semdep.subproject_matchers import MATCHERS
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.console import console
@@ -115,6 +116,7 @@ def find_subprojects(
     return unresolved_subprojects
 
 
+@simple_profiling
 def filter_changed_subprojects(
     target_manager: TargetManager,
     dependency_aware_rules: List[Rule],
@@ -256,16 +258,34 @@ def resolve_subprojects(
     # First, find all subprojects. We ignore the baseline handler because we want
     # to _identify_, but not necessarily resolve, even unchanged subprojects.
     #
+    # Attention: we want to inspect even Gitignored untracked files because
+    # some of them may be lockfiles that are generated as part of a CI
+    # workflow or some other build process. Such lockfiles allow us
+    # to identify a subproject root. This is a legacy behavior which we
+    # may stop supporting in the future but for now, we have to support it.
+    #
     # Here, we override targeting_conf.respect_gitignore and disable Gitignore
     # filtering so as to find all possible manifests and lockfiles, including
     # those that are not under Git control (possibly generated during a CI job).
     #
-    # TODO: find a faster way to identify subprojects. Getting all the
-    #  target files for a project is pretty slow when we need to only analyze
-    #  a few files for a diff scan.
+    # Passing 'extra_glob_patterns_to_include_git_untracked_files' is optional
+    # but by prefiltering the list of project files directly
+    # with 'git ls-files --others ...', it can result in much fewer files being
+    # listed by Git (but still very fast), allowing the subsequent Semgrepignore
+    # filter pass to be much faster. This is important to speed up subproject
+    # discovery especially when scanning just a few project files such as
+    # in a typical diff scan.
+    # TODO: This trick only applies to untracked files so Semgrepignore still has
+    #  to filter all the tracked paths (because Git's exclude options only work
+    #  on untracked files). If this is still not fast enough, we could add
+    #  an independent filtering pass after 'git ls-files' and
+    #  CLI includes/excludes and before Semgrepignore (suggestion: add
+    #  a pair of internal options include2/exclude2 to take place after
+    #  the CLI include/exclude but otherwise identical to include/exclude).
     dependency_source_files = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=True,
         respect_gitignore=False,
+        extra_glob_patterns_to_include_git_untracked_files=get_all_subproject_identifying_glob_filters(),
     )
     # To list all the subprojects discovered by the function, use
     # 'semgrep show subprojects'

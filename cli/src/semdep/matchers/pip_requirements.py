@@ -10,6 +10,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import functools
+import glob
 from dataclasses import dataclass
 from dataclasses import field
 from fnmatch import fnmatch
@@ -68,6 +70,20 @@ class PipRequirementsMatcher(SubprojectMatcher):
             or str(path)
             == f"{self.default_manifest_file_base}.{self.manifest_file_extension}"
         )
+
+    @functools.cached_property
+    def subproject_identifying_glob_filters(self) -> FrozenSet[str]:
+        # lockfile patterns based on '_is_requirements_match' above
+        lockfile_patterns = frozenset(
+            f"{self.base_file_pattern}.{ext}"
+            for ext in self.requirements_file_extensions
+        )
+        # manifest patterns based on '_is_manifest_match' above
+        manifest_patterns = [
+            f"{self.base_file_pattern}.{self.manifest_file_extension}",
+            f"{glob.escape(self.default_manifest_file_base)}.{self.manifest_file_extension}",
+        ]
+        return lockfile_patterns.union(manifest_patterns)
 
     def is_match(self, path: Path) -> bool:
         return self._is_manifest_match(path) or self._is_requirements_match(path)

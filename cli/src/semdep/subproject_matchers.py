@@ -205,6 +205,11 @@ MATCHERS: List[SubprojectMatcher] = [
 ]
 
 
+def get_all_subproject_identifying_glob_filters() -> FrozenSet[str]:
+    nested_sets = [matcher.subproject_identifying_glob_filters for matcher in MATCHERS]
+    return frozenset(pat for pats in nested_sets for pat in pats)
+
+
 def filter_dependency_source_files(candidates: FrozenSet[Target]) -> FrozenSet[Target]:
     """
     Returns the paths in `candidates` that are dependency source files.

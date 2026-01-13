@@ -10,6 +10,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import functools
+import glob
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
@@ -49,6 +51,14 @@ class GradleMatcher(SubprojectMatcher):
     # common cases with this pattern.
     LOCKFILE_PATTERN = "gradle*.lockfile"
     ECOSYSTEM = out.Ecosystem(out.Maven())
+
+    @functools.cached_property
+    def subproject_identifying_glob_filters(self) -> FrozenSet[str]:
+        return frozenset(
+            list(map(glob.escape, self.BUILD_FILENAMES))
+            + list(map(glob.escape, self.SETTINGS_FILENAMES))
+            + [self.LOCKFILE_PATTERN]
+        )
 
     def _is_lockfile_match(self, path: Path) -> bool:
         return fnmatch(str(path.name), self.LOCKFILE_PATTERN)
