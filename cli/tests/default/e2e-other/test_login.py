@@ -101,11 +101,12 @@ def test_login_env_token(tmp_path, mocker):
 # it should give access to the registry once logged in
 @pytest.mark.slow
 @pytest.mark.osemfail
-def test_login_and_use_registry(tmp_path, mocker):
+def test_login_and_use_registry(tmp_path, mocker, requests_mock):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
         use_click_runner=True,
     )
+    semgrep_url = "https://semgrep.dev"
     fake_key = "key123"
 
     # Patch Token Validation:
@@ -123,6 +124,12 @@ def test_login_and_use_registry(tmp_path, mocker):
     assert result.exit_code == 0
     assert result.output.startswith("Saved login token")
 
+    # patch the download of the config to return 401
+    requests_mock.get(
+        f"{semgrep_url}/c/r/python.lang.correctness.useless-eqeq.useless-eqeq",
+        status_code=401,
+        json={"detail": "Invalid API Key"},
+    )
     # Run p/ci
     result = runner.invoke(
         cli,
@@ -132,6 +139,11 @@ def test_login_and_use_registry(tmp_path, mocker):
         result.exit_code == 7
     ), "registry should refuse to send rules to invalid token"
 
+    requests_mock.post(
+        f"{semgrep_url}/api/cli/scans",
+        status_code=401,
+        json={"detail": "Invalid API Key"},
+    )
     # Run policy with bad token -> no associated deployment_id
     result = runner.invoke(
         cli, args=["--config", "policy"], env={"SEMGREP_REPO_NAME": "test-repo"}
