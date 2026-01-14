@@ -88,7 +88,8 @@
  * core' and './dune' install section. We use the argv[0] trick below to decide
  * whether the user wants the semgrep-core or osemgrep behavior. *)
 let () =
-  Pyro_caml_instruments.maybe_with_memprof_sampler @@ fun () ->
+  Pyro_caml_instruments.maybe_with_memprof_sampler ~sampling_rate:1e-5
+  @@ fun () ->
   Cap.main (fun (caps : Cap.all_caps) ->
       let argv = CapSys.argv caps#argv in
       let argv0 =
