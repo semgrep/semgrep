@@ -580,9 +580,7 @@ and name_of_id env tok =
   (*Name ([[], str env tok]) *)
   NameId (str env tok)
 
-(* TODO: use a special at some point *)
-and super env tok = name_of_id env tok
-and super_id_field env tok = str env tok
+and super env tok = Super (token env tok)
 and new_id env tok = str env tok
 
 and primary_expression (env : env) (x : CST.primary_expression) =
@@ -655,14 +653,14 @@ and primary_expression (env : env) (x : CST.primary_expression) =
                   match v3 with
                   | Some (v1bis, v2bis) ->
                       let v1bis =
-                        super_id_field env v1bis
+                        token env v1bis
                         (* "super" *)
                       in
                       let v2bis =
                         token env v2bis
                         (* "." *)
                       in
-                      fun v5 -> Dot (Dot (v1, v2, v1bis), v2bis, v5)
+                      fun v5 -> Dot (DotSuper (v1, v2, v1bis), v2bis, v5)
                   | None -> fun v5 -> Dot (v1, v2, v5)
                 in
                 let _v4TODO = option (type_arguments env) v4 in
@@ -818,10 +816,10 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
           (* "." *)
         in
         let v2bis =
-          super_id_field env v2bis
+          token env v2bis
           (* "super" *)
         in
-        let base = Dot (v1, v1bis, v2bis) in
+        let base = DotSuper (v1, v1bis, v2bis) in
         fun v_dot v_after ->
           match v_after with
           | Left s -> Dot (base, v_dot, s)
@@ -2183,10 +2181,10 @@ and explicit_constructor_invocation (env : env)
         in
         let _v3 = option (type_arguments env) v3 in
         let v4 =
-          super_id_field env v4
+          token env v4
           (* "super" *)
         in
-        Dot (v1, v2, v4)
+        DotSuper (v1, v2, v4)
   in
   let v2 = argument_list env v2 in
   let v3 =
@@ -2858,10 +2856,10 @@ let program (env : env) (file : Fpath.t) (x : CST.program) =
             in
             let _v3 = option (type_arguments env) v3 in
             let v4 =
-              super_id_field env v4
+              token env v4
               (* "super" *)
             in
-            Dot (v1, v2, v4)
+            DotSuper (v1, v2, v4)
       in
       let v2 = argument_list env v2 in
       let _v3 =
