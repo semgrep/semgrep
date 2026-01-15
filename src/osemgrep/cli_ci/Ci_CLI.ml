@@ -106,6 +106,12 @@ let o_supply_chain : bool Term.t =
 (* Other *)
 (* ------------------------------------------------------------------ *)
 
+(* Currently --autofix for `semgrep ci` does nothing, so we redefine
+   the option here with that documented. *)
+let o_autofix : bool Term.t =
+  H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
+    ~default:false ~doc:{|Currently ignored.|}
+
 let o_audit_on : string list Term.t =
   let info = Arg.info [ "audit-on" ] ~env:(Cmd.Env.info "SEMGREP_AUDIT_ON") in
   Arg.value (Arg.opt_all Arg.string [] info)
@@ -119,6 +125,10 @@ let o_dry_run : bool Term.t =
 findings. Instead will print out json objects it would have sent.|}
   in
   Arg.value (Arg.flag info)
+
+let o_dryrun : bool Term.t =
+  H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ] ~default:false
+    ~doc:{|Currently ignored.|}
 
 (* for monorepos *)
 let o_subdir : string option Term.t =
@@ -417,12 +427,11 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
     const combine $ SC.o_allow_local_builds $ SC.o_allow_untrusted_validators
-    $ SC.o_autofix $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
-    $ SC.o_dataflow_traces $ SC.o_dryrun $ SC.o_dump_command_for_core
-    $ SC.o_emacs $ SC.o_emacs_outputs $ SC.o_exclude
-    $ SC.o_exclude_minified_files $ SC.o_exclude_rule_ids
-    $ SC.o_files_with_matches $ SC.o_force_color $ SC.o_gitlab_sast
-    $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
+    $ o_autofix $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
+    $ SC.o_dataflow_traces $ o_dryrun $ SC.o_dump_command_for_core $ SC.o_emacs
+    $ SC.o_emacs_outputs $ SC.o_exclude $ SC.o_exclude_minified_files
+    $ SC.o_exclude_rule_ids $ SC.o_files_with_matches $ SC.o_force_color
+    $ SC.o_gitlab_sast $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
     $ SC.o_gitlab_secrets_outputs $ SC.o_historical_secrets
     $ SC.o_x_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
     $ SC.o_json $ SC.o_json_outputs $ SC.o_junit_xml $ SC.o_junit_xml_outputs

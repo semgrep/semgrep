@@ -65,6 +65,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
+from semgrep.run_scan import AutofixBehavior
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
@@ -928,6 +929,14 @@ def scan(
 
         filtered_matches_by_rule: FilteredMatches = FilteredMatches(kept={}, removed={})
 
+        match (autofix, dryrun):
+            case (True, True):
+                autofix_behavior = AutofixBehavior.REPORT
+            case (True, False):
+                autofix_behavior = AutofixBehavior.APPLY
+            case (False, _):
+                autofix_behavior = AutofixBehavior.IGNORE
+
         # The 'optional_stdin_target' context manager must remain before
         # 'managed_output'. Output depends on file contents so we cannot have
         # already deleted the temporary stdin file.
@@ -1051,8 +1060,8 @@ def scan(
                         max_target_bytes=max_target_bytes,
                         replacement=replacement,
                         strict=strict,
-                        autofix=autofix,
-                        dryrun=dryrun,
+                        autofix=autofix_behavior,
+                        write_to_tr_cache=not dryrun,
                         disable_nosem=(not enable_nosem),
                         no_git_ignore=(not use_git_ignore),
                         force_novcs_project=force_novcs_project,
