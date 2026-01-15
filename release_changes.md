@@ -1,22 +1,19 @@
-## [1.147.0](https://github.com/semgrep/semgrep/releases/tag/v1.147.0) - 2026-01-07
+## [1.148.0](https://github.com/semgrep/semgrep/releases/tag/v1.148.0) - 2026-01-14
 
 
 ### Added
 
 
-- Gradle lockfiles of the form `gradle*.lockfile` are now supported. Previously, only lockfiles named exactly `gradle.lockfile` were supported. (SC-2999)
-- `semgrep login` now supports a `--force` flag, which ignores existing tokens and starts a new login session. The MCP setup workflow has been updated to use `--force` too. (saf-2392)
+- Performance: subproject discovery in Supply Chain scans is no longer
+  significantly slowed down by the presence of Git-untracked files
+  resulting in faster diff scans in such cases. (sc-subproject-speedup)
 
 
 ### Fixed
 
 
-- Deduplication should now pick the exact same findings across scans. Previously,
-  findings were always *equivalent*, but not guaranteed to be *exactly* the same
-  (e.g. metavariable bindings could differ). Depending on the rule and target code,
-  this could cause findings' fingerprints to change from one scan to another, thus
-  leading to finding flakiness and "cycling" in Semgrep App. Note that when
-  upgrading to this Semgrep version, you may see different (but equivalent) findings
-  wrt your current Semgrep version in the first scan, one more time. However, in
-  subsequent scans/upgrades, this problem should go away or at least be greatly
-  reduced. (saf-2304)
+- pro: Improved virtual method resolution in Java (code-9174)
+- pro: Improved handling of parse errors during inter-file analysis. Now, these
+  errors should be adequately reported back to users and in the JSON output. (code-9216)
+- Dataflow now accounts for Python for/else and while/else loops. (gh-8405)
+- Fix rare "bad file descriptor" when performing Git operations on Windows (saf-2358)
