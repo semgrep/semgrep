@@ -1029,6 +1029,7 @@ def scan(
                         missed_rule_count,
                         _all_subprojects,
                         _symbol_analysis,
+                        _sca_symbol_analysis,
                     ) = semgrep.run_scan.run_scan(
                         dump_command_for_core=dump_command_for_core,
                         time_flag=time_flag,
