@@ -251,6 +251,7 @@ and string_component = function
 and expr e =
   (match e with
   | This t -> G.N (G.IdSpecial ((G.This, t), G.empty_id_info ()))
+  | Super t -> G.N (G.IdSpecial ((G.Super, t), G.empty_id_info ()))
   | ObjAccessEllipsis (v1, v2) ->
       let v1 = expr v1 in
       G.DotAccessEllipsis (v1, v2)
@@ -331,6 +332,11 @@ and expr e =
   | Dot (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = ident v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+  | DotSuper (v1, t, t_super) ->
+      (* Qualified super syntax: Type.super *)
+      let v1 = expr v1 and t = info t and t_super = info t_super in
+      let super = G.FN (G.IdSpecial ((G.Super, t_super), G.empty_id_info ())) in
+      G.DotAccess (v1, t, super)
   | DotEllipsis (v1, t) ->
       let v1 = expr v1 and t = info t in
       G.DotAccessEllipsis (v1, t)
