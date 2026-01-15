@@ -140,7 +140,7 @@ clean:
 install:
 	$(MAKE) copy-core-for-cli
 # Install semgrep and semgrep-core in a place known to pip.
-	python3 -m pip --ignore-installed  install ./cli
+	python3 -m pip install --ignore-installed ./cli
 
 .PHONY: uninstall
 uninstall:
