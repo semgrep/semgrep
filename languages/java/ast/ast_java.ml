@@ -179,7 +179,7 @@ and expr =
   | NameId of ident
   | This of Tok.t
   (* used in Dot but also can be in Call *)
-  (* TODO: Super of tok *)
+  | Super of Tok.t
   (* This is used only in the context of annotations *)
   | NameOrClassType of name_or_class_type
   | Literal of literal
@@ -219,6 +219,7 @@ and expr =
    * that requires semantic information about the type of x and y.
    *)
   | Dot of expr * Tok.t * ident
+  | DotSuper of expr * Tok.t * Tok.t (* Type.super *)
   | DotEllipsis of expr * Tok.t (* ... *)
   | ArrayAccess of expr * expr bracket
   | Unary of AST_generic.operator (* +/-/~/! *) wrap * expr
@@ -595,6 +596,4 @@ let name_of_id id =
   (*Name ([[], id]) *)
   NameId id
 
-(* TODO: use a special at some point *)
-let super tok = name_of_id ("super", tok)
 let new_id tok = ("new", tok)
