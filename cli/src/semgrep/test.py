@@ -40,6 +40,7 @@ from ruamel.yaml import YAML
 import semgrep.run_scan
 from semgrep.constants import BREAK_LINE
 from semgrep.engine import EngineType
+from semgrep.run_scan import AutofixBehavior
 from semgrep.util import final_suffix_matches
 from semgrep.util import is_config_fixtest_suffix
 from semgrep.util import is_config_suffix
@@ -600,7 +601,7 @@ def generate_test_results(
         strict=strict,
         optimizations=optimizations,
         # only option that differs from the earlier call to semgrep-core:
-        autofix=True,
+        autofix=AutofixBehavior.APPLY,
     )
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
