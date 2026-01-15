@@ -65,6 +65,7 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
+from semgrep.run_scan import AutofixBehavior
 from semgrep.simple_profiling import profiling
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
@@ -689,6 +690,12 @@ def ci(
                 )
             final_baseline_commit = metadata.merge_base_ref
 
+        autofix_behavior = (
+            AutofixBehavior.REPORT
+            if scan_handler and scan_handler.autofix
+            else AutofixBehavior.IGNORE
+        )
+
         semgrep_commands_ci_span.set_attribute(
             "scan.scan_type", "diff" if baseline_commit is not None else "full"
         )
@@ -716,8 +723,8 @@ def ci(
             "exclude": per_product_excludes,
             "exclude_rule": exclude_rule,
             "max_target_bytes": max_target_bytes,
-            "autofix": scan_handler.autofix if scan_handler else False,
-            "dryrun": dry_run,
+            "autofix": autofix_behavior,
+            "write_to_tr_cache": not dry_run,
             # Determine whether or not we will sort ignored matches into the
             # `kept` category of FilteredMatches.
             # If there are multiple outputs and any request to keep_ignores

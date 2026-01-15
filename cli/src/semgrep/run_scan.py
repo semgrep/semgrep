@@ -23,6 +23,7 @@
 # is now called from commands/scan.py and commands/ci.py instead.
 # old: this file used to be called semgrep_main.py
 #
+import enum
 import json
 import sys
 import time
@@ -393,7 +394,7 @@ def baseline_run(
     disable_secrets_validation: bool,
     allow_local_builds: bool,
     ptt_enabled: bool,
-    dry_run: bool,
+    write_to_tr_cache: bool,
     fips_mode: bool,
     x_parmap: bool,
     rpc_session: Optional[RpcSession] = None,
@@ -513,7 +514,7 @@ def baseline_run(
                     disable_secrets_validation,
                     allow_local_builds=allow_local_builds,
                     ptt_enabled=ptt_enabled,
-                    dry_run=dry_run,
+                    write_to_tr_cache=write_to_tr_cache,
                     fips_mode=fips_mode,
                     x_parmap=x_parmap,
                     rpc_session=rpc_session,
@@ -710,7 +711,7 @@ def adjust_matches_for_sca_rules(
     output_handler: OutputHandler,
     output_extra: OutputExtra,
     fips_mode: bool,
-    dry_run: bool = False,
+    write_to_tr_cache: bool = True,
     rpc_session: Optional[RpcSession] = None,
     enable_transitive_reachability: Optional[bool] = False,
 ) -> Dict[str, List[out.FoundDependency]]:
@@ -764,7 +765,7 @@ def adjust_matches_for_sca_rules(
                 resolved_subprojects,
                 fips_mode=fips_mode,
                 enable_transitive_reachability=enable_transitive_reachability,
-                write_to_tr_cache=not dry_run,
+                write_to_tr_cache=write_to_tr_cache,
                 rpc_session=rpc_session,
             )
 
@@ -781,7 +782,7 @@ def adjust_matches_for_sca_rules(
                 resolved_subprojects,
                 fips_mode=fips_mode,
                 enable_transitive_reachability=False,
-                write_to_tr_cache=not dry_run,
+                write_to_tr_cache=write_to_tr_cache,
                 rpc_session=rpc_session,
             )
 
@@ -877,7 +878,7 @@ def run_rules(
     allow_local_builds: bool = False,
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
-    dry_run: bool = False,
+    write_to_tr_cache: bool = True,
     fips_mode: bool,
     enable_transitive_reachability: Optional[bool] = None,
     x_parmap: bool = False,
@@ -999,7 +1000,7 @@ def run_rules(
             sca_dependency_targets=sca_dependency_targets,
             output_handler=output_handler,
             output_extra=output_extra,
-            dry_run=dry_run,
+            write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
             fips_mode=fips_mode,
             rpc_session=rpc_session,
@@ -1035,6 +1036,17 @@ def run_rules(
     )
 
 
+class AutofixBehavior(enum.Enum):
+    # Don't do anything with rules' specified autofixes.
+    IGNORE = enum.auto()
+    # Generate rules' specified autofixes and report the fixed lines in the
+    # results, but don't actually apply them on disk.
+    REPORT = enum.auto()
+    # Generate rules' specified autofixes and apply them on disk, but don't
+    # report them in the results.
+    APPLY = enum.auto()
+
+
 ##############################################################################
 # Entry points
 ##############################################################################
@@ -1067,9 +1079,11 @@ def run_scan(
     exclude: Optional[Mapping[Product, Sequence[str]]] = None,
     exclude_rule: Optional[Sequence[str]] = None,
     strict: bool = False,
-    autofix: bool = False,
+    autofix: AutofixBehavior = AutofixBehavior.IGNORE,
     replacement: Optional[str] = None,
-    dryrun: bool = False,
+    # Whether to write to the transitive reachability cache
+    # (/tr_cache endpoint in the app).
+    write_to_tr_cache: bool = True,
     disable_nosem: bool = False,
     no_git_ignore: bool = False,
     force_novcs_project: bool = False,
@@ -1337,7 +1351,7 @@ def run_scan(
             ptt_enabled=ptt_enabled,
             resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
             fips_mode=fips_mode,
-            dry_run=dryrun,
+            write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
             x_parmap=x_parmap,
             run_symbol_analysis=run_symbol_analysis,
@@ -1380,7 +1394,7 @@ def run_scan(
                 disable_secrets_validation=disable_secrets_validation,
                 allow_local_builds=allow_local_builds,
                 ptt_enabled=ptt_enabled,
-                dry_run=dryrun,
+                write_to_tr_cache=write_to_tr_cache,
                 fips_mode=fips_mode,
                 x_parmap=x_parmap,
                 rpc_session=rpc_session,
@@ -1415,8 +1429,16 @@ def run_scan(
     # ---------------------------------
     # Step5: Autofix
     # ---------------------------------
-    if autofix:
-        apply_fixes(filtered_matches_by_rule.kept, dryrun)
+
+    # semgrep doesn't like a match statement here
+    if autofix == AutofixBehavior.APPLY:
+        apply_fixes(filtered_matches_by_rule.kept, False)
+    elif autofix == AutofixBehavior.REPORT:
+        apply_fixes(filtered_matches_by_rule.kept, True)
+    elif autofix == AutofixBehavior.IGNORE:
+        pass
+    else:
+        raise ValueError(f"Unrecognized autofix behavior: {autofix}")
 
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
