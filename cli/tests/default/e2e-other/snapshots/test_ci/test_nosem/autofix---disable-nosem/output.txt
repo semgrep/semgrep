@@ -60,10 +60,10 @@
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
+           15┆ (x == 2)
             ⋮┆----------------------------------------
            ▶▶┆ Autofix ▶ (y == 2)
-           16┆ y == 5  # nosemgrep
+           16┆ (y == 2)  # nosemgrep
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad
@@ -105,7 +105,6 @@
   poetry.lock          Lockfile            Pypi        3                  1
   yarn.lock            Lockfile            Npm         1                  2
 
-Autofix successfully modified 1 file.
   Uploading scan results
   Finalizing scan
 

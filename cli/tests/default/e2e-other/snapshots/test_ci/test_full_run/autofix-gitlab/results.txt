@@ -41,7 +41,7 @@
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
-           15┆ x == 5
+           15┆ (x == 2)
 
   BLOCKING CODE RULES FIRED:
     eqeq-bad
@@ -110,7 +110,6 @@ Creating git worktree from '<MASKED>' to scan baseline.
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        3                  1
 
-Autofix successfully modified 1 file.
   Uploading scan results
   Finalizing scan
 
