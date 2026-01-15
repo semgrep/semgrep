@@ -515,7 +515,7 @@ class TestRunScaSymbolAnalysis:
 
         result = run_subproject_symbol_analysis({}, target_manager)
 
-        assert result.value == []
+        assert list(result) == []
         mock_rpc.assert_not_called()
 
     @pytest.mark.quick
@@ -541,7 +541,7 @@ class TestRunScaSymbolAnalysis:
             subprojects_by_ecosystem, target_manager
         )
 
-        assert result.value == []
+        assert list(result) == []
         mock_rpc.assert_not_called()
 
     @pytest.mark.quick
@@ -573,7 +573,7 @@ class TestRunScaSymbolAnalysis:
         )
 
         # No files should be found for the subproject since it's outside scanning roots
-        assert result.value == []
+        assert list(result) == []
         mock_rpc.assert_not_called()
 
     @pytest.mark.quick
@@ -597,15 +597,15 @@ class TestRunScaSymbolAnalysis:
         subproject = make_pypi_subproject(".", "requirements.txt")
         subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject]}
 
-        result = run_subproject_symbol_analysis(
-            subprojects_by_ecosystem, target_manager
+        result = list(
+            run_subproject_symbol_analysis(subprojects_by_ecosystem, target_manager)
         )
 
         mock_rpc.assert_called_once()
         params = mock_rpc.call_args.kwargs["params"]
         assert params.lang == "python"
-        assert len(result.value) == 1
-        assert result.value[0].symbol.fqn == ["requests", "get"]
+        assert len(result) == 1
+        assert result[0].symbol_analysis.value[0].symbol.fqn == ["requests", "get"]
 
     @pytest.mark.quick
     @patch("semgrep.symbol_analysis.run_symbol_analysis_rpc")
@@ -641,13 +641,14 @@ class TestRunScaSymbolAnalysis:
 
         subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject1, subproject2]}
 
-        result = run_subproject_symbol_analysis(
-            subprojects_by_ecosystem, target_manager
+        result = list(
+            run_subproject_symbol_analysis(subprojects_by_ecosystem, target_manager)
         )
 
         # Should have combined both usages
-        assert len(result.value) == 2
-        fqns = [u.symbol.fqn for u in result.value]
+        assert len(result) == 2
+        analyses = [u for a in result for u in a.symbol_analysis.value]
+        fqns = [u.symbol.fqn for u in analyses]
         assert ["requests", "get"] in fqns
         assert ["flask", "Flask"] in fqns
 
@@ -680,13 +681,13 @@ class TestRunScaSymbolAnalysis:
 
         subprojects_by_ecosystem = {Ecosystem(Pypi()): [subproject1, subproject2]}
 
-        result = run_subproject_symbol_analysis(
-            subprojects_by_ecosystem, target_manager
+        result = list(
+            run_subproject_symbol_analysis(subprojects_by_ecosystem, target_manager)
         )
 
         # Should still have the result from the second subproject
-        assert len(result.value) == 1
-        assert result.value[0].symbol.fqn == ["requests", "get"]
+        assert len(result) == 1
+        assert result[0].symbol_analysis.value[0].symbol.fqn == ["requests", "get"]
 
     @pytest.mark.quick
     @patch("semgrep.symbol_analysis.run_symbol_analysis_rpc")
@@ -712,7 +713,8 @@ class TestRunScaSymbolAnalysis:
         subproject = make_npm_subproject(".", "package-lock.json", "package.json")
         subprojects_by_ecosystem = {Ecosystem(Npm()): [subproject]}
 
-        run_subproject_symbol_analysis(subprojects_by_ecosystem, target_manager)
+        # need to force the iterator
+        list(run_subproject_symbol_analysis(subprojects_by_ecosystem, target_manager))
 
         # Verify language passed to RPC is 'ts'
         mock_rpc.assert_called_once()

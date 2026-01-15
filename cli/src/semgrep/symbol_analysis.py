@@ -168,10 +168,17 @@ def run_symbol_analysis_for_files(
     return symbol_analysis
 
 
+@dataclass
+class SubprojectSymbolAnalysis:
+    manifest: Optional[out.Manifest]
+    lockfile: Optional[out.Lockfile]
+    symbol_analysis: out.SymbolAnalysis
+
+
 def run_subproject_symbol_analysis(
     subprojects_by_ecosystem: Mapping[out.Ecosystem, Sequence[out.ResolvedSubproject]],
     target_manager: TargetManager,
-) -> out.SymbolAnalysis:
+) -> Iterator[SubprojectSymbolAnalysis]:
     """
     Runs symbol analysis for all subprojects and returns the combined results.
 
@@ -186,8 +193,6 @@ def run_subproject_symbol_analysis(
     subproject_files = build_subproject_file_mapping(
         subprojects_by_ecosystem, target_manager
     )
-
-    combined_symbol_analysis: List[out.SymbolUsage] = []
 
     for ecosystem, subprojects in subprojects_by_ecosystem.items():
         lang = _ecosystem_to_language(ecosystem)
@@ -216,9 +221,23 @@ def run_subproject_symbol_analysis(
             if symbol_analysis is None:
                 continue
 
-            combined_symbol_analysis.extend(symbol_analysis.value)
+            manifest = None
+            lockfile = None
 
-    return out.SymbolAnalysis(value=combined_symbol_analysis)
+            dependency_source = subproject.info.dependency_source.value
+            if isinstance(dependency_source, out.ManifestOnly):
+                manifest = dependency_source.value
+            elif isinstance(dependency_source, out.LockfileOnly):
+                lockfile = dependency_source.value
+            elif isinstance(dependency_source, out.ManifestLockfile):
+                manifest, lockfile = dependency_source.value
+            else:
+                logger.info(
+                    f"Skipping subproject with unsupported dependency source for symbol analysis {dependency_source.kind}"
+                )
+                continue
+
+            yield SubprojectSymbolAnalysis(manifest, lockfile, symbol_analysis)
 
 
 def dump_symbol_analysis_and_exit(target_manager: TargetManager) -> None:
@@ -238,5 +257,10 @@ def dump_symbol_analysis_and_exit(target_manager: TargetManager) -> None:
         target_manager=target_manager,
     )
 
-    print(symbol_analysis.to_json_string())
+    symbol_usages = [
+        usage
+        for analysis in symbol_analysis
+        for usage in analysis.symbol_analysis.value
+    ]
+    print(out.SymbolAnalysis(value=symbol_usages).to_json_string())
     sys.exit(0)
