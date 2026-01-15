@@ -104,6 +104,7 @@ from semgrep.subproject import iter_found_dependencies
 from semgrep.subproject import make_dependencies_by_source_path
 from semgrep.symbol_analysis import dump_symbol_analysis_and_exit
 from semgrep.symbol_analysis import run_subproject_symbol_analysis
+from semgrep.symbol_analysis import SubprojectSymbolAnalysis
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
@@ -493,6 +494,7 @@ def baseline_run(
                     _,
                     _,
                     _plans,
+                    _,
                     _,
                     _,
                 ) = run_rules(
@@ -890,6 +892,7 @@ def run_rules(
     List[Plan],
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
     Optional[out.SymbolAnalysis],
+    Optional[Sequence[SubprojectSymbolAnalysis]],
 ]:
     # ---------------------------------------
     # Step1: split the rules (Join, SCA, rest)
@@ -987,6 +990,7 @@ def run_rules(
 
     running_sca_scan = len(dependency_aware_rules) > 0
 
+    sca_symbol_analysis = None
     if running_sca_scan:
         deps_by_lockfile = adjust_matches_for_sca_rules(
             rule_matches_by_rule=rule_matches_by_rule,
@@ -1001,22 +1005,18 @@ def run_rules(
             rpc_session=rpc_session,
         )
 
-        if run_symbol_analysis and symbol_analysis is None:
-            logger.debug("Running subproject symbol analysis...")
-
+        if run_symbol_analysis:
             try:
-                symbol_analysis = run_subproject_symbol_analysis(
-                    subprojects_by_ecosystem=resolved_subprojects,
-                    target_manager=target_manager,
+                sca_symbol_analysis = list(
+                    run_subproject_symbol_analysis(
+                        target_manager=target_manager,
+                        subprojects_by_ecosystem=resolved_subprojects,
+                    )
                 )
             except Exception as e:
                 logger.error(f"Error running subproject symbol analysis: {e}")
-
-            logger.debug("Subproject symbol analysis complete")
         else:
-            logger.debug(
-                "Skipping subproject symbol analysis, code symbol analysis already run"
-            )
+            sca_symbol_analysis = []
 
     else:
         logger.verbose("SCA findings adjustment: No SCA rules to adjust")
@@ -1031,6 +1031,7 @@ def run_rules(
         plans,
         all_subprojects,
         symbol_analysis,
+        sca_symbol_analysis,
     )
 
 
@@ -1121,6 +1122,7 @@ def run_scan(
     int,  # Missed Rule Count
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
     Optional[out.SymbolAnalysis],
+    Optional[Sequence[SubprojectSymbolAnalysis]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -1315,6 +1317,7 @@ def run_scan(
             plans,
             all_subprojects,
             symbol_analysis,
+            sca_symbol_analysis,
         ) = run_rules(
             filtered_rules,
             target_manager,
@@ -1437,6 +1440,7 @@ def run_scan(
         missed_rule_count,
         all_subprojects,
         symbol_analysis,
+        sca_symbol_analysis,
     )
 
 
@@ -1476,6 +1480,7 @@ def run_scan_and_return_json(
         _,
         _,
         _all_subprojects,
+        _,
         _,
     ) = run_scan(
         output_handler=output_handler,
