@@ -595,8 +595,13 @@ def mock_ci_api(
 
 
 @pytest.fixture(params=[True, False], ids=["autofix", "noautofix"])
-def mock_autofix(request, mocker):
-    mocker.patch.object(ScanHandler, "autofix", request.param)
+def autofix(request):
+    return request.param
+
+
+@pytest.fixture
+def mock_autofix(request, mocker, autofix):
+    mocker.patch.object(ScanHandler, "autofix", autofix)
 
 
 ##############################################################################
@@ -3008,3 +3013,104 @@ def test_app_blocked_findings(
         result.as_snapshot(),
         "output.txt",
     )
+
+
+@pytest.mark.parametrize(
+    "autofix",
+    [
+        pytest.param(True, id="autofix"),
+        pytest.param(False, id="noautofix"),
+    ],
+)
+@pytest.mark.parametrize(
+    "autofix_cli_option",
+    [
+        pytest.param(True, id="with-autofix-flag"),
+        pytest.param(False, id="without-autofix-flag"),
+    ],
+)
+@pytest.mark.osemfail
+def test_autofix_never_applies_changes(
+    git_tmp_path_with_commit,
+    mock_autofix,
+    autofix: bool,
+    autofix_cli_option: bool,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """
+    Test that `semgrep ci` never applies autofix changes to disk, regardless of
+    the autofix setting from the app.
+
+    When autofix is enabled from the app, the fixed_lines should be included in
+    the response to the app but NOT applied on disk.
+
+    When autofix is disabled from the app, no fixed_lines should be in the
+    response and files should remain unchanged.
+
+    The --autofix CLI flag should have no effect on `semgrep ci` behavior;
+    autofix behavior is controlled solely by the app setting.
+    """
+    repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    # Read the original file content before running semgrep ci
+    foo_py = repo_copy_base / "foo.py"
+    original_content = foo_py.read_text()
+
+    # Verify that the file contains the unfixed code (x == 5)
+    assert (
+        "x == 5" in original_content
+    ), "Test setup error: foo.py should contain 'x == 5'"
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            *(["--autofix"] if autofix_cli_option else []),
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    # Verify the file was NOT modified on disk (autofix should never apply in ci)
+    current_content = foo_py.read_text()
+    assert current_content == original_content, (
+        f"semgrep ci should never modify files on disk, but foo.py was changed.\n"
+        f"autofix={autofix}, autofix_cli_option={autofix_cli_option}\n"
+        f"Expected 'x == 5' to still be in the file."
+    )
+
+    # Check the findings uploaded to the app
+    findings_json = upload_results_mock.last_request.json()
+    findings = findings_json["findings"]
+
+    # Find the finding for the eqeq-five rule (which has a fix defined)
+    eqeq_five_findings = [f for f in findings if f["check_id"] == "eqeq-five"]
+    assert len(eqeq_five_findings) == 1, "Expected exactly one eqeq-five finding"
+
+    eqeq_five_finding = eqeq_five_findings[0]
+
+    if autofix:
+        # When autofix is enabled, fixed_lines should be in the response
+        assert (
+            "fixed_lines" in eqeq_five_finding
+        ), "When autofix is enabled from app, fixed_lines should be included in findings"
+        # Verify the fix content is what we expect
+        assert eqeq_five_finding["fixed_lines"] == [
+            "    (x == 2)"
+        ], f"Expected fixed_lines to be ['    (x == 2)'], got {eqeq_five_finding['fixed_lines']}"
+    else:
+        # When autofix is disabled, fixed_lines should NOT be in the response
+        assert (
+            "fixed_lines" not in eqeq_five_finding
+        ), "When autofix is disabled from app, fixed_lines should NOT be in findings"
