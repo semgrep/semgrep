@@ -786,6 +786,7 @@ def ci(
                 _missed_rule_count,
                 all_subprojects,
                 symbol_analysis,
+                sca_symbol_analysis,
             ) = semgrep.run_scan.run_scan(
                 **run_scan_args  # type: ignore
             )
@@ -984,13 +985,35 @@ def ci(
             # This upload takes place before findings are reported to the app via the
             # /complete endpoint, so that the symbol analysis is available by the time
             # the dependencies are processed.
-            if symbol_analysis is not None and scan_handler.scan_id and token:
+            if scan_handler.symbol_analysis and scan_handler.scan_id and token:
+                # legacy combined symbol analysis
+                #
+                # we can remove this in favor of subproject-based
+                # symbol analysis once we confirm nobody else is
+                # depending on it
                 try:
-                    semgrep.rpc_call.upload_symbol_analysis(
-                        token, scan_handler.scan_id, symbol_analysis
-                    )
+                    if symbol_analysis is not None:
+                        semgrep.rpc_call.upload_symbol_analysis(
+                            token, scan_handler.scan_id, symbol_analysis
+                        )
                 except Exception as e:
                     logger.error(f"Failed to upload symbol analysis: {e}")
+
+                if sca_symbol_analysis is not None:
+                    for subproject_symbol_analysis in sca_symbol_analysis:
+                        manifest = subproject_symbol_analysis.manifest
+                        manifest_path = manifest.path if manifest else None
+
+                        lockfile = subproject_symbol_analysis.lockfile
+                        lockfile_path = lockfile.path if lockfile else None
+
+                        semgrep.rpc_call.upload_subproject_symbol_analysis(
+                            token,
+                            scan_handler.scan_id,
+                            manifest_path,
+                            lockfile_path,
+                            subproject_symbol_analysis.symbol_analysis,
+                        )
 
             with Progress(
                 TextColumn("  {task.description}"),
