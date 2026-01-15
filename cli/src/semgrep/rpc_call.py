@@ -212,8 +212,8 @@ def upload_subproject_symbol_analysis(
         symbol_analysis,
     )
     call = out.FunctionCall(out.CallUploadSubprojectSymbolAnalysis(params))
-    ret: Optional[out.RetUploadSymbolAnalysis] = rpc_call(
-        call, out.RetUploadSymbolAnalysis
+    ret: Optional[out.RetUploadSubprojectSymbolAnalysis] = rpc_call(
+        call, out.RetUploadSubprojectSymbolAnalysis
     )
     if ret is None:
         logger.warning(
