@@ -117,22 +117,25 @@ local slack = {
   // Double escape quotes because they are nested in two layers of double quotes. Which still allows string interpolation at the bash level.
   curl_notify(message): |||
     curl --request POST \
-     --url  ${{ secrets.NOTIFICATIONS_URL }} \
+     --url  "$NOTIFICATIONS_URL" \
      --header 'content-type: application/json' \
      --data "{
        \"text\": \"%s\"
      }"
   ||| % escapeStringJson(escapeStringJson(message)),
 
-  notify_failure_job(message): {
-    'runs-on': 'ubuntu-22.04',
-    'if': 'failure()',
-    steps: [
-      {
-        run: slack.curl_notify(message),
-      },
-    ],
-  },
+  notify_failure_job(message, env={}):
+    env
+    {
+      'runs-on': 'ubuntu-22.04',
+      'if': 'failure()',
+      steps: [
+        {
+          env: { NOTIFCATIONS_URL: '${{ secrets.NOTIFCATIONS_URL }}' },
+          run: slack.curl_notify(message),
+        },
+      ],
+    },
 };
 
 

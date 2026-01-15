@@ -312,7 +312,7 @@ local wait_for_checks_job = {
     'wait-for-checks': wait_for_checks_job,
     'notify-failure':
       semgrep.slack.notify_failure_job
-      ('The End to end semgrep ci workflow failed with docker tag %s. The PR in `semgrep/e2e` that had the failure was %s. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info' % [docker_tag, pr_number])
+      ('The End to end semgrep ci workflow failed with docker tag "$DOCKER_TAG". The PR in `semgrep/e2e` that had the failure was "$PR_NUMBER". See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info', env={ DOCKER_TAG: docker_tag, PR_NUMBER: pr_number })
       + { needs: [
         'semgrep-ci',
         'semgrep-ci-on-pr',
