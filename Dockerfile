@@ -129,6 +129,8 @@ COPY Makefile cygwin-env.mk semgrep.opam ./
 COPY dev/required.opam dev/
 COPY scripts/build-static-libcurl.sh scripts/
 COPY scripts/validate-compiler-sha.sh scripts/
+COPY scripts/pick-lockfile.sh scripts/
+COPY opam-lockfiles/ ./opam-lockfiles
 COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 
