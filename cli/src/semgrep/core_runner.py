@@ -900,9 +900,8 @@ class CoreRunner:
         Note: this is a list because a target can appear twice (e.g. Java + Generic)
         """
         # The range of target_info is (index into rules x product as json)
-        # Using product as JSON because we want structural equality of products instead of object equality.
         target_info: Dict[
-            Tuple[Target, Language], Tuple[List[int], Set[str]]
+            Tuple[Target, Language], Tuple[List[int], Set[out.Product]]
         ] = collections.defaultdict(lambda: (list(), set()))
 
         unused_rules = []
@@ -923,7 +922,7 @@ class CoreRunner:
                 for target in targets:
                     rules_nums, products = target_info[target, language]
                     rules_nums.append(rule_num)
-                    products.add(rule.product.to_json_string())
+                    products.add(rule.product)
 
             if not some_target:
                 unused_rules.append(rule)
@@ -933,7 +932,7 @@ class CoreRunner:
                 Task(
                     path=target,
                     analyzer=language,
-                    products=tuple(out.Product.from_json_string(x) for x in products),
+                    products=tuple(products),
                     # tuple conversion makes rule_nums hashable, so usable as cache key
                     rule_nums=tuple(rule_nums),
                 )
