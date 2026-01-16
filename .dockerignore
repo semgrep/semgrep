@@ -7,6 +7,10 @@
 # starting from dune 2.8.2, those are actually not generated anymore
 **/.merlin
 
+# We won't commit the top-level `semgrep.opam.locked` that is decided by our
+# `pick-lockfile.sh` script, as non of them can satisfy every machine.
+**/semgrep.opam.locked
+
 # opam files are now generated from dune-project when running 'dune build':
 *.opam
 # but we keep the one used for installing the project dependencies with

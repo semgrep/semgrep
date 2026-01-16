@@ -229,8 +229,10 @@ check-opam-conflicts: dune-project
 # 'opam install' command to install all the dependencies allows us to detect
 # version constraints incompatibilities.
 #
+# weird: when ./semgrep.opam is left as ./, opam install errors with
+# "Undefined boolean filter value: os != win32"
 REQUIRED_DEPS = \
- ./ \
+  ./semgrep.opam \
   ./dev/required.opam \
   $(EXTRA_OPAM_DEPS)
 
@@ -281,8 +283,8 @@ install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	# we want to install our forked OCaml compiler, however this contradicts
 	# the default 5.3.0 invariant of `ocaml-base-compiler = 5.3.0`.
 	# --update-invariant does just that
-	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --update-invariant --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
-	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --update-invariant --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
+	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --locked --update-invariant --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
+	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --locked --update-invariant --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 	# Validate that after installing deps the pinned compiler hasn't changed
 	./scripts/validate-compiler-sha.sh
 
@@ -307,7 +309,9 @@ semgrep.opam: dune-project semgrep.opam.template
 
 # We could also add python dependencies at some point
 # and an 'install-deps-for-semgrep-cli' target
-install-deps: install-deps-for-semgrep-core
+install-deps:
+	./scripts/pick-lockfile.sh --strict semgrep.opam
+	$(MAKE) install-deps-for-semgrep-core
 
 # ******************************************
 # Release target
@@ -373,6 +377,7 @@ nix-check-verbose:
 setup:
 	./scripts/make-symlinks
 	./scripts/check-bash-version
+	./scripts/pick-lockfile.sh semgrep.opam
 	LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" $(MAKE) install-deps-for-semgrep-core
 
 # Install optional development dependencies in addition to build dependencies.
