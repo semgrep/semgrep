@@ -867,6 +867,7 @@ def ci(
                     _missed_rule_count,
                     _historical_all_subprojects,
                     _symbol_analysis,
+                    _sca_symbol_analysis,
                 ) = semgrep.run_scan.run_scan(
                     **run_scan_args,  # type: ignore
                     historical_secrets=True,
