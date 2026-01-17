@@ -570,6 +570,7 @@ def adjust_matches_for_join_rules(
 
 
 # ??
+@tracing.trace()
 def filter_dependency_aware_rules(
     dependency_aware_rules: List[Rule],
     resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
@@ -611,6 +612,7 @@ def filter_dependency_aware_rules(
     return filtered_rules
 
 
+@tracing.trace()
 @simple_profiling
 def resolve_dependencies(
     dependency_aware_rules: List[Rule],
@@ -703,6 +705,7 @@ def resolve_dependencies(
     )
 
 
+@tracing.trace()
 def adjust_matches_for_sca_rules(
     rule_matches_by_rule: RuleMatchMap,
     dependency_aware_rules: List[Rule],
