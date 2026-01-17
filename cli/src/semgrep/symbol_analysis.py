@@ -22,6 +22,7 @@ from typing import Sequence
 from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep import tracing
 from semgrep.error import UnknownLanguageError
 from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc_call import run_symbol_analysis as run_symbol_analysis_rpc
@@ -175,6 +176,7 @@ class SubprojectSymbolAnalysis:
     symbol_analysis: out.SymbolAnalysis
 
 
+@tracing.trace()
 def run_subproject_symbol_analysis(
     subprojects_by_ecosystem: Mapping[out.Ecosystem, Sequence[out.ResolvedSubproject]],
     target_manager: TargetManager,
