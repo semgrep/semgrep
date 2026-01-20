@@ -459,6 +459,21 @@ let applicable_rules_of_config (config : Core_scan_config.t) :
 (*****************************************************************************)
 (* logging/telemetry *)
 (*****************************************************************************)
+
+let warn_if_insufficent_cpus (num_jobs : int) =
+  let cpus = (Num_jobs.get ()).available_cpus in
+  if num_jobs > cpus then
+    let recommended = (Num_jobs.get ()).recommended_multicore_domains in
+    let msg =
+      "Scheduling " ^ Int.to_string num_jobs ^ " OCaml domains on "
+      ^ Int.to_string cpus ^ " CPUs may exhibit significant performance issues"
+    in
+    let msg2 =
+      "With " ^ Int.to_string cpus ^ " available CPUs, we suggest `-j "
+      ^ Int.to_string recommended ^ "` as a starting point"
+    in
+    Logs.warn (fun m -> m "%s. %s." msg msg2)
+
 let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
     'a =
   let target_name = Target.internal_path t in
@@ -747,6 +762,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
     match config.par_conf with
     | Parallelism_config.Eio_executor conf ->
         let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
+        warn_if_insufficent_cpus num_jobs;
         Concurrent_map_targets.map_targets ~conf ~num_jobs process_target
           targets
         |> List_.map exception_handler
