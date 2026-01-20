@@ -51,7 +51,7 @@
       "gh-action-pypi-publish": "ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e"
     },
     "semgrep": {
-      "setup-ocaml": "c0776a273da09a7787c22790f992c8daed3363bd"
+      "setup-ocaml": "ce6a88f72f48e02a172c93eb93177b21659e7032"
     },
     "slackapi": {
       "slack-github-action": "007b2c3c751a190b6f0f040e47ed024deaa72844"

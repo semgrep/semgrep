@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           submodules: true
-      - uses: semgrep/setup-ocaml@c0776a273da09a7787c22790f992c8daed3363bd
+      - uses: semgrep/setup-ocaml@ce6a88f72f48e02a172c93eb93177b21659e7032
         with:
           cache-prefix: v3
           ocaml-compiler: 5.3.0
