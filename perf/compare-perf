@@ -174,10 +174,11 @@ def main() -> None:
         messages.append(
             "Individual deviations greater than 20% from the baseline are reported. "
             "An individual performance degradation of over 30% or "
-            "a global degradation of over 15% is an error and will block "
-            "the pull request. "
+            "a global degradation of over 15% should be investigated for "
+            "legitimate performance regressions. "
             "See run output for full results "
-            "('Show all checks' > 'Tests / semgrep benchmark tests' 'Details')."
+            "('Show all checks' > 'build-and-test / {small, post commit} benchmarks' "
+            "> 'View details')."
         )
         msg = "\n\n".join(messages)
         print(f"Sending warnings and errors as a PR comment:\n{msg}")
