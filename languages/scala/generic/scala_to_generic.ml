@@ -91,17 +91,28 @@ let v_simple_ref = function
       let _v1TODO = v_option v_ident v1 and v2 = v_tok v2 in
       Either.Right (G.N (G.IdSpecial ((G.This, v2), G.empty_id_info ())) |> G.e)
   | Super (v1, v2, v3, v4) ->
+      (* V1, when 'Some', is for the outer class super : OuterClass.super or OuterClass.super[type]. *)
+      (* We don't handle this case yet.*)
       let _v1TODO = v_option v_ident v1
       and v2 = v_tok v2
-      and _v3TODO = v_option (v_bracket v_ident) v3
+      and v3_qualified_type = v_option (v_bracket v_ident) v3
       and v4 = v_ident v4 in
       let fld = G.FN (G.Id (v4, G.empty_id_info ())) in
-      Either.Right
-        (G.DotAccess
-           ( G.N (G.IdSpecial ((G.Super, v2), G.empty_id_info ())) |> G.e,
-             fake ".",
-             fld )
-        |> G.e)
+      let super_expr =
+        let super_subexpr = G.IdSpecial ((G.Super, v2), G.empty_id_info ()) in
+        match v3_qualified_type with
+        | Some (_lb, qualified_type, _rb) ->
+            (* super[type] pattern - qualified super *)
+            G.DotAccess
+              ( G.N (G.Id (qualified_type, G.empty_id_info ())) |> G.e,
+                fake ".",
+                G.FN super_subexpr )
+            |> G.e
+        | None ->
+            (* Regular super without qualification *)
+            G.N super_subexpr |> G.e
+      in
+      Either.Right (G.DotAccess (super_expr, fake ".", fld) |> G.e)
 
 (* TODO: should not use *)
 let id_of_simple_ref = function
