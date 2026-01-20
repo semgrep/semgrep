@@ -1,0 +1,4 @@
+Added a warning in --debug mode when a user runs a parallel scan with a larger
+value for -j/--jobs than the number of CPUs we detect the host has made
+available to Semgrep.  Additionally, a suggested starting value for -j/--jobs
+is reported to give the user a place to start tuning their scan.
