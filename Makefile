@@ -280,6 +280,8 @@ pin-ocaml-fork-tsan:
 #   install the pcre system package, this ensures those are reinstalled
 install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	opam update -y
+	# use the opam cache by default, as third party package hosts are unreliable
+	opam option --global 'archive-mirrors="https://opam.ocaml.org/cache"'
 	# we want to install our forked OCaml compiler, however this contradicts
 	# the default 5.3.0 invariant of `ocaml-base-compiler = 5.3.0`.
 	# --update-invariant does just that
