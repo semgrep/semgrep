@@ -281,6 +281,8 @@ install-opam-deps: pin-ocaml-fork$(OPTIONS)
 	# we want to install our forked OCaml compiler, however this contradicts
 	# the default 5.3.0 invariant of `ocaml-base-compiler = 5.3.0`.
 	# --update-invariant does just that
+	# use the opam cache by default, as third party package hosts are unreliable
+	opam option --global 'archive-mirrors="https://opam.ocaml.org/cache"'
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --update-invariant --confirm-level=unsafe-yes -y --depext-only $(REQUIRED_DEPS)
 	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --update-invariant --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 	# Validate that after installing deps the pinned compiler hasn't changed
