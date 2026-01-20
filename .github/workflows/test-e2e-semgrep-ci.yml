@@ -17,8 +17,9 @@ jobs:
         name: Debug
         run: echo "$DOCKER_TAG"
   notify-failure:
-    DOCKER_TAG: ${{ needs.get-inputs.outputs.docker_tag }}
-    PR_NUMBER: ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}
+    env:
+      DOCKER_TAG: ${{ needs.get-inputs.outputs.docker_tag }}
+      PR_NUMBER: ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}
     if: failure()
     needs:
       - semgrep-ci
