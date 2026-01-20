@@ -44,6 +44,9 @@ class TargetInfo:
     original: Optional[out.Fppath]
 
     def __hash__(self) -> int:
+        # TODO (perf, coupling): we have not seen any evidence that
+        # `TargetInfo.__hash__` appears in profiling data, but perhaps
+        # we should cache the hash value here, in the base class?
         return hash(self.fpath)
 
     def __eq__(self, other: object) -> bool:
@@ -67,8 +70,21 @@ class Target(TargetInfo):
     ppath: PurePosixPath
     original: out.Fppath
 
+    # Target.__hash__ was being heavily called (via core_runner.py::plan_core_run)
+    # - on a semgrep-app scan, we saw 344 million such calls.  Notably, this recomputes
+    # hash(self.fpath), consuming ~265 seconds of runtime in a ~50 min scan.
+    # Caching the hash value (which is safe, since Target is a frozen dataclass) has
+    # reduced semgrep-app scans from ~3000 sec to ~2450 sec.
+    _cached_hash: Optional[int] = dataclasses.field(
+        default=None, init=False, compare=False, repr=False
+    )
+
     def __hash__(self) -> int:
-        return hash(self.fpath)
+        cached = self._cached_hash
+        if cached is None:
+            cached = hash(self.fpath)
+            object.__setattr__(self, "_cached_hash", cached)
+        return cached
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, TargetInfo):
