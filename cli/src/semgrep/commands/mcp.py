@@ -49,10 +49,10 @@ RECORD_FILE_EDIT_HOOK_FLAG = "record-file-edit"
 @click.option(
     "-t",
     "--transport",
-    type=click.Choice(["stdio", "streamable-http", "sse"]),
+    type=click.Choice(["stdio", "streamable-http"]),
     default="stdio",
     envvar="MCP_TRANSPORT",
-    help="Transport protocol to use: stdio, streamable-http, or sse (legacy)",
+    help="Transport protocol to use: stdio or streamable-http",
 )
 @click.option(
     "-p",
@@ -92,9 +92,9 @@ RECORD_FILE_EDIT_HOOK_FLAG = "record-file-edit"
 def semgrep_mcp(transport: str, port: int, hook: str | None, agent: str) -> None:
     """Entry point for the MCP server
 
-    Supports stdio, streamable-http, and sse transports.
+    Supports stdio and streamable-http transports.
     For stdio, it will read from stdin and write to stdout.
-    For streamable-http and sse, it will start an HTTP server on port 8000.
+    For streamable-http, it will start an HTTP server on port 8000.
     """
     # Set environment variable to track scans by MCP
     os.environ["SEMGREP_MCP"] = "true"
@@ -141,7 +141,5 @@ def semgrep_mcp(transport: str, port: int, hook: str | None, agent: str) -> None
         mcp.run(transport="stdio")
     elif transport == "streamable-http":
         mcp.run(transport="streamable-http")
-    elif transport == "sse":
-        mcp.run(transport="sse")
     else:
         raise ValueError(f"Invalid transport: {transport}")
