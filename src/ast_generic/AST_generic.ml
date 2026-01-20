@@ -971,6 +971,7 @@ and field_name =
 
 and special_ident =
   | This
+  (* TODO consider adding QualifiedSuper, or an option in Super *)
   | Super (* called 'base' in C# *)
   (* less: how different self/parent is from this/super? *)
   | Self
