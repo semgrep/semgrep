@@ -67,9 +67,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
     - [Streamable HTTP](#streamable-http)
       - [Python](#python-1)
       - [Docker](#docker-1)
-    - [Server-sent events (SSE)](#server-sent-events-sse)
-      - [Python](#python-2)
-      - [Docker](#docker-2)
+    - [Server-sent events (SSE) (deprecated)](#server-sent-events-sse-deprecated)
   - [Semgrep AppSec Platform](#semgrep-appsec-platform)
   - [Integrations](#integrations)
     - [Cursor IDE](#cursor-ide)
@@ -82,7 +80,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
     - [OpenAI](#openai)
       - [Agents SDK](#agents-sdk)
     - [Custom clients](#custom-clients)
-      - [Example Python SSE client](#example-python-sse-client)
+      - [Example Python streamable HTTP client](#example-python-streamable-http-client)
   - [Contributing, community, and running from source](#contributing-community-and-running-from-source)
     - [Similar tools 🔍](#similar-tools-)
     - [Community projects 🌟](#community-projects-)
@@ -131,7 +129,7 @@ Always scan code generated using Semgrep for security vulnerabilities
 
 1. Go to the **Connector Settings** page ([direct link](https://chatgpt.com/admin/ca#settings/ConnectorSettings?create-connector=true))
 1. **Name** the connection `Semgrep`
-1. Set **MCP Server URL** to `https://mcp.semgrep.ai/sse`
+1. Set **MCP Server URL** to `https://mcp.semgrep.ai/mcp`
 1. Set **Authentication** to `No authentication`
 1. Check the **I trust this application** checkbox
 1. Click **Create**
@@ -219,15 +217,15 @@ Usage: semgrep mcp [OPTIONS]
 
   Entry point for the MCP server
 
-  Supports stdio, streamable-http, and sse transports. For stdio, it will read
-  from stdin and write to stdout. For streamable-http and sse, it will start
+  Supports stdio and streamable-http transports. For stdio, it will read
+  from stdin and write to stdout. For streamable-http, it will start
   an HTTP server on port 8000.
 
 Options:
   -v, --version                   Show version and exit.
-  -t, --transport [stdio|streamable-http|sse]
-                                  Transport protocol to use: stdio,
-                                  streamable-http, or sse (legacy)
+  -t, --transport [stdio|streamable-http]
+                                  Transport protocol to use:
+                                  stdio or streamable-http
   -p, --port INTEGER              Port to use for the MCP server
   -h, --help                      Show this message and exit.
 ```
@@ -273,28 +271,10 @@ docker run -p 8000:8000 semgrep/semgrep semgrep mcp
 ```
 
 
-### Server-Sent Events (SSE)
+### Server-Sent Events (SSE) (deprecated)
 
 > [!WARNING]
-> The MCP community considers this a legacy transport protocol and is really intended for backwards compatibility. [Streamable HTTP](#streamable-http) is the recommended replacement.
-
-SSE transport enables server-to-client streaming with Server-Sent Events for client-to-server and server-to-client communication. See the [spec](https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse) for more details.
-
-By default, the server listens on [127.0.0.1:8000/sse](https://127.0.0.1/sse) for client connections. To change any of this, set [FASTMCP\_\*](https://github.com/modelcontextprotocol/python-sdk/blob/71889d7387f070cd872cab7c9aa3d1ff1fa5a5d2/src/mcp/server/fastmcp/server.py#L59-L60) environment variables. _The server must be running for clients to connect to it._
-
-#### Python
-
-```bash
-semgrep mcp -t sse
-```
-
-By default, the Python package will run in `stdio` mode, so you will have to include `-t sse`.
-
-#### Docker
-
-```
-docker run -p 8000:0000 semgrep/semgrep semgrep mcp -t sse
-```
+> The MCP community considers this a legacy transport protocol. We have stopped supporting the SSE transport. Please use [Streamable HTTP](#streamable-http) instead.
 
 ## Semgrep AppSec Platform
 
@@ -465,21 +445,21 @@ See [OpenAI Agents SDK docs](https://openai.github.io/openai-agents-python/mcp/)
 
 ### Custom clients
 
-#### Example Python SSE client
-
-See a full example in [examples/sse_client.py](examples/sse_client.py)
+#### Example Python streamable HTTP client
 
 ```python
+import asyncio
+import json
 from mcp.client.session import ClientSession
-from mcp.client.sse import sse_client
+from mcp.client.streamable_http import streamablehttp_client
 
 
 async def main():
-    async with sse_client("http://localhost:8000/sse") as (read_stream, write_stream):
+    async with streamablehttp_client("http://localhost:8000/mcp") as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             results = await session.call_tool(
-                "semgrep_scan",
+                "semgrep_scan_remote",
                 {
                     "code_files": [
                         {
@@ -489,13 +469,20 @@ async def main():
                     ]
                 },
             )
-            print(results)
+            content_block = results.content[0]
+            content = json.loads(content_block.text)
+            paths = content.get("paths", None)
+            if paths:
+                scanned = paths.get("scanned", [])
+                findings = content.get("results", [])
+                print(f"Scanned {len(scanned)} paths. Found {len(findings)} findings.")
 ```
 
 > [!TIP]
-> Some client libraries want the `URL`: [http://localhost:8000/sse](http://localhost:8000/sse)
+> Some client libraries want the `URL`: [http://localhost:8000/mcp](http://localhost:8000/mcp)
 > and others only want the `HOST`: `localhost:8000`.
 > Try out the `URL` in a web browser to confirm the server is running, and there are no network issues.
+> Set `SEMGREP_IS_HOSTED=true` to use the `semgrep_scan_remote` tool
 
 See [official SDK docs](https://modelcontextprotocol.io/clients#adding-mcp-support-to-your-application) for more info.
 
