@@ -20,9 +20,6 @@
 ;; TODO: add it as a pre-commit hook?
 (generate_opam_files)
 
-;; set here so the semgrep package below can use it and we can easily bump it
-(version 1.148.0)
-
 ;; Default attributes of opam packages
 (source (github semgrep/semgrep))
 (homepage "https://semgrep.dev")

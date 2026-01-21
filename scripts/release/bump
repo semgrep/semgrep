@@ -73,24 +73,6 @@ update_cli_setup_py() {
   git add "$target"
 }
 
-update_dune_project() {
-  target=dune-project
-  echo "Updating $target"
-  sed_in_place 's/^(version .*)$/(version '"$release"')/' "$target"
-  git add "$target"
-}
-
-# Update the semgrep version in 'semgrep.opam'.
-# Normally, this would be done with 'dune build semgrep.opam'
-# after we update 'dune-project'. This solution avoids having to set up the
-# build environment with 'dune'.
-update_opam_file() {
-  target=semgrep.opam
-  echo "Updating $target"
-  sed_in_place 's/^version: ".*"$/version: "'"$release"'"/' "$target"
-  git add "$target"
-}
-
 # Update files containing the release ID.
 #
 # Ideally this shouldn't modify source files,
@@ -100,8 +82,6 @@ bump() {
   update_setup_py
   update_cli_setup_py
   update_version_ml
-  update_dune_project
-  update_opam_file
 }
 
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
@@ -132,7 +112,7 @@ fi
 
 bump
 
-if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core/Version.ml\|dune-project\|semgrep.opam\|../scripts/run-pro-benchmarks.sh'; then
+if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core/Version.ml\|../scripts/run-pro-benchmarks.sh'; then
   error <<EOF
 The release branch contains unexpected changes, cancelling release.
 EOF
