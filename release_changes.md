@@ -1,19 +1,28 @@
-## [1.148.0](https://github.com/semgrep/semgrep/releases/tag/v1.148.0) - 2026-01-14
+## [1.149.0](https://github.com/semgrep/semgrep/releases/tag/v1.149.0) - 2026-01-21
 
 
 ### Added
 
 
-- Performance: subproject discovery in Supply Chain scans is no longer
-  significantly slowed down by the presence of Git-untracked files
-  resulting in faster diff scans in such cases. (sc-subproject-speedup)
+- Added a warning in --debug mode when a user runs a parallel scan with a larger
+  value for -j/--jobs than the number of CPUs we detect the host has made
+  available to Semgrep.  Additionally, a suggested starting value for -j/--jobs
+  is reported to give the user a place to start tuning their scan. (saf-2474)
+- Upload symbol analysis on a per-subproject basis during supply chain scans. (sc-3038)
+
+
+### Changed
+
+
+- The MCP server no longer supports SSE transport. (saf-2462)
 
 
 ### Fixed
 
 
-- pro: Improved virtual method resolution in Java (code-9174)
-- pro: Improved handling of parse errors during inter-file analysis. Now, these
-  errors should be adequately reported back to users and in the JSON output. (code-9216)
-- Dataflow now accounts for Python for/else and while/else loops. (gh-8405)
-- Fix rare "bad file descriptor" when performing Git operations on Windows (saf-2358)
+- pro: Improved virtual method resolution in Java (code-9210)
+- pro: Improved virtual method resolution in Scala (code-9212)
+- Improve performance of scan planning, a part of the Python CLI, by reducing
+  the cost of re-hashing `Target` objects.  Performance should improve on
+  large repo scans proportionally to the number of files in the repo. (gh-5407)
+- `semgrep ci` no longer applies autofixes to disk, even when the "Suggest autofixes" toggle in the app is enabled. (saf-2446)

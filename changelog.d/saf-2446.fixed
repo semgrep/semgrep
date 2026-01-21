@@ -1,1 +1,0 @@
-`semgrep ci` no longer applies autofixes to disk, even when the "Suggest autofixes" toggle in the app is enabled.

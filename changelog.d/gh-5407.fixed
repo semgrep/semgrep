@@ -1,3 +1,0 @@
-Improve performance of scan planning, a part of the Python CLI, by reducing
-the cost of re-hashing `Target` objects.  Performance should improve on
-large repo scans proportionally to the number of files in the repo.
