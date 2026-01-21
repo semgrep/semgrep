@@ -1123,7 +1123,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
               |> List_.map (fun x ->
                      match x with
                      | Literal (Str (s, _)) -> s
-                     | _ -> "")
+                     | _ -> raise Common.Impossible)
               |> String.concat ""
             in
             Literal (Str (concatenated, t1)))
