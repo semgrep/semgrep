@@ -31,18 +31,3 @@ markers = [
     "requires_lockfileless_deps: this test requires lockfileless environment dependencies (java, etc)",
 ]
 asyncio_mode = "auto"
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py38, py39, py310, py311
-
-[testenv]
-allowlist_externals = pipenv
-commands =
-    pipenv install --dev
-    pipenv run pytest -n auto -vv --tb=short
-setenv =
-    # suppress a pipenv warning about using the active env
-    PIPENV_VERBOSITY = -1
-"""
