@@ -81,11 +81,15 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file and 1 dependency source.
 
   Dependency Sources                                     Resolution Method   Ecosystem   Dependencies   Rules
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   targets/dependency_aware/swiftpm/v3/Package.resolved   Lockfile            SwiftPM     4                  1
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

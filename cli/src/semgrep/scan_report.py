@@ -229,8 +229,7 @@ def _print_sca_parse_error(error: out.DependencyParserError) -> None:
         location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
 
         console.print(
-            f"Failed to parse {location} - {error.reason}\n"
-            f"{line_prefix}{error.text}\n"
+            f"Failed to parse {location} - {error.reason}\n{line_prefix}{error.text}\n"
         )
     elif error.line:
         location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
@@ -284,47 +283,10 @@ def _print_sca_resolution_errors(errors: List[out.ScaError]) -> None:
             _print_sca_resolution_error(e)
 
 
-def _print_sca_degenerate_table(plan: Plan, *, rule_count: int) -> None:
-    """
-    Prints a concise status message for SCA scans instead of a full table,
-    typically when there are few rules or target files. May also print a
-    subproject summary table if applicable.
-    """
-    has_subprojects = plan.all_subprojects is not None
-
-    # Determine if the scan configuration is effectively empty (no rules or no targets)
-    is_scan_empty = not rule_count or not plan.target_mappings
-
-    if is_scan_empty:
-        message = (
-            "No files to scan. Scanning dependency source(s) only."
-            if has_subprojects
-            else "Nothing to scan."
-        )
-    else:
-        file_count = len(
-            [task for task in plan.target_mappings if plan.product in task.products]
-        )
-
-        message = f"Scanning {unit_str(file_count, 'file')}"
-        if has_subprojects:
-            subproject_count = len(plan.all_subprojects) if plan.all_subprojects else 0
-            message += f" and {unit_str(subproject_count, 'dependency source')}"
-        message += "."
-
-    console.print(message)
-
-    if has_subprojects:
-        _print_tables([plan.table_by_subproject()])
-
-
 def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
     """
     Pretty print the sca plan to stdout with the legacy CLI UX.
     """
-    if rule_count <= 1 or not sca_plan.target_mappings:
-        _print_sca_degenerate_table(sca_plan, rule_count=rule_count)
-        return
 
     _print_tables([sca_plan.table_by_subproject()])
     console.print("\n")  # space intentional to force second table to be on its own line
@@ -446,6 +408,9 @@ def print_scan_status(
         target_manager,
         all_subprojects,
         product=out.Product(out.SCA()),
+        # we don't use target info for printing the sca plan, and with dependency-only
+        # rules it gets very expensive to compute. We skip it.
+        make_target_info_and_unused_rules=False,
     )
 
     plans = [sast_plan, sca_plan]
@@ -468,7 +433,6 @@ def print_scan_status(
     # NOTE: There's some funky behavior with handling the rule counts
     # in which some functions require rule counts calculated in different ways.
     alt_sast_rule_count = sast_plan.rule_count_for_product(out.Product(out.SAST()))
-    alt_sca_rule_count = sca_plan.rule_count_for_product(out.Product(out.SCA()))
 
     secrets_rule_count = sast_plan.rule_count_for_product(out.Product(out.Secrets()))
     has_secret_rules = secrets_rule_count > 0
@@ -535,13 +499,13 @@ def print_scan_status(
     elif legacy_ux:
         # Show the basic table for supply chain
         console.print(Title("Supply Chain Rules", order=2))
-        _print_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
+        _print_sca_table(sca_plan=sca_plan, rule_count=sca_rule_count)
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
         _print_detailed_sca_table(
             sca_plan=sca_plan,
-            rule_count=alt_sca_rule_count,
+            rule_count=sca_rule_count,
             # NOTE: `with_supply_chain` is only used for nudging `scan` command invocations
             # without supply-chain to upgrade their usage to the `ci` command
             with_supply_chain=with_supply_chain,

@@ -125,7 +125,6 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -135,6 +134,11 @@
   upes_no_src/requirements/stage.txt,
   targets/dependency_aware/requirements_multiple_lockfiles_dep_d
   upes_no_src/requirements.txt
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

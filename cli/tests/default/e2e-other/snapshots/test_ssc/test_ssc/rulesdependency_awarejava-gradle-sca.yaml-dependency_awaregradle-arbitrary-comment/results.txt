@@ -80,12 +80,16 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file and 1 dependency source.
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   targets/dependency_aware/gradle-arbitrary-comment/gradle.lockf   Lockfile            Maven       317                1
   ile
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

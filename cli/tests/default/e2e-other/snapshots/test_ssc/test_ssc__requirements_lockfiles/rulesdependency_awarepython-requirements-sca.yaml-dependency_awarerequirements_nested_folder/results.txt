@@ -81,7 +81,6 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file and 2 dependency sources.
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -91,6 +90,11 @@
   ements/stage.txt
   targets/dependency_aware/requirements_nested_folder/requiremen   Lockfile            Pypi        38                 1
   ts.txt
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

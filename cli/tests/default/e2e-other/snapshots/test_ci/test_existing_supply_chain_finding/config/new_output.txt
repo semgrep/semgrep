@@ -33,12 +33,16 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        4                  1
   yarn.lock            Skipped             Unknown     -                  -
+
+
+  Analysis   Rules
+ ──────────────────
+  Basic          1
 
   Current version has 1 finding.
 
@@ -58,11 +62,15 @@ Creating git worktree from '<MASKED>' to scan baseline.
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        3                  1
+
+
+  Analysis   Rules
+ ──────────────────
+  Basic          1
 
   Uploading scan results
   Finalizing scan

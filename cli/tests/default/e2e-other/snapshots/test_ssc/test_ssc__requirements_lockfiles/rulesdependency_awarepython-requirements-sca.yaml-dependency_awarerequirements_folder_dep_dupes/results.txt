@@ -127,7 +127,6 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file and 1 dependency source.
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -135,6 +134,11 @@
   ments/prod.txt,
   targets/dependency_aware/requirements_folder_dep_dupes/require
   ments/stage.txt
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

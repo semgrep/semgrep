@@ -79,11 +79,15 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources                                       Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
   targets/dependency_aware/poetry_quoted_key/poetry.lock   Lockfile            Pypi        1                  1
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

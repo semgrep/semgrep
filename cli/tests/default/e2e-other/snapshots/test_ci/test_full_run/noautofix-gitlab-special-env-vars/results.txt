@@ -79,12 +79,16 @@
   Scanning 1 file with 4 python rules.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file and 2 dependency sources.
 
   Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        3                  1
   yarn.lock            Skipped             Unknown     -                  -
+
+
+  Analysis   Rules
+ ──────────────────
+  Basic          1
 
   Current version has 15 findings.
 
@@ -104,11 +108,15 @@ Creating git worktree from '<MASKED>' to scan baseline.
   Scanning 1 file with 4 python rules.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file and 1 dependency source.
 
   Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        3                  1
+
+
+  Analysis   Rules
+ ──────────────────
+  Basic          1
 
   Uploading scan results
   Finalizing scan

@@ -79,11 +79,15 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources                                          Resolution Method   Ecosystem   Dependencies   Rules
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   targets/dependency_aware/manifest_parse_error/poetry.lock   Lockfile            Pypi        8                  1
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
   Failed to parse [bold]targets/dependency_aware/manifest_parse_error/pyproject.toml[/bold] - Failed to parse
   [bold]targets/dependency_aware/manifest_parse_error/pyproject.toml[/bold]: Expected '=' after a key in a key/value

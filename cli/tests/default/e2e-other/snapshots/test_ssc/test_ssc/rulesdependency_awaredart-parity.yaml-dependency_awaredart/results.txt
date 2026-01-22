@@ -78,11 +78,15 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources                           Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────
   targets/dependency_aware/dart/pubspec.lock   Lockfile            Pub         79                 1
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

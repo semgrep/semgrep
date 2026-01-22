@@ -85,11 +85,15 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources                        Resolution Method   Ecosystem   Dependencies   Rules
  ────────────────────────────────────────────────────────────────────────────────────────────────
   targets/dependency_aware/yarn/yarn.lock   Lockfile            Npm         2                  1
+
+
+  Analysis   Rules
+ ──────────────────
+  Basic          1
 
 
 

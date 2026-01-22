@@ -82,7 +82,6 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file and 1 dependency source.
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -92,6 +91,11 @@
   rements/stage.txt,
   targets/dependency_aware/requirements_multiple_lockfiles/requi
   rements.txt
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 

@@ -79,7 +79,6 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  No files to scan. Scanning dependency source(s) only.
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -87,6 +86,11 @@
   ts/prod.txt,
   targets/dependency_aware/requirements_folder_no_src/requiremen
   ts/stage.txt
+
+
+  Analysis   Rules
+ ──────────────────
+  Unknown        1
 
 
 
