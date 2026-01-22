@@ -242,7 +242,7 @@ local setup_nix_step = [
 ];
 
 
-local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false) = [
+local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false, test_workers=null) = [
   opam_setup(opam_switch),
   {
     name: 'Install dependencies',
@@ -252,18 +252,19 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', tim
     name: 'Build %s' % name,
     run: 'opam exec -- make',
   },
-] + (if time then [
+] + (local workers_override = if test_workers != null then 'TEST_WORKERS=-j%s' % test_workers else '';
+     if time then [
        {
          name: 'Test %s (and time it)' % name,
          run: |||
-           START=`date +%s`
-           opam exec -- make test
+           START=`date +%%s`
+           opam exec -- make test %s
            opam exec -- make core-test-e2e
 
-           END=`date +%s`
+           END=`date +%%s`
            TEST_RUN_TIME=$((END-START))
            curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-         |||,
+         ||| % workers_override,
        },
        {
          name: 'Report Number of Tests Stats',
@@ -273,7 +274,7 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', tim
      ] else [
        {
          name: 'Test %s' % name,
-         run: 'opam exec -- make test',
+         run: 'opam exec -- make test %s' % workers_override,
        },
      ]);
 

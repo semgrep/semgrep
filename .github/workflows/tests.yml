@@ -275,7 +275,7 @@ jobs:
       - name: Build semgrep-core
         run: opam exec -- make
       - name: Test semgrep-core
-        run: opam exec -- make test
+        run: 'opam exec -- make test '
 name: tests
 on:
   pull_request:
