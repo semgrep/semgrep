@@ -2,6 +2,11 @@
 
 set -xeu
 
+# in instances where we want to skip lockfile picking (i.e in generating the
+# lockfile), we set this envar
+if [[ -n "${SEMGREP_OPAM_NO_LOCK:-}" ]]; then
+  exit 0
+fi
 
 # parse flags
 if [ "${1:-}" = "--strict" ]; then
