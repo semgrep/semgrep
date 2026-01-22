@@ -21,12 +21,11 @@ import functools
 import logging
 import os
 from typing import Callable
-from typing import Optional
 from typing import TypeVar
+from urllib import parse
 
 from attr import define
 from opentelemetry import context
-from opentelemetry import context as context_api
 from opentelemetry import propagate
 from opentelemetry import trace as otrace
 from opentelemetry._logs import set_logger_provider
@@ -35,24 +34,22 @@ from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.threading import ThreadingInstrumentor
-from opentelemetry.sdk._logs import LogData
+from opentelemetry.sdk import resources
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs import LoggingHandler
-from opentelemetry.sdk._logs import LogRecordProcessor
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.environment_variables import OTEL_RESOURCE_ATTRIBUTES
 from opentelemetry.sdk.resources import get_aggregated_resources
 from opentelemetry.sdk.resources import OTELResourceDetector
 from opentelemetry.sdk.resources import ProcessResourceDetector
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.resources import SERVICE_NAME
-from opentelemetry.sdk.resources import SERVICE_VERSION
-from opentelemetry.sdk.trace import Span
-from opentelemetry.sdk.trace import SpanProcessor
+from opentelemetry.sdk.resources import ResourceDetector
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import SpanContext
 from opentelemetry.trace import SpanKind
+from opentelemetry.util.types import Attributes
+from opentelemetry.util.types import AttributeValue
 from typing_extensions import ParamSpec
 
 from semgrep import __VERSION__
@@ -80,11 +77,11 @@ _OTEL_ENDPOINT_ALIASES = {
 
 _DEFAULT_PYROSCOPE_ENDPOINT = "https://pyroscope-receive.private.semgrep.dev"
 _DEV_PYROSCOPE_ENDPOINT = "https://pyroscope-receive.dev2.semgrep.dev"
-_LOCAL_DEV_OTEL_ENDPOINT = "http://localhost:4040"
+_LOCAL_DEV_PYROSCOPE_ENDPOINT = "http://localhost:4040"
 _PYROSCOPE_ENDPOINT_ALIASES = {
     "semgrep-prod": _DEFAULT_PYROSCOPE_ENDPOINT,
     "semgrep-dev": _DEV_PYROSCOPE_ENDPOINT,
-    "semgrep-local": _LOCAL_DEV_OTEL_ENDPOINT,
+    "semgrep-local": _LOCAL_DEV_PYROSCOPE_ENDPOINT,
 }
 
 
@@ -94,86 +91,115 @@ _ENV_ALIASES = {
     "semgrep-local": "local",
 }
 
+# Filter out these attrs when injecting additional context
+INJECT_ATTR_FILTER = [
+    resources.PROCESS_PID,
+    resources.PROCESS_PARENT_PID,
+    resources.PROCESS_EXECUTABLE_NAME,
+    resources.PROCESS_EXECUTABLE_PATH,
+    resources.PROCESS_COMMAND,
+    resources.PROCESS_COMMAND_LINE,
+    resources.PROCESS_COMMAND_ARGS,
+    resources.PROCESS_OWNER,
+    resources.PROCESS_RUNTIME_NAME,
+    resources.PROCESS_RUNTIME_VERSION,
+    resources.PROCESS_RUNTIME_DESCRIPTION,
+    resources.SERVICE_NAME,
+    resources.SERVICE_VERSION,
+    resources.TELEMETRY_SDK_NAME,
+    resources.TELEMETRY_SDK_VERSION,
+    resources.TELEMETRY_AUTO_VERSION,
+    resources.TELEMETRY_SDK_LANGUAGE,
+]
 
-def scan_info_to_dict(scan_info: ScanInfo) -> dict:
-    info = {
+
+def scan_info_to_attrs(scan_info: ScanInfo) -> Attributes:
+    info: Attributes = {
         "scan.deployment_id": scan_info.deployment_id,
         "scan.deployment_name": scan_info.deployment_name,
+        "scan.id": scan_info.id if scan_info.id else "<local run>",
     }
-    if scan_info.id:
-        info["scan.id"] = scan_info.id
     return info
 
 
-# Useful for attaching scan info to trace spans
-class ScanInfoSpanProcessor(SpanProcessor):
-    def __init__(self: "ScanInfoSpanProcessor") -> None:
-        self.scan_info: Optional[ScanInfo] = None
-
-    # let's just set the attributes on the span when it starts
-    def on_start(
-        self: "ScanInfoSpanProcessor",
-        span: "Span",
-        parent_context: Optional[context_api.Context] = None,
-    ) -> None:
-        if self.scan_info:
-            scan_info_dict = scan_info_to_dict(self.scan_info)
-            for k, v in scan_info_dict.items():
-                span.set_attribute(k, v)
+def attrs_to_kv_strs(d: Attributes) -> list[str]:
+    if not d:
+        return []
+    return [f"{k}={parse.quote(str(d[k]).strip())}" for k in d]
 
 
-# Useful for attaching scan info to log records
-class ScanInfoLogProcessor(LogRecordProcessor):
-    # We use a base processor here, since we only see the log record once
-    # they're emitted, so we can't attach the scan info to the log record and
-    # guaruntee other processors will emit before/after that happens, unlike
-    # with span processors
-    def __init__(
-        self: "ScanInfoLogProcessor", base_processor: LogRecordProcessor
-    ) -> None:
-        self.base_processor: LogRecordProcessor = base_processor
-        self.scan_info: Optional[ScanInfo] = None
+def filter_attrs_for_inject(d: Attributes) -> Attributes:
+    if not d:
+        return d
+    new_attrs: Attributes = dict()
+    for k in d:
+        if k not in INJECT_ATTR_FILTER:
+            new_attrs[k] = d[k]  # type: ignore
+    return new_attrs
 
-    def on_emit(self: "ScanInfoLogProcessor", log_data: LogData) -> None:
-        if self.scan_info:
-            scan_info_dict = scan_info_to_dict(self.scan_info)
-            log_record = log_data.log_record
-            mut_attrs = dict(log_record.attributes)  # type: ignore
-            for k, v in scan_info_dict.items():
-                mut_attrs[k] = v
-            # a bit hacky but the only way we can set the log_record attrs
-            attrs = BoundedAttributes(attributes=mut_attrs)
-            log_record.attributes = attrs
 
-        self.base_processor.on_emit(log_data)
+# Normally Opentelemetry resources are supposed to be immutable. But pysemgrep
+# does a lot of things in a weird order, such as getting if something is a diff
+# scan far after we start tracing, even though really that's something we want
+# as a resource attribute
+#
+# So we create this class that allows us to mutate the resource afterwards
+class MutableResource(Resource):
+    _mutable_attributes: BoundedAttributes
 
-    def shutdown(self: "ScanInfoLogProcessor") -> None:
-        self.base_processor.shutdown()  # type: ignore
+    def __init__(self, base_resource: Resource) -> None:
+        self._mutable_attributes = BoundedAttributes(
+            attributes=base_resource.attributes, immutable=False
+        )
+        super().__init__(
+            attributes=self._mutable_attributes, schema_url=base_resource.schema_url
+        )
 
-    def force_flush(self: "ScanInfoLogProcessor", timeout_millis: int = 30000) -> bool:
-        return self.base_processor.force_flush(timeout_millis)  # type: ignore
+    # Ignore the type here because mypy says the return type is incompatible and
+    # then says they're the same type
+    @property
+    def attributes(self) -> Attributes:  # type: ignore
+        return self._mutable_attributes
+
+    def update_attributes(self, new_attrs: Attributes) -> None:
+        if not new_attrs:
+            return
+        for k in new_attrs:
+            self._mutable_attributes[k] = new_attrs[k]
+
+
+# See https://github.com/docker/cli/issues/4958 for why we don't use just OTEL_RESOURCE_ATTRIBUTES
+class DockerOTELResourceDetector(ResourceDetector):
+    def detect(self) -> "Resource":
+        env_resources_items = os.environ.get("DOCKER_OTEL_RESOURCE_ATTRIBUTES")
+        env_resource_map: dict[str, AttributeValue] = {}
+
+        if env_resources_items:
+            for item in env_resources_items.split(","):
+                try:
+                    key, value = item.split("=", maxsplit=1)
+                except ValueError:
+                    continue
+                value_url_decoded = parse.unquote(value.strip())
+                env_resource_map[key.strip()] = value_url_decoded
+
+        return Resource(env_resource_map)
 
 
 @define
-class Traces:
+class Telemetry:
     enabled: bool = False
-    scan_info_span_processor = ScanInfoSpanProcessor()
-    scan_info_log_processor: Optional[ScanInfoLogProcessor] = None
-    trace_endpoint: Optional[str] = None
+    resource: MutableResource | None = None
+    trace_endpoint: str | None = None
 
     def configure(
         self,
         enabled: bool,
-        trace_endpoint: Optional[str],
+        trace_endpoint: str | None,
         service_name: str = "semgrep-cli",
-        attributes: Optional[
-            dict
-        ] = None,  # for adding extra attributes to the resource
+        attributes: Attributes = None,  # for adding extra attributes to the resource
     ) -> None:
         self.enabled = enabled
-
-        if not self.enabled:
-            return
 
         self.trace_endpoint = trace_endpoint
 
@@ -182,41 +208,33 @@ class Traces:
             if self.trace_endpoint is None
             else self.trace_endpoint
         )
-        # See https://github.com/docker/cli/issues/4958 for why we don't use just OTEL_RESOURCE_ATTRIBUTES
-        docker_otel_resource_attributes = os.environ.get(
-            "DOCKER_OTEL_RESOURCE_ATTRIBUTES", ""
-        )
-        otel_resource_attributes = os.environ.get(OTEL_RESOURCE_ATTRIBUTES, "")
-        # If both are set let's merge them
-        if otel_resource_attributes and docker_otel_resource_attributes:
-            os.environ[OTEL_RESOURCE_ATTRIBUTES] = (
-                otel_resource_attributes + "," + docker_otel_resource_attributes
-            )
-        # If only one is set let's use it, if not don't touch it
-        elif docker_otel_resource_attributes:
-            # If we have a docker otel resource attributes, we want to set it
-            # as the default, since it will be more useful than the default
-            # otel resource attributes
-            os.environ[OTEL_RESOURCE_ATTRIBUTES] = docker_otel_resource_attributes
-        elif otel_resource_attributes:
-            os.environ[OTEL_RESOURCE_ATTRIBUTES] = otel_resource_attributes
         # Note that resource here is immutable, so if we want to blanket attach
         # attributes to Otel info after tracing is setup, we can't do it here.
         # Instead we have to do it in the corresponding kind of processor
-        resource = get_aggregated_resources(
-            detectors=[ProcessResourceDetector(), OTELResourceDetector()],
-            initial_resource=Resource(
-                attributes={
-                    SERVICE_NAME: service_name,
-                    SERVICE_VERSION: __VERSION__,
-                    "deployment.environment.name": env_name if env_name else "prod",
-                    **(attributes or {}),
-                },
-            ),
+        self.resource = MutableResource(
+            get_aggregated_resources(
+                detectors=[
+                    ProcessResourceDetector(),
+                    OTELResourceDetector(),
+                    DockerOTELResourceDetector(),
+                ],
+                initial_resource=Resource(
+                    attributes={
+                        resources.SERVICE_NAME: service_name,
+                        resources.SERVICE_VERSION: __VERSION__,
+                        "deployment.environment.name": env_name if env_name else "prod",
+                        **(dict(attributes) if attributes else {}),
+                    },
+                ),
+            )
         )
+        # We set up the resource even if we're disabled so things like pyro caml
+        # can use it
+        if not self.enabled:
+            return
 
-        tracer_provider = TracerProvider(resource=resource)
-        logger_provider = LoggerProvider(resource=resource)
+        tracer_provider = TracerProvider(resource=self.resource)
+        logger_provider = LoggerProvider(resource=self.resource)
 
         set_logger_provider(logger_provider)
         otrace.set_tracer_provider(tracer_provider)
@@ -232,12 +250,11 @@ class Traces:
         exporter_logs = OTLPLogExporter(otel_endpoint + "/v1/logs")
 
         span_processor = BatchSpanProcessor(exporter_spans)
-        log_processor = ScanInfoLogProcessor(BatchLogRecordProcessor(exporter_logs))
-        self.scan_info_log_processor = log_processor
+        log_processor = BatchLogRecordProcessor(exporter_logs)
 
         tracer_provider.add_span_processor(span_processor)
         logger_provider.add_log_record_processor(log_processor)
-        tracer_provider.add_span_processor(self.scan_info_span_processor)
+        tracer_provider.add_span_processor(span_processor)
 
         # add logging handler to root logger only so we can send logs to Otel and therefore datadog.
         # child loggers will propagate to root logger by default
@@ -271,26 +288,13 @@ class Traces:
             extracted_context = propagate.extract(carrier, context.get_current())
             context.attach(extracted_context)
 
-    def inject(self) -> None:
-        # Inject relevant resource attributes for semgrep-core
-        base_resource_attributes = os.environ.get(OTEL_RESOURCE_ATTRIBUTES, "")
-        scan_info_dict: dict = (
-            scan_info_to_dict(self.scan_info_span_processor.scan_info)
-            if self.scan_info_span_processor.scan_info
-            else dict()
-        )
-        # Let's inject info about the scan the format for these is
-        # "<key>=<value>" concatenated by commas. Note that if there is a comma
-        # or = in the key or value name, even if escaped, ocaml's otel sdk will
-        # not parse it correctly, and just drop all of these
-        scan_info_kv = [f"{k}={str(v)}" for k, v in scan_info_dict.items()]
-
-        resource_attributes = ",".join(
-            scan_info_kv
-            + ([base_resource_attributes] if base_resource_attributes else [])
-        )
-        os.environ[_PYRO_CAML_TAGS] = f"version={__VERSION__}" + (
-            f",{resource_attributes}" if resource_attributes else ""
+    def setup_pyro_caml(self) -> None:
+        if not self.resource:
+            return
+        # Set pyro caml related info
+        os.environ[_PYRO_CAML_TAGS] = ",".join(
+            [f"version={__VERSION__}"]
+            + attrs_to_kv_strs(filter_attrs_for_inject(self.resource.attributes))
         )
         os.environ[_PYRO_CAML_SERVICE_NAME] = "semgrep-core"
         os.environ[_PYRO_CAML_SERVER_ADDRESS] = (
@@ -300,10 +304,14 @@ class Traces:
             else _DEFAULT_PYROSCOPE_ENDPOINT
         )
 
-        if not self.enabled:
+    def inject(self) -> None:
+        if not self.resource:
             return
-        os.environ[OTEL_RESOURCE_ATTRIBUTES] = resource_attributes
 
+        # pass along resource attrs we care about
+        os.environ[OTEL_RESOURCE_ATTRIBUTES] = ",".join(
+            attrs_to_kv_strs(filter_attrs_for_inject(self.resource.attributes))
+        )
         # Set current context info for semgrep-core
         current_context = self._get_current_context()
         os.environ[_SEMGREP_TRACE_PARENT_TRACE_ID] = otrace.format_trace_id(
@@ -320,10 +328,10 @@ class Traces:
     def get_trace_id(self) -> int:
         return self._get_current_context().trace_id
 
-    def set_scan_info(self, scan_info: ScanInfo) -> None:
-        self.scan_info_span_processor.scan_info = scan_info
-        if self.scan_info_log_processor:
-            self.scan_info_log_processor.scan_info = scan_info
+    def add_resource_attrs(self, attrs: Attributes) -> None:
+        if not self.resource:
+            return
+        self.resource.update_attributes(attrs)
 
 
 P = ParamSpec("P")

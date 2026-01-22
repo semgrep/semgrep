@@ -16,14 +16,14 @@ from typing import Optional
 
 from boltons.iterutils import get_path
 
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DeploymentConfig
 from semgrep.state import get_state
 
 logger = logging.getLogger(__name__)
 
 
-@tracing.trace()
+@telemetry.trace()
 def get_deployment_from_token(token: str) -> Optional[DeploymentConfig]:
     """
     Returns the deployment config record the token is for, if token is valid

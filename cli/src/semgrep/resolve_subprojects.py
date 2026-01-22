@@ -30,7 +30,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.subproject_matchers import get_all_subproject_identifying_glob_filters
 from semdep.subproject_matchers import MATCHERS
 from semdep.subproject_matchers import SubprojectMatcher
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.console import console
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.rpc import RpcSession
@@ -209,7 +209,7 @@ def filter_changed_subprojects(
     return ordered_relevant, unresolved_subprojects
 
 
-@tracing.trace()
+@telemetry.trace()
 @simple_profiling
 def resolve_subprojects(
     target_manager: TargetManager,

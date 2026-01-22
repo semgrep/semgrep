@@ -39,7 +39,7 @@ import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep import simple_profiling as simple_profiling_module
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.app.version import get_no_findings_msg
 from semgrep.app.version import get_too_many_findings_msg
 from semgrep.app.version import TOO_MANY_FINDINGS_THRESHOLD
@@ -815,9 +815,9 @@ def scan(
                 "If you intend to enable tracing, please also add the --trace flag.",
             )
         )
-    state.traces.configure(trace, trace_endpoint)
-    with tracing.TRACER.start_as_current_span(
-        "semgrep.commands.scan", kind=tracing.TOP_LEVEL_SPAN_KIND
+    state.telemetry.configure(trace, trace_endpoint)
+    with telemetry.TRACER.start_as_current_span(
+        "semgrep.commands.scan", kind=telemetry.TOP_LEVEL_SPAN_KIND
     ):
         engine_type = EngineType.decide_engine_type(
             logged_in=auth.is_logged_in_weak(),
@@ -848,9 +848,9 @@ def scan(
             output_format=output_format,
         )
         if trace:
-            logger.verbose(f"Trace ID: {state.traces.get_trace_id():x}")
+            logger.verbose(f"Trace ID: {state.telemetry.get_trace_id():x}")
         # to capture the stderr of semgrep-core or to let semgrep-core reuse
-        # the stderr of pysemgrep to display logs as soon as they are produced
+        # the stderr of pysemgrep to display telemetry soon as they are produced
         # pysemgrep-only: not needed for osemgrep obviously
         capture_core_stderr = not debug
 

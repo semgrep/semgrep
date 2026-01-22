@@ -43,7 +43,7 @@ from rich.progress import TimeElapsedColumn
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.console import console
@@ -192,7 +192,7 @@ def uniq_error_id(error: SemgrepCoreError) -> Any:
         )
 
 
-@tracing.trace()
+@telemetry.trace()
 def open_and_ignore(fname: str) -> None:
     """
     Attempt to open 'fname' simply so a record of having done so will
@@ -475,7 +475,7 @@ class StreamingSemgrepCore:
 
         # Set parent span id as close to fork as possible to ensure core
         # spans nest under the correct pysemgrep parent span.
-        get_state().traces.inject()
+        get_state().telemetry.inject()
         if IS_WINDOWS:
             process = await asyncio.create_subprocess_exec(
                 *self._cmd,
@@ -525,7 +525,7 @@ class StreamingSemgrepCore:
         # Return exit code of cmd. process should already be done
         return await process.wait()
 
-    @tracing.trace()
+    @telemetry.trace()
     def execute(self) -> int:
         """
         Run semgrep-core and listen to stdout to update
@@ -1014,6 +1014,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             use_ddprof = self._check_ddprof_preconditions()
             use_pyro_caml = self._check_pyro_caml_preconditions()
+            if use_pyro_caml:
+                state.telemetry.setup_pyro_caml()
             cmd = [
                 # bugfix: self._binary_path is an Optional[Path]. The
                 # recommended way to convert a Path to a string is to use the

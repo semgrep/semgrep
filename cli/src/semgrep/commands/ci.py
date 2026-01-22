@@ -36,7 +36,7 @@ import semgrep.rpc_call
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import simple_profiling as simple_profiling_module
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.app.project_config import ProjectConfig
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
@@ -302,9 +302,9 @@ def ci(
 
     state = get_state()
 
-    state.traces.configure(trace, trace_endpoint)
-    with tracing.TRACER.start_as_current_span(
-        "semgrep.commands.ci", kind=tracing.TOP_LEVEL_SPAN_KIND
+    state.telemetry.configure(trace, trace_endpoint)
+    with telemetry.TRACER.start_as_current_span(
+        "semgrep.commands.ci", kind=telemetry.TOP_LEVEL_SPAN_KIND
     ) as semgrep_commands_ci_span:
         state.terminal.configure(
             verbose=verbose,
@@ -315,7 +315,7 @@ def ci(
         )
 
         if trace:
-            logger.verbose(f"Trace ID: {state.traces.get_trace_id():x}")
+            logger.verbose(f"Trace ID: {state.telemetry.get_trace_id():x}")
 
         state.metrics.configure(metrics)
         state.error_handler.configure(suppress_errors)
@@ -758,9 +758,9 @@ def ci(
             "resolve_all_deps_in_diff_scan": (
                 scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
             ),
-            "run_symbol_analysis": scan_handler.symbol_analysis
-            if scan_handler
-            else False,
+            "run_symbol_analysis": (
+                scan_handler.symbol_analysis if scan_handler else False
+            ),
             "fips_mode": scan_handler.fips_mode if scan_handler else False,
             "semgrepignore_filename": x_semgrepignore_filename,
             "x_group_taint_rules": x_group_taint_rules,

@@ -61,6 +61,9 @@
     },
     "tibdex": {
       "github-app-token": "v2"
+    },
+    "astral-sh": {
+      "setup-uv": "v7"
     }
   }
 }

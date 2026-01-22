@@ -4,7 +4,7 @@
 
 # Run everything that makes sense to run.
 .PHONY: default
-default: Pipfile.lock
+default:
 	$(MAKE) check
 	$(MAKE) test
 	$(MAKE) qa
@@ -41,9 +41,6 @@ clean:
 	rm -f src/semgrep/bin/semgrep-core*
 	rm -f src/semgrep/bin/pro-installed-by.txt
 
-Pipfile.lock: setup.py
-	pipenv update
-
 ###############################################################################
 # Tests
 ###############################################################################
@@ -53,7 +50,7 @@ Pipfile.lock: setup.py
 # everywhere.
 #
 PYTEST ?= \
-  pipenv run pytest \
+  uv run pytest \
     -n auto -vv --tb=long --timeout=300 --durations=10 $(PYTEST_EXTRA_ARGS)
 
 # This is run from .github/workflow/tests.jsonnet (which sets
@@ -187,13 +184,13 @@ osemgrep-qa:
 #
 .PHONY: regenerate-tests
 regenerate-tests:
-	pipenv run pytest -n auto \
+	uv run pytest -n auto \
 	  --run-only-snapshots --snapshot-update --allow-snapshot-deletion \
 	  -m 'not pysemfail' tests/default/e2e tests/default/e2e-other
-	PYTEST_USE_OSEMGREP=true pipenv run pytest -n auto \
+	PYTEST_USE_OSEMGREP=true uv run pytest -n auto \
 	  --run-only-snapshots --snapshot-update --allow-snapshot-deletion \
 	  -m 'pysemfail' tests/default/e2e tests/default/e2e-other
 
 .PHONY: setup
 setup:
-	pipenv install --dev
+	uv sync --extra dev
