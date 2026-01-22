@@ -668,6 +668,7 @@ class ScanResult:
 @scan_options
 @handle_command_errors
 def scan(
+    # coupling: we use the names/values of some of these args in telemetry.py for tagging traces
     *,
     allow_untrusted_validators: bool,
     autofix: bool,
@@ -815,7 +816,9 @@ def scan(
                 "If you intend to enable tracing, please also add the --trace flag.",
             )
         )
-    state.telemetry.configure(trace, trace_endpoint)
+    state.telemetry.configure(
+        trace, trace_endpoint, attributes=telemetry.cli_args_to_attrs(locals())
+    )
     with telemetry.TRACER.start_as_current_span(
         "semgrep.commands.scan", kind=telemetry.TOP_LEVEL_SPAN_KIND
     ):
@@ -823,6 +826,9 @@ def scan(
             logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
             run_secrets=run_secrets_flag,
+        )
+        state.telemetry.add_resource_attrs(
+            {telemetry.ENGINE_KIND_ATTR: str(engine_type)}
         )
 
         # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)

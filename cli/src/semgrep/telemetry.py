@@ -18,6 +18,7 @@
 # Communicates with OCaml tracing defined in ../../../libs/tracing/unix/Tracing.ml
 # For more info, see https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
 import functools
+import json
 import logging
 import os
 from typing import Callable
@@ -57,6 +58,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import ScanInfo
 
 TRACER = otrace.get_tracer(__name__)
 TOP_LEVEL_SPAN_KIND = SpanKind.CLIENT
+ENGINE_KIND_ATTR = "scan.engine_type"
 # Coupling: these constants need to be kept in sync with Tracing.ml
 
 _PYRO_CAML_TAGS = "PYRO_CAML_TAGS"
@@ -111,6 +113,38 @@ INJECT_ATTR_FILTER = [
     resources.TELEMETRY_AUTO_VERSION,
     resources.TELEMETRY_SDK_LANGUAGE,
 ]
+
+
+def cli_args_to_attrs(locals: dict[str, object]) -> Attributes:
+    # coupling: ci.py, scan.py
+    args_to_include = [
+        "autofix",
+        "code",
+        "debug",
+        "dry_run",
+        "exclude",
+        "include",
+        "jobs",
+        "max_memory",
+        "max_target_bytes",
+        "supply_chain",
+        "timeout_threshold",
+        "timeout",
+        "interfile_timeout",
+        "verbose",
+    ]
+    # prefix all with scan.args
+    info: dict[str, str | int] = {}
+    for arg in args_to_include:
+        value = locals.get(arg)
+        if isinstance(value, int) or isinstance(value, str):
+            attr_value = value
+        elif value is not None:
+            attr_value = json.dumps(value)
+        else:
+            attr_value = "<unset>"
+        info[f"scan.args.{arg}"] = attr_value
+    return info
 
 
 def scan_info_to_attrs(scan_info: ScanInfo) -> Attributes:

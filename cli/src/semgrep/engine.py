@@ -185,3 +185,14 @@ class EngineType(Enum):
             return out.EngineKind(out.OSS_())
         else:
             return out.EngineKind(out.PRO_())
+
+    def __str__(self) -> str:
+        match self:
+            case EngineType.OSS:
+                return "OSS"
+            case EngineType.PRO_LANG:
+                return "PRO_LANG"
+            case EngineType.PRO_INTRAFILE:
+                return "PRO_INTRAFILE"
+            case EngineType.PRO_INTERFILE:
+                return "PRO_INTERFILE"

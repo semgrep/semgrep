@@ -75,16 +75,13 @@
    (like ocaml runtime version, if we're in a container etc.) *)
 module Attributes = struct
   (* Scan related attrs *)
-  let semgrep_managed_scan = "scan.semgrep_managed_scan"
-  let repo_name = "scan.repo_name"
-  let jobs = "scan.jobs"
+  let jobs = "scan.core.jobs"
   let job = "scan.parmap_job"
-  let folder = "scan.folder"
-  let pro_secrets_validators = "scan.pro_secrets_validators"
-  let pro_historical_scanning = "scan.pro_historical_scanning"
-  let pro_deep_intrafile = "scan.pro_deep_intrafile"
-  let pro_deep_interfile = "scan.pro_deep_interfile"
-  let pro_secrets_allowed_origins = "scan.pro_secrets_allowed_origins"
+  let pro_secrets_validators = "scan.core.pro_secrets_validators"
+  let pro_historical_scanning = "scan.core.pro_historical_scanning"
+  let pro_deep_intrafile = "scan.core.pro_deep_intrafile"
+  let pro_deep_interfile = "scan.core.pro_deep_interfile"
+  let pro_secrets_allowed_origins = "scan.core.pro_secrets_allowed_origins"
 end
 (*****************************************************************************)
 (* Types *)
@@ -107,89 +104,6 @@ type analysis_flags = {
    future *)
 let allowed_origins allow_all_origins =
   if allow_all_origins then "all_origins" else "pro_rules_only"
-
-let get_env_vars =
-  (* just get the first env var that is set in a list of env vars *)
-  let get_first_env_var env_vars : string option =
-    try
-      match env_vars |> List_.map Sys.getenv_opt |> List_.filter_some with
-      | hd :: _ -> Some hd
-      | [] -> None
-      (* any Sys.* function can raise Sys_error :( *)
-    with
-    | Sys_error e ->
-        (* We probably want to see this error since it'd be really weird if it
-           happened *)
-        (* nosemgrep *)
-        Logs.err (fun m ->
-            m
-              "System error reading an environment variable for tracing data: \
-               %s"
-              e);
-        None
-  in
-  let map_env_var_to_otel_data name type_ env_vars default :
-      string * Telemetry.user_data =
-    let user_data_val_of_string x =
-      let v_opt =
-        match type_ with
-        | `Int -> int_of_string_opt x |> Option.map (fun x -> `Int x)
-        | `String -> Some (`String x)
-        | `Bool -> Some (`Bool (x = "true" || x = "1" || x = "yes"))
-        | `Float -> float_of_string_opt x |> Option.map (fun x -> `Float x)
-        | `None -> None
-      in
-      Option.value v_opt ~default
-    in
-    let user_data =
-      get_first_env_var env_vars
-      |> Option.fold ~none:default ~some:user_data_val_of_string
-    in
-    (name, user_data)
-  in
-  List_.map (fun (name, type_, env_vars, default) ->
-      map_env_var_to_otel_data name type_ env_vars default)
-
-(* In case we don't have a repo name, report the base folder where
-   semgrep was run. We report only the base name to avoid leaking
-   user information they may not have expected us to include. *)
-let current_working_folder () = Filename.basename (Sys.getcwd ())
-
-(*****************************************************************************)
-(* Defaults *)
-(*****************************************************************************)
-(* Format:
-   (name, type, env_vars, default_value)
-   where we pick the first env var that is set, and if none are set we use the
-   default value
-*)
-
-(* Resource attributes we always want to try and set from the environment *)
-let default_resource_env_attrs =
-  [
-    (* coupling: semgrep/meta.py, if you change this we may want to change
-       something about job url there, or vice versa *)
-    (* Instance of the semgrep `service` *)
-    ( Telemetry.Attributes.instance_id,
-      `String,
-      [ "SEMGREP_JOB_URL"; "CI_JOB_URL" ],
-      `String "<local run>" );
-    (* coupling: semgrep/meta.py, if you change this we may want to change
-       something about job url there, or vice versa *)
-    ( Attributes.semgrep_managed_scan,
-      `Bool,
-      [ "SEMGREP_MANAGED_SCAN" ],
-      `Bool false );
-    (* Poor man's Git repo detection. Running git repo detection again
-       seems wasteful, but checking two env vars is pretty cheap.
-
-       TODO the more we port of semgrep scan and semgrep ci, the more
-       of this information will already be in OCaml *)
-    ( Attributes.repo_name,
-      `String,
-      [ "SEMGREP_REPO_DISPLAY_NAME"; "SEMGREP_REPO_NAME" ],
-      `String "<local run>" );
-  ]
 
 (*****************************************************************************)
 (* Shortcuts for Otel tracing *)
@@ -224,7 +138,6 @@ let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs ~eio () =
       (Telemetry.Attributes.scan_engine, `String engine);
       (Telemetry.Attributes.eio, `Bool eio);
       (Attributes.jobs, `Int jobs);
-      (Attributes.folder, `String (current_working_folder ()));
       ( Attributes.pro_secrets_validators,
         `Bool analysis_flags.secrets_validators );
       (Attributes.pro_historical_scanning, `Bool analysis_flags.historical_scan);
@@ -233,7 +146,6 @@ let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs ~eio () =
       (* TODO it would be nice if we also got how the process was executed, and
        with what config/flags *)
     ]
-    @ get_env_vars default_resource_env_attrs
     @
     if analysis_flags.secrets_validators then
       [

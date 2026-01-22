@@ -27,6 +27,7 @@ from boltons.cacheutils import cachedproperty
 from glom import glom
 from glom import T
 from glom.core import TType
+from opentelemetry.util.types import Attributes
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import SemgrepError
@@ -276,6 +277,18 @@ class GitMeta:
             is_full_scan=self.is_full_scan,
             project_id=self.project_id,
         )
+
+    def to_otel_attrs(self) -> Attributes:
+        # We could also do the PR info and such but that feels overkill
+        return {
+            "scan.meta.environment": self.environment,
+            "scan.meta.git.event_name": self.event_name,
+            "scan.meta.repo.name": self.repo_name,
+            "scan.meta.repo.display_name": self.repo_display_name,
+            "scan.meta.project_id": self.project_id or "<local project>",
+            "scan.meta.job_url": self.ci_job_url or "<local run>",
+            "scan.meta.scan_type": "full" if self.is_full_scan else "diff",
+        }
 
 
 @dataclass

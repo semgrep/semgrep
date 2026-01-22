@@ -30,11 +30,8 @@ type analysis_flags = {
 
 (* constants *)
 module Attributes : sig
-  val semgrep_managed_scan : string
-  val repo_name : string
   val jobs : string
   val job : string
-  val folder : string
   val pro_secrets_validators : string
   val pro_historical_scanning : string
   val pro_deep_intrafile : string

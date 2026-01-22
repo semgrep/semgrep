@@ -218,6 +218,7 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 )
 @handle_command_errors
 def ci(
+    # coupling: we use the names/values of some of these args in telemetry.py for tagging traces
     ctx: click.Context,
     *,
     audit_on: Sequence[str],
@@ -302,7 +303,9 @@ def ci(
 
     state = get_state()
 
-    state.telemetry.configure(trace, trace_endpoint)
+    state.telemetry.configure(
+        trace, trace_endpoint, attributes=telemetry.cli_args_to_attrs(locals())
+    )
     with telemetry.TRACER.start_as_current_span(
         "semgrep.commands.ci", kind=telemetry.TOP_LEVEL_SPAN_KIND
     ) as semgrep_commands_ci_span:
@@ -429,12 +432,15 @@ def ci(
                 engine_flag=requested_engine,
                 ci_scan_handler=scan_handler,
             )
+            state.telemetry.add_resource_attrs(
+                {telemetry.ENGINE_KIND_ATTR: str(engine_type)}
+            )
 
             # A lot of project metadata depends on git commands that fail in
             # empty repos; we gather whatever metadata we can and move forwards
-            project_metadata = generate_meta_from_environment(
-                None, subdir
-            ).to_project_metadata()
+            metadata = generate_meta_from_environment(None, subdir)
+            project_metadata = metadata.to_project_metadata()
+            state.telemetry.add_resource_attrs(metadata.to_otel_attrs())
             project_config = ProjectConfig.load_all()
             contributions = semgrep.rpc_call.contributions()
             if scan_handler:
@@ -604,6 +610,9 @@ def ci(
             git_meta=metadata,
             supply_chain_only=supply_chain_only,
         )
+        state.telemetry.add_resource_attrs(
+            {telemetry.ENGINE_KIND_ATTR: str(engine_type)}
+        )
 
         # set default settings for selected engine type
         if dataflow_traces is None:
@@ -690,14 +699,13 @@ def ci(
                 )
             final_baseline_commit = metadata.merge_base_ref
 
+        # If we record this metadata any earlier then we may trigger merge base
+        # reef code before we normally do
+        state.telemetry.add_resource_attrs(metadata.to_otel_attrs())
         autofix_behavior = (
             AutofixBehavior.REPORT
             if scan_handler and scan_handler.autofix
             else AutofixBehavior.IGNORE
-        )
-
-        semgrep_commands_ci_span.set_attribute(
-            "scan.scan_type", "diff" if baseline_commit is not None else "full"
         )
         # Base arguments for actually running the scan. This is done here so we can
         # re-use this in the event we need to perform a second scan. Currently the
