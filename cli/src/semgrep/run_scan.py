@@ -66,6 +66,7 @@ from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
 from semgrep.dependency_aware_rule import dependencies_range_match_any
 from semgrep.dependency_aware_rule import parse_depends_on_yaml
+from semgrep.dependency_aware_rule import SubprojectDependencyIndex
 from semgrep.engine import EngineType
 from semgrep.error import InvalidScanningRootError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -115,7 +116,6 @@ from semgrep.types import TargetInfo
 from semgrep.util import flatten
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -705,6 +705,7 @@ def resolve_dependencies(
     )
 
 
+@simple_profiling
 @telemetry.trace()
 def adjust_matches_for_sca_rules(
     rule_matches_by_rule: RuleMatchMap,
@@ -726,14 +727,26 @@ def adjust_matches_for_sca_rules(
     encountered during generation via the `output_handler`.
     """
     from semgrep.dependency_aware_rule import (
-        generate_unreachable_sca_findings,
         generate_reachable_sca_findings,
+        generate_unreachable_sca_findings,
     )
 
     # Count the number of reachable and unreachable SCA findings adjustments made.
     # Adjustments are just new SCA findings added to the rule_matches_by_rule map.
     unreachable_sca_adjustments = 0
     reachable_sca_adjustments = 0
+
+    # create an index to help us find relevant dependencies by name quickly
+    dependency_index: dict[
+        Ecosystem, list[tuple[out.ResolvedSubproject, SubprojectDependencyIndex]]
+    ] = {}
+
+    for ecosystem, subprojects in resolved_subprojects.items():
+        dependency_index[ecosystem] = []
+        for subproject in subprojects:
+            dependency_index[ecosystem].append(
+                (subproject, SubprojectDependencyIndex.from_subproject(subproject))
+            )
 
     for rule in dependency_aware_rules:
         if rule.should_run_on_semgrep_core:
@@ -765,7 +778,7 @@ def adjust_matches_for_sca_rules(
             ) = generate_unreachable_sca_findings(
                 rule,
                 already_reachable,
-                resolved_subprojects,
+                dependency_index,
                 fips_mode=fips_mode,
                 enable_transitive_reachability=enable_transitive_reachability,
                 write_to_tr_cache=write_to_tr_cache,
@@ -782,7 +795,7 @@ def adjust_matches_for_sca_rules(
             ) = generate_unreachable_sca_findings(
                 rule,
                 lambda p, d: False,
-                resolved_subprojects,
+                dependency_index,
                 fips_mode=fips_mode,
                 enable_transitive_reachability=False,
                 write_to_tr_cache=write_to_tr_cache,

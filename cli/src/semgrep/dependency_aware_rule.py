@@ -24,6 +24,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from attr import dataclass
 from attr import evolve
 
 import semgrep.rpc_call as rpc_call
@@ -31,6 +32,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.package_restrictions import dependencies_range_match_any
+from semdep.package_restrictions import is_in_range
 from semgrep.error import SemgrepError
 from semgrep.rpc import RpcSession
 from semgrep.rule import Rule
@@ -38,6 +40,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.sca_subproject_support import TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.simple_profiling import simple_profiling
 from semgrep.subproject import dep_source_to_subproject_kind
 from semgrep.subproject import find_closest_resolved_subproject
 from semgrep.subproject import iter_dependencies
@@ -84,17 +87,56 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPatt
         )
 
 
-# use a single RPC process for each call to
-# transitive_reachability_filter to amortize the overhead of starting
-# the process
+@dataclass
+class SubprojectDependencyIndex:
+    """
+    an index to efficiently find version matches within a subproject
+
+    groups dependencies within a subproject by package name, making dependency pattern
+    lookups approximately O(1).
+    """
+
+    index: dict[str, list[out.FoundDependency]]
+
+    @classmethod
+    @simple_profiling
+    def from_subproject(
+        cls, subproject: out.ResolvedSubproject
+    ) -> "SubprojectDependencyIndex":
+        subproject_index: dict[str, list[out.FoundDependency]] = defaultdict(list)
+        for dependency in iter_found_dependencies(subproject.resolved_dependencies):
+            subproject_index[dependency.package].append(dependency)
+
+        return cls(subproject_index)
+
+    def get_dependency_matches(
+        self, sca_patterns: list[out.ScaPattern]
+    ) -> Iterator[tuple[out.ScaPattern, out.FoundDependency]]:
+        """
+        Yields matches to the given sca patterns using the index to compute them.
+        """
+        for pattern in sca_patterns:
+            candidates = self.index.get(pattern.package, [])
+            for candidate in candidates:
+                if (
+                    pattern.ecosystem == candidate.ecosystem
+                    and pattern.package == candidate.package
+                    and is_in_range(
+                        pattern.ecosystem, pattern.semver_range, candidate.version
+                    )
+                ):
+                    yield (pattern, candidate)
 
 
 # TODO: should be renamed undetermined_or_unreachable_...
 #  or handle_transitive_findings
+@simple_profiling
 def generate_unreachable_sca_findings(
     rule: Rule,
     already_reachable: Callable[[Path, out.FoundDependency], bool],
-    resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
+    dependency_index: dict[
+        Ecosystem, list[tuple[out.ResolvedSubproject, SubprojectDependencyIndex]]
+    ],
     enable_transitive_reachability: Optional[bool],
     fips_mode: bool,
     write_to_tr_cache: bool = True,
@@ -106,6 +148,9 @@ def generate_unreachable_sca_findings(
 
     :param write_to_tr_cache: Whether to write to the transitive
         reachability cache (/tr_cache endpoint in the app).
+    :param rpc_session: allows using a single RPC process for each call to
+        transitive_reachability_filter to amortize the overhead of starting
+        the process.
     """
     errors: List[SemgrepError] = []
     depends_on_entries = list(parse_depends_on_yaml(rule.project_depends_on))
@@ -114,16 +159,16 @@ def generate_unreachable_sca_findings(
     non_reachable_matches: List[RuleMatch] = []
     match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
-        for subproject in resolved_deps.get(ecosystem, []):
+        for subproject, subproject_dependency_index in dependency_index.get(
+            ecosystem, {}
+        ):
             subproject_kind = dep_source_to_subproject_kind(
                 subproject.info.dependency_source
             )
-            deps: List[out.FoundDependency] = list(
-                iter_found_dependencies(subproject.resolved_dependencies)
-            )
             subproject_matches: List[RuleMatch] = []
+
             dependency_matches: List[Tuple[out.ScaPattern, out.FoundDependency]] = list(
-                dependencies_range_match_any(depends_on_entries, list(deps))
+                subproject_dependency_index.get_dependency_matches(depends_on_entries)
             )
             for dep_pat, found_dep in dependency_matches:
                 if found_dep.lockfile_path is None:
@@ -252,6 +297,7 @@ def transitive_dep_is_also_direct(
     return (package, out.DependencyKind(out.Direct())) in deps
 
 
+@simple_profiling
 def generate_reachable_sca_findings(
     matches: List[RuleMatch],
     rule: Rule,
