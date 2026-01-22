@@ -167,11 +167,11 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
     cmd = _cmd()
 
     state = get_state()
-    if state.traces.enabled:
+    if state.telemetry.enabled:
         cmd.append("-trace")
-        if state.traces.trace_endpoint is not None:
-            cmd.extend(["-trace_endpoint", state.traces.trace_endpoint])
-        state.traces.inject()
+        if state.telemetry.trace_endpoint is not None:
+            cmd.extend(["-trace_endpoint", state.telemetry.trace_endpoint])
+        state.telemetry.inject()
 
     with subprocess.Popen(
         cmd,

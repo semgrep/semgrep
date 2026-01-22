@@ -54,7 +54,7 @@ import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigLoader
@@ -570,7 +570,7 @@ def adjust_matches_for_join_rules(
 
 
 # ??
-@tracing.trace()
+@telemetry.trace()
 def filter_dependency_aware_rules(
     dependency_aware_rules: List[Rule],
     resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
@@ -612,7 +612,7 @@ def filter_dependency_aware_rules(
     return filtered_rules
 
 
-@tracing.trace()
+@telemetry.trace()
 @simple_profiling
 def resolve_dependencies(
     dependency_aware_rules: List[Rule],
@@ -705,7 +705,7 @@ def resolve_dependencies(
     )
 
 
-@tracing.trace()
+@telemetry.trace()
 def adjust_matches_for_sca_rules(
     rule_matches_by_rule: RuleMatchMap,
     dependency_aware_rules: List[Rule],
@@ -858,7 +858,7 @@ def adjust_matches_for_sca_rules(
 
 
 # This runs semgrep-core (and also handles SCA and join rules)
-@tracing.trace()
+@telemetry.trace()
 @simple_profiling
 def run_rules(
     filtered_rules: List[Rule],
@@ -1057,7 +1057,7 @@ class AutofixBehavior(enum.Enum):
 
 # semgrep(entrypoint.py) -> main.py -> cli.py -> commands/scan.py -> run_scan()
 # old: this used to be called semgrep.semgrep_main.main
-@tracing.trace()
+@telemetry.trace()
 @simple_profiling
 def run_scan(
     *,

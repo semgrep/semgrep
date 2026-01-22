@@ -138,6 +138,27 @@ let force_curr_scope f =
   let f x = with_opt_scope current_scope_opt (fun () -> f x) in
   f
 
+(* Python and other otel libraries % encode their values, so let's do that here
+   too instead of using the default OTEL kv parser *)
+(* TODO: upstream *)
+let set_global_attr_from_env () =
+  let global_attributes : Otel.Proto.Common.key_value list =
+    let parse_pair s =
+      match String.split_on_char '=' s with
+      | [ a; b ] ->
+          let value = Uri.pct_decode b in
+          Otel.Proto.Common.default_key_value ~key:a
+            ~value:(Some (String_value value)) ()
+      | _ -> failwith (Printf.sprintf "invalid attribute: %S" s)
+    in
+    try
+      Sys.getenv "OTEL_RESOURCE_ATTRIBUTES"
+      |> String.split_on_char ',' |> List_.map parse_pair
+    with
+    | _ -> []
+  in
+  Otel.Globals.global_attributes := global_attributes
+
 let get_global_attr_opt key =
   List.find_map
     (fun (kv : Otel.Proto.Common.key_value) ->
@@ -186,6 +207,7 @@ let setup_otel ?eio_sw_base trace_endpoint =
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
 let configure_otel ?eio_sw_base ?(attrs : (string * user_data) list = [])
     service_name trace_endpoint =
+  set_global_attr_from_env ();
   Otel.Globals.service_name := service_name;
   Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
   (* Disable self tracing, e.g. tracing the otel library *)

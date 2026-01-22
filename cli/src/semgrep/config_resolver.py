@@ -37,7 +37,7 @@ from ruamel.yaml import YAMLError
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.app import auth
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
@@ -69,6 +69,7 @@ from semgrep.rule_lang import version_error
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
+from semgrep.telemetry import scan_info_to_attrs
 from semgrep.util import is_config_suffix
 from semgrep.util import is_semgrep_url
 from semgrep.util import is_url
@@ -377,7 +378,9 @@ class ConfigLoader:
                 )
 
             scan_response = out.ScanResponse.from_json(response.json())
-            get_state().traces.set_scan_info(scan_response.info)
+            get_state().telemetry.add_resource_attrs(
+                scan_info_to_attrs(scan_response.info)
+            )
             return ConfigFile(None, scan_response.config.rules.to_json_string(), url)
 
         except requests.exceptions.RetryError as ex:
@@ -437,7 +440,7 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
     return configs
 
 
-@tracing.trace()
+@telemetry.trace()
 def parse_config_files(
     loaded_config_infos: List[ConfigFile],
     force_jsonschema: bool = False,
@@ -537,7 +540,7 @@ def parse_config_files(
     return config, errors
 
 
-@tracing.trace()
+@telemetry.trace()
 def resolve_config(
     config_str: str,
     project_url: Optional[str] = None,
@@ -579,7 +582,7 @@ class Config:
         self.missed_rule_count = missed_rule_count
 
     @classmethod
-    @tracing.trace()
+    @telemetry.trace()
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", List[SemgrepError]]:
@@ -588,7 +591,7 @@ class Config:
         return cls(valid), errors
 
     @classmethod
-    @tracing.trace()
+    @telemetry.trace()
     def from_rules_string(
         cls,
         raw_rules: str,
@@ -614,7 +617,7 @@ class Config:
             return cls({}), [e]
 
     @classmethod
-    @tracing.trace()
+    @telemetry.trace()
     def from_config_list(
         cls,
         configs: Sequence[str],
@@ -920,7 +923,7 @@ def parse_config_string_as_rules(
 # This is tightly coupled to remove_incompatible_version_yamltree in rule_lang.py
 # These two functions should be kept in sync, as they perform the same task on slightly
 # different source data.
-@tracing.trace()
+@telemetry.trace()
 def remove_incompatible_version_rules(
     rules: List[Rule],
 ) -> Tuple[List[Rule], List[SemgrepError]]:
@@ -953,7 +956,7 @@ def remove_incompatible_version_rules(
     return (ok_rules, errors)
 
 
-@tracing.trace()
+@telemetry.trace()
 def parse_config_string(
     config_id: str,
     contents: str,

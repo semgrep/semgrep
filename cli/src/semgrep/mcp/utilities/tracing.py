@@ -37,10 +37,10 @@ from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.metrics import Finding
 from semgrep.metrics import MetricsState
 from semgrep.state import get_state
-from semgrep.tracing import _DEFAULT_OTEL_ENDPOINT
-from semgrep.tracing import _DEV_OTEL_ENDPOINT
-from semgrep.tracing import _LOCAL_DEV_OTEL_ENDPOINT
-from semgrep.tracing import TRACER
+from semgrep.telemetry import _DEFAULT_OTEL_ENDPOINT
+from semgrep.telemetry import _DEV_OTEL_ENDPOINT
+from semgrep.telemetry import _LOCAL_DEV_OTEL_ENDPOINT
+from semgrep.telemetry import TRACER
 from semgrep.verbose_logging import getLogger
 
 
@@ -171,7 +171,7 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
 
         deployment_id = get_deployment_id_from_token(get_semgrep_app_token())
 
-        state.traces.configure(
+        state.telemetry.configure(
             True,
             endpoint,
             MCP_SERVICE_NAME,

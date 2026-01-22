@@ -37,7 +37,7 @@ from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
-from semgrep import tracing
+from semgrep import telemetry
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.error import default_level
 from semgrep.error import InvalidRuleSchemaError
@@ -285,7 +285,7 @@ def parse_yaml_preserve_spans(
     return data
 
 
-@tracing.trace()
+@telemetry.trace()
 def parse_config_preserve_spans(
     contents: str,
     filename: Optional[str],
@@ -510,7 +510,7 @@ class RpcValidationError(Exception):
 # This is tightly coupled to remove_incompatible_version_rules in config_resolver.py
 # These two functions should be kept in sync, as they perform the same task on slightly
 # different source data.
-@tracing.trace()
+@telemetry.trace()
 def remove_incompatible_version_yamltree(
     root: YamlTree, filename: Optional[str], no_rewrite_rule_ids: bool = False
 ) -> List[SemgrepError]:
@@ -606,7 +606,7 @@ def validate_rules(
             validate_yaml_json_schema(data)
 
 
-@tracing.trace()
+@telemetry.trace()
 def validate_file_rpc(
     source_hash: SourceFileHash,
     filename: Optional[str] = None,
@@ -685,7 +685,7 @@ def validate_yaml_json_schema(
     """
     try:
         # Now enter the jsonschema validation for the custom error messages
-        with tracing.TRACER.start_as_current_span("jsonschema.validate"):
+        with telemetry.TRACER.start_as_current_span("jsonschema.validate"):
             jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
@@ -717,7 +717,7 @@ def validate_string_json_schema(
     30-40 seconds of delay just in config parsing.
     """
     try:
-        with tracing.TRACER.start_as_current_span("jsonschema.validate"):
+        with telemetry.TRACER.start_as_current_span("jsonschema.validate"):
             jsonschema.validate(data, RuleSchema.get(), cls=Draft7Validator)
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
