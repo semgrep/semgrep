@@ -365,7 +365,7 @@ def print_scan_status(
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
-) -> List[Plan]:
+) -> int:
     """
     Prints the scan status and returns the plans
     """
@@ -415,9 +415,12 @@ def print_scan_status(
 
     plans = [sast_plan, sca_plan]
 
+    executed_rule_count = sum(
+        max(0, len(plan.rules) - len(plan.unused_rules)) for plan in plans
+    )
     # We skip printing the remaining output for pattern invocations
     if minimal_ux:
-        return plans
+        return executed_rule_count
 
     # For CI / test runs or when legacy format is requested we print the scan title
     if legacy_ux:
@@ -445,7 +448,7 @@ def print_scan_status(
             sast_enabled=with_code_rules,
             sca_enabled=with_supply_chain,
         )
-        return plans
+        return executed_rule_count
 
     if (
         not has_sca_rules
@@ -459,7 +462,7 @@ def print_scan_status(
             product=out.Product(out.SAST()),
             rule_count=alt_sast_rule_count,
         )
-        return plans
+        return executed_rule_count
 
     if legacy_ux:
         console.print(Padding(Title("Code Rules", order=2), (1, 0, 0, 0)))
@@ -518,4 +521,4 @@ def print_scan_status(
         console.print(Title("Progress", order=2))
         console.print(" ")  # space intentional for progress bar padding
 
-    return plans
+    return executed_rule_count

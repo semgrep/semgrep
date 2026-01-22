@@ -63,7 +63,6 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.core_runner import CoreRunner
-from semgrep.core_runner import Plan
 from semgrep.dependency_aware_rule import dependencies_range_match_any
 from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.dependency_aware_rule import SubprojectDependencyIndex
@@ -494,7 +493,7 @@ def baseline_run(
                     _,
                     _,
                     _,
-                    _plans,
+                    _,
                     _,
                     _,
                     _,
@@ -906,7 +905,7 @@ def run_rules(
     OutputExtra,
     Dict[str, List[out.FoundDependency]],
     List[DependencyParserError],
-    List[Plan],
+    int,
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
     Optional[out.SymbolAnalysis],
     Optional[Sequence[SubprojectSymbolAnalysis]],
@@ -955,7 +954,7 @@ def run_rules(
     # ---------------------------------------
 
     cli_ux = get_state().get_cli_ux_flavor()
-    plans = scan_report.print_scan_status(
+    executed_rule_count = scan_report.print_scan_status(
         filtered_rules,
         target_manager,
         target_mode_config,
@@ -1045,7 +1044,7 @@ def run_rules(
         output_extra,
         deps_by_lockfile,
         dependency_parser_errors,
-        plans,
+        executed_rule_count,
         all_subprojects,
         symbol_analysis,
         sca_symbol_analysis,
@@ -1344,7 +1343,7 @@ def run_scan(
             output_extra,
             dependencies,
             dependency_parser_errors,
-            plans,
+            executed_rule_count,
             all_subprojects,
             symbol_analysis,
             sca_symbol_analysis,
@@ -1458,9 +1457,6 @@ def run_scan(
 
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
-    )
-    executed_rule_count = sum(
-        max(0, len(plan.rules) - len(plan.unused_rules)) for plan in plans
     )
 
     return (
