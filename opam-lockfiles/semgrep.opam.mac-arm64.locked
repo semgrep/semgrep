@@ -302,11 +302,11 @@ pin-depends: [
   ]
   [
     "pyro-caml-instruments.dev"
-    "git+https://github.com/semgrep/pyro-caml.git#348f659e0c53f39ee7347b476f5ee6f97df4a4c2"
+    "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"
   ]
   [
     "pyro-caml-ppx.dev"
-    "git+https://github.com/semgrep/pyro-caml.git#348f659e0c53f39ee7347b476f5ee6f97df4a4c2"
+    "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"
   ]
   [
     "semgrep-interfaces.dev"

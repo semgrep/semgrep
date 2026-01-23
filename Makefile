@@ -296,9 +296,10 @@ install-opam-deps: pin-ocaml-fork$(OPTIONS)
 # us to only install it when needed, in the normal docker image build.
 # Additionally the profiler relies on Rust as a dependency, so this avoids
 # forcing developers to install Rust unless they need it.
+# COUPLING: semgrep.opam.template where we pin the library
 .PHONY: install-pyro-caml
 install-pyro-caml:
-	opam pin add --confirm-level=unsafe-yes  pyro-caml.dev git+https://github.com/semgrep/pyro-caml.git#1bf45307d5c4ca235fb23125e9bf84cceacc8dc6
+	opam pin add --confirm-level=unsafe-yes pyro-caml.dev $$(cat semgrep.opam | grep -E -o "git\+.*pyro-caml.git#[a-zA-Z0-9]*" | head -1)
 	opam install pyro-caml -y  --confirm-level=unsafe-yes
 
 # This will fail if semgrep.opam isn't up-to-date (in git),

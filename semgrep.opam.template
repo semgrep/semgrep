@@ -22,8 +22,9 @@ pin-depends: [
   ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#533177d79c471320b73f9e63d4d41095e8019391"]
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
-  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#1bf45307d5c4ca235fb23125e9bf84cceacc8dc6"]
-  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#1bf45307d5c4ca235fb23125e9bf84cceacc8dc6"]
+  (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
+  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
+  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
   ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
   ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
   ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
