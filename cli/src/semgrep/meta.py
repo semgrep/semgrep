@@ -285,8 +285,8 @@ class GitMeta:
             "scan.meta.git.event_name": self.event_name,
             "scan.meta.repo.name": self.repo_name,
             "scan.meta.repo.display_name": self.repo_display_name,
-            "scan.meta.project_id": self.project_id or "<local project>",
-            "scan.meta.job_url": self.ci_job_url or "<local run>",
+            "scan.meta.project_id": self.project_id or "unset",
+            "scan.meta.job_url": self.ci_job_url or "unset",
             "scan.meta.scan_type": "full" if self.is_full_scan else "diff",
         }
 

@@ -142,7 +142,7 @@ def cli_args_to_attrs(locals: dict[str, object]) -> Attributes:
         elif value is not None:
             attr_value = json.dumps(value)
         else:
-            attr_value = "<unset>"
+            attr_value = "unset"
         info[f"scan.args.{arg}"] = attr_value
     return info
 
@@ -151,7 +151,7 @@ def scan_info_to_attrs(scan_info: ScanInfo) -> Attributes:
     info: Attributes = {
         "scan.deployment_id": scan_info.deployment_id,
         "scan.deployment_name": scan_info.deployment_name,
-        "scan.id": scan_info.id if scan_info.id else "<local run>",
+        "scan.id": scan_info.id or "unset",
     }
     return info
 
