@@ -170,7 +170,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
 
   // Small wrapper around https://github.com/actions/setup-python
   // TODO: maybe simplify callers now that has default version to 3.11
-  setup_python_step: function(version='3.11', cache='pipenv') {
+  setup_python_step: function(version='3.11', cache=false) {
     uses: uses.actions.setup_python,
     with: {
       'python-version': version,
@@ -184,16 +184,17 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   // We pin to a specific version just to prevent things from breaking randomly.
   // This has been a source of breakage in the past.
   //
-  // We also pin pipenv version in the Dockerfile. So, if you are updating
+  // We also pin uv version in the Dockerfile. So, if you are updating
   // the version here, update it there too.
-  pipenv_version: '2025.1.3',
-  pipenv_install_step: {
-    run: 'pip install pipenv==%s' % $.pipenv_version,
+  uv_version: '0.9.26',
+  uv_install_step: {
+    uses: uses.astral_sh.setup_uv,
+    with: { version: '%s' % $.uv_version },
   },
   install_python_deps(version='3.11', directory): {
     name: 'Install Python dependencies',
     'working-directory': directory,
-    run: 'pipenv install --dev --python=%s' % version,
+    run: 'uv python install %s && uv sync --extra dev' % version,
   },
 
   // ---------------------------------------------------------

@@ -1,0 +1,1 @@
+Migrated from `pipenv` to `uv` for `./cli` package management

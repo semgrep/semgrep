@@ -26,7 +26,7 @@ fi
 (
   cd "$repo_root"/cli
 
-  pipenv run python3 ../scripts/generate_cheatsheet.py --json \
+  uv run python3 ../scripts/generate_cheatsheet.py --json \
     --directory "$input" \
     --output-file "$output"
   cat <<EOF

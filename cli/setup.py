@@ -13,7 +13,6 @@
 # type: ignore
 import os
 import platform
-import shutil
 import sys
 
 import setuptools
@@ -69,121 +68,6 @@ if WHEEL_CMD in sys.argv:
 else:
     cmdclass = {}
 
-try:
-    with open(os.path.join(REPO_ROOT, "README.md")) as f:
-        long_description = f.read()
-except FileNotFoundError:
-    long_description = "**SETUP: README NOT FOUND**"
-
-
-def find_executable(env_name, exec_name):
-    # First, check for an environment override
-    env_value = os.getenv(env_name)
-    if env_value:
-        return env_value
-
-    # Second, fallback to any system executable
-    which_name = shutil.which(exec_name)
-    if which_name is not None:
-        return which_name
-
-    raise Exception(
-        f"Could not find '{exec_name}' executable, tried '{env_name}' and system '{exec_name}'"
-    )
-
-
-install_requires = [
-    # versions must be manually synced:
-    # - cli/setup.py lists dependencies
-    # - cli/Pipfile lists type hint packages for dev env
-    # - .pre-commit-config.yaml's mypy hooks also list type hint packages
-    #
-    # These specifiers are flexible so semgrep can coexist with other tools.
-    # Even though we recommend giving semgrep its own virtualenv
-    # (or using the official returntocorp/semgrep Docker image),
-    # many users will first try to install it in their project's virtualenv.
-    #
-    # Flexibility is achieved by, in order of preference:
-    # 1. >=x if you know the earliest version that works with Semgrep
-    # 2. >=x,<y if you know the earliest version that works with Semgrep,
-    #    and know that a later version breaks Semgrep.
-    # 3. ~=x.0 if you don't know the earliest version that works with Semgrep
-    #
-    # Try to go from option 3 to 1 over time as you learn more about the
-    # codebase.
-    #
-    # coupling: after changing the dependencies here, update 'Pipfile.lock'
-    # for pipenv as instructed in 'Pipfile'.
-    #
-    # coupling: if you add a dep here, it would be appreciated if you could add
-    # it to the top level flake.nix file as well, in
-    # pysemgrep.propagatedBuildInputs
-    #
-    "attrs>=21.3",
-    "boltons~=21.0",
-    "click-option-group~=0.5",
-    "click~=8.1.8",
-    "colorama~=0.4.0",
-    "exceptiongroup~=1.2.0",
-    "glom~=22.1",
-    "jsonschema~=4.25.1",
-    "mcp==1.23.3",
-    "opentelemetry-api~=1.37.0",
-    "opentelemetry-sdk~=1.37.0",
-    "opentelemetry-exporter-otlp-proto-http~=1.37.0",
-    "opentelemetry-instrumentation-requests~=0.58b0",
-    "opentelemetry-instrumentation-threading~=0.58b0",
-    "packaging>=21.0",
-    "peewee~=3.14",
-    "requests~=2.22",
-    "rich~=13.5.2",
-    "ruamel.yaml>=0.18.15",
-    "ruamel.yaml.clib==0.2.14",
-    "tomli~=2.0.1",
-    "typing-extensions~=4.2",
-    "urllib3~=2.0",
-    "wcmatch~=8.3",
-    "pywin32==311; sys_platform == 'win32'",
-]
-
-
 setuptools.setup(
-    name="semgrep",
-    version="1.149.0",
-    author="Semgrep Inc.",
-    author_email="support@semgrep.com",
-    description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
-    install_requires=install_requires,
-    license="LGPL-2.1-or-later",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/returntocorp/semgrep",
-    # creates a .exe wrapper on windows
-    entry_points={
-        "console_scripts": [
-            "semgrep = semgrep.console_scripts.entrypoint:main",
-            "pysemgrep = semgrep.console_scripts.pysemgrep:main",
-        ]
-    },
-    packages=setuptools.find_packages(where="src"),
-    package_dir={"": "src"},
-    package_data={"semgrep": [os.path.join("bin", "*")]},
-    include_package_data=True,
-    classifiers=[
-        "Environment :: Console",
-        "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
-        "Operating System :: MacOS",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3.13",
-        "Programming Language :: Python :: 3.14",
-        "Topic :: Security",
-        "Topic :: Software Development :: Quality Assurance",
-    ],
-    python_requires=">=3.10",
-    zip_safe=False,
 )

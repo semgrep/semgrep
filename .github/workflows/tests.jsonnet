@@ -143,7 +143,7 @@ local install_x86_artifacts = {
 local install_python_deps = {
   name: 'Install Python dependencies',
   'working-directory': 'cli',
-  run: 'pipenv install --dev',
+  run: 'uv sync --extra dev',
 };
 
 // Run pytest with many python versions
@@ -171,7 +171,7 @@ local test_cli_job = {
     [
       fetch_submodules_step,
       actions.setup_python_step('${{ matrix.python }}'),
-      actions.pipenv_install_step,
+      actions.uv_install_step,
       install_python_deps,
       download_x86_artifacts,
       install_x86_artifacts,
@@ -225,7 +225,7 @@ local test_qa_job = {
         run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
       },
       actions.setup_python_step(semgrep.python_version),
-      actions.pipenv_install_step,
+      actions.uv_install_step,
       download_x86_artifacts,
       install_x86_artifacts,
       // TODO: mostly like install_python_deps with PATH adjustment
@@ -234,7 +234,7 @@ local test_qa_job = {
         'working-directory': 'cli',
         run: |||
           export PATH=/github/home/.local/bin:$PATH
-          pipenv install --dev
+          uv sync --extra dev
         |||,
       },
       {
@@ -255,7 +255,7 @@ local test_qa_job = {
         'working-directory': 'cli',
         run: |||
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
+          uv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
         |||,
         env: {
           QA_TESTS_CACHE_PATH: '~/.cache/qa-public-repos',
@@ -273,7 +273,7 @@ local bench_prepare_steps =
   [
     fetch_submodules_step,
     actions.setup_python_step(semgrep.default_python_version),
-    actions.pipenv_install_step,
+    actions.uv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     install_python_deps,
@@ -290,9 +290,9 @@ local benchmarks_lite_job = {
       name: 'Test dummy benchmarks on latest',
       'working-directory': 'cli',
       run: |||
-        pipenv run semgrep --version
-        pipenv run semgrep-core -version
-        pipenv run python3 ../perf/run-benchmarks --dummy
+        uv run semgrep --version
+        uv run semgrep-core -version
+        uv run python3 ../perf/run-benchmarks --dummy
       |||,
     },
   ],

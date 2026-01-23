@@ -10,6 +10,136 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+authors = [
+  { name = "Semgrep Inc.", email = "support@semgrep.com" }
+]
+name = "semgrep"
+version = "1.149.0"
+description = "Lightweight static analysis for many languages. Find bug variants with patterns that look like source code."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "LGPL-2.1-or-later"
+license-files = ["LICENSE"]
+
+classifiers = [
+  "Environment :: Console",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+# build deps
+# These specifiers are flexible so semgrep can coexist with other tools.
+# Even though we recommend giving semgrep its own virtualenv
+# (or using the official returntocorp/semgrep Docker image),
+# many users will first try to install it in their project's virtualenv.
+#
+# Flexibility is achieved by, in order of preference:
+# 1. >=x if you know the earliest version that works with Semgrep
+# 2. >=x,<y if you know the earliest version that works with Semgrep,
+#    and know that a later version breaks Semgrep.
+# 3. ~=x.0 if you don't know the earliest version that works with Semgrep
+#
+# Try to go from option 3 to 1 over time as you learn more about the
+# codebase.
+dependencies = [
+  "attrs>=21.3",
+  "boltons~=21.0",
+  "click-option-group~=0.5",
+  "click~=8.1.8",
+  "colorama~=0.4.0",
+  "exceptiongroup~=1.2.0",
+  "glom~=22.1",
+  "jsonschema~=4.25.1",
+  "mcp==1.23.3",
+  "opentelemetry-api~=1.37.0",
+  "opentelemetry-sdk~=1.37.0",
+  "opentelemetry-exporter-otlp-proto-http~=1.37.0",
+  "opentelemetry-instrumentation-requests~=0.58b0",
+  "opentelemetry-instrumentation-threading~=0.58b0",
+  "packaging>=21.0",
+  "peewee~=3.14",
+  "requests~=2.22",
+  "rich~=13.5.2",
+  "ruamel.yaml>=0.18.15",
+  "ruamel.yaml.clib==0.2.14",
+  "setuptools",
+  "tomli~=2.0.1",
+  "typing-extensions~=4.2",
+  "urllib3~=2.0",
+  "wcmatch~=8.3",
+  "pywin32==311; sys_platform == 'win32'",
+]
+
+
+[project.optional-dependencies]
+dev = [
+  "appdirs",
+  "mypy==0.931",
+  "pytest",
+  "pytest-timeout",
+  "pytest-snapshot",
+  "pytest-xdist",
+  "tox",
+  "requests-mock",
+  "pypi-parker",
+  "pytest-freezer",
+  "pytest-mock",
+  "pytest-rerunfailures",
+  "pytest-asyncio",
+  "pytest-split",
+  "backports-asyncio-runner==1.2.0; python_version < '3.11'",
+  "types-appdirs",
+  "types-colorama~=0.4.0",
+  "types-freezegun",
+  "types-jinja2",
+  "types-python-dateutil",
+  "types-requests",
+  "types-setuptools",
+  "types-jsonschema==4.25.1.20251009",
+  "importlib-metadata",
+  "importlib-resources>=1.4.0",
+  "typing-extensions",
+  "ddtrace",
+  "bytecode",
+]
+
+[project.urls]
+Homepage = "https://semgrep.dev"
+Documentation = "https://semgrep.dev/docs"
+Repository = "https://github.com/semgrep/semgrep"
+Issues = "https://github.com/semgrep/semgrep/issues"
+Changelog = "https://github.com/semgrep/semgrep/blob/develop/CHANGELOG.md"
+
+[project.scripts]
+semgrep = "semgrep.console_scripts.entrypoint:main"
+pysemgrep = "semgrep.console_scripts.pysemgrep:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+# TODO: investigate if any of the two options below are needed anymore
+#
+# NOTE: introduced in https://github.com/semgrep/semgrep/pull/1558 to include
+# the jsonschema w/the semgrep package.
+include-package-data = true
+# NOTE: introduced in https://github.com/semgrep/semgrep/pull/698 w/o any
+# documentation as to why
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+semgrep = ["bin/*"]
+
 [tool.pytest.ini_options]
 # coupling: if you add a dep here it would be great if you added it to the top
 # level flake.nix in devPipInputs

@@ -8,8 +8,8 @@ set -eu
 
 echo "Checking that all tests are categorized by duration."
 
-# The pipenv command should select 0 tests.
-if pipenv run pytest --collect-only \
+# The uv command should select 0 tests.
+if uv run pytest --collect-only \
    -m 'not quick and not kinda_slow and not slow' "$@"; \
    [[ $? != 5 ]]; then
   cat<<EOF

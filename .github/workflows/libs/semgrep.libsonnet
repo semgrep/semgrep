@@ -181,16 +181,13 @@ local osemgrep_test_steps_after_checkout = [
       make copy-core-for-cli
     |||,
   },
-  // For '--ignore-installed distlib' below see
-  // https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
-  //
   {
     name: 'Install Python dependencies',
     run: |||
       apk add --no-cache python3 py3-pip
-      pip install --no-cache-dir --ignore-installed --break-system-packages distlib pipenv==%s
-      (cd cli; pipenv install --dev)
-    ||| % actions.pipenv_version,
+      pip install --no-cache-dir --ignore-installed --break-system-packages distlib uv==%s
+      (cd cli; uv sync --extra dev)
+    ||| % actions.uv_version,
   },
   {
     name: 'Run pytest for osemgrep known passing tests',
