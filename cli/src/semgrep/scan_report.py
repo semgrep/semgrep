@@ -25,6 +25,7 @@ from rich.padding import Padding
 from rich.table import Table
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep import telemetry
 from semgrep.app import auth
 from semgrep.console import console
 from semgrep.console import Title
@@ -354,6 +355,7 @@ def _print_detailed_sca_table(
 ##############################################################################
 
 
+@telemetry.trace()
 def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
