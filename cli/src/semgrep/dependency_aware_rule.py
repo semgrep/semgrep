@@ -97,6 +97,7 @@ class SubprojectDependencyIndex:
     """
 
     index: dict[str, list[out.FoundDependency]]
+    num_deps: int
 
     @classmethod
     @simple_profiling
@@ -104,10 +105,12 @@ class SubprojectDependencyIndex:
         cls, subproject: out.ResolvedSubproject
     ) -> "SubprojectDependencyIndex":
         subproject_index: dict[str, list[out.FoundDependency]] = defaultdict(list)
+        num_deps = 0
         for dependency in iter_found_dependencies(subproject.resolved_dependencies):
             subproject_index[dependency.package].append(dependency)
+            num_deps += 1
 
-        return cls(subproject_index)
+        return cls(subproject_index, num_deps)
 
     def get_dependency_matches(
         self, sca_patterns: list[out.ScaPattern]

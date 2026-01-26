@@ -384,3 +384,7 @@ def trace() -> Callable[[Callable[P, R]], Callable[P, R]]:
         return inner
 
     return outer
+
+
+def get_current_span() -> otrace.Span:
+    return otrace.get_current_span()

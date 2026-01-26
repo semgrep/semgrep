@@ -717,7 +717,7 @@ def adjust_matches_for_sca_rules(
     write_to_tr_cache: bool = True,
     rpc_session: Optional[RpcSession] = None,
     enable_transitive_reachability: Optional[bool] = False,
-) -> Dict[str, List[out.FoundDependency]]:
+) -> None:
     """
     Generates SCA findings based on the dependency-aware rules and the resolved subprojects.
 
@@ -730,10 +730,12 @@ def adjust_matches_for_sca_rules(
         generate_unreachable_sca_findings,
     )
 
-    # Count the number of reachable and unreachable SCA findings adjustments made.
+    # Statistics to attach to the trace for performance analysis
     # Adjustments are just new SCA findings added to the rule_matches_by_rule map.
     unreachable_sca_adjustments = 0
     reachable_sca_adjustments = 0
+    num_reachability_rules = 0
+    num_dependencies = 0
 
     # create an index to help us find relevant dependencies by name quickly
     dependency_index: dict[
@@ -743,9 +745,9 @@ def adjust_matches_for_sca_rules(
     for ecosystem, subprojects in resolved_subprojects.items():
         dependency_index[ecosystem] = []
         for subproject in subprojects:
-            dependency_index[ecosystem].append(
-                (subproject, SubprojectDependencyIndex.from_subproject(subproject))
-            )
+            idx = SubprojectDependencyIndex.from_subproject(subproject)
+            dependency_index[ecosystem].append((subproject, idx))
+            num_dependencies += idx.num_deps
 
     for rule in dependency_aware_rules:
         if rule.should_run_on_semgrep_core:
@@ -770,6 +772,7 @@ def adjust_matches_for_sca_rules(
             rule_matches_by_rule[rule] = dep_rule_matches
             output_handler.handle_semgrep_errors(dep_rule_errors)
             reachable_sca_adjustments += len(dep_rule_matches)
+            num_reachability_rules += 1
 
             (
                 dep_rule_matches,
@@ -787,6 +790,7 @@ def adjust_matches_for_sca_rules(
             rule_matches_by_rule[rule].extend(dep_rule_matches)
             output_handler.handle_semgrep_errors(dep_rule_errors)
             unreachable_sca_adjustments += len(dep_rule_matches)
+
         else:
             (
                 dep_rule_matches,
@@ -805,10 +809,33 @@ def adjust_matches_for_sca_rules(
             output_handler.handle_semgrep_errors(dep_rule_errors)
             unreachable_sca_adjustments += len(dep_rule_matches)
 
+    span = telemetry.get_current_span()
+    span.set_attribute("num_dependencies", num_dependencies)
+    span.set_attribute("num_subprojects", len(resolved_subprojects))
+    span.set_attribute("num_rules", len(dependency_aware_rules))
+    span.set_attribute("num_reachable_matches", reachable_sca_adjustments)
+    span.set_attribute("num_unreachable_matches", unreachable_sca_adjustments)
+
     logger.verbose(
         f"SCA findings adjustment: Added {reachable_sca_adjustments} reachable and {unreachable_sca_adjustments} unreachable SCA findings\n"
     )
 
+    for fpath in sca_dependency_targets:
+        target = TargetInfo(
+            fpath=fpath,
+            original=None,
+        )
+        output_extra.all_targets.targets.add(target)
+
+
+@telemetry.trace()
+def build_dependencies_by_lockfile(
+    resolved_subprojects: Dict[Ecosystem, List[out.ResolvedSubproject]]
+) -> Dict[str, List[out.FoundDependency]]:
+    """
+    Produce a map from lockfile path to `FoundDependency` items for each lockfile. This is the
+    format that the app expects to receive dependencies in.
+    """
     # TODO(sal): anything below this line should be in a separate function.
     # It seems like we process something totally different here, and doesn't
     # make sense with adjusting matches.
@@ -853,13 +880,6 @@ def adjust_matches_for_sca_rules(
                         )
                     )
                 ].append(dep)
-
-    for fpath in sca_dependency_targets:
-        target = TargetInfo(
-            fpath=fpath,
-            original=None,
-        )
-        output_extra.all_targets.targets.add(target)
 
     return deps_by_lockfile
 
@@ -1008,7 +1028,7 @@ def run_rules(
 
     sca_symbol_analysis = None
     if running_sca_scan:
-        deps_by_lockfile = adjust_matches_for_sca_rules(
+        adjust_matches_for_sca_rules(
             rule_matches_by_rule=rule_matches_by_rule,
             dependency_aware_rules=dependency_aware_rules,
             resolved_subprojects=resolved_subprojects,
@@ -1033,6 +1053,8 @@ def run_rules(
                 logger.error(f"Error running subproject symbol analysis: {e}")
         else:
             sca_symbol_analysis = []
+
+        deps_by_lockfile = build_dependencies_by_lockfile(resolved_subprojects)
 
     else:
         logger.verbose("SCA findings adjustment: No SCA rules to adjust")
