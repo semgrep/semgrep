@@ -137,11 +137,6 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Install our fork of the compiler
 RUN make pin-ocaml-fork
 
-# note that we do not run 'make install-deps-for-semgrep-core' here because it
-# configures and builds ocaml-tree-sitter-core too; here we are
-# just concerned about installing external packages to maximize docker caching.
-RUN make install-opam-deps
-
 RUN make install-deps
 
 # List the dependencies we've installed and their versions
