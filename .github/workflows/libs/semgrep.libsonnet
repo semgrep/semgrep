@@ -106,6 +106,16 @@ local escapeStringJson = function(str)
 //           SLACK_BOT_TOKEN: ${{ secrets.R2C_SLACK_TOKEN }}
 // (but this need R2C_SLACK_TOKEN which was not added to the public semgrep repo)
 
+// Double escape quotes because they are nested in two layers of double quotes. Which still allows string interpolation at the bash level.
+local curl_notify(message) = |||
+  curl --request POST \
+   --url  "$NOTIFICATIONS_URL"  \
+   --header 'content-type: application/json' \
+   --data "{
+     \"text\": \"%s\"
+   }"
+||| % escapeStringJson(escapeStringJson(message));
+
 local slack = {
   // This will post on Slack on the #semgrep-cli-release channel from a
   // 'gha-notification' user.
@@ -114,16 +124,18 @@ local slack = {
   // #semgrep-cli-release at
   // https://semgrepinc.slack.com/apps/A0F7XDUAZ-incoming-webhooks?tab=settings&next_id=0
 
-  // Double escape quotes because they are nested in two layers of double quotes. Which still allows string interpolation at the bash level.
-  curl_notify(message): |||
-    curl --request POST \
-     --url  "$NOTIFICATIONS_URL" \
-     --header 'content-type: application/json' \
-     --data "{
-       \"text\": \"%s\"
-     }"
-  ||| % escapeStringJson(escapeStringJson(message)),
-
+  notify_success_job(message, env={}):
+    (if env == {} then {} else { env: env }) +
+    {
+      'runs-on': 'ubuntu-22.04',
+      'if': 'success()',
+      steps: [
+        {
+          env: { NOTIFICATIONS_URL: '${{ secrets.NOTIFICATIONS_URL }}' },
+          run: curl_notify(message),
+        },
+      ],
+    },
   notify_failure_job(message, env={}):
     (if env == {} then {} else { env: env }) +
     {
@@ -131,8 +143,8 @@ local slack = {
       'if': 'failure()',
       steps: [
         {
-          env: { NOTIFCATIONS_URL: '${{ secrets.NOTIFCATIONS_URL }}' },
-          run: slack.curl_notify(message),
+          env: { NOTIFICATIONS_URL: '${{ secrets.NOTIFICATIONS_URL}}' },
+          run: curl_notify(message),
         },
       ],
     },

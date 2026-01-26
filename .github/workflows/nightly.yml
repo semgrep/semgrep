@@ -22,10 +22,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - env:
-          NOTIFCATIONS_URL: ${{ secrets.NOTIFCATIONS_URL }}
+          NOTIFICATIONS_URL: ${{ secrets.NOTIFICATIONS_URL}}
         run: |
           curl --request POST \
-           --url  "$NOTIFICATIONS_URL" \
+           --url  "$NOTIFICATIONS_URL"  \
            --header 'content-type: application/json' \
            --data "{
              \"text\": \"The nightly cron failed on ${{ github.sha }}. See https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more information.\"

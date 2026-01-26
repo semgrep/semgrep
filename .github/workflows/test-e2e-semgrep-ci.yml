@@ -31,10 +31,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - env:
-          NOTIFCATIONS_URL: ${{ secrets.NOTIFCATIONS_URL }}
+          NOTIFICATIONS_URL: ${{ secrets.NOTIFICATIONS_URL}}
         run: |
           curl --request POST \
-           --url  "$NOTIFICATIONS_URL" \
+           --url  "$NOTIFICATIONS_URL"  \
            --header 'content-type: application/json' \
            --data "{
              \"text\": \"The End to end semgrep ci workflow failed with docker tag \\\"$DOCKER_TAG\\\". The PR in `semgrep/e2e` that had the failure was \\\"$PR_NUMBER\\\". See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info\"
