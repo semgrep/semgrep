@@ -193,4 +193,4 @@ regenerate-tests:
 
 .PHONY: setup
 setup:
-	uv sync --extra dev
+	uv sync

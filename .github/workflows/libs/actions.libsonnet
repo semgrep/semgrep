@@ -194,7 +194,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   install_python_deps(version='3.11', directory): {
     name: 'Install Python dependencies',
     'working-directory': directory,
-    run: 'uv python install %s && uv sync --extra dev' % version,
+    run: 'uv python install %s && uv sync' % version,
   },
 
   // ---------------------------------------------------------

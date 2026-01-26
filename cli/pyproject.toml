@@ -79,8 +79,10 @@ dependencies = [
   "pywin32==311; sys_platform == 'win32'",
 ]
 
-
-[project.optional-dependencies]
+[dependency-groups]
+# optional dev dependencies go here
+# when `uv sync` is invoked, `uv` automagically includes the dev group to be
+# installed.
 dev = [
   "appdirs",
   "mypy==0.931",
@@ -88,7 +90,6 @@ dev = [
   "pytest-timeout",
   "pytest-snapshot",
   "pytest-xdist",
-  "tox",
   "requests-mock",
   "pypi-parker",
   "pytest-freezer",
