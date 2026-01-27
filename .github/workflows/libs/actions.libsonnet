@@ -168,33 +168,21 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   // Python stuff
   // ---------------------------------------------------------
 
-  // Small wrapper around https://github.com/actions/setup-python
-  // TODO: maybe simplify callers now that has default version to 3.11
-  setup_python_step: function(version='3.11', cache=false) {
-    uses: uses.actions.setup_python,
-    with: {
-      'python-version': version,
-    } + (if (cache == false) then {} else {
-           // TODO where is this cache created?
-           // TODO at least force to specify the key?
-           // like 'cache-dependency-path': 'scripts/release/Pipfile.lock' ?
-           cache: cache,
-         }),
-  },
-  // We pin to a specific version just to prevent things from breaking randomly.
-  // This has been a source of breakage in the past.
-  //
   // We also pin uv version in the Dockerfile. So, if you are updating
   // the version here, update it there too.
-  uv_version: '0.9.26',
-  uv_install_step: {
+  default_uv_version: '0.9.26',
+  setup_python_step: function(version='3.11', cache='auto') {
     uses: uses.astral_sh.setup_uv,
-    with: { version: '%s' % $.uv_version },
+    with: {
+      'python-version': version,
+      version: $.default_uv_version,
+      'enable-cache': cache,
+    },
   },
-  install_python_deps(version='3.11', directory): {
+  install_python_deps(directory): {
     name: 'Install Python dependencies',
     'working-directory': directory,
-    run: 'uv python install %s && uv sync' % version,
+    run: 'uv sync',
   },
 
   // ---------------------------------------------------------
