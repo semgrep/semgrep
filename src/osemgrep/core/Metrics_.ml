@@ -238,6 +238,9 @@ let default_payload =
         fps = None;
         num_skips = None;
         skips = None;
+        oauth_id = None;
+        oauth_name = None;
+        oauth_email = None;
       };
   }
 

@@ -17,6 +17,7 @@ from typing import Any
 
 import requests
 from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.fastmcp.server import Context
 from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData
 from mcp.types import INTERNAL_ERROR
@@ -24,6 +25,7 @@ from mcp.types import INVALID_PARAMS
 
 from semgrep.app import auth
 from semgrep.git import git_check_output
+from semgrep.mcp.models import WhoamiResult
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DeploymentConfig
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
@@ -64,6 +66,35 @@ def findings_elicitation_enabled() -> bool:
         os.environ.get("SEMGREP_FINDINGS_ELICITATION_ENABLED", "false").lower()
         == "true"
     )
+
+
+async def get_workspace_dir(ctx: Context) -> str | None:
+    """
+    Get the workspace directory from the context
+
+    Note: We must invoke this method at request time, and not lifespan time,
+    because it relies on the `ctx.request_context`, which does not exist
+    when we initialize the server.
+    """
+    # This step fails when we are running tests, so I am wrapping it in a try/except
+    try:
+        # This URI is supposed to begin with `file://`
+        roots = await ctx.request_context.session.list_roots()
+        logger.debug(f"Got roots from client: {roots}")
+
+        # Just to be safe. It's probably impossible.
+        if len(roots.roots) == 0:
+            logger.warning("Somehow, no roots found")
+            return None
+
+        uri: str = str(roots.roots[0].uri)
+        path = uri[7:] if uri.startswith("file://") else uri
+
+        logger.debug(f"Determined path of workspace directory: {path}")
+
+        return path
+    except Exception:
+        return ""
 
 
 def get_semgrep_api_url() -> str:
@@ -195,6 +226,54 @@ def get_deployment_name_from_jwt() -> str:
             )
         )
     return str(deployment["name"])
+
+
+def get_current_user_from_jwt(access_token: str | None = None) -> WhoamiResult:
+    """
+    Returns the identity of the current user for a JWT access token.
+
+    NOTE: This only works with JWTs (not API tokens).
+    """
+    token = access_token or get_semgrep_access_token()
+    if not token:
+        raise McpError(ErrorData(code=INVALID_PARAMS, message="No access token found"))
+
+    url = f"{get_semgrep_api_url()}/auth/users/current"
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+
+    try:
+        response = requests.get(url, headers=headers, timeout=(2, 30))
+        response.raise_for_status()
+        payload: dict[str, Any] = response.json()
+        data = payload.get("user")
+        if not isinstance(data, dict):
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message="Malformed response from Semgrep: missing 'user' field",
+                )
+            )
+        return WhoamiResult.model_validate(data)
+    except requests.exceptions.HTTPError as e:
+        if e.response is not None and e.response.status_code == 401:
+            raise McpError(
+                ErrorData(
+                    code=INVALID_PARAMS,
+                    message="Invalid authorization: check if you are properly authenticated to the MCP server.",
+                )
+            ) from e
+        detail = e.response.text if e.response is not None else str(e)
+        raise McpError(
+            ErrorData(
+                code=INTERNAL_ERROR, message=f"Error getting current user: {detail}"
+            )
+        ) from e
+    except McpError:
+        raise
+    except Exception as e:
+        raise McpError(
+            ErrorData(code=INTERNAL_ERROR, message=f"Error getting current user: {e!s}")
+        ) from e
 
 
 def get_deployment_id() -> int | None:
