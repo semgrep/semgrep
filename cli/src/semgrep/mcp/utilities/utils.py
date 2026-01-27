@@ -12,9 +12,11 @@
 #
 import os
 import re
+from functools import lru_cache
 from typing import Any
 
 import requests
+from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData
 from mcp.types import INTERNAL_ERROR
@@ -24,6 +26,9 @@ from semgrep.app import auth
 from semgrep.git import git_check_output
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DeploymentConfig
 from semgrep.state import get_state
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 SETTINGS_FILENAME = "settings.yml"
 
@@ -42,6 +47,13 @@ def is_hosted() -> bool:
     Check if the user is using the hosted version of the MCP server.
     """
     return os.environ.get("SEMGREP_IS_HOSTED", "false").lower() == "true"
+
+
+def is_oauth_authenticated() -> bool:
+    """
+    Check if the user is authenticated using OAuth.
+    """
+    return get_access_token() is not None
 
 
 def findings_elicitation_enabled() -> bool:
@@ -101,6 +113,110 @@ def get_deployment_name_from_token(token: str | None) -> str | None:
     return deployment.name if deployment else None
 
 
+def get_deployment_from_jwt() -> dict[str, Any]:
+    """
+    Returns the deployment data the JWT is for.
+
+    Raises:
+        McpError: If unable to fetch deployment
+    """
+
+    token = get_semgrep_access_token()
+    if not token:
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message="No access token found. Please try connecting to the MCP server again",
+            )
+        )
+
+    url = f"{get_semgrep_api_url()}/v2/deployments"
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+
+    try:
+        request = requests.get(url, headers=headers, timeout=(2, 30))
+        request.raise_for_status()
+        data = request.json()
+
+        deployments = data.get("deployments", [])
+        if len(deployments) == 0:
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message="No deployments found for this API token",
+                )
+            )
+
+        return dict(deployments[0])
+
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            raise McpError(
+                ErrorData(
+                    code=INVALID_PARAMS,
+                    message="Invalid authorization: check if you are properly authenticated to the MCP server.",
+                )
+            ) from e
+        else:
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Error fetching deployments: {e.response.text}",
+                )
+            ) from e
+    except Exception as e:
+        raise McpError(
+            ErrorData(
+                code=INTERNAL_ERROR,
+                message=f"Error fetching deployments from Semgrep: {e!s}",
+            )
+        ) from e
+
+
+def get_deployment_id_from_jwt() -> int:
+    deployment = get_deployment_from_jwt()
+    if deployment.get("id") is None:
+        raise McpError(
+            ErrorData(
+                code=INTERNAL_ERROR,
+                message="No deployment ID found. Try reconnecting to the MCP server.",
+            )
+        )
+    return int(deployment["id"])
+
+
+def get_deployment_name_from_jwt() -> str:
+    deployment = get_deployment_from_jwt()
+    if deployment.get("name") is None:
+        raise McpError(
+            ErrorData(
+                code=INTERNAL_ERROR,
+                message="No deployment name found. Try reconnecting to the MCP server.",
+            )
+        )
+    return str(deployment["name"])
+
+
+def get_deployment_id() -> int | None:
+    """
+    Returns the deployment ID, if it exists. Gets id from JWT if hosted, app token if not.
+    """
+    if is_oauth_authenticated():
+        return get_deployment_id_from_jwt()
+    else:
+        return get_deployment_id_from_token(get_semgrep_app_token())
+
+
+def get_deployment_name() -> str | None:
+    """
+    Returns the deployment name, if it exists. Gets name from JWT if hosted, app token if not.
+    """
+    if is_oauth_authenticated():
+        return get_deployment_name_from_jwt()
+    else:
+        return get_deployment_name_from_token(get_semgrep_app_token())
+
+
 def run_git_command(workspace_dir: str | None, args: list[str]) -> str:
     if workspace_dir is None:
         return "unknown"
@@ -120,6 +236,7 @@ def get_git_info(workspace_dir: str | None) -> dict[str, str]:
 async def get_identity() -> dict[str, Any]:
     """
     Fetches the identity from Semgrep API.
+    Only works with API tokens (not JWTs).
 
     Returns:
         dict[str, Any]: The identity object
@@ -174,3 +291,37 @@ async def get_identity() -> dict[str, Any]:
                 message=f"Error fetching deployments from Semgrep: {e!s}",
             )
         ) from e
+
+
+def get_semgrep_access_token() -> str | None:
+    """
+    Returns the JWT access token, if it exists.
+    """
+    token = get_access_token()
+    if token:
+        return token.token
+
+    return None
+
+
+@lru_cache(maxsize=1)
+def get_oauth_authorization_server_metadata(semgrep_api_url: str) -> dict[str, str]:
+    oauth_url = f"{semgrep_api_url}/auth/oauth2/.well-known/oauth-authorization-server"
+    response = requests.get(oauth_url, timeout=(2, 30))
+    metadata = response.json()
+    return dict(metadata)
+
+
+def get_authorization_server_url(semgrep_api_url: str) -> str:
+    metadata = get_oauth_authorization_server_metadata(semgrep_api_url)
+    return metadata["issuer"]
+
+
+def get_authorization_server_jwks_uri(semgrep_api_url: str) -> str:
+    metadata = get_oauth_authorization_server_metadata(semgrep_api_url)
+    return metadata["jwks_uri"]
+
+
+def get_authorization_server_introspection_endpoint(semgrep_api_url: str) -> str:
+    metadata = get_oauth_authorization_server_metadata(semgrep_api_url)
+    return metadata["introspection_endpoint"]
