@@ -171,7 +171,6 @@ local test_cli_job = {
     [
       fetch_submodules_step,
       actions.setup_python_step('${{ matrix.python }}'),
-      actions.uv_install_step,
       install_python_deps,
       download_x86_artifacts,
       install_x86_artifacts,
@@ -225,7 +224,6 @@ local test_qa_job = {
         run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
       },
       actions.setup_python_step(semgrep.python_version),
-      actions.uv_install_step,
       download_x86_artifacts,
       install_x86_artifacts,
       // TODO: mostly like install_python_deps with PATH adjustment
@@ -273,7 +271,6 @@ local bench_prepare_steps =
   [
     fetch_submodules_step,
     actions.setup_python_step(semgrep.default_python_version),
-    actions.uv_install_step,
     download_x86_artifacts,
     install_x86_artifacts,
     install_python_deps,
