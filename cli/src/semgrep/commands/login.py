@@ -69,7 +69,7 @@ def login(override_tty: bool, force: bool) -> NoReturn:
             click.echo(
                 f"API token already exists in {state.settings.path}. To login with a different token logout use `semgrep logout`"
             )
-            sys.exit(FATAL_EXIT_CODE)
+            sys.exit(0)
 
         # If the token is provided as an environment variable, save it to the settings file.
         if state.env.app_token is not None and len(state.env.app_token) > 0:
