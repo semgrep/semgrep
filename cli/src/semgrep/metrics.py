@@ -41,6 +41,7 @@ from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
 from semgrep.mcp.models import SemgrepScanResult
+from semgrep.mcp.models import WhoamiResult
 from semgrep.parsing_data import ParsingData
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
@@ -583,6 +584,15 @@ class Metrics:
                 self.payload.mcp.git_branch = git_info["branch"]
         except Exception as e:
             self.log_exception("add_mcp_git_info", e)
+
+    def add_mcp_oauth_info(self, oauth_info: Optional[WhoamiResult]) -> None:
+        try:
+            if oauth_info:
+                self.payload.mcp.oauth_id = str(oauth_info.id)
+                self.payload.mcp.oauth_name = oauth_info.name
+                self.payload.mcp.oauth_email = oauth_info.email
+        except Exception as e:
+            self.log_exception("add_mcp_oauth_info", e)
 
     def add_mcp_error(self, error: str) -> None:
         try:

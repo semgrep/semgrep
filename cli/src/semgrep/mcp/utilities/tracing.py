@@ -28,14 +28,19 @@ from ruamel.yaml import YAML
 
 from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import SemgrepScanResult
+from semgrep.mcp.models import WhoamiResult
+from semgrep.mcp.semgrep_context import SemgrepContext
 from semgrep.mcp.utilities.utils import get_anonymous_user_id
+from semgrep.mcp.utilities.utils import get_current_user_from_jwt
 from semgrep.mcp.utilities.utils import get_deployment_id
 from semgrep.mcp.utilities.utils import get_deployment_id_from_token
 from semgrep.mcp.utilities.utils import get_deployment_name
 from semgrep.mcp.utilities.utils import get_deployment_name_from_token
 from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
+from semgrep.mcp.utilities.utils import get_workspace_dir
 from semgrep.mcp.utilities.utils import is_hosted
+from semgrep.mcp.utilities.utils import is_oauth_authenticated
 from semgrep.metrics import Finding
 from semgrep.metrics import MetricsState
 from semgrep.state import get_state
@@ -72,6 +77,19 @@ def attach_git_info(span: trace.Span | None, workspace_dir: str | None) -> None:
     state.metrics.add_mcp_git_info(git_info)
 
 
+def attach_oauth_info(span: trace.Span | None, context: SemgrepContext) -> None:
+    if span is None:
+        return
+    if context.oauth_info is None:
+        return
+    oauth_info: WhoamiResult = context.oauth_info
+    span.set_attribute("metrics.oauth_info.id", str(oauth_info.id))
+    span.set_attribute("metrics.oauth_info.name", oauth_info.name)
+    span.set_attribute("metrics.oauth_info.email", oauth_info.email)
+    state = get_state()
+    state.metrics.add_mcp_oauth_info(oauth_info)
+
+
 def attach_metrics(
     span: trace.Span | None,
     version: str,
@@ -90,7 +108,6 @@ def attach_metrics(
     span.set_attribute("metrics.num_findings", len(findings))
     span.set_attribute("metrics.num_errors", len(errors))
     attach_git_info(span, workspace_dir)
-    span.set_attribute("metrics.anonymous_user_id", get_anonymous_user_id())
     span.set_attribute("metrics.num_lines_scanned", num_lines_scanned)
     # TODO: the actual findings and errors (not just the number). This might require
     # us setting up Datadog metrics and not just tracing.
@@ -171,6 +188,7 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
     else:
         (endpoint, env) = get_trace_endpoint()
         deployment_id = get_deployment_id()
+        oauth_info = get_current_user_from_jwt() if is_oauth_authenticated() else None
 
         state.telemetry.configure(
             True,
@@ -181,6 +199,9 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
                 "metrics.deployment_id": str(deployment_id) if deployment_id else "",
                 "metrics.deployment_name": get_deployment_name() or "",
                 "metrics.anonymous_user_id": get_anonymous_user_id(),
+                "metrics.oauth_info.id": str(oauth_info.id) if oauth_info else "",
+                "metrics.oauth_info.name": oauth_info.name if oauth_info else "",
+                "metrics.oauth_info.email": oauth_info.email if oauth_info else "",
             },
         )
 
@@ -263,7 +284,11 @@ def with_tool_span(
                     tool_name=name,
                 )
 
-            with with_span(context.top_level_span, name):
+            with with_span(context.top_level_span, name) as span:
+                if send_metrics:
+                    workspace_dir = await get_workspace_dir(ctx)
+                    attach_oauth_info(span, context)
+                    attach_git_info(span, workspace_dir)
                 try:
                     result = await func(ctx, *args, **kwargs)
                     logger.info(f"{name} succeeded")
@@ -323,9 +348,15 @@ def with_hook_span(
                 )
 
             with with_span(top_level_span, name):
-                result = await func(top_level_span, *args, **kwargs)
-                tag_and_send_metrics(send_metrics, is_semgrep_scan)
-                return result
+                try:
+                    result = await func(top_level_span, *args, **kwargs)
+                    tag_and_send_metrics(send_metrics, is_semgrep_scan)
+                    return result
+                except Exception as e:
+                    logger.info(f"{name} failed: {e}")
+                    state.metrics.add_mcp_error(str(e))
+                    tag_and_send_metrics(send_metrics, is_semgrep_scan)
+                    raise e
 
         return wrapper
 

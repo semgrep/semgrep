@@ -21,6 +21,7 @@ import httpx
 from opentelemetry import trace
 from pydantic import BaseModel
 
+from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
 
@@ -43,9 +44,12 @@ class UserPromptSubmitHookResponse(BaseModel):
     hookSpecificOutput: HookSpecificOutput
 
 
-def get_hook_event_name() -> str:
+def get_hook_event_name() -> tuple[str, str]:
+    """
+    Returns the hook event name and the current working directory
+    """
     hook_data = json.load(sys.stdin)
-    return str(hook_data["hook_event_name"])
+    return (str(hook_data["hook_event_name"]), str(hook_data["cwd"]))
 
 
 def is_cache_fresh() -> bool:
@@ -144,6 +148,9 @@ async def run_inject_secure_defaults_hook_async(
     top_level_span: trace.Span | None, inject_short_context: bool
 ) -> UserPromptSubmitHookResponse:
     """Main hook logic to inject security guidance."""
+    hook_event_name, cwd = get_hook_event_name()
+    attach_git_info(trace.get_current_span(), cwd)
+
     content = await get_secure_defaults_context(inject_short_context)
     additional_context = f"""## Security Guidance: Secure-by-Default Libraries
 
@@ -156,7 +163,7 @@ async def run_inject_secure_defaults_hook_async(
 
     return UserPromptSubmitHookResponse(
         hookSpecificOutput=HookSpecificOutput(
-            hookEventName=get_hook_event_name(),
+            hookEventName=hook_event_name,
             additionalContext=additional_context,
         )
     )
