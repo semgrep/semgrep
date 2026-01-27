@@ -36,6 +36,7 @@ from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semdep.parsers.util import whitespace
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -247,6 +248,7 @@ def _build_found_dependencies(
     return result
 
 
+@telemetry.trace()
 def parse_mix(
     lockfile_path: Path, manifest_path: Path | None
 ) -> tuple[list[FoundDependency], list[DependencyParserError]]:
