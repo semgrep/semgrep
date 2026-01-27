@@ -1,0 +1,1 @@
+Connecting to the Semgrep MCP server via streamableHttp and SSE now requires OAuth.
