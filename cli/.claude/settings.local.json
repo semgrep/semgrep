@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/jessie/projects/semgrep-proprietary/OSS/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

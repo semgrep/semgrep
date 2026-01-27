@@ -68,6 +68,15 @@ if WHEEL_CMD in sys.argv:
 else:
     cmdclass = {}
 
+# setting readme logic, taken out in pull/5420 but brought back temporarily
+try:
+    with open(os.path.join(REPO_ROOT, "README.md")) as f:
+        long_description = f.read()
+except FileNotFoundError:
+    long_description = "**SETUP: README NOT FOUND**"
+
 setuptools.setup(
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     cmdclass=cmdclass,
 )
