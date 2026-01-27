@@ -41,6 +41,7 @@ from semdep.parsers.util import pair
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -259,6 +260,7 @@ def parse_pyproject_toml(
     return manifest_deps
 
 
+@telemetry.trace()
 def parse_poetry(
     lockfile_path: Path,
     manifest_path: Optional[Path],

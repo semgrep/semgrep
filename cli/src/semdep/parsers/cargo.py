@@ -16,10 +16,12 @@ from typing import List
 from typing import Optional
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 
 
+@telemetry.trace()
 def parse_cargo(
     lockfile_path: Path, lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:

@@ -27,6 +27,7 @@ from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
+from semgrep import telemetry
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
@@ -36,7 +37,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
-
 
 # Pre-compiled regex patterns for better performance since they are used multiple times
 PACKAGE_KEY_PATTERN_PRE_V6 = re.compile(r"/(.+)/([^/]+)")
@@ -476,6 +476,7 @@ def parse_dep_children_post_v9(
 
 
 # Main Course
+@telemetry.trace()
 def parse_pnpm(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
