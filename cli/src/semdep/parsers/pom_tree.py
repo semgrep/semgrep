@@ -29,6 +29,7 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import ParsedDependency
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -120,6 +121,7 @@ def get_children(deps: List[Any]) -> List[ParsedDependency]:
     return results
 
 
+@telemetry.trace()
 def parse_pom_tree(
     tree_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

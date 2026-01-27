@@ -44,6 +44,7 @@ from semdep.parsers.util import quoted
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -318,6 +319,7 @@ def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
         return "#".join(s.split("#")[:-1]) if "#" in s else s
 
 
+@telemetry.trace()
 def parse_yarn(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
