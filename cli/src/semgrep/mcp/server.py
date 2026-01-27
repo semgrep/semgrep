@@ -32,6 +32,7 @@ from semgrep.mcp.models import CodePath
 from semgrep.mcp.models import Finding
 from semgrep.mcp.models import FindingElicitationSchema
 from semgrep.mcp.models import SemgrepScanResult
+from semgrep.mcp.models import WhoamiResult
 from semgrep.mcp.semgrep import mk_context
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.semgrep import run_semgrep_process_sync
@@ -43,7 +44,10 @@ from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_span
 from semgrep.mcp.utilities.tracing import with_tool_span
 from semgrep.mcp.utilities.utils import findings_elicitation_enabled
+from semgrep.mcp.utilities.utils import get_authorization_server_url
 from semgrep.mcp.utilities.utils import get_identity
+from semgrep.mcp.utilities.utils import get_oauth_authorization_server_metadata
+from semgrep.mcp.utilities.utils import get_semgrep_access_token
 from semgrep.mcp.utilities.utils import get_semgrep_api_url
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import is_hosted
@@ -496,6 +500,7 @@ async def get_supported_languages(ctx: Context) -> list[str]:
 async def get_deployment_slug() -> str:
     """
     Fetches and caches the deployment slug from Semgrep API.
+    Only works with API tokens (not JWTs).
 
     Returns:
         str: The deployment slug
@@ -683,7 +688,9 @@ async def semgrep_findings(
         response = requests.get(url, headers=headers, params=params, timeout=(2, 30))
         response.raise_for_status()
         data = response.json()
-        return [Finding.model_validate(finding) for finding in data.get("findings", [])]
+        findings = data.get("findings", [])
+        logger.info(f"Found {len(findings)} findings")
+        return [Finding.model_validate(finding) for finding in findings]
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
             raise McpError(
@@ -1111,6 +1118,39 @@ async def semgrep_scan(
     return await semgrep_scan_core(ctx, workspace_dir, validated_local_files)
 
 
+@with_tool_span(is_semgrep_scan=False)
+async def semgrep_whoami(ctx: Context) -> WhoamiResult:
+    """
+    Returns the identity of the current user.
+
+    NOTE: This tool only works with JWTs (not API tokens)!
+
+    Use this tool when you need to get the identity of the current user
+    """
+    access_token = get_semgrep_access_token()
+    if not access_token:
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message="No access token found",
+            )
+        )
+    try:
+        url = f"{get_semgrep_api_url()}/auth/users/current"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+        }
+        response = requests.get(url, headers=headers, timeout=(2, 30))
+        response.raise_for_status()
+        data: dict[str, Any] = response.json()["user"]
+        return WhoamiResult.model_validate(data)
+    except Exception as e:
+        raise McpError(
+            ErrorData(code=INTERNAL_ERROR, message=f"Error getting current user: {e!s}")
+        ) from e
+
+
 # ---------------------------------------------------------------------------------
 # MCP Prompts
 # ---------------------------------------------------------------------------------
@@ -1289,6 +1329,25 @@ TOOL_DISABLE_ENV_VARS = {
 }
 
 
+def setup_oauth_routes(mcp: FastMCP, server_url: str) -> None:
+    @mcp.custom_route("/.well-known/oauth-authorization-server", methods=["GET"])  # type: ignore
+    async def oauth_authorization_server_route(request: Request) -> JSONResponse:
+        metadata = get_oauth_authorization_server_metadata(get_semgrep_api_url())
+        return JSONResponse(metadata)
+
+    @mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])  # type: ignore
+    async def oauth_protected_resource_route(request: Request) -> JSONResponse:
+        authorization_server = get_authorization_server_url(get_semgrep_api_url())
+        return JSONResponse(
+            {
+                "resource": f"{server_url}/mcp",
+                "authorization_servers": [authorization_server],
+                "scopes_supported": ["openid", "profile", "email", "offline_access"],
+                "bearer_methods_supported": ["header"],
+            }
+        )
+
+
 def register(mcp: FastMCP) -> None:
     # tools
     mcp.add_tool(semgrep_rule_schema)
@@ -1299,6 +1358,7 @@ def register(mcp: FastMCP) -> None:
     mcp.add_tool(semgrep_scan_remote)
     mcp.add_tool(get_abstract_syntax_tree)
     mcp.add_tool(semgrep_scan_supply_chain)
+    mcp.add_tool(semgrep_whoami)
 
     # prompts
     mcp.add_prompt(Prompt.from_function(write_custom_semgrep_rule))
@@ -1327,7 +1387,7 @@ def register(mcp: FastMCP) -> None:
     )
 
 
-def deregister_tools(mcp: FastMCP) -> None:
+def deregister_tools(mcp: FastMCP, transport: str) -> None:
     for env_var, tool_name in TOOL_DISABLE_ENV_VARS.items():
         is_disabled = os.environ.get(env_var, "false").lower() == "true"
 
@@ -1342,3 +1402,19 @@ def deregister_tools(mcp: FastMCP) -> None:
         del mcp._tool_manager._tools["semgrep_scan_supply_chain"]
     else:
         del mcp._tool_manager._tools["semgrep_scan_remote"]
+
+    if transport != "stdio":
+        # The semgrep_findings tool requires API tokens (not JWTs), so it
+        # only works when connecting to the MCP server via stdio (the only
+        # transport that doesn't require OAuth and uses API tokens).
+        #
+        # TODO: reenable it once we make it work with JWTs
+        del mcp._tool_manager._tools["semgrep_findings"]
+    else:
+        # The whoami tool doesn't work via stdio since it requires a JWT token,
+        # which you can only get when connecting to the MCP server via streamable-http or sse
+        # (which require OAuth).
+        #
+        # TODO?: if we implement OAuth for connecting to the MCP server locally,
+        # we could enable it via stdio
+        del mcp._tool_manager._tools["semgrep_whoami"]
