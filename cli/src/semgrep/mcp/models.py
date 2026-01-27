@@ -45,6 +45,13 @@ class CodeWithLanguage(BaseModel):
     )
 
 
+class WhoamiResult(BaseModel):
+    id: int = Field(description="ID of the current user")
+    name: str = Field(description="Name of the current user")
+    email: str = Field(description="Email of the current user")
+    login: str = Field(description="Login of the current user")
+
+
 class SemgrepScanResult(BaseModel):
     version: str = Field(description="Version of Semgrep used for the scan")
     results: list[dict[str, Any]] = Field(description="List of semgrep scan results")
