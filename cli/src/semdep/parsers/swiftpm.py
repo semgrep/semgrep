@@ -36,13 +36,13 @@ from semdep.parsers.util import rparen
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import whitespace
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -315,6 +315,7 @@ def parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
     return result
 
 
+@telemetry.trace()
 def parse_package_resolved(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
