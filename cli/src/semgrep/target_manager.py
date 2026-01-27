@@ -41,6 +41,7 @@ from typing import Union
 import semgrep.rpc_call
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.subproject_matchers import filter_dependency_source_files
+from semgrep import telemetry
 from semgrep.git import BaselineHandler
 from semgrep.simple_profiling import simple_profiling
 from semgrep.util import IS_WINDOWS
@@ -1098,6 +1099,7 @@ class TargetManager:
         return FilteredFiles(frozenset(candidates - removed), frozenset(removed))
 
     @lru_cache(maxsize=None)
+    @telemetry.trace()
     def get_all_files(
         self,
         *,
@@ -1108,6 +1110,10 @@ class TargetManager:
             FrozenSet[str]
         ] = None,
     ) -> FrozenSet[Target]:
+        span = telemetry.get_current_span()
+        span.set_attribute("product", str(product))
+        span.set_attribute("ignore_baseline_handler", str(ignore_baseline_handler))
+        span.set_attribute("respect_gitignore", str(respect_gitignore))
         scanning_roots = self.scanning_roots
         return frozenset(
             selected_file
