@@ -11,9 +11,13 @@
 # LICENSE for more details.
 #
 import os
+import sys
 
 import click
+from mcp.server.auth.settings import AuthSettings
+from mcp.server.auth.settings import ClientRegistrationOptions
 from mcp.server.fastmcp import FastMCP
+from pydantic import AnyHttpUrl
 
 from semgrep import __VERSION__
 from semgrep.mcp.hooks.inject_secure_defaults import run_inject_secure_defaults_hook
@@ -21,8 +25,12 @@ from semgrep.mcp.hooks.post_tool import run_post_tool_scan_cli
 from semgrep.mcp.hooks.stop import run_after_file_edit_hook
 from semgrep.mcp.hooks.stop import run_stop_scan_cli
 from semgrep.mcp.server import deregister_tools
+from semgrep.mcp.server import get_authorization_server_url
+from semgrep.mcp.server import get_semgrep_api_url
 from semgrep.mcp.server import register
 from semgrep.mcp.server import server_lifespan
+from semgrep.mcp.server import setup_oauth_routes
+from semgrep.mcp.utilities.token_verifier import make_token_verifier
 from semgrep.verbose_logging import getLogger
 
 
@@ -33,6 +41,39 @@ INJECT_SECURE_DEFAULTS_FLAG = "inject-secure-defaults"
 INJECT_SHORT_CONTEXT_FLAG = "inject-secure-defaults-short"
 STOP_CLI_SCAN_FLAG = "stop-cli-scan"
 RECORD_FILE_EDIT_HOOK_FLAG = "record-file-edit"
+
+
+def setup_mcp_server(host: str, port: int) -> FastMCP:
+    server_url = f"http://{host}:{port}"
+    semgrep_api_url = get_semgrep_api_url()
+    authorization_server_url = get_authorization_server_url(semgrep_api_url)
+    auth_settings = AuthSettings(
+        issuer_url=AnyHttpUrl(authorization_server_url),
+        resource_server_url=AnyHttpUrl(server_url),
+        required_scopes=[],
+        client_registration_options=ClientRegistrationOptions(
+            enabled=True,
+            client_secret_expiry_seconds=3600,
+            valid_scopes=["openid", "profile", "email", "offline_access"],
+            default_scopes=["openid", "profile", "email", "offline_access"],
+        ),
+    )
+    token_verifier = make_token_verifier(server_url, semgrep_api_url)
+
+    mcp = FastMCP(
+        "Semgrep",
+        stateless_http=False,
+        json_response=True,
+        lifespan=server_lifespan,
+        port=port,
+        auth=auth_settings,
+        token_verifier=token_verifier,
+    )
+
+    setup_oauth_routes(mcp, server_url)
+
+    return mcp
+
 
 # ---------------------------------------------------------------------------------
 # MCP Server Entry Point
@@ -125,21 +166,23 @@ def semgrep_mcp(transport: str, port: int, hook: str | None, agent: str) -> None
     # Create a fast MCP server
     # Note: stateless_http should be False for proper session management
     # When True, it causes ClosedResourceError in streamable-http transport
-    mcp = FastMCP(
-        "Semgrep",
-        stateless_http=False,
-        json_response=True,
-        lifespan=server_lifespan,
-        port=port,
-    )
+
+    mcp = setup_mcp_server("localhost", port)
 
     # based on env vars, disable certain tools
     register(mcp)
-    deregister_tools(mcp)
+    deregister_tools(mcp, transport)
 
-    if transport == "stdio":
-        mcp.run(transport="stdio")
-    elif transport == "streamable-http":
-        mcp.run(transport="streamable-http")
-    else:
-        raise ValueError(f"Invalid transport: {transport}")
+    try:
+        if transport == "stdio":
+            mcp.run(transport="stdio")
+        elif transport == "streamable-http":
+            mcp.run(transport="streamable-http")
+        else:
+            raise ValueError(f"Invalid transport: {transport}")
+    except KeyboardInterrupt:
+        logger.info("Stopping MCP server")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Error running MCP server: {e}")
+        raise

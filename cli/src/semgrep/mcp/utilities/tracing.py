@@ -29,7 +29,9 @@ from ruamel.yaml import YAML
 from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.utilities.utils import get_anonymous_user_id
+from semgrep.mcp.utilities.utils import get_deployment_id
 from semgrep.mcp.utilities.utils import get_deployment_id_from_token
+from semgrep.mcp.utilities.utils import get_deployment_name
 from semgrep.mcp.utilities.utils import get_deployment_name_from_token
 from semgrep.mcp.utilities.utils import get_git_info
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
@@ -168,8 +170,7 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
         yield None
     else:
         (endpoint, env) = get_trace_endpoint()
-
-        deployment_id = get_deployment_id_from_token(get_semgrep_app_token())
+        deployment_id = get_deployment_id()
 
         state.telemetry.configure(
             True,
@@ -178,10 +179,7 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
             {
                 "metrics.is_hosted": is_hosted(),
                 "metrics.deployment_id": str(deployment_id) if deployment_id else "",
-                "metrics.deployment_name": get_deployment_name_from_token(
-                    get_semgrep_app_token()
-                )
-                or "",
+                "metrics.deployment_name": get_deployment_name() or "",
                 "metrics.anonymous_user_id": get_anonymous_user_id(),
             },
         )
@@ -259,11 +257,8 @@ def with_tool_span(
                 # Clear the metrics set by the previous tool call
                 state.metrics.clear_mcp()
                 state.metrics.add_mcp(
-                    deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
-                    deployment_name=get_deployment_name_from_token(
-                        get_semgrep_app_token()
-                    )
-                    or "",
+                    deployment_id=get_deployment_id(),
+                    deployment_name=get_deployment_name() or "",
                     session_id=context.session_id,
                     tool_name=name,
                 )
@@ -317,11 +312,12 @@ def with_hook_span(
             if send_metrics:
                 state.metrics.clear_mcp()
                 state.metrics.add_mcp(
+                    # Hooks require local installation of Semgrep,
+                    # so we use the app token to get the deployment id and name.
                     deployment_id=get_deployment_id_from_token(get_semgrep_app_token()),
                     deployment_name=get_deployment_name_from_token(
                         get_semgrep_app_token()
-                    )
-                    or "",
+                    ),
                     session_id="hook",  # TODO: No session id for hooks yet, using a placeholder
                     tool_name=name,
                 )
