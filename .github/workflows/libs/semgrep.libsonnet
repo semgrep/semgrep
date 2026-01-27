@@ -199,7 +199,7 @@ local osemgrep_test_steps_after_checkout = [
       apk add --no-cache python3 py3-pip
       pip install --no-cache-dir --ignore-installed --break-system-packages distlib uv==%s
       (cd cli; uv sync)
-    ||| % actions.uv_version,
+    ||| % actions.default_uv_version,
   },
   {
     name: 'Run pytest for osemgrep known passing tests',
@@ -294,7 +294,7 @@ local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' els
 //TODO always want to include semgrep pro ...
 local build_wheel_steps(arch, platform, copy_semgrep_pro=false) =
   [
-    actions.setup_python_step(cache='pip'),
+    actions.setup_python_step(),
     {
       name: 'Untar artifacts',
       run: |||
@@ -372,14 +372,14 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
 ] + unpack_wheel_steps + [
   {
     name: 'install package',
-    run: 'pip3 install dist/*.whl',
+    run: 'uv venv && uv pip install dist/*.whl',
   },
   {
-    run: 'semgrep --version',
+    run: 'uv run semgrep --version',
   },
   {
     name: 'e2e semgrep-core test',
-    run: "echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -",
+    run: "echo '1 == 1' | uv run semgrep -l python -e '$X == $X' --strict -",
   },
 
 ];
