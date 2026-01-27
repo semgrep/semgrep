@@ -1,61 +1,72 @@
 {
   src ? ./cli,
 }:
-{ pkgs, semgrep }:
+{
+  pkgs,
+  semgrep,
+  uv2nix,
+  pyproject-nix,
+  pyproject-build-systems,
+}:
+# We use uv2nix to do python nix stuff
+# https://pyproject-nix.github.io/uv2nix/usage/getting-started.html
 let
-  pythonPkgs = pkgs.python312Packages;
+  python = pkgs.python3;
+  inherit (pkgs.callPackages pyproject-nix.build.util { }) mkApplication;
 
-  # TODO add opentelemetry-instrumentation-threading as a nix package
-  # to get working
-  # We also probably want to switch to uv since this approach is fragile
-  #
-  # For now we can just use pipenv
-  # pysemgrep inputs pulled from pipfile
-  # pydepsFromPipfile =
-  #   setupPy: pipfile: type:
-  #   let
-  #     pipfileLockInputs'' = with builtins; (attrNames ((fromJSON (readFile (pipfile))).${type}));
-  #     # remove semgrep from the lockfile inputs
-  #     pipfileLockInputs' = pkgs.lib.lists.remove "semgrep" pipfileLockInputs'';
-
-  #     setupPyFile = (builtins.readFile setupPy);
-  #     # check if the package is in the setup.py before adding it to the list
-  #     isInSetupPy = name: (builtins.match ".*${name}.*" setupPyFile) != null;
-  #     # filter out Windows-specific packages that aren't available in Nix
-  #     isNotWindowsOnly = name: !(builtins.elem name [ "pywin32" ]);
-  #     pipfileLockInputs = builtins.filter (
-  #       name: isInSetupPy name && isNotWindowsOnly name
-  #     ) pipfileLockInputs';
-  #     # replace . with -
-  #   in
-  #   builtins.map (name: builtins.replaceStrings [ "." ] [ "-" ] name) pipfileLockInputs;
-
-  # pipfile = src + "/Pipfile.lock";
-  # setupPy = src + "/setup.py";
-  # pythonInputs = builtins.map (name: pythonPkgs.${name})
-  #   (pydepsFromPipfile setupPy pipfile "default");
-
-  # devPythonInputs = builtins.map (name: pythonPkgs.${name})
-  #  ((pydepsFromPipfile pipfile "develop"));
-
-  devPkgs = [ pkgs.pipenv ];
-
-  pysemgrep = pythonPkgs.buildPythonApplication {
-    # thanks to @06kellyjac
-    pname = "pysemgrep";
-    inherit (semgrep) version;
-    inherit src;
-
-    pyproject = true;
-    build-system = [ pythonPkgs.setuptools ];
-
-    propagatedBuildInputs = [ semgrep ];
-    # Stops weird long step when entering shell
-    dontUseSetuptoolsShellHook = true;
+  workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = src; };
+  # overlay of all python packages that are semgrep dependencies
+  pythonOverlay = workspace.mkPyprojectOverlay {
+    sourcePreference = "wheel";
   };
+  # Editable for dev environment, so we can edit the source code directly
+  # and still have the cli command semgrep work
+  editableOverlay = workspace.mkEditablePyprojectOverlay {
+    root = "$REPO_ROOT";
+  };
+  # generate the python packages, one is
+  pythonSet =
+    (pkgs.callPackage pyproject-nix.build.packages {
+      inherit python;
+    }).overrideScope
+      (
+        pkgs.lib.composeManyExtensions [
+          pyproject-build-systems.overlays.wheel
+          pythonOverlay
+        ]
+      );
+  venv = pythonSet.mkVirtualEnv "pysemgrep-env" workspace.deps.default;
+
+  devPythonSet = pythonSet.overrideScope editableOverlay;
+  devVenv = devPythonSet.mkVirtualEnv "pysemgrep-dev-env" workspace.deps.all;
+
+  devPkgs = [
+    devVenv
+    pkgs.uv
+  ];
+  devEnv = {
+    UV_NO_SYNC = "1"; # nix manages the packages so don't let uv do it
+    UV_PYTHON_DOWNLOADS = "never"; # don't let uv manage downloads
+    UV_PYTHON = devPythonSet.python.interpreter; # force uv to use our python
+  };
+
+  pysemgrep =
+    (mkApplication {
+      inherit venv;
+      package = pythonSet.semgrep;
+    }).overrideAttrs
+      (old: {
+        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeBinaryWrapper ];
+        # add ${semgrep}/bin to PATH so semgrep can find its ocaml binaries
+        buildCommand = old.buildCommand + ''
+          wrapProgram $out/bin/semgrep \
+            --prefix PATH : ${pkgs.lib.makeBinPath [ semgrep ]}
+          wrapProgram $out/bin/pysemgrep \
+            --prefix PATH : ${pkgs.lib.makeBinPath [ semgrep ]}
+        '';
+      });
 in
 {
   pkg = pysemgrep;
-  devEnv = { };
-  inherit devPkgs;
+  inherit devEnv devPkgs;
 }
