@@ -357,9 +357,8 @@ shell-pure-test:
 nix-semgrep:
 	$(NIX) build ".?submodules=1#semgrep"
 
-nix-pysemgrep:
-	$(NIX) build ".?submodules=1#pysemgrep"
-
+nix-semgrep-core:
+	$(NIX) build ".?submodules=1#semgrep-core"
 
 # Build + run tests (doesn't run python tests yet)
 nix-check:
