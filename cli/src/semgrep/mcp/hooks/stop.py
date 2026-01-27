@@ -26,6 +26,7 @@ from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.server import create_temp_files_from_code_content
 from semgrep.mcp.server import get_semgrep_scan_args
 from semgrep.mcp.server import validate_local_files
+from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
@@ -87,9 +88,15 @@ def clear_edited_file_paths() -> None:
 # ---------------------------------------------------------------------------------
 
 
-def load_file_path() -> str:
+def load_file_path() -> tuple[str, str]:
+    """
+    Returns the file path and the workspace root
+    """
     hook_data = json.load(sys.stdin)
-    return str(hook_data["file_path"])
+    return (
+        str(hook_data["file_path"]),
+        str(hook_data["workspace_roots"][0]),
+    )  # assume only one workspace root
 
 
 def load_workspace_root() -> str:
@@ -108,7 +115,8 @@ def load_workspace_root() -> str:
     is_semgrep_scan=False,
 )
 async def record_file_edit(top_level_span: trace.Span | None) -> None:
-    file_path = load_file_path()
+    file_path, workspace_root = load_file_path()
+    attach_git_info(trace.get_current_span(), workspace_root)
     append_edited_file_path(file_path)
     return
 
@@ -120,6 +128,8 @@ async def record_file_edit(top_level_span: trace.Span | None) -> None:
 )
 async def run_cli_scan(top_level_span: trace.Span | None) -> StopHookResponse:
     temp_dir = None
+    workspace_root = load_workspace_root()
+    attach_git_info(trace.get_current_span(), workspace_root)
     try:
         edited_file_paths = [
             CodePath(path=file_path) for file_path in load_edited_file_paths()
@@ -140,7 +150,7 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> StopHookResponse:
         attach_scan_metrics(
             trace.get_current_span(),
             scan_result,
-            load_workspace_root(),
+            workspace_root,
             validated_local_files,  # TODO: need to refactor attach_scan_metrics to not require code_files
         )
         return hook_response
