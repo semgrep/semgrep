@@ -37,7 +37,7 @@ from semgrep.mcp.semgrep import mk_context
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.semgrep import run_semgrep_process_sync
 from semgrep.mcp.semgrep import run_semgrep_via_rpc
-from semgrep.mcp.semgrep import SemgrepContext
+from semgrep.mcp.semgrep_context import SemgrepContext
 from semgrep.mcp.utilities.tracing import attach_findings_metrics
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
@@ -45,11 +45,12 @@ from semgrep.mcp.utilities.tracing import with_span
 from semgrep.mcp.utilities.tracing import with_tool_span
 from semgrep.mcp.utilities.utils import findings_elicitation_enabled
 from semgrep.mcp.utilities.utils import get_authorization_server_url
+from semgrep.mcp.utilities.utils import get_current_user_from_jwt
 from semgrep.mcp.utilities.utils import get_identity
 from semgrep.mcp.utilities.utils import get_oauth_authorization_server_metadata
-from semgrep.mcp.utilities.utils import get_semgrep_access_token
 from semgrep.mcp.utilities.utils import get_semgrep_api_url
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
+from semgrep.mcp.utilities.utils import get_workspace_dir
 from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.mcp.utilities.utils import re_identity_string
 from semgrep.metrics import Finding as MetricsFinding
@@ -349,35 +350,6 @@ def remove_temp_dir_from_results(results: SemgrepScanResult, temp_dir: str) -> N
         results.paths["skipped"] = [
             os.path.relpath(path, temp_dir) for path in results.paths["skipped"]
         ]
-
-
-async def get_workspace_dir(ctx: Context) -> str | None:
-    """
-    Get the workspace directory from the context
-
-    Note: We must invoke this method at request time, and not lifespan time,
-    because it relies on the `ctx.request_context`, which does not exist
-    when we initialize the server.
-    """
-    # This step fails when we are running tests, so I am wrapping it in a try/except
-    try:
-        # This URI is supposed to begin with `file://`
-        roots = await ctx.request_context.session.list_roots()
-        logger.debug(f"Got roots from client: {roots}")
-
-        # Just to be safe. It's probably impossible.
-        if len(roots.roots) == 0:
-            logger.warning("Somehow, no roots found")
-            return None
-
-        uri: str = str(roots.roots[0].uri)
-        path = uri[7:] if uri.startswith("file://") else uri
-
-        logger.debug(f"Determined path of workspace directory: {path}")
-
-        return path
-    except Exception:
-        return ""
 
 
 async def finding_elicitation(
@@ -1127,28 +1099,7 @@ async def semgrep_whoami(ctx: Context) -> WhoamiResult:
 
     Use this tool when you need to get the identity of the current user
     """
-    access_token = get_semgrep_access_token()
-    if not access_token:
-        raise McpError(
-            ErrorData(
-                code=INVALID_PARAMS,
-                message="No access token found",
-            )
-        )
-    try:
-        url = f"{get_semgrep_api_url()}/auth/users/current"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/json",
-        }
-        response = requests.get(url, headers=headers, timeout=(2, 30))
-        response.raise_for_status()
-        data: dict[str, Any] = response.json()["user"]
-        return WhoamiResult.model_validate(data)
-    except Exception as e:
-        raise McpError(
-            ErrorData(code=INTERNAL_ERROR, message=f"Error getting current user: {e!s}")
-        ) from e
+    return get_current_user_from_jwt()
 
 
 # ---------------------------------------------------------------------------------
