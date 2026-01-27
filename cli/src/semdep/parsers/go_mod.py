@@ -31,6 +31,7 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import pair
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -102,6 +103,7 @@ go_mod = (
 )
 
 
+@telemetry.trace()
 def parse_go_mod(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
