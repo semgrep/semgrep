@@ -33,12 +33,12 @@ from semdep.parsers.util import mark_line
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
-
 
 whitespace = whitespace | string("\\\n")
 
@@ -115,6 +115,7 @@ def get_manifest_deps(
     return {package for _, (package, _) in parsed} if parsed else None
 
 
+@telemetry.trace()
 def parse_requirements(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
