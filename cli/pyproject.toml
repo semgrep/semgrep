@@ -70,6 +70,7 @@ dependencies = [
   "opentelemetry-instrumentation-threading~=0.58b0",
   "packaging>=21.0",
   "peewee~=3.14",
+  "pyjwt[crypto]~=2.4",
   "requests~=2.22",
   "rich~=13.5.2",
   "ruamel.yaml>=0.18.15",
