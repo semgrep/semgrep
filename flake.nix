@@ -202,12 +202,10 @@
 #   creator's PhD thesis on Nix. ~275 pages but really approachable
 
 {
-  description =
-    "Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time.";
+  description = "Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time.";
   nixConfig = {
     extra-substituters = "https://semgrep.cachix.org";
-    extra-trusted-public-keys =
-      "semgrep.cachix.org-1:waxSNb3ism0Vkmfa31//YYrOC2eMghZmTwy9bvMAGBI=";
+    extra-trusted-public-keys = "semgrep.cachix.org-1:waxSNb3ism0Vkmfa31//YYrOC2eMghZmTwy9bvMAGBI=";
     extra-experimental-features = "nix-command flakes";
   };
   inputs = {
@@ -226,18 +224,49 @@
       url = "github:ocaml/opam-repository";
       flake = false;
     };
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
-  outputs = inputs@{ self, nixpkgs, flake-parts, opam-nix, opam-repository }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      flake-parts,
+      opam-nix,
+      opam-repository,
+      pyproject-nix,
+      uv2nix,
+      pyproject-build-systems,
+    }:
     let
       hasSubmodules = !builtins.hasAttr "submodules" self || self.submodules;
       mkSemgrep = import ./semgrep.nix {
         inherit opam-nix opam-repository hasSubmodules;
       };
       mkPysemgrep = import ./pysemgrep.nix { };
-    in flake-parts.lib.mkFlake { inherit inputs; } {
-      systems =
-        [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-      perSystem = { pkgs, system, ... }:
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+      perSystem =
+        { pkgs, system, ... }:
         # TODO semgrep-js
         # needs new emscripten: https://github.com/NixOS/nixpkgs/issues/306649
         # for the special wasm pass
@@ -245,15 +274,27 @@
           semgrepAttrs = mkSemgrep { inherit pkgs system; };
           semgrep = semgrepAttrs.pkg;
 
-          pysemgrepAttrs = mkPysemgrep { inherit pkgs semgrep; };
+          pysemgrepAttrs = mkPysemgrep {
+            inherit
+              pkgs
+              semgrep
+              uv2nix
+              pyproject-nix
+              pyproject-build-systems
+              ;
+          };
           pysemgrep = pysemgrepAttrs.pkg;
 
           devShells = import ./devShells.nix {
             inherit pkgs;
-            devAttrs = [ semgrepAttrs pysemgrepAttrs ];
+            devAttrs = [
+              semgrepAttrs
+              pysemgrepAttrs
+            ];
           };
 
-        in {
+        in
+        {
           # For a lot of nix commands, nix uses the cwd's flake. So
           #   nix develop
           # will run the current flake. But because semgrep has submodules we have
@@ -282,8 +323,8 @@
           # output will be linked into the cwd in a folder called "result". Also
           # exports packages for other nix packages to use
           packages = {
-            semgrep = semgrep;
-            pysemgrep = pysemgrep;
+            semgrep-core = semgrep;
+            semgrep = pysemgrep;
             default = pysemgrep;
           };
 
@@ -292,10 +333,6 @@
           # result into the cwd. You can try other nixpkgs similarly by running
           # `nix run nixpkgs#<PKG_NAME>` like `nix run nixpkgs#hello_world`.
           apps = {
-            osemgrep = {
-              type = "app";
-              program = "${semgrep}/bin/osemgrep";
-            };
             semgrep-core = {
               type = "app";
               program = "${semgrep}/bin/semgrep-core";
@@ -303,10 +340,6 @@
             semgrep = {
               type = "app";
               program = "${pysemgrep}/bin/semgrep";
-            };
-            pysemgrep = {
-              type = "app";
-              program = "${pysemgrep}/bin/pysemgrep";
             };
             default = {
               type = "app";
@@ -317,7 +350,9 @@
           # makes sure the flake is a valid structure, all the derivations are
           # valid, and runs anyting put in checks
           checks = {
-            semgrep = semgrep.overrideAttrs (_: { doCheck = true; });
+            semgrep = semgrep.overrideAttrs (_: {
+              doCheck = true;
+            });
           };
 
           #   nix fmt
