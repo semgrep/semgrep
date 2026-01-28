@@ -460,7 +460,7 @@ def _handle_lockfile_source(
 
 
 @simple_profiling
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def resolve_dependency_source(
     dep_source: out.DependencySource,
     config: DependencyResolutionConfig,

@@ -176,7 +176,7 @@ class SubprojectSymbolAnalysis:
     symbol_analysis: out.SymbolAnalysis
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def run_subproject_symbol_analysis(
     subprojects_by_ecosystem: Mapping[out.Ecosystem, Sequence[out.ResolvedSubproject]],
     target_manager: TargetManager,

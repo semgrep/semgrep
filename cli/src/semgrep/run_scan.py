@@ -569,7 +569,7 @@ def adjust_matches_for_join_rules(
 
 
 # ??
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def filter_dependency_aware_rules(
     dependency_aware_rules: List[Rule],
     resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
@@ -611,7 +611,7 @@ def filter_dependency_aware_rules(
     return filtered_rules
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 @simple_profiling
 def resolve_dependencies(
     dependency_aware_rules: List[Rule],
@@ -705,7 +705,7 @@ def resolve_dependencies(
 
 
 @simple_profiling
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def adjust_matches_for_sca_rules(
     rule_matches_by_rule: RuleMatchMap,
     dependency_aware_rules: List[Rule],
@@ -828,9 +828,9 @@ def adjust_matches_for_sca_rules(
         output_extra.all_targets.targets.add(target)
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def build_dependencies_by_lockfile(
-    resolved_subprojects: Dict[Ecosystem, List[out.ResolvedSubproject]]
+    resolved_subprojects: Dict[Ecosystem, List[out.ResolvedSubproject]],
 ) -> Dict[str, List[out.FoundDependency]]:
     """
     Produce a map from lockfile path to `FoundDependency` items for each lockfile. This is the

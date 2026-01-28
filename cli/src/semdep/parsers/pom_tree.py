@@ -121,7 +121,7 @@ def get_children(deps: List[Any]) -> List[ParsedDependency]:
     return results
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_pom_tree(
     tree_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

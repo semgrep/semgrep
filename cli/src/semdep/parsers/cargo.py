@@ -21,7 +21,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_cargo(
     lockfile_path: Path, lockfile_text: str, manifest_text: Optional[str]
 ) -> Generator[FoundDependency, None, None]:
