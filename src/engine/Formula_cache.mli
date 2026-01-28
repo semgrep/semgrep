@@ -23,7 +23,7 @@ val mk_specialized_formula_cache : Rule.taint_rule list -> t
    These formula caches are only safe to use to share results between
    runs of rules on the same target!
 
-   Right now they are only used by [Match_tainting_mode.taint_config_of_rule].
+   Right now they are only used by [Match_taint_spec.taint_config_of_rule].
 *)
 
 val cached_find_opt :
