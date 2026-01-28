@@ -85,8 +85,9 @@ type level =
   | Debug  (** Traces to help profile a specific run *)
   | Trace  (** All traces *)
 
+(* ~split_from_parent here so we persist it when we do multicore! *)
 let trace_level : level option Domain.DLS.key =
-  Domain.DLS.new_key (Fun.const None)
+  Domain.DLS.new_key ~split_from_parent:Fun.id (Fun.const None)
 
 let get_level () =
   match Domain.DLS.get trace_level with
