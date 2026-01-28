@@ -123,14 +123,14 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
             num_rules_with_prefilters profiling
         in
         let relevant_filtered, irrelevant_filtered =
-          let%trace span = "prefilter.file" in
+          let%trace_debug span = "prefilter.file" in
           let rules, prefilters = List_.split rules_with_prefilters in
           Log.info (fun m ->
               m "Performing rule prefiltering for %s"
                 (Origin.to_string xtarget.path.origin));
           let prefilter_results =
-            Tracing.with_span "prefilter.file.evaluation" ~__FILE__ ~__LINE__
-              (fun _span ->
+            Tracing.with_span ~level:Tracing.Debug "prefilter.file.evaluation"
+              ~__FILE__ ~__LINE__ (fun _span ->
                 Prefiltering.File.check_many prefilters
                   (Lazy_safe.force xtarget.lazy_content))
           in

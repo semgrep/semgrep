@@ -493,8 +493,8 @@ let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
       ("target", `String (Target.show t));
     ]
   in
-  Tracing.with_span ~__FILE__ ~__LINE__ ~data "scan.handle_target" (fun _sp ->
-      handle_target t)
+  Tracing.with_span ~level:Tracing.Debug ~__FILE__ ~__LINE__ ~data
+    "scan.handle_target" (fun _sp -> handle_target t)
 
 let log_scan_inputs (config : Core_scan_config.t) ~targets ~errors ~skipped
     ~valid_rules ~invalid_rules =
@@ -903,7 +903,7 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   in
   (* !!Calling Match_rules!! Calling the matching engine!! *)
   Match_rules.check ~matches_hook ~timeout xconf rules xtarget
-[@@trace]
+[@@trace_debug]
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors
  * coupling: with Pro_scan.mk_target_handler()
