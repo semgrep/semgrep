@@ -1,0 +1,533 @@
+(* Iago Abal, Yoann Padioleau
+ *
+ * Copyright (C) 2019-2024 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+open Common
+open Fpath_.Operators
+module D = Dataflow_tainting
+module Var_env = Dataflow_var_env
+module G = AST_generic
+module H = AST_generic_helpers
+module R = Rule
+module PM = Core_match
+module RP = Core_result
+module T = Taint
+module Lval_env = Taint_lval_env
+module MV = Metavariable
+module ME = Matching_explanation
+module OutJ = Semgrep_output_v1_t
+module Labels = Sets.String_set
+module Log = Log_tainting.Log
+module Effect = Shape_and_sig.Effect
+module Effects = Shape_and_sig.Effects
+module Signature = Shape_and_sig.Signature
+module QProf = Core_quick_profiling
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Wrapper around the tainting dataflow-based analysis. *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+module F2 = IL
+
+module DataflowY = Dataflow_core.Make (struct
+  type node = F2.node
+  type edge = F2.edge
+  type flow = (node, edge) CFG.t
+
+  let short_string_of_node n = Display_IL.short_string_of_node n
+end)
+
+let get_source_requires src =
+  let _pm, src_spec = T.pm_of_trace src.T.call_trace in
+  src_spec.R.source_requires
+
+let prof_add_taint_time tainting_stats fpath opt_name (rule : R.taint_rule)
+    taint_time =
+  let pos = (IL_helpers.loc_of_name fpath opt_name).pos in
+  tainting_stats :=
+    QProf.Tainting_stats.update !tainting_stats
+      (fpath, pos, fst rule.id)
+      taint_time;
+  ()
+
+(*****************************************************************************)
+(* Pattern match from finding *)
+(*****************************************************************************)
+
+(* If the 'requires' has the shape 'A and ...' then we assume that 'A' is the
+  preferred label for reporting the taint trace. If we have a multi-requires,
+  we look at the very first item. *)
+let preferred_label_of_sink ({ rule_sink; _ } : Effect.sink) =
+  let of_precondition = function
+    | R.PLabel label
+    | R.PAnd (PLabel label :: _) ->
+        Some label
+    | __else__ -> None
+  in
+  match rule_sink.sink_requires with
+  | Some (UniReq { precondition; _ })
+  | Some (MultiReq ((_, { precondition; _ }) :: _)) ->
+      of_precondition precondition
+  | Some _
+  | None ->
+      None
+
+let rec convert_taint_call_trace = function
+  | Taint.PM (pm, _) ->
+      let toks = Lazy_safe.force pm.tokens |> List.filter Tok.is_origintok in
+      Taint_trace.Toks toks
+  | Taint.Call (expr, toks, ct) ->
+      Taint_trace.Call
+        {
+          call_toks =
+            AST_generic_helpers.ii_of_any (G.E expr)
+            |> List.filter Tok.is_origintok;
+          intermediate_vars = toks;
+          call_trace = convert_taint_call_trace ct;
+        }
+
+(* For now CLI does not support multiple taint traces for a finding, and it
+ * simply picks the _first_ trace from this list. So here we apply a number
+ * of heuristics to make sure the first trace in this list is the most
+ * relevant one. This is particularly important when using (experimental)
+ * taint labels, because not all labels are equally relevant for the finding. *)
+let sources_of_taints ?preferred_label taints =
+  (* We only report actual sources reaching a sink. If users want Semgrep to
+   * report function parameters reaching a sink without sanitization, then
+   * they need to specify the parameters as taint sources. *)
+  let taint_sources =
+    taints
+    |> List_.filter_map
+         (fun { Effect.taint = { orig; rev_tokens }; sink_trace } ->
+           match orig with
+           | Src src -> Some (src, List.rev rev_tokens, sink_trace)
+           (* even if there is any taint "variable", it's irrelevant for the
+            * finding, since the precondition is satisfied. *)
+           | Var _ -> None)
+  in
+  let taint_sources =
+    (* If there is a "preferred label", then sort sources to make sure this
+       label is picked before others. See 'preferred_label_of_sink'. *)
+    match preferred_label with
+    | None -> taint_sources
+    | Some label ->
+        taint_sources
+        |> List.stable_sort (fun (src1, _, _) (src2, _, _) ->
+               match (src1.T.label = label, src2.T.label = label) with
+               | true, false -> -1
+               | false, true -> 1
+               | false, false
+               | true, true ->
+                   0)
+  in
+  (* We prioritize taint sources without preconditions,
+     selecting their traces first, and then consider sources
+     with preconditions as a secondary choice. *)
+  let with_req, without_req =
+    taint_sources
+    |> Either_.partition (fun (src, tokens, sink_trace) ->
+           match get_source_requires src with
+           | Some _ -> Left (src, tokens, sink_trace)
+           | None -> Right (src, tokens, sink_trace))
+  in
+  if without_req <> [] then without_req
+  else (
+    Log.warn (fun m ->
+        m
+          "Taint source without precondition wasn't found. Displaying the \
+           taint trace from the source with precondition.");
+    with_req)
+
+let trace_of_source source =
+  let src, tokens, sink_trace = source in
+  {
+    Taint_trace.source_trace = convert_taint_call_trace src.T.call_trace;
+    tokens;
+    sink_trace = convert_taint_call_trace sink_trace;
+  }
+
+let taints_satisfy_sink_requires taints requires =
+  match requires with
+  | Effect.UniReq precond -> T.taints_satisfy_requires taints precond
+  | Effect.MultiReq taints_w_preconds ->
+      taints_w_preconds
+      |> List.for_all (fun (taints, precond) ->
+             T.taints_satisfy_requires (T.Taint_set.elements taints) precond)
+
+let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
+  let match_on =
+    (* TEMPORARY HACK to support both taint_match_on (DEPRECATED) and
+     * taint_focus_on (preferred name by SR). *)
+    match (options.taint_focus_on, options.taint_match_on) with
+    | `Source, _
+    | _, `Source ->
+        `Source
+    | `Sink, `Sink -> `Sink
+  in
+  match effect_ with
+  | ToLval _
+  | ToReturn _
+  | ToSinkInCall _ ->
+      []
+  | ToSink { taints_with_trace; sink = { pm = sink_pm; _ } as sink; merged_env }
+    -> (
+      if
+        not
+          (taints_satisfy_sink_requires
+             (List_.map (fun t -> t.Effect.taint) taints_with_trace)
+             sink.Effect.requires)
+      then []
+      else
+        let preferred_label = preferred_label_of_sink sink in
+        let taint_sources =
+          sources_of_taints ?preferred_label taints_with_trace
+        in
+        match match_on with
+        | `Sink ->
+            (* The old behavior used to be that, for sinks with a `requires`, we would
+               generate a finding per every single taint source going in. Later deduplication
+               would deal with it.
+               We will instead choose to consolidate all sources into a single finding. We can
+               do some postprocessing to report only relevant sources later on, but for now we
+               will lazily (again) defer that computation to later.
+            *)
+            let traces = List_.map trace_of_source taint_sources in
+            (* We always report the finding on the sink that gets tainted, the call trace
+                * must be used to explain how exactly the taint gets there. At some point
+                * we experimented with reporting the match on the `sink`'s function call that
+                * leads to the actual sink. E.g.:
+                *
+                *     def f(x):
+                *       sink(x)
+                *
+                *     def g():
+                *       f(source)
+                *
+                * Here we tried reporting the match on `f(source)` as "the line to blame"
+                * for the injection bug... but most users seem to be confused about this. They
+                * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
+            *)
+            let taint_trace =
+              match traces with
+              | [] ->
+                  (* When a taint-labeled rule has sinks with requires like `not A` it may be
+                    possible (and it has been reported) to obtain a taint finding with an empty
+                    list of taint traces. Presumably because 'sources_of_taints' removes all the
+                    taints that do not correspond with actual taint sources.
+
+                    See CODE-8531. *)
+                  Log.err (fun m ->
+                      m "Rule %s produced a taint finding with no taint trace"
+                        (Rule_ID.to_string sink_pm.rule_id.id));
+                  None
+              | _ :: _ -> Some (lazy_safe traces)
+            in
+            [ { sink_pm with env = merged_env; taint_trace } ]
+        | `Source ->
+            taint_sources
+            |> List_.map (fun source ->
+                   let src, tokens, sink_trace = source in
+                   let src_pm, _ = T.pm_of_trace src.T.call_trace in
+                   let trace =
+                     {
+                       Taint_trace.source_trace =
+                         convert_taint_call_trace src.T.call_trace;
+                       tokens;
+                       sink_trace = convert_taint_call_trace sink_trace;
+                     }
+                   in
+                   {
+                     src_pm with
+                     env = merged_env;
+                     taint_trace = Some (lazy_safe [ trace ]);
+                   }))
+
+let matches_of_effects options effects =
+  Effects.fold
+    (fun effect_ acc_matches ->
+      let effect_pms = matches_of_effect options effect_ in
+      List.rev_append effect_pms acc_matches)
+    effects []
+  (* TODO: The order in which we return these matches is important for deduplication.
+      In general, if for the same rule we have two sources reaching the same sink, we
+      will generate two matches (one per source) and arbitrarily pick the first one
+      during deduplication. This is a bit fragile unfortunately. *)
+  |> List.rev
+[@@profiling]
+
+let dedup_matches matches =
+  matches |> PM.uniq |> PM.no_submatches (* see "Taint-tracking via ranges" *)
+[@@profiling]
+
+(*****************************************************************************)
+(* Main entry points *)
+(*****************************************************************************)
+
+let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
+  let fdef = AST_to_IL.function_definition taint_inst.file.lang ~ctx fdef in
+  let fcfg = CFG_build.cfg_of_fdef fdef in
+  let in_env, env_effects =
+    Taint_input_env.mk_fun_input_env taint_inst ?glob_env fdef.fparams
+  in
+  let effects, mapping =
+    Dataflow_tainting.fixpoint taint_inst ~in_env ?name fcfg
+  in
+  let effects = Effects.union env_effects effects in
+  (fcfg, effects, mapping)
+
+let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
+    (rule : R.taint_rule) ~matches_hook (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) =
+  Log.info (fun m ->
+      m
+        "Match_tainting_mode (OSS):\n\
+         ====================\n\
+         Running rule %s\n\
+         ===================="
+        (Rule_ID.to_string (fst rule.R.id)));
+  let matches = ref [] in
+  let record_matches new_effects =
+    matches :=
+      List.rev_append (matches_of_effects xconf.config new_effects) !matches
+  in
+  let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; _ } :
+      Xtarget.t =
+    xtarget
+  in
+  let (ast, skipped_tokens), parse_time =
+    Common.force_lazy_with_time lazy_ast_and_errors
+  in
+  (* TODO: 'debug_taint' should just be part of 'res'
+   * (i.e., add a "debugging" field to 'Report.match_result'). *)
+  let (taint_inst, _TODO_debug_taint, expls), match_time =
+    Common.with_time (fun () ->
+        Match_taint_spec.taint_config_of_rule ~per_file_formula_cache ~file
+          xconf (ast, []) rule)
+  in
+  let tainting_stats = ref QProf.Tainting_stats.zero in
+  let (matches, errors), all_taint_time =
+    Common.with_time (fun () ->
+        (* THINK: Is this needed? Can't we just now check the type of 'n'? *)
+        let ctx = ref AST_to_IL.empty_ctx in
+        Visit_function_defs.visit
+          (fun opt_ent _fdef ->
+            match opt_ent with
+            | Some { name = EN (Id (n, _)); _ } ->
+                ctx := AST_to_IL.add_entity_name !ctx n
+            | __else__ -> ())
+          ast;
+
+        let glob_env, glob_effects =
+          Taint_input_env.mk_file_env taint_inst ast
+        in
+        record_matches glob_effects;
+
+        (* Check each function definition. *)
+        Visit_function_defs.visit
+          (fun opt_ent fdef ->
+            match fst fdef.fkind with
+            | LambdaKind
+            | Arrow ->
+                (* We do not need to analyze lambdas here, they will be analyzed
+                 together with their enclosing function. This would just duplicate
+                 work. *)
+                ()
+            | Function
+            | Method
+            | BlockCases ->
+                let opt_name =
+                  let* ent = opt_ent in
+                  AST_to_IL.name_of_entity ent
+                in
+                Log.info (fun m ->
+                    m
+                      "Match_tainting_mode (OSS):\n\
+                       --------------------\n\
+                       Checking func def: %s\n\
+                       --------------------"
+                      (Option.map IL.str_of_name opt_name ||| "???"));
+                let (_flow, fdef_effects, _mapping), taint_time =
+                  Common.with_time (fun () ->
+                      check_fundef taint_inst opt_name !ctx ~glob_env fdef)
+                in
+                prof_add_taint_time tainting_stats file.path opt_name rule
+                  taint_time;
+                record_matches fdef_effects)
+          ast;
+
+        (* Check execution of statements during object initialization. *)
+        Visit_class_defs.visit
+          (fun opt_ent cdef ->
+            let opt_name =
+              let* ent = opt_ent in
+              AST_to_IL.name_of_entity ent
+            in
+            let fields =
+              cdef.G.cbody |> Tok.unbracket
+              |> List_.map (function G.F x -> x)
+              |> G.stmt1
+            in
+            let stmts = AST_to_IL.stmt taint_inst.file.lang fields in
+            let cfg, lambdas = CFG_build.cfg_of_stmts stmts in
+            Log.info (fun m ->
+                m
+                  "Match_tainting_mode (OSS):\n\
+                   --------------------\n\
+                   Checking object initialization: %s\n\
+                   --------------------"
+                  (Option.map IL.str_of_name opt_name ||| "???"));
+            let (init_effects, _mapping), taint_time =
+              Common.with_time (fun () ->
+                  Dataflow_tainting.fixpoint taint_inst ?name:opt_name
+                    Fun_CFG.{ params = []; cfg; lambdas })
+            in
+            prof_add_taint_time tainting_stats file.path opt_name rule
+              taint_time;
+            record_matches init_effects)
+          ast;
+
+        (* Check the top-level statements.
+         * In scripting languages it is not unusual to write code outside
+         * function declarations and we want to check this too. We simply
+         * treat the program itself as an anonymous function. *)
+        begin
+          let xs = AST_to_IL.stmt taint_inst.file.lang (G.stmt1 ast) in
+          let cfg, lambdas = CFG_build.cfg_of_stmts xs in
+          Log.info (fun m ->
+              m
+                "Match_tainting_mode (OSS):\n\
+                 --------------------\n\
+                 Checking top-level program\n\
+                 --------------------");
+          let (top_effects, _mapping), taint_time =
+            Common.with_time (fun () ->
+                Dataflow_tainting.fixpoint taint_inst
+                  Fun_CFG.{ params = []; cfg; lambdas })
+          in
+          prof_add_taint_time tainting_stats file.path None rule taint_time;
+          record_matches top_effects
+        end;
+        let matches =
+          !matches
+          (* same post-processing as for search-mode in Match_rules.ml *)
+          |> dedup_matches
+          |> matches_hook
+        in
+        let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
+        (matches, errors))
+  in
+  let report =
+    RP.mk_match_result matches errors
+      {
+        Core_profiling.rule_id = fst rule.R.id;
+        rule_parse_time = parse_time ||| 0.0;
+        rule_match_time = match_time +. all_taint_time;
+      }
+    |> Core_result.quick_add_parse_time_opt internal_path_to_content parse_time
+    |> Core_result.quick_add_match_time internal_path_to_content (fst rule.id)
+         match_time
+    |> Core_result.quick_add_taint_stats !tainting_stats
+  in
+  let explanations =
+    if xconf.matching_explanations then
+      [
+        {
+          ME.op = OutJ.Taint;
+          children = expls;
+          matches = report.matches;
+          pos = snd rule.id;
+          extra = None;
+        };
+      ]
+    else []
+  in
+  let report = { report with explanations } in
+  report
+
+let check_rules ~matches_hook
+    ~(per_rule_boilerplate_fn :
+       R.rule ->
+       (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
+       Core_profiling.rule_profiling Core_result.match_result)
+    (rules : R.taint_rule list) (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) :
+    Core_profiling.rule_profiling Core_result.match_result list
+    * Core_error.ErrorSet.t =
+  (* We create a "formula cache" here, before dealing with individual rules, to
+     permit sharing of matches for sources, sanitizers, propagators, and sinks
+     between rules.
+
+     In particular, this expects to see big gains due to shared propagators,
+     in Semgrep Pro. There may be some benefit in OSS, but it's low-probability.
+  *)
+  let per_file_formula_cache =
+    Formula_cache.mk_specialized_formula_cache rules
+  in
+
+  let { path = { internal_path_to_content = file; _ }; analyzer; _ } : Xtarget.t
+      =
+    xtarget
+  in
+  let lang =
+    match analyzer with
+    | L (lang, _) -> lang
+    | LSpacegrep
+    | LAliengrep
+    | LRegex ->
+        failwith "taint-mode and generic/regex matching are incompatible"
+  in
+  let pro_hooks : Taint_pro_hooks.t option =
+    Hook.get Taint_pro_hooks.hook_taint_pro_hooks
+  in
+  let file_inst =
+    Taint_rule_inst.mk_file ~lang ~path:file ~pro_hooks ~handle_effects:None
+  in
+
+  let res =
+    rules
+    |> List_.map (fun rule ->
+           let%trace_debug sp = "OSS_match_tainting_mode.check_rules.rule" in
+           Tracing.add_data_to_span sp
+             [
+               ("rule_id", `String (fst rule.R.id |> Rule_ID.to_string));
+               ("taint", `Bool true);
+             ];
+
+           let xconf =
+             Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
+           in
+           (* This boilerplate function will take care of things like
+               timing out if this rule takes too long, and returning a dummy
+               result for the timed-out rule.
+           *)
+           per_rule_boilerplate_fn
+             (rule :> R.rule)
+             (fun () ->
+               Logs_.with_debug_trace ~__FUNCTION__
+                 ~pp_input:(fun _ ->
+                   "target: "
+                   ^ !!(xtarget.path.internal_path_to_content)
+                   ^ "\nruleid: "
+                   ^ (rule.id |> fst |> Rule_ID.to_string))
+                 (fun () ->
+                   check_rule per_file_formula_cache file_inst rule
+                     ~matches_hook xconf xtarget)))
+  in
+  let to_errors =
+    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+  in
+  (res, to_errors)
