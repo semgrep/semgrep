@@ -58,7 +58,7 @@ type 'a loc = {
  * less? enforce invariant that Not can only appear in And?
  *
  * We use 'deriving hash' for formula because of the
- * Match_tainting_mode.Formula_tbl formula cache.
+ * Formula_cache.Formula_tbl formula cache.
  *)
 type formula = {
   f : formula_kind;

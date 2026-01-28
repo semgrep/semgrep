@@ -296,7 +296,7 @@ let check ~matches_hook ~(timeout : timeout_config option)
     |> List.fold_left
          (fun (res_acc, errors_acc) taint_rules ->
            let res, errors =
-             Match_tainting_mode.check_rules ~matches_hook
+             Match_tainting_mode.check_rules () ~matches_hook
                ~per_rule_boilerplate_fn taint_rules xconf xtarget
            in
            (List.rev_append res res_acc, errors_acc |> E.ErrorSet.union errors))
