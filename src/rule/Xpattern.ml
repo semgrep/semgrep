@@ -14,7 +14,7 @@
  *)
 
 (* We need deriving 'hash' below because formulas are now hashed
- * in Match_tainting_mode.Formula_tbl and formula contain patterns.
+ * in Formula_cache.Formula_tbl and formula contain patterns.
  *)
 open Ppx_hash_lib.Std.Hash.Builtin
 module XpatId = Gensym.MkId ()

@@ -129,4 +129,12 @@ local on_pull_request_config = {
       delete: true,
     },
   },
+
+  // Make a job conditional on an expression. Errors if the job already has an `if`.
+  // The expression should be the full GHA expression including '${{ ... }}'.
+  make_job_conditional(job, expr)::
+    if std.objectHas(job, 'if') then
+      error 'job is already conditional'
+    else
+      job { 'if': expr },
 }

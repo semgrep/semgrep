@@ -28,6 +28,7 @@ from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -56,6 +57,7 @@ def get_manifest_deps(parsed_manifest: Optional[JSON]) -> Set[str]:
 
 
 # Function to parse the composer.lock file and return a list of FoundDependency objects
+@telemetry.trace()
 def parse_composer_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

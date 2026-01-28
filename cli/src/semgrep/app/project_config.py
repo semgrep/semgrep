@@ -24,14 +24,22 @@ import ruamel.yaml
 from attr import asdict
 from attr import define
 from attr import field
+from ruamel.yaml import YAMLError
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.error import SemgrepError
+from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.git import get_git_root_path
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
 CONFIG_FILE_PATTERN = re.compile(r"^\.semgrepconfig(\.yml|\.yaml)?$")
+
+
+def _indent(msg: str) -> str:
+    # Keep consistent with config_resolver.indent()
+    return "\n".join("\t" + line for line in msg.splitlines())
 
 
 @define
@@ -93,9 +101,29 @@ class ProjectConfig:
         yaml = ruamel.yaml.YAML(typ="safe")
         logger.debug(f"Loading semgrepconfig file: {file_path}")
         with file_path.open("r") as fp:
-            config: Dict[str, Any] = yaml.load(fp)
-            cfg = cls(**config)
-            return cfg
+            reason: str
+            try:
+                loaded = yaml.load(fp)
+            except YAMLError as se:
+                reason = str(se)
+            else:
+                if loaded is None:
+                    reason = "Empty YAML document"
+                elif not isinstance(loaded, dict):
+                    reason = (
+                        "Expected a YAML mapping (object) at the top level, "
+                        f"got {type(loaded).__name__}"
+                    )
+                else:
+                    try:
+                        return cls(**loaded)
+                    except (TypeError, ValueError) as e:
+                        reason = str(e)
+
+            raise SemgrepError(
+                f"Invalid .semgrepconfig file {file_path}:\n{_indent(reason)}",
+                code=UNPARSEABLE_YAML_EXIT_CODE,
+            )
 
     @classmethod
     def load_all(cls) -> "ProjectConfig":

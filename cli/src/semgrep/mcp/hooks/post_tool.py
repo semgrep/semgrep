@@ -13,7 +13,6 @@
 import asyncio
 import json
 import sys
-from typing import Any
 from typing import Literal
 
 from opentelemetry import trace
@@ -23,6 +22,7 @@ from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.server import get_semgrep_scan_args
+from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
@@ -41,7 +41,10 @@ class PostToolHookResponse(BaseModel):
     reason: str | None = None
 
 
-def load_file_path() -> tuple[CodeFile, Any]:
+def load_file_path() -> tuple[CodeFile, str]:
+    """
+    Returns the code file and the current working directory
+    """
     hook_data = json.load(sys.stdin)
     print(hook_data, file=sys.stderr)
     return (
@@ -62,6 +65,7 @@ def load_file_path() -> tuple[CodeFile, Any]:
 )
 async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookResponse:
     code_file, workspace_dir = load_file_path()
+    attach_git_info(trace.get_current_span(), workspace_dir)
     args = get_semgrep_scan_args(code_file.path, None)
     output = await run_semgrep_output(top_level_span, args)
     scan_result: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)

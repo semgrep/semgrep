@@ -40,20 +40,3 @@ val check_rules :
   * same language. Running on multiple rules at once enables inter-rule
   * optimizations.
   *)
-
-val matches_of_effects :
-  Rule_options.t -> Shape_and_sig.Effects.t -> Core_match.t list
-(** Generate matches from ToSink effects. (Exported for Pro) *)
-
-val dedup_matches : Core_match.t list -> Core_match.t list
-(** Deduplicate taint matches. (Exported for Pro) *)
-
-(* pro-scan hook *)
-val hook_mk_hook_function_taint_signature :
-  (Rule.taint_rule ->
-  Taint_rule_inst.t ->
-  Xtarget.t ->
-  Dataflow_tainting.hook_function_taint_signature
-  * Core_quick_profiling.Tainting_stats.t)
-  option
-  Hook.t

@@ -518,7 +518,7 @@ module Taint_set = struct
                *
                * Otherwise we end up with taint sets where most of the taints are
                * essentially the same. This is probably due to
-               * [see note "Taint-tracking via ranges" in Match_tainting_mode],
+               * [see note "Taint-tracking via ranges" in Match_taint_spec],
                * and not having "Best_sources" [see note "Best matches" in 'Taint_spec_match'].
                * TOOD: Revisit ^^^ now we have `exact: true` sources.
                *)

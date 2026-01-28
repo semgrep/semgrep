@@ -87,14 +87,14 @@ def test_login_env_token(tmp_path, mocker):
     assert result.output.startswith("Saved login token")
     assert "<redacted>" in result.output
 
-    # Login should fail on second call
+    # Login should not fail on second call
     result = runner.invoke(
         cli,
         subcommand="login",
         args=[],
         env={"SEMGREP_APP_TOKEN": alt_key},
     )
-    assert result.exit_code == 2
+    assert result.exit_code == 0
     assert "API token already exists in" in result.output
 
 
