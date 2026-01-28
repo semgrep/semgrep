@@ -161,6 +161,8 @@ For more information see https://semgrep.dev
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
     (ocurl (= 0.9.1))
+    ; ezcurl 0.3 has breaking API changes incompatible with opentelemetry-client-ocurl
+    (ezcurl (and (>= 0.2.3) (< 0.3)))
     (ambient-context-lwt (>= 0.1.0))
     (conf-libcurl (= 2))
     ; web stuff
