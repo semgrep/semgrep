@@ -252,6 +252,13 @@ let o_x_validate_partial_results_actual : string option Term.t =
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
+let o_enable_mal_deps : bool Term.t =
+  let info =
+    Arg.info [ "x-enable-mal-deps" ]
+      ~doc:{|Enable malicious dependency rules for this scan.|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_x_upload_partial_results_scan_id : int option Term.t =
   let info =
     Arg.info
@@ -458,7 +465,8 @@ let cmdline_term : conf Term.t =
       _x_dump_rule_partitions_strategy x_merge_partial_results_dir
       x_merge_partial_results_output _x_partial_config _x_partial_output
       x_upload_partial_results x_upload_partial_results_scan_id
-      x_validate_partial_results_actual x_validate_partial_results_expected =
+      x_validate_partial_results_actual x_validate_partial_results_expected
+      _enable_mal_deps =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -504,7 +512,7 @@ let cmdline_term : conf Term.t =
     $ o_x_merge_partial_results_output $ o_x_partial_config $ o_x_partial_output
     $ o_x_upload_partial_results $ o_x_upload_partial_results_scan_id
     $ o_x_validate_partial_results_actual
-    $ o_x_validate_partial_results_expected)
+    $ o_x_validate_partial_results_expected $ o_enable_mal_deps)
 
 let doc = "the recommended way to run semgrep in CI"
 
