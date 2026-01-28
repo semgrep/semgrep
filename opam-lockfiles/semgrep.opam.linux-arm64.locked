@@ -314,7 +314,7 @@ pin-depends: [
   ]
   [
     "semgrep-interfaces.dev"
-    "git+https://github.com/semgrep/semgrep-interfaces.git#533177d79c471320b73f9e63d4d41095e8019391"
+    "git+https://github.com/semgrep/semgrep-interfaces.git#60e20cea322c887456b86ff7af9e6bc5757c0c7e"
   ]
   [
     "testo.dev"
