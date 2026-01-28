@@ -183,6 +183,9 @@ local test_cli_job = {
           # tests should simulate CI environment iff they need one
           unset CI
           unset "${!GITHUB_@}"
+          # TODO(jmgrosen): this is a temporary hack to fix snapshot output
+          # formatting in OSS tests. See #5493.
+          export COLUMNS=80
 
           PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make ci-test
         |||,
