@@ -1519,6 +1519,15 @@ wheels = [
 ]
 
 [[package]]
+name = "semantic-version"
+version = "2.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/31/f2289ce78b9b473d582568c234e104d2a342fd658cc288a7553d83bb8595/semantic_version-2.10.0.tar.gz", hash = "sha256:bdabb6d336998cbb378d4b9db3a4b56a1e3235701dc05ea2690d9a997ed5041c", size = 52289, upload-time = "2022-05-26T13:35:23.454Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/23/8146aad7d88f4fcb3a6218f41a60f6c2d4e3a72de72da1825dc7c8f7877c/semantic_version-2.10.0-py2.py3-none-any.whl", hash = "sha256:de78a3b8e0feda74cabc54aab2da702113e33ac9d9eb9d2389bcf1f58b7d9177", size = 15552, upload-time = "2022-05-26T13:35:21.206Z" },
+]
+
+[[package]]
 name = "semgrep"
 version = "1.149.0"
 source = { editable = "." }
@@ -1545,6 +1554,7 @@ dependencies = [
     { name = "rich" },
     { name = "ruamel-yaml" },
     { name = "ruamel-yaml-clib" },
+    { name = "semantic-version" },
     { name = "tomli" },
     { name = "typing-extensions" },
     { name = "urllib3" },
@@ -1606,6 +1616,7 @@ requires-dist = [
     { name = "rich", specifier = "~=13.5.2" },
     { name = "ruamel-yaml", specifier = ">=0.18.15" },
     { name = "ruamel-yaml-clib", specifier = "==0.2.14" },
+    { name = "semantic-version", specifier = "~=2.10.0" },
     { name = "tomli", specifier = "~=2.0.1" },
     { name = "typing-extensions", specifier = "~=4.2" },
     { name = "urllib3", specifier = "~=2.0" },
