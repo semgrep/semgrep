@@ -216,6 +216,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     type=click.Path(allow_dash=True, path_type=Path),
     hidden=True,
 )
+@click.option(
+    "--x-enable-mal-deps",
+    "enable_mal_deps",
+    is_flag=True,
+    help="Enable malicious dependency rules for this scan.",
+)
 @handle_command_errors
 def ci(
     # coupling: we use the names/values of some of these args in telemetry.py for tagging traces
@@ -297,6 +303,7 @@ def ci(
     partial_output: Optional[Path],
     x_group_taint_rules: bool,
     x_dump_symbol_analysis: bool,
+    enable_mal_deps: bool,
 ) -> None:
     if x_simple_profiling:
         simple_profiling_module.enabled_simple_profiling = True
@@ -414,6 +421,7 @@ def ci(
                 dry_run=dry_run,
                 partial_output=partial_output,
                 dump_scan_id_path=dump_scan_id_path,
+                enable_mal_deps=enable_mal_deps,
             )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
