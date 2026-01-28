@@ -183,6 +183,7 @@ local test_cli_job = {
           # tests should simulate CI environment iff they need one
           unset CI
           unset "${!GITHUB_@}"
+          export COLUMNS=80
 
           PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make ci-test
         |||,
