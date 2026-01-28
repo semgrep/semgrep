@@ -319,7 +319,7 @@ def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:
         return "#".join(s.split("#")[:-1]) if "#" in s else s
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_yarn(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

@@ -248,7 +248,7 @@ def _build_found_dependencies(
     return result
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_mix(
     lockfile_path: Path, manifest_path: Path | None
 ) -> tuple[list[FoundDependency], list[DependencyParserError]]:

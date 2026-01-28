@@ -209,7 +209,7 @@ def filter_changed_subprojects(
     return ordered_relevant, unresolved_subprojects
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 @simple_profiling
 def resolve_subprojects(
     target_manager: TargetManager,

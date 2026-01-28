@@ -85,7 +85,7 @@ def validate(fp: out.Fpath) -> Optional[out.CoreError]:
     return ret.value
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def resolve_dependencies(
     dependency_sources: List[out.DependencySource],
     download_dependency_source_code: bool,
@@ -107,7 +107,7 @@ def resolve_dependencies(
     return ret.value
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def upload_symbol_analysis(
     token: str, scan_id: int, symbol_analysis: out.SymbolAnalysis
 ) -> None:
@@ -125,7 +125,7 @@ def upload_symbol_analysis(
         logger.debug(f"Uploading symbol analysis succeeded with {ret.value}")
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def transitive_reachability_filter(
     args: out.TransitiveReachabilityFilterParams,
 ) -> List[out.TransitiveFinding]:
@@ -174,7 +174,7 @@ def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
     return ret.value
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def match_subprojects(dependency_source_files: List[out.Fpath]) -> List[out.Subproject]:
     call = out.FunctionCall(out.CallMatchSubprojects(dependency_source_files))
     ret: Optional[out.RetMatchSubprojects] = rpc_call(call, out.RetMatchSubprojects)
@@ -184,7 +184,7 @@ def match_subprojects(dependency_source_files: List[out.Fpath]) -> List[out.Subp
     return ret.value
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def run_symbol_analysis(
     params: out.SymbolAnalysisParams,
 ) -> Optional[out.SymbolAnalysis]:
@@ -196,7 +196,7 @@ def run_symbol_analysis(
     return ret.value
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def upload_subproject_symbol_analysis(
     token: str,
     scan_id: int,
@@ -223,7 +223,7 @@ def upload_subproject_symbol_analysis(
         logger.debug(f"Uploading symbol analysis succeeded with {ret.value}")
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def show_subprojects(*, subprojects: List[out.Subproject]) -> str:
     """Show subproject info
 
