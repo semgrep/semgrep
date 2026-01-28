@@ -90,6 +90,7 @@ class ScanHandler:
         dry_run: bool = False,
         partial_output: Optional[Path] = None,
         dump_scan_id_path: Optional[Path] = None,
+        enable_mal_deps: bool = False,
     ) -> None:
         """
         When dry_run is True, semgrep ci would get the config from the app,
@@ -102,6 +103,8 @@ class ScanHandler:
         is not None, override the transitive_reachability_enabled setting
         obtained from EngineConfiguration (from the Semgrep App server),
         and enable or disable transitive reachability accordingly.
+        :param enable_mal_deps: Override to enable malicious dependency
+        rules for this scan, even if disabled at the deployment level.
         """
         state = get_state()
         self.local_id = str(state.local_scan_id)
@@ -111,6 +114,7 @@ class ScanHandler:
             requested_products=[],
             dry_run=dry_run,
             sms_scan_id=state.env.sms_scan_id,
+            enable_mal_deps=enable_mal_deps if enable_mal_deps else None,
         )
         self.scan_response: Optional[out.ScanResponse] = None
         self.dry_run = dry_run
