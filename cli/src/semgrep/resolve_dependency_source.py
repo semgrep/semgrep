@@ -41,6 +41,7 @@ from semdep.parsers.swiftpm import parse_package_resolved
 from semdep.parsers.util import DependencyParser
 from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
+from semgrep import telemetry
 from semgrep.rpc import RpcSession
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.sca_subproject_support import ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
@@ -459,6 +460,7 @@ def _handle_lockfile_source(
 
 
 @simple_profiling
+@telemetry.trace()
 def resolve_dependency_source(
     dep_source: out.DependencySource,
     config: DependencyResolutionConfig,
@@ -471,6 +473,11 @@ def resolve_dependency_source(
     - The list of paths that should be considered dependency targets
     """
     dep_source_ = dep_source.value
+    span = telemetry.get_current_span()
+    span.set_attribute(
+        "dependency_sources", [str(x) for x in get_display_paths(dep_source)]
+    )
+
     if isinstance(dep_source_, out.LockfileOnly) or isinstance(
         dep_source_, out.ManifestLockfile
     ):

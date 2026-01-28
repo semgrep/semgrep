@@ -25,6 +25,7 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
+from semgrep import telemetry
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
@@ -34,7 +35,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -84,6 +84,7 @@ def parse_dependencies_field(
     return output
 
 
+@telemetry.trace()
 def parse_packages_lock(
     lockfile_path: Path, _manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1539,12 +1539,12 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "packaging" },
     { name = "peewee" },
+    { name = "pyjwt", extra = ["crypto"] },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
     { name = "requests" },
     { name = "rich" },
     { name = "ruamel-yaml" },
     { name = "ruamel-yaml-clib" },
-    { name = "setuptools" },
     { name = "tomli" },
     { name = "typing-extensions" },
     { name = "urllib3" },
@@ -1600,12 +1600,12 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = "~=1.37.0" },
     { name = "packaging", specifier = ">=21.0" },
     { name = "peewee", specifier = "~=3.14" },
+    { name = "pyjwt", extras = ["crypto"], specifier = "~=2.4" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = "==311" },
     { name = "requests", specifier = "~=2.22" },
     { name = "rich", specifier = "~=13.5.2" },
     { name = "ruamel-yaml", specifier = ">=0.18.15" },
     { name = "ruamel-yaml-clib", specifier = "==0.2.14" },
-    { name = "setuptools" },
     { name = "tomli", specifier = "~=2.0.1" },
     { name = "typing-extensions", specifier = "~=4.2" },
     { name = "urllib3", specifier = "~=2.0" },
@@ -1641,15 +1641,6 @@ dev = [
     { name = "types-requests" },
     { name = "types-setuptools" },
     { name = "typing-extensions" },
-]
-
-[[package]]
-name = "setuptools"
-version = "80.10.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/86/ff/f75651350db3cf2ef767371307eb163f3cc1ac03e16fdf3ac347607f7edb/setuptools-80.10.1.tar.gz", hash = "sha256:bf2e513eb8144c3298a3bd28ab1a5edb739131ec5c22e045ff93cd7f5319703a", size = 1229650, upload-time = "2026-01-21T09:42:03.061Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/76/f963c61683a39084aa575f98089253e1e852a4417cb8a3a8a422923a5246/setuptools-80.10.1-py3-none-any.whl", hash = "sha256:fc30c51cbcb8199a219c12cc9c281b5925a4978d212f84229c909636d9f6984e", size = 1099859, upload-time = "2026-01-21T09:42:00.688Z" },
 ]
 
 [[package]]

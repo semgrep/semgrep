@@ -35,9 +35,11 @@ jobs:
           submodules: true
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      - uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b
         with:
+          enable-cache: false
           python-version: "3.11"
+          version: 0.9.26
       - uses: semgrep/setup-ocaml@ce6a88f72f48e02a172c93eb93177b21659e7032
         with:
           cache-prefix: v3

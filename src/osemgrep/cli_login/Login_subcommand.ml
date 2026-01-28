@@ -205,13 +205,11 @@ let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
         save_token caps)
   (* If the token exists in the settings file, nowhere else, exit error *)
   | Some _, None ->
-      (* TODO: why not Logs.err instead? *)
       Logs.app (fun m ->
           m
-            "%s You're already logged in. Use `semgrep logout` to log out \
-             first, and then you can login with a new access token."
-            (Console.error_tag ()));
-      Exit_code.fatal ~__LOC__
+            "You're already logged in. Use `semgrep logout` to log out first, \
+             and then you can login with a new access token.");
+      Exit_code.ok ~__LOC__
   (* Token doesn't exist, or it's in the env and not well formed *)
   | None, None -> (
       Logs.debug (fun m ->
