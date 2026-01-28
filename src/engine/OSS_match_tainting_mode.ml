@@ -500,7 +500,7 @@ let check_rules ~matches_hook
   let res =
     rules
     |> List_.map (fun rule ->
-           let%trace_debug sp = "OSS_match_tainting_mode.check_rules.rule" in
+           let%trace_trace sp = "OSS_match_tainting_mode.check_rules.rule" in
            Tracing.add_data_to_span sp
              [
                ("rule_id", `String (fst rule.R.id |> Rule_ID.to_string));

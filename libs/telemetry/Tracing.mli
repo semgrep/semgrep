@@ -32,9 +32,20 @@ open Telemetry
 (*****************************************************************************)
 
 type level =
-  | Info  (** Enable standard tracing (default level) *)
-  | Debug  (** Enable commonly used debug tracing *)
-  | Trace  (** Enable everything *)
+  | Info
+      (** Enable standard tracing (default level). Keep this to high level
+          operations, such as major phases of a scan. Please avoid tracing
+          anything that occurs linearly with files/rules, e.g. operations that
+          repeat N times, where N is the number of targets, etc. *)
+  | Debug
+      (** Enable commonly used debug tracing. For Semgrep this usually means any
+          high level operations related to files/rules/targets. Please avoid
+          tracing any operations that occurs exponentially, e.g. functions that
+          run many times for each target, like specific match functions *)
+  | Trace
+      (** Enable everything! For Semgrep this can be anything, but be wary that
+          this level won't work well with non-toy repositories, as trace viewers
+          are liable to fall over from trying to load giant traces *)
 
 val show_level : level -> string
 
