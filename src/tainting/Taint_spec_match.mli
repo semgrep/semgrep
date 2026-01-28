@@ -18,7 +18,7 @@ type overlap = float
 (** A number in [0.0, 1.0], where 1.0 means that an AST node matches a taint spec
  * perfectly. For example, if `foo(...)` is a source spec, `foo(x)` would be
  * a perfect match, whereas the `x` in `foo(x)` would match the spec but loosely
- * (see note on "Taint-tracking via ranges" in 'Match_tainting_mode'.)
+ * (see note on "Taint-tracking via ranges" in 'Match_taint_spec'.)
  *
  * In practice we interpret >0.99 as being the same as 1.0, see 'is_exact'. *)
 
@@ -32,7 +32,7 @@ type 'spec t = {
       (** What the spec's pattern formula actually matches in the target file. *)
   range : Range.t;
       (** The range of this particular match, which will be a subrange of 'spec_pm',
-      * see note on "Taint-tracking via ranges" in 'Match_tainting_mode.ml'. *)
+      * see note on "Taint-tracking via ranges" in 'Match_taint_spec.ml'. *)
   overlap : overlap;
       (** The overlap of this match ('range') with the spec match ('spec_pm'). *)
 }

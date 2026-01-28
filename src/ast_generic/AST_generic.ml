@@ -198,7 +198,7 @@ let version = "1.103.0"
  *    matching caching, but we removed this optimization, but we now
  *    use AST hashing in Autofix_printer.ASTTable and we also hash
  *    formulas (which contains patterns, which contains AST_generic constructs)
- *    in Match_tainting_mode.Formula_tbl
+ *    in Formula_cache.Formula_tbl
  * - 'deriving visitors' to generator visitor and mapper boilerplate code
  *    automatically
  * - 'deriving sexp' because the Type.t type uses `alternate_name`, and itself
