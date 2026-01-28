@@ -56,7 +56,16 @@ SCA_FINDING_SCHEMA = 20220913
 def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPattern]:
     """
     Convert the entries in the Yaml to ProjectDependsOnEntry objects that specify
-    namespace, package name, and semver ranges
+    namespace, package name, and version ranges. The version format is
+    ecosystem-dependent. The current implementation assumes PEP 440 which
+    is not fully SemVer-compliant.
+
+    TODO: this is incorrect because version parsing is ecosystem-dependent.
+     See the Notion doc about version constraints entitled
+     "RFC: Supply Chain Version Constraint Format" or similar.
+     The parsing done here is somehow bypassed when checking a version
+     against this version range, in file package_restrictions.py,
+     function is_in_range.
     """
     for entry in entries:
         # schema checks should guarantee we have these fields, but we'll code defensively
