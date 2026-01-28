@@ -15,19 +15,34 @@ from typing import List
 from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semdep import semver_specifier
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.golang_version import compare_golang_specifier
 from semdep.maven_version import compare_maven_specifier
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def is_in_range(ecosystem: Ecosystem, range: str, version: str) -> bool:
-    if ecosystem == Ecosystem(out.Maven()):
+    if ecosystem == Ecosystem(out.Npm()):
+        # This is suitable for SemVer-compliant ecosystems that implement
+        # the same weird math as NPM for version comparisons. Make sure
+        # to review the test cases in test_semver_specifier.py.
+        res = semver_specifier.version_matches_str(range, version)
+        if res is not None:
+            return res
+        else:
+            # TODO: add a fallback?
+            return False
+    elif ecosystem == Ecosystem(out.Maven()):
         specifiers = [s.strip(" ") for s in range.split(",")]
         return all(compare_maven_specifier(s, version) for s in specifiers)
     elif ecosystem == Ecosystem(out.Gomod()):
+        # TODO: What's the purpose of this check?
         if len(version.split("-")) < 3:
             try:
                 ss = SpecifierSet(range)
@@ -45,7 +60,6 @@ def is_in_range(ecosystem: Ecosystem, range: str, version: str) -> bool:
                 raise SemgrepError(
                     f"bad golang module version comparison between version {version} and spec range {range}: {e}"
                 )
-
             return result
     else:
         try:
