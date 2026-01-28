@@ -34,20 +34,20 @@ and 'r type_arg_constraint =
 
 and 'r t =
   | N of 'r name * (* alt names *) AST_generic.alternate_name list
-  (* e.g. for unresolved types in core libraries*)
   | UnresolvedName of string * 'r type_argument list
+      (** e.g. for unresolved types in core libraries. *)
   | Builtin of builtin_type
-  (* for null analysis *)
-  | Null
-  (* int option for the cases where we know the size of the array *)
+  | Null  (** for null analysis *)
   | Array of Parsed_int.t option * 'r t
+      (** int option for the cases where we know the size of the array. *)
   | Record of 'r record
   | Function of 'r function_type
   | Pointer of 'r t
-  (* NoType is to avoid some Type.t option and use of let* everywhere.
-   * See also of_opt() below.
-   *)
+  | Superclass of 'r t option
+      (** The actual type is a superclass of the current class, if unspecified.
+          Otherwise, the actual type is the specified type or one of its superclasses. *)
   | NoType
+      (** NoType is to avoid Type.t option and use of let* everywhere. See also of_opt() below. *)
   | Todo of todo_kind
 
 and builtin_type =
@@ -144,6 +144,7 @@ class virtual ['c] map : object ('c)
   method visit_Int : 'd -> builtin_type
   method visit_N : 'd -> 'g name -> AST_generic.alternate_name list -> 'h t
   method visit_NoType : 'd -> 'h t
+  method visit_Superclass : 'd -> 'g t option -> 'h t
   method visit_Null : 'd -> 'h t
   method visit_Number : 'd -> builtin_type
   method visit_OtherBuiltins : 'd -> string -> builtin_type
