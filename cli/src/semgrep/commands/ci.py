@@ -576,12 +576,12 @@ def ci(
                 else:
                     rules_string = scan_handler.rules
 
+        except SemgrepError:
+            raise
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()
-            logger.info(f"Could not start scan {e}")
-            sys.exit(FATAL_EXIT_CODE)
+            raise SemgrepError(
+                f"Could not start scan: {e}", code=FATAL_EXIT_CODE
+            ) from e
 
         # Handled error outside engine type for more actionable advice.
         if run_secrets_flag and requested_engine is EngineType.OSS:
