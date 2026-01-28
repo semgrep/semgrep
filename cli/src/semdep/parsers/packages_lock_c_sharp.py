@@ -84,7 +84,7 @@ def parse_dependencies_field(
     return output
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_packages_lock(
     lockfile_path: Path, _manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

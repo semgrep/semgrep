@@ -315,7 +315,7 @@ def parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
     return result
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_package_resolved(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
