@@ -2411,7 +2411,8 @@ and m_generic_type_vs_type_t lang tok a b =
   | _, Type.Function _
   | _, Type.Pointer _
   | _, Type.NoType
-  | _, Type.Todo _ ->
+  | _, Type.Todo _
+  | _, Type.Superclass _ ->
       fail ()
 
 and m_generic_targs_vs_type_targs lang tok (_l, a, _r) b =
