@@ -91,6 +91,7 @@ and 'resolved t =
   | Record of 'resolved record
   | Function of 'resolved function_type
   | Pointer of 'resolved t
+  | Superclass of 'resolved t option
   (* todos (bailout) *)
   (* NoType is to avoid some Type.t option and use of let* everywhere.
    * See also of_opt() below.
@@ -324,6 +325,7 @@ let rec to_ast_generic_type_ ?tok lang
   | Pointer ty ->
       let* ty = to_ast_generic_type_ lang f ty in
       Some (G.TyPointer (make_tok "Pointer", ty) |> G.t)
+  | Superclass _ (* TODO do better *)
   | NoType
   | Todo _ ->
       None
