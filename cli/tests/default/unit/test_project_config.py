@@ -18,6 +18,8 @@ import ruamel.yaml
 from tests.conftest import make_semgrepconfig_file
 
 from semgrep.app.project_config import ProjectConfig
+from semgrep.error import SemgrepError
+from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 
 CONFIG_TAGS = "tags:\n- tag1\n- tag_key:tag_val\n"
 CONFIG_TAGS_MONOREPO_1 = "tags:\n- tag1\n- service:service-1\n"
@@ -114,8 +116,29 @@ def test_projectconfig_load_from_file_invalid_format(tmp_path):
     with tmp_file.open("w") as f:
         yaml.dump(invalid_cfg, f)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(SemgrepError) as exc:
         ProjectConfig.load_from_file(tmp_file)
+    assert exc.value.code == UNPARSEABLE_YAML_EXIT_CODE
+
+
+@pytest.mark.quick
+def test_projectconfig_load_from_file_invalid_yaml(tmp_path):
+    tmp_file = tmp_path / ".semgrepconfig.yml"
+    tmp_file.write_text("tags: [\n")  # invalid YAML
+
+    with pytest.raises(SemgrepError) as exc:
+        ProjectConfig.load_from_file(tmp_file)
+    assert exc.value.code == UNPARSEABLE_YAML_EXIT_CODE
+
+
+@pytest.mark.quick
+def test_projectconfig_load_from_file_wrong_top_level_type(tmp_path):
+    tmp_file = tmp_path / ".semgrepconfig.yaml"
+    tmp_file.write_text("- tag1\n- tag2\n")  # valid YAML, but not a mapping
+
+    with pytest.raises(SemgrepError) as exc:
+        ProjectConfig.load_from_file(tmp_file)
+    assert exc.value.code == UNPARSEABLE_YAML_EXIT_CODE
 
 
 @pytest.mark.quick
