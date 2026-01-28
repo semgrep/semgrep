@@ -476,7 +476,7 @@ def parse_dep_children_post_v9(
 
 
 # Main Course
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_pnpm(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

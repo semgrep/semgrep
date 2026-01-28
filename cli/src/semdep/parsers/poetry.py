@@ -260,7 +260,7 @@ def parse_pyproject_toml(
     return manifest_deps
 
 
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_poetry(
     lockfile_path: Path,
     manifest_path: Optional[Path],

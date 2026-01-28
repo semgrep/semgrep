@@ -57,7 +57,7 @@ def get_manifest_deps(parsed_manifest: Optional[JSON]) -> Set[str]:
 
 
 # Function to parse the composer.lock file and return a list of FoundDependency objects
-@telemetry.trace()
+@telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_composer_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:

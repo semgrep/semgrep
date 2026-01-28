@@ -21,6 +21,7 @@ import functools
 import json
 import logging
 import os
+from enum import Enum
 from typing import Callable
 from typing import TypeVar
 from urllib import parse
@@ -372,13 +373,28 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def trace() -> Callable[[Callable[P, R]], Callable[P, R]]:
+# Different teams that might "own" traces, e.g. should be alerted if there are
+# errors, perf regressions, etc.
+class TraceOwner(Enum):
+    # These are datadog alert aliases
+    SAF = "team-saf"  # Semgrep Analysis Foundations
+    SSC = "team-ssc"  # Semgrep Supply Chain
+
+    # If you add a new owner here, thank you! Please remember to talk with SAF
+    # about updating tracing dashboards/alerts though
+
+
+def trace(
+    owner: TraceOwner = TraceOwner.SAF,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     def outer(f: Callable[P, R]) -> Callable[P, R]:
         span_name = f"{f.__module__}.{f.__name__}"
 
         @functools.wraps(f)
         def inner(*args: P.args, **kwargs: P.kwargs) -> R:
-            with TRACER.start_as_current_span(span_name):
+            with TRACER.start_as_current_span(
+                span_name, attributes={"span.owner": owner.value}
+            ):
                 return f(*args, **kwargs)
 
         return inner
