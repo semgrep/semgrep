@@ -1,0 +1,1 @@
+Improved performance for supply chain scans by reducing pre-computation when printing the scan status. This results in slightly less information being displayed in the case that there are no rules to run.
