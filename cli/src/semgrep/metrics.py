@@ -29,9 +29,11 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import click
+import opentelemetry
 import requests
 from attr import define
 from attr import Factory
+from opentelemetry.util.types import Attributes
 from typing_extensions import LiteralString
 
 import semgrep.semgrep_interfaces.semgrep_metrics as met
@@ -153,6 +155,8 @@ class Metrics:
             sent_at=Datetime(""),
         )
     )
+    # So we can easily add metrics we record to the trace too!
+    top_level_span: opentelemetry.trace.Span | None = None
 
     def __attrs_post_init__(self) -> None:
         self.payload.environment.ci = os.getenv("CI")
@@ -169,17 +173,24 @@ class Metrics:
     def configure(
         self,
         metrics_state: Optional[MetricsState],
+        top_level_span: opentelemetry.trace.Span | None = None,
     ) -> None:
         """
         Configures whether to always, never, or automatically send metrics (based on whether config
         is pulled from the server).
 
         :param metrics_state: The value of the --metrics option
+        :param top_level_span: The top-level OpenTelemetry span for the current scan
         :raises click.BadParameter: if both --metrics and --enable-metrics/--disable-metrics are passed
         and their values are different
         """
 
         self.metrics_state = metrics_state or MetricsState.AUTO
+        self.top_level_span = top_level_span
+
+    def add_to_top_level_span(self, attributes: Attributes) -> None:
+        if self.top_level_span is not None and attributes is not None:
+            self.top_level_span.set_attributes(attributes)
 
     # TODO(cooper): It would really be best if EngineType included all of the
     # information here, but I am a bit concerned about changing it, since it is
@@ -342,6 +353,15 @@ class Metrics:
             self.payload.value.numIgnored = sum(
                 len(v) for v in findings.removed.values()
             )
+            self.add_to_top_level_span(
+                {
+                    "scan.findings_count": self.payload.value.numFindings,
+                    "scan.ignored_findings_count": self.payload.value.numIgnored,
+                    "scan.rules_with_findings_count": len(
+                        self.payload.value.ruleHashesWithFindings
+                    ),
+                }
+            )
 
             # Breakdown # of findings per-product.
             _num_findings_by_product: Dict[out.Product, int] = defaultdict(int)
@@ -385,6 +405,12 @@ class Metrics:
             total_bytes_scanned = sum(t.fpath.stat().st_size for t in targets)
             self.payload.performance.totalBytesScanned = total_bytes_scanned
             self.payload.performance.numTargets = len(targets)
+            self.add_to_top_level_span(
+                {
+                    "scan.num_targets": self.payload.performance.numTargets,
+                    "scan.total_bytes_scanned": self.payload.performance.totalBytesScanned,
+                }
+            )
         except Exception as e:
             self.log_exception("add_targets", e)
 
