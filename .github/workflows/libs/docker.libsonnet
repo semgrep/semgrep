@@ -408,30 +408,7 @@ local job(
                // This is needed so we can push images to docker hub successfully.
                actions.docker_login_step,
              ] else []
-           ) + (if push_ecr || push then [
-                  // The configure-aws-credentials and login-ecr steps are needed so
-                  // we can push to Amazon ECR successfully.
-                  {
-                    id: 'configure-aws-credentials',
-                    name: 'Configure AWS credentials',
-                    uses: uses.aws_actions.configure_aws_credentials,
-                    // These fields are different than what's in semgrep_pro.libjsonnet
-                    // because they're used for different purposes.
-                    // Here is the role used to access ECR, while in semgrep_pro.libjsonnet
-                    // is the role to upload pro binary buckets to a specific S3 location.
-                    with: {
-                      'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-semgrep-proprietary-deploy-role',
-                      'role-duration-seconds': 900,
-                      'role-session-name': 'semgrep-proprietary-build-test-docker-gha',
-                      'aws-region': 'us-west-2',
-                    },
-                  },
-                  {
-                    id: 'login-ecr',
-                    name: 'Login to Amazon ECR',
-                    uses: uses.aws_actions.amazon_ecr_login,
-                  },
-                ] else []) +
+           ) + (if push_ecr || push then actions.ecr_login_steps else []) +
            [
 
              {
@@ -530,4 +507,5 @@ local inputs = {
   validate: validate,
   retag_step: retag_step,
   build_and_run_gha_job: build_and_run_gha_job,
+  ecr_repo: ecr_repo,
 }
