@@ -198,6 +198,32 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
       password: '${{ secrets.DOCKER_PASSWORD }}',
     },
   },
+  ecr_login_steps: [
+    // The configure-aws-credentials and login-ecr steps are needed so
+    // we can push to Amazon ECR successfully.
+    {
+      id: 'configure-aws-credentials',
+      name: 'Configure AWS credentials',
+      uses: uses.aws_actions.configure_aws_credentials,
+      // The aws role we use to push to ecr is different than the role in
+      // semgrep_pro.libsonnet because it's used for a different purpose.
+
+      // Here the role is used to access ECR, while in semgrep_pro.libjsonnet
+      // the role is used to upload pro binary buckets to a specific S3
+      // location.
+      with: {
+        'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-semgrep-proprietary-deploy-role',
+        'role-duration-seconds': 900,
+        'role-session-name': 'semgrep-proprietary-build-test-docker-gha',
+        'aws-region': 'us-west-2',
+      },
+    },
+    {
+      id: 'login-ecr',
+      name: 'Login to Amazon ECR',
+      uses: uses.aws_actions.amazon_ecr_login,
+    },
+  ],
 
   // ---------------------------------------------------------
   // Artifact management
