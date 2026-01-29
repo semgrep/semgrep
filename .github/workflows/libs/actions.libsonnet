@@ -179,10 +179,10 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
       'enable-cache': cache,
     },
   },
-  install_python_deps(directory): {
+  install_python_deps(directory, group=''): {
     name: 'Install Python dependencies',
     'working-directory': directory,
-    run: 'uv sync',
+    run: (if group != '' then 'uv sync --group %s' % group else 'uv sync'),
   },
 
   // ---------------------------------------------------------

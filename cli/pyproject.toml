@@ -117,6 +117,11 @@ dev = [
   "bytecode",
 ]
 
+# This is used in pypi-release.yml so that we can execute `setup.py park`
+build = [
+  "setuptools",
+]
+
 [project.urls]
 Homepage = "https://semgrep.dev"
 Documentation = "https://semgrep.dev/docs"
