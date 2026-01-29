@@ -554,7 +554,7 @@ let git_list_files ~(baseline_commit : string option) ~untracked_exclude
 let git_list_tracked_files ~baseline_commit
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
   git_list_files ~baseline_commit ~untracked_exclude:[] [ Cached ] project_roots
-[@@profiling]
+[@@trace] [@@profiling]
 
 (*
    List all the files that are not being tracked by git except those in
@@ -574,7 +574,7 @@ let git_list_untracked_files ~baseline_commit ~respect_gitignore
   in
   git_list_files ~baseline_commit ~untracked_exclude:exclude [ Others ]
     project_roots
-[@@profiling]
+[@@trace] [@@profiling]
 
 (*************************************************************************)
 (* Grouping *)
@@ -716,6 +716,7 @@ let setup_path_filters conf (project_roots : Project.scanning_roots) :
 let filter_targets conf project_roots (all_files : Fppath.t list) =
   let ign = setup_path_filters conf project_roots in
   filter_paths ign all_files
+[@@trace]
 
 let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
     (project_roots : Project.scanning_roots) =
@@ -756,6 +757,7 @@ let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
       ( Fppath_set.union selected (Fppath_set.of_list selected2),
         List.rev_append skipped2 skipped ))
     (Fppath_set.empty, []) project_roots.scanning_roots
+[@@trace]
 
 (*
    Select the scanning roots that are regular files or symlinks to regular
@@ -843,6 +845,7 @@ let get_targets_for_project (caps : < Cap.readdir ; .. >) (conf : conf)
   Log.debug (fun m ->
       m "selected targets: %s" (Fppath_set.show selected_targets));
   (selected_targets, skipped_targets)
+[@@trace]
 
 (* for semgrep query console *)
 let clone_if_remote_project_root conf =
