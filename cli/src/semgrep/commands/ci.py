@@ -327,7 +327,7 @@ def ci(
         if trace:
             logger.verbose(f"Trace ID: {state.telemetry.get_trace_id():x}")
 
-        state.metrics.configure(metrics)
+        state.metrics.configure(metrics, top_level_span=semgrep_commands_ci_span)
         state.error_handler.configure(suppress_errors)
         scan_handler = None
         capture_core_stderr = not debug
@@ -826,7 +826,6 @@ def ci(
                 exit_code = FATAL_EXIT_CODE
 
             semgrep_commands_ci_span.set_attribute("scan.cli_exitcode", exit_code)
-
             if scan_handler:
                 scan_handler.report_failure(exit_code)
 

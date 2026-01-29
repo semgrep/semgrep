@@ -821,7 +821,7 @@ def scan(
     )
     with telemetry.TRACER.start_as_current_span(
         "semgrep.commands.scan", kind=telemetry.TOP_LEVEL_SPAN_KIND
-    ):
+    ) as semgrep_commands_scan_span:
         engine_type = EngineType.decide_engine_type(
             logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
@@ -844,7 +844,8 @@ def scan(
             dataflow_traces = engine_type.has_dataflow_traces
 
         state.metrics.configure(
-            metrics if not x_mcp else MetricsState.OFF
+            metrics if not x_mcp else MetricsState.OFF,
+            top_level_span=semgrep_commands_scan_span,
         )  # the MCP handles metrics separately so metrics should be turn off here to avoid duplicates
         state.terminal.configure(
             verbose=verbose,

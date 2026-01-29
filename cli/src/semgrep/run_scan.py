@@ -267,7 +267,6 @@ def add_metrics_part1(
     # We determine if SAST / SCA is enabled based on the config str
     with_code_rules = configs_obj.with_code_rules
     with_supply_chain = configs_obj.with_supply_chain
-
     if metrics.is_enabled:
         metrics.add_project_url(project_url)
         metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
@@ -275,13 +274,15 @@ def add_metrics_part1(
         metrics.add_engine_config(
             engine_type,
             CodeConfig() if with_code_rules else None,
-            SecretsConfig(
-                SecretsOrigin(AnySecretsOrigin())
-                if allow_untrusted_validators
-                else SecretsOrigin(SemgrepSecretsOrigin())
-            )
-            if run_secrets and not disable_secrets_validation
-            else None,
+            (
+                SecretsConfig(
+                    SecretsOrigin(AnySecretsOrigin())
+                    if allow_untrusted_validators
+                    else SecretsOrigin(SemgrepSecretsOrigin())
+                )
+                if run_secrets and not disable_secrets_validation
+                else None
+            ),
             SupplyChainConfig() if with_supply_chain else None,
         )
         metrics.add_is_diff_scan(baseline_commit is not None)
