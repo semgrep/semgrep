@@ -104,7 +104,7 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
       set -x
     fi
     if [[ "${dry_run}" == "true" ]]; then
-      docker_tag="${docker_tag}-dry-run"
+      target_tag="${target_tag}-dry-run"
     fi
 
     source_image="${source_image}:${source_ref}"
