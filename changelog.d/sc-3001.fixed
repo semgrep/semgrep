@@ -1,1 +1,0 @@
-Supply Chain Analysis: fixed version range matching for NPM packages with versions containing a prerelease identifier such as `-alpha` in `1.2.3-alpha`.
