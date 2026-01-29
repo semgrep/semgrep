@@ -167,6 +167,7 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
     cmd = _cmd()
 
     state = get_state()
+    emit_stderr = state.terminal.log_level == logging.DEBUG
     if state.telemetry.enabled:
         cmd.append("-trace")
         if state.telemetry.trace_endpoint is not None:
@@ -177,6 +178,7 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
+        stderr=None if emit_stderr else subprocess.DEVNULL,
         text=False,
     ) as proc:
         try:
@@ -266,10 +268,16 @@ class RpcSession:
         """Start a new Semgrep OCaml RPC process.
         This defaults to using the pro executable if available.
         """
+        from semgrep.state import get_state
+
+        state = get_state()
+
+        emit_stderr = state.terminal.log_level == logging.DEBUG
         server = subprocess.Popen(
             _cmd(),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
+            stderr=None if emit_stderr else subprocess.DEVNULL,
             text=False,
         )
         return RpcSession(server)
