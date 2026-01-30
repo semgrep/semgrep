@@ -375,6 +375,9 @@ WORKDIR /semgrep
 #    scripts/build-wheels.sh on arm64
 RUN apk add --no-cache build-base zip bash libffi-dev
 
+# Copy in the README, which the wheels include
+COPY README.md ./README.md
+
 # Copy in the CLI
 COPY cli ./cli
 
