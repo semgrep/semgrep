@@ -21,7 +21,6 @@ module MV = Metavariable
 module R = Rule
 module RM = Range_with_metavars
 module OutJ = Semgrep_output_v1_t
-module D = Dataflow_tainting
 module TM = Taint_spec_match
 module TP = Taint_spec_preds
 

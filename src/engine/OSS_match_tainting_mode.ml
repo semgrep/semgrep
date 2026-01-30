@@ -14,7 +14,6 @@
  *)
 open Common
 open Fpath_.Operators
-module D = Dataflow_tainting
 module Var_env = Dataflow_var_env
 module G = AST_generic
 module H = AST_generic_helpers
@@ -281,10 +280,10 @@ let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
   let fdef = AST_to_IL.function_definition taint_inst.file.lang ~ctx fdef in
   let fcfg = CFG_build.cfg_of_fdef fdef in
   let in_env, env_effects =
-    Taint_input_env.mk_fun_input_env taint_inst ?glob_env fdef.fparams
+    OSS_taint_input_env.mk_fun_input_env taint_inst ?glob_env fdef.fparams
   in
   let effects, mapping =
-    Dataflow_tainting.fixpoint taint_inst ~in_env ?name fcfg
+    OSS_dataflow_tainting.fixpoint taint_inst ~in_env ?name fcfg
   in
   let effects = Effects.union env_effects effects in
   (fcfg, effects, mapping)
@@ -332,7 +331,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
           ast;
 
         let glob_env, glob_effects =
-          Taint_input_env.mk_file_env taint_inst ast
+          OSS_taint_input_env.mk_file_env taint_inst ast
         in
         record_matches glob_effects;
 
@@ -392,7 +391,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
                   (Option.map IL.str_of_name opt_name ||| "???"));
             let (init_effects, _mapping), taint_time =
               Common.with_time (fun () ->
-                  Dataflow_tainting.fixpoint taint_inst ?name:opt_name
+                  OSS_dataflow_tainting.fixpoint taint_inst ?name:opt_name
                     Fun_CFG.{ params = []; cfg; lambdas })
             in
             prof_add_taint_time tainting_stats file.path opt_name rule
@@ -415,7 +414,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
                  --------------------");
           let (top_effects, _mapping), taint_time =
             Common.with_time (fun () ->
-                Dataflow_tainting.fixpoint taint_inst
+                OSS_dataflow_tainting.fixpoint taint_inst
                   Fun_CFG.{ params = []; cfg; lambdas })
           in
           prof_add_taint_time tainting_stats file.path None rule taint_time;

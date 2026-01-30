@@ -14,46 +14,8 @@ type mapping = Taint_lval_env.t Dataflow_core.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
-type java_props_cache
 (** When we encounter getters/setters without a definition, we need to resolve them
   * to their corresponding property, we cache the results here. *)
-
-type func = {
-  taint_inst : Taint_rule_inst.t;
-  fname : IL.name option;
-  best_matches : Taint_spec_match.Best_matches.t;
-      (** Best matches for the taint sources/etc, see 'Taint_spec_match'. *)
-}
-
-val mk_empty_java_props_cache : unit -> java_props_cache
-
-type hook_function_taint_signature =
-  Taint_rule_inst.t ->
-  AST_generic.expr ->
-  (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option
-
-(* deep-scan (and pro-scan) hook *)
-val hook_function_taint_signature : hook_function_taint_signature option Hook.t
-
-val hook_infer_sig_for_lambda :
-  (func ->
-  lambdas:Taint_lambdas.env ->
-  in_env:Taint_lval_env.t ->
-  IL.name ->
-  IL.function_definition ->
-  Fun_CFG.t ->
-  Shape_and_sig.Signature.t)
-  option
-  Hook.t
-
-val fixpoint_aux :
-  func ->
-  lambdas:Taint_lambdas.env ->
-  enter_lval_env:Taint_lval_env.t ->
-  in_lambda:IL.name option ->
-  Fun_CFG.t ->
-  Shape_and_sig.Effects.t * mapping
-(** Pro: inter-proc lambdas *)
 
 val fixpoint :
   Taint_rule_inst.t ->
@@ -78,17 +40,3 @@ val must_drop_taints_if_bool_or_number : Rule_options.t -> 'a Type.t -> bool
   type, then 'must_drop_taints_if_bool_or_number' will evaluate to 'true'.
 
   THINK: Move to module 'Taint' or somewhere else? *)
-
-val sinks_of_matches :
-  Taint_lval_env.t ->
-  Taint_spec_preds.sink Taint_spec_match.t list ->
-  Shape_and_sig.Effect.sink list * Taint_lval_env.t
-(** Gets and pre-evaluates the actual 'requires' preconditions for the sinks,
-  it already filters out sink matches that trivially fail their 'requires'. *)
-
-val effects_of_tainted_sink :
-  Rule_options.t ->
-  Shape_and_sig.Effect.taint_to_sink_item list ->
-  Shape_and_sig.Effect.sink ->
-  Shape_and_sig.Effect.poly list
-(** Exposed for Pro *)

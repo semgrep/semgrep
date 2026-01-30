@@ -56,15 +56,15 @@ type file = {
           by side-effect (no pun intended), however this is not needed now because
           'Dataflow_tainting.fixpoint' already returns the set of taint effects. *)
   java_props_cache : java_props_cache;
-  timeouts : file_timeout_stats;
       (** Pro should be autogenerating definitions for these getters/setters,
-    * but that seems to hurt performance and it's still unclear why, so instead
-    * we give taint access to Pro typing info through a hook
-    * ('Dataflow_tainting.hook_find_attribute_in_class') and look for the
-    * property corresponding to the getter/setter.
-    *
-    * On very large files, allocating a new name every time could have a perf
-    * impact, so we cache them. *)
+     but that seems to hurt performance and it's still unclear why, so instead
+     we give taint access to Pro typing info through a hook
+     ('hook_find_attribute_in_class') and look for the property corresponding
+     to the getter/setter.
+
+     On very large files, allocating a new name every time could have a perf
+     impact, so we cache them. *)
+  timeouts : file_timeout_stats;
 }
 
 type t = {

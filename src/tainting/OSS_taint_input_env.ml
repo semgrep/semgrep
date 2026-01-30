@@ -36,7 +36,7 @@ let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
         (fst id));
   let effects, end_mapping =
     (* There could be taint effects indeed, e.g. if 'expr' is `sink(taint)`. *)
-    Dataflow_tainting.fixpoint taint_inst ~in_env:env
+    OSS_dataflow_tainting.fixpoint taint_inst ~in_env:env
       Fun_CFG.{ params = []; cfg; lambdas }
   in
   let out_env = end_mapping.(cfg.exit).Dataflow_core.out_env in
@@ -68,8 +68,8 @@ let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
   let taints = id_taints |> T.Taint_set.union expr_taints in
   let env =
     if
-      Dataflow_tainting.must_drop_taints_if_bool_or_number taint_inst.options
-        var_type
+      OSS_dataflow_tainting.must_drop_taints_if_bool_or_number
+        taint_inst.options var_type
     then env
     else env |> Taint_lval_env.add_lval (IL_helpers.lval_of_var var) taints
   in

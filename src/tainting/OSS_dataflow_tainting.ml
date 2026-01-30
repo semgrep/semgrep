@@ -68,7 +68,6 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node n
 end)
 
-let sigs_tag = Log_tainting.sigs_tag
 let transfer_tag = Log_tainting.transfer_tag
 
 (*****************************************************************************)
@@ -76,9 +75,6 @@ let transfer_tag = Log_tainting.transfer_tag
 (*****************************************************************************)
 
 type mapping = Lval_env.t D.mapping
-type java_props_cache = (string * G.SId.t, IL.name) Hashtbl.t
-
-let mk_empty_java_props_cache () = Hashtbl.create 30
 
 type func = {
   taint_inst : Taint_rule_inst.t;
@@ -100,18 +96,6 @@ type env = {
   lval_env : Lval_env.t;
   effects_acc : Effects.t ref;
 }
-
-(*****************************************************************************)
-(* Hooks *)
-(*****************************************************************************)
-
-type hook_function_taint_signature =
-  Taint_rule_inst.t ->
-  AST_generic.expr ->
-  (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option
-
-let hook_function_taint_signature = Hook.create None
-let hook_infer_sig_for_lambda = Hook.create None
 
 (*****************************************************************************)
 (* Options *)
@@ -608,19 +592,6 @@ let effects_of_call_func_arg fun_exp fun_shape args_taints =
             (S.show_shape fun_shape));
       []
 
-let lookup_signature env fun_exp =
-  match (Hook.get hook_function_taint_signature, fun_exp) with
-  | Some hook, { e = Fetch _f; eorig = SameAs eorig } ->
-      hook env.func.taint_inst eorig
-  | __else__ -> None
-
-let lookup_fun_signature env fun_exp =
-  match lookup_signature env fun_exp with
-  | Some (taint_sig, `Fun) -> Some taint_sig
-  | Some (_, `Var)
-  | None ->
-      None
-
 (*****************************************************************************)
 (* Miscellaneous *)
 (*****************************************************************************)
@@ -834,16 +805,9 @@ let handle_taint_propagators env thing taints shape =
             (ready, lval_env))
       (VarMap.empty, lval_env) propagate_froms
   in
-  let lval_env =
-    match env.func.taint_inst.file.pro_hooks with
-    | None -> lval_env
-    | Some pro_hooks ->
-        let lval_env, effects_acc =
-          pro_hooks.run_taint_propagations ready_to_propagate lval_env
-            !(env.effects_acc)
-        in
-        env.effects_acc := effects_acc;
-        lval_env
+  let _PRO_only =
+    (* In Pro: run_taint_propagations *)
+    ready_to_propagate
   in
   let taints_propagated, lval_env =
     (* `thing` is the destination (the "to") of propagation. we collect all the
@@ -955,7 +919,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
    e =
      Fetch
        ({
-          base = Var obj;
+          base = Var _obj;
           rev_offset =
             [ { o = Dot { IL.ident = method_str, method_tok; sid; _ }; _ } ];
         } as lval);
@@ -975,7 +939,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
               (prop_str, sid)
           with
           | Some prop_name -> prop_name
-          | None -> (
+          | None ->
               let mk_default_prop_name () =
                 let prop_name =
                   {
@@ -988,20 +952,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
                   (prop_str, sid) prop_name;
                 prop_name
               in
-              match
-                (!(obj.id_info.id_type), env.func.taint_inst.file.pro_hooks)
-              with
-              | Some { t = TyN class_name; _ }, Some pro_hooks -> (
-                  match
-                    pro_hooks.find_attribute_in_class class_name prop_str
-                  with
-                  | None -> mk_default_prop_name ()
-                  | Some prop_name ->
-                      let prop_name = AST_to_IL.var_of_name prop_name in
-                      Hashtbl.add env.func.taint_inst.file.java_props_cache
-                        (prop_str, sid) prop_name;
-                      prop_name)
-              | __else__ -> mk_default_prop_name ())
+              mk_default_prop_name ()
         in
         { lval with rev_offset = [ { o = Dot prop_name; oorig = NoOrig } ] }
       in
@@ -1197,33 +1148,6 @@ and check_tainted_lval_offset env offset =
       in
       (taints, lval_env)
 
-and check_tainted_lval_with_sig env lval eorig =
-  let exp = { e = Fetch lval; eorig } in
-  let taints, shape, _sub, lval_env = check_tainted_lval env lval in
-  match (shape, lookup_signature env exp) with
-  | __any__, None -> (taints, shape, lval_env)
-  | S.Bot, Some (fun_sig, `Fun) ->
-      (* This 'lval' is a function, with a known taint signature, so we give it a
-         `Fun` shape. *)
-      (taints, S.Fun fun_sig, lval_env)
-  | _non_Bot_shape, Some (fun_sig, `Fun) ->
-      (* A top-level function/method is expected to have shape 'Bot'. *)
-      Log.warn (fun m ->
-          m "'%s' has a taint signature (%s) but has also shape '%s'"
-            (Display_IL.string_of_exp exp)
-            (Signature.show fun_sig) (S.show_shape shape));
-      (taints, shape, lval_env)
-  | __any__, Some (var_sig, `Var) -> (
-      (* We instantiate 'var_sig' as if 'lval' were a 0-arity function. *)
-      match
-        instantiate_function_signature { env with lval_env } exp var_sig None []
-      with
-      | Some (call_taints, call_shape, lval_env) ->
-          ( taints |> Taints.union call_taints,
-            shape |> Shape.unify_shape call_shape,
-            lval_env )
-      | None -> (taints, shape, lval_env))
-
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
@@ -1371,9 +1295,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
   | None -> (
       match exp.e with
       | Fetch lval ->
-          let taints, shape, lval_env =
-            check_tainted_lval_with_sig env lval exp.eorig
-          in
+          let taints, shape, _sub, lval_env = check_tainted_lval env lval in
           let lval_env =
             check_orig_if_sink { env with lval_env } exp.eorig taints shape
           in
@@ -1417,38 +1339,6 @@ and check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
     check_tainted_lval env (LV.lval_of_var var)
   in
   (taints, shape, lval_env)
-
-and instantiate_function_signature env fun_exp fun_sig args args_taints =
-  let* pro_hooks = env.func.taint_inst.file.pro_hooks in
-  let* taints, shape, lval_env, new_effects =
-    pro_hooks.instantiate_function_signature env.func.taint_inst.options
-      env.lval_env fun_sig ~callee:fun_exp ~args args_taints
-  in
-  new_effects |> Effects.elements |> record_effects env;
-  Some (taints, shape, lval_env)
-
-(* This function is consuming the taint signature of a function to determine
-   a few things:
-   1) What is the status of taint in the current environment, after the function
-      call occurs?
-   2) Are there any effects that occur within the function due to taints being
-      input into the function body, from the calling context?
-*)
-and check_function_call env fun_exp (args : exp argument list)
-    (args_taints : (Taints.t * S.shape) argument list) :
-    (Taints.t * S.shape * Lval_env.t) option =
-  match lookup_fun_signature env fun_exp with
-  | Some fun_sig ->
-      Log.debug (fun m ->
-          m ~tags:sigs_tag "Call to %s : %s"
-            (Display_IL.string_of_exp fun_exp)
-            (Signature.show fun_sig));
-      instantiate_function_signature env fun_exp fun_sig (Some args) args_taints
-  | None ->
-      Log.info (fun m ->
-          m "No taint signature found for `%s'"
-            (Display_IL.string_of_exp fun_exp));
-      None
 
 and check_args_and_prop_their_taints env args =
   let args_taints, all_args_taints, lval_env =
@@ -1505,20 +1395,6 @@ let mk_lambda_input_env env (lcfg : Fun_CFG.t) =
          lval_env |> Lval_env.add_lval_shape (LV.lval_of_var var) taints shape)
        env.lval_env
 
-let check_lambda env lval fdef =
-  if env.func.taint_inst.options.taint_interproc_lambdas then
-    let opt_lshape =
-      let* lname, lcfg =
-        Taint_lambdas.find_lambda_cfg_in_current_scope env.lambdas lval
-      in
-      let in_env = mk_lambda_input_env env lcfg in
-      let* hook = Hook.get hook_infer_sig_for_lambda in
-      let lsig = hook env.func ~lambdas:env.lambdas ~in_env lname fdef lcfg in
-      Some (S.Fun lsig)
-    in
-    (Taints.empty, opt_lshape ||| S.Bot, env.lval_env)
-  else (Taints.empty, S.Bot, env.lval_env)
-
 let check_tainted_call env corig e args =
   let args_taints, all_args_taints, lval_env =
     check_function_call_arguments env args
@@ -1544,49 +1420,39 @@ let check_tainted_call env corig e args =
         not (m.spec.spec.sink_exact && m.spec.spec.sink_has_focus))
   in
   let call_taints, shape, lval_env =
-    match check_function_call { env with lval_env } e args args_taints with
-    | Some (call_taints, shape, lval_env) ->
-        (* THINK: For debugging, we could print a diff of the previous and new lval_env *)
-        Log.debug (fun m ->
-            m ~tags:sigs_tag "- Instantiating %s: returns %s & %s"
-              (Display_IL.string_of_exp e)
-              (T.show_taints call_taints)
-              (S.show_shape shape));
-        (call_taints, shape, lval_env)
-    | None -> (
-        let call_taints =
-          if not (propagate_through_functions env) then Taints.empty
-          else
-            (* Otherwise assume that the function will propagate
-             * the taint of its arguments. *)
-            all_args_taints
-        in
-        match
-          propagate_taint_via_java_getters_and_setters_without_definition
-            { env with lval_env } e args all_args_taints
-        with
-        | Some (getter_taints, _TODOshape, lval_env) ->
-            (* HACK: Java: If we encounter `obj.setX(arg)` we interpret it as
-             * `obj.x = arg`, if we encounter `obj.getX()` we interpret it as
-             * `obj.x`. *)
-            let call_taints = Taints.union call_taints getter_taints in
-            (call_taints, Bot, lval_env)
-        | None ->
-            (* We have no taint signature and it's neither a get/set method. *)
-            if not (propagate_through_functions env) then
-              (Taints.empty, Bot, lval_env)
-            else (
-              effects_of_call_func_arg e e_shape args_taints
-              |> record_effects { env with lval_env };
-              (* If this is a method call, `o.method(...)`, then we fetch the
-               * taint of the callee object `o`. This is a conservative worst-case
-               * asumption that any taint in `o` can be tainting the call's effect. *)
-              let call_taints =
-                match e_obj with
-                | `Fun -> call_taints
-                | `Obj obj_taints -> call_taints |> Taints.union obj_taints
-              in
-              (call_taints, Bot, lval_env)))
+    let call_taints =
+      if not (propagate_through_functions env) then Taints.empty
+      else
+        (* Otherwise assume that the function will propagate
+         * the taint of its arguments. *)
+        all_args_taints
+    in
+    match
+      propagate_taint_via_java_getters_and_setters_without_definition
+        { env with lval_env } e args all_args_taints
+    with
+    | Some (getter_taints, _TODOshape, lval_env) ->
+        (* HACK: Java: If we encounter `obj.setX(arg)` we interpret it as
+         * `obj.x = arg`, if we encounter `obj.getX()` we interpret it as
+         * `obj.x`. *)
+        let call_taints = Taints.union call_taints getter_taints in
+        (call_taints, S.Bot, lval_env)
+    | None ->
+        (* We have no taint signature and it's neither a get/set method. *)
+        if not (propagate_through_functions env) then
+          (Taints.empty, S.Bot, lval_env)
+        else (
+          effects_of_call_func_arg e e_shape args_taints
+          |> record_effects { env with lval_env };
+          (* If this is a method call, `o.method(...)`, then we fetch the
+           * taint of the callee object `o`. This is a conservative worst-case
+           * asumption that any taint in `o` can be tainting the call's effect. *)
+          let call_taints =
+            match e_obj with
+            | `Fun -> call_taints
+            | `Obj obj_taints -> call_taints |> Taints.union obj_taints
+          in
+          (call_taints, S.Bot, lval_env))
   in
   (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
   let all_call_taints =
@@ -1610,24 +1476,13 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           check_type_and_drop_taints_if_bool_or_number env taints type_of_expr e
         in
         (taints, shape, lval_env)
-    | AssignAnon (lval, Lambda fdef) -> check_lambda env lval fdef
+    | AssignAnon (_lval, Lambda _fdef) -> (Taints.empty, S.Bot, env.lval_env)
     | AssignAnon _ -> (Taints.empty, Bot, env.lval_env)
     | AssignCall (_, { c = Call (e, args); corig }) ->
         check_tainted_call env corig e args
     | AssignCall (_, { c = CallSpecial (_, args); _ }) ->
         check_args_and_prop_their_taints env args
-    | New (_lval, _ty, Some constructor, args) -> (
-        (* 'New' with reference to constructor, although it doesn't mean it has been resolved. *)
-        let args_taints, _all_args_taints, lval_env =
-          check_function_call_arguments env args
-        in
-        match
-          check_function_call { env with lval_env } constructor args args_taints
-        with
-        | Some (call_taints, shape, lval_env) -> (call_taints, shape, lval_env)
-        | None -> check_args_and_prop_their_taints { env with lval_env } args)
-    | New (_lval, _ty, None, args) ->
-        (* 'New' without reference to constructor *)
+    | New (_lval, _ty, _constructor, args) ->
         check_args_and_prop_their_taints env args
     | FixmeInstr _ -> (Taints.empty, Bot, env.lval_env)
   in
@@ -1703,13 +1558,6 @@ let check_tainted_case env scrutinee pattern : Lval_env.t =
       env |> Lval_env.add_lval { base = Var arg; rev_offset = [] } taints)
     lval_env bound_vars
 
-let effects_from_arg_updates_at_exit (pro_hooks : Taint_pro_hooks.t option)
-    ~in_lambda ~enter_env exit_env : Effect.poly list =
-  match pro_hooks with
-  | None -> []
-  | Some pro_hooks ->
-      pro_hooks.infer_update_effects_at_exit ~in_lambda ~enter_env exit_env
-
 let check_tainted_control_at_exit node env =
   match node.F.n with
   (* This is only for implicit returns, we could handle 'NReturn' here too
@@ -1735,21 +1583,6 @@ let check_tainted_control_at_exit node env =
           effects_of_tainted_return env Taints.empty Bot return_tok
         in
         record_effects env effects
-
-let check_tainted_at_exit_sinks node env =
-  match env.func.taint_inst.file.pro_hooks with
-  | None -> env.lval_env
-  | Some pro_hooks ->
-      let opt_taints_and_sinks_at_exit, lval_env =
-        pro_hooks.check_tainted_at_exit_sinks env.func.taint_inst.preds
-          env.lval_env node
-      in
-      (match opt_taints_and_sinks_at_exit with
-      | None -> ()
-      | Some (taints_at_exit, sink_matches_at_exit) ->
-          effects_of_tainted_sinks env taints_at_exit sink_matches_at_exit
-          |> record_effects env);
-      lval_env
 
 (*****************************************************************************)
 (* Transfer *)
@@ -1811,12 +1644,11 @@ let rec transfer : env -> fun_cfg:Fun_CFG.t -> Lval_env.t D.transfn =
     check_for_lambdas { env with lval_env = out' } node
   in
   env.effects_acc := Effects.union effects_lambdas !(env.effects_acc);
-  let env_at_exit = { env with lval_env = out' } in
-  check_tainted_control_at_exit node env_at_exit;
-  let out' = check_tainted_at_exit_sinks node env_at_exit in
+  check_tainted_control_at_exit node { env with lval_env = out' };
+  (* In Pro: check taints at exit *)
   Log.debug (fun m ->
       m ~tags:transfer_tag
-        "Taint transfer %s%s\n  %s:\n  IN:  %s\n  OUT: %s\n~~~~~"
+        "(OSS) Taint transfer %s%s\n  %s:\n  IN:  %s\n  OUT: %s\n~~~~~"
         (Option.map IL.str_of_name env.func.fname ||| "<FUN>")
         (Option.map
            (fun lname -> spf "(in lambda %s)" (IL.str_of_name lname))
@@ -1943,51 +1775,7 @@ and check_for_lambdas env node =
 and do_lambda env ~is_call name cfg =
   let effects, out_env =
     let lambda_input_env = mk_lambda_input_env env cfg in
-    match Lval_env.find_var env.lval_env name with
-    | Some (S.Cell (_, S.Fun tsig)) ->
-        if env.func.taint_inst.options.taint_interproc_lambdas then
-          let args_taints =
-            (* Enables propagation from the enclosing function to the
-                      parameters of the lambda. *)
-            cfg.params
-            |> List_.map (function
-                 | Param { pname; _ } -> (
-                     match Lval_env.find_var lambda_input_env pname with
-                     | None -> Named (pname.ident, (Taints.empty, S.Bot))
-                     | Some (S.Cell (xtaints, shape)) ->
-                         let taints = Xtaint.to_taints xtaints in
-                         Named (pname.ident, (taints, shape)))
-                 | PatternParam _ (* TODO *)
-                 | FixmeParam ->
-                     Unnamed (Taints.empty, S.Bot))
-          in
-          match
-            instantiate_function_signature env
-              { e = Fetch (LV.lval_of_var name); eorig = NoOrig }
-              tsig None args_taints
-          with
-          | None -> (Effects.empty, env.lval_env)
-          | Some (_taints, _shape, lval_env) ->
-              (* We are just interested in the side-effects of the lambda. *)
-              (Effects.empty, lval_env)
-        else
-          (* This allows for propagators like:
-
-                        $FROM.foobar($X => {
-                          ...
-                          $TO.$ANY(...)
-                          ...
-                        })
-
-                    that do not work if we use inter-procedural analysis to check lambdas.
-
-                    TODO: Make propagation work inter-proc, may be related to extra-requires?
-                 *)
-          fixpoint_lambda env.func env.lambdas name cfg lambda_input_env
-    | Some _
-    | None ->
-        (* We are in OSS or we could not infer a taint signature for the lambda. *)
-        fixpoint_lambda env.func env.lambdas name cfg lambda_input_env
+    fixpoint_lambda env.func env.lambdas name cfg lambda_input_env
   in
   let out_env =
     if is_call then
@@ -2084,11 +1872,7 @@ and fixpoint_aux func ~lambdas ~enter_lval_env ~in_lambda fun_cfg =
       ~init:init_mapping ~trans:(transfer env ~fun_cfg) ~forward:true ~flow
   in
   record_timeout env.func.taint_inst env.func.fname timeout;
-  let exit_lval_env = end_mapping.(flow.exit).D.out_env in
-  effects_from_arg_updates_at_exit func.taint_inst.file.pro_hooks
-    ~in_lambda:(Option.is_some in_lambda) ~enter_env:enter_lval_env
-    exit_lval_env
-  |> record_effects env;
+  (* In Pro: check taints at exit *)
   (!(env.effects_acc), end_mapping)
 
 (*****************************************************************************)
