@@ -292,7 +292,7 @@ local archive_ext(arch) = if is_windows_arch(arch) then '.tgz' else '.zip';
 local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' else ''];
 
 //TODO always want to include semgrep pro ...
-local build_wheel_steps(arch, platform, copy_semgrep_pro=false) =
+local build_wheel_steps(arch, copy_semgrep_pro=false) =
   [
     actions.setup_python_step(),
     {
@@ -317,7 +317,7 @@ local build_wheel_steps(arch, platform, copy_semgrep_pro=false) =
     },
     {
       name: 'Build wheel',
-      run: './scripts/build-wheels.sh --plat-name %s' % platform,
+      run: './scripts/build-wheels.sh',
     },
     actions.make_artifact_step('cli/dist%s' % archive_ext(arch)),
     actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),

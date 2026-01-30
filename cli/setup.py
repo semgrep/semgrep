@@ -62,6 +62,20 @@ if WHEEL_CMD in sys.argv:
                 plat = "musllinux_1_0_aarch64.manylinux2014_aarch64"
             elif plat == "linux_x86_64":
                 plat = "musllinux_1_0_x86_64.manylinux2014_x86_64"
+            # The macOS Python binary is sometimes a universal binary, which leads to a
+            # platform name of "macosx_10_9_universal2" in the wheel tag. Unfortunately,
+            # our binary is not built as universal, so we must detect the architecture of
+            # the actual machine this is running on and clarify that we are only building
+            # for that one.
+            elif plat == "macosx_10_9_universal2":
+                machine = platform.machine()
+                if machine == "x86_64":
+                    plat = "macosx_10_14_x86_64"
+                elif machine == "arm64":
+                    plat = "macosx_11_0_arm64"
+                else:
+                    raise Exception(f"Unrecognized macOS machine {machine!r}")
+
             return python, abi, plat
 
     cmdclass = {WHEEL_CMD: BdistWheel}
