@@ -72,7 +72,6 @@ depends: [
   "opentelemetry-client-cohttp-eio"
   "opentelemetry-logs"
   "ocurl" {= "0.9.1"}
-  "ezcurl" {>= "0.2.3" & < "0.3"}
   "ambient-context-lwt" {>= "0.1.0"}
   "conf-libcurl" {= "2"}
   "uri" {>= "4.4.0"}
@@ -135,10 +134,10 @@ pin-depends: [
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
   ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
   ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
-  ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
-  ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
-  ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
-  ["opentelemetry-logs.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"]
+  ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
+  ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
+  ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
+  ["opentelemetry-logs.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
 ]
 
 (* Needed for alpine linux docker image. These used to get pulled in *)

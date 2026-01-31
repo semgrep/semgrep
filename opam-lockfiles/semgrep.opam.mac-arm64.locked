@@ -282,19 +282,19 @@ pin-depends: [
   ]
   [
     "opentelemetry.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
   ]
   [
     "opentelemetry-client-cohttp-eio.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
   ]
   [
     "opentelemetry-client-ocurl.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
   ]
   [
     "opentelemetry-logs.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#3fbac328221af1665d7ca3fbd02760058f0f353e"
+    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
   ]
   [
     "pcre2.dev"
