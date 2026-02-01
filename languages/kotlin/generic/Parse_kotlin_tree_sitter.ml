@@ -1925,30 +1925,51 @@ and modifiers_opt env x =
 and navigation_suffix (env : env) (x : CST.navigation_suffix) =
   match x with
   | `Member_access_op_choice_simple_id (v1, v2) -> (
-      let op = member_access_operator env v1 in
-      let fld =
-        match v2 with
-        | `Simple_id x ->
-            let id = simple_identifier env x in
-            FN (Id (id, empty_id_info ()))
-        | `Paren_exp x ->
-            let e = parenthesized_expression env x in
-            FDynamic e
-        | `Class tok ->
-            let id = str env tok in
-            (* "class" *)
-            FN (Id (id, empty_id_info ()))
-      in
-      fun e ->
-        match op with
-        | Either.Left tdot -> DotAccess (e, tdot, fld) |> G.e
-        | Either.Right otherop ->
-            let any_fld =
-              match fld with
-              | FN n -> E (N n |> G.e)
-              | FDynamic e -> E e
-            in
-            OtherExpr (otherop, [ any_fld; E e ]) |> G.e)
+      match (v1, v2) with
+      | `COLONCOLON tok, `Class class_tok ->
+          (* Kotlin's Klass::class - use DotAccess to preserve source range for autofix *)
+          let coloncolon = token env tok in
+          let class_id = str env class_tok in
+          fun e ->
+            G.DotAccess (e, coloncolon, FN (Id (class_id, G.empty_id_info ())))
+            |> G.e
+      | `COLONCOLON tok, `Simple_id x ->
+          (* Kotlin's Klass::method - use DotAccess to preserve source range *)
+          let coloncolon = token env tok in
+          let method_id = simple_identifier env x in
+          fun e ->
+            G.DotAccess (e, coloncolon, FN (Id (method_id, G.empty_id_info ())))
+            |> G.e
+      | `COLONCOLON tok, `Paren_exp x ->
+          (* Klass::(expr) - dynamic method reference *)
+          let coloncolon = token env tok in
+          let paren_e = parenthesized_expression env x in
+          fun e -> G.DotAccess (e, coloncolon, FDynamic paren_e) |> G.e
+      | _ -> (
+          let op = member_access_operator env v1 in
+          let fld =
+            match v2 with
+            | `Simple_id x ->
+                let id = simple_identifier env x in
+                FN (Id (id, empty_id_info ()))
+            | `Paren_exp x ->
+                let e = parenthesized_expression env x in
+                FDynamic e
+            | `Class tok ->
+                let id = str env tok in
+                (* "class" *)
+                FN (Id (id, empty_id_info ()))
+          in
+          fun e ->
+            match op with
+            | Either.Left tdot -> DotAccess (e, tdot, fld) |> G.e
+            | Either.Right otherop ->
+                let any_fld =
+                  match fld with
+                  | FN n -> E (N n |> G.e)
+                  | FDynamic e -> E e
+                in
+                OtherExpr (otherop, [ any_fld; E e ]) |> G.e))
   | `Member_access_op_ellips (v1, v2) -> (
       let op = member_access_operator env v1 in
       let tellipsis = token env v2 in
@@ -2077,37 +2098,58 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       G.N (H2.name_of_id id) |> G.e
   | `Lit_cst x -> L (literal_constant env x) |> G.e
   | `Str_lit x -> string_literal env x
-  | `Call_ref (v1, v2, v3) ->
+  | `Call_ref (v1, v2, v3) -> (
       let v1 =
         match v1 with
-        | Some x ->
-            let id = simple_identifier env x in
-            Some id
+        | Some x -> Some (simple_identifier env x)
         | None -> None
       in
       let v2 =
         token env v2
         (* "::" *)
       in
-      let v3 =
-        match v3 with
-        | `Simple_id x -> simple_identifier env x
-        (* TODO? use G.OE_ClassLiteral like for Java? *)
-        | `Class tok -> str env tok
-        (* "class" *)
-      in
-      let name_info =
-        match (v1, v2, v3) with
-        | _ ->
-            {
-              name_last = (v3, None);
-              name_middle = None (* TODO*);
-              name_top = None;
-              name_info = empty_id_info ();
-            }
-        (* TODO use qualifiers, with v1TODO above *)
-      in
-      G.N (IdQualified name_info) |> G.e
+      match v3 with
+      | `Class tok ->
+          (* Kotlin's Klass::class corresponds to Java's Klass.class
+             Use DotAccess to preserve source range for autofix *)
+          let class_tok = str env tok in
+          let lhs =
+            match v1 with
+            | Some id -> G.N (H2.name_of_id id) |> G.e
+            | None -> G.N (H2.name_of_id class_tok) |> G.e
+          in
+          let expr =
+            G.DotAccess (lhs, v2, FN (Id (class_tok, G.empty_id_info ())))
+            |> G.e
+          in
+          (* Set e_range explicitly so metavariable binding captures the full range *)
+          let first_tok =
+            match v1 with
+            | Some id -> snd id
+            | None -> snd class_tok
+          in
+          H2.set_e_range first_tok (snd class_tok) expr;
+          expr
+      | `Simple_id x ->
+          (* Kotlin's Klass::method - use DotAccess to preserve source range *)
+          let method_id = simple_identifier env x in
+          let lhs =
+            match v1 with
+            | Some id -> G.N (H2.name_of_id id) |> G.e
+            | None -> G.N (H2.name_of_id method_id) |> G.e
+          in
+          let expr =
+            G.DotAccess (lhs, v2, FN (Id (method_id, G.empty_id_info ())))
+            |> G.e
+          in
+          (* Set e_range explicitly so metavariable binding captures the full range *)
+          let first_tok =
+            match v1 with
+            | Some id -> snd id
+            | None -> snd method_id
+          in
+          H2.set_e_range first_tok (snd method_id) expr;
+          expr)
   | `Func_lit x -> function_literal env x
   | `Obj_lit (v1, v2, v3) ->
       let v1 =

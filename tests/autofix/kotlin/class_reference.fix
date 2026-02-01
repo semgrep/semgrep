@@ -1,0 +1,1 @@
+assertThat($ACTUAL).isInstanceOf($EXPECTED)
