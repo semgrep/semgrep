@@ -21,6 +21,9 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
+from rich.progress import Progress
+from rich.progress import TaskID
+
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import telemetry
 from semgrep.error import UnknownLanguageError
@@ -176,10 +179,27 @@ class SubprojectSymbolAnalysis:
     symbol_analysis: out.SymbolAnalysis
 
 
+def count_subprojects_for_symbol_analysis(
+    subprojects_by_ecosystem: Mapping[out.Ecosystem, Sequence[out.ResolvedSubproject]],
+) -> int:
+    """
+    Counts the number of subprojects that will be processed for symbol analysis.
+    Used for progress reporting.
+    """
+    count = 0
+    for ecosystem, subprojects in subprojects_by_ecosystem.items():
+        lang = _ecosystem_to_language(ecosystem)
+        if lang is not None:
+            count += len(subprojects)
+    return count
+
+
 @telemetry.trace(telemetry.TraceOwner.SSC)
 def run_subproject_symbol_analysis(
     subprojects_by_ecosystem: Mapping[out.Ecosystem, Sequence[out.ResolvedSubproject]],
     target_manager: TargetManager,
+    progress: Optional[Progress] = None,
+    task_id: Optional[TaskID] = None,
 ) -> Iterator[SubprojectSymbolAnalysis]:
     """
     Runs symbol analysis for all subprojects and returns the combined results.
@@ -188,6 +208,12 @@ def run_subproject_symbol_analysis(
     1. Builds the file->subproject mapping
     2. Runs symbol analysis for each subproject
     3. Combines all results
+
+    Args:
+        subprojects_by_ecosystem: Mapping from ecosystem to resolved subprojects
+        target_manager: Target manager for file discovery
+        progress: Optional rich Progress instance for progress reporting
+        task_id: Optional task ID for progress updates
     """
     # Build the mapping from subprojects to their files
     # TODO: This should be computed once and passed around to avoid duplicate work.
@@ -207,6 +233,10 @@ def run_subproject_symbol_analysis(
         for subproject in subprojects:
             key = (ecosystem, Path(subproject.info.root_dir.value))
             files = subproject_files.get(key, [])
+
+            # Update progress regardless of whether we process this subproject
+            if progress is not None and task_id is not None:
+                progress.advance(task_id)
 
             if not files:
                 logger.debug(
@@ -234,7 +264,7 @@ def run_subproject_symbol_analysis(
             elif isinstance(dependency_source, out.ManifestLockfile):
                 manifest, lockfile = dependency_source.value
             else:
-                logger.info(
+                logger.debug(
                     f"Skipping subproject with unsupported dependency source for symbol analysis {dependency_source.kind}"
                 )
                 continue
