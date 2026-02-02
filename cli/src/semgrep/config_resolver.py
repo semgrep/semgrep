@@ -682,6 +682,7 @@ class Config:
             errors,
         )
 
+    @telemetry.trace()
     def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
         Return list of rules
