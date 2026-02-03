@@ -60,7 +60,7 @@ dependencies = [
   "click~=8.1.8",
   "colorama~=0.4.0",
   "exceptiongroup~=1.2.0",
-  "glom~=22.1",
+  "glom>=23.3",
   "jsonschema~=4.25.1",
   "mcp==1.23.3",
   "opentelemetry-api~=1.37.0",
