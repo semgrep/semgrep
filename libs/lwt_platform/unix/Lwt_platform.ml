@@ -28,7 +28,9 @@ let detach = Lwt_preemptive.detach
 let init_preemptive = Lwt_preemptive.init
 
 let set_engine () =
-  if Sys.unix then Lwt_engine.set (new Lwt_engine.libev ())
+  if Sys.unix then
+    try Lwt_engine.set (new Lwt_engine.libev ()) with
+    | Lwt_sys.Not_available _ -> Lwt_engine.set (new Lwt_engine.select)
   else Lwt_engine.set (new Lwt_engine.select)
 
 let sleep = Lwt_unix.sleep
