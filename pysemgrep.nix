@@ -48,6 +48,7 @@ let
     UV_NO_SYNC = "1"; # nix manages the packages so don't let uv do it
     UV_PYTHON_DOWNLOADS = "never"; # don't let uv manage downloads
     UV_PYTHON = devPythonSet.python.interpreter; # force uv to use our python
+    VIRTUAL_ENV = devVenv; # for type checkers
   };
 
   pysemgrep =
