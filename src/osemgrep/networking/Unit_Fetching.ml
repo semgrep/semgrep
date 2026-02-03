@@ -33,13 +33,17 @@ let real_fetch_tests caps =
         Alcotest.(check bool) "fetch ocaml rules" true (not @@ List_.null rules)
     | _ -> Alcotest.fail "fetch ocaml rules; got no rules or got rule errors"
   in
+  (* It seems like the intention of these tests were to test network flakeyness
+   * by repetition.
+   *)
+  let broken = "networking isn't mocked + testing flakeyness" in
   Testo.categorize "fetch tests"
     [
-      t "fetch ocaml rules 1" fetch_ocaml_rules;
-      t "fetch ocaml rules 2" fetch_ocaml_rules;
-      t "fetch ocaml rules 3" fetch_ocaml_rules;
-      t "fetch ocaml rules 4" fetch_ocaml_rules;
-      t "fetch ocaml rules 5" fetch_ocaml_rules;
+      t ~broken "fetch ocaml rules 1" fetch_ocaml_rules;
+      t ~broken "fetch ocaml rules 2" fetch_ocaml_rules;
+      t ~broken "fetch ocaml rules 3" fetch_ocaml_rules;
+      t ~broken "fetch ocaml rules 4" fetch_ocaml_rules;
+      t ~broken "fetch ocaml rules 5" fetch_ocaml_rules;
     ]
 
 let tests caps =
