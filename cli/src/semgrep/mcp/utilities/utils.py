@@ -163,7 +163,6 @@ def get_deployment_from_jwt() -> dict[str, Any]:
 
     url = f"{get_semgrep_api_url()}/v2/deployments"
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-
     try:
         request = requests.get(url, headers=headers, timeout=(2, 30))
         request.raise_for_status()
@@ -182,12 +181,7 @@ def get_deployment_from_jwt() -> dict[str, Any]:
 
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
-            raise McpError(
-                ErrorData(
-                    code=INVALID_PARAMS,
-                    message="Invalid authorization: check if you are properly authenticated to the MCP server.",
-                )
-            ) from e
+            raise e
         else:
             raise McpError(
                 ErrorData(
@@ -234,6 +228,7 @@ def get_current_user_from_jwt(access_token: str | None = None) -> WhoamiResult:
 
     NOTE: This only works with JWTs (not API tokens).
     """
+
     token = access_token or get_semgrep_access_token()
     if not token:
         raise McpError(ErrorData(code=INVALID_PARAMS, message="No access token found"))
@@ -256,12 +251,7 @@ def get_current_user_from_jwt(access_token: str | None = None) -> WhoamiResult:
         return WhoamiResult.model_validate(data)
     except requests.exceptions.HTTPError as e:
         if e.response is not None and e.response.status_code == 401:
-            raise McpError(
-                ErrorData(
-                    code=INVALID_PARAMS,
-                    message="Invalid authorization: check if you are properly authenticated to the MCP server.",
-                )
-            ) from e
+            raise e
         detail = e.response.text if e.response is not None else str(e)
         raise McpError(
             ErrorData(
