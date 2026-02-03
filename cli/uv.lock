@@ -484,16 +484,16 @@ wheels = [
 
 [[package]]
 name = "glom"
-version = "22.1.0"
+version = "25.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
     { name = "boltons" },
     { name = "face" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/d1/69432deefa6f5283ec75b246d0540097ae26f618b915519ee3824c4c5dd6/glom-22.1.0.tar.gz", hash = "sha256:1510c6587a8f9c64a246641b70033cbc5ebde99f02ad245693678038e821aeb5", size = 189738, upload-time = "2022-01-24T09:34:04.874Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/74/8387f95565ba7c30cd152a585b275ebb9a834d1d32782425c5d2fe0a102c/glom-25.12.0.tar.gz", hash = "sha256:1ae7da88be3693df40ad27bdf57a765a55c075c86c971bcddd67927403eb0069", size = 196128, upload-time = "2025-12-29T06:29:07.274Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/e8/68e274b2a30e1fdfd25bdc27194382be3f233929c8f727c0440d58ac074f/glom-22.1.0-py2.py3-none-any.whl", hash = "sha256:5339da206bf3532e01a83a35aca202960ea885156986d190574b779598e9e772", size = 100687, upload-time = "2022-01-24T09:34:02.391Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/e6/4129d9a3baa72d747533bb33376543ccadd9a7f9944e5a6e3ae2e245f5d6/glom-25.12.0-py3-none-any.whl", hash = "sha256:b9f21e77f71a6576a43864e85066b8cc3f0f778d0d50961563f8981377a6dcb1", size = 103295, upload-time = "2025-12-29T06:29:06.074Z" },
 ]
 
 [[package]]
@@ -1529,7 +1529,7 @@ wheels = [
 
 [[package]]
 name = "semgrep"
-version = "1.149.0"
+version = "1.150.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
@@ -1603,7 +1603,7 @@ requires-dist = [
     { name = "click-option-group", specifier = "~=0.5" },
     { name = "colorama", specifier = "~=0.4.0" },
     { name = "exceptiongroup", specifier = "~=1.2.0" },
-    { name = "glom", specifier = "~=22.1" },
+    { name = "glom", specifier = ">=23.3" },
     { name = "jsonschema", specifier = "~=4.25.1" },
     { name = "mcp", specifier = "==1.23.3" },
     { name = "opentelemetry-api", specifier = "~=1.37.0" },
