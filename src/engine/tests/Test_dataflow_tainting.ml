@@ -94,8 +94,7 @@ let test_dfg_tainting rules_file file =
   *)
   let tbl = Formula_cache.mk_specialized_formula_cache [] in
   let file_inst =
-    Taint_rule_inst.mk_file ~lang ~path:file ~pro_hooks:None
-      ~handle_effects:None
+    Taint_rule_inst.mk_file ~lang ~path:file ~handle_effects:None
   in
   let taint_inst, spec_matches, _exps =
     Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl

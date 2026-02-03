@@ -47,7 +47,6 @@ type file_timeout_stats = (IL.name option, file_timeout_var_stats) Hashtbl.t
 type file = {
   lang : Lang.t;
   path : Fpath.t;  (** File under analysis, for Deep Semgrep. *)
-  pro_hooks : Taint_pro_hooks.t option;
   handle_effects : effects_handler;
       (** Use 'handle_effects' to e.g. apply hash-consing (see 'Deep_tainting'), or
         to do some side-effect if needed.
@@ -84,11 +83,10 @@ type t = {
 
 let default_effect_handler _fun_name new_effects = new_effects
 
-let mk_file ~lang ~path ~pro_hooks ~handle_effects =
+let mk_file ~lang ~path ~handle_effects =
   {
     lang;
     path;
-    pro_hooks;
     handle_effects = handle_effects ||| default_effect_handler;
     java_props_cache = Hashtbl.create 30;
     timeouts = Hashtbl.create 2;

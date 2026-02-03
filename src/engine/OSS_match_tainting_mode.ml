@@ -489,11 +489,8 @@ let check_rules ~matches_hook
     | LRegex ->
         failwith "taint-mode and generic/regex matching are incompatible"
   in
-  let pro_hooks : Taint_pro_hooks.t option =
-    Hook.get Taint_pro_hooks.hook_taint_pro_hooks
-  in
   let file_inst =
-    Taint_rule_inst.mk_file ~lang ~path:file ~pro_hooks ~handle_effects:None
+    Taint_rule_inst.mk_file ~lang ~path:file ~handle_effects:None
   in
 
   let res =
