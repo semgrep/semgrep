@@ -1,1 +1,0 @@
-Semgrep no longer prints info log lines from semgrep-core RPC calls when --trace is passed and --debug isn't

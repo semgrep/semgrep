@@ -1,2 +1,0 @@
-bumped `glom` to at least version `23.3`, which includes a fix to a `SyntaxWarning`
-warning log.
