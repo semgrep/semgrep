@@ -18,6 +18,7 @@ module H = AST_generic_helpers
 module T = Taint
 module Effects = Shape_and_sig.Effects
 module Log = Log_tainting.Log
+module Lval_env = OSS_taint_lval_env
 
 let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
   let name = AST_to_IL.var_of_id_info id ii in
@@ -41,7 +42,7 @@ let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
   in
   let out_env = end_mapping.(cfg.exit).Dataflow_core.out_env in
   let lval : IL.lval = { base = Var name; rev_offset = [] } in
-  let xtaint = Taint_lval_env.find_lval_xtaint out_env lval in
+  let xtaint = Lval_env.find_lval_xtaint out_env lval in
   (xtaint, effects)
 
 let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
@@ -71,7 +72,7 @@ let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
       OSS_dataflow_tainting.must_drop_taints_if_bool_or_number
         taint_inst.options var_type
     then env
-    else env |> Taint_lval_env.add_lval (IL_helpers.lval_of_var var) taints
+    else env |> Lval_env.add_lval (IL_helpers.lval_of_var var) taints
   in
   (env, expr_effects)
 
@@ -79,7 +80,7 @@ let add_to_env taint_inst (env, effects) id id_info opt_expr =
   let env, new_effects = add_to_env_aux taint_inst env id id_info opt_expr in
   (env, Effects.union new_effects effects)
 
-let mk_fun_input_env taint_inst ?(glob_env = Taint_lval_env.empty)
+let mk_fun_input_env taint_inst ?(glob_env = Lval_env.empty)
     (fparams : IL.param list) =
   let add_to_env = add_to_env taint_inst in
   fparams
@@ -124,6 +125,6 @@ let mk_file_env =
   fun taint_inst ast ->
     (* TODO: false positive *)
     (* nosemgrep: no-ref-declarations-at-top-scope *)
-    let env = ref (Taint_lval_env.empty, Effects.empty) in
+    let env = ref (Lval_env.empty, Effects.empty) in
     visitor#visit_program (taint_inst, env) ast;
     !env

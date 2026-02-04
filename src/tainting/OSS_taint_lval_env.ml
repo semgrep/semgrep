@@ -383,27 +383,6 @@ let add_control_taints lval_env taints =
 
 let get_control_taints { control; _ } = control
 
-let subst ~subst_taints ~subst_cell
-    {
-      tainted;
-      control;
-      taints_waiting_to_be_propagated;
-      pending_propagation_dests;
-      var_was_touched;
-    } =
-  let tainted = tainted |> NameMap.filter_map_endo subst_cell in
-  let control = control |> subst_taints in
-  let taints_waiting_to_be_propagated =
-    taints_waiting_to_be_propagated |> VarMap.map subst_taints
-  in
-  {
-    tainted;
-    control;
-    taints_waiting_to_be_propagated;
-    pending_propagation_dests;
-    var_was_touched;
-  }
-
 let equal
     {
       tainted = tainted1;

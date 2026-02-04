@@ -54,7 +54,7 @@ let test_tainting taint_inst def =
   let fcfg, _effects_IGNORED, mapping =
     OSS_match_tainting_mode.check_fundef taint_inst None AST_to_IL.empty_ctx def
   in
-  DataflowX.display_mapping fcfg.cfg mapping Taint_lval_env.to_string
+  DataflowX.display_mapping fcfg.cfg mapping OSS_taint_lval_env.to_string
 
 let test_dfg_tainting rules_file file =
   let rules_file = Fpath.v rules_file in

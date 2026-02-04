@@ -144,14 +144,6 @@ val union : env -> env -> env
      best case scenario to reduce FPs. *)
 
 val union_list : ?default:env -> env list -> env
-
-val subst :
-  subst_taints:(Taint.taints -> Taint.taints) ->
-  subst_cell:(cell -> cell option)
-    (** if 'None' then the 'cell' should be removed *) ->
-  env ->
-  env
-
 val equal : env -> env -> bool
 
 val equal_by_lval : env -> env -> IL.lval -> bool

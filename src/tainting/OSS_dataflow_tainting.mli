@@ -10,7 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-type mapping = Taint_lval_env.t Dataflow_core.mapping
+type mapping = OSS_taint_lval_env.t Dataflow_core.mapping
 (** Mapping from variables to taint sources (if the variable is tainted).
   * If a variable is not in the map, then it's not tainted. *)
 
@@ -19,7 +19,7 @@ type mapping = Taint_lval_env.t Dataflow_core.mapping
 
 val fixpoint :
   Taint_rule_inst.t ->
-  ?in_env:Taint_lval_env.t ->
+  ?in_env:OSS_taint_lval_env.t ->
   ?name:IL.name ->
   Fun_CFG.t ->
   Shape_and_sig.Effects.t * mapping
