@@ -22,7 +22,7 @@ module VarSet = Var_env.VarSet
 module VarMap = Var_env.VarMap
 module NameMap = IL.NameMap
 open Shape_and_sig.Shape
-module Shape = Taint_shape
+module Shape = OSS_taint_shape
 
 let limits_tags = Logs_.create_tags [ "bad"; "limits" ]
 
