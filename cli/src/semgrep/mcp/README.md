@@ -302,18 +302,43 @@ Optionally, to connect to Semgrep AppSec Platform:
 
 ### Cursor IDE
 
-Add the following JSON block to your `~/.cursor/mcp.json` global or `.cursor/mcp.json` project-specific configuration file:
+1. Install Semgrep:
+   ```bash
+   brew install semgrep
+   # or
+   python3 -m pip install semgrep
+   ```
 
-```json
-{
-  "mcpServers": {
-    "semgrep": {
-      "command": "semgrep",
-      "args": ["mcp"]
-    }
-  }
-}
-```
+2. Authenticate and install Semgrep Pro:
+   ```bash
+   semgrep login && semgrep install-semgrep-pro
+   ```
+
+3. Add the following JSON block to your `~/.cursor/mcp.json` global or `.cursor/mcp.json` project-specific configuration file:
+
+   ```json
+   {
+     "mcpServers": {
+       "semgrep": {
+         "command": "semgrep mcp",
+         "env": {},
+         "args": []
+       }
+     }
+   }
+   ```
+
+4. Create a `.cursor/hooks.json` file in your project to enable automatic scanning:
+
+   ```json
+   {
+     "version": 1,
+     "hooks": {
+       "stop": [{"command": "semgrep mcp -k stop-cli-scan -a cursor"}],
+       "afterFileEdit": [{"command": "semgrep mcp -k record-file-edit -a cursor"}]
+     }
+   }
+   ```
 
 ![cursor MCP settings](/images/cursor.png)
 
@@ -417,9 +442,33 @@ See [Anthropic docs](https://docs.anthropic.com/en/docs/agents-and-tools/mcp) fo
 
 ### Claude Code
 
-```bash
-claude mcp add semgrep semgrep mcp
-```
+1. Install Semgrep:
+   ```bash
+   brew install semgrep
+   # or
+   python3 -m pip install semgrep
+   ```
+
+2. Launch Claude Code in your terminal:
+   ```bash
+   claude
+   ```
+
+3. Add the marketplace source:
+   ```
+   /plugin marketplace add semgrep/mcp-marketplace
+   ```
+
+4. Install the plugin:
+   ```
+   /plugin install semgrep-plugin@semgrep
+   ```
+
+5. Configure the plugin:
+   ```
+   /semgrep-plugin:setup_semgrep_plugin
+   ```
+   (If that fails, try `/plugin enable semgrep-plugin@semgrep`)
 
 See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/tutorials#set-up-model-context-protocol-mcp) for more info.
 
