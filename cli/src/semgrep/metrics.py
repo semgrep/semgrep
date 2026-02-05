@@ -305,6 +305,13 @@ class Metrics:
             self.payload.environment.rulesHash = met.Sha256(m.hexdigest())
 
             self.payload.performance.numRules = len(rules)
+
+            self.add_to_top_level_span(
+                {
+                    "scan.rules.count": self.payload.performance.numRules,
+                    "scan.rules.hash": self.payload.environment.rulesHash.to_json_string(),
+                }
+            )
             if profile:
                 # aggregate rule stats across files
                 _rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
@@ -355,9 +362,9 @@ class Metrics:
             )
             self.add_to_top_level_span(
                 {
-                    "scan.findings_count": self.payload.value.numFindings,
-                    "scan.ignored_findings_count": self.payload.value.numIgnored,
-                    "scan.rules_with_findings_count": len(
+                    "scan.findings.count": self.payload.value.numFindings,
+                    "scan.findings.ignored.count": self.payload.value.numIgnored,
+                    "scan.rules.with_findings.count": len(
                         self.payload.value.ruleHashesWithFindings
                     ),
                 }
@@ -407,8 +414,8 @@ class Metrics:
             self.payload.performance.numTargets = len(targets)
             self.add_to_top_level_span(
                 {
-                    "scan.num_targets": self.payload.performance.numTargets,
-                    "scan.total_bytes_scanned": self.payload.performance.totalBytesScanned,
+                    "scan.targets.count": self.payload.performance.numTargets,
+                    "scan.targets.bytes_scanned_sum": self.payload.performance.totalBytesScanned,
                 }
             )
         except Exception as e:

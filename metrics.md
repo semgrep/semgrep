@@ -405,6 +405,7 @@ Additionally, summary data is always included in the top level trace, such as:
 - Number of targets (e.g. `128`)
 - Is a diff scan (e.g. `false`)
 - Is an interfile scan (e.g. `true`)
+- Cryptographic hash of rules (e.g. `One-way hash of the rule definitions`)
 - Other scan settings of a similar nature. Summary data will only include information that `semgrep ci` has access to.
 
 Additionally, informational, warning, and error logs will be included when
