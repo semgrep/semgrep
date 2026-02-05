@@ -30,6 +30,7 @@ from glom.core import TType
 from opentelemetry.util.types import Attributes
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep import telemetry
 from semgrep.error import SemgrepError
 from semgrep.external.git_url_parser import Parser
 from semgrep.git import git_check_output
@@ -233,6 +234,7 @@ class GitMeta:
     def is_empty(self) -> bool:
         return is_git_repo_empty()
 
+    @telemetry.trace()
     def to_project_metadata(self) -> out.ProjectMetadata:
         # Many of these optional fields for the semgrep-app backend depend on git
         # commands that assume the repo not to be empty.

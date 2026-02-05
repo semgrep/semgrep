@@ -26,6 +26,7 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
 
+from semgrep import telemetry
 from semgrep.state import get_state
 from semgrep.util import manually_search_file
 from semgrep.verbose_logging import getLogger
@@ -401,6 +402,7 @@ class BaselineHandler:
                         f"Error cleaning up the git worktree via `git worktree remove`:\n----stdout:---\n{remove_stdout}\n----stderr:----\n{remove_stderr}\n-----git worktree list output\n{list_stdout}"
                     )
 
+    @telemetry.trace()
     @contextmanager
     def baseline_context(self) -> Iterator[None]:
         """
@@ -514,6 +516,7 @@ class BaselineHandler:
                     self._remove_worktree_with_check(tmpdir)
                     logger.debug("Finished cleaning up git worktree")
 
+    @telemetry.trace()
     def print_git_log(self) -> None:
         base_commit_sha = git_check_output(["git", "rev-parse", self._base_commit])
         head_commit_sha = git_check_output(["git", "rev-parse", "HEAD"])

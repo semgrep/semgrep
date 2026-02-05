@@ -40,6 +40,7 @@ def get_deployment_from_token(token: str) -> Optional[DeploymentConfig]:
         return None
 
 
+@telemetry.trace()
 def get_deployment_id() -> Optional[int]:
     """
     Returns the deployment_id attached to an api_token as int

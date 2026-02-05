@@ -209,6 +209,7 @@ def sanity_check_resolved_config(
 ##############################################################################
 
 
+@telemetry.trace()
 def log_running_rules(
     configs_obj: Config,
     config_errors: Sequence[SemgrepError],
@@ -227,6 +228,7 @@ def log_running_rules(
     )
 
 
+@telemetry.trace()
 def log_rules(filtered_rules: List[Rule], too_many_entries: int) -> None:
     experimental_rules, normal_rules = partition(
         filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
@@ -255,6 +257,7 @@ def log_rules(filtered_rules: List[Rule], too_many_entries: int) -> None:
 
 
 # TODO: group the diff scan params and secrets stuff in separate dataclasses
+@telemetry.trace()
 def add_metrics_part1(
     metrics: Metrics,
     project_url: Optional[str],
@@ -290,6 +293,7 @@ def add_metrics_part1(
         metrics.add_is_diff_scan(baseline_commit is not None)
 
 
+@telemetry.trace()
 def add_metrics_part2(
     metrics: Metrics,
     filtered_rules: List[Rule],
@@ -315,6 +319,7 @@ def add_metrics_part2(
 ##############################################################################
 
 
+@telemetry.trace()
 def baseline_handler_opt(
     baseline_commit: Optional[str], baseline_commit_is_mergebase: bool
 ) -> Optional[BaselineHandler]:
@@ -333,6 +338,7 @@ def baseline_handler_opt(
     return baseline_handler
 
 
+@telemetry.trace()
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
@@ -369,6 +375,7 @@ def remove_matches_in_baseline(
 # params, insane
 
 
+@telemetry.trace()
 def baseline_run(
     baseline_handler: BaselineHandler,
     baseline_commit: Optional[str],
@@ -537,6 +544,7 @@ def baseline_run(
 ##############################################################################
 
 
+@telemetry.trace()
 def adjust_matches_for_join_rules(
     rule_matches_by_rule: RuleMatchMap,
     join_rules: List[Rule],

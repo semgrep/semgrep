@@ -394,6 +394,7 @@ class ScanHandler:
             scan_info_to_attrs(self.scan_response.info)
         )
 
+    @telemetry.trace()
     def report_failure(self, exit_code: int) -> None:
         """
         Send semgrep cli non-zero exit code information to server
