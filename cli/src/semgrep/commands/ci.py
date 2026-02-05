@@ -808,7 +808,6 @@ def ci(
                 _executed_rule_count,
                 _missed_rule_count,
                 all_subprojects,
-                symbol_analysis,
                 sca_symbol_analysis,
             ) = semgrep.run_scan.run_scan(
                 **run_scan_args  # type: ignore
@@ -881,7 +880,6 @@ def ci(
                     _executed_rule_count,
                     _missed_rule_count,
                     _historical_all_subprojects,
-                    _symbol_analysis,
                     _sca_symbol_analysis,
                 ) = semgrep.run_scan.run_scan(
                     **run_scan_args,  # type: ignore
@@ -1016,19 +1014,6 @@ def ci(
                 ) as progress_bar:
                     upload_task = progress_bar.add_task("Uploading symbol analysis")
 
-                    # legacy combined symbol analysis
-                    #
-                    # we can remove this in favor of subproject-based
-                    # symbol analysis once we confirm nobody else is
-                    # depending on it
-                    try:
-                        if symbol_analysis is not None:
-                            semgrep.rpc_call.upload_symbol_analysis(
-                                token, scan_handler.scan_id, symbol_analysis
-                            )
-                    except Exception as e:
-                        logger.error(f"Failed to upload symbol analysis: {e}")
-
                     if sca_symbol_analysis is not None:
                         for subproject_symbol_analysis in sca_symbol_analysis:
                             manifest = subproject_symbol_analysis.manifest
@@ -1037,13 +1022,16 @@ def ci(
                             lockfile = subproject_symbol_analysis.lockfile
                             lockfile_path = lockfile.path if lockfile else None
 
-                            semgrep.rpc_call.upload_subproject_symbol_analysis(
-                                token,
-                                scan_handler.scan_id,
-                                manifest_path,
-                                lockfile_path,
-                                subproject_symbol_analysis.symbol_analysis,
-                            )
+                            try:
+                                semgrep.rpc_call.upload_subproject_symbol_analysis(
+                                    token,
+                                    scan_handler.scan_id,
+                                    manifest_path,
+                                    lockfile_path,
+                                    subproject_symbol_analysis.symbol_analysis,
+                                )
+                            except Exception as e:
+                                logger.error(f"Failed to upload symbol analysis: {e}")
 
                     progress_bar.update(upload_task, completed=100)
 

@@ -506,7 +506,6 @@ def baseline_run(
                     _,
                     _,
                     _,
-                    _,
                 ) = run_rules(
                     # only the rules that had a match
                     [rule for rule, matches in rule_matches_by_rule.items() if matches],
@@ -938,7 +937,6 @@ def run_rules(
     List[DependencyParserError],
     int,
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
-    Optional[out.SymbolAnalysis],
     Optional[Sequence[SubprojectSymbolAnalysis]],
 ]:
     # ---------------------------------------
@@ -1019,8 +1017,6 @@ def run_rules(
         x_parmap,
     )
 
-    symbol_analysis = output_extra.core.symbol_analysis
-
     # ---------------------------------------
     # Step5: Adjusting rule_matches_by_rule
     # ---------------------------------------
@@ -1069,7 +1065,7 @@ def run_rules(
                     disable=(not sys.stderr.isatty() or total_subprojects == 0),
                 ) as progress:
                     task_id = progress.add_task(
-                        "Calculating symbol analysis",
+                        "Running symbol analysis",
                         total=total_subprojects,
                     )
                     sca_symbol_analysis = list(
@@ -1100,7 +1096,6 @@ def run_rules(
         dependency_parser_errors,
         executed_rule_count,
         all_subprojects,
-        symbol_analysis,
         sca_symbol_analysis,
     )
 
@@ -1204,7 +1199,6 @@ def run_scan(
     int,  # Executed Rule Count
     int,  # Missed Rule Count
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
-    Optional[out.SymbolAnalysis],
     Optional[Sequence[SubprojectSymbolAnalysis]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
@@ -1383,7 +1377,6 @@ def run_scan(
             allow_untrusted_validators=allow_untrusted_validators,
             respect_rule_paths=respect_rule_paths,
             path_sensitive=path_sensitive,
-            symbol_analysis=run_symbol_analysis,
             fips_mode=fips_mode,
             use_pro_naming_for_intrafile=x_pro_naming,
             group_taint_rules=x_group_taint_rules,
@@ -1399,7 +1392,6 @@ def run_scan(
             dependency_parser_errors,
             executed_rule_count,
             all_subprojects,
-            symbol_analysis,
             sca_symbol_analysis,
         ) = run_rules(
             filtered_rules,
@@ -1527,7 +1519,6 @@ def run_scan(
         executed_rule_count,
         missed_rule_count,
         all_subprojects,
-        symbol_analysis,
         sca_symbol_analysis,
     )
 
@@ -1568,7 +1559,6 @@ def run_scan_and_return_json(
         _,
         _,
         _all_subprojects,
-        _,
         _,
     ) = run_scan(
         output_handler=output_handler,
