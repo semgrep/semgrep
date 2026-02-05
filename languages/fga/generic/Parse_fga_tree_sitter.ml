@@ -337,14 +337,15 @@ let map_condition_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.condit
     | None -> []
   in
   let rparen = token env v5 in
-  let (_lbrace, _body_expr, _rbrace) = v6 in
+  let (_lbrace, body_expr_raw, _rbrace) = v6 in
+  let body_expr = map_expression env body_expr_raw in
   (* Map to FuncDef: condition becomes a function *)
   let entity = G.basic_entity name_id in
   let fdef = {
     fkind = (G.Function, _condition_tok);
     fparams = (lparen, List.map (fun p -> G.Param p) params, rparen);
     frettype = None;
-    fbody = G.FBDecl G.sc; (* Empty body for now *)
+    fbody = G.FBExpr body_expr; (* Empty body for now *)
   } in
   DefStmt (entity, FuncDef fdef) |> G.s
 
