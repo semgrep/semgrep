@@ -24,11 +24,6 @@ module H2 = AST_generic_helpers
 type context = Program | Pattern
 type env = context H.env
 
-let in_pattern env =
-  match env.H.extra with
-  | Program -> false
-  | Pattern -> true
-
 
 (*****************************************************************************)
 (* Helpers *)
@@ -239,18 +234,6 @@ let map_anon_choice_id_684e964 (env : env) (x : CST.anon_choice_id_684e964) : G.
   | `Id tok -> str env tok
   | `Semg_meta tok -> str env tok
 
-let map_anon_choice_id_6cee6b4 (env : env) (x : CST.anon_choice_id_6cee6b4) : string * G.tok =
-  match x with
-  | `Id tok -> str env tok
-  | `Rela_ref (v1, _hash, v3) ->
-      let id1, t1 = str env v1 in
-      let id2, t2 = str env v3 in
-      (id1 ^ "#" ^ id2, Tok.combine_toks t1 [t2])
-  | `All (v1, _colonstar) ->
-      let id, t = str env v1 in
-      (id ^ ":*", t)
-  | `Semg_meta tok -> str env tok
-
 let map_direct_relationship (env : env) ((v1, v2, v3) : CST.direct_relationship) : G.expr =
   let lbracket = token env v1 in
   let rbracket = token env v3 in
@@ -407,9 +390,6 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
       in
       Pr stmts
 
-let map_any (env : env) (x : CST.source_file) : G.any =
-  map_source_file env x
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -438,4 +418,3 @@ let parse_pattern str =
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern } in
       map_source_file env cst)
-      
