@@ -2096,18 +2096,22 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         | `Class tok -> str env tok
         (* "class" *)
       in
-      let name_info =
-        match (v1, v2, v3) with
-        | _ ->
-            {
-              name_last = (v3, None);
-              name_middle = None (* TODO*);
-              name_top = None;
-              name_info = empty_id_info ();
-            }
-        (* TODO use qualifiers, with v1TODO above *)
+      (* Use DotAccess to preserve full source range for autofix *)
+      let lhs =
+        match v1 with
+        | Some id -> G.N (H2.name_of_id id) |> G.e
+        | None -> G.N (H2.name_of_id v3) |> G.e
       in
-      G.N (IdQualified name_info) |> G.e
+      let expr =
+        G.DotAccess (lhs, v2, FN (Id (v3, G.empty_id_info ()))) |> G.e
+      in
+      let first_tok =
+        match v1 with
+        | Some id -> snd id
+        | None -> snd v3
+      in
+      H2.set_e_range first_tok (snd v3) expr;
+      expr
   | `Func_lit x -> function_literal env x
   | `Obj_lit (v1, v2, v3) ->
       let v1 =

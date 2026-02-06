@@ -1,0 +1,2 @@
+assertThat(cell).isInstanceOf(BigDecimal::class.java)
+assertThat(name).isInstanceOf(String::class.java)
