@@ -1,0 +1,10 @@
+model
+  schema 1.1
+
+type user
+
+type document
+  relations
+    define owner: [user]
+    define viewer: [user] or owner
+    define can_view: viewer

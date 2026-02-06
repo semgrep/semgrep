@@ -260,6 +260,7 @@ let langs_with_error_tolerance =
     (Lang.Julia, Strict);
     (Lang.Jsonnet, Strict);
     (Lang.Dart, Strict);
+    (Lang.Fga, Strict);
     (* here we have both a Pfff and tree-sitter parser *)
     (Lang.Java, Strict);
     (Lang.Go, Strict);

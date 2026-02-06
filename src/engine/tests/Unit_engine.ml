@@ -91,6 +91,7 @@ let full_lang_info =
     (Lang.Ql, "ql", ".ql");
     (Lang.Move_on_sui, "move_on_sui", ".move");
     (Lang.Move_on_aptos, "move_on_aptos", ".move");
+    (Lang.Fga, "fga", ".fga");
   ]
 
 (*****************************************************************************)
