@@ -61,6 +61,7 @@ from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigLoader
 from semgrep.console import console
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import MemoryPolicy
 from semgrep.constants import OutputFormat
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.core_runner import CoreRunner
@@ -1185,6 +1186,7 @@ def run_scan(
     fips_mode: bool = False,
     x_group_taint_rules: bool = False,
     x_dump_symbol_analysis: bool = False,
+    x_mem_policy: Optional[MemoryPolicy] = None,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1380,6 +1382,7 @@ def run_scan(
             fips_mode=fips_mode,
             use_pro_naming_for_intrafile=x_pro_naming,
             group_taint_rules=x_group_taint_rules,
+            mem_policy=x_mem_policy,
         )
         # TODO? why displayed here? why not closer to log_running_rules?
         log_rules(filtered_rules, too_many_entries)

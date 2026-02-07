@@ -54,6 +54,8 @@ type conf = {
   ls : bool;
   (* --x-ls-long: *)
   ls_format : Ls_subcommand.format;
+  (* --x-mem-policy: Pro-only, processed by Pro_CLI *)
+  x_mem_policy : string option;
 }
 [@@deriving show]
 
@@ -140,6 +142,7 @@ val o_version_check : bool Cmdliner.Term.t
 val o_vim : bool Cmdliner.Term.t
 val o_vim_outputs : string list Cmdliner.Term.t
 val o_x_ignore_semgrepignore_files : bool Cmdliner.Term.t
+val o_x_mem_policy : string option Cmdliner.Term.t
 val o_x_tr : bool option Cmdliner.Term.t
 val o_x_pro_naming : bool Cmdliner.Term.t
 val o_x_group_taint_rules : bool Cmdliner.Term.t

@@ -25,6 +25,7 @@ from typing import Callable
 from typing import FrozenSet
 from typing import List
 from typing import Mapping
+from typing import NoReturn
 from typing import Optional
 from typing import Sequence
 from typing import TypeVar
@@ -132,7 +133,7 @@ def path_has_permissions(
     )
 
 
-def abort(message: str) -> None:
+def abort(message: str) -> NoReturn:
     click.secho(message, fg="red", err=True)
     sys.exit(2)
 

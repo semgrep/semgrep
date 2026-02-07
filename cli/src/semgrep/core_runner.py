@@ -48,6 +48,7 @@ from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.console import console
 from semgrep.constants import Colors
+from semgrep.constants import MemoryPolicy
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.core_output import core_matches_to_rule_matches
@@ -589,6 +590,7 @@ class CoreRunner:
         fips_mode: bool = False,
         use_pro_naming_for_intrafile: bool = False,
         group_taint_rules: bool = False,
+        mem_policy: Optional[MemoryPolicy] = None,
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs
@@ -609,6 +611,7 @@ class CoreRunner:
         self._fips_mode = fips_mode
         self._use_pro_naming_for_intrafile = use_pro_naming_for_intrafile
         self._group_taint_rules = group_taint_rules
+        self.mem_policy = mem_policy
 
     def _extract_core_output(
         self,
@@ -1132,15 +1135,10 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             ):
                 cmd.append("-use_pro_naming_for_intrafile")
 
-            # This flag is only in the pro binary, so make sure we're pro
-            # More than that, `symbol_analysis` is only collectible on interfile
-            # scans. So let's only add it if that's the case.
-            if self._symbol_analysis and engine.is_interfile:
-                cmd.append("-symbol_analysis")
-
             if self._group_taint_rules:
                 cmd += ["-group_taint_rules"]
 
+            # These flags are only in the pro binary, so make sure we're pro
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
             if engine.is_pro:
@@ -1171,6 +1169,15 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     cmd += [root]
                 elif engine is EngineType.PRO_INTRAFILE:
                     cmd += ["-pro_intra_file"]
+
+                # More than needing pro, `symbol_analysis` is only collectible
+                # on interfile scans. So let's only add it if that's the case.
+                # TODO: warn if engine is not interfile?
+                if self._symbol_analysis and engine.is_interfile:
+                    cmd.append("-symbol_analysis")
+
+                if self.mem_policy:
+                    cmd.extend(["-x-mem-policy", self.mem_policy.cli_value])
 
             if state.terminal.is_debug:
                 cmd += ["-debug"]

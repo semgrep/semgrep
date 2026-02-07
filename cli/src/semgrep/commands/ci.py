@@ -45,6 +45,7 @@ from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
+from semgrep.constants import MemoryPolicy
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
@@ -304,6 +305,7 @@ def ci(
     x_group_taint_rules: bool,
     x_dump_symbol_analysis: bool,
     enable_mal_deps: bool,
+    x_mem_policy: Optional[MemoryPolicy],
 ) -> None:
     if x_simple_profiling:
         simple_profiling_module.enabled_simple_profiling = True
@@ -781,6 +783,7 @@ def ci(
             "semgrepignore_filename": x_semgrepignore_filename,
             "x_group_taint_rules": x_group_taint_rules,
             "x_dump_symbol_analysis": x_dump_symbol_analysis,
+            **({"x_mem_policy": x_mem_policy} if x_mem_policy else {}),
         }
 
         try:

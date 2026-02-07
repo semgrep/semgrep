@@ -298,8 +298,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
       scan_unknown_extensions secrets semgrepignore_filename text text_outputs
       timeout _timeout_interfileTODO timeout_threshold use_git
-      _use_semgrepignore_v2 version_check vim vim_outputs x_tr x_pro_naming
-      x_mcp =
+      _use_semgrepignore_v2 version_check vim vim_outputs x_mem_policy x_tr
+      x_pro_naming x_mcp =
     (* this is just handled by psemgrep for now *)
     ignore x_pro_naming;
     let output_format : Output_format.t =
@@ -427,6 +427,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         test = None;
         ls = false;
         ls_format = Ls_subcommand.default_format;
+        x_mem_policy;
       }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -452,7 +453,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_semgrepignore_filename $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
     $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_use_git
     $ SC.o_use_semgrepignore_v2 $ SC.o_version_check $ SC.o_vim
-    $ SC.o_vim_outputs $ SC.o_x_tr $ SC.o_x_pro_naming $ SC.o_x_mcp)
+    $ SC.o_vim_outputs $ SC.o_x_mem_policy $ SC.o_x_tr $ SC.o_x_pro_naming
+    $ SC.o_x_mcp)
 
 (*************************************************************************)
 (* Turn argv into conf *)

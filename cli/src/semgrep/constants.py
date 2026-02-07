@@ -42,6 +42,21 @@ RETURNTOCORP_LEVER_URL = "https://api.lever.co/v0/postings/returntocorp?mode=jso
 UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 
 
+# Coupling: If a new policy is added in configuring/Memory_policy, it needs to
+# be reflected here.
+class MemoryPolicy(Enum):
+    AGGRESSIVE = auto()
+    BALANCED = auto()
+
+    @property
+    def cli_value(self) -> str:
+        return self.name.lower()
+
+    @classmethod
+    def all_policies(cls) -> str:
+        return ", ".join(p.cli_value for p in cls)
+
+
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()

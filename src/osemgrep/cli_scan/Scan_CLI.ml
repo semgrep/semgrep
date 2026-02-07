@@ -75,6 +75,8 @@ type conf = {
   test : Test_CLI.conf option;
   ls : bool;
   ls_format : Ls_subcommand.format;
+  (* --x-mem-policy: Pro-only, processed by Pro_CLI *)
+  x_mem_policy : string option;
 }
 [@@deriving show]
 
@@ -123,6 +125,7 @@ let default : conf =
     test = None;
     ls = false;
     ls_format = Ls_subcommand.default_format;
+    x_mem_policy = None;
   }
 
 (*************************************************************************)
@@ -378,6 +381,13 @@ defaults to 5000 MiB.
 |}
   in
   Arg.value (Arg.opt Arg.int default info)
+
+let o_x_mem_policy : string option Term.t =
+  let info =
+    Arg.info [ "x-mem-policy" ]
+      ~doc:"[INTERNAL] Heap and GC tuning policy. Only affects the Pro Engine."
+  in
+  Arg.value (Arg.opt (Arg.some Arg.string) None info)
 
 let o_optimizations : bool Term.t =
   let parse = function
@@ -1451,12 +1461,12 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
       use_git _use_semgrepignore_v2 validate version version_check vim
       vim_outputs _x_dump_symbol_analysis x_ignore_semgrepignore_files x_ls
-      x_ls_long x_tr x_pro_naming x_group_taint_rules x_mcp =
+      x_ls_long x_mem_policy x_tr x_pro_naming x_group_taint_rules x_mcp =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
-      x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr <> None
-      || x_pro_naming || x_group_taint_rules || x_mcp
+      x_ignore_semgrepignore_files || x_ls || x_ls_long || x_mem_policy <> None
+      || x_tr <> None || x_pro_naming || x_group_taint_rules || x_mcp
     then
       Logs.warn (fun m ->
           m
@@ -1511,6 +1521,17 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
         ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
         ~allow_local_builds ~x_tr
+    in
+    let x_mem_policy =
+      (* Disable flag if --x-mem-policy is supplied without a pro config *)
+      match (x_mem_policy, engine_type) with
+      | Some _, Engine_type.OSS ->
+          Logs.warn (fun m ->
+              m
+                "--x-mem-policy requires the Pro engine.  Discarding flag \
+                 value.");
+          None
+      | _ -> x_mem_policy
     in
     let rules_source : Rules_source.t =
       match (config, pattern) with
@@ -1658,6 +1679,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       test;
       ls;
       ls_format;
+      x_mem_policy;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
@@ -1685,8 +1707,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_timeout_interfile $ o_timeout_threshold $ o_use_git
     $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
     $ o_vim_outputs $ o_x_dump_symbol_analysis $ o_x_ignore_semgrepignore_files
-    $ o_x_ls $ o_x_ls_long $ o_x_tr $ o_x_pro_naming $ o_x_group_taint_rules
-    $ o_x_mcp)
+    $ o_x_ls $ o_x_ls_long $ o_x_mem_policy $ o_x_tr $ o_x_pro_naming
+    $ o_x_group_taint_rules $ o_x_mcp)
 
 let doc = "run semgrep rules on files"
 

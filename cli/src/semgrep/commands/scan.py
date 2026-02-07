@@ -53,6 +53,7 @@ from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import MemoryPolicy
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
@@ -82,6 +83,21 @@ logger = getLogger(__name__)
 ##############################################################################
 # Command-line parsing
 ##############################################################################
+
+
+def validate_mem_policy(
+    _ctx: click.Context, _param: click.Parameter, value: Optional[str]
+) -> Optional[MemoryPolicy]:
+    """Validate and convert x-mem-policy string to MemoryPolicy enum."""
+    if value is None:
+        return None
+    try:
+        return MemoryPolicy[value.upper()]
+    except KeyError:
+        valid_options = MemoryPolicy.all_policies()
+        abort(
+            f"Invalid value for '--x-mem-policy': '{value}' is not one of {valid_options}"
+        )
 
 
 class MetricsStateType(click.ParamType):
@@ -490,6 +506,13 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--x-mem-policy",
+        "x_mem_policy",
+        type=str,
+        callback=validate_mem_policy,
+        help=f"[INTERNAL] Memory management policy (options: {MemoryPolicy.all_policies()})",
+    ),
 ]
 
 
@@ -749,6 +772,7 @@ def scan(
     x_group_taint_rules: bool,
     x_mcp: bool,
     x_dump_symbol_analysis: bool,
+    x_mem_policy: Optional[MemoryPolicy],
 ) -> Optional[ScanResult]:
     if version:
         print(__VERSION__)
@@ -1097,6 +1121,7 @@ def scan(
                         allow_local_builds=allow_local_builds,
                         x_group_taint_rules=x_group_taint_rules,
                         x_dump_symbol_analysis=x_dump_symbol_analysis,
+                        x_mem_policy=x_mem_policy,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])
