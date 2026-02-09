@@ -1,0 +1,7 @@
+Allows case insensitive string comparisons using lower() and upper() like this:
+
+```
+- metavariable-comparison:
+    metavariable: $VALUE
+    comparison: upper(str($VALUE)) == "SEMGREP"
+```
