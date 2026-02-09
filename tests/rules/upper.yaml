@@ -1,0 +1,11 @@
+rules:
+    - id: upper
+      severity: WARNING
+      languages:
+          - python
+      message: test
+      patterns:
+          - pattern: $VAR = $VALUE
+          - metavariable-comparison:
+                metavariable: $VALUE
+                comparison: upper(str($VALUE)) == "SEMGREP"
