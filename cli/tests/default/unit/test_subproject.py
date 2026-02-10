@@ -12,6 +12,7 @@
 #
 import hashlib
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import List
 
 import pytest
@@ -21,12 +22,14 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
+from semgrep.subproject import ClosestSubprojectFinder
 from semgrep.subproject import find_closest_resolved_subproject
 from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_display_paths
 from semgrep.subproject import make_dependencies_by_source_path
 from semgrep.subproject import subproject_to_stats
 from semgrep.subproject import to_stats_output
+from semgrep.types import Target
 
 
 def create_tmp_file(path: Path):
@@ -168,6 +171,196 @@ class TestFindClosestSubproject:
             Path("a/b/c/app/test.java"), Ecosystem(Maven()), [expected, *extra]
         )
         assert result == expected, "Should return subproject with requested ecosystem"
+
+
+class TestClosestSubprojectFinder:
+    """Tests for the ClosestSubprojectFinder class."""
+
+    def create_subproject(
+        self, root_dir: str, ecosystem: Ecosystem, lockfile_path: str
+    ) -> out.Subproject:
+        """Helper to create a Subproject with minimal setup."""
+        return out.Subproject(
+            root_dir=out.Fpath(root_dir),
+            dependency_source=out.DependencySource(
+                out.LockfileOnly(
+                    out.Lockfile(
+                        out.LockfileKind(out.PipRequirementsTxt()),
+                        out.Fpath(lockfile_path),
+                    )
+                )
+            ),
+            ecosystem=ecosystem,
+        )
+
+    def create_target(self, path: str) -> Target:
+        """Helper to create a Target from a path string."""
+        fpath = Path(path)
+        ppath = PurePosixPath(path)
+        return Target(
+            fpath=fpath,
+            ppath=ppath,
+            original=out.Fppath(
+                fpath=out.Fpath(str(fpath)), ppath=out.Ppath(str(ppath))
+            ),
+        )
+
+    @pytest.mark.quick
+    def test_finds_subproject_in_same_directory(self):
+        """Should find subproject when target is in the same directory."""
+        subproject = self.create_subproject(
+            "a/b/c", Ecosystem(Pypi()), "a/b/c/requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([subproject])
+
+        target = self.create_target("a/b/c/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result == subproject
+
+    @pytest.mark.quick
+    def test_finds_subproject_in_parent_directory(self):
+        """Should find subproject when target is in a subdirectory."""
+        subproject = self.create_subproject(
+            "a/b", Ecosystem(Pypi()), "a/b/requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([subproject])
+
+        target = self.create_target("a/b/c/d/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result == subproject
+
+    @pytest.mark.quick
+    def test_returns_none_when_no_matching_subproject(self):
+        """Should return None when no subproject matches the path."""
+        subproject = self.create_subproject(
+            "a/b/c", Ecosystem(Pypi()), "a/b/c/requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([subproject])
+
+        # Target in a completely different directory tree
+        target = self.create_target("x/y/z/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result is None
+
+    @pytest.mark.quick
+    def test_returns_none_when_ecosystem_does_not_match(self):
+        """Should return None when ecosystem doesn't match."""
+        subproject = self.create_subproject(
+            "a/b/c", Ecosystem(Pypi()), "a/b/c/requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([subproject])
+
+        target = self.create_target("a/b/c/test.java")
+        # Looking for Maven ecosystem when only Pypi is available
+        result = finder.find_closest_subproject(target, Ecosystem(Maven()))
+
+        assert result is None
+
+    @pytest.mark.quick
+    def test_returns_most_specific_subproject(self):
+        """Should return the deepest (most specific) matching subproject."""
+        # Create nested subprojects
+        parent_subproject = self.create_subproject(
+            "a/b", Ecosystem(Pypi()), "a/b/requirements.txt"
+        )
+        child_subproject = self.create_subproject(
+            "a/b/c", Ecosystem(Pypi()), "a/b/c/requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([parent_subproject, child_subproject])
+
+        # Target in the child directory should match the child subproject
+        target = self.create_target("a/b/c/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result == child_subproject
+
+    @pytest.mark.quick
+    def test_returns_parent_when_child_not_present(self):
+        """Should return parent subproject when child doesn't match."""
+        parent_subproject = self.create_subproject(
+            "a/b", Ecosystem(Pypi()), "a/b/requirements.txt"
+        )
+        child_subproject = self.create_subproject(
+            "a/b/c", Ecosystem(Pypi()), "a/b/c/requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([parent_subproject, child_subproject])
+
+        # Target in a sibling directory should match the parent
+        target = self.create_target("a/b/d/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result == parent_subproject
+
+    @pytest.mark.quick
+    def test_handles_multiple_ecosystems(self):
+        """Should correctly filter by ecosystem when multiple are present."""
+        pypi_subproject = self.create_subproject(
+            "a/b", Ecosystem(Pypi()), "a/b/requirements.txt"
+        )
+        maven_subproject = out.Subproject(
+            root_dir=out.Fpath("a/b"),
+            dependency_source=out.DependencySource(
+                out.LockfileOnly(
+                    out.Lockfile(
+                        out.LockfileKind(out.GradleLockfile()),
+                        out.Fpath("a/b/gradle.lockfile"),
+                    )
+                )
+            ),
+            ecosystem=Ecosystem(Maven()),
+        )
+
+        finder = ClosestSubprojectFinder([pypi_subproject, maven_subproject])
+
+        target = self.create_target("a/b/test.java")
+
+        # Should find Maven subproject
+        result_maven = finder.find_closest_subproject(target, Ecosystem(Maven()))
+        assert result_maven == maven_subproject
+
+        # Should find Pypi subproject
+        result_pypi = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+        assert result_pypi == pypi_subproject
+
+    @pytest.mark.quick
+    def test_handles_root_level_subproject(self):
+        """Should handle subproject at the root directory."""
+        subproject = self.create_subproject(
+            ".", Ecosystem(Pypi()), "./requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([subproject])
+
+        target = self.create_target("a/b/c/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result == subproject
+
+    @pytest.mark.quick
+    def test_empty_subprojects_list(self):
+        """Should handle empty subprojects list gracefully."""
+        finder = ClosestSubprojectFinder([])
+
+        target = self.create_target("a/b/c/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result is None
+
+    @pytest.mark.quick
+    def test_target_matches_exact_root_dir(self):
+        """Should match when target file is exactly at the root_dir."""
+        subproject = self.create_subproject(
+            "a/b/c", Ecosystem(Pypi()), "a/b/c/requirements.txt"
+        )
+        finder = ClosestSubprojectFinder([subproject])
+
+        # File exactly in the root_dir (not a subdirectory)
+        target = self.create_target("a/b/c/test.py")
+        result = finder.find_closest_subproject(target, Ecosystem(Pypi()))
+
+        assert result == subproject
 
 
 class TestSubproject:

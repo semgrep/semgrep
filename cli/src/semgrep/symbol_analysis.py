@@ -31,12 +31,11 @@ from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc_call import run_symbol_analysis as run_symbol_analysis_rpc
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.subproject import ClosestSubprojectFinder
 from semgrep.subproject import DependencyResolutionConfig
-from semgrep.subproject import find_closest_subproject
 from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -106,7 +105,14 @@ def build_subproject_file_mapping(
     """
     subproject_files = defaultdict[Tuple[out.Ecosystem, Path], List[Path]](list)
 
-    for ecosystem, subprojects in subprojects_by_ecosystem.items():
+    all_subprojects = [
+        sp.info  # convert ResolvedSubproject to Subproject
+        for subprojects in subprojects_by_ecosystem.values()
+        for sp in subprojects
+    ]
+    closest_subproject_finder = ClosestSubprojectFinder(all_subprojects)
+
+    for ecosystem, _ in subprojects_by_ecosystem.items():
         ecosystem_lang = _ecosystem_to_language(ecosystem)
         if ecosystem_lang is None:
             continue
@@ -117,12 +123,9 @@ def build_subproject_file_mapping(
                 lang=lang, product=SCA_PRODUCT
             ).kept:
                 # Find which subproject this file belongs to (note that this logic re-implements the logic in `dependency_aware_rule.py`)
-                closest_subproject = find_closest_subproject(
+                closest_subproject = closest_subproject_finder.find_closest_subproject(
                     code_file,
                     ecosystem,
-                    [
-                        sp.info for sp in subprojects
-                    ],  # convert ResolvedSubproject to Subproject
                 )
                 if closest_subproject is not None:
                     key = (ecosystem, Path(closest_subproject.root_dir.value))

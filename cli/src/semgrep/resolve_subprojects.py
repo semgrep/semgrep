@@ -40,8 +40,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.simple_profiling import profiling
 from semgrep.simple_profiling import simple_profiling
+from semgrep.subproject import ClosestSubprojectFinder
 from semgrep.subproject import DependencyResolutionConfig
-from semgrep.subproject import find_closest_subproject
 from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_all_source_files
 from semgrep.target_manager import SCA_PRODUCT
@@ -185,6 +185,8 @@ def filter_changed_subprojects(
                 if ecosystem not in ecosystems_by_language[language]:
                     ecosystems_by_language[language].append(ecosystem)
 
+    closest_subproject_finder = ClosestSubprojectFinder(subprojects)
+
     # note that this logic re-implements the logic in `dependency_aware_rule.py`
     for language, ecosystems in ecosystems_by_language.items():
         for code_file in target_manager.get_files_for_language(
@@ -195,11 +197,14 @@ def filter_changed_subprojects(
             # the closest subproject for each relevant ecosystem as potentially changed
             for ecosystem in ecosystems:
                 # This is nondeterministic need to fix
-                closest_subproject = find_closest_subproject(
-                    code_file, ecosystem, subprojects
+                closest_subproject = closest_subproject_finder.find_closest_subproject(
+                    code_file, ecosystem
                 )
                 if closest_subproject is not None:
                     relevant_subprojects.add(HashableSubproject(closest_subproject))
+                if len(relevant_subprojects) == len(subprojects):
+                    # all subprojects already relevant, no need to continue
+                    break
 
     # we refer to the original list for ordering, ensuring that the output order
     # is deterministic.

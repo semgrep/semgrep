@@ -23,6 +23,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.simple_profiling import simple_profiling
 from semgrep.types import Target
 
 
@@ -257,44 +258,59 @@ def subproject_to_cli_output_info(
     )
 
 
-def find_closest_subproject(
-    path: Target, ecosystem: out.Ecosystem, candidates: List[out.Subproject]
-) -> Optional[out.Subproject]:
-    """
-    Attempt to find the best SCA project for the given match by looking at the
-    parent path of the match and comparing it to the root directories of the
-    provided candidates. The best subproject is the one that matches the given
-    `ecosystem` and whose root directory is the longest prefix of the given
-    `path`.
+class ClosestSubprojectFinder:
+    def __init__(self, subprojects: List[out.Subproject]):
+        """
+        Build an instance of ClosestSubprojectFinder, which includes some precomputation
+        to allow calling find_closest_subproject many times without excessive work.
+        """
+        # holds (subproject, root_dir Path) pairs to avoid unnecessary work
+        # in find_closest_subproject
+        self.subproject_index: dict[
+            out.Ecosystem | None, list[tuple[out.Subproject, Path]]
+        ] = defaultdict(list)
+        for subproject in subprojects:
+            self.subproject_index[subproject.ecosystem].append(
+                (subproject, Path(subproject.root_dir.value))
+            )
+        for ecosystem in self.subproject_index:
+            # sort each ecosystem's subprojects in order of decreasing root_dir length
+            self.subproject_index[ecosystem].sort(
+                key=lambda x: len(x[1].parts), reverse=True
+            )
 
-    Note that this function finds the closest subproject, which is likely to be
-    but not necessarily the relevant subproject. Many package managers will
-    allow a subproject to be associated with a code file in an arbitrary
-    location; potentially entirely outside the subproject's root directory.
-    We cannot handle that case without extensive per-package-manager logic, so
-    we assume that each code file is associated with the closest subproject up
-    the directory tree
+    @simple_profiling
+    def find_closest_subproject(
+        self, path: Target, ecosystem: out.Ecosystem
+    ) -> Optional[out.Subproject]:
+        """
+        Attempt to find the best SCA project for the given match by looking at the
+        parent path of the match and comparing it to the root directories of the
+        provided candidates. The best subproject is the one that matches the given
+        `ecosystem` and whose root directory is the longest prefix of the given
+        `path`.
 
-    Args:
-        path (Target): The path to search for the closest subproject.
-        ecosystem (Ecosystem): The ecosystem to consider subprojects for
-        candidates (List[Subproject]): List of candidate subprojects.
-    """
-    # We order the candidates by root directory length so that we prefer
-    # more specific subprojects over more general ones.
-    sorted_candidates = sorted(
-        candidates, key=lambda x: len(Path(x.root_dir.value).parts), reverse=True
-    )
+        Note that this function finds the closest subproject, which is likely to be
+        but not necessarily the relevant subproject. Many package managers will
+        allow a subproject to be associated with a code file in an arbitrary
+        location; potentially entirely outside the subproject's root directory.
+        We cannot handle that case without extensive per-package-manager logic, so
+        we assume that each code file is associated with the closest subproject up
+        the directory tree
 
-    for candidate in sorted_candidates:
-        for parent in [path, *path.fpath.parents]:
-            if (
-                Path(candidate.root_dir.value) == parent
-                and candidate.ecosystem == ecosystem
-            ):
+        Args:
+            path (Target): The path to search for the closest subproject.
+            ecosystem (Ecosystem): The ecosystem to consider subprojects for
+        """
+        sorted_candidates = self.subproject_index[ecosystem]
+
+        path_parents = set([path, *path.fpath.parents])
+        for candidate, candidate_root_path in sorted_candidates:
+            # we iterate in order of decreasing specificity, so the first match is the closest
+            if candidate_root_path in path_parents:
                 return candidate
 
-    return None
+        return None
 
 
 def find_closest_resolved_subproject(

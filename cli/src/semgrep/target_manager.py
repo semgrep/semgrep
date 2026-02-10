@@ -46,7 +46,6 @@ from semgrep.git import BaselineHandler
 from semgrep.simple_profiling import simple_profiling
 from semgrep.util import IS_WINDOWS
 
-
 # usually this would be a try...except ImportError
 # but mypy understands only this
 # see https://github.com/python/mypy/issues/1393
@@ -56,20 +55,14 @@ if sys.version_info[:2] >= (3, 8):
 else:
     from typing_extensions import Literal
 
-from attrs import define
-from attrs import field
 import click
-from attrs import Factory, frozen
+from attrs import Factory, define, field, frozen
 from wcmatch import glob
 
-from semgrep.constants import TOO_MUCH_DATA
-from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
+from semgrep.constants import TOO_MUCH_DATA, UNSUPPORTED_EXT_IGNORE_LANGS, Colors
 from semgrep.error import InvalidScanningRootError, SemgrepCoreError
 from semgrep.formatter.text import BASE_WIDTH as width
-from semgrep.semgrep_types import FileExtension
-from semgrep.semgrep_types import LANGUAGE
-from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import Shebang
+from semgrep.semgrep_types import LANGUAGE, FileExtension, Language, Shebang
 from semgrep.types import FilteredFiles, SelectedTargets, Target
 from semgrep.util import (
     line_count_of_path,
@@ -77,10 +70,9 @@ from semgrep.util import (
     pretty_print_percentage,
     sub_check_output,
     unit_str,
+    with_color,
 )
-from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
