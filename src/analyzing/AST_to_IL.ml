@@ -1492,71 +1492,8 @@ and map_stmt_expr env ?g_expr st : exp =
         | Some e_gen -> SameAs e_gen
       in
       mk_e (Fetch fresh) eorig
-  | G.Switch (tok, Some (G.Cond scrutinee_expr), cases_and_bodies)
-    when lang_has_pattern_matching_switch env.lang ->
-      (* For pattern-matching languages where match is an expression (Rust, OCaml),
-       * generate IL.Match and then fall through to the value. The match body's
-       * last expression is the value, which is handled by implicit returns or
-       * by the body translation. We generate IL.Match as a statement. *)
-      let ss, scrutinee_exp = map_expr_with_pre_stmts env scrutinee_expr in
-      let scrutinee_var = fresh_var env tok in
-      let result_var = fresh_lval env tok in
-      let assign_scrutinee =
-        mk_s
-          (Instr
-             (mk_i
-                 (Assign (lval_of_base (Var scrutinee_var), scrutinee_exp))
-                 (related_exp scrutinee_expr)))
-       in
-       (* For each branch, we need to translate the body and assign its result
-        * to the result variable, so the match expression has a value. *)
-       let branches =
-         List.filter_map
-           (fun (cab : G.case_and_body) ->
-             match cab with
-             | G.CasesAndBody (cases, body) ->
-                 let pat =
-                   match cases with
-                   | [ G.Case (_tok, p) ] -> g_pattern_to_il_pattern_spec env p
-                   | [ G.Default _ ] -> IL.PatWildcard
-                   | _ -> (
-                       let p =
-                         List.fold_left
-                           (fun acc (c : G.case) ->
-                             match (acc, c) with
-                             | Some _, _ -> acc
-                             | None, G.Case (_, p) -> Some p
-                             | _ -> None)
-                           None cases
-                       in
-                       match p with
-                       | Some p -> g_pattern_to_il_pattern_spec env p
-                       | None -> IL.PatWildcard)
-                 in
-                 let body_ss, body_exp = map_stmt_expr_with_pre_stmts env body in
-                 let assign_result =
-                   mk_s
-                     (Instr
-                        (mk_i (Assign (result_var, body_exp)) (related_tok tok)))
-                 in
-                 Some { IL.pattern = pat; body = body_ss @ [ assign_result ] }
-            | G.CaseEllipsis _ -> None)
-          cases_and_bodies
-      in
-      add_stmts env
-        (ss
-        @ [
-            assign_scrutinee;
-            mk_s (Match { scrutinee = scrutinee_var; branches });
-          ]);
-      let eorig =
-        match g_expr with
-        | None -> related_exp (G.e (G.StmtExpr st))
-        | Some e_gen -> SameAs e_gen
-      in
-      mk_e (Fetch result_var) eorig
-  | G.Switch (_tok, Some scrutinee, branches) when Lang.(equal env.lang Scala)
-    -> (
+  | G.Switch (_tok, Some scrutinee, branches)
+    when lang_has_pattern_matching_switch env.lang -> (
       match Hook.get hook_compile_pattern_matching with
       | Some compile_fn ->
           let ss, e =
@@ -1753,7 +1690,8 @@ and no_switch_fallthrough : Lang.t -> bool = function
  * pattern-bound variables properly receive taint from the scrutinee. *)
 and lang_has_pattern_matching_switch : Lang.t -> bool = function
   | Rust
-  | Ocaml ->
+  | Ocaml
+  | Scala ->
       true
   | _ -> false
 
