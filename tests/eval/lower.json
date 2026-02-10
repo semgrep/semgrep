@@ -3,5 +3,5 @@
         "$X": "SEMGREP"
     },
     "language": "python",
-    "code": "lower(str($X)) == semgrep"
+    "code": "lower(str($X)) == \"semgrep\""
 }

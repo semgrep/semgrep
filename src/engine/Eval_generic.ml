@@ -313,17 +313,13 @@ let rec eval env code =
       | String s -> string_duration_to_milliseconds s code
       | __else__ -> raise (NotHandled code))
   (* Emulate Python lower *)
-  | G.Call
-      ( { e = G.N (G.Id (("lower", _), _)); _ },
-        (_, [ Arg e ], _) ) -> (
+  | G.Call ({ e = G.N (G.Id (("lower", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
       | String s -> String (String.lowercase_ascii s)
       | __else__ -> raise (NotHandled code))
   (* Emulate Python upper *)
-  | G.Call
-      ( { e = G.N (G.Id (("upper", _), _)); _ },
-        (_, [ Arg e ], _) ) -> (
+  | G.Call ({ e = G.N (G.Id (("upper", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
       | String s -> String (String.uppercase_ascii s)
