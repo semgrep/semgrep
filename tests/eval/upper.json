@@ -1,0 +1,7 @@
+{
+    "metavars": {
+        "$X": "semgrep"
+    },
+    "language": "python",
+    "code": "upper(str($X)) == \"SEMGREP\""
+}
