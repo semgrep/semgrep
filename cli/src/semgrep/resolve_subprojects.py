@@ -35,7 +35,6 @@ from semgrep.console import console
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.rpc import RpcSession
 from semgrep.rule import Rule
-from semgrep.safe_set import intersection
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.simple_profiling import profiling
@@ -152,16 +151,10 @@ def filter_changed_subprojects(
     all_dependency_source_targets = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=False
     )
+    all_dependency_source_fpaths = fpaths_of_targets(all_dependency_source_targets)
     for subproject in subprojects:
-        source_file_set = set(get_all_source_files(subproject.dependency_source))
-        if (
-            len(
-                intersection(
-                    fpaths_of_targets(all_dependency_source_targets), source_file_set
-                )
-            )
-            > 0
-        ):
+        source_files = get_all_source_files(subproject.dependency_source)
+        if not all_dependency_source_fpaths.isdisjoint(source_files):
             # one of the source files for this subproject changed, so we should keep it
             relevant_subprojects.add(HashableSubproject(subproject))
 
@@ -169,9 +162,7 @@ def filter_changed_subprojects(
         # all subproject are already relevant, so there is no need to look at code files
         # (this should cover the full scan case and prevent extra work)
         # need to refer to the original list for deterministic ordering
-        return [
-            s for s in subprojects if HashableSubproject(s) in relevant_subprojects
-        ], []
+        return subprojects, []
 
     # make language -> ecosystem mapping from the rules that we are given
     ecosystems_by_language: Dict[Language, List[Ecosystem]] = {}
@@ -202,18 +193,21 @@ def filter_changed_subprojects(
                 )
                 if closest_subproject is not None:
                     relevant_subprojects.add(HashableSubproject(closest_subproject))
+
                 if len(relevant_subprojects) == len(subprojects):
                     # all subprojects already relevant, no need to continue
-                    break
+                    return subprojects, []
 
     # we refer to the original list for ordering, ensuring that the output order
     # is deterministic.
-    ordered_relevant = [
-        s for s in subprojects if HashableSubproject(s) in relevant_subprojects
-    ]
-    ordered_irrelevant = [
-        s for s in subprojects if HashableSubproject(s) not in relevant_subprojects
-    ]
+    ordered_relevant = []
+    ordered_irrelevant = []
+    for s in subprojects:
+        if HashableSubproject(s) in relevant_subprojects:
+            ordered_relevant.append(s)
+        else:
+            ordered_irrelevant.append(s)
+
     unresolved_subprojects = [
         out.UnresolvedSubproject(
             info=s, reason=out.UnresolvedReason(out.UnresolvedSkipped()), errors=[]
