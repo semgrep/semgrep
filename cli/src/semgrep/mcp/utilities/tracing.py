@@ -31,7 +31,6 @@ from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.models import WhoamiResult
 from semgrep.mcp.semgrep_context import SemgrepContext
 from semgrep.mcp.utilities.utils import get_anonymous_user_id
-from semgrep.mcp.utilities.utils import get_current_user_from_jwt
 from semgrep.mcp.utilities.utils import get_deployment_id
 from semgrep.mcp.utilities.utils import get_deployment_id_from_token
 from semgrep.mcp.utilities.utils import get_deployment_name
@@ -88,6 +87,20 @@ def attach_oauth_info(span: trace.Span | None, context: SemgrepContext) -> None:
     span.set_attribute("metrics.oauth_info.email", oauth_info.email)
     state = get_state()
     state.metrics.add_mcp_oauth_info(oauth_info)
+
+
+def attach_deployment_info(span: trace.Span | None) -> None:
+    if span is None:
+        return
+    deployment_id = get_deployment_id()
+    span.set_attribute(
+        "metrics.deployment_id", str(deployment_id) if deployment_id else ""
+    )
+    span.set_attribute("metrics.deployment_name", get_deployment_name() or "")
+    span.set_attribute(
+        "metrics.anonymous_user_id",
+        get_anonymous_user_id() if not is_oauth_authenticated() else "unknown",
+    )
 
 
 def attach_metrics(
@@ -187,8 +200,6 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
         yield None
     else:
         (endpoint, env) = get_trace_endpoint()
-        deployment_id = get_deployment_id()
-        oauth_info = get_current_user_from_jwt() if is_oauth_authenticated() else None
 
         state.telemetry.configure(
             True,
@@ -196,12 +207,6 @@ def start_tracing(name: str) -> Generator[trace.Span | None, None, None]:
             MCP_SERVICE_NAME,
             {
                 "metrics.is_hosted": is_hosted(),
-                "metrics.deployment_id": str(deployment_id) if deployment_id else "",
-                "metrics.deployment_name": get_deployment_name() or "",
-                "metrics.anonymous_user_id": get_anonymous_user_id(),
-                "metrics.oauth_info.id": str(oauth_info.id) if oauth_info else "",
-                "metrics.oauth_info.name": oauth_info.name if oauth_info else "",
-                "metrics.oauth_info.email": oauth_info.email if oauth_info else "",
             },
         )
 
@@ -289,6 +294,7 @@ def with_tool_span(
                     workspace_dir = await get_workspace_dir(ctx)
                     attach_oauth_info(span, context)
                     attach_git_info(span, workspace_dir)
+                    attach_deployment_info(span)
                 try:
                     result = await func(ctx, *args, **kwargs)
                     logger.info(f"{name} succeeded")

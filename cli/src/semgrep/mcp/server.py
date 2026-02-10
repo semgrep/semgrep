@@ -38,7 +38,9 @@ from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.semgrep import run_semgrep_process_sync
 from semgrep.mcp.semgrep import run_semgrep_via_rpc
 from semgrep.mcp.semgrep_context import SemgrepContext
+from semgrep.mcp.utilities.tracing import attach_deployment_info
 from semgrep.mcp.utilities.tracing import attach_findings_metrics
+from semgrep.mcp.utilities.tracing import attach_oauth_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_span
@@ -413,7 +415,8 @@ async def server_lifespan(_server: FastMCP) -> AsyncIterator[SemgrepContext]:
     # MCP requires Pro Engine
     with start_tracing("mcp-python-server") as span:
         context = await mk_context(top_level_span=span)
-
+        attach_deployment_info(span)
+        attach_oauth_info(span, context)
         try:
             yield context
         finally:
