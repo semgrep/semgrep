@@ -1146,6 +1146,7 @@ class TargetManager:
         ]
 
     @lru_cache(maxsize=None)
+    @telemetry.trace()
     def get_files_for_language(
         self,
         *,
@@ -1269,6 +1270,10 @@ class TargetManager:
                 candidates=explicit_targets
             )
             kept_files |= explicit_files_of_unknown_lang.kept
+
+        span = telemetry.get_current_span()
+        span.set_attribute("language", str(lang))
+        span.set_attribute("num_kept_files", len(kept_files))
 
         return FilteredFiles(kept_files, all_files - kept_files)
 
