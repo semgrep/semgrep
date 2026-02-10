@@ -644,18 +644,6 @@ src/spacegrep/**/_build
 src/spacegrep/**/.merlin
 src/spacegrep/tmp
 
-# From stats/autofix-printing-stats/.gitignore
-stats/autofix-printing-stats/**/tmp
-
-# From stats/parsing-stats/.gitignore
-stats/parsing-stats/**/tmp
-stats/parsing-stats/**/lang/**/stats.json
-stats/parsing-stats/**/test-parsing/**/stats.json
-
-# From stats/parsing-stats/test-parsing/.gitignore
-stats/parsing-stats/test-parsing/run-all
-stats/parsing-stats/test-parsing/run-lang
-
 # From tests/semgrep-rules/.gitignore
 tests/semgrep-rules/**/__pycache__/
 tests/semgrep-rules/**/.benchmarks/
