@@ -258,6 +258,8 @@ class Telemetry:
                         resources.SERVICE_NAME: service_name,
                         resources.SERVICE_VERSION: __VERSION__,
                         "deployment.environment.name": env_name if env_name else "prod",
+                        # This will be overriden by OTEL_RESOURCE_ATTRIBTUTES if it's set there
+                        "experiment.name": "unset",
                         **(dict(attributes) if attributes else {}),
                     },
                 ),
