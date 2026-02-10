@@ -50,7 +50,6 @@ from semgrep.types import fpaths_of_targets
 from semgrep.types import Target
 from semgrep.verbose_logging import getLogger
 
-
 logger = getLogger(__name__)
 
 
@@ -91,6 +90,7 @@ class HashableSubproject:
 
 
 @simple_profiling
+@telemetry.trace(owner=telemetry.TraceOwner.SSC)
 def find_subprojects(
     dependency_source_files: FrozenSet[Target], matchers: List[SubprojectMatcher]
 ) -> List[out.Subproject]:
@@ -100,6 +100,10 @@ def find_subprojects(
     source file will be used by at most one matcher, and matching will be
     attempted in the order that the matchers are provided.
     """
+    span = telemetry.get_current_span()
+    span.set_attribute("num_dependency_source_files", len(dependency_source_files))
+    span.set_attribute("num_matchers", len(matchers))
+
     unresolved_subprojects: List[out.Subproject] = []
     remaining_dep_source_files: FrozenSet[Target] = dependency_source_files
     for matcher in matchers:
@@ -118,6 +122,7 @@ def find_subprojects(
 
 
 @simple_profiling
+@telemetry.trace(owner=telemetry.TraceOwner.SSC)
 def filter_changed_subprojects(
     target_manager: TargetManager,
     dependency_aware_rules: List[Rule],
@@ -136,6 +141,10 @@ def filter_changed_subprojects(
     do not resolve a subproject because it is deemed irrelevant in this
     function, we will not consider that subproject when generating findings.
     """
+    span = telemetry.get_current_span()
+    span.set_attribute("num_dependency_aware_rules", len(dependency_aware_rules))
+    span.set_attribute("num_subprojects", len(subprojects))
+
     relevant_subprojects: Set[HashableSubproject] = set()
 
     # first, mark any subprojects whose dependency source files were directly
