@@ -84,12 +84,15 @@ let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
   | `CallResolveDependencies params -> (
       match !RPC_return.hook_resolve_dependencies with
       | Some resolve_dependencies ->
+          let package_manager_env =
+            Option.value ~default:[] params.package_manager_env
+          in
           let resolved =
             resolve_dependencies
               (caps :> < Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.readdir >)
               ~download_dependency_source_code:
                 params.download_dependency_source_code
-              ~allow_local_builds:params.allow_local_builds
+              ~allow_local_builds:params.allow_local_builds ~package_manager_env
               params.dependency_sources
           in
           Ok (`RetResolveDependencies resolved)

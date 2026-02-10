@@ -90,11 +90,15 @@ def resolve_dependencies(
     dependency_sources: List[out.DependencySource],
     download_dependency_source_code: bool,
     allow_local_builds: bool,
+    package_manager_env: Optional[List[Tuple[str, str]]] = None,
 ) -> Optional[List[Tuple[out.DependencySource, out.ResolutionResult]]]:
     call = out.FunctionCall(
         out.CallResolveDependencies(
             out.ResolveDependenciesParams(
-                dependency_sources, download_dependency_source_code, allow_local_builds
+                dependency_sources,
+                download_dependency_source_code,
+                allow_local_builds,
+                package_manager_env=package_manager_env,
             )
         )
     )

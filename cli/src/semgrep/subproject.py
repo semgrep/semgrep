@@ -13,6 +13,7 @@
 import hashlib
 from collections import defaultdict
 from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
 from typing import Dict
 from typing import Generator
@@ -49,6 +50,10 @@ class DependencyResolutionConfig:
     # may be used even when False when necessary for feature support or when
     # they have been validated.
     use_experimental_ocaml_parsers: bool = False
+
+    # Extra environment variables to pass to package manager subprocesses.
+    # Parsed from SEMGREP_LOCAL_BUILD_ENV JSON object.
+    local_build_env: Dict[str, str] = field(default_factory=dict)
 
 
 # A classification of subprojects we use to deterine support for various features.

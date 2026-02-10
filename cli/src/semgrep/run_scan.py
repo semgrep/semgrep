@@ -673,11 +673,28 @@ def resolve_dependencies(
         )
 
     # Configure dependency resolution
+    local_build_env: Dict[str, str] = {}
+    local_build_env_str = environ.get("SEMGREP_LOCAL_BUILD_ENV")
+    if local_build_env_str:
+        try:
+            parsed = json.loads(local_build_env_str)
+            if isinstance(parsed, dict) and all(
+                isinstance(k, str) and isinstance(v, str) for k, v in parsed.items()
+            ):
+                local_build_env = parsed
+            else:
+                logger.warning(
+                    "SEMGREP_LOCAL_BUILD_ENV must be a JSON object with string keys and values, ignoring"
+                )
+        except json.JSONDecodeError:
+            logger.warning("Invalid JSON in SEMGREP_LOCAL_BUILD_ENV, ignoring")
+
     dependency_resolution_config = DependencyResolutionConfig(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
         download_dependency_source_code=download_dependency_source_code,
+        local_build_env=local_build_env,
     )
 
     # Parse lockfiles to get dependency information

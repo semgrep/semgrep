@@ -151,6 +151,7 @@ def _resolve_dependencies_rpc(
     ],
     download_dependency_source_code: bool,
     allow_local_builds: bool,
+    package_manager_env: Optional[List[Tuple[str, str]]] = None,
     rpc_session: Optional[RpcSession] = None,
 ) -> ResolveDependenciesRpcResult:
     """
@@ -165,6 +166,7 @@ def _resolve_dependencies_rpc(
                             [out.DependencySource(dep_src)],
                             download_dependency_source_code,
                             allow_local_builds,
+                            package_manager_env=package_manager_env,
                         )
                     )
                 ),
@@ -176,6 +178,7 @@ def _resolve_dependencies_rpc(
                 [out.DependencySource(dep_src)],
                 download_dependency_source_code,
                 allow_local_builds,
+                package_manager_env=package_manager_env,
             )
     except Exception as e:
         logger.verbose(f"RPC call failed: {e}")
@@ -249,10 +252,14 @@ def _handle_manifest_only_source(
         f"Dynamically resolving manifest only path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
     )
 
+    package_manager_env = (
+        list(config.local_build_env.items()) if config.local_build_env else None
+    )
     resolved_deps = _resolve_dependencies_rpc(
         dep_src=dep_source,
         download_dependency_source_code=config.download_dependency_source_code,
         allow_local_builds=config.allow_local_builds,
+        package_manager_env=package_manager_env,
         rpc_session=rpc_session,
     )
     new_deps = resolved_deps.new_deps
@@ -393,10 +400,14 @@ def _handle_lockfile_source(
         logger.verbose(
             f"Resolving path(s) via RPC to OCaml implementation: {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
         )
+        package_manager_env = (
+            list(config.local_build_env.items()) if config.local_build_env else None
+        )
         resolved_deps = _resolve_dependencies_rpc(
             dep_src=dep_source,
             download_dependency_source_code=use_ocaml_resolver_for_tr,
             allow_local_builds=config.allow_local_builds,
+            package_manager_env=package_manager_env,
             rpc_session=rpc_session,
         )
         for error in resolved_deps.new_errors:
