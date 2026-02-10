@@ -17,6 +17,7 @@ import click
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.auth.settings import ClientRegistrationOptions
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl
 
 from semgrep import __VERSION__
@@ -68,6 +69,11 @@ def setup_mcp_server(host: str, port: int) -> FastMCP:
         port=port,
         auth=auth_settings,
         token_verifier=token_verifier,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=["127.0.0.1:*", "localhost:*"],
+            allowed_origins=["http://127.0.0.1:*", "http://localhost:*"],
+        ),
     )
 
     setup_oauth_routes(mcp, server_url)
