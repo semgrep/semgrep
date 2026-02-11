@@ -11,11 +11,13 @@
 
     poetry.lock
    ❯❯❱ supply-chain-parity-2
+          ❰❰ Blocking ❱❱
           found another dependency without a pattern
 
            10┆ name = "mypy"
 
    ❯❯❱ supply-chain-parity-1
+          ❰❰ Blocking ❱❱
           found a dependency
 
            18┆ name = "python-dateutil"

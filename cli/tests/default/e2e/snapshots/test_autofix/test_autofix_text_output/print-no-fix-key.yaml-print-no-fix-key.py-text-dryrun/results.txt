@@ -6,6 +6,7 @@
 
     targets/autofix/print-no-fix-key.py
     ❯❱ rules.autofix.print-no-fix-key
+          ❰❰ Blocking ❱❱
           Semgrep found a print call
 
             1┆ print("Hello world")

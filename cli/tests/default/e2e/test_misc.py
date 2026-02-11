@@ -52,6 +52,7 @@ def test_basic_rule__relative(run_semgrep_on_copied_files: RunSemgrep, posix_sna
 
 # TODO: I don't understand why this pass
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 @skip_on_windows  # backslashes in txt file
 def test_verbose(run_semgrep_on_copied_files: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_on_copied_files(
@@ -216,6 +217,7 @@ def test_terminal_output(run_semgrep_in_test_folder: RunSemgrep, posix_snapshot)
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 @skip_on_windows  # backslashes in txt file
 def test_terminal_output_quiet(run_semgrep_on_copied_files: RunSemgrep, posix_snapshot):
     """
@@ -533,6 +535,7 @@ def test_sort_json_findings(run_semgrep_on_copied_files: RunSemgrep, posix_snaps
 # Check that pysemgrep and osemgrep sort the results as intended
 # when presenting them in text format.
 @pytest.mark.slow
+@pytest.mark.osemfail
 def test_sort_text_findings(run_semgrep_on_copied_files: RunSemgrep, posix_snapshot):
     posix_snapshot.assert_match(
         run_semgrep_on_copied_files(

@@ -6,6 +6,7 @@
 
     targets/autofix/python-assert-statement.py
      ❱ rules.autofix.assert_eq-true
+          ❰❰ Blocking ❱❱
           Change assert_eq(True, x) to assert x
 
            ▶▶┆ Autofix ▶ assert "a"

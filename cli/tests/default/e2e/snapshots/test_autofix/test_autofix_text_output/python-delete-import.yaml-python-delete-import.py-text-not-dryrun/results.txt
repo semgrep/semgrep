@@ -6,6 +6,7 @@
 
     targets/autofix/python-delete-import.py
    ❯❯❱ rules.autofix.python-typing-osemgrep
+          ❰❰ Blocking ❱❱
           found one
 
            ▶▶┆ Autofix ▶ delete
