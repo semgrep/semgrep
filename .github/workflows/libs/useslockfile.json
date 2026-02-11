@@ -16,7 +16,7 @@
       "upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02"
     },
     "astral-sh": {
-      "setup-uv": "803947b9bd8e9f986429fa0c5a41c367cd732b41"
+      "setup-uv": "eac588ad8def6316056a12d4907a9d4d84ff7a3b"
     },
     "aws-actions": {
       "amazon-ecr-login": "062b18b96a7aff071d4dc91bc00c4c1a7945b076",
@@ -30,7 +30,7 @@
     },
     "depot": {
       "build-push-action": "fe21fca271114de9237a9b1129b9ef38c77a1c21",
-      "setup-action": "b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5"
+      "setup-action": "15c09a5f77a0840ad4bce955686522a257853461"
     },
     "docker": {
       "login-action": "c94ce9fb468520275223c153574b00df6fe4bcc9",
