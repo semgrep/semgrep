@@ -6,6 +6,7 @@
 
     targets/autofix/django-none-password-default.py
    ❯❯❱ rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default
+          ❰❰ Blocking ❱❱
           'new_password' is using the empty string as its default and is being used to set the password on
           'user'. If you meant to set an unusable password, set the default value to 'None' or call
           'set_unusable_password()'.
@@ -18,6 +19,7 @@
            63┆ user.save()
             ⋮┆----------------------------------------
    ❯❯❱ rules.autofix.python.django.security.passwords.use-none-for-password-default.use-none-for-password-default
+          ❰❰ Blocking ❱❱
           'password' is using the empty string as its default and is being used to set the password on 'user'.
           If you meant to set an unusable password, set the default value to 'None' or call
           'set_unusable_password()'.

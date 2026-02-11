@@ -402,6 +402,10 @@ let matches_output ~max_chars_per_line ~max_lines_per_finding
               rest
               |> List.iter (fun (indentation, txt) ->
                      prf "%s%s\n" indentation (Console.bold txt));
+              if is_blocking cur.extra.metadata then
+                (* TODO? was base_indent instead of detail_indent *)
+                prf "%s%s\n" detail_indent
+                  Console.(color red @@ bold "❰❰ Blocking ❱❱");
               cur.extra.sca_info
               |> Option.iter (fun _ ->
                      match lookup_field "sca-severity" cur.extra.metadata with

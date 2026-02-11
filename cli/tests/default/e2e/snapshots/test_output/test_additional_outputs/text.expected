@@ -6,6 +6,7 @@
 
     targets/basic/stupid.py
    ❯❯❱ rules.eqeq-is-bad
+          ❰❰ Blocking ❱❱
           useless comparison operation `a + b == a + b` or `a + b != a + b`
           Details: https://sg.run/xyz1
 

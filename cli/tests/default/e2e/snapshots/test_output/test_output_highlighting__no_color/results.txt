@@ -6,6 +6,7 @@
 
     targets/basic.py
    ❯❯❱ rules.basic-test
+          ❰❰ Blocking ❱❱
           Basic test
 
             2┆ print(1 == 1)

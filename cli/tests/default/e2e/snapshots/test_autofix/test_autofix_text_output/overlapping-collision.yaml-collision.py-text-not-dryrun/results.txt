@@ -6,6 +6,7 @@
 
     targets/autofix/collision.py
     ❯❱ rules.autofix.first-rule
+          ❰❰ Blocking ❱❱
           Semgrep found a match
 
            ▶▶┆ Autofix ▶ once
@@ -14,6 +15,7 @@
             4┆ c = 3
 
     ❯❱ rules.autofix.second-rule
+          ❰❰ Blocking ❱❱
           Semgrep found a match
 
            ▶▶┆ Autofix ▶ twice
