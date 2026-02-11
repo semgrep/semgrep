@@ -11,6 +11,7 @@
 
     poetry.lock
    ❯❯❱ supply-chain1
+          ❰❰ Blocking ❱❱
           found a dependency
 
            18┆ name = "python-dateutil"

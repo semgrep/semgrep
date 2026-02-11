@@ -11,6 +11,7 @@
 
     foo.py
    ❯❯❱ real-rule-example
+          ❰❰ Blocking ❱❱
           this rule should actually display findings in CLI
 
             4┆ a == a

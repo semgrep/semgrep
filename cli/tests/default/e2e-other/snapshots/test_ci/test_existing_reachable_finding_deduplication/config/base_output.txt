@@ -11,6 +11,7 @@
 
     foo.py with lockfile poetry.lock
    ❯❯❱ supply-chain-reachable-1
+          ❰❰ Blocking ❱❱
           found a reachable vulnerability from a dependency
 
             1┆ x = 2

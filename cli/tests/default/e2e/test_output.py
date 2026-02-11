@@ -60,6 +60,7 @@ def _etree_to_dict(t):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 @skip_on_windows  # better backslash replace logic
 def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _errors = run_semgrep_in_tmp(
@@ -76,6 +77,7 @@ def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/basic.yaml",
@@ -91,6 +93,7 @@ def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, posix_sna
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 @skip_on_windows  # better backslash replace logic
 def test_output_highlighting__force_color_and_no_color(
     run_semgrep_in_tmp: RunSemgrep, posix_snapshot
@@ -116,6 +119,7 @@ def test_output_highlighting__force_color_and_no_color(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/yaml_capture.yaml",
@@ -297,6 +301,7 @@ def test_additional_outputs_with_format_output_flag(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_long_rule_id(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/long_rule_id.yaml",

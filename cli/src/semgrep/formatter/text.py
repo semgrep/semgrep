@@ -725,6 +725,12 @@ def print_matches(
 
             console.print(text)
 
+            # Blocking finding label
+            if rule_match.is_blocking:
+                console.print(
+                    f"{BASE_INDENT* ' '}{with_color(Colors.red, '❰❰ Blocking ❱❱', bold=True)}"
+                )
+
             # SCA severity addon
             severity = (
                 (

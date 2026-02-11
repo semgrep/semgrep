@@ -6,6 +6,7 @@
 
     targets/autofix/ocaml_paren_expr.ml
    ❯❯❱ rules.autofix.wrap-afunc-arguments
+          ❰❰ Blocking ❱❱
           Wrap the arguments to `a_function_call` with `wrap` first
 
            ▶▶┆ Autofix ▶ a_function_call (wrap (the_argument))

@@ -6,12 +6,14 @@
 
     targets/autofix/two-autofixes.txt
    ❯❯❱ rules.autofix.remove-two
+          ❰❰ Blocking ❱❱
           This rule changes the line numbers for the other rule's match
 
            ▶▶┆ Autofix ▶ one
             1┆ one
 
    ❯❯❱ rules.autofix.remove-four
+          ❰❰ Blocking ❱❱
           If semgrep is not smart enough, the match of this rule will be out of range
 
            ▶▶┆ Autofix ▶ four

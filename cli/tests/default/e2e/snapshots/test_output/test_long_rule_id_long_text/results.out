@@ -7,6 +7,7 @@
     targets/long_text.py
     ❯❱ rules.this-is-a-very-long-rule-id-which-should-be-wrapped-in-the-cli-thank-you-very-much-
        supercalifragilisticexpialidocious
+          ❰❰ Blocking ❱❱
           This is the description of a very long rule id which should be wrapped in the cli thank you very
           much supercalifragilisticexpialidocious.
 

@@ -11,6 +11,7 @@
 
     foo.py
    ❯❯❱ eqeq-bad
+          ❰❰ Blocking ❱❱
           useless comparison
 
             4┆ a == a
@@ -22,11 +23,13 @@
            11┆ y == y
 
    ❯❯❱ eqeq-four
+          ❰❰ Blocking ❱❱
           useless comparison to 4
 
            19┆ baz == 4
 
    ❯❯❱ eqeq-bad
+          ❰❰ Blocking ❱❱
           useless comparison
 
            23┆ b == b # Triage ignored by syntactic_id
@@ -34,6 +37,7 @@
            24┆ a == a # Triage ignored by match_based_id
 
     ❯❱ taint-test
+          ❰❰ Blocking ❱❱
           unsafe use of danger
 
            27┆ sink(d2)
