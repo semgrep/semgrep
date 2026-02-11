@@ -16,7 +16,7 @@ jobs:
           flavor: ${{ inputs.docker-flavor }}
           images: ${{ inputs.repository-name }}
           tags: ${{ inputs.docker-tags }}
-      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5
+      - uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461
       - id: build-image
         name: Build image
         uses: depot/build-push-action@fe21fca271114de9237a9b1129b9ef38c77a1c21
