@@ -6,6 +6,7 @@
 
     targets/autofix/java-string-wrap.java
     ❯❱ rules.autofix.wrap-strings
+          ❰❰ Blocking ❱❱
           Wrap strings
 
            ▶▶┆ Autofix ▶ wrap("a")

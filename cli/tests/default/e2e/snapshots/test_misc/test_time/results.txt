@@ -6,6 +6,7 @@
 
   [36m[22m[24m  targets/basic.py[0m
    [31m❯❯❱[0m [1mrules.basic-test[0m
+          [31m[1m[24m❰❰ Blocking ❱❱[0m
           Basic test
 
             2┆ print([x.xxx == 1[0m)

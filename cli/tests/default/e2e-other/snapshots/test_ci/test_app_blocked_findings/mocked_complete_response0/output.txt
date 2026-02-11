@@ -11,6 +11,7 @@
 
     foo.py
    ❯❯❱ eqeq-bad
+          ❰❰ Blocking ❱❱
           useless comparison
 
             4┆ a == a
@@ -22,17 +23,20 @@
            11┆ y == y
 
    ❯❯❱ eqeq-five
+          ❰❰ Blocking ❱❱
           useless comparison to 5
 
            ▶▶┆ Autofix ▶ (x == 2)
            15┆ x == 5
 
    ❯❯❱ eqeq-four
+          ❰❰ Blocking ❱❱
           useless comparison to 4
 
            19┆ baz == 4
 
     ❯❱ taint-test
+          ❰❰ Blocking ❱❱
           unsafe use of danger
 
            27┆ sink(d2)
@@ -44,6 +48,7 @@
 
     poetry.lock
    ❯❯❱ supply-chain1
+          ❰❰ Blocking ❱❱
           found a dependency
 
             2┆ name = "badlib"
