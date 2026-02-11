@@ -6,12 +6,14 @@
 
     targets/autofix/order.py
     ❯❱ rules.autofix.slice-ab
+          ❰❰ Blocking ❱❱
           slice a-b matches
 
            ▶▶┆ Autofix ▶ replaced_lines_a_to_b_OK
             5┆ replaced_lines_a_to_b_OK
 
     ❯❱ rules.autofix.a-slice-bc
+          ❰❰ Blocking ❱❱
           slice b-c matches
 
            ▶▶┆ Autofix ▶ replaced_lines_b_to_c_BAD
@@ -19,6 +21,7 @@
             7┆ c
 
     ❯❱ rules.autofix.z-slice-bc
+          ❰❰ Blocking ❱❱
           slice b-c matches
 
            ▶▶┆ Autofix ▶ replaced_lines_b_to_c_OK
@@ -26,12 +29,14 @@
             7┆ c
 
     ❯❱ rules.autofix.slice-df
+          ❰❰ Blocking ❱❱
           slice d-f matches
 
            ▶▶┆ Autofix ▶ replaced_lines_d_to_f_OK
             8┆ replaced_lines_d_to_f_OK
 
     ❯❱ rules.autofix.slice-eg
+          ❰❰ Blocking ❱❱
           slice e-g matches
 
            ▶▶┆ Autofix ▶ replaced_lines_e_to_g_BAD
@@ -40,6 +45,7 @@
            11┆ g
 
     ❯❱ rules.autofix.slice-gh
+          ❰❰ Blocking ❱❱
           slice g-h matches
 
            ▶▶┆ Autofix ▶ replaced_lines_g_to_h_OK
