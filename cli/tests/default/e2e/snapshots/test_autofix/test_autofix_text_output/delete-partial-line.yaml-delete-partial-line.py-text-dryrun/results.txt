@@ -6,6 +6,7 @@
 
     targets/autofix/delete-partial-line.py
     ❯❱ rules.autofix.delete-default
+          ❰❰ Blocking ❱❱
           Unnecessary parameter which matches the default
 
            ▶▶┆ Autofix ▶ delete

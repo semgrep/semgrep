@@ -6,6 +6,7 @@
 
     targets/autofix/python-ranges.py
    ❯❯❱ rules.autofix.range-test
+          ❰❰ Blocking ❱❱
           change it
 
            ▶▶┆ Autofix ▶ bar('abc')

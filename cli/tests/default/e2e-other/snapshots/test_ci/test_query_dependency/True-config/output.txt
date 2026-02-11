@@ -11,6 +11,7 @@
 
     foo.py
    ❯❯❱ eqeq-bad
+          ❰❰ Blocking ❱❱
           useless comparison
 
             4┆ a == a
@@ -28,6 +29,7 @@
 
     poetry.lock
    ❯❯❱ supply-chain1
+          ❰❰ Blocking ❱❱
           found a dependency
 
             2┆ name = "badlib"

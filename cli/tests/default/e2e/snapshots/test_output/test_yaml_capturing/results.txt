@@ -6,6 +6,7 @@
 
     targets/yaml/yaml_capture.yaml
    ❯❯❱ rules.foo
+          ❰❰ Blocking ❱❱
           example
 
             3┆ importantKey:

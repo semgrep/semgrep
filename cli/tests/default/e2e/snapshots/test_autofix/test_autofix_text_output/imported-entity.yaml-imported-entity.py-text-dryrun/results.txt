@@ -6,6 +6,7 @@
 
     targets/autofix/imported-entity.py
    ❯❯❱ rules.autofix.exception-useless-parentheses
+          ❰❰ Blocking ❱❱
           Found useless parentheses
 
            ▶▶┆ Autofix ▶ raise RandomError
