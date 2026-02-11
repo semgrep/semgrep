@@ -49,7 +49,11 @@ clean:
 # the quick tests but for the sake of maintainability, we use the same options
 # everywhere.
 #
+# We are seeing some pytest runs failing with a segfault, despite all the tests
+# passing. Adding PYTHONFAULTHANDLER=1 to the pytest command so that next time
+# it happens, we can get a traceback.
 PYTEST ?= \
+   PYTHONFAULTHANDLER=1 \
   uv run pytest \
     -n auto -vv --tb=long --timeout=300 --durations=10 $(PYTEST_EXTRA_ARGS)
 
