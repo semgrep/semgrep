@@ -7,6 +7,7 @@
     targets/autofix/defaulthttpclient.java
     ❯❱ rules.autofix.java.lang.security.audit.crypto.ssl.defaulthttpclient-is-deprecated.defaulthttpclient-is-
        deprecated
+          ❰❰ Blocking ❱❱
           DefaultHttpClient is deprecated. Further, it does not support connections using TLS1.2, which makes
           using DefaultHttpClient a security hazard. Use SystemDefaultHttpClient instead, which supports
           TLS1.2.

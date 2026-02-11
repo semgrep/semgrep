@@ -6,6 +6,7 @@
 
     targets/autofix/autofix.py
    ❯❯❱ rules.autofix.use-dict-get
+          ❰❰ Blocking ❱❱
           Use `.get()` method to avoid a KeyNotFound error
 
            ▶▶┆ Autofix ▶ inputs.get(x)
