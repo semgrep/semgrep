@@ -1,2 +1,0 @@
-pro: Improved accuracy of taint tracking through assignments, this will help
-reduce FPs in some cases.
