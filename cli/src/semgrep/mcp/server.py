@@ -95,8 +95,8 @@ ISSUE_TYPE_DEFAULT: Literal["ISSUE_TYPE_SAST"] = "ISSUE_TYPE_SAST"
 ISSUE_TYPE_FIELD = Field(
     default=ISSUE_TYPE_DEFAULT, description="Type of issue to filter by."
 )
-REPOS_FIELD = Field(
-    default=None,
+REPOS_FIELD: list[str] = Field(
+    default=[],
     description="List of repository names to filter by. Include the owner and repository name, e.g. 'owner/repository'",
 )
 STATUS_DEFAULT: Literal["ISSUE_TAB_OPEN"] = "ISSUE_TAB_OPEN"
@@ -573,7 +573,7 @@ async def get_deployment_slug() -> str:
 async def semgrep_findings(
     ctx: Context,
     issue_type: Literal["ISSUE_TYPE_SAST", "ISSUE_TYPE_SCA"] = ISSUE_TYPE_FIELD,
-    repos: list[str] | None = REPOS_FIELD,
+    repos: list[str] = REPOS_FIELD,
     status: Literal[
         "ISSUE_TAB_OPEN",
         "ISSUE_TAB_CLOSED",
@@ -646,6 +646,14 @@ async def semgrep_findings(
             ErrorData(
                 code=INVALID_PARAMS,
                 message="No deployment ID found. User must be authenticated to use this tool.",
+            )
+        )
+
+    if len(repos) == 0:
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message="No repositories provided. User must provide at least one repository to filter by.",
             )
         )
 
