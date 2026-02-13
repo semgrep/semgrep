@@ -36,10 +36,10 @@ jobs:
       - if: ${{ inputs.enable-tests }}
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - env:
-          IMAGEID: ${{ steps.build-image.outputs.imageid }}
+          IMAGE: ${{ inputs.repository-name }}@${{ steps.build-image.outputs.digest }}
         if: ${{ inputs.enable-tests }}
         name: Test Image
-        run: ./scripts/validate-docker-build.sh "$IMAGEID" linux/${{ matrix.architecture }}
+        run: ./scripts/validate-docker-build.sh "$IMAGE" linux/${{ matrix.architecture }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}
