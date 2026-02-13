@@ -132,16 +132,23 @@ let partition_rules_and_invalid (xs : rules_and_origin list) :
   (rules, invalid_rules)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
-let fetch_content_from_url_async ?token_opt caps (url : Uri.t) : string Lwt.t =
+let fetch_content_from_url_async ?token_opt ?timeout_secs caps (url : Uri.t) :
+    string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
     let headers =
       match token_opt with
       | None -> None
-      | Some token -> Some [ Auth.auth_header_of_token token ]
+      | Some token ->
+          Some
+            [
+              ("Content-Type", "application/json");
+              ("User-Agent", spf "Semgrep/%s" Version.version);
+              Auth.auth_header_of_token token;
+            ]
     in
-    match%lwt Http_helpers.get ?headers caps#network url with
+    match%lwt Http_helpers.get ?headers ?timeout_secs caps#network url with
     | Ok { body = Ok body; _ } -> Lwt.return body
     | Ok { body = Error error; code; _ } ->
         Error.abort
@@ -163,7 +170,13 @@ let fetch_content_from_url_eio ?token_opt caps (url : Uri.t) : string =
     let headers =
       match token_opt with
       | None -> None
-      | Some token -> Some [ Auth.auth_header_of_token token ]
+      | Some token ->
+          Some
+            [
+              ("Content-Type", "application/json");
+              ("User-Agent", spf "Semgrep/%s" Version.version);
+              Auth.auth_header_of_token token;
+            ]
     in
     match Http_helpers.get_eio ?headers caps#network url with
     | Ok { body = Ok body; _ } -> body
@@ -370,9 +383,11 @@ let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
     Error.abort (spf "file %s does not exist anymore" !!file)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
-let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
-    (rules_and_origin, Rule_error.t) result Lwt.t =
-  let%lwt contents = fetch_content_from_url_async ?token_opt caps url in
+let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") ?timeout_secs
+    caps url : (rules_and_origin, Rule_error.t) result Lwt.t =
+  let%lwt contents =
+    fetch_content_from_url_async ?token_opt ?timeout_secs caps url
+  in
   let ext, contents =
     if ext = "policy" then
       (* project rule_config, from config_resolver.py in _make_config_request *)
@@ -466,7 +481,8 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
       CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
       |> Result_.partition Fun.id
-  | C.A Policy ->
+  | C.A Policy
+  | C.A Hooks ->
       let token =
         match token_opt with
         | None ->
@@ -477,7 +493,9 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
         | Some token -> token
       in
       let caps' = Auth.cap_token_and_network token caps in
-      let uri = Semgrep_App.url_for_policy caps' in
+      let uri =
+        Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) caps'
+      in
       let caps'' = Auth.cap_token_and_network_and_tmp token caps in
       let rules_and_errors =
         load_rules_from_url_eio ?token_opt ~ext:"policy" ~origin:Registry caps''
@@ -542,7 +560,8 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
       |> Result_.partition Fun.id |> Lwt.return
-  | C.A Policy ->
+  | C.A Policy
+  | C.A Hooks ->
       let token =
         match token_opt with
         | None ->
@@ -553,11 +572,18 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
         | Some token -> token
       in
       let caps' = Auth.cap_token_and_network token caps in
-      let uri = Semgrep_App.url_for_policy caps' in
+      let uri =
+        Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) caps'
+      in
       let caps'' = Auth.cap_token_and_network_and_tmp token caps in
+      let timeout_secs =
+        match kind with
+        | C.A Hooks -> Some 30.0
+        | _ -> None
+      in
       let%lwt rules_and_errors =
         load_rules_from_url_async ?token_opt ~ext:"policy" ~origin:Registry
-          caps'' uri
+          ?timeout_secs caps'' uri
       in
       Metrics_.g.is_using_app <- true;
       [ rules_and_errors ] |> Result_.partition Fun.id |> Lwt.return

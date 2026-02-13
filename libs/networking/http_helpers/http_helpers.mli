@@ -67,6 +67,7 @@ val call_eio_client :
 
 val get :
   ?headers:(string * string) list ->
+  ?timeout_secs:float ->
   Cap.Network.t ->
   Uri.t ->
   client_result Lwt.t

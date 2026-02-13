@@ -354,7 +354,7 @@ let deployment_config_eio caps : Out.deployment_config option =
 (* from auth.py *)
 let deployment_config token = Lwt_platform.run (deployment_config_async token)
 
-(* deprecated? *)
+(* used by policy and MCP hooks *)
 let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
     ?(full_scan = true) repo_name =
   let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
@@ -364,7 +364,6 @@ let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
       ("sca", json_bool_to_string sca);
       ("dry_run", json_bool_to_string dry_run);
       ("full_scan", json_bool_to_string full_scan);
-      ("repo_name", repo_name);
       ("semgrep_version", Version.version);
       (* We will always fetch code rules for now. This may change in the future,
          e.g. if we want to run a supply-chain-only scan, but for most purposes of
@@ -374,6 +373,7 @@ let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
        *)
       ("is_code_scan", json_bool_to_string true);
     ]
+    @ if repo_name = "" then [] else [ ("repo_name", repo_name) ]
   in
   Uri.(
     add_query_params'
@@ -382,23 +382,27 @@ let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
 
 (* Returns a url with scan config encoded via search params based on a magic
  * environment variable *)
-let url_for_policy caps =
+let url_for_policy ?(from_hooks = false) caps =
   let depl_config_opt = deployment_config caps in
   match depl_config_opt with
   | None ->
       Error.abort
         (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")
   | Some _deployment_config -> (
-      (* NOTE: This logic is ported directly from python but seems very brittle
+      if
+        (* NOTE: This logic is ported directly from python but seems very brittle
          as we have helper functions to infer the repo name from the git remote
-         information.
-      *)
-      match Sys.getenv_opt "SEMGREP_REPO_NAME" with
-      | None ->
-          Error.abort
-            (spf
-               "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
-      | Some repo_name -> scan_config_uri repo_name)
+         information. *)
+        from_hooks
+      then scan_config_uri ""
+      else
+        match Sys.getenv_opt "SEMGREP_REPO_NAME" with
+        | None ->
+            Error.abort
+              (spf
+                 "Need to set env var SEMGREP_REPO_NAME to use `--config \
+                  policy`")
+        | Some repo_name -> scan_config_uri repo_name)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let fetch_scan_config_string_async ~dry_run ~secrets ~sca ~full_scan ~repository
