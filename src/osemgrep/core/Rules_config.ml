@@ -62,7 +62,7 @@ and registry_config_kind =
   | R2c
 
 (* Semgrep App shortcuts *)
-and app_config_kind = Policy | SupplyChain [@@deriving show]
+and app_config_kind = Policy | SupplyChain | Hooks [@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -73,6 +73,7 @@ let parse_config_string ~in_docker (config_str : config_string) : t =
   | "r2c" -> R R2c
   | "policy" -> A Policy
   | "supply-chain" -> A SupplyChain
+  | "hooks" -> A Hooks
   | s when s =~ "^r/\\(.*\\)" -> R (Registry (Common.matched1 s))
   | s when s =~ "^p/\\(.*\\)" -> R (Pack (Common.matched1 s))
   | s when s =~ "^s/\\(.*\\)" -> R (Snippet (Common.matched1 s))

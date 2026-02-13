@@ -24,12 +24,16 @@ from semgrep.mcp.models import CodePath
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.server import create_temp_files_from_code_content
+from semgrep.mcp.server import get_semgrep_app_token
 from semgrep.mcp.server import get_semgrep_scan_args
 from semgrep.mcp.server import validate_local_files
 from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 # ---------------------------------------------------------------------------------
 # Constants
@@ -136,7 +140,8 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> StopHookResponse:
         ]
         validated_local_files = validate_local_files(edited_file_paths)
         temp_dir = create_temp_files_from_code_content(validated_local_files)
-        args = get_semgrep_scan_args(temp_dir, None)
+        args = get_semgrep_scan_args(temp_dir, config="hooks")
+        logger.info(f"Running scan with args: {args}")
         output = await run_semgrep_output(top_level_span, args)
         scan_result: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
 
@@ -180,6 +185,16 @@ def run_stop_scan_cli(agent: str) -> None:
             # Ideally, we would want to use a post-tool/ post-edit hook for Cursor,
             # similar to what we already do for Claude.
             print("This hook is not supported for Claude.", file=sys.stderr)
+            sys.exit(2)
+
+        if get_semgrep_app_token() is None:
+            hook_response = StopHookResponse(
+                followup_message="No SEMGREP_APP_TOKEN found, please login to Semgrep to use the hook you setup."
+            )
+            # Cursor docs does not specify if stderr is shown to Cursor when the hook errors with exit code 2,
+            # and from our testing, it does not show stderr. So, we are returning a response to the agent stating the errora,
+            # similar to what we do when the hook runs successfully, but with an exit code of 2.
+            print(hook_response.model_dump_json(exclude_none=True))
             sys.exit(2)
 
         response = asyncio.run(run_cli_scan(span))

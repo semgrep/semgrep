@@ -140,8 +140,8 @@ let default_resp_handler_eio (response, body) =
    library, who may or may not know about this requirement. *)
 (* coupling(eio-port): if you change this you must change the eio version *)
 let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
-    ?(chunked = false) ?(resp_handler = default_resp_handler)
-    ?(timeout_secs = 10.0) meth url =
+    ?(chunked = false) ?(resp_handler = default_resp_handler) ?timeout_secs meth
+    url =
   let module Client : Cohttp_lwt.S.Client =
     (val match Domain.DLS.get client_ref with
          | Some client -> client
@@ -175,6 +175,7 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
                   (Uri.to_string url) err);
             Lwt.return_error err)
   in
+  let timeout_secs = Option.value timeout_secs ~default:10.0 in
   let timeout =
     Lwt_unix.sleep timeout_secs >>= fun () ->
     Lwt.return_error
@@ -241,11 +242,11 @@ let call_eio_client ?(body = Cohttp.Body.empty) ?(headers = [])
 (* Async *)
 (*****************************************************************************)
 (* coupling(eio-port): if you change this you must change the eio version *)
-let rec get ?(headers = []) caps url =
+let rec get ?(headers = []) ?timeout_secs caps url =
   Log.info (fun m -> m "GET on %s" (Uri.to_string url));
   (* This checks to make sure a client has been set instead of defaulting to a
      client, as that can cause hard to debug build and runtime issues *)
-  let response_result = call_client ~headers `GET url in
+  let response_result = call_client ~headers ?timeout_secs `GET url in
   let handle_response (response, body) =
     let server_response = server_response_of_response (response, body) `GET in
     match server_response.code with
@@ -264,7 +265,7 @@ let rec get ?(headers = []) caps url =
             Log.err (fun m -> m "%s" err);
             let server_response = { server_response with body = Error err } in
             Lwt.return_ok server_response
-        | Some url -> get caps (Uri.of_string url))
+        | Some url -> get ?timeout_secs caps (Uri.of_string url))
     | _ -> Lwt.return_ok server_response
   in
   Lwt_result.bind response_result handle_response

@@ -21,11 +21,15 @@ from pydantic import BaseModel
 from semgrep.mcp.models import CodeFile
 from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import run_semgrep_output
+from semgrep.mcp.server import get_semgrep_app_token
 from semgrep.mcp.server import get_semgrep_scan_args
 from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class PostToolHookResponse(BaseModel):
@@ -66,7 +70,8 @@ def load_file_path() -> tuple[CodeFile, str]:
 async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookResponse:
     code_file, workspace_dir = load_file_path()
     attach_git_info(trace.get_current_span(), workspace_dir)
-    args = get_semgrep_scan_args(code_file.path, None)
+    args = get_semgrep_scan_args(code_file.path, config="hooks")
+    logger.info(f"Running scan with args: {args}")
     output = await run_semgrep_output(top_level_span, args)
     scan_result: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
     hook_response = PostToolHookResponse(decision=None, reason=None)
@@ -95,6 +100,16 @@ def run_post_tool_scan_cli(agent: str) -> None:
             # from that of a Claude Code hook. And we are assuming the
             # Claude Code format here.
             print("This hook is not supported for Cursor.", file=sys.stderr)
+            sys.exit(2)
+
+        if get_semgrep_app_token() is None:
+            # According to Claude docs, when the hook errors with exit code 2, it shows stderr to Claude.
+            # So, we are printing the warning to stderr here.
+            # See: https://code.claude.com/docs/en/hooks#exit-code-2-behavior-per-event
+            print(
+                "No SEMGREP_APP_TOKEN found, please login to Semgrep to use this hook.",
+                file=sys.stderr,
+            )
             sys.exit(2)
 
         response = asyncio.run(run_cli_scan(span))

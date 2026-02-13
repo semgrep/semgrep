@@ -65,7 +65,8 @@ val add_to_tr_cache :
  * Internally relies on api_token in ~/.settings and SEMGREP_REPO_NAME
  * Need the network to get the deployment info from the token.
  *)
-val url_for_policy : < Cap.network ; Auth.cap_token > -> Uri.t
+val url_for_policy :
+  ?from_hooks:bool -> < Cap.network ; Auth.cap_token > -> Uri.t
 
 (* Used by 'semgrep publish'.
  * alt: could be in Semgrep_Registry.ml but actually the request interact
