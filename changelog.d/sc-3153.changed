@@ -1,0 +1,1 @@
+Remove legacy combined symbol analysis computation and upload in favor of per-subproject symbol analysis
