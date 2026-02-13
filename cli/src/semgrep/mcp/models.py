@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import HttpUrl
 
@@ -67,100 +68,93 @@ class SemgrepScanResult(BaseModel):
     )
 
 
+#
+# Findings / Issues (protos.issues.v1) models
+#
+
+
 class ExternalTicket(BaseModel):
-    external_slug: str
-    url: HttpUrl
-    id: int
-    linked_issue_ids: list[int]
+    """`ticketing.v1.ExternalTicket` in the semgrep-app repo (modeled loosely; exact fields owned by ticketing proto)."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    id: int | None = None
+    url: str | HttpUrl | None = None
+    external_slug: str | None = Field(default=None, validation_alias="externalSlug")
 
 
-class ReviewComment(BaseModel):
-    external_discussion_id: str
-    external_note_id: int | None = None
+class PrimaryRefItem(BaseModel):
+    """`Issue.PrimaryRefItem` in the semgrep-app repo (modeled loosely; exact fields owned by issues proto)."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    id: int | None = None
+    ref: str | None = None
 
 
 class Repository(BaseModel):
-    name: str
-    url: HttpUrl
+    """`Issue.Repository` in the semgrep-app repo (modeled loosely; exact fields owned by issues proto)."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    name: str | None = None
+    id: int | None = None
+    type: str | None = None
+    primary_ref: PrimaryRefItem | None = Field(
+        default=None, validation_alias="primaryRef"
+    )
 
 
-class Location(BaseModel):
-    file_path: str
-    line: int
-    column: int
-    end_line: int
-    end_column: int
+class Scan(BaseModel):
+    """`Issue.Scan` in the semgrep-app repo (modeled loosely; exact fields owned by issues proto)."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    id: int | None = None
+    meta: dict[str, Any] | None = None
 
 
-class SourcingPolicy(BaseModel):
-    id: int
-    name: str
-    slug: str
+class CodeSnippet(BaseModel):
+    """`Issue.CodeSnippet` in the semgrep-app repo (modeled loosely; exact fields owned by issues proto)."""
 
-
-class Rule(BaseModel):
-    name: str
-    message: str
-    confidence: str
-    category: str
-    subcategories: list[str]
-    vulnerability_classes: list[str]
-    cwe_names: list[str]
-    owasp_names: list[str]
-
-
-class Autofix(BaseModel):
-    fix_code: str
-    explanation: str
-
-
-class Guidance(BaseModel):
-    summary: str
-    instructions: str
-
-
-class Autotriage(BaseModel):
-    verdict: str
-    reason: str
-
-
-class Component(BaseModel):
-    tag: str
-    risk: str
-
-
-class Assistant(BaseModel):
-    autofix: Autofix | None = None
-    guidance: Guidance | None = None
-    autotriage: Autotriage | None = None
-    component: Component | None = None
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    path: str | None = None
+    content: str | None = None
 
 
 class Finding(BaseModel):
+    """`protos.issues.v1.Issue` in the semgrep-app repo (modeled loosely; exact fields owned by issues proto)."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    # IDs
     id: int
-    ref: str
-    first_seen_scan_id: int
-    syntactic_id: str
-    match_based_id: str
-    external_ticket: ExternalTicket | None = None
-    review_comments: list[ReviewComment]
-    repository: Repository
-    line_of_code_url: HttpUrl
-    triage_state: str
-    state: str
-    status: str
-    severity: str
-    confidence: str
-    categories: list[str]
-    created_at: datetime
-    relevant_since: datetime
-    rule_name: str
-    rule_message: str
-    location: Location
-    sourcing_policy: SourcingPolicy | None = None
-    triaged_at: datetime | None = None
-    triage_comment: str | None = None
-    triage_reason: str | None = None
-    state_updated_at: datetime
-    rule: Rule
-    assistant: Assistant | None = None
+    created_at: datetime | None = Field(default=None, validation_alias="createdAt")
+    ref: str | None = None
+    syntactic_id: str | None = Field(default=None, validation_alias="syntacticId")
+    match_based_id: str | None = Field(default=None, validation_alias="matchBasedId")
+    rule_id: int | None = Field(default=None, validation_alias="ruleId")
+    # Status and triage
+    status: str | None = None
+    triage_state: str | None = Field(default=None, validation_alias="triageState")
+    triage_reason: str | None = Field(default=None, validation_alias="triageReason")
+    relevant_since: datetime | None = Field(
+        default=None, validation_alias="relevantSince"
+    )
+    aggregate_state: str | None = Field(default=None, validation_alias="aggregateState")
+    # Repo and scan context
+    repository: Repository | None = None
+    first_seen_scan: Scan | None = Field(default=None, validation_alias="firstSeenScan")
+    last_seen_scan: Scan | None = Field(default=None, validation_alias="lastSeenScan")
+    # Location
+    line_of_code_url: str | None = Field(default=None, validation_alias="lineOfCodeUrl")
+    file_path: str | None = Field(default=None, validation_alias="filePath")
+    line: int | None = None
+    end_line: int | None = Field(default=None, validation_alias="endLine")
+    column: int | None = None
+    end_column: int | None = Field(default=None, validation_alias="endColumn")
+    # Rule
+    severity: str | None = None
+    message: str | None = None
+    rule_path: str | None = Field(default=None, validation_alias="rulePath")
+    confidence: str | None = None
+    rule_url: str | None = Field(default=None, validation_alias="ruleUrl")
+    # Preserve old fields that the semgrep_findings MCP tool used to return
+    external_ticket: ExternalTicket | None = Field(
+        default=None, validation_alias="externalTicket"
+    )

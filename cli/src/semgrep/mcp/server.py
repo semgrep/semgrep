@@ -6,7 +6,7 @@ import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Literal
 
 import requests
 from mcp.server.fastmcp import FastMCP
@@ -48,12 +48,15 @@ from semgrep.mcp.utilities.tracing import with_tool_span
 from semgrep.mcp.utilities.utils import findings_elicitation_enabled
 from semgrep.mcp.utilities.utils import get_authorization_server_url
 from semgrep.mcp.utilities.utils import get_current_user_from_jwt
+from semgrep.mcp.utilities.utils import get_deployment_id
 from semgrep.mcp.utilities.utils import get_identity
 from semgrep.mcp.utilities.utils import get_oauth_authorization_server_metadata
+from semgrep.mcp.utilities.utils import get_semgrep_access_token
 from semgrep.mcp.utilities.utils import get_semgrep_api_url
 from semgrep.mcp.utilities.utils import get_semgrep_app_token
 from semgrep.mcp.utilities.utils import get_workspace_dir
 from semgrep.mcp.utilities.utils import is_hosted
+from semgrep.mcp.utilities.utils import is_oauth_authenticated
 from semgrep.mcp.utilities.utils import re_identity_string
 from semgrep.metrics import Finding as MetricsFinding
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
@@ -66,9 +69,7 @@ logger = getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------------
 
-SEMGREP_API_VERSION = "v1"
-
-# Field definitions for function parameters
+# Field definitions for scan tools
 REMOTE_CODE_FILES_FIELD = Field(
     description="List of dictionaries with 'path' and 'content' keys"
 )
@@ -88,6 +89,32 @@ RULE_ID_FIELD = Field(description="Semgrep rule ID")
 
 CODE_FIELD = Field(description="The code to get the AST for")
 LANGUAGE_FIELD = Field(description="The programming language of the code")
+
+# Field defintions for findings tool
+ISSUE_TYPE_DEFAULT: Literal["ISSUE_TYPE_SAST"] = "ISSUE_TYPE_SAST"
+ISSUE_TYPE_FIELD = Field(
+    default=ISSUE_TYPE_DEFAULT, description="Type of issue to filter by."
+)
+REPOS_FIELD = Field(
+    default=None,
+    description="List of repository names to filter by. Include the owner and repository name, e.g. 'owner/repository'",
+)
+STATUS_DEFAULT: Literal["ISSUE_TAB_OPEN"] = "ISSUE_TAB_OPEN"
+STATUS_FIELD = Field(
+    default=STATUS_DEFAULT, description="Status of the issue to filter by."
+)
+SEVERITIES_FIELD = Field(
+    default=None, description="Severities of the issues to filter by."
+)
+CONFIDENCE_FIELD = Field(
+    default=None, description="Confidences of the issues to filter by."
+)
+AUTOTRIAGE_VERDICT_DEFAULT: Literal["VERDICT_TRUE_POSITIVE"] = "VERDICT_TRUE_POSITIVE"
+AUTOTRIAGE_VERDICT_FIELD = Field(
+    default=AUTOTRIAGE_VERDICT_DEFAULT,
+    description="Autotriage verdict of the issues to filter by.",
+)
+LIMIT_FIELD = Field(default=10, description="Maximum number of findings to return")
 
 # ---------------------------------------------------------------------------------
 # Utilities
@@ -545,15 +572,26 @@ async def get_deployment_slug() -> str:
 @with_tool_span(is_semgrep_scan=False)
 async def semgrep_findings(
     ctx: Context,
-    issue_type: str = "sast",  # noqa: B006
-    repos: list[str] | None = None,  # pyright: ignore  # noqa: RUF013
-    status: str = "open",
-    severities: list[str] | None = None,  # pyright: ignore  # noqa: RUF013
-    confidence: list[str] | None = None,  # pyright: ignore  # noqa: RUF013
-    autotriage_verdict: str = "true_positive",
-    page: int = 0,
-    page_size: int = 100,
-) -> list[Finding]:
+    issue_type: Literal["ISSUE_TYPE_SAST", "ISSUE_TYPE_SCA"] = ISSUE_TYPE_FIELD,
+    repos: list[str] | None = REPOS_FIELD,
+    status: Literal[
+        "ISSUE_TAB_OPEN",
+        "ISSUE_TAB_CLOSED",
+        "ISSUE_TAB_IGNORED",
+        "ISSUE_TAB_REVIEWING",
+        "ISSUE_TAB_FIXING",
+    ] = STATUS_FIELD,
+    severities: list[
+        Literal["SEVERITY_CRITICAL", "SEVERITY_HIGH", "SEVERITY_MEDIUM", "SEVERITY_LOW"]
+    ]
+    | None = SEVERITIES_FIELD,
+    confidence: list[Literal["CONFIDENCE_HIGH", "CONFIDENCE_MEDIUM", "CONFIDENCE_LOW"]]
+    | None = CONFIDENCE_FIELD,
+    autotriage_verdict: Literal[
+        "VERDICT_TRUE_POSITIVE", "VERDICT_FALSE_POSITIVE"
+    ] = AUTOTRIAGE_VERDICT_FIELD,
+    limit: int = LIMIT_FIELD,
+) -> list[Finding] | str:
     """
     Fetches findings from the Semgrep AppSec Platform Findings API.
 
@@ -580,112 +618,90 @@ async def semgrep_findings(
 
     Do NOT use this function to perform a new scan or check code that has not yet been analyzed by
     Semgrep. For new scans, use the appropriate scanning function.
-
-    Args:
-        issue_type (str): Filter findings by type. Use 'sast' for code analysis
-            findings and 'sca' for supply chain analysis findings (e.g., 'sast', 'sca').
-        status (Optional[str]): Filter findings by status (default: 'open').
-        repos (Optional[List[str]]): List of repository names to filter results. By default, should
-            include the current repository name to scope findings appropriately. Can be overridden
-            when users explicitly request findings from other repositories.
-        severities (Optional[List[str]]): Filter findings by severity (e.g., ['critical', 'high']).
-        confidence (Optional[List[str]]): Filter findings by confidence level (e.g., ['high']).
-        autotriage_verdict (Optional[str]): Filter findings by auto-triage verdict
-            (default: 'true_positive').
-        page (Optional[int]): Page number for paginated results. (default: 0)
-        page_size (int): Number of findings per page (default: 100, min: 100, max: 3000).
-
-    Returns:
-        List[Finding]: A list of findings matching the specified filters, where each finding
-        contains details such as rule ID, description, severity, file location, and remediation
-        guidance if available.
     """
-    allowed_issue_types = {"sast", "sca"}
-    if issue_type not in allowed_issue_types:
-        raise McpError(
-            ErrorData(
-                code=INVALID_PARAMS,
-                message=f"Invalid issue_type: {issue_type}. Allowed values are 'sast' or 'sca'.",
-            )
-        )
+    token = get_semgrep_app_token()
 
-    if not (100 <= page_size <= 3000):
-        raise McpError(
-            ErrorData(
-                code=INVALID_PARAMS, message="page_size must be between 100 and 3000."
-            )
-        )
-
-    # Check whether the token has the `webapi` role
-    identity = await get_identity()
-    match = re_identity_string.search(identity["identity"])
-    if match is None:
-        logger.error("Identity string in unexpected format")
+    if is_oauth_authenticated():
+        token = get_semgrep_access_token()
     else:
-        inner = match.group(1)
-        if "webapi" not in inner:
-            raise McpError(
-                ErrorData(
-                    code=INVALID_PARAMS,
-                    message="Cannot access findings without token with `webapi` role: user must generate one manually from `semgrep.dev`",
+        # Check whether the token has the `webapi` role for API tokens
+        identity = await get_identity()
+        match = re_identity_string.search(identity["identity"])
+        if match is None:
+            logger.error("Identity string in unexpected format")
+        else:
+            inner = match.group(1)
+            if "webapi" not in inner:
+                raise McpError(
+                    ErrorData(
+                        code=INVALID_PARAMS,
+                        message="Cannot access findings without token with `webapi` role: you should generate one manually from semgrep.dev",
+                    )
                 )
-            )
 
-    # If the token is good, let's get the deployment info.
-    deployment = await get_deployment_slug()
+    deployment_id = get_deployment_id()
 
-    api_token = get_semgrep_app_token()
-    if not api_token:
+    if deployment_id is None:
         raise McpError(
             ErrorData(
                 code=INVALID_PARAMS,
-                message="SEMGREP_APP_TOKEN environment variable must be set to use this tool. "
-                "Create a token at semgrep.dev to continue.",
+                message="No deployment ID found. User must be authenticated to use this tool.",
             )
         )
 
-    url = f"https://semgrep.dev/api/v1/deployments/{deployment}/findings"
-    headers = {"Authorization": f"Bearer {api_token}", "Accept": "application/json"}
-
-    params_to_filter: dict[str, Any] = {
-        "issue_type": issue_type,
-        "status": status,
-        "repos": ",".join(repos) if repos else None,
-        "severities": severities,
-        "confidence": confidence,
-        "autotriage_verdict": autotriage_verdict,
-        "page": page,
-        "page_size": page_size,
+    url = f"{get_semgrep_api_url()}/agent/deployments/{deployment_id}/issues/v2"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
     }
-    params = {k: v for k, v in params_to_filter.items() if v is not None}
-
+    request_body = {
+        "deploymentId": str(deployment_id),
+        "issueType": issue_type,
+        "filter": {
+            "status": [status],
+            "repositoryNames": repos,
+            "severities": severities if severities else [],
+            "confidences": confidence if confidence else [],
+            "aiVerdicts": [autotriage_verdict],
+            "on_primary_branch": True,  # Required for this endpoint to work. TODO?: could there not be a primary branch for some repos?
+        },
+        "limit": limit,
+    }
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=(2, 30))
+        logger.info(f"Request body: {request_body}")
+        response = requests.post(
+            url,
+            headers=headers,
+            json=request_body,
+            timeout=(
+                2,
+                120,
+            ),  # Longer timeout for this endpoint because it is known that a longer timeout is needed for a higher limit.
+        )
         response.raise_for_status()
         data = response.json()
-        findings = data.get("findings", [])
-        logger.info(f"Found {len(findings)} findings")
-        return [Finding.model_validate(finding) for finding in findings]
+
+        issues = data.get("issues", [])
+        logger.info(f"Found {len(issues)} findings")
+        if issues is None or len(issues) == 0:
+            return "No findings found"  # Returning an empty list confuses the agent, so we return a string to indicate that no findings were found.
+        return [Finding.model_validate(issue["issue"]) for issue in issues]
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 401:
-            raise McpError(
-                ErrorData(
-                    code=INVALID_PARAMS,
-                    message="Invalid API token: check your SEMGREP_APP_TOKEN environment variable.",
-                )
-            ) from e
+            raise e
         elif e.response.status_code == 404:
             raise McpError(
                 ErrorData(
                     code=INVALID_PARAMS,
-                    message=f"Deployment '{deployment}' not found or you don't have access to it.",
+                    message=f"Deployment {deployment_id} not found or you don't have access to it.",
                 )
             ) from e
         else:
             raise McpError(
                 ErrorData(
                     code=INTERNAL_ERROR,
-                    message=f"Error fetching findings: {e.response.text}",
+                    message=f"Error fetching findings: {e.response.text}. Try reducing the limit parameter.",  # It is known that if the limit is too high, the tool will timeout.
                 )
             ) from e
     except ValidationError as e:
@@ -698,7 +714,7 @@ async def semgrep_findings(
         raise McpError(
             ErrorData(
                 code=INTERNAL_ERROR,
-                message=f"Error fetching findings from Semgrep: {e!s}",
+                message=f"Error fetching findings from Semgrep: {e!s}. Try reducing the limit parameter.",  # It is known that if the limit is too high, the tool will timeout.
             )
         ) from e
 
@@ -1357,14 +1373,7 @@ def deregister_tools(mcp: FastMCP, transport: str) -> None:
     else:
         del mcp._tool_manager._tools["semgrep_scan_remote"]
 
-    if transport != "stdio":
-        # The semgrep_findings tool requires API tokens (not JWTs), so it
-        # only works when connecting to the MCP server via stdio (the only
-        # transport that doesn't require OAuth and uses API tokens).
-        #
-        # TODO: reenable it once we make it work with JWTs
-        del mcp._tool_manager._tools["semgrep_findings"]
-    else:
+    if transport == "stdio":
         # The whoami tool doesn't work via stdio since it requires a JWT token,
         # which you can only get when connecting to the MCP server via streamable-http or sse
         # (which require OAuth).
