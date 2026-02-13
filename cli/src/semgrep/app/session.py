@@ -160,11 +160,18 @@ class AppSession(requests.Session):
             cookies.load()
             self.cookies = cookies  # type: ignore
 
-        # retry after 4, 8, 16 seconds
+        # retry after 16, 32, 64 seconds (extended from a 4x backoff factor to
+        # help while we migrate to a fully async API).
+        #
+        # coupling: semgrep-app: scan.py.deduplicate_multiple_requests_same_uuid:
+        # the threshold for `current_attempt_number` is coupled with the total
+        # number of requests (initial + 3 retries) we make here, so increasing
+        # the number of retries here without adjusting the limit there will
+        # cause `GatewayTimeout`s to be returned.
         retry_adapter = requests.adapters.HTTPAdapter(
             max_retries=urllib3.Retry(
                 total=3,
-                backoff_factor=4,
+                backoff_factor=16,
                 allowed_methods=["GET", "POST"],
                 status_forcelist=(413, 429, 500, 502, 503, 504),
             ),
