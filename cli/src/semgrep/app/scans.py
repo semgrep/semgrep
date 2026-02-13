@@ -29,7 +29,6 @@ from typing import Union
 
 import click
 import requests
-from opentelemetry import trace as otel_trace
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
@@ -334,14 +333,48 @@ class ScanHandler:
             return config
         return out.HistoricalConfiguration(enabled=False)
 
+    def _handle_scan_response(self, scan_response: out.ScanResponse) -> None:
+        """
+        Common logic for handling a scan response after receiving config from the server.
+        Sets the scan_response, logs it, dumps scan_id if needed, and updates telemetry.
+        """
+        self.scan_response = scan_response
+
+        # the rules field below can be huge so better to not log it
+        x = self.scan_response
+        save = x.config.rules
+        x.config.rules = out.RawJson(TOO_MUCH_DATA)
+        logger.debug(f"Scan started: {json.dumps(x.to_json(), indent=4)}")
+        x.config.rules = save
+
+        if self.dump_scan_id_path and self.scan_id:
+            self.dump_scan_id_path.parent.mkdir(parents=True, exist_ok=True)
+            self.dump_scan_id_path.write_text(str(self.scan_id))
+
+        get_state().telemetry.add_resource_attrs(
+            scan_info_to_attrs(self.scan_response.info)
+        )
+
     @telemetry.trace()
     def start_scan(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
     ) -> None:
         """
-        Get scan id and file ignores
+        Start a scan and get configuration from the server.
+        """
+        # TODO: Switch to start_scan_v2 (async config generation) when it's ready
+        response = self.start_scan_v1(project_metadata, project_config)
+        self._handle_scan_response(response)
 
-        returns ignored list
+    @telemetry.trace()
+    def start_scan_v1(
+        self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
+    ) -> out.ScanResponse:
+        """
+        Create a scan and get configuration.
+
+        Posts to /api/cli/scans, which generates the config synchronously
+        and returns it with the scan response.
         """
         state = get_state()
         request = out.ScanRequest(
@@ -377,22 +410,7 @@ class ScanHandler:
                 f"API server at {state.env.semgrep_url} returned this error: {response.text}"
             )
 
-        self.scan_response = out.ScanResponse.from_json(response.json())
-        # the rules field below can be huge so better to not log it
-        x = self.scan_response
-        save = x.config.rules
-        x.config.rules = out.RawJson(TOO_MUCH_DATA)
-        logger.debug(f"Scan started: {json.dumps(x.to_json(), indent=4)}")
-        x.config.rules = save
-
-        if self.dump_scan_id_path and self.scan_id:
-            self.dump_scan_id_path.parent.mkdir(parents=True, exist_ok=True)
-            self.dump_scan_id_path.write_text(str(self.scan_id))
-
-        otel_trace.get_current_span()
-        get_state().telemetry.add_resource_attrs(
-            scan_info_to_attrs(self.scan_response.info)
-        )
+        return out.ScanResponse.from_json(response.json())
 
     @telemetry.trace()
     def report_failure(self, exit_code: int) -> None:
