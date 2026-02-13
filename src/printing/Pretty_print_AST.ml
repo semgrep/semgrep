@@ -236,6 +236,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Yaml
     | Lang.Html
     | Lang.Gosu
+    | Lang.Fga
     | Lang.Terraform ->
         raise Todo
     | Lang.Python
@@ -317,6 +318,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Html
     | Lang.Terraform
     | Lang.Gosu
+    | Lang.Fga
     | Lang.Ql ->
         raise Todo
     | Lang.Python
@@ -372,6 +374,7 @@ and do_while stmt env (s, e) =
     | Lang.Swift
     | Lang.Html
     | Lang.Gosu
+    | Lang.Fga
     | Lang.Terraform ->
         raise Todo
     | Lang.Apex
@@ -425,6 +428,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Scala
     | Lang.Solidity
     | Lang.Gosu
+    | Lang.Fga
     | Lang.Terraform ->
         raise Todo
     | Lang.Apex
@@ -686,6 +690,9 @@ and def_stmt env (entity, def_kind) =
       | Lang.R ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s <- %s" id e )
+      | Lang.Fga ->
+          ( (fun _typ id _e -> F.sprintf "define %s:" id),
+            fun _typ id e -> F.sprintf "define %s: %s" id e )
       | Lang.Json
       | Lang.Jsonnet
       | Lang.Ocaml ->
