@@ -194,6 +194,7 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file [ TreeSitter Parse_julia_tree_sitter.parse ] (fun x -> x)
   | Lang.Kotlin ->
       run file [ TreeSitter Parse_kotlin_tree_sitter.parse ] (fun x -> x)
+  | Lang.Fga -> run file [ TreeSitter Parse_fga_tree_sitter.parse ] (fun x -> x)
   | Lang.Lisp
   | Lang.Scheme
   | Lang.Clojure ->

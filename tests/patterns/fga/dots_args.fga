@@ -1,0 +1,12 @@
+model
+  schema 1.1
+
+#ERROR:
+type foo
+  relations
+    define viewer: [user, user:*, group#member]
+
+#ERROR:
+type foo
+  relations
+    define viewer: [user]

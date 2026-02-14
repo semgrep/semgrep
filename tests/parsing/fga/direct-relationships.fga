@@ -1,0 +1,18 @@
+model
+  schema 1.1
+
+type user
+
+type group
+  relations
+    define member: [user]
+
+type document
+  relations
+    define simple: [user]
+    define with_wildcard: [user:*]
+    define with_relation_ref: [group#member]
+    define multiple_types: [user, group#member]
+    define complex: [user, user:*, group#member]
+    define owner: [user]
+    define with_boolean: [user, group#member] and owner

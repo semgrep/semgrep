@@ -37,6 +37,7 @@ type t = Language.t =
   | Csharp
   | Dart
   | Dockerfile
+  | Fga
   | Elixir
   | Go
   | Gosu

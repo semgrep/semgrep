@@ -138,3 +138,7 @@ url = https://github.com/semgrep/semgrep-move-on-sui.git
 path = languages/circom/tree-sitter/semgrep-circom
 url = https://github.com/semgrep/semgrep-circom.git
 
+[submodule "OSS/languages/fga/tree-sitter/semgrep-fga"]
+path = languages/fga/tree-sitter/semgrep-fga
+url = https://github.com/semgrep/semgrep-fga.git
+
