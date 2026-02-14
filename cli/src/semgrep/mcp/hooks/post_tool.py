@@ -73,7 +73,15 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookRespons
     if len(scan_result.results) > 0:
         hook_response = PostToolHookResponse(
             decision="block",
-            reason=str(scan_result.results),
+            reason=str([
+                {
+                    "display_name": r["extra"]["metadata"].get("display-name"),
+                    "message": r["extra"]["message"],
+                    "severity": r["extra"]["severity"],
+                    "cwe": r["extra"]["metadata"].get("cwe"),
+                }
+                for r in scan_result.results
+            ]),
         )
     else:
         hook_response = PostToolHookResponse(decision=None, reason=None)
