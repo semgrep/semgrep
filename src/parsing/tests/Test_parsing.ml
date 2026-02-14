@@ -248,6 +248,10 @@ let dump_tree_sitter_cst (lang : Lang.t) (file : Fpath.t) : unit =
       Tree_sitter_dockerfile.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_dockerfile.Boilerplate.dump_tree
            Tree_sitter_dockerfile.Boilerplate.dump_extras
+  | Lang.Fga ->
+      Tree_sitter_fga.Parse.file !!file
+      |> dump_and_print_errors Tree_sitter_fga.Boilerplate.dump_tree
+           Tree_sitter_fga.Boilerplate.dump_extras
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter (caps : < Cap.readdir ; .. >) lang root =
@@ -293,6 +297,8 @@ let test_parse_tree_sitter (caps : < Cap.readdir ; .. >) lang root =
                  Tree_sitter_hcl.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Dart ->
                  Tree_sitter_dart.Parse.file !!file |> fail_on_error |> ignore
+             | Lang.Fga ->
+                 Tree_sitter_fga.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Move_on_sui ->
                  Tree_sitter_move_on_sui.Parse.file !!file
                  |> fail_on_error |> ignore
