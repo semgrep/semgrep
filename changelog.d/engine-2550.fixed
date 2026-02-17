@@ -1,3 +1,0 @@
-When receiving a 429 or 5xx from the Semgrep app, the CLI will wait for a
-longer period of time before retrying the request, to spread out requests
-during periods of app instability.
