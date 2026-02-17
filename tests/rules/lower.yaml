@@ -1,0 +1,11 @@
+rules:
+    - id: lower
+      severity: WARNING
+      languages:
+          - python
+      message: test
+      patterns:
+          - pattern: $VAR = $VALUE
+          - metavariable-comparison:
+                metavariable: $VALUE
+                comparison: lower(str($VALUE)) == "semgrep"
