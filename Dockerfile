@@ -42,6 +42,8 @@
 #
 # coupling: if you add a file here, you probably want to add it in
 # semgrep.nix and the pro dockerfile
+FROM ghcr.io/astral-sh/uv:0.9.26 as uv
+
 FROM scratch AS build-files
 WORKDIR /src
 COPY dune dune-project ./
@@ -366,6 +368,7 @@ USER semgrep
 #coupling: 'semgrep-wheel' is used in build-test-manylinux-aarch64.jsonnet
 #TODO: we should switch to alpine 3.23 for consistency with the other stages
 FROM python:3.11-alpine AS semgrep-wheel
+COPY --from=uv /uv /uvx /bin/
 
 WORKDIR /semgrep
 
@@ -419,22 +422,12 @@ CMD ["opam", "exec", "--", "make", "test", "core-test-e2e"]
 #hadolint ignore=DL3007
 FROM ubuntu:latest AS semgrep-wheel-test
 COPY --from=semgrep-wheel-binaries / /wheels
-RUN apt-get update && apt-get install --no-install-recommends  -y python3-pip
-RUN pip install --no-cache-dir /wheels/*.whl
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --break-system-packages --no-cache-dir /wheels/*.whl
 RUN semgrep --version
 #hadolint ignore=SC2016,DL4006
 RUN echo '1==1' | semgrep -l python -e '$X == $X' -
-
-###############################################################################
-# Other target: performance testing
-###############################################################################
-
-# Build target that exposes the performance benchmark tests in perf/ for
-# use in running performance benchmarks from a test build container, e.g., on PRs
-#coupling: the 'performance-tests' name is used in tests.jsonnet
-#fine if build from semgrep-oss as these perf tests do not use pro engine
-FROM semgrep-oss AS performance-tests
-COPY perf /semgrep/perf
-RUN apk add --no-cache make
-WORKDIR /semgrep/perf
-ENTRYPOINT ["make"]

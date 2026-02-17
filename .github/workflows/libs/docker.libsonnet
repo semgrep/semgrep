@@ -86,7 +86,7 @@ local validate(
            ],
   };
 
-local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=false, dry_run=false) = {
+local retag_step(source_image, target_image, tag, ref, debug=false, dry_run) = {
   name: 'Retag %(source_image)s:%(ref)s to %(target_image)s:%(tag)s' % { source_image: source_image, target_image: target_image, ref: ref, tag: tag },
   env:
     {
@@ -94,7 +94,6 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
       source_ref: ref,
       target_image: target_image,
       target_tag: tag,
-      confirmed: confirmed,
       debug: debug,
       dry_run: dry_run,
     },
@@ -102,9 +101,6 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
     if [[ "${debug}" == "true" ]]; then
       echo "Enabling debug logging..."
       set -x
-    fi
-    if [[ "${dry_run}" == "true" ]]; then
-      target_tag="${target_tag}-dry-run"
     fi
 
     source_image="${source_image}:${source_ref}"
@@ -129,14 +125,12 @@ local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=fal
 
     echo "Will update ${target_image} from ${old_digest} to ${new_digest}"
     echo ""
-    if [[ "${confirmed}" == "true" ]]; then
+    if [[ "${dry_run}" == "false" ]]; then
       docker buildx imagetools create -t ${target_image} ${source_image}
     else
       echo "(dry run)"
       docker buildx imagetools create --dry-run -t ${target_image} ${source_image}
       echo "(dry run)"
-      echo "Confirmation checkbox was not checked. Exiting with an error"
-      exit 1
     fi
   |||,
 };
@@ -285,7 +279,7 @@ local build_steps(
     // To test the docker image from docker hub, you can do something like
     //   docker run -it --rm \
     //     -v $(pwd):/src \
-    //     semgrep/semgrep:pro-pr-XXXX
+    //     semgrep/semgrep:pr-XXXX
     //     semgrep scan /src
     // at a directory with some source code.
     //
@@ -301,8 +295,8 @@ local build_steps(
     //
     //   docker run -it --rm \
     //     -v $(pwd):/src \
-    //     semgrep/semgrep:pro-pr-XXXX
-    //     338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary:pro-pr-XXXX
+    //     semgrep/semgrep:pr-XXXX
+    //     338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary:pr-XXXX
     //     semgrep scan /src
     //
     // where you can look up available images at go/ecr and navigate to the
@@ -384,7 +378,6 @@ local job(
   suffix='',  // suffix for image tags
   artifact_name=null,  // name of artifact to copy from docker image
   needs=[],  // prereq GHA steps
-  script='OSS/scripts/validate-docker-build.sh',  // script to verify docker image ok
   checkout_steps=actions.checkout_with_submodules,
   push=false,  // push to registries including PUBLIC ONES! Do NOT push our code to public plz
   push_ecr=false,  // push only to ecr
@@ -454,12 +447,13 @@ local build_and_run_gha_job(
   output_dir=null,
   platforms=default_platforms,
   env='',
+  write_permission=true,
       ) = job(
   name=name,
   target=target,
   description='Build %s' % description,
   needs=needs,
-  checkout_steps=checkout_steps,
+  checkout_steps=actions.checkout_with_submodules,
   push=false,
   push_ecr=false,
   build_args=build_args,
@@ -473,9 +467,9 @@ local build_and_run_gha_job(
     env=env,
   ),
   load=true
-) + {
+) + ( if write_permission then {
   permissions: gha.pull_request_permissions,
-};
+} else {});
 
 local inputs = {
   ref: gha.ref_input,
