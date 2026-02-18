@@ -223,6 +223,14 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     help="Enable malicious dependency rules for this scan.",
 )
+@click.option(
+    "--x-use-scan-v2",
+    "use_scan_v2",
+    is_flag=True,
+    envvar="SEMGREP_USE_SCAN_V2",
+    hidden=True,
+    help="Enable experimental v2 /scans endpoint.",
+)
 @handle_command_errors
 def ci(
     # coupling: we use the names/values of some of these args in telemetry.py for tagging traces
@@ -305,6 +313,7 @@ def ci(
     x_group_taint_rules: bool,
     x_dump_symbol_analysis: bool,
     enable_mal_deps: bool,
+    use_scan_v2: bool,
     x_mem_policy: Optional[MemoryPolicy],
 ) -> None:
     if x_simple_profiling:
@@ -424,6 +433,7 @@ def ci(
                 partial_output=partial_output,
                 dump_scan_id_path=dump_scan_id_path,
                 enable_mal_deps=enable_mal_deps,
+                use_scan_v2=use_scan_v2,
             )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")

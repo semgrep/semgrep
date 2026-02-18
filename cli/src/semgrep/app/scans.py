@@ -90,6 +90,7 @@ class ScanHandler:
         partial_output: Optional[Path] = None,
         dump_scan_id_path: Optional[Path] = None,
         enable_mal_deps: bool = False,
+        use_scan_v2: bool = False,
     ) -> None:
         """
         When dry_run is True, semgrep ci would get the config from the app,
@@ -104,6 +105,7 @@ class ScanHandler:
         and enable or disable transitive reachability accordingly.
         :param enable_mal_deps: Override to enable malicious dependency
         rules for this scan, even if disabled at the deployment level.
+        :param use_scan_v2: Enable experimental v2 /scans endpoint with fallback to v1.
         """
         state = get_state()
         self.local_id = str(state.local_scan_id)
@@ -122,6 +124,7 @@ class ScanHandler:
         self.partial_output = partial_output
         self.dump_scan_id_path = dump_scan_id_path
         self.enable_transitive_reachability = enable_transitive_reachability
+        self.use_scan_v2 = use_scan_v2
 
     @property
     def scan_id(self) -> Optional[int]:
@@ -361,10 +364,44 @@ class ScanHandler:
     ) -> None:
         """
         Start a scan and get configuration from the server.
+
+        If use_scan_v2 is enabled, attempts v2 endpoint first with fallback to v1.
         """
-        # TODO: Switch to start_scan_v2 (async config generation) when it's ready
+        span = telemetry.get_current_span()
+
+        if self.use_scan_v2:
+            span.set_attribute("scan.v2.attempted", True)
+            try:
+                response = self.start_scan_v2(project_metadata, project_config)
+                span.set_attribute("scan.v2.succeeded", True)
+                self._handle_scan_response(response)
+                return
+            except Exception as e:
+                span.set_attribute("scan.v2.succeeded", False)
+                logger.info(f"V2 scan endpoint failed, falling back to v1: {e}")
+                # Fall through to v1
+        else:
+            span.set_attribute("scan.v2.attempted", False)
+
         response = self.start_scan_v1(project_metadata, project_config)
         self._handle_scan_response(response)
+
+    @telemetry.trace()
+    def start_scan_v2(
+        self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
+    ) -> out.ScanResponse:
+        """
+        Create a scan using the v2 endpoint with async config generation.
+
+        TODO: Implement async config generation with polling:
+        1. POST to /api/cli/v2/scans/ to create scan (returns scan ID immediately)
+        2. Poll GET /api/cli/v2/scans/{scan_request_id}/config until config is ready
+        3. Return ScanResponse with the config
+
+        Currently this is a stub that always fails for testing fallback behavior.
+        """
+        # Stub: always fail to test fallback to v1
+        raise Exception("v2 scan endpoint not yet implemented")
 
     @telemetry.trace()
     def start_scan_v1(

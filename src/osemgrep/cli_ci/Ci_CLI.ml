@@ -259,6 +259,14 @@ let o_enable_mal_deps : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_x_use_scan_v2 : bool Term.t =
+  let info =
+    Arg.info [ "x-use-scan-v2" ]
+      ~env:(Cmd.Env.info "SEMGREP_USE_SCAN_V2")
+      ~doc:{|Enable experimental v2 /scans endpoint.|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_x_upload_partial_results_scan_id : int option Term.t =
   let info =
     Arg.info
@@ -466,7 +474,7 @@ let cmdline_term : conf Term.t =
       _x_dump_n_rule_partitions _x_dump_rule_partitions_dir
       _x_dump_rule_partitions_strategy x_merge_partial_results_dir
       x_merge_partial_results_output _x_partial_config _x_partial_output
-      x_upload_partial_results x_upload_partial_results_scan_id
+      x_upload_partial_results x_upload_partial_results_scan_id _x_use_scan_v2
       x_validate_partial_results_actual x_validate_partial_results_expected
       _enable_mal_deps =
     let products =
@@ -513,7 +521,7 @@ let cmdline_term : conf Term.t =
     $ o_x_dump_rule_partitions_strategy $ o_x_merge_partial_results_dir
     $ o_x_merge_partial_results_output $ o_x_partial_config $ o_x_partial_output
     $ o_x_upload_partial_results $ o_x_upload_partial_results_scan_id
-    $ o_x_validate_partial_results_actual
+    $ o_x_use_scan_v2 $ o_x_validate_partial_results_actual
     $ o_x_validate_partial_results_expected $ o_enable_mal_deps)
 
 let doc = "the recommended way to run semgrep in CI"
