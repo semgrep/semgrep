@@ -358,6 +358,37 @@ class ScanHandler:
             scan_info_to_attrs(self.scan_response.info)
         )
 
+    def _raise_if_request_failed(self, response: requests.Response) -> None:
+        """
+        Handle HTTP response errors from the backend.
+
+        :param response: The HTTP response to check
+        :raises SystemExit: On 401 (invalid API key)
+        :raises Exception: On 404 or other HTTP errors
+        """
+        state = get_state()
+
+        if response.status_code == 401:
+            logger.info(
+                "API token not valid. Try to run `semgrep logout` and `semgrep login` again. "
+                "Or in CI, ensure your SEMGREP_APP_TOKEN variable is set correctly.",
+            )
+            sys.exit(INVALID_API_KEY_EXIT_CODE)
+
+        if response.status_code == 404:
+            raise Exception(
+                "Failed to create a scan with given token and deployment_id. "
+                "Please make sure they have been set correctly. "
+                f"API server at {state.env.semgrep_url} returned this response: {response.text}"
+            )
+
+        try:
+            response.raise_for_status()
+        except requests.RequestException:
+            raise Exception(
+                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
+            )
+
     @telemetry.trace()
     def start_scan(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
@@ -393,15 +424,108 @@ class ScanHandler:
         """
         Create a scan using the v2 endpoint with async config generation.
 
-        TODO: Implement async config generation with polling:
-        1. POST to /api/cli/v2/scans/ to create scan (returns scan ID immediately)
-        2. Poll GET /api/cli/v2/scans/{scan_request_id}/config until config is ready
-        3. Return ScanResponse with the config
+        1. POST to /api/cli/v2/scans to create scan (returns scan info immediately)
+        2. Poll GET /api/cli/v2/scans/{scan_request_id}/config for up to 3 minutes
+        3. Construct and return ScanResponse from the combined responses
 
-        Currently this is a stub that always fails for testing fallback behavior.
+        Note: scan_request_id is the client-generated unique_id, not the server's scan.id
         """
-        # Stub: always fail to test fallback to v1
-        raise Exception("v2 scan endpoint not yet implemented")
+        state = get_state()
+        span = telemetry.get_current_span()
+
+        # scan_request_id is the client-generated unique ID
+        scan_request_id = self.scan_metadata.unique_id.value
+        span.set_attribute("scan.v2.scan_request_id", scan_request_id)
+
+        # Step 1: Build and send create scan request
+        request_body = out.CreateScanRequestBody(
+            scan_metadata=self.scan_metadata,
+            project_metadata=project_metadata,
+            project_config=project_config.to_CiConfigFromRepo(),
+        )
+        request = out.CreateScanRequestV2(body=request_body)
+
+        logger.debug(
+            f"Starting scan (v2) with request_id={scan_request_id}: {json.dumps(request.to_json(), indent=4)}"
+        )
+
+        create_response = state.app_session.post(
+            f"{state.env.semgrep_url}/api/cli/v2/scans",
+            json=request.to_json(),
+        )
+
+        self._raise_if_request_failed(create_response)
+
+        create_scan_response = out.CreateScanResponseV2.from_json(
+            create_response.json()
+        )
+        scan_info = create_scan_response.body.info
+
+        # Note: scan_info.id can be null for dry runs
+        if scan_info.id:
+            logger.debug(f"Scan created with ID: {scan_info.id}")
+            span.set_attribute("scan.v2.scan_id", scan_info.id)
+
+        # Step 2: Poll for config using scan_request_id (3 minute timeout)
+        timeout_minutes = 3
+        start_time = datetime.now().replace(tzinfo=None)
+        deadline = start_time + timedelta(minutes=timeout_minutes)
+        poll_attempt = 0
+        poll_interval_seconds = 5
+
+        while datetime.now().replace(tzinfo=None) < deadline:
+            poll_attempt += 1
+            span.set_attribute("scan.v2.poll_attempts", poll_attempt)
+
+            logger.debug(f"Polling for scan config")
+
+            config_response = state.app_session.get(
+                f"{state.env.semgrep_url}/api/cli/v2/scans/{scan_request_id}/config",
+                timeout=state.env.upload_findings_timeout,
+            )
+
+            self._raise_if_request_failed(config_response)
+
+            get_config_response = out.GetConfigResponseV2.from_json(
+                config_response.json()
+            )
+            status = get_config_response.body.status
+
+            if isinstance(status.value, out.Success):
+                # Config is ready
+                span.set_attribute("scan.v2.config_ready", True)
+
+                if (
+                    not get_config_response.body.config
+                    or not get_config_response.body.engine_params
+                ):
+                    raise Exception(
+                        f"Config status is Success but config or engine_params is missing"
+                    )
+
+                return out.ScanResponse(
+                    info=scan_info,
+                    config=get_config_response.body.config,
+                    engine_params=get_config_response.body.engine_params,
+                )
+
+            elif isinstance(status.value, out.Failure):
+                # Config generation failed
+                span.set_attribute("scan.v2.config_status", "failure")
+                raise Exception(
+                    f"Config generation failed for scan_request_id={scan_request_id}"
+                )
+
+            elif isinstance(status.value, out.Pending):
+                # Still pending - continue polling
+                span.set_attribute("scan.v2.config_status", "pending")
+
+            sleep(poll_interval_seconds)
+
+        # Timeout - config never became ready
+        raise Exception(
+            f"Config generation timed out after {timeout_minutes} minutes (scan_request_id={scan_request_id}, {poll_attempt} attempts)"
+        )
 
     @telemetry.trace()
     def start_scan_v1(
@@ -426,26 +550,7 @@ class ScanHandler:
             json=request,
         )
 
-        if response.status_code == 401:
-            logger.info(
-                "API token not valid. Try to run `semgrep logout` and `semgrep login` again. "
-                "Or in CI, ensure your SEMGREP_APP_TOKEN variable is set correctly.",
-            )
-            sys.exit(INVALID_API_KEY_EXIT_CODE)
-
-        if response.status_code == 404:
-            raise Exception(
-                "Failed to create a scan with given token and deployment_id."
-                "Please make sure they have been set correctly."
-                f"API server at {state.env.semgrep_url} returned this response: {response.text}"
-            )
-
-        try:
-            response.raise_for_status()
-        except requests.RequestException:
-            raise Exception(
-                f"API server at {state.env.semgrep_url} returned this error: {response.text}"
-            )
+        self._raise_if_request_failed(response)
 
         return out.ScanResponse.from_json(response.json())
 
