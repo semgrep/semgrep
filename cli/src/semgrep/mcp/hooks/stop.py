@@ -141,18 +141,18 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> StopHookResponse:
         scan_result: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
 
         if len(scan_result.results) > 0:
-            details = [
-                {
-                    "display_name": r["extra"]["metadata"].get("display-name"),
-                    "message": r["extra"]["message"],
-                    "severity": r["extra"]["severity"],
-                    "cwe": r["extra"]["metadata"].get("cwe"),
-                }
-                for r in scan_result.results
-            ]
-            hook_response = StopHookResponse(
-                followup_message=f"Found {len(details)} security findings in {dir}. Details: {details}"
+            reason = str(
+                [
+                    {
+                        "display_name": r["extra"]["metadata"].get("display-name"),
+                        "message": r["extra"]["message"],
+                        "severity": r["extra"]["severity"],
+                        "cwe": r["extra"]["metadata"].get("cwe"),
+                    }
+                    for r in scan_result.results
+                ]
             )
+            hook_response = StopHookResponse(followup_message=reason)
         else:
             hook_response = StopHookResponse(followup_message=None)
 
