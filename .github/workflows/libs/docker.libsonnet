@@ -94,7 +94,6 @@ local retag_step(source_image, target_image, tag, ref, debug=false, dry_run) = {
       source_ref: ref,
       target_image: target_image,
       target_tag: tag,
-      confirmed: true,
       debug: debug,
       dry_run: dry_run,
     },
@@ -102,9 +101,6 @@ local retag_step(source_image, target_image, tag, ref, debug=false, dry_run) = {
     if [[ "${debug}" == "true" ]]; then
       echo "Enabling debug logging..."
       set -x
-    fi
-    if [[ "${dry_run}" == "true" ]]; then
-      target_tag="${target_tag}-dry-run"
     fi
 
     source_image="${source_image}:${source_ref}"
@@ -129,14 +125,12 @@ local retag_step(source_image, target_image, tag, ref, debug=false, dry_run) = {
 
     echo "Will update ${target_image} from ${old_digest} to ${new_digest}"
     echo ""
-    if [[ "${confirmed}" == "true" ]]; then
+    if [[ "${dry_run}" == "false" ]]; then
       docker buildx imagetools create -t ${target_image} ${source_image}
     else
       echo "(dry run)"
       docker buildx imagetools create --dry-run -t ${target_image} ${source_image}
       echo "(dry run)"
-      echo "Confirmation checkbox was not checked. Exiting with an error"
-      exit 1
     fi
   |||,
 };
