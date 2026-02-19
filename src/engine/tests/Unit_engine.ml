@@ -117,10 +117,8 @@ let full_lang_info =
 *)
 let pack_tests_for_lang
     ~(lang_test_fn :
-       polyglot_pattern_path:Fpath.t ->
-       Fpath.t list ->
-       Language.t ->
-       Testo.t list) ~test_pattern_path ~polyglot_pattern_path lang dir ext =
+       polyglot_pattern_path:Fpath.t -> Fpath.t list -> Lang.t -> Testo.t list)
+    ~test_pattern_path ~polyglot_pattern_path lang dir ext =
   Testo.categorize
     (spf "%s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
