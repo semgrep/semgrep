@@ -77,8 +77,8 @@ let add_typescript_to_javascript_rules_hack (rules : Rule.t list) : Rule.t list
          | L (l, ls) ->
              let lset = Set_.of_list ls in
              let lset =
-               if l =*= Language.Js || Set_.mem Language.Js lset then
-                 Set_.add Language.Ts lset
+               if l =*= Lang.Js || Set_.mem Lang.Js lset then
+                 Set_.add Lang.Ts lset
                else lset
              in
              { r with Rule.target_analyzer = L (l, lset |> Set_.elements) })

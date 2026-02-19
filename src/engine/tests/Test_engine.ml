@@ -127,7 +127,7 @@ let find_target_of_yaml_file caps (file : Fpath.t) : Fpath.t =
 (* Other helpers *)
 (*****************************************************************************)
 
-let test_name_for_target ~prepend_lang (langs : Language.t list)
+let test_name_for_target ~prepend_lang (langs : Lang.t list)
     (rule_file : Fpath.t) : string =
   if prepend_lang then
     let langs =

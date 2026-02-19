@@ -181,7 +181,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
 
 (* TODO: remove, deprecated by osemgrep show dump-ast *)
 let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
-    (lang : Language.t) (file : Fpath.t) =
+    (lang : Lang.t) (file : Fpath.t) =
   Core_actions.try_with_log_exn_and_reraise file (fun () ->
       let res =
         if naming then Parse_target.parse_and_resolve_name lang file
