@@ -13,107 +13,8 @@
  * license.txt for more details.
  *)
 
-(*****************************************************************************)
-(* Faster and stack-safe List.map *)
-(*****************************************************************************)
-
-(*
-   Custom list type used to store intermediate lists, while minimizing
-   the number of allocated blocks.
-*)
-type 'a list5 =
-  | Elt of 'a * 'a list5
-  | Tuple of 'a * 'a * 'a * 'a * 'a * 'a list5
-  | Empty
-
-let rev5 l =
-  let rec aux acc l =
-    match l with
-    | Tuple (e, d, c, b, a, l) ->
-        (* common case *)
-        aux (a :: b :: c :: d :: e :: acc) l
-    | Elt (a, l) -> aux (a :: acc) l
-    | Empty -> acc
-  in
-  aux [] l
-
-let rec slow_map acc f l =
-  match l with
-  | [] -> rev5 acc
-  | [ a ] -> rev5 (Elt (f a, acc))
-  | [ a; b ] ->
-      let a = f a in
-      let b = f b in
-      rev5 (Elt (b, Elt (a, acc)))
-  | [ a; b; c ] ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      rev5 (Elt (c, Elt (b, Elt (a, acc))))
-  | [ a; b; c; d ] ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      let d = f d in
-      rev5 (Elt (d, Elt (c, Elt (b, Elt (a, acc)))))
-  | [ a; b; c; d; e ] ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      let d = f d in
-      let e = f e in
-      rev5 (Elt (e, Elt (d, Elt (c, Elt (b, Elt (a, acc))))))
-  | a :: b :: c :: d :: e :: l ->
-      let a = f a in
-      let b = f b in
-      let c = f c in
-      let d = f d in
-      let e = f e in
-      slow_map (Tuple (e, d, c, b, a, acc)) f l
-
-let rec fast_map rec_calls_remaining f l =
-  if rec_calls_remaining <= 0 then slow_map Empty f l
-  else
-    match l with
-    | [] -> []
-    | [ a ] -> [ f a ]
-    | [ a; b ] ->
-        let a = f a in
-        let b = f b in
-        [ a; b ]
-    | [ a; b; c ] ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        [ a; b; c ]
-    | [ a; b; c; d ] ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        let d = f d in
-        [ a; b; c; d ]
-    | [ a; b; c; d; e ] ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        let d = f d in
-        let e = f e in
-        [ a; b; c; d; e ]
-    | a :: b :: c :: d :: e :: l ->
-        let a = f a in
-        let b = f b in
-        let c = f c in
-        let d = f d in
-        let e = f e in
-        a :: b :: c :: d :: e :: fast_map (rec_calls_remaining - 1) f l
-
-(*
-   This implementation of List.map makes at most 1000 non-tailrec calls
-   before switching to a slower tailrec implementation.
-
-   Additionally, this implementation guarantees left-to-right evaluation.
-*)
-let map f l = fast_map 1000 f l
+(* nosemgrep: no-list-map *)
+let map = List.map
 
 (*****************************************************************************)
 (* Additional iterators *)
@@ -135,106 +36,24 @@ let iter_with_view_into_neighbor_elements
   in
   loop ~prev:None xs
 
-(*****************************************************************************)
-(* Faster List.map2 *)
-(*****************************************************************************)
-
 exception Map2_different_lengths
 
-let rec slow_map2 acc f l1 l2 =
-  match (l1, l2) with
-  | [], [] -> rev5 acc
-  | [ a1 ], [ a2 ] -> rev5 (Elt (f a1 a2, acc))
-  | [ a1; b1 ], [ a2; b2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      rev5 (Elt (b, Elt (a, acc)))
-  | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      rev5 (Elt (c, Elt (b, Elt (a, acc))))
-  | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      let d = f d1 d2 in
-      rev5 (Elt (d, Elt (c, Elt (b, Elt (a, acc)))))
-  | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      let d = f d1 d2 in
-      let e = f e1 e2 in
-      rev5 (Elt (e, Elt (d, Elt (c, Elt (b, Elt (a, acc))))))
-  | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
-      let a = f a1 a2 in
-      let b = f b1 b2 in
-      let c = f c1 c2 in
-      let d = f d1 d2 in
-      let e = f e1 e2 in
-      slow_map2 (Tuple (e, d, c, b, a, acc)) f l1 l2
-  | _other -> raise Map2_different_lengths
-
-let rec fast_map2 rec_calls_remaining f l1 l2 =
-  if rec_calls_remaining <= 0 then slow_map2 Empty f l1 l2
-  else
-    match (l1, l2) with
-    | [], [] -> []
-    | [ a1 ], [ a2 ] -> [ f a1 a2 ]
-    | [ a1; b1 ], [ a2; b2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        [ a; b ]
-    | [ a1; b1; c1 ], [ a2; b2; c2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        [ a; b; c ]
-    | [ a1; b1; c1; d1 ], [ a2; b2; c2; d2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        let d = f d1 d2 in
-        [ a; b; c; d ]
-    | [ a1; b1; c1; d1; e1 ], [ a2; b2; c2; d2; e2 ] ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        let d = f d1 d2 in
-        let e = f e1 e2 in
-        [ a; b; c; d; e ]
-    | a1 :: b1 :: c1 :: d1 :: e1 :: l1, a2 :: b2 :: c2 :: d2 :: e2 :: l2 ->
-        let a = f a1 a2 in
-        let b = f b1 b2 in
-        let c = f c1 c2 in
-        let d = f d1 d2 in
-        let e = f e1 e2 in
-        a :: b :: c :: d :: e :: fast_map2 (rec_calls_remaining - 1) f l1 l2
-    | _other -> raise Map2_different_lengths
-
-(*
-   This implementation of List.map makes at most 1000 non-tailrec calls
-   before switching to a slower tailrec implementation.
-
-   Additionally, this implementation guarantees left-to-right evaluation.
-*)
-let map2_exn f l1 l2 = fast_map2 1000 f l1 l2
+let map2_exn f l1 l2 =
+  (* nosemgrep: no-list-map2 *)
+  try List.map2 f l1 l2 with
+  | Invalid_argument "List.map2" -> raise Map2_different_lengths
 
 let map2_opt f l1 l2 =
   try Some (map2_exn f l1 l2) with
   | Map2_different_lengths -> None
 
-(*****************************************************************************)
-(* Other safer alternatives to List.xxx functions *)
-(*****************************************************************************)
-
-(* Tail-recursive to prevent stack overflows. *)
+(* List.flatten is non-tailrec as of OCaml 5.3. *)
 let flatten xss =
   xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev
 
 let append a b = List.rev_append (List.rev a) b
 
+(* List.fold_right is non-tailrec as of OCaml 5.3. *)
 let fold_right func xs acc =
   List.fold_left (fun acc x -> func x acc) acc (List.rev xs)
 
@@ -262,7 +81,8 @@ let rec last_opt xs =
   | [ x ] -> Some x
   | _ :: tl -> last_opt tl
 
-let mapi f l = map2_exn f (List.init (List.length l) Fun.id) l
+(* nosemgrep: no-list-mapi *)
+let mapi = List.mapi
 
 let rec drop n xs =
   match (n, xs) with
@@ -304,10 +124,10 @@ let rec take_safe n xs =
   | _, [] -> []
   | n, x :: xs -> x :: take_safe (n - 1) xs
 
-(* Safe reimplementation of List.split *)
+(* List.split is non-tailrec as of OCaml 5.3. *)
 let split xs = fold_right (fun (x, y) (xs, ys) -> (x :: xs, y :: ys)) xs ([], [])
 
-(* Safe reimplementation of List.combine *)
+(* List.combine is non-tailrec as of OCaml 5.3. *)
 let combine_exn xs ys = map2_exn (fun a b -> (a, b)) xs ys
 
 let null xs =
@@ -325,16 +145,6 @@ let index_list_1 xs = xs |> index_list |> map (fun (x, i) -> (x, i + 1))
 (*****************************************************************************)
 (* Options and lists *)
 (*****************************************************************************)
-
-(* Tail-recursive to prevent stack overflows. *)
-let filter_map f xs =
-  List.fold_left
-    (fun acc x ->
-      match f x with
-      | None -> acc
-      | Some y -> y :: acc)
-    [] xs
-  |> List.rev
 
 let filter_map_endo f xs =
   let changed = ref false in
@@ -354,6 +164,8 @@ let filter_map_endo f xs =
   in
   if !changed then xs' else xs
 
+(* nosemgrep: no-list-filter-map *)
+let filter_map = List.filter_map
 let filter_some xs = filter_map (fun x -> x) xs
 
 let rec find_some_opt p = function
