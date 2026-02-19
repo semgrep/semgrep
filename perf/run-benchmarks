@@ -494,10 +494,11 @@ def run_benchmarks(
             try:
                 corpus.prep()
             except Exception as e:
+                # a missing corpus causes errors in comparison to the baseline, so error out
                 logger.warning(
-                    f"Could not execute 'prep' file for {corpus.name}. Please check it exists. Will skip this corpus. Error: {e}"
+                    f"Could not execute 'prep' file for {corpus.name}. Please check it exists. Error: {e}"
                 )
-                continue
+                raise
 
             std_findings = {}
             options = sorted(

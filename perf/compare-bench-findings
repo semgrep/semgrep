@@ -61,7 +61,11 @@ def main() -> None:
 
     if len(expected) != len(findings):
         print(f"Error: expected {len(expected)} results, got {len(findings)}")
-        errors += 1
+        raise Exception(
+            f"Missing findings, {len(expected)} in baseline, {len(findings)} in current"
+        )
+
+    # zip only works when all entries are present and correct and in same order
 
     for expected, findings in zip(expected, findings):
         if findings_differ(expected, findings):
