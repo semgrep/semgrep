@@ -61,7 +61,7 @@ val hook_r2c_pro_was_here : bool Hook.t
 
 (* used for evaluating `metavariable-type:` in Match_search_mode.ml *)
 val m_compatible_type :
-  Language.t ->
+  Lang.t ->
   AST_generic.ident ->
   AST_generic.type_ ->
   AST_generic.expr ->
