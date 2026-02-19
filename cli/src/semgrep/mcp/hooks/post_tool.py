@@ -71,20 +71,18 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookRespons
     scan_result: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
     hook_response = PostToolHookResponse(decision=None, reason=None)
     if len(scan_result.results) > 0:
-        hook_response = PostToolHookResponse(
-            decision="block",
-            reason=str(
-                [
-                    {
-                        "display_name": r["extra"]["metadata"].get("display-name"),
-                        "message": r["extra"]["message"],
-                        "severity": r["extra"]["severity"],
-                        "cwe": r["extra"]["metadata"].get("cwe"),
-                    }
-                    for r in scan_result.results
-                ]
-            ),
+        reason = str(
+            [
+                {
+                    "display_name": r["extra"]["metadata"].get("display-name"),
+                    "message": r["extra"]["message"],
+                    "severity": r["extra"]["severity"],
+                    "cwe": r["extra"]["metadata"].get("cwe"),
+                }
+                for r in scan_result.results
+            ]
         )
+        hook_response = PostToolHookResponse(decision="block", reason=reason)
     else:
         hook_response = PostToolHookResponse(decision=None, reason=None)
     attach_scan_metrics(
