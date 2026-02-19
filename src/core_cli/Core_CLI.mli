@@ -26,7 +26,7 @@ val symbol_analysis : bool ref
 val dump_ast :
   ?naming:bool ->
   < exit : Cap.Process.exit ; stdout : Cap.Console.stdout > ->
-  Language.t ->
+  Lang.t ->
   Fpath.t ->
   unit
 

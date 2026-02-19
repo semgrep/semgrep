@@ -21,5 +21,5 @@
  * The variable name `x` is chosen arbitrarily and ignored during unwrapping.
  *)
 
-val wrap_type_expr : Language.t -> string -> string option
-val unwrap_type_expr : Language.t -> AST_generic.any -> AST_generic.type_ option
+val wrap_type_expr : Lang.t -> string -> string option
+val unwrap_type_expr : Lang.t -> AST_generic.any -> AST_generic.type_ option

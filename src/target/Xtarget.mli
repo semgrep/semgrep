@@ -25,7 +25,7 @@ type t = {
 }
 
 val resolve :
-  (Language.t -> Fpath.t -> AST_generic.program * Tok.location list) ->
+  (Lang.t -> Fpath.t -> AST_generic.program * Tok.location list) ->
   Target.t ->
   t
 (** [resolve parser target] is the extended version of [target], comprising
