@@ -86,7 +86,7 @@ local validate(
            ],
   };
 
-local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=false, dry_run=false) = {
+local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=false, dry_run) = {
   name: 'Retag %(source_image)s:%(ref)s to %(target_image)s:%(tag)s' % { source_image: source_image, target_image: target_image, ref: ref, tag: tag },
   env:
     {
