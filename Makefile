@@ -12,7 +12,7 @@
 # You will also need obviously 'make', but also 'git', and many other
 # common dev tools (e.g., 'docker', 'bash').
 #
-# you can then use:
+# you can then use :
 #
 #     $ make install-deps
 #
