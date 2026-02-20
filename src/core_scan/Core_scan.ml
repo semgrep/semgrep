@@ -344,39 +344,49 @@ let get_targets_for_pysemgrep (scanning_roots : Out.scanning_roots) :
  *)
 let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
     Target.t list * Core_error.t list * Out.skipped_target list =
+  let%trace span = "Core_scan.targets_of_config" in
   let no_error (targets, skipped_targets) = (targets, [], skipped_targets) in
-  match config.target_source with
-  | Targets x -> x |> filter_existing_targets |> no_error
-  | Target_file target_file -> (
-      Logs.debug (fun m -> m "read targets from file: %s" !!target_file);
-      match UFile.read_file target_file |> Out.targets_of_string with
-      | `Scanning_roots { root_paths; targeting_conf } ->
-          (* new: use osemgrep's target discovery *)
-          let scanning_roots = List_.map Scanning_root.of_fpath root_paths in
-          let targeting_conf =
-            translate_targeting_conf_from_pysemgrep targeting_conf
-          in
-          (* Ideally Core_Scan.scan does not require Cap.readdir because all
-           * file targeting processing would be done before and just call scan()
-           * with prepared Targets. However there is experimental work to move
-           * pysemgrep file targeting to OCaml and pass scanning_roots to
-           * semgrep-core hence the need for readdir, but because this
-           * is experimental, let's forge it for now to avoid modifying
-           * all the callers.
-           *)
-          let caps = Cap.readdir_UNSAFE () in
-          let targets, errors, skipped =
-            Find_targets.get_targets caps targeting_conf scanning_roots
-          in
-          let targets =
-            Core_targeting.targets_for_files_and_rules targets rules
-          in
-          (targets, errors, skipped)
-      | `Targets targets ->
-          (* legacy: receive discovered target paths from pysemgrep *)
-          targets
-          |> List_.map Target.target_of_target
-          |> filter_existing_targets |> no_error)
+  let targets, errors, skipped =
+    match config.target_source with
+    | Targets x -> x |> filter_existing_targets |> no_error
+    | Target_file target_file -> (
+        Logs.debug (fun m -> m "read targets from file: %s" !!target_file);
+        match UFile.read_file target_file |> Out.targets_of_string with
+        | `Scanning_roots { root_paths; targeting_conf } ->
+            (* new: use osemgrep's target discovery *)
+            let scanning_roots = List_.map Scanning_root.of_fpath root_paths in
+            let targeting_conf =
+              translate_targeting_conf_from_pysemgrep targeting_conf
+            in
+            (* Ideally Core_Scan.scan does not require Cap.readdir because all
+             * file targeting processing would be done before and just call scan()
+             * with prepared Targets. However there is experimental work to move
+             * pysemgrep file targeting to OCaml and pass scanning_roots to
+             * semgrep-core hence the need for readdir, but because this
+             * is experimental, let's forge it for now to avoid modifying
+             * all the callers.
+             *)
+            let caps = Cap.readdir_UNSAFE () in
+            let targets, errors, skipped =
+              Find_targets.get_targets caps targeting_conf scanning_roots
+            in
+            let targets =
+              Core_targeting.targets_for_files_and_rules targets rules
+            in
+            (targets, errors, skipped)
+        | `Targets targets ->
+            (* legacy: receive discovered target paths from pysemgrep *)
+            targets
+            |> List_.map Target.target_of_target
+            |> filter_existing_targets |> no_error)
+  in
+
+  let fpaths =
+    List_.map Target.internal_path targets
+    @ List_.map (fun (t : Out.skipped_target) -> t.path) skipped
+  in
+  Trace_data.record_phase_data ~fpaths ~rules span;
+  (targets, errors, skipped)
 
 (*****************************************************************************)
 (* Parsing *)
@@ -771,6 +781,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
           (caps :> < Cap.fork >)
           ~num_jobs:config.num_jobs process_target targets
   in
+
   let matches, opt_paths = List_.split xs in
   let scanned =
     opt_paths |> List_.filter_map Fun.id
@@ -782,7 +793,6 @@ let iter_targets_and_get_matches_and_exn_to_errors
     *)
   in
   (matches, scanned)
-[@@trace]
 
 (*****************************************************************************)
 (* Rule selection *)
@@ -950,15 +960,21 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
   let targets, target_discovery_errors, skipped =
     targets_of_config config valid_rules
   in
-
-  (* !!Let's go!! *)
-  log_scan_inputs config ~targets ~errors:target_discovery_errors ~skipped
-    ~valid_rules ~invalid_rules;
   let prefilter_policy =
     if config.filter_irrelevant_rules then Match_env.make_prefilter ()
     else Match_env.NoPrefiltering
   in
   let file_results, (scanned_targets : Target.t list) =
+    (* Do some trace stuff *)
+    let%trace span = "Core_scan.scan_exn.OSS" in
+    (let target_fpaths = List_.map Target.internal_path targets in
+     Trace_data.record_phase_data ~rules:valid_rules ~fpaths:target_fpaths
+       ~timeout:config.timeout ~memory_limit:config.max_memory_mb
+       ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
+       span);
+    log_scan_inputs config ~targets ~errors:target_discovery_errors ~skipped
+      ~valid_rules ~invalid_rules;
+    (* !!Let's go!! *)
     targets
     |> iter_targets_and_get_matches_and_exn_to_errors
          (caps :> < Cap.fork ; Cap.memory_limit >)
@@ -985,7 +1001,6 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
   in
   (* Concatenate all the skipped targets *)
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
-
   (* TODO? should probably remove ~skipped_targets and apply to latest res *)
   log_scan_results config res ~scanned_targets ~skipped_targets;
   (* TODO: returning, or not skipped_targets does not seem to have any impact

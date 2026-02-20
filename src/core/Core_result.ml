@@ -349,6 +349,13 @@ let mk_result (results : matches_single_file_with_time list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule_error.invalid_rule list) (scanned : Target.t list)
     (interfile_languages_used : Analyzer.t list) ~rules_parse_time : t =
+  let%trace span = "Core_result.mk_result" in
+  (let target_fpaths = List_.map Target.internal_path scanned in
+   let all_rule_ids =
+     List_.map (fun r -> fst (fst r).Rule.id) rules_with_engine
+     @ List_.map (fun (_, id, _) -> id) skipped_rules
+   in
+   Trace_data.record_phase_data ~fpaths:target_fpaths ~rules:all_rule_ids span);
   (* concatenating information from the match_result list *)
   let unprocessed_matches =
     results

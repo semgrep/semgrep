@@ -82,6 +82,12 @@ module Attributes = struct
   let pro_deep_intrafile = "scan.core.pro_deep_intrafile"
   let pro_deep_interfile = "scan.core.pro_deep_interfile"
   let pro_secrets_allowed_origins = "scan.core.pro_secrets_allowed_origins"
+  let phase_targets_count = "scan.phase.targets.count"
+  let phase_targets_size = "scan.phase.targets.bytes"
+  let phase_rules_count = "scan.phase.rules.count"
+  let phase_jobs_count = "scan.phase.jobs.count"
+  let phase_timeout = "scan.phase.timeout_s"
+  let phase_memory_limit = "scan.phase.memory_limit_mb"
 end
 (*****************************************************************************)
 (* Types *)
@@ -120,6 +126,36 @@ let no_analysis_features () =
 
 let data_of_languages (languages : Analyzer.t list) =
   languages |> List_.map (fun l -> (Analyzer.to_string l, `Bool true))
+
+(*
+ record_phase_data records metrics for functions that take both sets of files
+ and sets of rules as inputs. This let's us autogenerate and alert on
+ performance metrics that are normalized by the size of the input and the
+ number of rules, which are two major factors in how long a scan takes. We can
+ also alert on things like if we see a lot of scans that have a small number of
+ rules but still take a long time, which might be an indication of a perf issue
+ somewhere silly.
+ *)
+(* coupling: telemetry.py add_phase_data *)
+let record_phase_data ?(timeout = 0.0) ?(memory_limit = 0) ?(jobs = 1) ~fpaths
+    ~rules sp =
+  let filesize fpath =
+    match UFile.filesize fpath with
+    | Ok size -> size
+    | _ -> 0
+  in
+  let attrs : (string * Opentelemetry.value) list =
+    [
+      (Attributes.phase_targets_count, `Int (List.length fpaths));
+      ( Attributes.phase_targets_size,
+        `Int (List.fold_left (fun acc path -> acc + filesize path) 0 fpaths) );
+      (Attributes.phase_rules_count, `Int (List.length rules));
+      (Attributes.phase_jobs_count, `Int jobs);
+      (Attributes.phase_memory_limit, `Int memory_limit);
+      (Attributes.phase_timeout, `Float timeout);
+    ]
+  in
+  Tracing.add_data_to_span sp attrs
 
 (* NOTE: If this IS NOT semgrep specific stick it in Tracing.ml *)
 (* WARNING: Let's be careful what we add as a resource attribute. TL;DR; these
