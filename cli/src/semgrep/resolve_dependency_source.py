@@ -10,8 +10,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+from dataclasses import asdict
 from dataclasses import dataclass
+from difflib import ndiff
 from pathlib import Path
+from pprint import pformat
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -131,6 +135,28 @@ def lockfile_path_unless_manifest_only(
         return ds.value[1].path
     else:
         raise TypeError(f"Unexpected dependency_source variant2: {type(ds)}")
+
+
+def get_lockfile_kind(
+    ds: Union[
+        out.LockfileOnly,
+        out.ManifestLockfile,
+        out.ManifestOnly,
+        out.MultiLockfile,
+    ],
+) -> Optional[out.LockfileKind]:
+    if isinstance(ds, out.LockfileOnly):
+        return ds.value.kind
+    elif isinstance(ds, out.ManifestLockfile):
+        return ds.value[1].kind
+    elif isinstance(ds, out.MultiLockfile):
+        kinds: List[Optional[out.LockfileKind]] = list(
+            filter(None, [get_lockfile_kind(src.value) for src in ds.value])
+        )
+        # In practice, there should only be a single lockfile kind.
+        return kinds[0] if kinds else None
+    elif isinstance(ds, out.ManifestOnly):
+        return None
 
 
 @dataclass(kw_only=True)
@@ -528,3 +554,220 @@ def resolve_dependency_source(
             errors=[],
             targets=[],
         )
+
+
+#### Helpers for parity testing between OCaml and Python parsers ##############
+
+IGNORED_FIELDS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, List[str]] = {
+    out.LockfileKind(out.NpmPackageLockJson()): [
+        # TODO: Remove allowed_hashes parsing support is added to the OCaml parser
+        "allowed_hashes",
+        # The python parser doesn't record children
+        "children",
+    ]
+}
+
+
+class ParityReporter:
+    def __init__(self) -> None:
+        self.issues: list[str] = []
+
+    def check_failed(self, left: Any, right: Any, check: str, label: str) -> None:
+        diff = "".join(
+            ndiff(
+                pformat(left).splitlines(keepends=True),
+                pformat(right).splitlines(keepends=True),
+            )
+        )
+        self.add_issue(f"{label} '{check}' check failed: \n{diff}")
+
+    def check_eq(self, left: Any, right: Any, label: str) -> None:
+        if left == right:
+            return
+
+        self.check_failed(left, right, "==", label)
+
+    def check_gte(self, left: Any, right: Any, label: str) -> None:
+        if left >= right:
+            return
+        self.check_failed(left, right, ">=", label)
+
+    def add_issue(self, issue: str) -> None:
+        self.issues.append(issue)
+
+    @property
+    def ok(self) -> bool:
+        return len(self.issues) == 0
+
+    def report(self) -> str:
+        if self.ok:
+            return "Parity OK."
+        header = f"{len(self.issues)} parity issue(s):"
+        return "\n---\n".join([header] + self.issues)
+
+
+def found_dependency_is_at_least_as_accurate(
+    py: out.FoundDependency,
+    ml: out.FoundDependency,
+    pr: ParityReporter,
+    ignored_fields: List[str],
+) -> None:
+    py_dict = asdict(py)
+    ml_dict = asdict(ml)
+    for k in py_dict.keys() & ml_dict.keys():
+        if not k in ignored_fields:
+            pr.check_eq(py_dict[k], ml_dict[k], f"FoundDependency field '{k}'")
+
+
+def resolved_dependency_is_at_least_as_accurate(
+    py: out.ResolvedDependency,
+    ml: out.ResolvedDependency,
+    pr: ParityReporter,
+    ignored_fields: List[str],
+) -> None:
+    py_found_dep, py_download_dep = py.value
+    ml_found_dep, ml_download_dep = ml.value
+    found_dependency_is_at_least_as_accurate(
+        py_found_dep, ml_found_dep, pr, ignored_fields
+    )
+    pr.check_eq(py_download_dep, ml_download_dep, "Download dependency")
+
+
+def name_version_tuple(resolved_dep: out.ResolvedDependency) -> tuple[str, str]:
+    found_dep, _ = resolved_dep.value
+    return (found_dep.package, found_dep.version)
+
+
+def get_line_number(resolved_dep: out.ResolvedDependency) -> int:
+    found_dep, _ = resolved_dep.value
+    return found_dep.line_number or -1
+
+
+def group_packages_by_name_version_and_line_number(
+    l: List[out.ResolvedDependency],
+) -> dict[tuple[str, str], dict[int, out.ResolvedDependency]]:
+    packages: dict[tuple[str, str], dict[int, out.ResolvedDependency]] = {}
+    for r in l:
+        nv = name_version_tuple(r)
+        if nv not in packages:
+            packages[nv] = {}
+        n = get_line_number(r)
+        packages[nv][n] = r
+    return packages
+
+
+def find_root_package_heuristic(
+    resolved_deps: List[out.ResolvedDependency],
+) -> Optional[out.ResolvedDependency]:
+    """Heuristic to identify root package resolved by Python npm lockfile parser.
+
+    The Python parser for npm lockfile v3 includes the root package, which the
+    OCaml parser doesn't. We implement a heuristic to identify the root package
+    in the Python parser results, so that we can ignore it in comparisons.
+    """
+    resolved = sorted(resolved_deps, key=lambda r: get_line_number(r))
+    if resolved:
+        first, _ = resolved[0].value
+        transitive = out.DependencyKind(out.Transitive())
+        # NOTE: It's quite unlikely that the first package resolved by other
+        # parsers would be a transitive dependency. So, this shouldn't be a
+        # problem with other parsers too.
+        if (
+            not first.allowed_hashes
+            and first.resolved_url is None
+            and first.transitivity == transitive
+        ):
+            return resolved[0]
+    return None
+
+
+def dependency_resolution_is_at_least_as_accurate(
+    py: DependencyResolutionResult,
+    ml: DependencyResolutionResult,
+    ds: out.DependencySource,
+) -> ParityReporter:
+    pr = ParityReporter()
+
+    if isinstance(py.deps, out.UnresolvedReason):
+        pr.add_issue("Python parser result is unresolved")
+        return pr
+
+    if isinstance(ml.deps, out.UnresolvedReason):
+        pr.add_issue("OCaml parser result is unresolved")
+        return pr
+
+    py_res_meth, py_resolved = py.deps
+    ml_res_meth, ml_resolved = ml.deps
+
+    pr.check_eq(set(py.errors), set(ml.errors), "Parser errors")
+    pr.check_eq(set(py.targets), set(ml.targets), "Parser targets")
+    pr.check_eq(py_res_meth, ml_res_meth, "Parser resolution method")
+    pr.check_gte(len(py_resolved), len(ml_resolved), "Number of resolved dependencies")
+
+    py_resolved_nvs = set(name_version_tuple(r) for r in py_resolved)
+    ml_resolved_nvs = set(name_version_tuple(r) for r in ml_resolved)
+    py_extra_nvs = py_resolved_nvs - ml_resolved_nvs
+    # TODO: This if block exists only to handle the presence of the root
+    # package in the Python npm lockfile parser. We can get rid of this
+    # entirely once the Python npm lockfile parser is gone!
+    if py_extra_nvs:
+        pr.check_eq(
+            1,
+            len(py_extra_nvs),
+            "Number of extra name/version pairs in Python parser result",
+        )
+        # If Python parser has resolved extra name/versions, check if it's the
+        # root package (heuristically) and ignore it if so
+        root_py = find_root_package_heuristic(py_resolved)
+        if root_py:
+            nv = name_version_tuple(root_py)
+            py_resolved_nvs.remove(nv)
+
+    pr.check_eq(
+        py_resolved_nvs,
+        ml_resolved_nvs,
+        "Resolved dependency name/version pairs",
+    )
+
+    line_numbers_py = {get_line_number(r) for r in py_resolved}
+    line_numbers_ml = {get_line_number(r) for r in ml_resolved}
+    missing_lines = line_numbers_ml - line_numbers_py
+    if missing_lines:
+        pr.add_issue(
+            f"Python parser resolved dependencies at line numbers: {line_numbers_py}\n"
+            f"OCaml parser resolved dependencies at line numbers: {line_numbers_ml}.\n"
+            f"Python parser is missing resolved dependencies at line numbers {missing_lines}."
+        )
+
+    # We assume that the Python parser may produce duplicate resolved
+    # dependencies for the same name/version that differ only in line number,
+    # while the OCaml parser produces at most one resolved dependency per
+    # name/version. So, we group resolved dependencies by name/version and line
+    # number, and then check that for each resolved dependency produced by the
+    # OCaml parser, there is a resolved dependency produced by the Python
+    # parser with the same name/version and line number, and that the resolved
+    # dependency from the Python parser is at least as accurate as the one from
+    # the OCaml parser.
+    group_by_package_py = group_packages_by_name_version_and_line_number(py_resolved)
+    group_by_package_ml = group_packages_by_name_version_and_line_number(ml_resolved)
+    resolved_pairs = [
+        (group_by_package_py[nv][n], r_ml)
+        for nv, data in group_by_package_ml.items()
+        for n, r_ml in data.items()
+        if nv in group_by_package_py and n in group_by_package_py[nv]
+    ]
+
+    lockfile_kind = get_lockfile_kind(ds.value)
+    ignored_fields = (
+        IGNORED_FIELDS_BY_LOCKFILE_KIND.get(lockfile_kind, []) if lockfile_kind else []
+    )
+    for py_res, ml_res in resolved_pairs:
+        resolved_dependency_is_at_least_as_accurate(py_res, ml_res, pr, ignored_fields)
+
+    if not resolved_pairs and ml_resolved_nvs:
+        pr.add_issue(
+            "No resolved dependencies with matching name/version and line number were found between the two parsers. "
+            "This may indicate that the parsers are producing completely different results, or that they are parsing different parts of the file."
+        )
+
+    return pr
