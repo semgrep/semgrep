@@ -70,6 +70,7 @@ from semgrep.simple_profiling import simple_profiling
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.types import fpaths_of_targets
 from semgrep.types import Target
 from semgrep.types import target_info_acc_of_target_acc
 from semgrep.types import TargetAccumulator
@@ -892,6 +893,14 @@ class CoreRunner:
         impossible to compute the unused rules accurately, so if make_target_info_and_unused_rules is False,
         unused rules will be set to the empty list.
         """
+        current_span = telemetry.get_current_span()
+        # add product as attribute so we can tell what product this was called for
+        current_span.set_attribute(
+            "product", product.value.kind if product else "unset"
+        )
+
+        if all_targets is None:
+            all_targets = TargetAccumulator()
         # The range of target_info is (index into rules x product as json)
         target_info: Dict[
             Tuple[Target, Language], Tuple[List[int], Set[out.Product]]
@@ -908,8 +917,7 @@ class CoreRunner:
                     )
 
                     targets = selection.targets
-                    if all_targets is not None:
-                        all_targets.targets.update(targets)
+                    all_targets.targets.update(targets)
 
                     some_target = some_target or len(targets) > 0
 
@@ -921,6 +929,12 @@ class CoreRunner:
                 if not some_target:
                     unused_rules.append(rule)
 
+        phase_targets = [target for (target, _language) in target_info.keys()]
+        telemetry.record_phase_data(
+            telemetry.get_current_span(),
+            fpaths_of_targets(phase_targets),
+            rules,
+        )
         return Plan(
             [
                 Task(
@@ -939,6 +953,7 @@ class CoreRunner:
         )
 
     # TODO: move some of those parameters to CoreRunner.__init__()?
+    @telemetry.trace()
     def _run_rules_direct_to_semgrep_core_helper(
         self,
         rules: List[Rule],
@@ -955,6 +970,7 @@ class CoreRunner:
         x_parmap: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
+
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
@@ -1053,6 +1069,11 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             )
 
             plan.record_metrics()
+            telemetry.record_phase_data(
+                telemetry.get_current_span(),
+                fpaths_of_targets(all_targets.targets),
+                rules,
+            )
             if target_mode_config.is_historical_scan:
                 cmd.extend(["-historical", "-only_validated"])
             else:

@@ -22,7 +22,10 @@ import json
 import logging
 import os
 from enum import Enum
+from pathlib import Path
+from typing import Any
 from typing import Callable
+from typing import Collection
 from typing import TypeVar
 from urllib import parse
 
@@ -48,6 +51,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import ResourceDetector
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.trace import Span
 from opentelemetry.trace import SpanContext
 from opentelemetry.trace import SpanKind
 from opentelemetry.util.types import Attributes
@@ -171,6 +175,41 @@ def filter_attrs_for_inject(d: Attributes) -> Attributes:
         if k not in INJECT_ATTR_FILTER:
             new_attrs[k] = d[k]  # type: ignore
     return new_attrs
+
+
+# coupling: Trace_data.ml, datadog metrics
+#
+# record_phase_data records metrics for functions that take both sets of files
+# and sets of rules as inputs. This let's us autogenerate and alert on
+# performance metrics that are normalized by the size of the input and the
+# number of rules, which are two major factors in how long a scan takes. We can
+# also alert on things like if we see a lot of scans that have a small number of
+# rules but still take a long time, which might be an indication of a perf issue
+# somewhere silly.
+def record_phase_data(
+    span: Span,
+    paths: Collection[Path],
+    rules: Collection[Any],
+    timeout: int = 0,
+    memory_limit: int = 0,
+    jobs: int = 1,
+) -> None:
+    if not span.is_recording():
+        return
+    try:
+        size_bytes = sum([path.stat().st_size for path in paths])
+    except OSError:
+        size_bytes = 0
+    span.set_attributes(
+        {
+            "scan.phase.targets.bytes": size_bytes,
+            "scan.phase.targets.count": len(paths),
+            "scan.phase.rules.count": len(rules),
+            "scan.phase.timeout_s": timeout,
+            "scan.phase.memory_limit_mb": memory_limit,
+            "scan.phase.jobs.count": jobs,
+        }
+    )
 
 
 # Normally Opentelemetry resources are supposed to be immutable. But pysemgrep
@@ -379,7 +418,7 @@ R = TypeVar("R")
 # errors, perf regressions, etc.
 class TraceOwner(Enum):
     # These are datadog alert aliases
-    SAF = "team-saf"  # Semgrep Analysis Foundations
+    ENGINE = "team-engine"  # Team engine
     SSC = "team-ssc"  # Semgrep Supply Chain
 
     # If you add a new owner here, thank you! Please remember to talk with SAF
@@ -387,7 +426,7 @@ class TraceOwner(Enum):
 
 
 def trace(
-    owner: TraceOwner = TraceOwner.SAF,
+    owner: TraceOwner = TraceOwner.ENGINE,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     def outer(f: Callable[P, R]) -> Callable[P, R]:
         span_name = f"{f.__module__}.{f.__name__}"
