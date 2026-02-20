@@ -17,6 +17,7 @@
 import sys
 from textwrap import wrap
 from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Union
 
@@ -38,6 +39,8 @@ from semgrep.state import get_state
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.types import fpaths_of_targets
+from semgrep.types import TargetAccumulator
 from semgrep.util import is_secrets_ai_ruleset
 from semgrep.util import unit_str
 from semgrep.util import with_color
@@ -367,6 +370,8 @@ def print_scan_status(
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
+    # Used for recording phase data
+    target_accumulator: Optional[TargetAccumulator] = None,
 ) -> int:
     """
     Prints the scan status and returns the plans
@@ -375,6 +380,9 @@ def print_scan_status(
     simple_ux = cli_ux == DesignTreatment.SIMPLE
     detailed_ux = cli_ux == DesignTreatment.DETAILED
     minimal_ux = cli_ux == DesignTreatment.MINIMAL
+    if target_accumulator is None:
+        target_accumulator = TargetAccumulator()
+    initial_accumulator_paths = fpaths_of_targets(target_accumulator.targets)
 
     sast_plan = CoreRunner.plan_core_run(
         [
@@ -393,6 +401,7 @@ def print_scan_status(
         product=out.Product(
             out.SAST()
         ),  # code-smell since secrets and sast are within the same plan
+        all_targets=target_accumulator,
     )
 
     used_ecosystems = {
@@ -413,6 +422,17 @@ def print_scan_status(
         # we don't use target info for printing the sca plan, and with dependency-only
         # rules it gets very expensive to compute. We skip it.
         make_target_info_and_unused_rules=False,
+        all_targets=target_accumulator,
+    )
+
+    telemetry.record_phase_data(
+        telemetry.get_current_span(),
+        [
+            path
+            for path in fpaths_of_targets(target_accumulator.targets)
+            if path not in initial_accumulator_paths
+        ],
+        rules,
     )
 
     plans = [sast_plan, sca_plan]
