@@ -1,0 +1,11 @@
+rules:
+  - id: insecure-hash-algorithm-sha1
+    pattern: hashlib.sha1(...)
+    message: Detected SHA1 hash algorithm which is considered insecure.
+    severity: WARNING
+    languages: [python]
+  - id: insecure-hash-algorithm-md5
+    pattern: hashlib.md5(...)
+    message: Detected MD5 hash algorithm which is considered insecure.
+    severity: WARNING
+    languages: [python]

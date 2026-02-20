@@ -112,6 +112,30 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, posix_sn
     )
 
 
+# When multiple rules fire on lines each with a nosemgrep comment, both
+# findings must be marked as suppressed in SARIF (not only one).
+@pytest.mark.kinda_slow
+@skip_on_windows  # matchBasedId change
+def test_sarif_output_nosemgrep_suppresses_both_md5_and_sha1(
+    run_semgrep_in_tmp: RunSemgrep,
+):
+    res = run_semgrep_in_tmp(
+        "rules/insecure-hash-both.yaml",
+        target_name="basic/insecure_hashes_nosemgrep.py",
+        output_format=OutputFormat.SARIF,
+        is_logged_in_weak=True,
+    )
+    sarif = json.loads(res.stdout)
+    results = sarif["runs"][0]["results"]
+    assert len(results) == 2, "expected one finding for md5 and one for sha1"
+    for r in results:
+        assert "suppressions" in r, f"result {r.get('ruleId')} missing suppressions"
+        suppressions = r["suppressions"]
+        assert len(suppressions) >= 1 and suppressions[0].get("kind") == "inSource", (
+            f"result {r.get('ruleId')} should have inSource suppression, got {suppressions}"
+        )
+
+
 # Test that rule board information makes its way into SARIF output
 @pytest.mark.kinda_slow
 @skip_on_windows  # matchBasedId change
