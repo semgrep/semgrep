@@ -114,6 +114,8 @@ from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.types import FilteredMatches
+from semgrep.types import fpaths_of_targets
+from semgrep.types import TargetAccumulator
 from semgrep.types import TargetInfo
 from semgrep.util import flatten
 from semgrep.util import unit_str
@@ -478,12 +480,21 @@ def baseline_run(
         logger.info("")
         try:
             with baseline_handler.baseline_context():
+                rules_of_matches = [
+                    rule for rule, matches in rule_matches_by_rule.items() if matches
+                ]
+
                 baseline_scanning_root_strings = scanning_root_strings
                 baseline_target_mode_config = target_mode_config
                 baseline_scanning_root_strings = frozenset(
                     Path(t)
                     for t in baseline_targets
                     if t.exists() and not t.is_symlink()
+                )
+                telemetry.record_phase_data(
+                    telemetry.get_current_span(),
+                    baseline_scanning_root_strings,
+                    rules_of_matches,
                 )
                 baseline_target_manager = TargetManager(
                     scanning_root_strings=baseline_scanning_root_strings,
@@ -509,7 +520,7 @@ def baseline_run(
                     _,
                 ) = run_rules(
                     # only the rules that had a match
-                    [rule for rule, matches in rule_matches_by_rule.items() if matches],
+                    rules_of_matches,
                     baseline_target_manager,
                     baseline_target_mode_config,
                     core_runner,
@@ -721,6 +732,11 @@ def resolve_dependencies(
     # Filter rules that match the dependencies
     filtered_dependency_aware_rules = filter_dependency_aware_rules(
         dependency_aware_rules, resolved_subprojects
+    )
+    telemetry.record_phase_data(
+        telemetry.get_current_span(),
+        sca_dependency_targets,
+        dependency_aware_rules,
     )
 
     return (
@@ -1000,6 +1016,8 @@ def run_rules(
     # Step3: reporting the plan
     # ---------------------------------------
 
+    # for phase data
+    target_accumulator = TargetAccumulator()
     cli_ux = get_state().get_cli_ux_flavor()
     executed_rule_count = scan_report.print_scan_status(
         filtered_rules,
@@ -1010,6 +1028,13 @@ def run_rules(
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
+        target_accumulator=target_accumulator,
+    )
+
+    telemetry.record_phase_data(
+        telemetry.get_current_span(),
+        fpaths_of_targets(target_accumulator.targets),
+        filtered_rules,
     )
 
     # ---------------------------------------

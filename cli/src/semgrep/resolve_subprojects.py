@@ -297,6 +297,7 @@ def resolve_subprojects(
         respect_gitignore=False,
         extra_glob_patterns_to_include_git_untracked_files=get_all_subproject_identifying_glob_filters(),
     )
+
     # To list all the subprojects discovered by the function, use
     # 'semgrep show subprojects'
     # TODO: implement 'semgrep show subprojects'
@@ -387,4 +388,9 @@ def resolve_subprojects(
 
             progress.remove_task(task_id)
 
+    telemetry.record_phase_data(
+        telemetry.get_current_span(),
+        dependency_targets,
+        dependency_aware_rules,
+    )
     return unresolved, resolved, dependency_targets
