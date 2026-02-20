@@ -47,6 +47,23 @@ val no_analysis_features : unit -> analysis_flags
 val data_of_languages : Analyzer.t list -> (string * Telemetry.user_data) list
 (** Convenience function to turn a list of interfile languages into otel data *)
 
+val record_phase_data :
+  ?timeout:float ->
+  ?memory_limit:int ->
+  ?jobs:int ->
+  fpaths:Fpath.t list ->
+  rules:'a list ->
+  Telemetry.scope ->
+  unit
+(** [record_phase_data ~fpaths ~rules span] records "phase" attributes on a
+    span. A phase is any function that takes a set of targets and a set of rules
+    as input. This let's us autogenerate and alert on performance metrics that
+    are normalized by the size of the input and the number of rules, which are
+    two major factors in how long a scan takes. We can also alert on things like
+    if we see a lot of scans that have a small number of rules but still take a
+    long time, which might be an indication of a perf issue somewhere silly.
+*)
+
 val get_resource_attrs :
   ?env:string ->
   engine:string ->
