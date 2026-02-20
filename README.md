@@ -9,7 +9,7 @@
   </a>
 </p>
 <h2 align="center">
-  Code scanning at ludicrous speed.
+  Code scanning at ludicrous speed. Another test pr
 </h2>
 <p align="center">
   <a href="https://formulae.brew.sh/formula/semgrep">
