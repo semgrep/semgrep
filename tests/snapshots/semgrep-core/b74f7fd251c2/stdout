@@ -90,29 +90,23 @@
                                  (Block
                                     (_,
                                      [{ s =
-                                        (ExprStmt (
-                                           { e =
-                                             (StmtExpr
-                                                { s =
-                                                  (Block
-                                                     (_,
-                                                      [{ s =
-                                                         (DefStmt
-                                                            ({ name =
-                                                               (EN
+                                        (Block
+                                           (_,
+                                            [{ s =
+                                               (DefStmt
+                                                  ({ name =
+                                                     (EN
+                                                        (Id (("x", _),
+                                                           { id_resolved =
+                                                             ref ((Some (
+                                                             Global, _)));
+                                                             id_resolved_alternatives =
+                                                             ref ([]);
+                                                             id_type =
+                                                             ref ((Some 
+                                                             { t =
+                                                               (TyN
                                                                   (Id (
-                                                                    ("x", _),
-                                                                    { id_resolved =
-                                                                    ref ((Some (
-                                                                    Global, _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
                                                                     ("int", _),
                                                                     { id_resolved =
                                                                     ref (None);
@@ -127,50 +121,37 @@
                                                                     ref (0);
                                                                     id_info_id =
                                                                     _ })));
-                                                                    t_attrs =
-                                                                    [] }));
-                                                                    id_svalue =
-                                                                    ref (None);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                               attrs =
-                                                               [(KeywordAttr
-                                                                   (Mutable,
-                                                                    _))
-                                                                 ];
-                                                               tparams = None
-                                                               },
-                                                             (VarDef
-                                                                { vinit =
-                                                                  (Some 
-                                                                  { e =
-                                                                    (
-                                                                    L
-                                                                    (Int
+                                                               t_attrs = [] }));
+                                                             id_svalue =
+                                                             ref (None);
+                                                             id_flags =
+                                                             ref (0);
+                                                             id_info_id = _ }
+                                                           )));
+                                                     attrs =
+                                                     [(KeywordAttr
+                                                         (Mutable, _))
+                                                       ];
+                                                     tparams = None },
+                                                   (VarDef
+                                                      { vinit =
+                                                        (Some { e =
+                                                                (L
+                                                                   (Int
                                                                     ((Some 2L),
                                                                     _)));
-                                                                    e_id = 0;
-                                                                    e_range =
-                                                                    None;
-                                                                    is_implicit_return =
-                                                                    false;
-                                                                    facts =
-                                                                    <opaque>
-                                                                    });
-                                                                  vtype =
-                                                                  None;
-                                                                  vtok = None
-                                                                  })));
-                                                         s_range = None }
-                                                        ],
-                                                      _));
-                                                  s_range = None });
-                                             e_id = 0; e_range = None;
-                                             is_implicit_return = false;
-                                             facts = <opaque> },
-                                           _));
+                                                                e_id = 0;
+                                                                e_range =
+                                                                None;
+                                                                is_implicit_return =
+                                                                false;
+                                                                facts =
+                                                                <opaque> });
+                                                        vtype = None;
+                                                        vtok = None })));
+                                               s_range = None }
+                                              ],
+                                            _));
                                         s_range = None }
                                        ],
                                      _));

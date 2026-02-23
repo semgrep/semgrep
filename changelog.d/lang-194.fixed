@@ -1,0 +1,7 @@
+Scala: Fixed a parsing bug where subsequent calls in an implicit block would not
+be considered at the same scope, e.g.
+```
+def f (a: t) =
+  foo()
+  bar()
+```

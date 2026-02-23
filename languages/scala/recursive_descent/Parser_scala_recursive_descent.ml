@@ -658,18 +658,21 @@ let closeIndentRegion in_ =
    def foo() =
      val x = 3
 
-   It's not guaranteed, however, such as if we saw something like
+   new: We used to be gung-ho about checking whether the next token was a valid
+   expression start, such as in the example of
 
    def foo() =
      3
 
-   where `{ 3 }` is not a valid BlockExpr.
+   where `{ 3 }` is apparently not a valid BlockExpr.
 
-   So we will only assume it's an implicit blockExpr if it's both indented,
-   and not the start to an expression.
+   But, in reality, who cares, let's be permissive. Having an indented start
+   is good enough for us to consider it an implicit blockExpr.
+
+   (some corollary changes were needed for `blockExprAsExpr` to not introduce
+   too many unneeded BlockExpr nodes)
 *)
-let isIndentedBlockExprStart in_ =
-  Option.is_some (passedIndent in_) && not (TH.isExprIntro in_.token)
+let isIndentedBlockExprStart in_ = Option.is_some (passedIndent in_)
 
 (*****************************************************************************)
 (* Special parsing  *)
@@ -2160,7 +2163,7 @@ and simpleExpr ?(is_block_expr = false) in_ : expr =
            match in_.token with
            | _ when is_block_expr ->
                canApply := false;
-               BlockExpr (blockExpr in_)
+               blockExprAsExpr in_
            | x when TH.isLiteral x ->
                let x = literal in_ in
                L x
@@ -2202,8 +2205,7 @@ and simpleExpr ?(is_block_expr = false) in_ : expr =
                | _ -> Tuple tuple)
            | LBRACE _ ->
                canApply := false;
-               let x = blockExpr in_ in
-               BlockExpr x
+               blockExprAsExpr in_
            | QUOTE quote ->
                let x = quoted quote in_ in
                Quoted x
@@ -2865,6 +2867,11 @@ and blockExpr in_ : block_expr =
           let xs = block in_ in
           BEBlock xs)
     in_
+
+and blockExprAsExpr in_ : expr =
+  match blockExpr in_ with
+  | _, BEBlock [ E e ], _ -> e
+  | e -> BlockExpr e
 
 (* ------------------------------------------------------------------------- *)
 (* Enumerator/generator *)
