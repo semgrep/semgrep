@@ -77,45 +77,30 @@
                                       facts = <opaque> }))
                                  ]),
                             { s =
-                              (ExprStmt (
-                                 { e =
-                                   (StmtExpr
-                                      { s =
-                                        (Block
-                                           (_,
-                                            [{ s =
-                                               (DirectiveStmt
-                                                  { d =
-                                                    (ImportFrom (_,
-                                                       (DottedName []),
-                                                       [(Direct
-                                                           (("foo", _),
-                                                            { id_resolved =
-                                                              ref ((Some (
-                                                              (ImportedEntity
-                                                                 ["foo"]),
-                                                              _)));
-                                                              id_resolved_alternatives =
-                                                              ref ([]);
-                                                              id_type =
-                                                              ref (None);
-                                                              id_svalue =
-                                                              ref (None);
-                                                              id_flags =
-                                                              ref (0);
-                                                              id_info_id = _
-                                                              }))
-                                                         ]
-                                                       ));
-                                                    d_attrs = [] });
-                                               s_range = None }
-                                              ],
-                                            _));
-                                        s_range = None });
-                                   e_id = 0; e_range = None;
-                                   is_implicit_return = false;
-                                   facts = <opaque> },
-                                 _));
+                              (Block
+                                 (_,
+                                  [{ s =
+                                     (DirectiveStmt
+                                        { d =
+                                          (ImportFrom (_, (DottedName []),
+                                             [(Direct
+                                                 (("foo", _),
+                                                  { id_resolved =
+                                                    ref ((Some ((ImportedEntity
+                                                                   ["foo"]),
+                                                                _)));
+                                                    id_resolved_alternatives =
+                                                    ref ([]);
+                                                    id_type = ref (None);
+                                                    id_svalue = ref (None);
+                                                    id_flags = ref (0);
+                                                    id_info_id = _ }))
+                                               ]
+                                             ));
+                                          d_attrs = [] });
+                                     s_range = None }
+                                    ],
+                                  _));
                               s_range = None }
                             ));
                          s_range = None });

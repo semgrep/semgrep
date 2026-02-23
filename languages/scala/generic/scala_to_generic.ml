@@ -680,6 +680,16 @@ and v_block_expr_kind = function
 and v_expr_for_stmt (e : expr) : G.stmt =
   match e with
   | S s -> v_stmt s
+  (* this prevents us from introducing unnecessary ExprStmt (StmtExpr ...)
+     if there is a block
+
+     you can see this in examples like
+     if (...)
+       ...
+   *)
+  | BlockExpr (l, BEBlock b, r) ->
+      let b = v_block b in
+      G.Block (l, b, r) |> G.s
   | _ ->
       let e = v_expr e in
       G.ExprStmt (e, G.sc) |> G.s
