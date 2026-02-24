@@ -67,7 +67,6 @@ local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, 
   'timeout-minutes': timeout_minutes,
   run: |||
     # Wait for the %(job_name)s job to complete on the given commit
-    COMMIT_SHA=%(commit_sha)s
     echo "Waiting for %(job_name)s job to complete on commit: $COMMIT_SHA"
 
     # Wait for the job to complete
@@ -99,6 +98,7 @@ local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, 
   },
   env: {
     GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+    COMMIT_SHA: commit_sha,
   },
 };
 
