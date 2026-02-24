@@ -1,154 +1,25 @@
 // Build and validate our (multi-arch) semgrep docker image defined in our
 // Dockerfile and save it as a GHA artifact.
 
+local docker = import 'libs/docker.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 local uses = import 'libs/uses.libsonnet';
 
-// ----------------------------------------------------------------------------
-// Input
-// ----------------------------------------------------------------------------
-local inputs(default) = {
-  inputs: {
-    // See https://github.com/docker/metadata-action#flavor-input
-    'docker-flavor': {
-      type: 'string',
-      description: 'Multi-line string for the metadata tag action for the flavor of the image. ',
-      required: true,
-    },
-    // See https://github.com/docker/metadata-action#tags-input
-    'docker-tags': {
-      type: 'string',
-      description: 'Multi-line string for the metadata tag action for the tags to apply to the image. ',
-      required: true,
-    },
-    'artifact-name': {
-      type: 'string',
-      description: 'Name (key) to use when uploading the docker image tarball as a artifact',
-      required: true,
-    },
-    'repository-name': {
-      type: 'string',
-      description: 'The repository/name of the docker image to push, e.g., semgrep/semgrep',
-      required: true,
-
-    } + if default then { default: 'returntocorp/semgrep' } else {},
-    file: {
-      type: 'string',
-      description: 'Dockerfile to build',
-      required: true,
-    } + if default then { default: 'Dockerfile' } else {},
-    target: {
-      type: 'string',
-      description: 'Dockerfile target to build',
-      required: true,
-    },
-    'enable-tests': {
-      type: 'boolean',
-      description: 'Whether or not to run validation on the built image',
-      required: true,
-    },
-  },
-};
-
-// ----------------------------------------------------------------------------
-// The Job
-// ----------------------------------------------------------------------------
-
-local job = {
-  'runs-on': 'ubuntu-latest',
-  permissions: gha.read_permissions,
-  strategy: {
-    matrix: {
-      // multi-arch!! https://docs.docker.com/build/building/multi-platform/
-      architecture: [
-        'amd64',
-        'arm64',
-      ],
-    },
-  },
-  steps: [
-    {
-      'if': "${{ matrix.architecture != 'amd64' }}",
-      uses: uses.docker.setup_qemu_action,
-    },
-    {
-      uses: uses.docker.setup_buildx_action,
-    },
-    {
-      id: 'meta',
-      name: 'Set tags and labels',
-      uses: uses.docker.metadata_action,
-      with: {
-        images: '${{ inputs.repository-name }}',
-        flavor: '${{ inputs.docker-flavor }}',
-        tags: '${{ inputs.docker-tags }}',
-      },
-    },
-    // We're now using depot.dev to build our docker image which is
-    // more efficient, especially for arm64.
-    {
-      uses: uses.depot.setup_action,
-    },
-    {
-      name: 'Build image',
-      id: 'build-image',
-      uses: uses.depot.build_push_action,
-      with: {
-        project: semgrep.depot_project_id,
-        platforms: 'linux/${{ matrix.architecture }}',
-        outputs: 'type=docker,dest=/tmp/image.tar',
-        tags: '${{ steps.meta.outputs.tags }}',
-        labels: '${{ steps.meta.outputs.labels }}',
-        file: '${{ inputs.file }}',
-        target: '${{ inputs.target }}',
-        // We used to set this to true, just in case Depot had some bugs
-        // but this would fallback for any error, not just Depot error,
-        // and then you need to wait 1h30min to actually see the error
-        // so better to set this to false
-        'buildx-fallback': false,
-        secrets: 'SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }}',
-      },
-    },
-    {
-      name: 'Load image',
-      'if': '${{ inputs.enable-tests }}',
-      run: 'docker load --input /tmp/image.tar',
-    },
-    {
-      uses: uses.actions.checkout,
-      'if': '${{ inputs.enable-tests }}',
-    },
-    {
-      name: 'Test Image',
-      'if': '${{ inputs.enable-tests }}',
-      env: {
-        IMAGE: '${{ inputs.repository-name }}@${{ steps.build-image.outputs.digest }}',
-      },
-      run: './scripts/validate-docker-build.sh "$IMAGE" linux/${{ matrix.architecture }}',
-    },
-    // usually called semgrep-docker-image-artifcact-*, but I see no reference
-    // to this in the rest of the code. Do we need this?
-    {
-      uses: uses.actions.upload_artifact,
-      with: {
-        name: '${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}',
-        path: '/tmp/image.tar',
-      },
-    },
-  ],
-};
+local build_job = docker.build_and_run_gha_job(
+  name='build-test-docker',
+  description='Build Core',
+  target='semgrep-cli',
+  write_permission=false,
+);
 
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
 {
   name: 'build-test-docker',
-  on: {
-    workflow_dispatch: inputs(default=true),
-    workflow_call: inputs(default=false),
-  },
+  on: docker.on_docker_workflow('build-test-docker'),
   jobs: {
-    job: job,
+    'build-test-docker': build_job,
   },
 }

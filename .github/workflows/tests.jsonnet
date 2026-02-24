@@ -14,11 +14,6 @@ local uses = import 'libs/uses.libsonnet';
 // some jobs rely on artifacts produced by these workflow
 local core_x86 = import 'build-test-core-x86.jsonnet';
 
-// intermediate image produced by build-push-action
-local docker_artifact_name = 'semgrep-docker-image-artifact';
-
-local docker_repository_name = 'semgrep/semgrep';
-
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
@@ -303,81 +298,9 @@ local benchmarks_lite_job = {
 // Docker
 // ----------------------------------------------------------------------------
 
-// In the jobs below, we set certain docker "tags".
-// To make a comparison to git:
-// - docker image == git repository
-//   example: semgrep/semgrep
-// - docker digest == git commit
-//   example: sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3
-// - docker tag == git ref
-//   example: :latest, :canary, 1.2.3, pr-4434
-//
-// You can see those tags in use here:
-// https://hub.docker.com/r/semgrep/semgrep/tags
-//
-// Example of docker tags:
-// - # tag image with full version (ex. "1.2.3")
-//   type=semver,pattern={{version}}
-// - # tag image with major.minor (ex. "1.2")
-//   type=semver,pattern={{major}}.{{minor}}
-// - # tag image with pr (ex. "pr-42", great for bisecting)
-//   type=ref,event=pr
-// - # tag image with branch (ex: "develop")
-//   type=ref,event=branch
-// - # tag image with commit (ex: "sha-ab324a")
-//   type=sha,event=branch
-// - # not sure we need this one
-//   type=edge
-
 local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yml',
   secrets: 'inherit',
-  with: {
-    'docker-flavor': |||
-      latest=false
-    |||,
-    'docker-tags': |||
-      type=ref,event=pr
-      type=ref,event=branch
-      type=sha,event=branch
-    |||,
-    'artifact-name': docker_artifact_name,
-    'repository-name': docker_repository_name,
-    file: 'Dockerfile',
-    // see the Dockerfile, this is the name root variant
-    target: 'semgrep-oss',
-    'enable-tests': true,
-  },
-};
-
-// The Dockerfile contain different steps and can build different "targets"
-// (e.g., a "nonroot" variant of the official semgrep docker image)
-local build_test_docker_other_target_job(suffix, target) = {
-  // We want to run build-test-docker-other *after* build-test-docker so
-  // that it reuses the warmed-up docker cache.
-  needs: [
-    'build-test-docker',
-  ],
-  uses: './.github/workflows/build-test-docker.yml',
-  secrets: 'inherit',
-  with: {
-    // suffix here! which will be added for each tags
-    'docker-flavor': |||
-      latest=false
-      suffix=%s
-    ||| % suffix,
-    'docker-tags': |||
-      type=sha,event=branch
-      type=ref,event=pr
-    |||,
-    'artifact-name': docker_artifact_name + suffix,
-    'repository-name': docker_repository_name,
-    file: 'Dockerfile',
-    // see the Dockerfile, this is the name of a variant
-    target: target,
-    // TODO: why false here?
-    'enable-tests': false,
-  },
 };
 
 local right_ref_and_right_event =
@@ -418,8 +341,6 @@ local ignore_md = {
     'benchmarks-lite': benchmarks_lite_job,
     // Docker stuff
     'build-test-docker': build_test_docker_job,
-    'build-test-docker-performance-tests':
-      build_test_docker_other_target_job('-performance-tests', 'performance-tests'),
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',

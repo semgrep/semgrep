@@ -378,7 +378,6 @@ local job(
   suffix='',  // suffix for image tags
   artifact_name=null,  // name of artifact to copy from docker image
   needs=[],  // prereq GHA steps
-  script='OSS/scripts/validate-docker-build.sh',  // script to verify docker image ok
   checkout_steps=actions.checkout_with_submodules,
   push=false,  // push to registries including PUBLIC ONES! Do NOT push our code to public plz
   push_ecr=false,  // push only to ecr
@@ -442,12 +441,13 @@ local build_and_run_gha_job(
   description,
   target,
   needs=[],
-  checkout_steps=checkout_steps,
+  checkout_steps=actions.checkout_with_submodules,
   build_args='',
   target_dir=null,
   output_dir=null,
   platforms=default_platforms,
   env='',
+  write_permission=true,
       ) = job(
   name=name,
   target=target,
@@ -467,9 +467,9 @@ local build_and_run_gha_job(
     env=env,
   ),
   load=true
-) + {
-  permissions: gha.pull_request_permissions,
-};
+) + (if write_permission then {
+       permissions: gha.pull_request_permissions,
+     } else {});
 
 local inputs = {
   ref: gha.ref_input,

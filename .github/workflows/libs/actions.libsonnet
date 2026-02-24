@@ -160,8 +160,8 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
         uses: uses.actions.checkout,
         with: {
           submodules: true,
-        },
-      } + (if ref == '' then {} else { ref: ref }),
+        } + (if ref == '' then {} else { ref: ref }),
+      },
     ],
 
   // ---------------------------------------------------------
