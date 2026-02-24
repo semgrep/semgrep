@@ -63,6 +63,39 @@ let log_warning ?tok msg : unit = Log.warn (fun m -> m "%s" (locate ?tok msg))
 let log_error ?tok msg : unit = Log.err (fun m -> m "%s" (locate ?tok msg))
 
 (*****************************************************************************)
+(* Configs *)
+(*****************************************************************************)
+
+(* NOTE "yield as return":
+
+  In Python the `yield` statement functions similarly to a `return` statement
+  but with the added capability of saving the function's state. While this
+  analogy isn't entirely precise, we currently treat it as a return statement
+  for simplicity's sake. *)
+let lang_treat_yield_as_return lang =
+  match lang with
+  | Lang.Python -> true
+  | __else__ -> false
+
+(* NOTE "yield in for-comprehension"
+
+  In Scala the `yield` statement is part of a "for-comprehension" such as:
+
+      for (x <- xs) yield x+1
+
+  which is equivalent to:
+
+      xs.map(x => x + 1)
+
+  So `yield` specifies the mapping of elements in the input collections. And
+  we translate `yield` as an accumulator variable that stores such mappings.
+  *)
+let lang_has_yield_in_for_comprehension lang =
+  match lang with
+  | Lang.Scala -> true
+  | __else__ -> false
+
+(*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 module IdentSet = Sets.String_set
@@ -79,6 +112,9 @@ type env = {
           number of loops up, we keep a stack of break labels instead of just one. *)
   break_labels : label list;
   cont_label : label option;
+  yield_var : IL.name option;
+      (** When translating a yield in a for-comprehension, this variable holds
+        the "collection" that is being built. See NOTE "yield in for-comprehension". *)
   ctx : ctx;
 }
 
@@ -89,6 +125,7 @@ let empty_env (lang : Lang.t) : env =
     stmts = ref [];
     break_labels = [];
     cont_label = None;
+    yield_var = None;
     ctx = empty_ctx;
     lang;
   }
@@ -1037,10 +1074,27 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
         | None -> []
         | Some e1orig -> [ map_expr env e1orig ]
       in
+      let yield_lval =
+        let* yield_var = env.yield_var in
+        (* We are inside a for-comprehension ('env.yield_var' is set). We
+          interpret `yield E` as `yield_var[*] = yield E`, that is, mapping an
+          arbitrary element of the resulting collection. We probably should
+          have the RHS to be just `E`, but `yield E` is convenient here like
+          in case `E` is a tuple, and `yield E` is also the default anyways
+          when there is no 'yield_var'. See NOTE "yield in for-comprehension". *)
+        let any_index =
+          mk_e (Fetch (fresh_lval ~str:"__any__" env tok)) NoOrig
+        in
+        Some
+          {
+            base = Var yield_var;
+            rev_offset = [ { o = Index any_index; oorig = NoOrig } ];
+          }
+      in
       add_instr env
         (mk_i
            (AssignCall
-              ( None,
+              ( yield_lval,
                 {
                   c = CallSpecial ((Yield, tok), mk_unnamed_args yield_args);
                   corig = eorig;
@@ -1425,14 +1479,35 @@ and map_xml_expr env ~ret eorig xml : exp =
         (Composite (CTuple, (tok, List.rev_append attrs body, tok)))
         (Related (G.Xmls xml.G.xml_body))
 
-and map_stmt_expr env ?g_expr st : exp =
+(* 'is_returned' iff the result of evaluating 'st' is the result of the function
+  being translated
+
+  TODO: We should treat all statements the same way and don't have this duplication.
+  TODO: We should also re-think implicit-return analysis... maybe it should be
+    integrated into AST_to_IL ??
+ *)
+and map_stmt_expr env ?(is_returned = false) ?g_expr st : exp =
   let todo () =
     match g_expr with
-    | None -> todo (G.E (G.e (G.StmtExpr st)))
-    | Some e_gen -> todo (G.E e_gen)
+    | None -> fixme_exp ToDo (G.E (G.e (G.StmtExpr st))) (Related (G.S st))
+    | Some e_gen -> fixme_exp ToDo (G.E e_gen) (Related (G.S st))
   in
   match st.G.s with
   | G.ExprStmt (eorig, tok) ->
+      (* How do we end up here? For example, in the Scala code below we have
+          "Yield(StmtExpr(Block[...; ExprStmt(Id tainted)]))":
+
+            for (x <- xs) yield {
+              val tainted = source(x)
+              tainted
+            }
+       *)
+      if is_returned then
+        (* The 'is_returned' path will not go through 'map_expr_stmt' where we
+          have some code adding a dummy `tmp = E` so that 'eorig' can be later
+          marked by 'Implicit_return.markmark_first_instr_ancestor', so we mark
+          'eorig' here. *)
+        eorig.is_implicit_return <- true;
       let e = map_expr env eorig in
       if eorig.is_implicit_return then (
         mk_s (Return (tok, e)) |> add_stmt env;
@@ -1470,10 +1545,10 @@ and map_stmt_expr env ?g_expr st : exp =
        *       see https://www.cs.umd.edu/~mwh/papers/ril.pdf.
        *)
       let ss, e' = map_cond_with_pre_stmts env cond in
-      let pre_a1, e1 = map_stmt_expr_with_pre_stmts env st1 in
+      let pre_a1, e1 = map_stmt_expr_with_pre_stmts env ~is_returned st1 in
       let pre_a2, e2 =
         match opt_st2 with
-        | Some st2 -> map_stmt_expr_with_pre_stmts env st2
+        | Some st2 -> map_stmt_expr_with_pre_stmts env ~is_returned st2
         | None ->
             (* Coming from OCaml-land we would not expect this to happen... but
              * we got some Ruby examples from r2c's SR team where there is an `if`
@@ -1492,14 +1567,26 @@ and map_stmt_expr env ?g_expr st : exp =
         | Some e_gen -> SameAs e_gen
       in
       mk_e (Fetch fresh) eorig
+  | G.For (tok, for_header, st)
+    when lang_has_yield_in_for_comprehension env.lang ->
+      let yield_var = fresh_var ~str:"__yield" env tok in
+      let ss =
+        map_for { env with yield_var = Some yield_var } tok for_header st
+      in
+      add_stmts env ss;
+      let orig = Related (G.Tk tok) in
+      let e = mk_e (Fetch (lval_of_base (Var yield_var))) orig in
+      if is_returned then mk_s (Return (G.fake "return", e)) |> add_stmt env;
+      e
   | G.Switch (_tok, Some scrutinee, branches) when Lang.(equal env.lang Scala)
     -> (
       match Hook.get hook_compile_pattern_matching with
       | Some compile_fn ->
           let ss, e =
             compile_fn env ~cond_with_pre_stmts:map_cond_with_pre_stmts
-              ~stmt_expr_with_pre_stmts:map_stmt_expr_with_pre_stmts scrutinee
-              branches
+              ~stmt_expr_with_pre_stmts:
+                (map_stmt_expr_with_pre_stmts ~is_returned)
+              scrutinee branches
           in
           add_stmts env ss;
           e
@@ -1511,7 +1598,7 @@ and map_stmt_expr env ?g_expr st : exp =
       match List.rev block with
       | st :: rev_sts ->
           rev_sts |> List.rev |> List.concat_map (map_stmt env) |> add_stmts env;
-          map_stmt_expr env st
+          map_stmt_expr env ~is_returned st
       | [] -> mk_unit t (Related (G.S st)))
   | G.Return (t, eorig, _) ->
       mk_s (Return (t, map_expr_opt env t eorig)) |> add_stmt env;
@@ -1561,8 +1648,8 @@ and map_lval_of_ent env ent : lval =
 and map_expr_with_pre_stmts env ?ret e : stmt list * exp =
   with_pre_stmts env (fun env -> map_expr env ?ret e)
 
-and map_stmt_expr_with_pre_stmts env st : stmt list * exp =
-  with_pre_stmts env (fun env -> map_stmt_expr env st)
+and map_stmt_expr_with_pre_stmts env ?is_returned st : stmt list * exp =
+  with_pre_stmts env (fun env -> map_stmt_expr env ?is_returned st)
 
 (* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
 and map_cond_with_pre_stmts env cond : stmt list * exp =
@@ -1812,12 +1899,9 @@ and map_stmt_aux env st : stmt list =
   | G.ExprStmt (eorig, tok) -> (
       match eorig with
       | { is_implicit_return = true; _ } -> implicit_return env eorig tok
-      (* Python's yield statement functions similarly to a return
-         statement but with the added capability of saving the
-         function's state. While this analogy isn't entirely precise,
-         we currently treat it as a return statement for simplicity's
-         sake. *)
-      | { e = Yield (_, Some e, _); _ } when env.lang =*= Lang.Python ->
+      (* See NOTE "yield as return". *)
+      | { e = Yield (_, Some e, _); _ } when lang_treat_yield_as_return env.lang
+        ->
           implicit_return env e tok
       | _ -> map_expr_stmt env eorig tok)
   | G.DefStmt
@@ -1934,42 +2018,9 @@ and map_stmt_aux env st : stmt list =
       st @ ss
       @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
       @ break_label_s
-  | G.For (tok, G.ForEach (pat, tok2, e), st) ->
-      map_for_each env tok (pat, tok2, e) st None
-  | G.For (_, G.MultiForEach [], st) -> map_stmt env st
-  | G.For (_, G.MultiForEach (FEllipsis _ :: _), _) -> sgrep_construct (G.S st)
-  | G.For (tok, G.MultiForEach (FECond (fr, tok2, e) :: for_eachs), st) ->
-      let loop = G.For (tok, G.MultiForEach for_eachs, st) |> G.s in
-      let st = G.If (tok2, Cond e, loop, None) |> G.s in
-      map_for_each env tok fr st None
-  | G.For (tok, G.MultiForEach (FE fr :: for_eachs), st) ->
-      map_for_each env tok fr
-        (G.For (tok, G.MultiForEach for_eachs, st) |> G.s)
-        None
-  | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
-      let cont_label, break_label, st_env = mk_break_continue_labels env tok in
-      let cont_label_s = [ mk_s (Label cont_label) ] in
-      let break_label_s = [ mk_s (Label break_label) ] in
-      let ss1 = map_for_var_or_expr_list env xs in
-      let st = map_stmt st_env st in
-      let ss2, cond =
-        match eopt1 with
-        | None ->
-            let vtrue = G.Bool (true, tok) in
-            ([], mk_e (Literal vtrue) (related_tok tok))
-        | Some e -> map_expr_with_pre_stmts env e
-      in
-      let next =
-        match eopt2 with
-        | None -> []
-        | Some e ->
-            let ss, _eIGNORE = map_expr_with_pre_stmts env e in
-            ss
-      in
-      ss1 @ ss2
-      @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
-      @ break_label_s
-  | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
+  | G.For (tok, for_header, st) ->
+      let ss = map_for env tok for_header st in
+      ss
   (* TODO: repeat env work of controlflow_build.ml *)
   | G.Continue (tok, lbl_ident, _) -> (
       match lbl_ident with
@@ -2096,6 +2147,48 @@ and map_while_aux env tok e main_st else_st =
   ss
   @ [ mk_s (Loop (tok, e', main_st @ cont_label_s @ ss)) ]
   @ else_st @ break_label_s
+
+(* THINK: Hanndle 'ForOrElse' here too? *)
+and map_for env tok for_header st =
+  match for_header with
+  | G.ForEach (pat, tok2, e) -> map_for_each env tok (pat, tok2, e) st None
+  | G.MultiForEach [] -> map_stmt env st
+  | G.MultiForEach (FEllipsis _ :: _) -> sgrep_construct (G.S st)
+  | G.MultiForEach (FECond (fr, tok2, e) :: for_eachs) ->
+      let loop = G.For (tok, G.MultiForEach for_eachs, st) |> G.s in
+      let st = G.If (tok2, Cond e, loop, None) |> G.s in
+      map_for_each env tok fr st None
+  | G.MultiForEach (FE fr :: for_eachs) ->
+      map_for_each env tok fr
+        (G.For (tok, G.MultiForEach for_eachs, st) |> G.s)
+        None
+  | G.ForClassic (xs, eopt1, eopt2) ->
+      let cont_label, break_label, st_env = mk_break_continue_labels env tok in
+      let cont_label_s = [ mk_s (Label cont_label) ] in
+      let break_label_s = [ mk_s (Label break_label) ] in
+      let ss1 = map_for_var_or_expr_list env xs in
+      let st = map_stmt st_env st in
+      let ss2, cond =
+        match eopt1 with
+        | None ->
+            let vtrue = G.Bool (true, tok) in
+            ([], mk_e (Literal vtrue) (related_tok tok))
+        | Some e -> map_expr_with_pre_stmts env e
+      in
+      let next =
+        match eopt2 with
+        | None -> []
+        | Some e ->
+            let ss, _eIGNORE = map_expr_with_pre_stmts env e in
+            ss
+      in
+      let ss =
+        ss1 @ ss2
+        @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
+        @ break_label_s
+      in
+      ss
+  | G.ForEllipsis _ -> sgrep_construct (G.S st)
 
 and map_for_each env tok (pat, tok2, e) main_st else_st =
   let cont_label, break_label, st_env = mk_break_continue_labels env tok in
@@ -2269,8 +2362,24 @@ and map_stmt env st =
   | Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 and map_function_body env fbody : stmt list =
-  let body_stmt = H.funcbody_to_stmt fbody in
-  map_stmt env body_stmt
+  match fbody with
+  | G.FBExpr { e = G.StmtExpr st; _ } ->
+      (* HACK: We handle these StmtExprs directly, so we can pass
+          ~is_returned:true. This allows us to handle e.g. Scala's for-yield
+          which is not covered by implicit-return analysis at the moment. It
+          is also not clear to me if the ideal way of translating for-yield
+          would be through `is_implicit_return`.
+
+          Current implicit-return analysis mostly works for simple expression
+          nodes and not for statements. In Scala the `yield` expression may not
+          be something we want to mark as implicitly returned, but perhaps the
+          `for` loop itself ??
+          *)
+      let ss, _ = map_stmt_expr_with_pre_stmts env ~is_returned:true st in
+      ss
+  | _ ->
+      let body_stmt = H.funcbody_to_stmt fbody in
+      map_stmt env body_stmt
 
 (* We keep it really simple, very far from what would be the proper translation
  * (see https://www.python.org/dev/peps/pep-0343/):

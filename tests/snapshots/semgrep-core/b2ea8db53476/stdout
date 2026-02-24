@@ -243,7 +243,7 @@
                                                             e_id = 0;
                                                             e_range = None;
                                                             is_implicit_return =
-                                                            false;
+                                                            true;
                                                             facts = <opaque>
                                                             },
                                                           _));
@@ -375,7 +375,7 @@
                                                              e_id = 0;
                                                              e_range = None;
                                                              is_implicit_return =
-                                                             false;
+                                                             true;
                                                              facts = <opaque>
                                                              },
                                                            _));
@@ -507,7 +507,7 @@
                                                              e_id = 0;
                                                              e_range = None;
                                                              is_implicit_return =
-                                                             false;
+                                                             true;
                                                              facts = <opaque>
                                                              },
                                                            _));
@@ -546,7 +546,7 @@
                                                              e_id = 0;
                                                              e_range = None;
                                                              is_implicit_return =
-                                                             false;
+                                                             true;
                                                              facts = <opaque>
                                                              },
                                                            _));

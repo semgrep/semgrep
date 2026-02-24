@@ -40,7 +40,7 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
   (* If control reaches a catch node, it's an exception. It can't be a return,
    * so stop visiting here.
    *)
-  | NOther (Noop "catch") -> ()
+  | NOther (Noop "catch") -> (* stop *) ()
   (* Visit ancestor for exit, noop, goto, and join nodes. *)
   | Exit
   | NOther (Noop _)
@@ -57,9 +57,25 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
         "Unit". Ideally, typing information should be used to distinguish between
         these cases. *)
       | { i = AssignCall _; iorig = SameAs e } ->
+          (* found *)
           e.is_implicit_return <- true
-      | _else_ -> ())
-  | _else_ -> ()
+      | { i = Assign _; _ }
+      | { i = AssignCall _; iorig = Related _ | NoOrig }
+      | { i = New _; _ }
+      | { i = AssignAnon _; _ }
+      | { i = FixmeInstr _; _ } ->
+          (* stop *) ())
+  | Enter
+  | TrueNode _
+  | FalseNode _
+  | NCond _
+  | NReturn _
+  | NThrow _
+  | NMatch _
+  | NCase _
+  | NOther _
+  | NTodo _ ->
+      (* stop *) ()
 
 (*****************************************************************************)
 (* Entry point *)

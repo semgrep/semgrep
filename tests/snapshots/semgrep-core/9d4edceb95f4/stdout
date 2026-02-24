@@ -550,7 +550,7 @@
                                       { vinit =
                                         (Some { e = (L (Int ((Some 3L), _)));
                                                 e_id = 0; e_range = None;
-                                                is_implicit_return = false;
+                                                is_implicit_return = true;
                                                 facts = <opaque> });
                                         vtype = None; vtok = None })));
                                s_range = None }

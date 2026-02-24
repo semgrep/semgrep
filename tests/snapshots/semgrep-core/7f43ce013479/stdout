@@ -664,7 +664,7 @@
                                                              e_id = 0;
                                                              e_range = None;
                                                              is_implicit_return =
-                                                             false;
+                                                             true;
                                                              facts = <opaque>
                                                              },
                                                            _));
@@ -1855,7 +1855,8 @@
                                                      e_id = 0;
                                                      e_range = None;
                                                      is_implicit_return =
-                                                     true; facts = <opaque> },
+                                                     false; facts = <opaque>
+                                                     },
                                                    _));
                                                 s_range = None };
                                               { s =
@@ -2170,8 +2171,7 @@
                                                      e_id = 0;
                                                      e_range = None;
                                                      is_implicit_return =
-                                                     false; facts = <opaque>
-                                                     },
+                                                     true; facts = <opaque> },
                                                    _));
                                                 s_range = None }
                                               ],
