@@ -26,6 +26,7 @@ from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.server import create_temp_files_from_code_content
 from semgrep.mcp.server import get_semgrep_app_token
 from semgrep.mcp.server import get_semgrep_scan_args
+from semgrep.mcp.server import remove_temp_dir_from_results
 from semgrep.mcp.server import validate_local_files
 from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
@@ -146,9 +147,21 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> StopHookResponse:
         scan_result: SemgrepScanResult = SemgrepScanResult.model_validate_json(output)
 
         if len(scan_result.results) > 0:
-            hook_response = StopHookResponse(
-                followup_message=f"Found {len(scan_result.results)} security findings in {dir}. Details: {scan_result.results}"
+            remove_temp_dir_from_results(scan_result, temp_dir)
+            reason = str(
+                [
+                    {
+                        "path": r["path"],
+                        "line": r["start"]["line"],
+                        "display_name": r["extra"]["metadata"].get("display-name"),
+                        "message": r["extra"]["message"],
+                        "severity": r["extra"]["severity"],
+                        "cwe": r["extra"]["metadata"].get("cwe"),
+                    }
+                    for r in scan_result.results
+                ]
             )
+            hook_response = StopHookResponse(followup_message=reason)
         else:
             hook_response = StopHookResponse(followup_message=None)
 
