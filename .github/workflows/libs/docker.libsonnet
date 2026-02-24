@@ -279,7 +279,7 @@ local build_steps(
     // To test the docker image from docker hub, you can do something like
     //   docker run -it --rm \
     //     -v $(pwd):/src \
-    //     semgrep/semgrep:pro-pr-XXXX
+    //     semgrep/semgrep:pr-XXXX
     //     semgrep scan /src
     // at a directory with some source code.
     //
@@ -295,8 +295,8 @@ local build_steps(
     //
     //   docker run -it --rm \
     //     -v $(pwd):/src \
-    //     semgrep/semgrep:pro-pr-XXXX
-    //     338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary:pro-pr-XXXX
+    //     semgrep/semgrep:pr-XXXX
+    //     338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary:pr-XXXX
     //     semgrep scan /src
     //
     // where you can look up available images at go/ecr and navigate to the
