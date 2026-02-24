@@ -438,12 +438,11 @@ class ScanHandler:
         span.set_attribute("scan.v2.scan_request_id", scan_request_id)
 
         # Step 1: Build and send create scan request
-        request_body = out.CreateScanRequestBody(
+        request = out.CreateScanRequestV2(
             scan_metadata=self.scan_metadata,
             project_metadata=project_metadata,
             project_config=project_config.to_CiConfigFromRepo(),
         )
-        request = out.CreateScanRequestV2(body=request_body)
 
         logger.debug(
             f"Starting scan (v2) with request_id={scan_request_id}: {json.dumps(request.to_json(), indent=4)}"
@@ -459,7 +458,7 @@ class ScanHandler:
         create_scan_response = out.CreateScanResponseV2.from_json(
             create_response.json()
         )
-        scan_info = create_scan_response.body.info
+        scan_info = create_scan_response.info
 
         # Note: scan_info.id can be null for dry runs
         if scan_info.id:
@@ -489,15 +488,15 @@ class ScanHandler:
             get_config_response = out.GetConfigResponseV2.from_json(
                 config_response.json()
             )
-            status = get_config_response.body.status
+            status = get_config_response.status
 
             if isinstance(status.value, out.Success):
                 # Config is ready
                 span.set_attribute("scan.v2.config_ready", True)
 
                 if (
-                    not get_config_response.body.config
-                    or not get_config_response.body.engine_params
+                    not get_config_response.config
+                    or not get_config_response.engine_params
                 ):
                     raise Exception(
                         f"Config status is Success but config or engine_params is missing"
@@ -505,8 +504,8 @@ class ScanHandler:
 
                 return out.ScanResponse(
                     info=scan_info,
-                    config=get_config_response.body.config,
-                    engine_params=get_config_response.body.engine_params,
+                    config=get_config_response.config,
+                    engine_params=get_config_response.engine_params,
                 )
 
             elif isinstance(status.value, out.Failure):

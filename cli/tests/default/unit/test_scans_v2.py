@@ -22,27 +22,23 @@ SEMGREP_URL = "https://semgrep.dev"
 SCAN_REQUEST_ID = "12345678-1234-5678-1234-567812345678"
 
 CREATE_SCAN_RESPONSE = {
-    "body": {
-        "info": {
-            "id": 42,
-            "enabled_products": [],
-            "deployment_id": 1,
-            "deployment_name": "test-org",
-        }
+    "info": {
+        "id": 42,
+        "enabled_products": [],
+        "deployment_id": 1,
+        "deployment_name": "test-org",
     }
 }
 
 SUCCESS_CONFIG_RESPONSE = {
-    "body": {
-        "status": "success",
-        "config": {"rules": []},
-        "engine_params": {},
-    }
+    "status": "success",
+    "config": {"rules": []},
+    "engine_params": {},
 }
 
-PENDING_CONFIG_RESPONSE = {"body": {"status": "pending"}}
+PENDING_CONFIG_RESPONSE = {"status": "pending"}
 
-FAILURE_CONFIG_RESPONSE = {"body": {"status": "failure"}}
+FAILURE_CONFIG_RESPONSE = {"status": "failure"}
 
 
 def _make_response(mocker, json_data, status_code=200):
