@@ -42,8 +42,8 @@ jobs:
           version: 0.9.26
       - uses: semgrep/setup-ocaml@ce6a88f72f48e02a172c93eb93177b21659e7032
         with:
-          cache-prefix: v3
-          ocaml-compiler: 5.3.0
+          cache-prefix: v4
+          ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda
           opam-pin: false
           save-opam-post-run: true
       - run: opam install -y ocamlformat.0.27.0

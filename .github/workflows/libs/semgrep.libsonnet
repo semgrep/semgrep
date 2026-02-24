@@ -50,7 +50,7 @@ local github_bot = {
 // ----------------------------------------------------------------------------
 
 // default one
-local opam_switch = '5.3.0';
+local opam_switch = 'ocaml-variants.5.3.0+options,ocaml-option-flambda';
 // also default but needed by another nameso we can use it as a function default arg
 local opam_switch_default = opam_switch;
 local containers = {
@@ -159,7 +159,7 @@ local slack = {
 //
 // coupling: if you modify the compiler pin sha you will need to bump this
 // prefix (or similar) to invalidate the cache
-local opam_cache_version = 'v3';
+local opam_cache_version = 'v4';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)

@@ -69,6 +69,7 @@ let
           baseQuery = {
             # Not used currently as we pin ocaml-variants in semgrep.opam.template
             # ocaml-base-compiler = ocamlVersion;
+            ocaml-option-flambda = "*";
           };
           resolveArgs = {
             # speeds up so we don't get a solver timeout
