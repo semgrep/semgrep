@@ -117,7 +117,7 @@ RUN apk update && apk add bash build-base git make rsync opam
 # - scripts/{osx-setup-for-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-RUN opam init --disable-sandboxing -v && opam switch create 5.3.0 -v
+RUN opam init --disable-sandboxing -v && opam switch create 5.3.0 ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
