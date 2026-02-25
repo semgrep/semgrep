@@ -19,7 +19,7 @@ pin-depends: [
   ["testo-lwt.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
   ["obackward.dev" "git+https://github.com/semgrep/obackward.git#060ebb528e88b27124b33b5cfaf8ed04b7da6e41"]
   (* coupling: update the submodule in cli/src/semgrep too *)
-  ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#60e20cea322c887456b86ff7af9e6bc5757c0c7e"]
+  ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#7e509db48c700cae49fe0372e2aa0410fa86d867"]
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
