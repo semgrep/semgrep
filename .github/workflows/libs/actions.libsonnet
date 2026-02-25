@@ -72,7 +72,7 @@ local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, 
     # Wait for the job to complete
     while true; do
       # Get the run ID for the %(workflow_name)s workflow on the given commit
-      RUN_ID=$(gh run list --commit "$COMMIT_SHA" --workflow="%(workflow_name)s" --json databaseId --jq ".[0].databaseId" || echo "")
+      RUN_ID=$(gh run list --repo "${{ github.repository }}" --commit "$COMMIT_SHA" --workflow="%(workflow_name)s" --json databaseId --jq ".[0].databaseId" || echo "")
 
       if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
         # Check the status of the %(job_name)s job specifically
