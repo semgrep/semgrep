@@ -1,41 +1,16 @@
-## [1.152.0](https://github.com/semgrep/semgrep/releases/tag/v1.152.0) - 2026-02-17
+## [1.153.0](https://github.com/semgrep/semgrep/releases/tag/v1.153.0) - 2026-02-25
 
 ### ### Added
 
-- Hooks (for both Claude Code and Cursor) now pull custom rules from the registry (custom-rules-hooks)
-- Turned on DNS rebinding protection for the MCP server (dns-check)
-- Environment variables can now be passed to third-party package managers invoked as part of `--allow-local-builds` dependency resolution via the environment variable `SEMGREP_LOCAL_BUILD_ENV`, which accepts a JSON object with string keys and string values. (SC-3163)
-- Memory management policies
-
-  A memory policy defines how OCaml's garbage collector should be configured for
-  a scan.  There are two initial policies: "aggressive", the current behaviour,
-  which trades longer scan times for lower memory use, and "balanced", which
-  finds a middle ground between reclaiming heap memory in short order while
-  limiting how often the garbage collector runs.  The policy can be configured
-  via the `--x-mem-policy` CLI flag for the pro engine; this flag is unused in
-  the OSS engine. (engine-2055)
-- Added experimental support for the OpenFGA authorization language. Thanks to Alex Useche (@hex0punk) for the contribution! (gh-11347)
-- Allows case insensitive string comparisons using lower() and upper() like this:
-
-  ```
-  - metavariable-comparison:
-      metavariable: $VALUE
-      comparison: upper(str($VALUE)) == "SEMGREP"
-  ```
-
-  (gh-11502)
-- Blocking findings that are outputted in the CI output are now labelled as such. (#4394)
-
-### ### Changed
-
-- pro: There should be fewer FNs when the max number of fields to track per object
-  is reached. (code-9224)
-- Remove legacy combined symbol analysis computation and upload in favor of per-subproject symbol analysis (sc-3153)
+- Semgrep core is now optimized with flambda (flambda)
+- Scala: Support for `for`-`yield` (LANG-193)
 
 ### ### Fixed
 
-- pro: Improved accuracy of taint tracking through assignments, this will help
-  reduce FPs in some cases. (code-9220)
-- When receiving a 429 or 5xx from the Semgrep app, the CLI will wait for a
-  longer period of time before retrying the request, to spread out requests
-  during periods of app instability. (engine-2550)
+- Scala: Fixed a parsing bug where subsequent calls in an implicit block would not
+  be considered at the same scope, e.g.
+  ```
+  def f (a: t) =
+    foo()
+    bar()
+  ``` (lang-194)
