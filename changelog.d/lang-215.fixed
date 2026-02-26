@@ -1,0 +1,1 @@
+Scala: Restored parse rate after mistaken bug introduced by implicit block parsing fix
