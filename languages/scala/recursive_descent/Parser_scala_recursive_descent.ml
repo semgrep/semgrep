@@ -388,8 +388,19 @@ let adjustSepRegions lastToken in_ =
     | ((RPAREN _ | RBRACKET _ | RBRACE _) as x), y :: ys ->
         if x =~= y then ys
         else
-          (* stricter: original code just does nothing *)
-          error "unmatched closing token" in_
+          (* A closing grouper may need to pop through implicit indent
+             regions (DEDENTs) to find its matching opener. This happens
+             when `)` closes both an indented block and its enclosing
+             parens, e.g.:
+               foo(x =>
+                 expr)
+          *)
+          let rec pop_dedents = function
+            | DEDENT _ :: rest -> pop_dedents rest
+            | top :: rest when x =~= top -> rest
+            | _ -> error "unmatched closing token" in_
+          in
+          pop_dedents (y :: ys)
     | _, xs -> xs
   in
   in_.sepRegions <- newRegions;
@@ -636,41 +647,57 @@ let enterIndentRegion in_ =
       in_.is_indented <- None;
       in_.sepRegions <- DEDENT (line, width) :: in_.sepRegions
 
-(* Adjust sepREgions to end the current indent region, if we're
-   at the end.
+(* Is the current token one that would end an implicit indent region
+   because it belongs to an enclosing context?
+
+   This covers two cases:
+   1. A closing grouper (`)`, `]`, `}`) when the top of sepRegions
+      is DEDENT, meaning the grouper closes an outer scope:
+        bar(x =>
+          (3))
+   2. A comma when we're in an implicit indent region inside parens
+      or brackets, meaning the comma separates arguments in the outer
+      grouper:
+        new Foo(
+          url =
+            "hi",
+          user = "bob")
+*)
+let isClosingIndentRegion in_ =
+  let rec has_grouper_underneath = function
+    | DEDENT _ :: rest -> has_grouper_underneath rest
+    | (RPAREN _ | RBRACKET _) :: _ -> true
+    | _ -> false
+  in
+  match (in_.token, in_.sepRegions) with
+  | (RBRACE _ | RBRACKET _ | RPAREN _), DEDENT _ :: _ -> true
+  | COMMA _, (DEDENT _ :: _ as regions) -> has_grouper_underneath regions
+  | _ -> false
+
+(* Pop the DEDENT off sepRegions to end the current indent region.
+
+   The cases here should be a superset of isClosingIndentRegion,
+   plus the normal DEDENT-token and EOF cases.
 *)
 let closeIndentRegion in_ =
   match (in_.token, in_.sepRegions) with
   | EOF _, _ -> ()
-  (* This check that the DEDENTs match each other was already
-     done, or we wouldn't have stopped on this token in the
-     first place.
-  *)
   | DEDENT _, DEDENT _ :: rest ->
       in_.sepRegions <- rest;
       skipToken in_
+  | _, DEDENT _ :: rest when isClosingIndentRegion in_ -> in_.sepRegions <- rest
   | _ -> failwith "expected closing dedent (probably not emitted correctly)"
 
-(* If this next token is indented, it's quite likely we're inside of an implicit
-   indented blockExpr, which can start off an `expr`.
+(* If this next token is indented, we're inside of an implicit indented
+   blockExpr, which can start off an `expr`.
 
    For instance, something like
    def foo() =
      val x = 3
 
-   new: We used to be gung-ho about checking whether the next token was a valid
-   expression start, such as in the example of
-
-   def foo() =
-     3
-
-   where `{ 3 }` is apparently not a valid BlockExpr.
-
-   But, in reality, who cares, let's be permissive. Having an indented start
-   is good enough for us to consider it an implicit blockExpr.
-
-   (some corollary changes were needed for `blockExprAsExpr` to not introduce
-   too many unneeded BlockExpr nodes)
+   We are permissive here and don't check whether the token is an
+   expression start, because blockExprAsExpr will unwrap single-expression
+   blocks back into plain expressions when appropriate.
 *)
 let isIndentedBlockExprStart in_ = Option.is_some (passedIndent in_)
 
@@ -2868,6 +2895,13 @@ and blockExpr in_ : block_expr =
           BEBlock xs)
     in_
 
+(* Parse a block expression, but unwrap single-expression blocks into
+   plain expressions. This avoids unnecessary Block nodes for cases like:
+     def foo() =
+       3
+   where the indented `3` triggers a blockExpr parse but the result
+   should just be the literal, not Block([ExprStmt(3)]).
+*)
 and blockExprAsExpr in_ : expr =
   match blockExpr in_ with
   | _, BEBlock [ E e ], _ -> e
@@ -4060,8 +4094,16 @@ let isCaseDefEnd in_ =
   | _ -> false
 
 let blockStatSeqInner in_ : top_stat option =
+  (* Don't demand a statement separator if we're at a token that
+     terminates the block, such as `)` or `,` from an enclosing
+     context. Without this, parsing e.g.:
+       foo(x =>
+         (3))
+     would fail because `)` is not a valid statement separator.
+  *)
   let acceptStatSepOptOrEndCase in_ =
-    if not (TH.isCaseDefEnd in_.token) then acceptStatSepOpt in_
+    if (not (TH.isCaseDefEnd in_.token)) && not (isClosingIndentRegion in_) then
+      acceptStatSepOpt in_
   in
   match in_.token with
   | ID_LOWER ("end", _) ->
@@ -4098,9 +4140,17 @@ let blockStatSeqInner in_ : top_stat option =
   | _ when is_modifier in_ -> error "no modifiers allowed here" in_
   | _ -> error "illegal start of statement" in_
 
+(* Also terminate the loop when a closing grouper or comma from an
+   enclosing context is reached, ending the implicit indent region.
+   See isClosingIndentRegion.
+*)
 let blockStatSeq in_ : block_stat list =
   let stats = ref [] in
-  while (not (TH.isStatSeqEnd in_.token)) && not (isCaseDefEnd in_) do
+  while
+    (not (TH.isStatSeqEnd in_.token))
+    && (not (isCaseDefEnd in_))
+    && not (isClosingIndentRegion in_)
+  do
     match blockStatSeqInner in_ with
     | None -> ()
     | Some x -> stats += x
