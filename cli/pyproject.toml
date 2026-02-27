@@ -72,7 +72,7 @@ dependencies = [
   "peewee~=3.14",
   "pyjwt[crypto]~=2.4",
   "requests~=2.22",
-  "rich~=13.5.2",
+  "rich>=13.5.2",
   "ruamel.yaml>=0.18.15",
   "ruamel.yaml.clib==0.2.14",
   "semantic-version~=2.10.0",
