@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1529,7 +1529,7 @@ wheels = [
 
 [[package]]
 name = "semgrep"
-version = "1.150.0"
+version = "1.153.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
@@ -1616,7 +1616,7 @@ requires-dist = [
     { name = "pyjwt", extras = ["crypto"], specifier = "~=2.4" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = "==311" },
     { name = "requests", specifier = "~=2.22" },
-    { name = "rich", specifier = "~=13.5.2" },
+    { name = "rich", specifier = ">=13.5.2" },
     { name = "ruamel-yaml", specifier = ">=0.18.15" },
     { name = "ruamel-yaml-clib", specifier = "==0.2.14" },
     { name = "semantic-version", specifier = "~=2.10.0" },
