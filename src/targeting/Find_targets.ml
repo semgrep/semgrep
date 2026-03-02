@@ -342,6 +342,7 @@ let filter_path (ign : Gitignore.filter)
 let filter_paths
     ((ign, include_filter) : Gitignore.filter * Include_filter.t option)
     (target_files : Fppath.t list) : Fppath_set.t * Out.skipped_target list =
+  let%trace sp = "Find_targets.filter_paths" in
   let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
   let add path = Stack_.push path selected_paths in
@@ -362,6 +363,11 @@ let filter_paths
          | Skip x -> skip x
          | Ignore_silently ->
              Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath)));
+  Tracing.add_data_to_span sp
+    [
+      ("selected.count", `Int (List.length !selected_paths));
+      ("skipped.count", `Int (List.length !skipped));
+    ];
   (Fppath_set.of_list !selected_paths, !skipped)
 [@@profiling]
 
@@ -711,12 +717,14 @@ let setup_path_filters conf (project_roots : Project.scanning_roots) :
       conf.include_
   in
   (semgrepignore_filter, include_filter)
+[@@trace]
 
 (* Work from a list of target paths obtained with git *)
 let filter_targets conf project_roots (all_files : Fppath.t list) =
+  let%trace sp = "Find_targets.filter_targets" in
+  Tracing.add_data_to_span sp [ ("file.count", `Int (List.length all_files)) ];
   let ign = setup_path_filters conf project_roots in
   filter_paths ign all_files
-[@@trace]
 
 let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
     (project_roots : Project.scanning_roots) =
