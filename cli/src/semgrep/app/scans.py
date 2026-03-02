@@ -465,14 +465,22 @@ class ScanHandler:
             logger.debug(f"Scan created with ID: {scan_info.id}")
             span.set_attribute("scan.v2.scan_id", scan_info.id)
 
-        # Step 2: Poll for config using scan_request_id (3 minute timeout)
-        timeout_minutes = 3
+        # Step 2: Poll for config using scan_request_id
         start_time = datetime.now().replace(tzinfo=None)
-        deadline = start_time + timedelta(minutes=timeout_minutes)
-        poll_attempt = 0
-        poll_interval_seconds = 5
 
-        while datetime.now().replace(tzinfo=None) < deadline:
+        # Informed bounds overridable by the server
+        server_deadline = start_time + timedelta(minutes=3)
+        server_poll_interval_seconds = 5
+
+        # Hard bounds for safety
+        maximum_deadline = start_time + timedelta(minutes=5)
+        minimum_poll_interval_seconds = 1
+        maximum_poll_interval_seconds = 60
+
+        poll_attempt = 0
+        while datetime.now().replace(tzinfo=None) < min(
+            server_deadline, maximum_deadline
+        ):
             poll_attempt += 1
             span.set_attribute("scan.v2.poll_attempts", poll_attempt)
 
@@ -489,6 +497,14 @@ class ScanHandler:
                 config_response.json()
             )
             status = get_config_response.status
+
+            # If server returns polling information, use that to override the
+            # defaults set above.
+            if polling_info := get_config_response.polling:
+                server_poll_interval_seconds = polling_info.recommended_wait_seconds
+                server_deadline = datetime.now().replace(tzinfo=None) + timedelta(
+                    seconds=polling_info.seconds_until_timeout
+                )
 
             if isinstance(status.value, out.Success):
                 # Config is ready
@@ -519,11 +535,18 @@ class ScanHandler:
                 # Still pending - continue polling
                 span.set_attribute("scan.v2.config_status", "pending")
 
-            sleep(poll_interval_seconds)
+            # Never wait less than minimum poll interval to avoid hammering the server
+            sleep(
+                min(
+                    max(server_poll_interval_seconds, minimum_poll_interval_seconds),
+                    maximum_poll_interval_seconds,
+                )
+            )
 
         # Timeout - config never became ready
+        elapsed = (datetime.now().replace(tzinfo=None) - start_time).seconds
         raise Exception(
-            f"Config generation timed out after {timeout_minutes} minutes (scan_request_id={scan_request_id}, {poll_attempt} attempts)"
+            f"Config generation timed out after {elapsed} seconds (scan_request_id={scan_request_id}, {poll_attempt} attempts)"
         )
 
     @telemetry.trace()
