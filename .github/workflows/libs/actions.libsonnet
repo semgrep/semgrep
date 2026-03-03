@@ -76,7 +76,7 @@ local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, 
 
       if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
         # Check the status of the %(job_name)s job specifically
-        JOB_STATUS=$(gh api repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs --jq ".jobs[] | select(.name == \"%(job_name)s\") | .status" || echo "not_found")
+        JOB_STATUS=$(gh api --paginate repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs --jq ".jobs[] | select(.name == \"%(job_name)s\") | .status" || echo "not_found")
 
         if [ "$JOB_STATUS" = "completed" ]; then
           echo "%(job_name)s job completed on commit"
