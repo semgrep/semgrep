@@ -25,8 +25,8 @@ type format = Paths_only | Long [@@deriving show]
 
 let default_format = Paths_only
 
-let run (caps : < Cap.readdir ; .. >) ~target_roots ~targeting_conf:conf ~format
-    =
+let run (caps : < Cap.readdir ; Cap.fork ; .. >) ~target_roots
+    ~targeting_conf:conf ~format =
   let selected, errors, skipped =
     Find_targets.get_target_fpaths caps conf target_roots
   in

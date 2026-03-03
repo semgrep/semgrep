@@ -50,7 +50,7 @@ let pro_sca_output_functions_plugin =
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.readdir >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.readdir ; Cap.fork >
 
 (*****************************************************************************)
 (* Helpers *)

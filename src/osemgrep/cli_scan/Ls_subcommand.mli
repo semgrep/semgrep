@@ -32,7 +32,7 @@ val default_format : format
    Print the list of selected targets in alphabetical order, one per line.
 *)
 val run :
-  < Cap.readdir ; .. > ->
+  < Cap.readdir ; Cap.fork ; .. > ->
   target_roots:Scanning_root.t list ->
   targeting_conf:Find_targets.conf ->
   format:format ->

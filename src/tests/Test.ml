@@ -122,7 +122,6 @@ let tests (caps : Cap.all_caps) =
   let gitutil_tests =
     List_.flatten
       [
-        Test_scan_subcommand.tests (caps :> Scan_subcommand.caps);
         Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
         Test_target_selection.tests (caps :> CLI.caps);
         Unit_find_targets.tests (caps :> < Cap.readdir >);

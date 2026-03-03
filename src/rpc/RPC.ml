@@ -51,12 +51,14 @@ type caps =
   ; Cap.chdir
   ; Core_scan.caps >
 
+type config = { par_conf : Parallelism_config.t; num_jobs : int }
+[@@deriving show]
 (*****************************************************************************)
 (* Dispatcher *)
 (*****************************************************************************)
 
-let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
-    (Out.function_return, string) result =
+let handle_call (caps : < caps ; .. >) (conf : config)
+    (call : Out.function_call) : (Out.function_return, string) result =
   Profiling.measure ("RPC " ^ name_of_call call) @@ fun () ->
   match call with
   | `CallApplyFixes { dryrun; edits } ->
@@ -140,7 +142,10 @@ let handle_call (caps : < caps ; .. >) (call : Out.function_call) :
             "Transitive reachability is a proprietary feature, but semgrep-pro \
              has not been loaded")
   | `CallGetTargets scanning_roots ->
-      Ok (`RetGetTargets (Core_scan.get_targets_for_pysemgrep scanning_roots))
+      Ok
+        (`RetGetTargets
+           (Core_scan.get_targets_for_pysemgrep ~par_conf:conf.par_conf
+              ~num_jobs:conf.num_jobs scanning_roots))
   | `CallMatchSubprojects params -> (
       match !RPC_return.hook_match_subprojects with
       | Some match_subprojects ->
@@ -217,7 +222,7 @@ let write_packet chan_out str =
   flush chan_out
 
 (* Blocks until a request comes in, then handles it and sends the result back *)
-let handle_request (caps : < caps ; .. >) chan_in chan_out size =
+let handle_request (caps : < caps ; .. >) conf chan_in chan_out size =
   let res =
     let/ call_str = read_packet chan_in size in
     let/ call =
@@ -229,7 +234,7 @@ let handle_request (caps : < caps ; .. >) chan_in chan_out size =
           let e = Exception.catch e in
           Error (spf "Error parsing RPC request:\n%s" (Exception.to_string e))
     in
-    try handle_call caps call with
+    try handle_call caps conf call with
     (* Catch-all here. No matter what happens while handling this request, we
      * need to send a response back. *)
     | e ->
@@ -251,12 +256,12 @@ let handle_request (caps : < caps ; .. >) chan_in chan_out size =
   write_packet chan_out res_str
 [@@trace]
 
-let rec handle_multiple_requests (caps : < caps ; .. >) chan_in chan_out =
+let rec handle_multiple_requests (caps : < caps ; .. >) conf chan_in chan_out =
   match read_header chan_in with
   | Ok Stop -> ()
   | Ok (Size size) -> begin
-      handle_request caps chan_in chan_out size;
-      handle_multiple_requests caps chan_in chan_out
+      handle_request caps conf chan_in chan_out size;
+      handle_multiple_requests caps conf chan_in chan_out
     end
   | Error str ->
       write_packet chan_out
@@ -267,5 +272,6 @@ let rec handle_multiple_requests (caps : < caps ; .. >) chan_in chan_out =
 (*****************************************************************************)
 
 (* For now, just handle one request and then exit. *)
-let main (caps : < caps ; .. >) = handle_multiple_requests caps stdin stdout
+let main (caps : < caps ; .. >) conf =
+  handle_multiple_requests caps conf stdin stdout
 [@@profiling]

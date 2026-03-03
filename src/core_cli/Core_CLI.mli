@@ -76,7 +76,13 @@ val action : string ref
 
 (* Checks if the action is an RPC call *)
 val is_rpc_call : unit -> bool
-val all_actions : Cap.all_caps -> unit -> Arg_.action_spec list
+
+val all_actions :
+  ?par_conf:Parallelism_config.t ->
+  Cap.all_caps ->
+  unit ->
+  Arg_.action_spec list
+
 val register_exception_printers : unit -> unit
 
 (* this can raise exn; useful in test context *)

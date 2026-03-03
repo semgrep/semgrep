@@ -91,6 +91,20 @@ class SemgrepState:
         params = ctx.params if hasattr(ctx, "params") else {}
         return params.get("pattern") is not None
 
+    @staticmethod
+    def jobs() -> int | None:
+        """
+        Returns the number of jobs to use for the current CLI invocation.
+
+        This is a bit hacky but we do this so we can easily pass the # of jobs to the rpc
+        client without threading it through every single function that needs it.
+        """
+        ctx = get_context()
+        params = ctx.params if hasattr(ctx, "params") else {}
+        jobs_str = params.get("jobs", None)
+        jobs = int(jobs_str) if jobs_str is not None else None
+        return jobs
+
 
 def get_context() -> click.Context:
     """

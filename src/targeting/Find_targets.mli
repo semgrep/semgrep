@@ -104,6 +104,8 @@ type conf = {
       (** osemgrep-only: exclude scanning large files based on
           max_target_bytes, default true *)
   baseline_commit : string option;
+  par_conf : Parallelism_config.t;
+  num_jobs : int option;
 }
 
 and glob = string

@@ -1596,6 +1596,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         extra_gitignore_patterns_to_exclude_git_untracked_files = [];
         semgrepignore_filename;
         exclude_minified_files;
+        par_conf = Parallelism_config.default;
+        num_jobs =
+          Some (Core_scan_config.finalize_num_jobs core_runner_conf.num_jobs);
       }
     in
     let rule_filtering_conf : Rule_filtering.conf =

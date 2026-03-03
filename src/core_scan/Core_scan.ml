@@ -285,8 +285,8 @@ let filter_existing_targets (targets : Target.t list) :
                    rule_id = None;
                  })
 
-let translate_targeting_conf_from_pysemgrep (conf : Out.targeting_conf) :
-    Find_targets.conf =
+let translate_targeting_conf_from_pysemgrep (par_conf : Parallelism_config.t)
+    (num_jobs : int) (conf : Out.targeting_conf) : Find_targets.conf =
   {
     exclude = conf.exclude;
     include_ = conf.include_;
@@ -311,16 +311,20 @@ let translate_targeting_conf_from_pysemgrep (conf : Out.targeting_conf) :
     force_novcs_project = conf.force_novcs_project;
     exclude_minified_files = conf.exclude_minified_files;
     baseline_commit = conf.baseline_commit;
+    par_conf;
+    num_jobs = Some num_jobs;
   }
 
 (*
    Get target files from scanning roots obtained from pysemgrep.
 *)
-let targets_of_scanning_roots
-    ({ root_paths; targeting_conf } : Out.scanning_roots) :
+let targets_of_scanning_roots ~(par_conf : Parallelism_config.t)
+    ~(num_jobs : int) ({ root_paths; targeting_conf } : Out.scanning_roots) :
     Fppath.t list * Core_error.t list * Out.skipped_target list =
   let scanning_roots = List_.map Scanning_root.of_fpath root_paths in
-  let targeting_conf = translate_targeting_conf_from_pysemgrep targeting_conf in
+  let targeting_conf =
+    translate_targeting_conf_from_pysemgrep par_conf num_jobs targeting_conf
+  in
   let caps = Cap.readdir_UNSAFE () in
   let target_paths, errors, skipped =
     Find_targets.get_targets caps targeting_conf scanning_roots
@@ -330,10 +334,11 @@ let targets_of_scanning_roots
 let atd_fppath_of_fppath (x : Fppath.t) : Out.fppath =
   { fpath = x.fpath; ppath = x.ppath }
 
-let get_targets_for_pysemgrep (scanning_roots : Out.scanning_roots) :
+let get_targets_for_pysemgrep ~(par_conf : Parallelism_config.t)
+    ~(num_jobs : int) (scanning_roots : Out.scanning_roots) :
     Out.target_discovery_result =
   let target_paths, errors, skipped =
-    targets_of_scanning_roots scanning_roots
+    targets_of_scanning_roots ~par_conf ~num_jobs scanning_roots
   in
   let target_paths = List_.map atd_fppath_of_fppath target_paths in
   let errors = List_.map Core_json_output.error_to_error errors in
@@ -356,7 +361,9 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
             (* new: use osemgrep's target discovery *)
             let scanning_roots = List_.map Scanning_root.of_fpath root_paths in
             let targeting_conf =
-              translate_targeting_conf_from_pysemgrep targeting_conf
+              translate_targeting_conf_from_pysemgrep config.par_conf
+                (Core_scan_config.finalize_num_jobs config.num_jobs)
+                targeting_conf
             in
             (* Ideally Core_Scan.scan does not require Cap.readdir because all
              * file targeting processing would be done before and just call scan()

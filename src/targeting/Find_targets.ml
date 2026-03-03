@@ -215,6 +215,8 @@ type conf = {
   (* osemgrep-only option, exclude scanning minified files, default false *)
   exclude_minified_files : bool;
   baseline_commit : string option;
+  par_conf : Parallelism_config.t;
+  num_jobs : int option;
 }
 [@@deriving show]
 
@@ -240,6 +242,8 @@ let default_conf : conf =
     explicit_targets = Explicit_targets.empty;
     exclude_minified_files = false;
     baseline_commit = None;
+    par_conf = Parallelism_config.default;
+    num_jobs = None;
   }
 
 (*************************************************************************)
@@ -339,7 +343,7 @@ let filter_path (ign : Gitignore.filter)
    obtained with 'git ls-files'. A strong postcondition is that the
    paths returned must correspond to existing regular files!
 *)
-let filter_paths
+let filter_paths (par_conf : Parallelism_config.t) (num_jobs : int option)
     ((ign, include_filter) : Gitignore.filter * Include_filter.t option)
     (target_files : Fppath.t list) : Fppath_set.t * Out.skipped_target list =
   let%trace sp = "Find_targets.filter_paths" in
@@ -347,10 +351,21 @@ let filter_paths
   let (skipped : Out.skipped_target list ref) = ref [] in
   let add path = Stack_.push path selected_paths in
   let skip target = Stack_.push target skipped in
+  let map_filter_path :
+      (Fppath.t -> Fppath.t * filter_result) ->
+      Fppath.t list ->
+      (Fppath.t * filter_result, Fppath.t * exn) result list =
+    match (par_conf, num_jobs) with
+    | Parallelism_config.Eio_executor conf, Some num_jobs when num_jobs > 1 ->
+        Concurrent.map ~conf ~domain_count:num_jobs
+    | _, _ -> fun f l -> List_.map (fun x -> Ok (f x)) l
+  in
+
   target_files
-  |> List.iter (fun fppath ->
-         match filter_path ign include_filter fppath with
-         | Keep -> (
+  |> map_filter_path (fun x -> (x, filter_path ign include_filter x))
+  |> List.iter (fun (res : (Fppath.t * filter_result, Fppath.t * exn) result) ->
+         match res with
+         | Ok (fppath, Keep) -> (
              (* This section is similar to what we have in
                 'walk_skip_and_collect' but the rest is sufficiently different
                 that sharing code makes things complicated
@@ -359,10 +374,15 @@ let filter_paths
              | Ok _path -> add fppath
              | Error skipped -> skip skipped)
          (* shouldn't happen if we work on the output of 'git ls-files *)
-         | Dir -> ()
-         | Skip x -> skip x
-         | Ignore_silently ->
-             Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath)));
+         | Ok (_, Dir) -> ()
+         | Ok (_, Skip x) -> skip x
+         | Ok (fppath, Ignore_silently) ->
+             Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath))
+         | Error (fppath, e) ->
+             Log.debug (fun m ->
+                 m "Exception while filtering path %s:%s" !!(fppath.fpath)
+                   (Printexc.to_string e)));
+
   Tracing.add_data_to_span sp
     [
       ("selected.count", `Int (List.length !selected_paths));
@@ -724,7 +744,7 @@ let filter_targets conf project_roots (all_files : Fppath.t list) =
   let%trace sp = "Find_targets.filter_targets" in
   Tracing.add_data_to_span sp [ ("file.count", `Int (List.length all_files)) ];
   let ign = setup_path_filters conf project_roots in
-  filter_paths ign all_files
+  filter_paths conf.par_conf conf.num_jobs ign all_files
 
 let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
     (project_roots : Project.scanning_roots) =

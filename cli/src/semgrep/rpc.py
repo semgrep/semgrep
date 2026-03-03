@@ -155,6 +155,9 @@ def _cmd() -> List[str]:
     if state.terminal.log_level is logging.DEBUG:
         cmd.append("-debug")
 
+    if state.jobs() is not None:
+        cmd.extend(["-j", str(state.jobs())])
+
     return cmd
 
 

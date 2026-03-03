@@ -10,7 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.readdir >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.readdir ; Cap.fork >
 
 (* Feel free to move this type to another place in semgrep OSS *)
 

@@ -10,6 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
+type config = { par_conf : Parallelism_config.t; num_jobs : int }
 
 val main :
   < Cap.exec
@@ -20,6 +21,7 @@ val main :
   ; Cap.chdir
   ; Core_scan.caps
   ; .. > ->
+  config ->
   unit
 (** Runs an RPC server that processes requests sequentially from STDIN
     and sends results to STDOUT. *)

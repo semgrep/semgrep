@@ -63,6 +63,8 @@ val targets_of_config :
 
 (* pysemgrep/semgrep-core RPC *)
 val get_targets_for_pysemgrep :
+  par_conf:Parallelism_config.t ->
+  num_jobs:int ->
   Semgrep_output_v1_t.scanning_roots ->
   Semgrep_output_v1_t.target_discovery_result
 

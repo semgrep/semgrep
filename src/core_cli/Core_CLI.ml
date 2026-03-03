@@ -349,7 +349,9 @@ let mk_config ?rules () : Core_scan_config.t =
 (* The actions *)
 (*****************************************************************************)
 
-let all_actions (caps : Cap.all_caps) () =
+let all_actions ?(par_conf = Parallelism_config.default) (caps : Cap.all_caps)
+    () =
+  let num_jobs = Core_scan_config.finalize_num_jobs !num_jobs in
   [
     (* this is run by pysemgrep --validate *)
     ( "-check_rules",
@@ -468,15 +470,17 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-rpc",
       " don't use this unless you already know",
       Arg_.mk_action_0_arg (fun () ->
-          RPC.main
-            (caps
-              :> < Cap.exec
-                 ; Cap.tmp
-                 ; Cap.network
-                 ; Cap.readdir
-                 ; Cap.random
-                 ; Cap.chdir
-                 ; Core_scan.caps >)) );
+          RPC.(
+            main
+              (caps
+                :> < Cap.exec
+                   ; Cap.tmp
+                   ; Cap.network
+                   ; Cap.readdir
+                   ; Cap.random
+                   ; Cap.chdir
+                   ; Core_scan.caps >)
+              { par_conf; num_jobs })) );
   ]
   @ Test_analyze_generic.actions
       (caps :> < Cap.exec ; Cap.tmp >)
@@ -830,9 +834,11 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
               (* actions, useful to debug subpart *)
               (* --------------------------------------------------------- *)
               | xs
-                when List.mem !action (Arg_.action_list (all_actions caps ()))
-                ->
-                  Arg_.do_action !action xs (all_actions caps ())
+                when List.mem !action
+                       (Arg_.action_list
+                          (all_actions caps ~par_conf:config.par_conf ())) ->
+                  Arg_.do_action !action xs
+                    (all_actions caps ~par_conf:config.par_conf ())
               | _ when not (String_.empty !action) ->
                   failwith ("unrecognized action or wrong params: " ^ !action)
               (* --------------------------------------------------------- *)

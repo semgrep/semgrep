@@ -1,0 +1,1 @@
+When Semgrep decides which files to scan (targeting), it can take a long time (over 5 minutes) on very large repos (> 10k files). Semgrep will now parallelize this work according to the number of jobs passed (`-j`)
