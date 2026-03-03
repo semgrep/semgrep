@@ -572,3 +572,39 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path):
     assert {str(dir_a_poetry), str(dir_b_poetry), str(dir_c_poetry)} == {
         str(path) for path in all_files
     }, "Should include unchanged lockfiles as well"
+
+
+@pytest.mark.quick
+def test_file_scanning_root_no_subprocess(tmp_path, monkeypatch):
+    """
+    File scanning roots must not spawn a semgrep-core subprocess.
+
+    When many files are passed on the command line, one subprocess per file
+    makes semgrep unusably slow (issue #11404). The fast path in
+    ScanningRoot.target_files_full returns file targets directly without
+    calling semgrep-core.
+    """
+    import semgrep.rpc
+
+    foo = tmp_path / "foo.py"
+    foo.write_text("x = 1")
+    bar = tmp_path / "bar.py"
+    bar.write_text("y = 2")
+
+    monkeypatch.chdir(tmp_path)
+
+    # Fail the test if the RPC subprocess is spawned for a file scanning root.
+    def no_subprocess(*args, **kwargs):
+        raise AssertionError(
+            "semgrep-core subprocess was spawned for a file scanning root; "
+            "the fast path should have handled it without a subprocess"
+        )
+
+    monkeypatch.setattr(semgrep.rpc.subprocess, "Popen", no_subprocess)
+
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([foo, bar]),
+    )
+    result = target_manager.get_all_files(product=SAST_PRODUCT)
+
+    assert_path_sets_equal(actual=result, expected={foo, bar})

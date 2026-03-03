@@ -1,0 +1,4 @@
+Fixed a performance issues where passing many scannign roots on the command
+line (e.g. `semgrep scan $(git ls-files '*.py')`) caused one semgrep-core
+subprocess to be spawned per file. Roots that are not directories are now
+handled directly in Python without any subprocess overhead.
