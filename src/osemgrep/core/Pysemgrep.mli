@@ -10,8 +10,10 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* This function never returns! It calls instead pysemgrep *)
-val pysemgrep : < Cap.exec > -> string array -> 'a
+val pysemgrep : < Cap.exec > -> string array -> Exit_code.t
+(** Dispatch to pysemgrep, returning its exit code. On Unix this replaces the
+    current process via [execvp] and never returns; on Windows it spawns a
+    subprocess and waits for it. *)
 
 (* To be used to signal we want to fallback to pysemgrep. The exception
  * must still be handled in the caller which then must call explicitely

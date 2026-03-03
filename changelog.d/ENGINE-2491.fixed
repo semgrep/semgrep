@@ -1,0 +1,1 @@
+Fix crash on Windows when running `semgrep ci` with `--debug` and no blocking findings. The Windows subprocess path incorrectly raised an exception for all pysemgrep exit codes (including 0), which was silently swallowed in normal mode but propagated as a fatal error when `--debug` was active.

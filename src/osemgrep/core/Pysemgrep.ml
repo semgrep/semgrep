@@ -29,20 +29,23 @@ exception Fallback
 (*************************************************************************)
 
 (* Windows-specific helper to spawn pysemgrep with the given arguments. *)
-let win_spawn_pysemgrep (caps : < Cap.exec >) args =
+let win_spawn_pysemgrep (caps : < Cap.exec >) args : Exit_code.t =
   let cmd = (Cmd.Name "pysemgrep", args) in
   let env = Some { Cmd.vars = []; inherit_parent_env = true } in
   match CapExec.run_subprocess ?env caps#exec cmd with
-  | Ok (`Exited n)
-  | Ok (`Signaled n) ->
-      let msg = spf "pysemgrep signaled with code %d" n in
-      raise (UnixExit (n, msg))
+  | Ok (`Exited n) ->
+      Exit_code.of_int ~__LOC__ ~code:n
+        ~description:(spf "pysemgrep exited with code %d" n)
+  (* On Windows, WSIGNALED is never returned by Unix.waitpid; signal-like
+     termination is reported via WEXITED with negative NTSTATUS codes.
+     See: https://ocaml.org/manual/5.3/api/Unix.html#TYPEprocess_status *)
+  | Ok (`Signaled _) -> assert false
   | Error (`Msg msg) ->
       Logs.err (fun m -> m "executing pysemgrep failed: %s" msg);
-      raise (UnixExit (127, msg))
+      Exit_code.of_int ~__LOC__ ~code:127 ~description:msg
 
 (* dispatch back to pysemgrep! *)
-let pysemgrep (caps : < Cap.exec >) argv =
+let pysemgrep (caps : < Cap.exec >) argv : Exit_code.t =
   Logs.debug (fun m ->
       m "execute pysemgrep: %s"
         (argv |> Array.to_list
