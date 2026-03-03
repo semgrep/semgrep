@@ -162,7 +162,8 @@ For more information see https://semgrep.dev
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
     (ocurl (= 0.9.1))
-    (ambient-context-lwt (>= 0.1.0))
+    ; ambient-context-lwt 0.2 introduces API changes, breaking ./libs/telemetry
+    (ambient-context-lwt (and (>= 0.1.0) (< 0.2)))
     (conf-libcurl (= 2))
     ; web stuff
     (uri (>= 4.4.0))

@@ -73,7 +73,7 @@ depends: [
   "opentelemetry-client-cohttp-eio"
   "opentelemetry-logs"
   "ocurl" {= "0.9.1"}
-  "ambient-context-lwt" {>= "0.1.0"}
+  "ambient-context-lwt" {>= "0.1.0" & < "0.2"}
   "conf-libcurl" {= "2"}
   "uri" {>= "4.4.0"}
   "uuidm" {>= "0.9.10"}
