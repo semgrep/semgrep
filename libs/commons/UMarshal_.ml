@@ -26,14 +26,25 @@ open Fpath_.Operators
 
 let get_value (filename : Fpath.t) : 'a =
   let chan = Stdlib.open_in_bin !!filename in
-  let x = Stdlib.input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
+  Common.protect
+    ~finally:(fun () -> close_in chan)
+    (fun () -> Marshal.from_channel chan)
 
-let write_value (valu : 'a) (filename : Fpath.t) : unit =
-  let chan = Stdlib.open_out_bin !!filename in
-  Stdlib.output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
+let write_impl (v : 'a) (fn : Fpath.t) ~(closures : bool) : unit =
+  let args = if closures then [ Marshal.Closures ] else [] in
+  let chan = Stdlib.open_out_bin !!fn in
+  try
+    Common.protect
+      ~finally:(fun () -> close_out chan)
+      (fun () -> Marshal.to_channel chan v args)
+  with
+  | exn ->
+      (* Should the marshalling fail for whatever reason, ensure
+       * that we tidy up the e.g. half-written file. *)
+      let exn = Exception.catch exn in
+      (try Sys.remove !!fn with
+      | _ -> ());
+      Exception.reraise exn
+
+let write_value = write_impl ~closures:false
+let write_with_closures = write_impl ~closures:true

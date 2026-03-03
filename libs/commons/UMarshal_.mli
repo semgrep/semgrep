@@ -10,11 +10,22 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* !! UNSAFE !!
- *
- * at least add a version number in 'a and marshall a pair (version, data)
- * in write_value(), so at least after get_value() you can double
- * check that the data can still be read.
- *)
+(** Type-unsafe wrappers around [Marshal] for reading/writing OCaml values
+    to disk. The marshaled format is not stable across different compiler
+    versions or builds.
+
+    !! UNSAFE !! — the ['a] type parameter is unchecked at unmarshal time.
+    Consider adding a version tag to detect schema mismatches. *)
+
 val get_value : Fpath.t -> 'a
+(** Reads a marshaled value from disk. *)
+
 val write_value : 'a -> Fpath.t -> unit
+(** Writes a value to disk. Raises if the value contains closures;
+    use {!write_with_closures} instead in that case. *)
+
+val write_with_closures : 'a -> Fpath.t -> unit
+(** Like {!write_value}, but permits closures in the serialized value.
+    The result can only be read back by the same binary; see
+    https://ocaml.org/manual/5.3/api/Marshal.html#VALto_channel for
+    other considerations. *)
