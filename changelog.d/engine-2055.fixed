@@ -1,0 +1,4 @@
+Changed default memory policy from "eager" to "balanced".  Scan times should
+noticably improve; however, scans may use 5-10% additional memory.  If running
+in a resource-constrained environment, consider setting the memory policy back
+to "aggressive".
