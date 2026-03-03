@@ -10,8 +10,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
-from dataclasses import asdict
 from dataclasses import dataclass
+from dataclasses import fields
 from difflib import ndiff
 from pathlib import Path
 from pprint import pformat
@@ -612,11 +612,13 @@ def found_dependency_is_at_least_as_accurate(
     pr: ParityReporter,
     ignored_fields: List[str],
 ) -> None:
-    py_dict = asdict(py)
-    ml_dict = asdict(ml)
-    for k in py_dict.keys() & ml_dict.keys():
-        if not k in ignored_fields:
-            pr.check_eq(py_dict[k], ml_dict[k], f"FoundDependency field '{k}'")
+    for f in fields(py):
+        if not f.name in ignored_fields:
+            pr.check_eq(
+                getattr(py, f.name),
+                getattr(ml, f.name),
+                f"FoundDependency field for {py.package} ({py.version}) '{f.name}'",
+            )
 
 
 def resolved_dependency_is_at_least_as_accurate(
