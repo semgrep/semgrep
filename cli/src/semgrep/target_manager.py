@@ -704,7 +704,31 @@ class ScanningRoot:
         :param ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         :param git_includes: glob patterns
         """
-        # New: Use semgrep-core to discover target files
+        # Fast path: if the scanning root is already a regular file, skip the
+        # semgrep-core subprocess spawn. OCaml's Find_targets always returns
+        # an explicit file scanning root as-is (see Find_targets.ml,
+        # get_targets_from_filesystem), so we can construct the result here
+        # without the overhead of starting a subprocess.
+        if self.path.is_file():
+            # A file scanning root is its own only target — no discovery
+            # or filtering needed, so the ppath is just a placeholder.
+            ppath_str = "/" + self.path.name
+            fppath = out.Fppath(
+                fpath=out.Fpath(str(self.path)),
+                ppath=out.Ppath(ppath_str),
+            )
+            target = Target(
+                fpath=self.path,
+                ppath=PurePosixPath(ppath_str),
+                original=fppath,
+            )
+            return TargetScanResult(
+                selected_files=frozenset([target]),
+                files_with_insufficient_permissions=frozenset(),
+                skipped_targets=[],
+            )
+
+        # Directory scanning root: use semgrep-core to discover target files
         targeting_conf = self.targeting_conf[product]
         baseline_commit = (
             None if ignore_baseline_handler else targeting_conf.baseline_commit
