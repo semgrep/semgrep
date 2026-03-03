@@ -49,7 +49,9 @@ classifiers = [
 # 1. >=x if you know the earliest version that works with Semgrep
 # 2. >=x,<y if you know the earliest version that works with Semgrep,
 #    and know that a later version breaks Semgrep.
-# 3. ~=x.0 if you don't know the earliest version that works with Semgrep
+# 3. ~=x.0 if you only know that major version 'x' works, and want to
+#    allow minor updates while preventing it from crossing into the
+#    next major release.
 #
 # Try to go from option 3 to 1 over time as you learn more about the
 # codebase.
@@ -72,7 +74,7 @@ dependencies = [
   "peewee~=3.14",
   "pyjwt[crypto]~=2.4",
   "requests~=2.22",
-  "rich~=13.5.2",
+  "rich>=13.5.2",
   "ruamel.yaml>=0.18.15",
   "ruamel.yaml.clib==0.2.14",
   "semantic-version~=2.10.0",
