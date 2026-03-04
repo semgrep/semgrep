@@ -63,7 +63,7 @@ depends: [
   "parmap" {>= "1.2.5"}
   "semver" {>= "0.2.1"}
   "timedesc" {>= "3.1.0"}
-  "lsp" {>= "1.22.0"}
+  "lsp" {>= "1.22.0" & < "1.24.0"}
   "git" {>= "3.18.0"}
   "memtrace" {>= "0.2.3"}
   "pyro-caml-instruments"

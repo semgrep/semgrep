@@ -45,7 +45,7 @@ depends: [
   "biniou" {= "1.2.2"}
   "bos" {= "0.2.1"}
   "ca-certs" {= "1.0.1"}
-  "ca-certs-nss" {= "3.118"}
+  "ca-certs-nss" {= "3.121"}
   "calendar" {= "3.0.0"}
   "camlp-streams" {= "5.0.1"}
   "carton" {= "0.7.2"}
@@ -129,13 +129,13 @@ depends: [
   "ipaddr-sexp" {= "5.6.2"}
   "jane-street-headers" {= "v0.17.0"}
   "jsonm" {= "1.0.2"}
-  "jsonrpc" {= "1.25.0"}
+  "jsonrpc" {= "1.23.1"}
   "jst-config" {= "v0.17.0"}
   "kdf" {= "1.0.0"}
   "ke" {= "0.6"}
   "logs" {= "0.10.0"}
   "lru" {= "0.3.1"}
-  "lsp" {= "1.25.0"}
+  "lsp" {= "1.23.1"}
   "lwt" {= "5.9.2"}
   "lwt-dllist" {= "1.1.0"}
   "lwt_ppx" {= "5.9.1"}

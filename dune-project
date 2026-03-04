@@ -145,7 +145,8 @@ For more information see https://semgrep.dev
     (parmap (>= 1.2.5))
     (semver (>= 0.2.1))
     (timedesc (>= 3.1.0)) ; used via git-wrapper
-    (lsp (>= 1.22.0))
+    ; 1.24.0 and above is incompatible with the ocaml VScode extention.
+    (lsp (and (>= 1.22.0) (< 1.24.0)))
     (git (>= 3.18.0))
     ; tracing
     (memtrace (>= 0.2.3))
