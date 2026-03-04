@@ -1035,6 +1035,8 @@ and pattern env (p : AST_python.pattern) =
       let p1 = pattern env p1 in
       let p2 = pattern env p2 in
       G.PatKeyVal (p1, p2)
+  | PatExpr e ->
+      G.OtherPat (("PatExpr", Tok.unsafe_fake_tok ""), [ G.E (expr env e) ])
 
 and excepthandler env = function
   | ExceptHandler (t, v1, v2, v3) ->

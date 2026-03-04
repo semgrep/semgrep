@@ -1,0 +1,13 @@
+rules:
+  - id: dots-in-chain
+    pattern: a. ... .d
+    message: matched dot-access chain with ellipsis
+    languages:
+      - python
+    severity: WARNING
+  - id: dots-in-call-chain
+    pattern: builder(). ... .compact()
+    message: matched call chain with ellipsis
+    languages:
+      - python
+    severity: WARNING
