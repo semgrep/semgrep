@@ -16,7 +16,7 @@
       "upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02"
     },
     "astral-sh": {
-      "setup-uv": "eac588ad8def6316056a12d4907a9d4d84ff7a3b"
+      "setup-uv": "5a095e7a2014a4212f075830d4f7277575a9d098"
     },
     "aws-actions": {
       "amazon-ecr-login": "062b18b96a7aff071d4dc91bc00c4c1a7945b076",
