@@ -331,6 +331,7 @@ and pattern =
   | PatUnderscore of tok
   | PatComplex of tok option * number * tok * number
   | PatKeyVal of pattern * (* = *) tok * pattern
+  | PatExpr of expr (* semgrep: expression embedded in pattern position *)
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)

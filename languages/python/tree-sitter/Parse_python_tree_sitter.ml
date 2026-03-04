@@ -247,20 +247,28 @@ and map_argument_list (env : env) ((v1, v2, v3, v4) : CST.argument_list) =
    So reject if it contains anything else.
 *)
 and map_attribute_pattern (env : env) ((v1, v2, v3) : CST.attribute) : pattern =
-  match v1 with
-  | `Attr x ->
-      let p = map_attribute_pattern env x in
-      let tdot = (* "." *) token env v2 in
-      let id = (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env v3 in
-      PatAttribute (p, tdot, id)
-  | `Id id -> PatName (str env id)
-  | _ -> invalid ()
+  match v3 with
+  | `DOTDOTDOT _tok -> PatExpr (map_attribute env (v1, v2, v3))
+  | `Id id -> (
+      let id = str env id in
+      match v1 with
+      | `Attr x ->
+          let p = map_attribute_pattern env x in
+          let tdot = (* "." *) token env v2 in
+          PatAttribute (p, tdot, id)
+      | `Id id -> PatName (str env id)
+      | _ -> invalid ())
 
 and map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : expr =
   let e = map_primary_expression env v1 in
   let tdot = (* "." *) token env v2 in
-  let id = (* pattern [_\p{XID_Start}][_\p{XID_Continue}]* *) str env v3 in
-  Attribute (e, tdot, id, no_ctx)
+  match v3 with
+  | `Id id ->
+      let id = str env id in
+      Attribute (e, tdot, id, no_ctx)
+  | `DOTDOTDOT tok ->
+      let tdots = token env tok in
+      DotAccessEllipsis (e, tdots)
 
 and map_binary_operator (env : env) (x : CST.binary_operator) : expr =
   match x with
