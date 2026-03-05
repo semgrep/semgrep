@@ -32,8 +32,11 @@ from typing import Optional
 from typing import Type
 from typing import TypeVar
 
+from opentelemetry import trace as otrace
+
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import simple_profiling as simple_profiling_module
+from semgrep import telemetry
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.simple_profiling import import_simple_profiling
 from semgrep.simple_profiling import simple_profiling
@@ -110,6 +113,16 @@ def _write_packet(io: IO[bytes], packet: str) -> None:
     io.write(size_str.encode(ENCODING))
     io.write(packet.encode(ENCODING))
     io.flush()
+
+
+def _wrap_call_with_trace_context(call: out.FunctionCall) -> out.RpcCall:
+    """Wrap a function call with the current OpenTelemetry span context."""
+    from semgrep.state import get_state
+
+    state = get_state()
+    ctx = state.telemetry._get_current_context()
+    span_id = otrace.format_span_id(ctx.span_id) if ctx.is_valid else None
+    return out.RpcCall(call=call, parent_span_id=span_id)
 
 
 def _parse_function_result(packet: str) -> Optional[out.FunctionReturn]:
@@ -195,7 +208,7 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
                 # it actually can happen.
                 logger.error(f"RPC subprocess missing stdout or stdin channel")
                 return None
-            call_str = call.to_json_string().strip()
+            call_str = _wrap_call_with_trace_context(call).to_json_string().strip()
             _write_packet(proc_stdin, call_str)
             proc_stdin.close()
 
@@ -276,8 +289,16 @@ class RpcSession:
         state = get_state()
 
         emit_stderr = state.terminal.log_level == logging.DEBUG
+
+        cmd = _cmd()
+        if state.telemetry.enabled:
+            cmd.append("-trace")
+            if state.telemetry.trace_endpoint is not None:
+                cmd.extend(["-trace_endpoint", state.telemetry.trace_endpoint])
+            state.telemetry.inject()
+
         server = subprocess.Popen(
-            _cmd(),
+            cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=None if emit_stderr else subprocess.DEVNULL,
@@ -298,11 +319,15 @@ class RpcSession:
             process_stdin = self.process.stdin
             if process_stdin:
                 process_stdin.close()
+            try:
+                self.process.wait(timeout=SUBPROC_TIMEOUT_S)
+            except subprocess.TimeoutExpired:
+                logger.error("RPC subprocess did not exit cleanly. Killing it.")
+                self.process.kill()
         finally:
-            self.process.kill()
+            self.process.__exit__(type, value, traceback)
 
-        self.process.__exit__(type, value, traceback)
-
+    @telemetry.trace()
     @simple_profiling
     def call(self, call: out.FunctionCall, expected_type: Type[T]) -> Optional[T]:
         """Call an RPC function. Block until we get a response.
@@ -328,7 +353,7 @@ class RpcSession:
             logger.error(f"RPC subprocess missing stdout or stdin channel")
             return None
 
-        call_str = call.to_json_string().strip()
+        call_str = _wrap_call_with_trace_context(call).to_json_string().strip()
         _write_packet(proc_stdin, call_str)
 
         ret_str = _read_packet(proc_stdout)

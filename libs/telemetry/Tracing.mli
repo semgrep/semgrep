@@ -88,6 +88,22 @@ val with_span :
 (** Expose the function to instrument code to send traces.
     prefer using the ppx *)
 
+val with_top_level_span :
+  ?level:level ->
+  ?parent_span_id:string ->
+  ?parent_trace_id:string ->
+  ?__FUNCTION__:string ->
+  __FILE__:string ->
+  __LINE__:int ->
+  ?data:(string * user_data) list ->
+  string ->
+  (scope -> 'a) ->
+  'a
+(** Create a top-level span with an optional explicit parent (trace_id + span_id).
+    If [parent_span_id] or [parent_trace_id] are not provided, they are read
+    from the environment. Used by RPC session mode to connect per-request OCaml
+    spans to Python caller spans. *)
+
 val with_tracing :
   ?stop_otel_after:
     (* Usually, `with_tracing` will stop otel after its execution, for reasons given

@@ -173,8 +173,18 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
 let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
     ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
   ignore level;
-  let trace_id = Option.map Otel.Trace_id.of_hex parent_trace_id in
-  let parent = Option.map Otel.Span_id.of_hex parent_span_id in
+  let trace_id =
+    Option.map Otel.Trace_id.of_hex
+      (match parent_trace_id with
+      | Some _ -> parent_trace_id
+      | None -> Sys.getenv_opt parent_trace_id_var)
+  in
+  let parent =
+    Option.map Otel.Span_id.of_hex
+      (match parent_span_id with
+      | Some _ -> parent_span_id
+      | None -> Sys.getenv_opt parent_span_id_var)
+  in
   let attrs = with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data in
   let kind = Otel.Span_kind.Span_kind_server in
   with_ ~attrs ~kind ?trace_id ?parent name f
@@ -214,13 +224,9 @@ let with_tracing ?(stop_otel_after = true) fname data f =
     | None -> Info
   in
   set_level level;
-  let parent_span_id = Sys.getenv_opt parent_span_id_var in
-  let parent_trace_id = Sys.getenv_opt parent_trace_id_var in
   (* TODO some sort of filter for trace level *)
   let f' () =
-    with_top_level_span ?parent_span_id ?parent_trace_id ~__FILE__ ~__LINE__
-      ~data fname
-    @@ fun sp ->
+    with_top_level_span ~__FILE__ ~__LINE__ ~data fname @@ fun sp ->
     log_trace_message ();
     f sp
   in

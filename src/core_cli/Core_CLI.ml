@@ -739,9 +739,14 @@ let maybe_with_tracing function_name engine analysis_flags
           "semgrep-core" tracing.endpoint
       in
       let run () =
-        Tracing.with_tracing function_name [] (fun scope ->
-            let telemetry = { tracing with top_level_scope = Some scope } in
-            f { config with telemetry = Some telemetry })
+        if is_rpc_call () then
+          (* RPC mode: configure OTel but don't create a session-level span.
+             Per-request spans are created by handle_request. *)
+          Common.protect ~finally:Telemetry.stop_otel (fun () -> f config)
+        else
+          Tracing.with_tracing function_name [] (fun scope ->
+              let telemetry = { tracing with top_level_scope = Some scope } in
+              f { config with telemetry = Some telemetry })
       in
       if not eio then (
         configure_otel ();

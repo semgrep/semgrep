@@ -225,16 +225,17 @@ let write_packet chan_out str =
 let handle_request (caps : < caps ; .. >) conf chan_in chan_out size =
   let res =
     let/ call_str = read_packet chan_in size in
-    let/ call =
-      try Ok (Semgrep_output_v1_j.function_call_of_string call_str) with
-      (* It's not immediately clear what exceptions `function_call_of_string`
-       * could raise on bad input. So let's be cautious and just handle
-       * everything. *)
+    let/ rpc_call =
+      try Ok (Semgrep_output_v1_j.rpc_call_of_string call_str) with
       | e ->
           let e = Exception.catch e in
           Error (spf "Error parsing RPC request:\n%s" (Exception.to_string e))
     in
-    try handle_call caps conf call with
+    Tracing.with_top_level_span ?parent_span_id:rpc_call.Out.parent_span_id
+      ~__FILE__ ~__LINE__
+      ("RPC " ^ name_of_call rpc_call.Out.call)
+    @@ fun _scope ->
+    try handle_call caps conf rpc_call.Out.call with
     (* Catch-all here. No matter what happens while handling this request, we
      * need to send a response back. *)
     | e ->
@@ -254,7 +255,6 @@ let handle_request (caps : < caps ; .. >) conf chan_in chan_out size =
   in
   let res_str = Semgrep_output_v1_j.string_of_function_result result in
   write_packet chan_out res_str
-[@@trace]
 
 let rec handle_multiple_requests (caps : < caps ; .. >) conf chan_in chan_out =
   match read_header chan_in with
