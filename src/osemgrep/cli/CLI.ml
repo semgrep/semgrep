@@ -207,7 +207,6 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         | "mcp" -> raise Pysemgrep.Fallback
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
-        | "install-ci" -> Install_ci_subcommand.main caps subcmd_argv
         | "show" -> (Hook.get hook_semgrep_show) caps subcmd_argv
         | "test" -> Test_subcommand.main caps subcmd_argv
         | "validate" -> Validate_subcommand.main caps subcmd_argv
