@@ -28,10 +28,12 @@ from semgrep.mcp.server import get_semgrep_app_token
 from semgrep.mcp.server import get_semgrep_scan_args
 from semgrep.mcp.server import remove_temp_dir_from_results
 from semgrep.mcp.server import validate_local_files
+from semgrep.mcp.utilities.tracing import attach_agent_info
 from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
+from semgrep.mcp.utilities.utils import CLAUDE_AGENT_STRING
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -186,7 +188,8 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> StopHookResponse:
 
 def run_stop_scan_cli(agent: str) -> None:
     with start_tracing("mcp-hook") as span:
-        if agent == "claude":
+        attach_agent_info(span, agent)
+        if agent == CLAUDE_AGENT_STRING:
             # This hook is not supported for Claude because Claude hooks' input format
             # is different from that of Cursor hooks. We are assuming the
             # Cursor format here.
@@ -217,7 +220,8 @@ def run_stop_scan_cli(agent: str) -> None:
 
 def run_after_file_edit_hook(agent: str) -> None:
     with start_tracing("mcp-hook") as span:
-        if agent == "claude":
+        attach_agent_info(span, agent)
+        if agent == CLAUDE_AGENT_STRING:
             print("This hook is not supported for Claude.", file=sys.stderr)
             sys.exit(2)
 

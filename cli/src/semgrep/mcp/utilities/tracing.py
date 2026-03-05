@@ -103,6 +103,20 @@ def attach_deployment_info(span: trace.Span | None) -> None:
     )
 
 
+def attach_agent_info(span: trace.Span | None, agent: str) -> None:
+    if span is None:
+        return
+    state = get_state()
+    # This modifies the user agent string. It is fine, because it is
+    # only used by hooks currently, which should have the same user agent tag
+    # throughout the whole time of running Semgrep. However,
+    # if we ever want to use this for the MCP, especially in the remote
+    # case, where each user could be using a different agent to call
+    # the server, we will need to update this.
+    state.app_session.user_agent.tags.add(agent)
+    span.set_attribute("metrics.agent", agent)
+
+
 def attach_metrics(
     span: trace.Span | None,
     version: str,

@@ -33,6 +33,8 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 SETTINGS_FILENAME = "settings.yml"
+CLAUDE_AGENT_STRING = "claude"
+CURSOR_AGENT_STRING = "cursor"
 
 # A regex to match { "identity": "... roles=(<content>) ..." }
 # We need this because the form of the response from the /agent/identity

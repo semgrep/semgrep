@@ -21,9 +21,11 @@ import httpx
 from opentelemetry import trace
 from pydantic import BaseModel
 
+from semgrep.mcp.utilities.tracing import attach_agent_info
 from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
+from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
 
 CACHE_FILE = (
     Path(tempfile.gettempdir()) / "semgrep-mcp" / "claude-secure-defaults-cache.md"
@@ -178,7 +180,8 @@ def run_inject_secure_defaults_hook(
     from the README on the GitHub repo.
     """
     with start_tracing("mcp-hook") as span:
-        if agent == "cursor":
+        attach_agent_info(span, agent)
+        if agent == CURSOR_AGENT_STRING:
             # This hook is not supported for Cursor yet because
             # Cursor's beforeSubmitPrompt does not support
             # injecting context. See: https://cursor.com/docs/agent/hooks#beforesubmitprompt

@@ -23,10 +23,12 @@ from semgrep.mcp.models import SemgrepScanResult
 from semgrep.mcp.semgrep import run_semgrep_output
 from semgrep.mcp.server import get_semgrep_app_token
 from semgrep.mcp.server import get_semgrep_scan_args
+from semgrep.mcp.utilities.tracing import attach_agent_info
 from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
+from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -99,7 +101,8 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookRespons
 
 def run_post_tool_scan_cli(agent: str) -> None:
     with start_tracing("mcp-hook") as span:
-        if agent == "cursor":
+        attach_agent_info(span, agent)
+        if agent == CURSOR_AGENT_STRING:
             # This hook is not supported for Cursor yet because
             # Cursor's afterFileEdit hook does not support
             # any outputs. There is no way to communicate the scan result to Cursor.

@@ -32,6 +32,8 @@ from semgrep.mcp.server import register
 from semgrep.mcp.server import server_lifespan
 from semgrep.mcp.server import setup_oauth_routes
 from semgrep.mcp.utilities.token_verifier import make_token_verifier
+from semgrep.mcp.utilities.utils import CLAUDE_AGENT_STRING
+from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
 from semgrep.verbose_logging import getLogger
 
 
@@ -132,8 +134,8 @@ def setup_mcp_server(host: str, port: int) -> FastMCP:
 @click.option(
     "-a",
     "--agent",
-    type=click.Choice(["claude", "cursor"]),
-    default="claude",
+    type=click.Choice([CLAUDE_AGENT_STRING, CURSOR_AGENT_STRING]),
+    default=CLAUDE_AGENT_STRING,
     help="Agent to use for the MCP server",
 )
 def semgrep_mcp(transport: str, port: int, hook: str | None, agent: str) -> None:
