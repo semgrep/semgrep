@@ -12,6 +12,7 @@
 #
 import os
 import re
+from enum import Enum
 from functools import lru_cache
 from typing import Any
 
@@ -35,6 +36,7 @@ logger = getLogger(__name__)
 SETTINGS_FILENAME = "settings.yml"
 CLAUDE_AGENT_STRING = "claude"
 CURSOR_AGENT_STRING = "cursor"
+WINDSURF_AGENT_STRING = "windsurf"
 
 # A regex to match { "identity": "... roles=(<content>) ..." }
 # We need this because the form of the response from the /agent/identity
@@ -396,3 +398,13 @@ def get_authorization_server_jwks_uri(semgrep_api_url: str) -> str:
 def get_authorization_server_introspection_endpoint(semgrep_api_url: str) -> str:
     metadata = get_oauth_authorization_server_metadata(semgrep_api_url)
     return metadata["introspection_endpoint"]
+
+
+################################################################################
+# Hook-specific utilities #
+################################################################################
+
+
+class HookResultStatus(Enum):
+    SUCCESS = "success"
+    BLOCK = "block"

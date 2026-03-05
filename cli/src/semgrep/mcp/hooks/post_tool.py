@@ -13,6 +13,7 @@
 import asyncio
 import json
 import sys
+from pathlib import Path
 from typing import Literal
 
 from opentelemetry import trace
@@ -28,7 +29,10 @@ from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
+from semgrep.mcp.utilities.utils import CLAUDE_AGENT_STRING
 from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
+from semgrep.mcp.utilities.utils import HookResultStatus
+from semgrep.mcp.utilities.utils import WINDSURF_AGENT_STRING
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -47,7 +51,7 @@ class PostToolHookResponse(BaseModel):
     reason: str | None = None
 
 
-def load_file_path() -> tuple[CodeFile, str]:
+def load_file_path_claude() -> tuple[CodeFile, str]:
     """
     Returns the code file and the current working directory
     """
@@ -64,13 +68,42 @@ def load_file_path() -> tuple[CodeFile, str]:
     )
 
 
+def load_file_path_windsurf() -> tuple[CodeFile, str]:
+    hook_data = json.load(sys.stdin)
+    print(hook_data, file=sys.stderr)
+    # Get content from file path in the windsurf tool input.
+    # We have to do this because Windsurf's tool input is an array
+    # of edits, and it is non-trivial to combine those edits into a single file.
+    # It is easier to just read the file.
+    file_path = hook_data["tool_info"]["file_path"]
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        return (
+            CodeFile(
+                path=file_path,
+                content=content,
+            ),
+            # We are simply using the parent directory as the workspace directory because
+            # Windsurf hook inputs do not contain the workspace directory.
+            # We are only using the workspace directory to attach git info in this
+            # code path.
+            str(Path(file_path).parent),
+        )
+
+
 @with_hook_span(
     span_name="semgrep_scan_cli (hook) (post-tool)",
     send_metrics=True,
     is_semgrep_scan=True,
 )
-async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookResponse:
-    code_file, workspace_dir = load_file_path()
+async def run_cli_scan(
+    top_level_span: trace.Span | None, agent: str
+) -> tuple[PostToolHookResponse, HookResultStatus]:
+    code_file, workspace_dir = (
+        load_file_path_claude()
+        if agent == CLAUDE_AGENT_STRING
+        else load_file_path_windsurf()
+    )
     attach_git_info(trace.get_current_span(), workspace_dir)
     args = get_semgrep_scan_args(code_file.path, config="hooks")
     logger.info(f"Running scan with args: {args}")
@@ -90,13 +123,19 @@ async def run_cli_scan(top_level_span: trace.Span | None) -> PostToolHookRespons
                 for r in scan_result.results
             ]
         )
-        hook_response = PostToolHookResponse(decision="block", reason=reason)
+        hook_response, status = (
+            PostToolHookResponse(decision="block", reason=reason),
+            HookResultStatus.BLOCK,
+        )
     else:
-        hook_response = PostToolHookResponse(decision=None, reason=None)
+        hook_response, status = (
+            PostToolHookResponse(decision=None, reason=None),
+            HookResultStatus.SUCCESS,
+        )
     attach_scan_metrics(
         trace.get_current_span(), scan_result, workspace_dir, [code_file]
     )
-    return hook_response
+    return hook_response, status
 
 
 def run_post_tool_scan_cli(agent: str) -> None:
@@ -124,6 +163,20 @@ def run_post_tool_scan_cli(agent: str) -> None:
             )
             sys.exit(2)
 
-        response = asyncio.run(run_cli_scan(span))
+        response, status = asyncio.run(run_cli_scan(span, agent))
+        if agent == WINDSURF_AGENT_STRING:
+            print(response.model_dump_json(exclude_none=True), file=sys.stderr)
+            if status == HookResultStatus.BLOCK:
+                # Since Windsurf does not support a specific output format, I found
+                # that asking the agent to ask the user if they want to fix the security issues
+                # works best. It makes the agent behave similar to how Claude responds
+                # to a block result.
+                print(
+                    f"Based on the results above, ask the user if they want to fix the security issues.",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+            else:
+                sys.exit(0)
         print(response.model_dump_json(exclude_none=True))
         sys.exit(0)

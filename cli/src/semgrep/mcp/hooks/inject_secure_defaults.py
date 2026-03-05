@@ -26,6 +26,7 @@ from semgrep.mcp.utilities.tracing import attach_git_info
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_hook_span
 from semgrep.mcp.utilities.utils import CURSOR_AGENT_STRING
+from semgrep.mcp.utilities.utils import WINDSURF_AGENT_STRING
 
 CACHE_FILE = (
     Path(tempfile.gettempdir()) / "semgrep-mcp" / "claude-secure-defaults-cache.md"
@@ -181,13 +182,15 @@ def run_inject_secure_defaults_hook(
     """
     with start_tracing("mcp-hook") as span:
         attach_agent_info(span, agent)
-        if agent == CURSOR_AGENT_STRING:
+        if agent == CURSOR_AGENT_STRING or agent == WINDSURF_AGENT_STRING:
             # This hook is not supported for Cursor yet because
             # Cursor's beforeSubmitPrompt does not support
             # injecting context. See: https://cursor.com/docs/agent/hooks#beforesubmitprompt
             #
             # There is also no way to inject context at the start of a Cursor session at the moment.
-            print("This hook is not supported for Cursor.", file=sys.stderr)
+
+            # TODO: implement this hook for Windsurf
+            print(f"This hook is not supported for {agent}.", file=sys.stderr)
             sys.exit(2)
 
         response = asyncio.run(
