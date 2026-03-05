@@ -1,0 +1,10 @@
+(library
+ (name semgrep_core_tests)
+ (public_name semgrep.core.tests)
+ (wrapped false)
+ (libraries
+   semgrep.core
+   testo
+   alcotest
+ )
+)

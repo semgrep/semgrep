@@ -139,6 +139,7 @@ let tests (caps : Cap.all_caps) =
         Unit_semgrepignore.tests;
         Unit_gitignore.tests;
         Unit_include_filter.tests;
+        Unit_disk_cache.tests;
         Unit_parsing.tests ();
         Unit_entropy.tests;
         Parser_regexp.Unit_parsing.tests;

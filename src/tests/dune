@@ -20,6 +20,7 @@
     parallelism.tests
     semgrep.analyzing.tests ; Unit_dataflow
     semgrep.core
+    semgrep.core.tests
     semgrep.core_cli
     semgrep.printing.tests
     semgrep.fixing.tests
