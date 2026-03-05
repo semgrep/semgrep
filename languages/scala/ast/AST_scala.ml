@@ -513,6 +513,8 @@ and constr_app = type_ * arguments list
 (* ------------------------------------------------------------------------- *)
 and function_definition = {
   fkind : function_kind wrap;
+  (* scala3: polymorphic function literal type params, e.g. [T] => body *)
+  ftparams : type_parameters option;
   (* a list of list of parameters! but usually 0/1/2 *)
   fparams : bindings list;
   (* scala3? remove None and force : Unit ? *)

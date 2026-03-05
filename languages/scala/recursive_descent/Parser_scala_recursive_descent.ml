@@ -631,6 +631,47 @@ let isIndentAfterColon in_ =
   | COLON _ -> lookingAhead (fun in_ -> Option.is_some (passedIndent in_)) in_
   | _ -> false
 
+(* NOTE: "Scala3 optional braces".
+
+  See https://docs.scala-lang.org/scala3/reference/other-new-features/indentation.html#optional-braces-for-method-arguments
+  ColonArgument ::= colon [LambdaStart] indent (CaseClauses | Block) outdent
+  LambdaStart   ::= FunParams ('=>' | '?=>')
+                    | HkTypeParamClause '=>'
+
+  This checks whether a colon ':' is followed by:
+  1. an indented token directly; or,
+  2. a LambdaStart (e.g. `u =>` or `(x, y) =>`) on the same line,
+      then an indented token.
+ *)
+let isColonArgument in_ : bool =
+  match in_.token with
+  | COLON _ ->
+      lookingAhead
+        (fun in_ ->
+          (* Case 1: indent directly after colon *)
+          if Option.is_some (passedIndent in_) then true
+          else
+            (* Case 2: LambdaStart on same line, then indent *)
+            let is_arrow_then_indent () =
+              match in_.token with
+              | ARROW _ ->
+                  nextToken in_;
+                  Option.is_some (passedIndent in_)
+              | __else__ -> false
+            in
+            match in_.token with
+            | _ when TH.isIdentBool in_.token ->
+                nextToken in_;
+                is_arrow_then_indent ()
+            | LPAREN _
+            | LBRACKET _ ->
+                (* FunParams or HkTypeParamClause *)
+                skipMatching in_;
+                is_arrow_then_indent ()
+            | __else__ -> false)
+        in_
+  | __else__ -> false
+
 (* Adjust sepRegions to enter a new indent region, if we've
    passed by one.
 *)
@@ -2078,6 +2119,7 @@ and parseOther ?(is_block_expr = false) location (in_ : env) : expr =
              let def =
                {
                  fkind = (LambdaArrow, ii);
+                 ftparams = None;
                  fparams = [ params ];
                  frettype = None;
                  fbody = Some fbody;
@@ -2301,6 +2343,9 @@ and simpleExprRest ~canApply t in_ : expr =
              simpleExprRest ~canApply:true !app in_
          | LPAREN _ -> paren_or_brace ()
          | LBRACE _ when canApply -> paren_or_brace ()
+         | COLON _ when canApply && isColonArgument in_ ->
+             (* See NOTE: "Scala3 optional braces" *)
+             paren_or_brace ()
          | USCORE _ ->
              skipToken in_;
              (* AST: MethodValue(stripParens(t)) *)
@@ -2434,6 +2479,58 @@ and argumentExprs in_ : arguments =
          match in_.token with
          | LBRACE _ -> ArgBlock (blockExpr in_)
          | LPAREN _ -> parArgumentExprs in_
+         | COLON _ when isColonArgument in_ ->
+             (* See NOTE: "Scala3 optional braces" *)
+             let icolon = TH.info_of_tok in_.token in
+             skipToken in_;
+             if Option.is_some (passedIndent in_) then
+               (* Case 1: indent directly after colon *)
+               let _, body, closing = blockExpr in_ in
+               ArgBlock (icolon, body, closing)
+             else
+               (* Case 2: LambdaStart on same line, then indent.
+                  Covers both FunParams (ident =>) and
+                  HkTypeParamClause ([T] =>) forms. *)
+               let e =
+                 match in_.token with
+                 | LBRACKET _ ->
+                     (* [T, U, ...] => body — polymorphic function literal *)
+                     let tparams =
+                       inBrackets
+                         (fun in_ ->
+                           commaSeparated
+                             (fun in_ ->
+                               let tpname = wildcardOrIdent in_ in
+                               {
+                                 tpannots = [];
+                                 tpname;
+                                 tpvariance = None;
+                                 tpparams = None;
+                                 tpbounds = { supertype = None; subtype = None };
+                                 tpviewbounds = [];
+                                 tpcolons = [];
+                               })
+                             in_)
+                         in_
+                     in
+                     let iarrow = TH.info_of_tok in_.token in
+                     accept (ARROW ab) in_;
+                     let fbody =
+                       if Option.is_some (passedIndent in_) then
+                         FBlock (blockExpr in_)
+                       else FExpr (iarrow, expr in_)
+                     in
+                     Lambda
+                       {
+                         fkind = (LambdaArrow, iarrow);
+                         ftparams = Some tparams;
+                         fparams = [];
+                         frettype = None;
+                         fbody = Some fbody;
+                       }
+                 | _ -> expr in_
+               in
+               ArgBlock (fb icolon (BEBlock [ E e ]))
          (* TODO: is using this token a good idea? Would unsafe_fake_bracket be better or worse? *)
          | _ -> Args (fb (TH.info_of_tok in_.token) []))
 
@@ -2614,6 +2711,7 @@ and implicitClosure implicitmod location in_ =
   let def =
     {
       fkind = (LambdaArrow, iarrow);
+      ftparams = None;
       fparams = [ fb iarrow ([ param ], None) ];
       frettype = None;
       fbody = Some body;
@@ -3753,7 +3851,13 @@ let funDefRest fkind _attrs name in_ :
          in
          (* ast: DefDef(newmods, name.toTermName, tparams,vparamss,restype, rhs) *)
          (* CHECK: "unary prefix operator definition with empty parameter list.."*)
-         ( { fkind; fparams = vparamss; frettype = restype; fbody = rhs },
+         ( {
+             fkind;
+             ftparams = None;
+             fparams = vparamss;
+             frettype = restype;
+             fbody = rhs;
+           },
            tparams ))
 
 let funDefOrDcl attrs in_ : definition =
@@ -3791,6 +3895,7 @@ let funDefOrDcl attrs in_ : definition =
              let fdef =
                {
                  fkind = (Def, idef);
+                 ftparams = None;
                  fparams = vparamss;
                  frettype = None;
                  fbody = Some rhs;

@@ -1091,11 +1091,13 @@ and v_definition_kind = function
 and v_function_definition
     {
       fkind = v_fkind;
+      ftparams = v_ftparams;
       fparams = v_fparams;
       frettype = v_frettype;
       fbody = vfbody;
     } =
   let kind = v_wrap v_function_kind v_fkind in
+  let _tparamsTODO = v_type_parameters v_ftparams in
   let params = v_list v_bindings v_fparams in
   let tret = v_option v_type_ v_frettype in
   let fbody = v_option v_fbody vfbody in
