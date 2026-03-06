@@ -1,0 +1,1 @@
+Fixed permission errors during lockfileless Java (Gradle) dependency resolution by invoking gradlew via sh when the executable bit is not set
