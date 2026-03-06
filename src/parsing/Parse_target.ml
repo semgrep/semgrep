@@ -231,6 +231,8 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file [ TreeSitter parse_target ] (fun x -> x)
   | Lang.Elixir -> run_external_parser file Parsing_plugin.Elixir.parse_target
   | Lang.Gosu -> run_external_parser file Parsing_plugin.Gosu.parse_target
+  | Lang.Powershell ->
+      run_external_parser file Parsing_plugin.Powershell.parse_target
 
 let run_analyses_after_name_resolution lang ast =
   Typing.check_program lang ast;

@@ -236,6 +236,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Yaml
     | Lang.Html
     | Lang.Gosu
+    | Lang.Powershell
     | Lang.Fga
     | Lang.Terraform ->
         raise Todo
@@ -318,6 +319,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Html
     | Lang.Terraform
     | Lang.Gosu
+    | Lang.Powershell
     | Lang.Fga
     | Lang.Ql ->
         raise Todo
@@ -374,6 +376,7 @@ and do_while stmt env (s, e) =
     | Lang.Swift
     | Lang.Html
     | Lang.Gosu
+    | Lang.Powershell
     | Lang.Fga
     | Lang.Terraform ->
         raise Todo
@@ -428,6 +431,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Scala
     | Lang.Solidity
     | Lang.Gosu
+    | Lang.Powershell
     | Lang.Fga
     | Lang.Terraform ->
         raise Todo
@@ -655,6 +659,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Swift
       | Lang.Html
       | Lang.Gosu
+      | Lang.Powershell
       | Lang.Terraform ->
           raise Todo
       | Lang.Apex

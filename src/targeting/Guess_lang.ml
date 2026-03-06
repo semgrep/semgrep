@@ -299,7 +299,8 @@ let inspect_file_p (lang : Lang.t) path =
     | Ts
     | Vue
     | Xml
-    | Yaml ->
+    | Yaml
+    | Powershell ->
         matches_lang lang
   in
 

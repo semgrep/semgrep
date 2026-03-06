@@ -55,6 +55,7 @@ type t = Language.t =
   | Move_on_aptos
   | Ocaml
   | Php
+  | Powershell
   | Promql
   | Protobuf
   | Python2

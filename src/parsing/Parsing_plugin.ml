@@ -153,4 +153,9 @@ module Gosu = struct
     make Lang.Gosu
 end
 
+module Powershell = struct
+  let is_optional, register_parsers, is_available, parse_pattern, parse_target =
+    make Lang.Powershell
+end
+
 let all_possible_plugins = List.rev (Atomic.get all_possible_plugins)

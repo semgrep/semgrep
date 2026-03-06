@@ -56,6 +56,7 @@ let lang_has_no_dollar_ids =
     | Promql
     | Hack
     | Bash
+    | Powershell
     | Dockerfile
     | Rust
     | Cairo
