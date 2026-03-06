@@ -4444,7 +4444,7 @@ let method_pattern (env : env) (x : CST.method_pattern) : any =
 let semgrep_pattern (env : env) (x : CST.semgrep_pattern) : any =
   match x with
   | `Exp x -> Expr (expression env x)
-  | `Pair_opt_COMMA (v1, _v2) -> (
+  | `Pair_opt_choice_auto_semi (v1, _v2) -> (
       match v1 with
       | `Prop_name_COLON_exp (v1, v2, v3) -> (
           let v1 = property_name env v1 in

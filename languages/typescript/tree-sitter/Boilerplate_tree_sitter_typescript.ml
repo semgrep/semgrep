@@ -3686,13 +3686,13 @@ let map_method_pattern (env : env) (x : CST.method_pattern) =
 let map_semgrep_pattern (env : env) (x : CST.semgrep_pattern) =
   match x with
   | `Exp x -> R.Case ("Exp", map_expression env x)
-  | `Pair_opt_COMMA (v1, v2) ->
+  | `Pair_opt_choice_auto_semi (v1, v2) ->
       R.Case
-        ( "Pair_opt_COMMA",
+        ( "Pair_opt_choice_auto_semi",
           let v1 = map_pair env v1 in
           let v2 =
             match v2 with
-            | Some tok -> R.Option (Some ((* "," *) token env tok))
+            | Some x -> R.Option (Some (map_semicolon env x))
             | None -> R.Option None
           in
           R.Tuple [ v1; v2 ] )
