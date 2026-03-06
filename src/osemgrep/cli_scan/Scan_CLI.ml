@@ -728,6 +728,18 @@ let o_no_secrets_validation : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_secrets_timeout : int Term.t =
+  let default = 30 in
+  let info =
+    Arg.info [ "secrets-timeout" ]
+      ~doc:
+        (spf
+           {|Timeout in seconds for each secrets validation HTTP request.
+If set to 0, no timeout is applied. Defaults to %d.|}
+           default)
+  in
+  Arg.value (Arg.opt Arg.int default info)
+
 let o_allow_untrusted_validators : bool Term.t =
   let info =
     Arg.info
@@ -1285,8 +1297,8 @@ let outputs_conf ~text_outputs ~json_outputs ~emacs_outputs ~vim_outputs
 
 (* reused in Ci_CLI.ml *)
 let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
-    ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
-    ~allow_local_builds ~x_tr : Engine_type.t =
+    ~no_secrets_validation ~allow_untrusted_validators ~secrets_timeout
+    ~pro_path_sensitive ~allow_local_builds ~x_tr : Engine_type.t =
   (* This first bit just rules out mutually exclusive options. *)
   if oss && secrets then
     Error.abort "Cannot run Secrets scan with OSS engine (--oss specified).";
@@ -1321,6 +1333,7 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
             allow_all_origins = allow_untrusted_validators;
             (* TODO: -historical-secrets should imply -only_validated ? *)
             only_validated = false;
+            timeout = Float.of_int secrets_timeout;
           }
       else None
     in
@@ -1456,12 +1469,13 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       metrics num_jobs no_secrets_validation nosem novcs optimizations oss
       output pattern pro project_root pro_intrafile pro_lang pro_path_sensitive
       remote replacement rewrite_rule_ids sarif sarif_outputs
-      scan_unknown_extensions secrets semgrepignore_filename severity
-      show_supported_languages strict target_roots test test_ignore_todo text
-      text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
-      use_git _use_semgrepignore_v2 validate version version_check vim
-      vim_outputs _x_dump_symbol_analysis x_ignore_semgrepignore_files x_ls
-      x_ls_long x_mem_policy x_tr x_pro_naming x_group_taint_rules x_mcp =
+      scan_unknown_extensions secrets secrets_timeout semgrepignore_filename
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo text text_outputs time_flag timeout
+      _timeout_interfileTODO timeout_threshold use_git _use_semgrepignore_v2
+      validate version version_check vim vim_outputs _x_dump_symbol_analysis
+      x_ignore_semgrepignore_files x_ls x_ls_long x_mem_policy x_tr x_pro_naming
+      x_group_taint_rules x_mcp =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
@@ -1519,8 +1533,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
 
     let engine_type : Engine_type.t =
       engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
-        ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
-        ~allow_local_builds ~x_tr
+        ~no_secrets_validation ~allow_untrusted_validators ~secrets_timeout
+        ~pro_path_sensitive ~allow_local_builds ~x_tr
     in
     let x_mem_policy =
       (* Disable flag if --x-mem-policy is supplied without a pro config *)
@@ -1704,7 +1718,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_pro_path_sensitive $ o_remote $ o_replacement
     $ o_rewrite_rule_ids $ o_sarif $ o_sarif_outputs $ o_scan_unknown_extensions
-    $ o_secrets $ o_semgrepignore_filename $ o_severity
+    $ o_secrets $ o_secrets_timeout $ o_semgrepignore_filename $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_use_git

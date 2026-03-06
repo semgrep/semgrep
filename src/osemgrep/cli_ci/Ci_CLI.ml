@@ -304,8 +304,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
       nosem optimizations oss output pro pro_intrafile pro_lang
       pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
-      scan_unknown_extensions secrets semgrepignore_filename text text_outputs
-      timeout _timeout_interfileTODO timeout_threshold use_git
+      scan_unknown_extensions secrets secrets_timeout semgrepignore_filename
+      text text_outputs timeout _timeout_interfileTODO timeout_threshold use_git
       _use_semgrepignore_v2 version_check vim vim_outputs x_mem_policy x_tr
       x_pro_naming x_mcp =
     (* this is just handled by psemgrep for now *)
@@ -343,8 +343,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
 
     let engine_type : Engine_type.t =
       Scan_CLI.engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
-        ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
-        ~allow_local_builds ~x_tr
+        ~no_secrets_validation ~allow_untrusted_validators ~secrets_timeout
+        ~pro_path_sensitive ~allow_local_builds ~x_tr
     in
     let rules_source = Rules_source.Configs config in
     let use_parmap = common.x_parmap in
@@ -461,11 +461,11 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_output $ SC.o_pro $ SC.o_pro_intrafile $ SC.o_pro_languages
     $ SC.o_pro_path_sensitive $ SC.o_rewrite_rule_ids $ SC.o_sarif
     $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
-    $ SC.o_semgrepignore_filename $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
-    $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_use_git
-    $ SC.o_use_semgrepignore_v2 $ SC.o_version_check $ SC.o_vim
-    $ SC.o_vim_outputs $ SC.o_x_mem_policy $ SC.o_x_tr $ SC.o_x_pro_naming
-    $ SC.o_x_mcp)
+    $ SC.o_secrets_timeout $ SC.o_semgrepignore_filename $ SC.o_text
+    $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
+    $ SC.o_timeout_threshold $ SC.o_use_git $ SC.o_use_semgrepignore_v2
+    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_x_mem_policy
+    $ SC.o_x_tr $ SC.o_x_pro_naming $ SC.o_x_mcp)
 
 (*************************************************************************)
 (* Turn argv into conf *)

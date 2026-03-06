@@ -581,6 +581,7 @@ class CoreRunner:
         capture_stderr: bool,
         optimizations: str,
         allow_untrusted_validators: bool,
+        secrets_timeout: Optional[int] = None,
         respect_rule_paths: bool = True,
         path_sensitive: bool = False,
         symbol_analysis: bool = False,
@@ -601,6 +602,7 @@ class CoreRunner:
         self._profile = profile
         self._optimizations = optimizations
         self._allow_untrusted_validators = allow_untrusted_validators
+        self._secrets_timeout = secrets_timeout
         self._path_sensitive = path_sensitive
         self._respect_rule_paths = respect_rule_paths
         self._capture_stderr = capture_stderr
@@ -1131,6 +1133,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             if self._allow_untrusted_validators:
                 cmd.append("-allow-untrusted-validators")
+
+            if self._secrets_timeout is not None:
+                cmd += ["-secrets_timeout", str(self._secrets_timeout)]
 
             if self._path_sensitive:
                 cmd.append("-path_sensitive")

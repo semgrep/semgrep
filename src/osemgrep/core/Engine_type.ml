@@ -70,6 +70,10 @@ and secrets_config = {
       (** This is used by Historical scans to keep only the `Confirmed_valid
    * matches in the postprocess secrets phase.
    *)
+  timeout : float;
+      (** Timeout in seconds for each secrets validation HTTP request.
+   * Defaults to 30.0 seconds.
+   *)
 }
 
 and sca_config = {

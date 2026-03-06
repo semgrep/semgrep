@@ -117,6 +117,7 @@ val o_metrics : Metrics_.config Cmdliner.Term.t
 val o_num_jobs : Core_scan_config.num_jobs Cmdliner.Term.t
 val o_no_secrets_validation : bool Cmdliner.Term.t
 val o_nosem : bool Cmdliner.Term.t
+val o_secrets_timeout : int Cmdliner.Term.t
 val o_optimizations : bool Cmdliner.Term.t
 val o_oss : bool Cmdliner.Term.t
 val o_output : string option Cmdliner.Term.t
@@ -156,6 +157,7 @@ val engine_type_conf :
   secrets:bool ->
   no_secrets_validation:bool ->
   allow_untrusted_validators:bool ->
+  secrets_timeout:int ->
   pro_path_sensitive:bool ->
   allow_local_builds:bool ->
   x_tr:bool option ->

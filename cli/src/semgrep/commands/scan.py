@@ -452,6 +452,11 @@ _scan_options: List[Callable] = [
         is_flag=True,
     ),
     optgroup.option(
+        "--secrets-timeout",
+        type=int,
+        default=None,
+    ),
+    optgroup.option(
         "--allow-local-builds",
         "allow_local_builds",
         is_flag=True,
@@ -740,6 +745,7 @@ def scan(
     replacement: Optional[str],
     rewrite_rule_ids: bool,
     scan_unknown_extensions: bool,
+    secrets_timeout: Optional[int],
     severity: Optional[Tuple[str, ...]],
     strict: bool,
     scanning_roots: Sequence[str],
@@ -1107,6 +1113,7 @@ def scan(
                         profile=profile,
                         skip_unknown_extensions=(not scan_unknown_extensions),
                         allow_untrusted_validators=allow_untrusted_validators,
+                        secrets_timeout=secrets_timeout,
                         severity=severity,
                         optimizations=optimizations,
                         baseline_commit=baseline_commit,
