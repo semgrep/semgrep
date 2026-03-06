@@ -10,11 +10,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import functools
 import os
 import re
 from enum import Enum
 from functools import lru_cache
 from typing import Any
+from typing import Callable
+from typing import Type
 
 import requests
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -408,3 +411,26 @@ def get_authorization_server_introspection_endpoint(semgrep_api_url: str) -> str
 class HookResultStatus(Enum):
     SUCCESS = "success"
     BLOCK = "block"
+
+
+def suppress_exception(
+    exception_type: Type[Exception],
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """
+    Decorator to suppress exceptions from a function and returns None.
+    """
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except exception_type:
+                logger.warning(
+                    f"Exception of type {exception_type.__name__} suppressed"
+                )
+                return None
+
+        return wrapper
+
+    return decorator
