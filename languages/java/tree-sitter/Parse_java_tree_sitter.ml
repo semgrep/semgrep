@@ -139,12 +139,11 @@ let inferred_parameters (env : env) ((v1, v2, v3, v4) : CST.inferred_parameters)
 
 let int_literal env tok =
   let s, t = str env tok in
-  let normalized =
-    if String.starts_with ~prefix:"0x" s || String.starts_with ~prefix:"0X" s
-    then string_of_int (int_of_string s)
-    else s
+  let value =
+    try Some (Int64.of_string s)
+    with _ -> None
   in
-  (int_of_string_opt normalized, t)
+  (value, t)
 
 let multiline_string_fragment (env : env) (x : CST.multiline_string_fragment) =
   match x with
