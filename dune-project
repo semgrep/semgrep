@@ -149,7 +149,8 @@ For more information see https://semgrep.dev
     (lsp (and (>= 1.22.0) (< 1.24.0)))
     (git (>= 3.18.0))
     ; tracing
-    (memtrace (>= 0.2.3))
+    ; pinned to janestreet/memtrace.git
+    memtrace
     ; profiling
     pyro-caml-instruments
     pyro-caml-ppx
