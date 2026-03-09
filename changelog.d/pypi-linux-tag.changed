@@ -1,0 +1,4 @@
+Migrate from publishing a single Linux wheel with the platform tag `musllinux_1_0_<arch>.manylinux2014_<arch>` to publishing two separate wheels:
+
+- A wheel with the platform tag musllinux_1_0_<arch>
+- A wheel with the platform tag manylinux2014_<arch>

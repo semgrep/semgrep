@@ -13,6 +13,7 @@
 # type: ignore
 import os
 import platform
+import subprocess
 import sys
 
 import setuptools
@@ -29,6 +30,38 @@ IS_WINDOWS = platform.system() == "Windows"
 # This script assumes the presence of a semgrep-core binary copied under
 # cli/src/semgrep/bin by the caller (the GHA workflow).
 WHEEL_CMD = "bdist_wheel"
+
+
+# parses the system's `ldd`'s version check
+def linux_detect_libc():
+    try:
+        result = subprocess.run(
+            ["ldd", "--version"],
+            capture_output=True,
+            text=True,
+        )
+        # musl's ldd prints to stderr, glibc's ldd to stdout
+        out = result.stdout + result.stderr
+        if "musl" in out:
+            return "musl"
+    except Exception:
+        pass
+    return "glibc"
+
+
+# To prevent potential compatibility issues when mixing glibc and libmusl,
+# PyPI does not accept the default linux_x86_64 and linux_aarch64 platform
+# tags. We build semgrep on glibc and musl, so we must make sure we tag
+# each build as either glibc (manylinux) or musl (musllinux) compatible
+#
+# NOTE: although semgrep-core is statically linked, that won't be the case
+# soon.
+plat_libc_to_tag = {
+    ("linux_aarch64", "musl"): "musllinux_1_0_aarch64",
+    ("linux_x86_64", "musl"): "musllinux_1_0_x86_64",
+    ("linux_aarch64", "glibc"): "manylinux2014_aarch64",
+    ("linux_x86_64", "glibc"): "manylinux2014_x86_64",
+}
 
 
 # uv builds our wheels out of an sdist, so the sdist must have the README in it for it to
@@ -81,15 +114,13 @@ if WHEEL_CMD in sys.argv:
             # We don't require a specific Python ABI
             abi = "none"
 
-            # To prevent potential compatibility issues when mixing glibc and libmusl,
-            # PyPI does not accept the default linux_x86_64 and linux_aarch64 platform
-            # tags. Instead, package maintainers must explicitly identify if their package
-            # supports glibc and/or libmusl. Semgrep-core is statically compiled,
-            # so this isn't a concern for us.
-            if plat == "linux_aarch64":
-                plat = "musllinux_1_0_aarch64.manylinux2014_aarch64"
-            elif plat == "linux_x86_64":
-                plat = "musllinux_1_0_x86_64.manylinux2014_x86_64"
+            # we translate the default linux_<arch> platform tag to either
+            # musllinux_<ver>_<arch> or manylinux_<ver>_arch depending on which
+            # system we are on; see plat_libc_to_tag at the top of this file.
+            if plat.startswith("linux"):
+                lib = linux_detect_libc()
+                plat = plat_libc_to_tag[(plat, lib)]
+
             # The macOS Python binary is sometimes a universal binary, which leads to a
             # platform name of "macosx_10_9_universal2" in the wheel tag. Unfortunately,
             # our binary is not built as universal, so we must detect the architecture of
