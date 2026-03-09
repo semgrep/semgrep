@@ -179,13 +179,11 @@ local build_steps(
   suffix='',  // suffix for image tags
   push=false,  // push to registries including PUBLIC ONES! Do NOT push our code to public plz
   push_ecr=false,  // push only to ecr
-  ecr_repo_override=null,  // override the default ECR repo (e.g. for pushing to a separate repo)
   file='Dockerfile',
   build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
   platforms=default_platforms,  // arm or x86 or both
   load=false,  // load image after (useful if you want to run it) NOTE: you probably want only want the platform to be the one of the runner
       ) =
-  local effective_ecr_repo = if ecr_repo_override != null then ecr_repo_override else ecr_repo;
   [
     // Documentation for this step is here:
     // https://github.com/docker/metadata-action
@@ -228,7 +226,7 @@ local build_steps(
                    semgrep/%(name)s
                  ||| % { name: name } else '') + (if push || push_ecr then |||
                                                     %(ecr_repo)s
-                                                  ||| % { ecr_repo: effective_ecr_repo } else ''),
+                                                  ||| % { ecr_repo: ecr_repo } else ''),
         // latest=true the tag will be PREFIX-latest-SUFFIX. Since we always
         // promote from canary to latest manually, we never want to do this
         //
@@ -383,7 +381,6 @@ local job(
   checkout_steps=actions.checkout_with_submodules,
   push=false,  // push to registries including PUBLIC ONES! Do NOT push our code to public plz
   push_ecr=false,  // push only to ecr
-  ecr_repo_override=null,  // override the default ECR repo (e.g. for pushing to a separate repo)
   file='Dockerfile',
   build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
   platforms=default_platforms,
@@ -419,7 +416,6 @@ local job(
              suffix=suffix,
              push=push,
              push_ecr=push_ecr,
-             ecr_repo_override=ecr_repo_override,
              file=file,
              build_args=build_args,
              platforms=platforms,
