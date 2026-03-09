@@ -29,6 +29,7 @@ pin-depends: [
   ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-logs.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
+  ["memtrace.dev" "git+https://github.com/janestreet/memtrace.git#a88470c3de884182503ba5fcd4729e281e544731"]
 ]
 
 (* Needed for alpine linux docker image. These used to get pulled in *)
