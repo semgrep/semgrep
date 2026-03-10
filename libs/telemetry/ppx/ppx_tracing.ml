@@ -35,6 +35,9 @@ open Ast_helper
  * - `let%trace sp = "X.foo" in ...` (supported so that we can add data to spans)
  * - let foo frm = body [@@trace_debug] (supported to add debug-level traces)
  * - let foo frm = body [@@trace_trace] (supported to add trace-level traces)
+ * - `let%trace_result sp = ("X.foo", error_to_string) in ...` (for functions
+ *     returning `result`; uses `Tracing.with_span_result` to mark the span as
+ *     Error on `Error _`, with the error message from `error_to_string`)
  * - `let%trace_debug sp = "X.foo" in ...` (combination of previous two)
  * - `let%trace_trace sp = "X.foo" in ...` (combination of previous two)
  *
@@ -66,15 +69,15 @@ let name_of_func_pat (pat : Parsetree.pattern) =
   | _ -> "<no func name>"
 
 let trace_attr (attr : Parsetree.attribute) =
-  let attr_level =
+  let attr_info =
     match attr.attr_name.txt with
-    | "trace" -> Some Tracing.Info
-    | "trace_debug" -> Some Tracing.Debug
-    | "trace_trace" -> Some Tracing.Trace
+    | "trace" -> Some (Tracing.Info, "with_span")
+    | "trace_debug" -> Some (Tracing.Debug, "with_span")
+    | "trace_trace" -> Some (Tracing.Trace, "with_span")
     | _ -> None
   in
-  attr_level
-  |> Option.map (fun level ->
+  attr_info
+  |> Option.map (fun (level, with_span_fn) ->
          let payload =
            match attr.attr_payload with
            | PStr
@@ -93,7 +96,7 @@ let trace_attr (attr : Parsetree.attribute) =
                Some str
            | _ -> None
          in
-         (payload, level))
+         (payload, level, with_span_fn))
 
 (* borrowed from module_ml.ml *)
 let module_name_of_loc loc =
@@ -106,26 +109,34 @@ let module_name_of_loc loc =
 let make_label loc l =
   (Labelled l, Exp.mk (Pexp_ident { txt = Lident l; loc }) ~loc)
 
-let make_traced_expr ~level loc action_name var_pat e =
+let make_traced_expr ~level ~with_span_fn ?error_to_string loc action_name
+    var_pat e =
+  let extra_args =
+    match error_to_string with
+    | None -> []
+    | Some expr -> [ (Labelled "error_to_string", expr) ]
+  in
   Exp.apply
     (Exp.ident { txt = Lident "@@"; loc })
     [
       ( Nolabel,
         Exp.apply
-          (Exp.ident { txt = Ldot (Lident "Tracing", "with_span"); loc })
-          [
-            ( Labelled "level",
-              Exp.mk ~loc
-                (Pexp_construct
-                   ( {
-                       txt = Ldot (Lident "Tracing", Tracing.show_level level);
-                       loc;
-                     },
-                     None )) );
-            make_label loc "__FILE__";
-            make_label loc "__LINE__";
-            (Nolabel, Exp.constant (Pconst_string (action_name, loc, None)));
-          ] );
+          (Exp.ident { txt = Ldot (Lident "Tracing", with_span_fn); loc })
+          ([
+             ( Labelled "level",
+               Exp.mk ~loc
+                 (Pexp_construct
+                    ( {
+                        txt = Ldot (Lident "Tracing", Tracing.show_level level);
+                        loc;
+                      },
+                      None )) );
+             make_label loc "__FILE__";
+             make_label loc "__LINE__";
+           ]
+          @ extra_args
+          @ [ (Nolabel, Exp.constant (Pconst_string (action_name, loc, None))) ]
+          ) );
       (Nolabel, Exp.fun_ Nolabel None var_pat e);
     ]
 
@@ -134,9 +145,10 @@ let make_traced_expr ~level loc action_name var_pat e =
 (*****************************************************************************)
 
 (* Turn `let f args = body` into
-   `let f args = Trace_core.with_span ~__FILE__ ~__LINE__ "<action_name>" @@
-                 fun _sp -> body`*)
-let rec map_expr_add_tracing ~level attr_payload pat e =
+   `let f args = Tracing.with_span ~__FILE__ ~__LINE__ "<action_name>" @@
+                 fun _sp -> body`
+   (or with_span_result for [@@trace_result]) *)
+let rec map_expr_add_tracing ~level ~with_span_fn attr_payload pat e =
   match e.pexp_desc with
   (* `let f x y = ...` is desugared into `let f = fun x -> fun y -> ...`.
    * Without handling this case specially, we would always report 0 duration
@@ -147,7 +159,7 @@ let rec map_expr_add_tracing ~level attr_payload pat e =
    * location. *)
   | Pexp_fun (arg_label, exp_opt, pattern, ({ pexp_desc = Pexp_fun _; _ } as e'))
     when e'.pexp_loc.loc_ghost ->
-      let e' = map_expr_add_tracing ~level attr_payload pat e' in
+      let e' = map_expr_add_tracing ~level ~with_span_fn attr_payload pat e' in
       { e with pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, e') }
   | Pexp_fun (arg_label, exp_opt, pattern, e') ->
       let loc = e'.pexp_loc in
@@ -160,7 +172,7 @@ let rec map_expr_add_tracing ~level attr_payload pat e =
       in
       let var_pat = Ast_builder.Default.ppat_var ~loc { txt = "_sp"; loc } in
       let body_with_tracing =
-        make_traced_expr ~level loc action_name var_pat e'
+        make_traced_expr ~level ~with_span_fn loc action_name var_pat e'
       in
       {
         (* TODO This should probably be `e` not `e'`? *)
@@ -179,7 +191,16 @@ let rec map_expr_add_tracing ~level attr_payload pat e =
  * I only copied `rule_let` because for top level annotations we're still
  * using [@@trace] as discussed later *)
 
-let expand_let ~level ~ctxt var (action_name : string) e =
+let var_or_unit_pat () =
+  let open! Ast_pattern in
+  let pat_var = ppat_var __' |> map ~f:(fun f v -> f (`Var v)) in
+  let pat_unit =
+    as__ @@ ppat_construct (lident (string "()")) none
+    |> map ~f:(fun f _ -> f `Unit)
+  in
+  alt pat_var pat_unit
+
+let expand_let ~level ~with_span_fn ~ctxt var (action_name : string) e =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
   Ast_builder.Default.(
     let var_pat =
@@ -187,39 +208,55 @@ let expand_let ~level ~ctxt var (action_name : string) e =
       | `Var v -> ppat_var ~loc:v.loc v
       | `Unit -> ppat_var ~loc { loc; txt = "_sp" }
     in
-    make_traced_expr ~level loc action_name var_pat e)
+    make_traced_expr ~level ~with_span_fn loc action_name var_pat e)
+
+let expand_let_result ~ctxt var (action_name : string) error_to_string_expr e =
+  let loc = Expansion_context.Extension.extension_point_loc ctxt in
+  Ast_builder.Default.(
+    let var_pat =
+      match var with
+      | `Var v -> ppat_var ~loc:v.loc v
+      | `Unit -> ppat_var ~loc { loc; txt = "_sp" }
+    in
+    make_traced_expr ~level:Tracing.Info ~with_span_fn:"with_span_result"
+      ~error_to_string:error_to_string_expr loc action_name var_pat e)
 
 let let_payload =
   let open! Ast_pattern in
   single_expr_payload
     (pexp_let nonrecursive
-       (value_binding
-          ~pat:
-            (let pat_var = ppat_var __' |> map ~f:(fun f v -> f (`Var v)) in
-             let pat_unit =
-               as__ @@ ppat_construct (lident (string "()")) none
-               |> map ~f:(fun f _ -> f `Unit)
-             in
-             alt pat_var pat_unit)
-          ~expr:(estring __)
+       (value_binding ~pat:(var_or_unit_pat ()) ~expr:(estring __) ^:: nil)
+       __)
+
+let let_payload_result =
+  let open! Ast_pattern in
+  single_expr_payload
+    (pexp_let nonrecursive
+       (value_binding ~pat:(var_or_unit_pat ())
+          ~expr:(pexp_tuple (estring __ ^:: __ ^:: nil))
        ^:: nil)
        __)
 
 let extension_let =
   Extension.V3.declare "trace" Extension.Context.expression let_payload
-    (expand_let ~level:Tracing.Info)
+    (expand_let ~level:Tracing.Info ~with_span_fn:"with_span")
 
 let extension_let_debug =
   Extension.V3.declare "trace_debug" Extension.Context.expression let_payload
-    (expand_let ~level:Tracing.Debug)
+    (expand_let ~level:Tracing.Debug ~with_span_fn:"with_span")
 
 let extension_let_all =
   Extension.V3.declare "trace_trace" Extension.Context.expression let_payload
-    (expand_let ~level:Tracing.Trace)
+    (expand_let ~level:Tracing.Trace ~with_span_fn:"with_span")
+
+let extension_let_result =
+  Extension.V3.declare "trace_result" Extension.Context.expression
+    let_payload_result expand_let_result
 
 let rule_let = Ppxlib.Context_free.Rule.extension extension_let
 let rule_let_debug = Ppxlib.Context_free.Rule.extension extension_let_debug
 let rule_let_all = Ppxlib.Context_free.Rule.extension extension_let_all
+let rule_let_result = Ppxlib.Context_free.Rule.extension extension_let_result
 
 (*****************************************************************************)
 (* Main driver *)
@@ -240,9 +277,10 @@ let impl (xs : structure) : structure =
         let vb = super#value_binding vb in
         let { pvb_expr; pvb_attributes; pvb_pat; _ } = vb in
         match List.find_map trace_attr pvb_attributes with
-        | Some (attr_payload, level) ->
+        | Some (attr_payload, level, with_span_fn) ->
             let e' =
-              map_expr_add_tracing ~level attr_payload pvb_pat pvb_expr
+              map_expr_add_tracing ~level ~with_span_fn attr_payload pvb_pat
+                pvb_expr
             in
             { vb with pvb_expr = e' }
         | None -> vb
@@ -257,5 +295,5 @@ let impl (xs : structure) : structure =
 
 let () =
   Driver.register_transformation
-    ~rules:[ rule_let; rule_let_debug; rule_let_all ]
+    ~rules:[ rule_let; rule_let_debug; rule_let_all; rule_let_result ]
     ~impl "ppx_tracing"

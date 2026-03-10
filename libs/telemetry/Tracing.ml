@@ -164,8 +164,33 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
     let attrs =
       with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data
     in
-    with_ ~attrs name f
+    with_ ~attrs name (fun sp ->
+        match f sp with
+        | result -> result
+        | exception exn ->
+            let bt = Printexc.get_raw_backtrace () in
+            Otel.Scope.set_status sp
+              (Otel.Span_status.make ~message:(Printexc.to_string exn)
+                 ~code:Otel.Span_status.Status_code_error);
+            Otel.Scope.record_exception sp exn bt;
+            Printexc.raise_with_backtrace exn bt)
   else f empty_scope
+
+let with_span_result ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
+    ?error_to_string name f =
+  with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name (fun sp ->
+      match f sp with
+      | Error err as result ->
+          let message =
+            match error_to_string with
+            | Some to_s -> to_s err
+            | None -> ""
+          in
+          Otel.Scope.set_status sp
+            (Otel.Span_status.make ~message
+               ~code:Otel.Span_status.Status_code_error);
+          result
+      | Ok _ as ok -> ok)
 
 (* Run the entrypoint function with a span. If a parent span is given
    (e.g. via Semgrep Managed Scanning), use that as the parent span

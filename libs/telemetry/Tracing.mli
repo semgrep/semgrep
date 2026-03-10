@@ -86,7 +86,23 @@ val with_span :
   (scope -> 'a) ->
   'a
 (** Expose the function to instrument code to send traces.
-    prefer using the ppx *)
+    Prefer using the ppx. On exception, automatically sets the span status to
+    [Error] and records the exception before re-raising. *)
+
+val with_span_result :
+  ?level:level ->
+  ?__FUNCTION__:string ->
+  __FILE__:string ->
+  __LINE__:int ->
+  ?data:(string * user_data) list ->
+  ?error_to_string:('b -> string) ->
+  string ->
+  (scope -> ('a, 'b) result) ->
+  ('a, 'b) result
+(** Like [with_span] but additionally sets the span status to [Error] when the
+    function returns [Error _]. If [error_to_string] is provided, its result is
+    used as the span status message. Prefer the [let%trace_result sp = ("name",
+    error_to_string) in] ppx syntax over calling this directly. *)
 
 val with_top_level_span :
   ?level:level ->
