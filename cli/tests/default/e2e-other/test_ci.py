@@ -2933,7 +2933,7 @@ def test_existing_reachable_finding_deduplication(
 )
 @pytest.mark.osemfail
 def test_always_suppress_errors(
-    run_semgrep: RunSemgrep,
+    run_semgrep_on_copied_files: RunSemgrep,
     snapshot,
     start_scan_mock_maker,
     complete_scan_mock_maker,
@@ -2944,7 +2944,7 @@ def test_always_suppress_errors(
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
 
-    result = run_semgrep(
+    result = run_semgrep_on_copied_files(
         options=["ci", "--oss-only", "--no-suppress-errors"],
         strict=False,
         assert_exit_code=0 if always_suppress_errors else 2,
