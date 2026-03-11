@@ -139,12 +139,12 @@ clean:
 .PHONY: install
 install:
 	$(MAKE) copy-core-for-cli
-# Install semgrep and semgrep-core in a place known to pip.
-	python3 -m pip --ignore-installed  install ./cli
+# Install semgrep and semgrep-core in editable mode, so that they are available in the PATH and can be called
+	uv tool install -e ./cli
 
 .PHONY: uninstall
 uninstall:
-	-python3 -m pip uninstall --yes semgrep
+	uv tool uninstall semgrep
 
 ###############################################################################
 # Test target
@@ -371,6 +371,16 @@ nix-check-verbose:
 ###############################################################################
 # Developer targets
 ###############################################################################
+
+configure-osx:
+	# Prep the OCaml package manager (OPAM)'s environment
+	opam init
+	brew install uv bash opam
+	make configure
+
+configure:
+	opam switch create semgrep --empty
+	eval $(opam env)
 
 # This is a best effort to install some external dependencies.
 # As a developer you should not run frequently 'make setup', only when
