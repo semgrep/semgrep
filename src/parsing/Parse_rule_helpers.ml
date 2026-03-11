@@ -155,7 +155,7 @@ let error_if_misplaced_patterns_fields (rule_id : Rule_ID.t) (rd : dict) :
     (unit, Rule_error.t) Result.t =
   let misplaced =
     rd.h |> Hashtbl_.hash_to_list
-    |> List.filter_map (fun (k, v) ->
+    |> List_.filter_map (fun (k, v) ->
            if List.mem k misplaced_patterns_keys then Some (k, v) else None)
     |> List.sort (fun (a, _) (b, _) -> String.compare a b)
   in
