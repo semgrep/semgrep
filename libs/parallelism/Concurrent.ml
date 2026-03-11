@@ -17,13 +17,20 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
+(** [capped_length n l] returns [min (List.length l) n] without traversing
+    more than [n] elements of [l]. *)
+let capped_length n l =
+  let rec aux i = function
+    | _ when i >= n -> n
+    | [] -> i
+    | _ :: tl -> aux (i + 1) tl
+  in
+  aux 0 l
+
 let map ~(conf : Parallelism_config.eio_state) ~domain_count f l =
-  (* The main thread concurrently maps over the list of tasks via spawning
-   * fibers (i.e weak threads) that submit and wait for the Domain pool to
-   * return the result of submitting the task.
-   *)
   Eio.Switch.run @@ fun sw ->
   let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
+  let domain_count = max 1 (capped_length domain_count l) in
   let pool = Executor_pool.create ~sw ~domain_count domain_mgr in
 
   (* nosemgrep: no-logs-in-library *)

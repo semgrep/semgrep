@@ -20,6 +20,14 @@ let exnt = Alcotest.testable Fmt.exn ( = )
 let timeout : [ `Timeout ] Alcotest.testable =
   Alcotest.testable (fun pff _ -> Format.fprintf pff "`Timeout") ( = )
 
+let conf_or_die env =
+  match Parallelism_config.create env with
+  | Parallelism_config.Eio_executor conf -> conf
+  | _ ->
+      Alcotest.fail
+        "Failed to get a Parallelism_config.Eio_executor from a \
+         Parallelism_config.create"
+
 (* Ensures that when new Domains are spawned, the assigned value
  * is read from the parent. *)
 let test_hook_inherit_val () =
@@ -65,14 +73,7 @@ let test_fiber_local_concurrent_map () =
   in
 
   Eio_main.run @@ fun env ->
-  let conf =
-    match Parallelism_config.create env with
-    | Parallelism_config.Eio_executor conf -> conf
-    | _ ->
-        Alcotest.fail
-          "Failed to get a Parallelism_config.Eio_executor from a \
-           Parallelism_config.create"
-  in
+  let conf = conf_or_die env in
 
   let l = List.init procs (fun i -> i + 1) in
   let res = Concurrent.map ~conf ~domain_count:2 f l in
@@ -123,14 +124,8 @@ let test_concurrent_map_async_exception () =
     f' ()
   in
   Eio_main.run @@ fun env ->
-  let conf =
-    match Parallelism_config.create env with
-    | Parallelism_config.Eio_executor conf -> conf
-    | _ ->
-        Alcotest.fail
-          "Failed to get a Parallelism_config.Eio_executor from a \
-           Parallelism_config.create"
-  in
+  let conf = conf_or_die env in
+
   (* Run 3 jobs on 2 domains to ensure that domains restart *)
   let l = List.init 3 (fun i -> i + 1) in
   let res = Concurrent.map ~conf ~domain_count:2 f l in
@@ -159,6 +154,19 @@ let test_concurrent_map_async_exception () =
   | Error (_, e) ->
       Alcotest.failf "Unexpected exception: %s" (Printexc.to_string e)
 
+let test_concurrent_map_zero_domains () =
+  Eio_main.run @@ fun env ->
+  let conf = conf_or_die env in
+  (* For nonsensical domain count arguments, override to 1. *)
+  let res = Concurrent.map ~conf ~domain_count:0 (fun x -> x + 1) [ 1; 2; 3 ] in
+  Alcotest.(check int) "Mapping operation total" 3 (List.length res)
+
+let test_concurrent_map_empty_list () =
+  Eio_main.run @@ fun env ->
+  let conf = conf_or_die env in
+  let res = Concurrent.map ~conf ~domain_count:2 (fun x -> x + 1) [] in
+  Alcotest.(check int) "empty list returns empty result" 0 (List.length res)
+
 let tests =
   Testo.categorize "Concurrent"
     [
@@ -166,4 +174,6 @@ let tests =
       t "Fiber with Concurrent.map" test_fiber_local_concurrent_map;
       t "test_concurrent_map_async_exception"
         test_concurrent_map_async_exception;
+      t "Concurrent.map with zero domains" test_concurrent_map_zero_domains;
+      t "Concurrent.map on empty list" test_concurrent_map_empty_list;
     ]
