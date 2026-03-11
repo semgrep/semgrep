@@ -1,3 +1,0 @@
-When performing parallel operations over a small number of input items, the
-engine no longer spawns more OCaml domains than we have items to process.  This
-assists with resource utilisation.

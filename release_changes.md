@@ -1,15 +1,26 @@
-## [1.154.0](https://github.com/semgrep/semgrep/releases/tag/v1.154.0) - 2026-03-04
+## [1.155.0](https://github.com/semgrep/semgrep/releases/tag/v1.155.0) - 2026-03-11
+
+### ### Added
+
+- Added support for (agentic) hooks in Windsurf. (windsurf-hooks)
+- scala: Improved support for Scala 3's optional braces. (LANG-218)
+- Added PowerShell language support (beta) with parsing and pattern matching (lang-233)
+
+### ### Changed
+
+- Removed the experimental and undocumented command `semgrep install-ci`. (osemgrep-install-ci)
+- Migrate from publishing a single Linux wheel with the platform tag `musllinux_1_0_<arch>.manylinux2014_<arch>` to publishing two separate wheels:
+
+  - A wheel with the platform tag musllinux_1_0_<arch>
+  - A wheel with the platform tag manylinux2014_<arch>
+
+  (pypi-linux-tag)
 
 ### ### Fixed
 
-- Fix crash on Windows when running `semgrep ci` with `--debug` and no blocking findings. The Windows subprocess path incorrectly raised an exception for all pysemgrep exit codes (including 0), which was silently swallowed in normal mode but propagated as a fatal error when `--debug` was active. (ENGINE-2491)
-- Changed default memory policy from "eager" to "balanced".  Scan times should
-  noticably improve; however, scans may use 5-10% additional memory.  If running
-  in a resource-constrained environment, consider setting the memory policy back
-  to "aggressive". (engine-2055)
-- When Semgrep decides which files to scan (targeting), it can take a long time (over 5 minutes) on very large repos (> 10k files). Semgrep will now parallelize this work according to the number of jobs passed (`-j`) (engine-2512)
-- Fixed a performance issues where passing many scannign roots on the command
-  line (e.g. `semgrep scan $(git ls-files '*.py')`) caused one semgrep-core
-  subprocess to be spawned per file. Roots that are not directories are now
-  handled directly in Python without any subprocess overhead. (gh-11404)
-- Scala: Restored parse rate after mistaken bug introduced by implicit block parsing fix (lang-215)
+- When performing parallel operations over a small number of input items, the
+  engine no longer spawns more OCaml domains than we have items to process.  This
+  assists with resource utilisation. (engine-2588)
+- Fixed: Prevent SessionStart hook crash when inject-secure-defaults receives empty stdin (JSONDecodeError). (engine-2592)
+- Semgrep secret validation now times out after 30 seconds instead of 15 minutes. Additionally this timeout is configurable via the `--secrets-timeout` flag. (engine-2593)
+- Fixed permission errors during lockfileless Java (Gradle) dependency resolution by invoking gradlew via sh when the executable bit is not set (gh-5747)

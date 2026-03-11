@@ -1,1 +1,0 @@
-Fixed: Prevent SessionStart hook crash when inject-secure-defaults receives empty stdin (JSONDecodeError).
