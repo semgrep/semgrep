@@ -17,13 +17,6 @@ type t
 type error = IO of { path : Fpath.t; reason : string } | Serde of string
 [@@deriving show]
 
-type 'a handle
-(** A reference to a value of type ['a] that has been marshaled to disk.
-    The phantom type parameter tracks which type was written, ensuring
-    type-safe reads. Multiple cache modules (e.g., AST cache, taint config
-    cache) share this type, allowing their handles to be stored together
-    when they carry the same value type. *)
-
 val setup : unit -> (t, string) result
 (* Initialises the cache's temporary directory. *)
 
@@ -53,15 +46,16 @@ end
 
 module type S = sig
   type value
+  type handle
 
-  val write : t -> string -> value -> (value handle, error) result
+  val write : t -> string -> value -> (handle, error) result
   (** Marshal [value] to disk under [key]. The key is hashed to produce
       a unique filename in the cache directory. *)
 
-  val read : value handle -> (value, error) result
+  val read : handle -> (value, error) result
   (** Unmarshal a value from disk. *)
 
-  val rm : value handle -> unit
+  val rm : handle -> unit
   (** Delete the cache file. *)
 end
 
