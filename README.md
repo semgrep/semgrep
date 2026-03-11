@@ -139,6 +139,13 @@ The Semgrep ecosystem includes the following:
 
   - [Semgrep Assistant (AI)](https://semgrep.dev/products/semgrep-code/assistant?utm_medium=readme&utm_source=github&utm_content=assistant) - Assistant is an AI-powered AppSec engineer that helps both developers and AppSec teams prioritize, triage, and remediate Semgrep findings at scale. Humans agree with Assistant auto-triage decisions 97% of the time, and rate generated remediation guidance as helpful 80% of the time. For an overview of how Assistant works, [read this overview](https://a.storyblok.com/f/151984/x/2d12dc0223/whitepaper_-ai-powered-appsec-engineer-automate.pdf?cv=1728584410408).
 
+- [Semgrep MCP Server](https://github.com/semgrep/semgrep/tree/develop/cli/src/semgrep/mcp) - A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that lets AI coding assistants run Semgrep scans directly. Integrates with Cursor, VS Code, Windsurf, Claude Desktop, and more. Run `semgrep mcp` to start it locally.
+
+  - **Hooks** - Automatically trigger Semgrep scans as you code.
+  - **Skills / Prompts** - Built-in MCP prompts like `write_custom_semgrep_rule` help AI assistants write accurate Semgrep rules.
+  - **Claude Code plugin** - Available on the official marketplace and via the [semgrep/mcp-marketplace](https://github.com/semgrep/mcp-marketplace) repo: `/plugin marketplace add semgrep/mcp-marketplace`
+  - **Cursor plugin** - Available on the official marketplace and via the [semgrep/cursor-plugin](https://github.com/semgrep/cursor-plugin) repo.
+
 Additional resources:
 
 - [Semgrep Playground](https://semgrep.dev/editor) - An online interactive tool for writing and sharing rules.
