@@ -342,3 +342,23 @@ def test_get_url_from_sstp_url():
 
     for url, expected in tests:
         assert get_url_from_sstp_url(url) == expected
+
+
+@pytest.mark.quick
+def test_get_url_from_sstp_url_empty_string():
+    # Regression test for https://github.com/semgrep/semgrep/issues/11342
+    # When git has no remote set, repo_url is an empty string — should not crash.
+    assert get_url_from_sstp_url("") is None
+
+
+@pytest.mark.quick
+def test_get_url_from_sstp_url_none():
+    assert get_url_from_sstp_url(None) is None
+
+
+@pytest.mark.quick
+def test_parser_empty_string():
+    # Regression test for https://github.com/semgrep/semgrep/issues/11342
+    # Parser.__init__ should not crash on empty string input.
+    p = Parser("")
+    assert p._url == ""
