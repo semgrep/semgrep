@@ -1,0 +1,10 @@
+rules:
+  - id: test-metavariable-regex-top-level
+    languages:
+      - python
+    severity: ERROR
+    message: test
+    pattern: foo($X)
+    metavariable-regex:
+      metavariable: $X
+      regex: test_

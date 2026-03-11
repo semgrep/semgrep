@@ -1202,6 +1202,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
   let/ fix_regex_opt = take_opt rd env parse_fix_regex "fix-regex" in
   let/ paths_opt = take_opt rd env parse_paths "paths" in
   let/ validators_opt = take_opt rd env parse_validators "validators" in
+  let/ () = H.error_if_misplaced_patterns_fields rule_id rd in
   H.warn_if_remaining_unparsed_fields rule_id rd;
   Ok
     {

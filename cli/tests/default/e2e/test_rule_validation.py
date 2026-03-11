@@ -29,6 +29,7 @@ invalid_rules = [
     "rules/invalid-rules/string-pattern-under-patterns.yaml",
     "rules/invalid-rules/missing-hyphen.yaml",
     "rules/invalid-rules/missing-pattern.yaml",
+    "rules/invalid-rules/metavariable-regex-top-level.yaml",
 ]
 
 parametrized_invalid_rules = [

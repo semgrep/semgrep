@@ -136,6 +136,51 @@ let check_that_dict_is_empty (dict : dict) : (unit, Rule_error.t) Result.t =
       ("Unknown or duplicate properties found in YAML object: " ^ remaining_keys)
   else Ok ()
 
+(* Keys that are only valid inside a `patterns:` block, not at the top level
+ * of a rule. If found at the top level they are silently ignored, which
+ * confuses users. We surface a hard error instead. *)
+let misplaced_patterns_keys =
+  [
+    "metavariable-regex";
+    "metavariable-comparison";
+    "metavariable-analysis";
+    "metavariable-pattern";
+    "metavariable-type";
+    "focus-metavariable";
+  ]
+
+(* Check for keys that belong inside `patterns:` but were placed at the top
+ * level of the rule, where they would otherwise be silently ignored. *)
+let error_if_misplaced_patterns_fields (rule_id : Rule_ID.t) (rd : dict) :
+    (unit, Rule_error.t) Result.t =
+  let misplaced =
+    rd.h |> Hashtbl_.hash_to_list
+    |> List.filter_map (fun (k, v) ->
+           if List.mem k misplaced_patterns_keys then Some (k, v) else None)
+    |> List.sort (fun (a, _) (b, _) -> String.compare a b)
+  in
+  match misplaced with
+  | [] -> Ok ()
+  | (key, ((_, tok), _)) :: _ ->
+      error rule_id tok
+        (spf
+           "`%s` cannot be used at the top level of a rule — it is only valid \
+            inside a `patterns:` block as a separate list item.\n\
+            \n\
+            Instead of:\n\
+            \  pattern: ...\n\
+            \  %s:\n\
+            \    metavariable: $X\n\
+            \    ...\n\
+            \n\
+            Use:\n\
+            \  patterns:\n\
+            \    - pattern: ...\n\
+            \    - %s:\n\
+            \        metavariable: $X\n\
+            \        ..."
+           key key key)
+
 (* sanity check there are no remaining fields in rd (rule dictionnary) *)
 let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
   (* less: we could return an error, but better to be fault-tolerant

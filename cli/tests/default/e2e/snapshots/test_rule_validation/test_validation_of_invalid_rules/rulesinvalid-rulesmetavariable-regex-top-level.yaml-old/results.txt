@@ -1,0 +1,36 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/metavariable-regex-top-level.yaml:8
+8 |     metavariable-regex:
+  |     ^^^^^^^^^^^^^^^^^^
+
+`metavariable-regex` cannot be used at the top level of a rule — it is only valid inside a `patterns:` block as a separate list item.
+
+Instead of:
+  pattern: ...
+  metavariable-regex:
+    metavariable: $X
+    ...
+
+Use:
+  patterns:
+    - pattern: ...
+    - metavariable-regex:
+        metavariable: $X
+        ...
+
+[ERROR] Rule parse error in rule test-metavariable-regex-top-level:
+ `metavariable-regex` cannot be used at the top level of a rule — it is only valid inside a `patterns:` block as a separate list item.
+
+Instead of:
+  pattern: ...
+  metavariable-regex:
+    metavariable: $X
+    ...
+
+Use:
+  patterns:
+    - pattern: ...
+    - metavariable-regex:
+        metavariable: $X
+        ...
