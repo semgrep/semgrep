@@ -676,6 +676,53 @@ def run_rpc_validate_exn(rules_tmp_path: str) -> None:
         raise e
 
 
+_PATTERNS_ONLY_KEYS = frozenset(
+    {
+        "metavariable-regex",
+        "metavariable-comparison",
+        "metavariable-analysis",
+        "metavariable-pattern",
+        "metavariable-type",
+        "focus-metavariable",
+    }
+)
+
+
+def _check_misplaced_patterns_keys(data: YamlTree) -> None:
+    """
+    Detect keys like `metavariable-regex` placed at the top level of a rule
+    instead of inside a `patterns:` block. The JSON schema allows additional
+    properties for forward-compatibility, so these would otherwise be silently
+    ignored and produce zero findings with no explanation.
+    """
+    rules = data.value.get("rules")
+    if not rules:
+        return
+    for rule in rules.value:
+        rule_dict = rule.value
+        for key, value in rule_dict.items():
+            if key.value in _PATTERNS_ONLY_KEYS:
+                raise InvalidRuleSchemaError(
+                    short_msg="Invalid rule schema",
+                    long_msg=(
+                        f"`{key.value}` cannot be used at the top level of a rule — "
+                        f"it is only valid inside a `patterns:` block as a separate list item.\n\n"
+                        f"Instead of:\n"
+                        f"  pattern: ...\n"
+                        f"  {key.value}:\n"
+                        f"    metavariable: $X\n"
+                        f"    ...\n\n"
+                        f"Use:\n"
+                        f"  patterns:\n"
+                        f"    - pattern: ...\n"
+                        f"    - {key.value}:\n"
+                        f"        metavariable: $X\n"
+                        f"        ..."
+                    ),
+                    spans=[key.span],
+                )
+
+
 def validate_yaml_json_schema(
     data: YamlTree,
 ) -> None:
@@ -683,6 +730,7 @@ def validate_yaml_json_schema(
     Applies validation to a YamlTree of the form {"rules": [{<rule_1>}, {<rule_2}, ...]} via jsonschema validation.
     Raises an Exception if validation fails.
     """
+    _check_misplaced_patterns_keys(data)
     try:
         # Now enter the jsonschema validation for the custom error messages
         with telemetry.TRACER.start_as_current_span("jsonschema.validate"):

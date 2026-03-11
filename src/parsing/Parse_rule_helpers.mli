@@ -75,6 +75,8 @@ val parse_pattern_with_rule_error :
   (Pattern.t, Rule_error.t) result
 
 val check_that_dict_is_empty : dict -> (unit, Rule_error.t) Result.t
+val error_if_misplaced_patterns_fields :
+  Rule_ID.t -> dict -> (unit, Rule_error.t) Result.t
 val warn_if_remaining_unparsed_fields : Rule_ID.t -> dict -> unit
 
 (*****************************************************************************)
