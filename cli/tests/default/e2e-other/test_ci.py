@@ -506,41 +506,54 @@ def start_scan_mock_maker(
         product_ignored_files: Mapping[out.Product, List[str]] = {},  # noqa
         project_merge_base: Optional[str] = None,
     ):
+        scan_info = {
+            **({"id": mocked_scan_id} if mocked_scan_id else {}),
+            "enabled_products": ["sast", "sca"],
+            "deployment_id": DEPLOYMENT_ID,
+            "deployment_name": "org_name",
+        }
+        config = {
+            "rules": YAML(typ="safe").load(scan_config),
+            **(
+                {"project_merge_base": project_merge_base} if project_merge_base else {}
+            ),
+            "triage_ignored_syntactic_ids": ["f3b21c38bc22a1f1f870d49fc3a40244"],
+            "triage_ignored_match_based_ids": [
+                "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
+            ],
+        }
+        engine_params = {
+            "dependency_query": enable_dependency_query,
+            "product_ignored_files": [
+                [product.to_json(), ignores]
+                for product, ignores in product_ignored_files.items()
+            ],
+        }
+
+        # Register v2 endpoints (default path): POST creates scan, GET polls for config
+        create_scan_mock = requests_mock.post(
+            f"{semgrep_url}/api/cli/v2/scans",
+            json={"info": scan_info},
+        )
+        requests_mock.get(
+            re.compile(r"/api/cli/v2/scans/[^/]+/config"),
+            json={
+                "status": "success",
+                "config": config,
+                "engine_params": engine_params,
+            },
+        )
+
+        # Also register v1 endpoint as fallback
         start_scan_response = out.ScanResponse.from_json(
-            {
-                "info": {
-                    **({"id": mocked_scan_id} if mocked_scan_id else {}),
-                    "enabled_products": ["sast", "sca"],
-                    "deployment_id": DEPLOYMENT_ID,
-                    "deployment_name": "org_name",
-                },
-                "config": {
-                    "rules": YAML(typ="safe").load(scan_config),
-                    **(
-                        {"project_merge_base": project_merge_base}
-                        if project_merge_base
-                        else {}
-                    ),
-                    "triage_ignored_syntactic_ids": [
-                        "f3b21c38bc22a1f1f870d49fc3a40244"
-                    ],
-                    "triage_ignored_match_based_ids": [
-                        "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0"
-                    ],
-                },
-                "engine_params": {
-                    "dependency_query": enable_dependency_query,
-                    "product_ignored_files": [
-                        [product.to_json(), ignores]
-                        for product, ignores in product_ignored_files.items()
-                    ],
-                },
-            }
+            {"info": scan_info, "config": config, "engine_params": engine_params}
         )
         print(start_scan_response.to_json())
-        return requests_mock.post(
+        requests_mock.post(
             f"{semgrep_url}/api/cli/scans", json=start_scan_response.to_json()
         )
+
+        return create_scan_mock
 
     return _start_scan_func
 

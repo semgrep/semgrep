@@ -90,7 +90,7 @@ class ScanHandler:
         partial_output: Optional[Path] = None,
         dump_scan_id_path: Optional[Path] = None,
         enable_mal_deps: bool = False,
-        use_scan_v2: bool = False,
+        use_scan_v2: bool = True,
     ) -> None:
         """
         When dry_run is True, semgrep ci would get the config from the app,
@@ -105,7 +105,7 @@ class ScanHandler:
         and enable or disable transitive reachability accordingly.
         :param enable_mal_deps: Override to enable malicious dependency
         rules for this scan, even if disabled at the deployment level.
-        :param use_scan_v2: Enable experimental v2 /scans endpoint with fallback to v1.
+        :param use_scan_v2: Use v2 /scans endpoint (default). Falls back to v1 on error.
         """
         state = get_state()
         self.local_id = str(state.local_scan_id)

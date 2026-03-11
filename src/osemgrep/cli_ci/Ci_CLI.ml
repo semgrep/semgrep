@@ -260,12 +260,11 @@ let o_enable_mal_deps : bool Term.t =
   Arg.value (Arg.flag info)
 
 let o_x_use_scan_v2 : bool Term.t =
-  let info =
-    Arg.info [ "x-use-scan-v2" ]
-      ~env:(Cmd.Env.info "SEMGREP_USE_SCAN_V2")
-      ~doc:{|Enable experimental v2 /scans endpoint.|}
-  in
-  Arg.value (Arg.flag info)
+  H.negatable_flag_with_env [ "x-use-scan-v2" ] ~neg_options:[ "x-no-scan-v2" ]
+    ~default:true
+    ~env:(Cmd.Env.info "SEMGREP_USE_SCAN_V2")
+    ~doc:
+      {|Use v2 /scans endpoint (default true). Negate with --x-no-scan-v2 to fall back to v1.|}
 
 let o_x_upload_partial_results_scan_id : int option Term.t =
   let info =

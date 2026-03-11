@@ -224,12 +224,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     help="Enable malicious dependency rules for this scan.",
 )
 @click.option(
-    "--x-use-scan-v2",
+    "--x-use-scan-v2/--x-no-scan-v2",
     "use_scan_v2",
-    is_flag=True,
+    default=True,
     envvar="SEMGREP_USE_SCAN_V2",
     hidden=True,
-    help="Enable experimental v2 /scans endpoint.",
+    help="Use v2 /scans endpoint (default). Pass --x-no-scan-v2 to fall back to v1.",
 )
 @handle_command_errors
 def ci(

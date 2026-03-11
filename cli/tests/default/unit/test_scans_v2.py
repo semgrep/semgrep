@@ -40,6 +40,12 @@ PENDING_CONFIG_RESPONSE = {"status": "pending"}
 
 FAILURE_CONFIG_RESPONSE = {"status": "failure"}
 
+V1_SCAN_RESPONSE = {
+    **CREATE_SCAN_RESPONSE,
+    "config": {"rules": []},
+    "engine_params": {},
+}
+
 
 def _make_response(mocker, json_data, status_code=200):
     response = mocker.MagicMock()
@@ -142,3 +148,41 @@ def test_start_scan_v2_config_failure(
 
     assert mock_state.app_session.get.call_count == 1
     mock_sleep.assert_not_called()
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_start_scan_defaults_to_v2(mocker, mock_state, mock_sleep, mock_args):
+    """start_scan calls the v2 endpoint by default (use_scan_v2 defaults to True)."""
+    project_metadata, project_config = mock_args
+    handler = ScanHandler(enable_transitive_reachability=None)
+    mock_state.app_session.post.return_value = _make_response(
+        mocker, CREATE_SCAN_RESPONSE
+    )
+    mock_state.app_session.get.return_value = _make_response(
+        mocker, SUCCESS_CONFIG_RESPONSE
+    )
+
+    handler.start_scan(project_metadata, project_config)
+
+    post_url = mock_state.app_session.post.call_args[0][0]
+    assert post_url == f"{SEMGREP_URL}/api/cli/v2/scans"
+    assert mock_state.app_session.get.call_count == 1
+    get_url = mock_state.app_session.get.call_args[0][0]
+    assert "/api/cli/v2/scans/" in get_url
+    assert get_url.endswith("/config")
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_start_scan_uses_v1_when_disabled(mocker, mock_state, mock_args):
+    """start_scan calls the v1 endpoint when use_scan_v2=False."""
+    project_metadata, project_config = mock_args
+    handler = ScanHandler(enable_transitive_reachability=None, use_scan_v2=False)
+    mock_state.app_session.post.return_value = _make_response(mocker, V1_SCAN_RESPONSE)
+
+    handler.start_scan(project_metadata, project_config)
+
+    post_url = mock_state.app_session.post.call_args[0][0]
+    assert post_url == f"{SEMGREP_URL}/api/cli/scans"
+    mock_state.app_session.get.assert_not_called()
