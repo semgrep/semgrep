@@ -70,7 +70,14 @@ val taint_config_of_rule_or_group :
   [ `Rule of Rule.taint_rule | `Group of Taint_rule_group.t ] ->
   Taint_rule_inst.t * raw_spec_matches * Matching_explanation.t list
 
-(* Exposed for Pro *)
+(* Exposed for Pro and for taint config cache reconstruction *)
 
 val range_of_any : AST_generic.any -> Range.t option
 val overlap_with : match_range:Range.t -> Range.t -> float
+
+val spec_matches_of_raw : Rule.rule -> raw_spec_matches -> spec_matches
+(** Refine raw spec matches into spec matches with propagation points. *)
+
+val mk_taint_spec_match_preds : Rule.rule -> spec_matches -> Taint_spec_preds.t
+(** Build the predicate closures from spec matches. Dispatches through
+    {!hook_mk_taint_spec_match_preds} if set (e.g., by the Pro engine). *)

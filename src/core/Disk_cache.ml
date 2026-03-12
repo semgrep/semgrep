@@ -21,11 +21,18 @@ let cleanup (t : t) : unit =
      |> Array.iter (fun name ->
             let path = !!(t / name) in
             try Sys.remove path with
-            | Sys_error _ -> ())
+            | Sys_error err ->
+                (* nosemgrep: no-logs-in-library *)
+                Logs.warn (fun m ->
+                    m "Disk_cache: can't remove %s: %s" path err))
    with
-  | Sys_error _ -> ());
+  | Sys_error err ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m -> m "Disk_cache: can't readdir %s: %s" !!t err));
   try Sys.rmdir !!t with
-  | Sys_error _ -> ()
+  | Sys_error err ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m -> m "Disk_cache: can't rmdir %s: %s" !!t err)
 
 let to_exn : error -> exn = function
   | IO { path; reason } ->
