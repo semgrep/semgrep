@@ -63,13 +63,6 @@ let pp_do_in_zero_box f =
 let before_exit = ref []
 
 let main_boilerplate f =
-  (* Setup obackward for nice segfaults *)
-  (match Backward.register () with
-  | Error e ->
-      prerr_string e;
-      prerr_newline ();
-      flush stderr
-  | Ok () -> ());
   Memtrace.trace_if_requested ();
   if not !Sys.interactive then
     exn_to_real_unixexit (fun () ->

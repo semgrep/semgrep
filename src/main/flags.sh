@@ -126,7 +126,6 @@ else
             "-lbase_stubs"
             "-locaml_intrinsics_kernel_stubs"
             "-lbigstringaf_stubs"
-            "-lobackward_stubs"
             "-lca_certs_stubs"
             "-lcamlstrnat"
             "-lcheckseum_c_stubs"
