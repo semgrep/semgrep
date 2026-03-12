@@ -20,6 +20,13 @@ type error = IO of { path : Fpath.t; reason : string } | Serde of string
 val setup : unit -> (t, string) result
 (* Initialises the cache's temporary directory. *)
 
+val cleanup : t -> unit
+(** Remove any remaining files in the cache directory and the directory
+    itself. Safe to call even if some files have already been removed.
+
+    Pre: all handles obtained from this cache are no longer in use.
+    Reading from a handle after [cleanup] will return an [IO] error. *)
+
 val to_exn : error -> exn
 (* For legacy code paths that use exceptions for error handling, transform
    an [error] into a readable default exception. *)

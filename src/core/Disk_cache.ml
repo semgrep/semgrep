@@ -13,6 +13,20 @@ let setup () =
   try Filename.temp_dir "semgrep-" "" |> Fpath.v |> Result.ok with
   | Sys_error msg -> Result.error ("Could not create disk cache: " ^ msg)
 
+let cleanup (t : t) : unit =
+  (* Remove remaining files, then the directory itself. *)
+  (try
+     (* nosemgrep: forbid-fs *)
+     Sys.readdir !!t
+     |> Array.iter (fun name ->
+            let path = !!(t / name) in
+            try Sys.remove path with
+            | Sys_error _ -> ())
+   with
+  | Sys_error _ -> ());
+  try Sys.rmdir !!t with
+  | Sys_error _ -> ()
+
 let to_exn : error -> exn = function
   | IO { path; reason } ->
       Failure (spf "Failed to read/write %s: %s" !!path reason)
