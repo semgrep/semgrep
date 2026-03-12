@@ -62,7 +62,6 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
       | { i = Assign _; _ }
       | { i = AssignCall _; iorig = Related _ | NoOrig }
       | { i = New _; _ }
-      | { i = AssignAnon _; _ }
       | { i = FixmeInstr _; _ } ->
           (* stop *) ())
   | Enter
@@ -73,6 +72,7 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
   | NThrow _
   | NMatch _
   | NCase _
+  | NNestedDef _
   | NOther _
   | NTodo _ ->
       (* stop *) ()

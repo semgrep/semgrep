@@ -43,6 +43,9 @@ val stmt : ?indent:int -> IL.stmt -> string
 val stmts : ?indent:int -> IL.stmt list -> string
 (** Format a list of statements *)
 
+val node : IL.node -> string
+(** Format a CFG node *)
+
 (** {1 Definition Pretty-Printing} *)
 
 val function_definition :

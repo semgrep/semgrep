@@ -100,9 +100,9 @@ let find_vars_used_outside_lamdas (fun_cfg : Fun_CFG.t) =
   let acc = ref IL.NameSet.empty in
   let visit_node node =
     match node.IL.n with
-    | NInstr { i = AssignAnon (_, Lambda _); _ } ->
-        (* don't look inside lambdas *)
-        ()
+    | NNestedDef { name = EN name; _ }
+      when Result.is_ok (Fun_CFG.find_lambda fun_cfg.lambdas name) ->
+        (* don't look inside lambdas *) ()
     | __else__ -> visitor_to_find_used_vars#visit_node acc node
   in
   fun_cfg.cfg |> CFG.reachable_nodes |> Seq.iter visit_node;
@@ -113,8 +113,14 @@ let find_vars_used_in_multiple_lambdas (fun_cfg : Fun_CFG.t) =
   let visit_node node =
     let used_acc = ref IL.NameSet.empty in
     (match node.IL.n with
-    | NInstr { i = AssignAnon (_, Lambda _); _ } ->
-        visitor_to_find_used_vars#visit_node used_acc node
+    | NNestedDef { name = EN name; _ } -> (
+        match Fun_CFG.find_lambda fun_cfg.lambdas name with
+        | Ok fcfg ->
+            fcfg.fdef
+            |> Option.iter (fun fdef ->
+                   visitor_to_find_used_vars#visit_function_definition used_acc
+                     fdef)
+        | Error _ -> ())
     | __else__ -> ());
     !used_acc
     |> IL.NameSet.iter (fun var ->
@@ -235,21 +241,34 @@ let is_use_of_lambda env lval =
 let find_lambdas_used_in_node env node =
   ILH.rlvals_of_node node.IL.n |> List_.filter_map (is_use_of_lambda env)
 
+let check_if_node_defines_unused_lambda env ~lambdas node =
+  match node.IL.n with
+  | NNestedDef { name = EN lname; _ } ->
+      let* lambda_cfg = Fun_CFG.find_lambda lambdas lname |> Result.to_option in
+      if is_used_somewhere env lname then None else Some (lname, lambda_cfg)
+  | NNestedDef { name = FixmeEntity _; _ }
+  | NInstr _
+  | NCond _
+  | NGoto _
+  | NReturn _
+  | NThrow _
+  | NMatch _
+  | NCase _
+  | NOther _
+  | NTodo _
+  | Enter
+  | Exit
+  | Join
+  | TrueNode _
+  | FalseNode _ ->
+      None
+
 let find_lambdas_to_analyze_in_node env node =
   let lambdas = current env in
   let unused_lambda_def =
     (* If the node declares a lambda, and this lambda is not used anywhere,
       we want to instantiate it here. *)
-    let* instr =
-      match node.IL.n with
-      | NInstr i -> Some i
-      | __else__ -> None
-    in
-    let* lval = ILH.lval_of_instr_opt instr in
-    let* ((lname, _) as lambda) =
-      Fun_CFG.is_lambda lambdas lval |> Result.to_option
-    in
-    if is_used_somewhere env lname then None else Some lambda
+    check_if_node_defines_unused_lambda env ~lambdas node
   in
   Option.to_list unused_lambda_def @ find_lambdas_used_in_node env node
 

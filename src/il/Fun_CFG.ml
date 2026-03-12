@@ -45,7 +45,13 @@ let check_if_real_pos__warn_once =
 (* CFG *)
 (*****************************************************************************)
 
-type t = { params : IL.param list; cfg : IL.cfg; lambdas : lambdas_cfgs }
+type t = {
+  params : IL.param list;
+  fdef : IL.function_definition option;
+  cfg : IL.cfg;
+  lambdas : lambdas_cfgs;
+}
+
 and lambdas_cfgs = lambda_cfg IL.NameMap.t
 
 and lambda_cfg =

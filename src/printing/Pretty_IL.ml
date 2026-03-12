@@ -283,18 +283,8 @@ let pretty_param = function
   | IL.PatternParam _ -> "<pattern>"
   | IL.FixmeParam -> "<fixme>"
 
-let rec pretty_instr_kind ?(indent = 0) = function
+let rec pretty_instr_kind ?indent:_ = function
   | IL.Assign (lv, e) -> spf "%s = %s" (pretty_lval lv) (pretty_exp e)
-  | IL.AssignAnon (lv, anon) -> (
-      match anon with
-      | IL.Lambda fdef ->
-          spf "%s = %s" (pretty_lval lv)
-            (pretty_function_definition ~name:"<lambda>" ~indent ~inline:true
-               fdef)
-      | IL.AnonClass cdef ->
-          spf "%s = %s" (pretty_lval lv)
-            (pretty_class_definition ~name:"<anon class>" ~indent ~inline:true
-               cdef))
   | IL.AssignCall (lv_opt, { c = IL.Call (fn, args); _ }) ->
       let lv_str =
         match lv_opt with
@@ -412,6 +402,7 @@ and pretty_stmt ?(indent = 0) stmt =
         |> String.concat "\n"
       in
       spf "%smatch (%s) {\n%s\n%s}" ind scrutinee_str branches_str ind
+  | IL.NestedDef def -> pretty_definition ~indent def
   | IL.MiscStmt other -> (
       match other with
       | IL.DefStmt def -> pretty_definition ~indent def
@@ -434,7 +425,7 @@ and pretty_stmts ?(indent = 0) stmts =
 (*****************************************************************************)
 
 and pretty_entity_name = function
-  | IL.EN name -> fst name.IL.ident
+  | IL.EN name -> IL.str_of_name name
   | IL.FixmeEntity
       (G.En
          {
@@ -531,6 +522,79 @@ and pretty_definition ?(indent = 0) (ent, def_kind) =
   | IL.FixmeDef -> indent_str indent ^ spf "// FIXME_DEF: %s" name
 
 (*****************************************************************************)
+(* Nodes *)
+(*****************************************************************************)
+
+(* Format a line annotation like " @l.42" from a token *)
+let pretty_tok_loc tok =
+  match Tok.loc_of_tok tok with
+  | Ok loc -> spf " @l.%d" loc.Loc.pos.Pos.line
+  | Error _ -> ""
+
+(* Extract location annotation from a node *)
+let node_loc_annot = function
+  | IL.Enter
+  | IL.Exit
+  | IL.Join ->
+      ""
+  | IL.TrueNode e
+  | IL.FalseNode e ->
+      pretty_orig_annot e.IL.eorig
+  | IL.NInstr instr -> pretty_orig_annot instr.IL.iorig
+  | IL.NCond (tok, _)
+  | IL.NGoto (tok, _)
+  | IL.NReturn (tok, _)
+  | IL.NThrow (tok, _) ->
+      pretty_tok_loc tok
+  | IL.NMatch name -> pretty_tok_loc (snd name.IL.ident)
+  | IL.NCase (name, _) -> pretty_tok_loc (snd name.IL.ident)
+  | IL.NNestedDef ent -> (
+      match ent.IL.name with
+      | IL.EN name -> pretty_tok_loc (snd name.IL.ident)
+      | IL.FixmeEntity _ -> "")
+  | IL.NOther _ -> ""
+  | IL.NTodo _ -> ""
+
+let pretty_node_kind = function
+  | IL.Enter -> "Enter"
+  | IL.Exit -> "Exit"
+  | IL.TrueNode e -> spf "TrueNode(%s)" (pretty_exp e)
+  | IL.FalseNode e -> spf "FalseNode(%s)" (pretty_exp e)
+  | IL.Join -> "Join"
+  | IL.NInstr instr -> pretty_instr_kind instr.IL.i
+  | IL.NCond (_, e) -> spf "Cond(%s)" (pretty_exp e)
+  | IL.NGoto (_, (lbl, _)) -> spf "Goto(%s)" (fst lbl)
+  | IL.NReturn (_, e) -> spf "Return(%s)" (pretty_exp e)
+  | IL.NThrow (_, e) -> spf "Throw(%s)" (pretty_exp e)
+  | IL.NMatch name -> spf "Match(%s)" (fst name.IL.ident)
+  | IL.NCase (name, pattern) ->
+      let pat_str =
+        match pattern with
+        | IL.PatLiteral lit -> G.show_literal lit
+        | IL.PatWildcard -> "_"
+        | IL.PatVariable n -> fst n.IL.ident
+        | IL.PatConstructor (n, args) ->
+            let args_str =
+              args |> List_.map (fun a -> fst a.IL.ident) |> String.concat ", "
+            in
+            spf "%s(%s)" (fst n.IL.ident) args_str
+      in
+      spf "Case(%s, %s)" (fst name.IL.ident) pat_str
+  | IL.NNestedDef ent -> spf "<def> %s { ... }" (pretty_entity_name ent.IL.name)
+  | IL.NOther other -> (
+      match other with
+      | IL.DefStmt (ent, _) -> spf "// def %s" (pretty_entity_name ent.IL.name)
+      | IL.DirectiveStmt _ -> "// <directive>"
+      | IL.Noop msg -> spf "// noop: %s" msg)
+  | IL.NTodo stmt -> spf "TODO(%s)" (pretty_stmt stmt)
+
+let pretty_node n =
+  let kind_str = pretty_node_kind n.IL.n in
+  let loc_str = node_loc_annot n.IL.n in
+  let at_exit_str = if n.IL.at_exit then " @exit" else "" in
+  kind_str ^ at_exit_str ^ loc_str
+
+(*****************************************************************************)
 (* Program *)
 (*****************************************************************************)
 
@@ -546,6 +610,7 @@ let exp = pretty_exp
 let instr = pretty_instr
 let stmt = pretty_stmt
 let stmts = pretty_stmts
+let node = pretty_node
 let function_definition = pretty_function_definition
 let class_definition = pretty_class_definition
 let definition = pretty_definition

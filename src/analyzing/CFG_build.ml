@@ -178,11 +178,6 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
              * may (or may not) raise exceptions. *)
             state.g |> add_arc_opt_to_opt (Some newi, state.throw_destination);
             true
-        | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->
-            let lambda_cfg = cfg_of_fdef fdef in
-            state.lambdas_cfgs :=
-              Fun_CFG.record_lambda !(state.lambdas_cfgs) name lambda_cfg;
-            false
         | __else__ -> false
       in
       CfgFirstLast (newi, Some newi, throws)
@@ -338,6 +333,38 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       state.g |> add_arc_from_opt (previ, newi);
       state.g |> add_arc_opt_to_opt (previ, state.throw_destination);
       CfgFirstLast (newi, None, true)
+  | NestedDef (entity, def_kind) ->
+      (match (entity.name, def_kind) with
+      | EN name, FuncDef fdef ->
+          (* TODO: Right now this is just lambdas, but we should handle here
+            all nested funct-defs. *)
+          let lambda_cfg = cfg_of_fdef fdef in
+          state.lambdas_cfgs :=
+            Fun_CFG.record_lambda !(state.lambdas_cfgs) name lambda_cfg
+      | FixmeEntity _tok, FuncDef _fdef ->
+          (* See 'AST_to_IL.map_entity' for how we may get a 'FixmeEntity' here.
+            It may come e.g. from a TO-DO in the translation to Generic. This
+            may happen also when function definitions have an 'IdSpecial', which
+            *could* be the case for Scala constructors like:
+
+                def this(x: Int) = ...
+
+            We need to fix this in AST_to_IL.
+
+            TODO: We don't yet analyze these nested functions in their context,
+            but note that they are visited/analyzed in
+            'Match_tainting_mode.check_rule'. We would need to assign to them
+            some fake name perhaps. *)
+          ()
+      | _entity, ClassDef _cdef ->
+          (* TODO: We don't yet analyze these classes in their context, but
+            note that 'Match_tainting_mode.check_rule' will visit the methods. *)
+          ()
+      | _entity, FixmeDef -> ());
+      (* Create NNestedDef node for the definition *)
+      let newi = state.g#add_node (IL.mk_node (F.NNestedDef entity)) in
+      state.g |> add_arc_from_opt (previ, newi);
+      CfgFirstLast (newi, Some newi, false)
   | MiscStmt x ->
       let newi = state.g#add_node (IL.mk_node (F.NOther x)) in
       state.g |> add_arc_from_opt (previ, newi);
@@ -428,6 +455,11 @@ and mark_at_exit_nodes cfg =
     | NTodo _ ->
         node.at_exit <- true
     (* Whereas these cannot. *)
+    | NNestedDef _
+    (* NNestedDef:
+      If this is an anonymous lambda/class then it should have been marked
+      by implicit-return previously (if relevant), and for at-exit purposes
+      we will then check the inserted `NReturn`. *)
     | NOther _
     | NCond _
     | TrueNode _
@@ -476,7 +508,7 @@ and cfg_of_stmts ?tok (xs : stmt list) : IL.cfg * Fun_CFG.lambdas_cfgs =
 and cfg_of_fdef fdef =
   let cfg, lambdas = cfg_of_stmts ~tok:(snd fdef.fkind) fdef.fbody in
   mark_at_exit_nodes cfg;
-  Fun_CFG.{ params = fdef.fparams; cfg; lambdas }
+  Fun_CFG.{ params = fdef.fparams; fdef = Some fdef; cfg; lambdas }
 
 let cfg_of_gfdef lang ?ctx fdef =
   let fdef_il = AST_to_IL.function_definition lang ?ctx fdef in

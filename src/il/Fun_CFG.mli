@@ -23,7 +23,12 @@ type pos = Pos.t option
 type lambdas_cfgs
 (** A map from lambda names to their CFGs. *)
 
-type t = { params : IL.param list; cfg : IL.cfg; lambdas : lambdas_cfgs }
+type t = {
+  params : IL.param list;
+  fdef : IL.function_definition option;
+  cfg : IL.cfg;
+  lambdas : lambdas_cfgs;
+}
 (** The params and CFG of a function, plus its top-level lambdas.
 
   If there are lambdas nested wihtin lambdas, the nested lambdas will not be in

@@ -24,6 +24,9 @@ type env
 val new_env : Fun_CFG.t -> env
 (** Create environment for the main function under analysis. *)
 
+val current : env -> Fun_CFG.lambdas_cfgs
+(** Lambdas declared in the current scope. *)
+
 val push : env -> IL.name (** lambda's name *) -> Fun_CFG.t -> env
 (** Push a new lambda that is going to be analyzed within the
     main function, this introduces a new scope. *)

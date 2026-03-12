@@ -285,6 +285,7 @@ let rec annotate_facts_of_node (cfg : IL.cfg) nodei (ctx : ctx) visited =
         | NThrow _
         | NMatch _
         | NCase _
+        | NNestedDef _
         | NOther _
         | NTodo _ ->
             inherit_facts node facts;

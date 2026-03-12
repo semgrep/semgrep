@@ -1476,8 +1476,6 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           check_type_and_drop_taints_if_bool_or_number env taints type_of_expr e
         in
         (taints, shape, lval_env)
-    | AssignAnon (_lval, Lambda _fdef) -> (Taints.empty, S.Bot, env.lval_env)
-    | AssignAnon _ -> (Taints.empty, Bot, env.lval_env)
     | AssignCall (_, { c = Call (e, args); corig }) ->
         check_tainted_call env corig e args
     | AssignCall (_, { c = CallSpecial (_, args); _ }) ->
@@ -1630,6 +1628,7 @@ let rec transfer : env -> fun_cfg:Fun_CFG.t -> Lval_env.t D.transfn =
     | NCase (scrutinee, pattern) -> check_tainted_case env scrutinee pattern
     (* Do nothing here - pattern bindings are handled in NCase *)
     | NMatch _
+    | NNestedDef _
     | NGoto _
     | Enter
     | Exit
@@ -1746,7 +1745,6 @@ and check_for_lambdas env node =
         | New _ ->
             true
         | Assign _
-        | AssignAnon _
         | FixmeInstr _ ->
             false)
     | __else__ -> false

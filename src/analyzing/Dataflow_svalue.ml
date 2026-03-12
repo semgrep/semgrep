@@ -349,6 +349,7 @@ let rec transfer :
     | NMatch _
     (* TODO: can register some assumptions *)
     | NCase _
+    | NNestedDef _
     | NOther _
     | NTodo _ ->
         inp'
@@ -442,9 +443,9 @@ and do_lambdas lang lambdas in_env node =
    * we simply propagate svalues into the lambda's body, but whatever
    * happens inside the lambda is not visible outside it. *)
   match node.F.n with
-  | NInstr { i = AssignAnon (lval, Lambda _); _ } -> (
-      match Fun_CFG.is_lambda lambdas lval with
-      | Ok (_name, lambda_cfg) ->
+  | NNestedDef { name = EN name; _ } -> (
+      match Fun_CFG.find_lambda lambdas name with
+      | Ok lambda_cfg ->
           let mapping = fixpoint_with_env lang in_env lambda_cfg in
           update_svalue lambda_cfg.cfg mapping;
           let lambda_env =

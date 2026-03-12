@@ -38,7 +38,7 @@ let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
   let effects, end_mapping =
     (* There could be taint effects indeed, e.g. if 'expr' is `sink(taint)`. *)
     OSS_dataflow_tainting.fixpoint taint_inst ~in_env:env
-      Fun_CFG.{ params = []; cfg; lambdas }
+      Fun_CFG.{ params = []; fdef = None; cfg; lambdas }
   in
   let out_env = end_mapping.(cfg.exit).Dataflow_core.out_env in
   let lval : IL.lval = { base = Var name; rev_offset = [] } in

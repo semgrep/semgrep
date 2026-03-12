@@ -105,10 +105,16 @@ let short_string_of_node_kind nkind =
   | NThrow _ -> "throw ...;"
   | NOther (Noop str) -> Common.spf "<noop: %s>" str
   | NOther _ -> "<other>"
+  | NNestedDef entity ->
+      let name_str =
+        match entity.name with
+        | EN name -> str_of_name name
+        | FixmeEntity _ -> "<fixme entity>"
+      in
+      "<def> " ^ name_str
   | NInstr x -> (
       match x.i with
       | Assign (lval, exp) -> string_of_lval lval ^ " = " ^ string_of_exp exp
-      | AssignAnon (lval, _) -> string_of_lval lval ^ " = " ^ "<lambda|class>"
       | AssignCall (lval_opt, { c = Call (exp, args); _ }) ->
           let lval_str =
             match lval_opt with

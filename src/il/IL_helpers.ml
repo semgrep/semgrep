@@ -34,7 +34,6 @@ let rexps_of_instr x =
   | Assign (({ base = Var _; rev_offset = _ :: _ } as lval), exp) ->
       [ { e = Fetch { lval with rev_offset = [] }; eorig = NoOrig }; exp ]
   | Assign (_, exp) -> [ exp ]
-  | AssignAnon _ -> []
   | AssignCall (_, { c = Call (e1, args); _ }) ->
       e1 :: List_.map exp_of_arg args
   | AssignCall (_, { c = CallSpecial (_, args); _ }) ->
@@ -131,7 +130,6 @@ let is_dots_offset offset =
 let lval_of_instr_opt x =
   match x.i with
   | Assign (lval, _)
-  | AssignAnon (lval, _)
   | New (lval, _, _, _) ->
       Some lval
   | AssignCall (lval_opt, _) -> lval_opt
@@ -160,6 +158,7 @@ let rlvals_of_node = function
   | NThrow (_, e) ->
       lvals_of_exp e
   | NMatch _scrutinee -> []
+  | NNestedDef _
   | NOther _
   | NTodo _ ->
       []
@@ -187,6 +186,7 @@ let orig_of_node = function
       Some e.eorig
   | NGoto _
   | Join
+  | NNestedDef _
   | NOther _
   | NTodo _ ->
       None

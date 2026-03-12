@@ -297,6 +297,23 @@ let add_call env tok eorig ~ret call : exp =
 let add_stmt env st : unit = Stack_.push st env.stmts
 let add_stmts env xs : unit = xs |> List.iter (add_stmt env)
 
+let add_nested_def env tok lval def_kind eorig : unit =
+  match lval_is_just_var lval with
+  | Some name ->
+      (* Avoid creating tmps if possible. *)
+      let entity : IL.entity = { name = EN name; attrs = []; tparams = None } in
+      let def = (entity, def_kind) in
+      add_stmt env (mk_s (NestedDef def))
+  | None ->
+      let tmp = fresh_var env tok in
+      let entity : IL.entity = { name = EN tmp; attrs = []; tparams = None } in
+      let def = (entity, def_kind) in
+      add_stmt env (mk_s (NestedDef def));
+      add_instr env
+        (mk_i
+           (Assign (lval, mk_e (Fetch (lval_of_base (Var tmp))) NoOrig))
+           eorig)
+
 let pop_stmts env : stmt list =
   let xs = List.rev !(env.stmts) in
   env.stmts := [];
@@ -1000,29 +1017,32 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
       let kind = map_composite_kind ~g_expr kind in
       mk_e (Composite (kind, (b1, [ loop ], b2))) eorig
   | G.Lambda fdef ->
-      (* If we got a `var = <lambda>` declaration/assignment, we try to keep it
-        as-is rather than introducing a tmp. *)
+      (* We encode lambdas as nested function definitions. And, if we got a
+        `var = <lambda>` declaration/assignment, we reuse `var` and avoid
+        "tmp"s.
+        *)
       let lval, ret_orig = lval_of_ret env (snd fdef.fkind) ret in
       let fdef =
         (* NOTE(config.stmts): This is a recursive call to
-         * `function_definition` and we need to pass it a fresh
-         * `stmts` ref list. If we reuse the same `stmts` ref list,
-         * then whatever `stmts` we have accumulated so far, will
-         * "magically" appear in the body of this lambda in the final
-         * IL representation. This can happen e.g. when translating
-         * `foo(bar(), (x) => { ... })`, because the instruction added
-         * to `stmts` by the translation of `bar()` is still present
-         * when traslating `(x) => { ... }`. *)
+           `function_definition` and we need to pass it a fresh
+           `stmts` ref list. If we reuse the same `stmts` ref list,
+           then whatever `stmts` we have accumulated so far, will
+           "magically" appear in the body of this lambda in the final
+           IL representation. This can happen e.g. when translating
+           `foo(bar(), (x) => { ... })`, because the instruction added
+           to `stmts` by the translation of `bar()` is still present
+           when traslating `(x) => { ... }`. *)
         map_function_definition { env with stmts = ref [] } fdef
       in
-      add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) (ret_orig ||| eorig));
+      let tok = snd fdef.fkind in
+      add_nested_def env tok lval (FuncDef fdef) (ret_orig ||| eorig);
       mk_e (Fetch lval) eorig
   | G.AnonClass cdef ->
       (* TODO: should use def.ckind *)
       let tok = Common2.fst3 cdef.G.cbody in
       let lval = fresh_lval env tok in
       let cdef = map_class_definition env cdef in
-      add_instr env (mk_i (AssignAnon (lval, AnonClass cdef)) eorig);
+      add_nested_def env tok lval (ClassDef cdef) eorig;
       mk_e (Fetch lval) eorig
   | G.Special _ -> impossible (G.E g_expr)
   | G.SliceAccess (_, _) -> todo (G.E g_expr)
@@ -1297,13 +1317,14 @@ and map_record env ((_tok, origfields, _) as record_def) : exp =
                (* Some languages such as javascript allow function
                   definitions in object literal syntax. *)
                | G.FuncDef fdef ->
-                   let lval = fresh_lval env (snd fdef.fkind) in
+                   let tok = snd fdef.fkind in
+                   let lval = fresh_lval env tok in
                    (* See NOTE(config.stmts)! *)
                    let fdef =
                      map_function_definition { env with stmts = ref [] } fdef
                    in
                    let forig = Related (G.Fld forig) in
-                   add_instr env (mk_i (AssignAnon (lval, Lambda fdef)) forig);
+                   add_nested_def env tok lval (FuncDef fdef) forig;
                    mk_e (Fetch lval) forig
                | ___else___ -> todo (G.E e_gen)
              in

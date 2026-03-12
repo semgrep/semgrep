@@ -370,6 +370,7 @@ and exp_kind =
       * G.any (* fixme source *)
       * exp (* partial translation *) option
 
+(* THINK: Extend to better represent object literals ? *)
 and field_or_entry =
   | Field of name * exp  (** struct field *)
   | Entry of exp * exp  (** dictionary entry, key and value *)
@@ -396,7 +397,6 @@ and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
   | Assign of lval * exp
   | AssignCall of lval option * call
-  | AssignAnon of lval * anonymous_entity
   | New of lval * G.type_ * exp option (* constructor *) * exp argument list
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
@@ -466,14 +466,17 @@ and stmt_kind =
       * stmt list
     (* finally / THINK: no finally vs empty finally ? use `option` ? *)
   | Throw of tok * exp (* less: enforce lval here? *)
-  | MiscStmt of other_stmt
-  | FixmeStmt of fixme_kind * G.any
-
-and other_stmt =
   (* TODO:
       Eventually we may want to lift all nested definitions and have
       a `type top` for these rather than using 'stmt' like in Generic.
     *)
+  (* TODO: Right now this is just lambdas and anon-classes, but we should
+    handle here all nested defs and remove 'DefStmt' from 'MiscStmt'. *)
+  | NestedDef of definition
+  | MiscStmt of other_stmt
+  | FixmeStmt of fixme_kind * G.any
+
+and other_stmt =
   | DefStmt of definition
   | DirectiveStmt of G.directive
   | Noop of (* for debugging purposes *) string
@@ -492,6 +495,7 @@ and pattern_spec =
 (*****************************************************************************)
 (* Defs *)
 (*****************************************************************************)
+(* THINK: Attach a "fake name" to FixmeEntity *)
 and entity_name = EN of name | FixmeEntity of G.any
 
 and entity = {
@@ -528,6 +532,8 @@ and class_field = entity * variable_definition
 and class_constructor = entity * function_definition
 and class_method = entity * function_definition
 and definition = entity * definition_kind
+(* THINK: Need an orig for definitions so that we can check if the def itself is a
+    source/sink/etc ? *)
 
 and definition_kind =
   (* THINK: When translating a top-level VarDef, we may want to keep it as is ? *)
@@ -573,6 +579,7 @@ and node_kind =
      to allow the transfer function to operate locally without looking at
      predecessor nodes. *)
   | NCase of name * pattern_spec
+  | NNestedDef of entity
   | NOther of other_stmt
   | NTodo of stmt
 [@@deriving
