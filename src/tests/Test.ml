@@ -105,16 +105,12 @@ let any_gen_of_string str =
    explicitly by calling a function. These functions are roughly those
    that call 'Common2.glob'.
 *)
-let tests (caps : Cap.all_caps) =
+let tests =
   (* Tests that still fork via CapProcess.apply_in_child_process_promise,
      Bos.OS.Cmd.run, or still run a scan with a default scan config (which
      will use parmap) must come before any that spawn Domains. *)
   let forking_tests =
-    List_.flatten
-      [
-        Test_core_CLI.tests (caps :> Cap.all_caps);
-        Legacy_unit_ls.tests (caps :> Legacy_session.caps);
-      ]
+    List_.flatten [ Test_core_CLI.tests (); Legacy_unit_ls.tests () ]
   in
 
   (* Tests that use [Testutio_git.with_git_repo] interact via git through
@@ -122,9 +118,9 @@ let tests (caps : Cap.all_caps) =
   let gitutil_tests =
     List_.flatten
       [
-        Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
-        Test_target_selection.tests (caps :> CLI.caps);
-        Unit_find_targets.tests (caps :> < Cap.readdir >);
+        Test_ci_subcommand.tests ();
+        Test_target_selection.tests ();
+        Unit_find_targets.tests;
       ]
   in
 
@@ -133,8 +129,7 @@ let tests (caps : Cap.all_caps) =
       [
         Commons_tests.tests;
         Collections_tests.tests;
-        Unit_CapExec.tests (caps :> < Cap.exec >);
-        Unit_list_files.tests (caps :> < Cap.readdir >);
+        Unit_list_files.tests ();
         Glob.Unit_glob.tests;
         Unit_semgrepignore.tests;
         Unit_gitignore.tests;
@@ -146,7 +141,7 @@ let tests (caps : Cap.all_caps) =
         Unit_ReDoS.tests;
         Unit_guess_lang.tests;
         Unit_cgroup_limits.tests;
-        Unit_memory_limit.tests (caps :> < Cap.memory_limit >);
+        Unit_memory_limit.tests ();
         Unit_tok.tests;
         Unit_parsed_float.tests;
         Unit_Ppath.tests;
@@ -155,9 +150,7 @@ let tests (caps : Cap.all_caps) =
         Unit_ugly_print_AST.tests;
         Unit_autofix.tests;
         Unit_autofix_printer.tests;
-        Unit_dataflow.tests
-          (caps :> < Cap.time_limit >)
-          Parse_target.parse_program;
+        Unit_dataflow.tests Parse_target.parse_program;
         Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
             Parse_pattern.parse_pattern lang file);
         Unit_naming_generic.tests Parse_target.parse_program;
@@ -165,26 +158,26 @@ let tests (caps : Cap.all_caps) =
         Unit_matcher.tests ~any_gen_of_string;
         (* TODO Unit_matcher.spatch_unittest ~xxx *)
         (* TODO Unit_matcher_php.unittest; sgrep/spatch/refactoring/unparsing *)
-        Unit_engine.tests (caps :> < Cap.readdir >);
-        Unit_jsonnet.tests (caps :> < Cap.time_limit >);
-        Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
-        Unit_http_helpers.tests (caps :> < Cap.network >);
+        Unit_engine.tests;
+        Unit_jsonnet.tests;
+        Unit_metachecking.tests;
+        Unit_http_helpers.tests;
         (* osemgrep unit tests *)
-        Unit_Login.tests caps;
-        Unit_app.tests caps;
-        Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
-        Unit_reporting.tests (caps :> < >);
+        Unit_Login.tests;
+        Unit_app.tests;
+        Unit_Fetching.tests;
+        Unit_reporting.tests;
         Unit_ci.tests;
         Test_is_blocking_helpers.tests;
         (* osemgrep e2e subcommand tests *)
-        Test_login_subcommand.tests (caps :> Login_subcommand.caps);
-        Unit_test_subcommand.tests (caps :> Test_subcommand.caps);
-        Test_show_subcommand.tests (caps :> Show_subcommand.caps);
-        Test_osemgrep.tests (caps :> CLI.caps);
+        Test_login_subcommand.tests ();
+        Unit_test_subcommand.tests ();
+        Test_show_subcommand.tests ();
+        Test_osemgrep.tests ();
         (* Networking tests disabled as they will get rate limited sometimes *)
         (* And the SSL issues they've been testing have been stable *)
         (*Unit_Networking.tests;*)
-        Legacy_test_ls_e2e.tests (caps :> Lsp_subcommand.caps);
+        Legacy_test_ls_e2e.tests ();
         (* End osemgrep tests *)
         Spacegrep_tests.Test.tests ();
         Aliengrep.Unit_tests.tests;
@@ -206,10 +199,10 @@ let tests (caps : Cap.all_caps) =
    See https://github.com/mirage/alcotest/issues/358 for a request
    to allow what we want without this workaround.
 *)
-let tests_with_delayed_error caps =
+let tests_with_delayed_error () =
   try
     Printf.printf "Gathering tests from %s...\n%!" (Sys.getcwd ());
-    let tests = tests caps |> List_.map (with_env_check ~ignore_empty:true) in
+    let tests = tests |> List_.map (with_env_check ~ignore_empty:true) in
     Printf.printf "Done gathering tests.\n%!";
     tests
   with
@@ -220,7 +213,7 @@ let tests_with_delayed_error caps =
             Exception.reraise exn);
       ]
 
-let main (caps : Cap.all_caps) : unit =
+let main () =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let project_root = Legacy_test_ls_e2e.project_root () in
@@ -238,6 +231,6 @@ let main (caps : Cap.all_caps) : unit =
       Log_semgrep.with_setup ~color:On ~level:(Some Info) @@ fun () ->
       (* let's go *)
       Testo.interpret_argv ~project_name:"semgrep-core" (fun _env ->
-          tests_with_delayed_error caps))
+          tests_with_delayed_error ()))
 
-let () = Cap.main (fun all_caps -> main all_caps)
+let () = main ()

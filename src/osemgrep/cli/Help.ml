@@ -37,9 +37,9 @@
 
 (* coupling: keep the summaries for the login/scan/ci subcommands similar
    to what's printed by print_semgrep_dashdash_help. *)
-let print_help (stdout : Cap.Console.stdout) =
+let print_help () =
   (* TODO: add a Out.printf_color? *)
-  CapConsole.ocolor_format_printf stdout
+  Ocolor_format.printf
     {|
 ┌──── @{<green>○○○@} ────┐
 │ Semgrep CLI │
@@ -65,8 +65,8 @@ For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/cli-reference@}
 |}
 
 (* coupling: see above *)
-let print_semgrep_dashdash_help (stdout : Cap.Console.stdout) =
-  CapConsole.ocolor_format_printf stdout
+let print_semgrep_dashdash_help () =
+  Ocolor_format.printf
     {|@{<ul>Usage@}: @{<cyan>semgrep [OPTIONS] COMMAND [ARGS]...@}
 
   To get started quickly, run @{<cyan>`semgrep scan --config auto`@}

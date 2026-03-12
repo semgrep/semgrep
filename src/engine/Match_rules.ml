@@ -38,7 +38,6 @@ exception Multistep_rules_not_available
 type timeout_config = {
   timeout : float;
   threshold : int;
-  caps : < Cap.time_limit >;
   (* if eio is true, we are using a gc alarm based timeout mechanism. If
    * it's a None, we fall back to the signal-based one. *)
   eio : bool;
@@ -53,8 +52,8 @@ let timeout_function (rule : Rule.t) (file : Fpath.t)
   let timeout, eio =
     match timeout with
     | None -> (None, false)
-    | Some { eio; timeout; caps; threshold = _ } ->
-        if timeout <= 0. then (None, eio) else (Some (timeout, caps), eio)
+    | Some { eio; timeout; threshold = _ } ->
+        if timeout <= 0. then (None, eio) else (Some timeout, eio)
   in
   match
     Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" ~eio timeout

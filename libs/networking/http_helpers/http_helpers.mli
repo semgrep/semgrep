@@ -68,27 +68,24 @@ val call_eio_client :
 val get :
   ?headers:(string * string) list ->
   ?timeout_secs:float ->
-  Cap.Network.t ->
   Uri.t ->
   client_result Lwt.t
-(** [get_async ~headers caps uri] retrieves [uri] (via HTTP GET) with the
+(** [get ~headers uri] retrieves [uri] (via HTTP GET) with the
     provided [headers], asynchronously. The return value is either a promise
     of [Ok body] - if the request was successful, or an error message.
     If a temporary redirect (307) is returned, this function will automatically
     re-query and resolve the redirection.
    *)
 
-val get_eio :
-  ?headers:(string * string) list -> Cap.Network.t -> Uri.t -> client_result
+val get_eio : ?headers:(string * string) list -> Uri.t -> client_result
 
 val post :
   body:string ->
   ?headers:(string * string) list ->
   ?chunked:bool ->
-  Cap.Network.t ->
   Uri.t ->
   client_result Lwt.t
-(** [post_async ~body ~headers ~chunked caps uri] asynchronously sends a
+(** [post ~body ~headers ~chunked uri] asynchronously sends a
     POST request to [uri] with
     - [headers] (default: content-type: application/json)
     - [chunked] (default: false) this maps to whether we enable
@@ -106,7 +103,6 @@ val post_eio :
   body:string ->
   ?headers:(string * string) list ->
   ?chunked:bool ->
-  Cap.Network.t ->
   Uri.t ->
   client_result
 
@@ -114,10 +110,9 @@ val put :
   body:string ->
   ?headers:(string * string) list ->
   ?chunked:bool ->
-  Cap.Network.t ->
   Uri.t ->
   client_result Lwt.t
-(** [put_async ~body ~headers ~chunked caps uri] asynchronously sends a
+(** [put ~body ~headers ~chunked uri] asynchronously sends a
     PUT request to [uri] with
     - [headers] (default: content-type: application/json)
     - [chunked] (default: false) this maps to whether we enable

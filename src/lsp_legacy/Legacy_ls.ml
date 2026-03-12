@@ -65,10 +65,8 @@ let capabilities =
 (*****************************************************************************)
 
 (* LET'S GOOOOOO *)
-let start (caps : < Legacy_session.caps ; .. >) =
+let start () =
   Logs.debug (fun m -> m "Starting Semgrep Language Server");
   Lwt_platform.set_engine ();
-  let server =
-    Legacy_rpc_server.create (caps :> Legacy_session.caps) capabilities
-  in
+  let server = Legacy_rpc_server.create capabilities in
   Legacy_rpc_server.start ~handler:{ on_notification; on_request } server

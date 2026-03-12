@@ -1133,9 +1133,8 @@ let o_x_mcp : bool Term.t =
    experimental = we're sure that we won't invoke pysemgrep later with the
    same argv; allows us to consume stdin and named pipes.
 *)
-let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
-    ~(experimental : bool) (target_roots : string list) :
-    Scanning_root.t list * bool =
+let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
+    (target_roots : string list) : Scanning_root.t list * bool =
   let imply_always_select_explicit_targets = ref false in
   let target_roots =
     target_roots
@@ -1146,8 +1145,7 @@ let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
                if experimental then
                  (* consumes stdin, preventing command-line forwarding to
                     pysemgrep or another osemgrep! *)
-                 CapTmp.replace_stdin_by_regular_file caps#tmp
-                   ~prefix:"osemgrep-stdin-" ()
+                 UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
                else
                  (* remove this hack when no longer forward the command line
                     to another program *)
@@ -1160,7 +1158,7 @@ let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
                     |> Result.is_ok
                then (
                  match
-                   CapTmp.replace_named_pipe_by_regular_file_if_needed caps#tmp
+                   UTmp.replace_named_pipe_by_regular_file_if_needed
                      ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
                  with
                  | None -> orig_path
@@ -1454,7 +1452,7 @@ let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
 (* coupling: if you modify this function, you might need to modify
  * also Ci_CLI.scan_subset_cmdline_term
  *)
-let cmdline_term caps ~allow_empty_config : conf Term.t =
+let cmdline_term ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetical order to match the order
      of the corresponding '$ o_xx $' further below!
   *)
@@ -1488,7 +1486,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
              options are not part of the semgrep API. They will change or will \
              be removed without notice !!! ");
     let target_roots, imply_always_select_explicit_targets =
-      replace_target_roots_by_regular_files_where_needed caps
+      replace_target_roots_by_regular_files_where_needed
         ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
         target_roots
     in
@@ -1764,8 +1762,8 @@ let cmdline_info : Cmd.info =
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (caps : < Cap.tmp >) (argv : string array) : conf =
+let parse_argv (argv : string array) : conf =
   let cmd : conf Cmd.t =
-    Cmd.v cmdline_info (cmdline_term caps ~allow_empty_config:false)
+    Cmd.v cmdline_info (cmdline_term ~allow_empty_config:false)
   in
   CLI_common.eval_value ~argv cmd

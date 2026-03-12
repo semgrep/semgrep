@@ -13,7 +13,6 @@
 (* GitHub REST API *)
 
 val find_branchoff_point_async :
-  < Cap.network > ->
   gh_token:Auth.token ->
   api_url:Uri.t ->
   repo_name:string ->

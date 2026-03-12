@@ -155,7 +155,6 @@ let
         [
           ./Makefile
           ./cygwin-env.mk
-          ./TCB
           ./bin
           # might be missing due to submodule issue (dumb)
           (maybeMissing ./cli/src/semgrep/semgrep_interfaces)

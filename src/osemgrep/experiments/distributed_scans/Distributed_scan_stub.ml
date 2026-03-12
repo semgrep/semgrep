@@ -30,12 +30,8 @@ let hook_pro_read_and_validate_partial_scan_results :
   Hook.create None
 
 let hook_pro_read_and_upload_partial_scan_results :
-    (< Cap.network ; Auth.cap_token > ->
-    scan_id:int ->
-    partial_results:Fpath.t ->
-    bool)
-    option
-    Hook.t =
+    (Auth.token -> scan_id:int -> partial_results:Fpath.t -> bool) option Hook.t
+    =
   Hook.create None
 
 let maybe_merge_partial_scan_results_then_exit (conf : conf) =
@@ -88,8 +84,8 @@ let maybe_validate_partial_scan_results_then_exit (conf : conf) =
             Error.exit_code_exn (Exit_code.ok ~__LOC__)
           else Error.exit_code_exn (Exit_code.fatal ~__LOC__))
 
-let maybe_upload_partial_scan_results_then_exit
-    (caps : < Cap.network ; Auth.cap_token >) (conf : conf) =
+let maybe_upload_partial_scan_results_then_exit (token : Auth.token)
+    (conf : conf) =
   match (conf.upload_partial_results, conf.upload_partial_results_scan_id) with
   | Some _, None
   | None, Some _ ->
@@ -109,6 +105,7 @@ let maybe_upload_partial_scan_results_then_exit
           Error.exit_code_exn (Exit_code.fatal ~__LOC__)
       | Some read_and_upload_partial_scan_results ->
           (* Abusing exit_code_exn for short circuiting, even for the non-error case. *)
-          if read_and_upload_partial_scan_results caps ~scan_id ~partial_results
+          if
+            read_and_upload_partial_scan_results token ~scan_id ~partial_results
           then Error.exit_code_exn (Exit_code.ok ~__LOC__)
           else Error.exit_code_exn (Exit_code.fatal ~__LOC__))

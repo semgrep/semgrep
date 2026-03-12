@@ -226,8 +226,7 @@ let glob pattern =
   (* TODO: should remove, but that would require modifying many call sites
    * so let's forge one for now
    *)
-  let caps = Cap.readdir_UNSAFE () in
-  let files = UFile.Legacy.dir_contents caps dir in
+  let files = UFile.Legacy.dir_contents dir in
   files
   |> List_.filter_map (fun s ->
          if Re.execp regex s then Some (Fpath.v s) else None)

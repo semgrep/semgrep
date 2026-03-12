@@ -23,9 +23,6 @@ let tests =
       Unit_String_.tests;
       Unit_File.tests;
       Unit_Random_.tests;
-      (* alt: Unit_CapExec.tests;
-       * but this require caps so better to include directly from Test.ml
-       *)
       Unit_external.tests;
       Unit_Common.tests;
       Unit_Logs_.tests;

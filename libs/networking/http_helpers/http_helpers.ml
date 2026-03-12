@@ -242,7 +242,7 @@ let call_eio_client ?(body = Cohttp.Body.empty) ?(headers = [])
 (* Async *)
 (*****************************************************************************)
 (* coupling(eio-port): if you change this you must change the eio version *)
-let rec get ?(headers = []) ?timeout_secs caps url =
+let rec get ?(headers = []) ?timeout_secs url =
   Log.info (fun m -> m "GET on %s" (Uri.to_string url));
   (* This checks to make sure a client has been set instead of defaulting to a
      client, as that can cause hard to debug build and runtime issues *)
@@ -265,14 +265,14 @@ let rec get ?(headers = []) ?timeout_secs caps url =
             Log.err (fun m -> m "%s" err);
             let server_response = { server_response with body = Error err } in
             Lwt.return_ok server_response
-        | Some url -> get ?timeout_secs caps (Uri.of_string url))
+        | Some url -> get ?timeout_secs (Uri.of_string url))
     | _ -> Lwt.return_ok server_response
   in
   Lwt_result.bind response_result handle_response
 [@@profiling]
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let rec get_eio ?(headers = []) caps url =
+let rec get_eio ?(headers = []) url =
   Log.info (fun m -> m "GET on %s" (Uri.to_string url));
   (* This checks to make sure a client has been set *)
   (* Instead of defaulting to a client, as that can cause *)
@@ -297,7 +297,7 @@ let rec get_eio ?(headers = []) caps url =
             Log.err (fun m -> m "%s" err);
             let server_response = { server_response with body = Error err } in
             Ok server_response
-        | Some url -> get_eio caps (Uri.of_string url))
+        | Some url -> get_eio (Uri.of_string url))
     | _ -> Ok server_response
   in
   response_result |> Result.map handle_response |> Result.join
@@ -305,7 +305,7 @@ let rec get_eio ?(headers = []) caps url =
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let post ~body ?(headers = [ ("content-type", "application/json") ])
-    ?(chunked = false) _caps url =
+    ?(chunked = false) url =
   Log.info (fun m -> m "POST on %s" (Uri.to_string url));
   let response =
     call_client
@@ -318,7 +318,7 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let post_eio ~body ?(headers = [ ("content-type", "application/json") ])
-    ?(chunked = false) _caps url =
+    ?(chunked = false) url =
   Log.info (fun m -> m "POST on %s" (Uri.to_string url));
   let response =
     call_eio_client
@@ -331,7 +331,7 @@ let post_eio ~body ?(headers = [ ("content-type", "application/json") ])
 [@@profiling]
 
 let put ~body ?(headers = [ ("content-type", "application/json") ])
-    ?(chunked = false) _caps url =
+    ?(chunked = false) url =
   Log.info (fun m -> m "PUT on %s" (Uri.to_string url));
   let response =
     call_client

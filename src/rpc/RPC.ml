@@ -42,23 +42,14 @@ let name_of_call (call : Out.function_call) : string =
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps =
-  < Cap.exec
-  ; Cap.tmp
-  ; Cap.network
-  ; Cap.readdir
-  ; Cap.random
-  ; Cap.chdir
-  ; Core_scan.caps >
-
 type config = { par_conf : Parallelism_config.t; num_jobs : int }
 [@@deriving show]
 (*****************************************************************************)
 (* Dispatcher *)
 (*****************************************************************************)
 
-let handle_call (caps : < caps ; .. >) (conf : config)
-    (call : Out.function_call) : (Out.function_return, string) result =
+let handle_call (conf : config) (call : Out.function_call) :
+    (Out.function_return, string) result =
   Profiling.measure ("RPC " ^ name_of_call call) @@ fun () ->
   match call with
   | `CallApplyFixes { dryrun; edits } ->
@@ -69,13 +60,12 @@ let handle_call (caps : < caps ; .. >) (conf : config)
   | `CallSarifFormat ({ rules; is_pro; show_dataflow_traces }, ctx, cli_output)
     ->
       let output =
-        RPC_return.sarif_format
-          (caps :> < Cap.tmp >)
-          rules ctx ~is_pro ~show_dataflow_traces cli_output
+        RPC_return.sarif_format rules ctx ~is_pro ~show_dataflow_traces
+          cli_output
       in
       Ok (`RetSarifFormat output)
   | `CallContributions ->
-      let contribs = RPC_return.contributions (caps :> < Cap.exec >) in
+      let contribs = RPC_return.contributions () in
       Ok (`RetContributions contribs)
   | `CallFormatter (output_format, ctx, cli_output) ->
       let str = RPC_return.format output_format ctx cli_output in
@@ -91,7 +81,6 @@ let handle_call (caps : < caps ; .. >) (conf : config)
           in
           let resolved =
             resolve_dependencies
-              (caps :> < Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.readdir >)
               ~download_dependency_source_code:
                 params.download_dependency_source_code
               ~allow_local_builds:params.allow_local_builds ~package_manager_env
@@ -108,16 +97,14 @@ let handle_call (caps : < caps ; .. >) (conf : config)
       *)
       let token = Auth.unsafe_token_of_string token in
       match
-        Semgrep_App.upload_symbol_analysis
-          (caps :> < Cap.network >)
-          ~token ~scan_id symbol_analysis
+        Semgrep_App.upload_symbol_analysis ~token ~scan_id symbol_analysis
       with
       | Error msg -> Error msg
       | Ok msg -> Ok (`RetUploadSymbolAnalysis msg))
   | `CallDumpRulePartitions params -> (
       match !RPC_return.hook_dump_rule_partitions with
       | Some dump_rule_partitions ->
-          let ok = dump_rule_partitions (caps :> < Cap.random >) params in
+          let ok = dump_rule_partitions params in
           Ok (`RetDumpRulePartitions ok)
       | None ->
           Error
@@ -126,16 +113,7 @@ let handle_call (caps : < caps ; .. >) (conf : config)
   | `CallTransitiveReachabilityFilter params -> (
       match !RPC_return.hook_transitive_reachability_analyzer with
       | Some transitive_reachability_filter ->
-          let xs =
-            transitive_reachability_filter
-              (caps
-                :> < Core_scan.caps
-                   ; Cap.readdir
-                   ; Cap.network
-                   ; Cap.exec
-                   ; Cap.tmp >)
-              params
-          in
+          let xs = transitive_reachability_filter params in
           Ok (`RetTransitiveReachabilityFilter xs)
       | None ->
           Error
@@ -163,16 +141,15 @@ let handle_call (caps : < caps ; .. >) (conf : config)
       let/ run_symbol_analysis =
         Option.to_result ~none:msg !RPC_return.hook_run_symbol_analysis
       in
-      match run_symbol_analysis (caps :> < Cap.readdir >) params with
+      match run_symbol_analysis params with
       | Ok analysis -> Ok (`RetRunSymbolAnalysis analysis)
       | Error msg -> Error msg)
   | `CallUploadSubprojectSymbolAnalysis
       { token; scan_id; manifest; lockfile; symbol_analysis } -> (
       let token = Auth.unsafe_token_of_string token in
       match
-        Semgrep_App.upload_subproject_symbol_analysis
-          (caps :> < Cap.network >)
-          ~token ~scan_id ~manifest ~lockfile symbol_analysis
+        Semgrep_App.upload_subproject_symbol_analysis ~token ~scan_id ~manifest
+          ~lockfile symbol_analysis
       with
       | Error msg -> Error msg
       | Ok msg -> Ok (`RetUploadSubprojectSymbolAnalysis msg))
@@ -222,7 +199,7 @@ let write_packet chan_out str =
   flush chan_out
 
 (* Blocks until a request comes in, then handles it and sends the result back *)
-let handle_request (caps : < caps ; .. >) conf chan_in chan_out size =
+let handle_request conf chan_in chan_out size =
   let res =
     let/ call_str = read_packet chan_in size in
     let/ rpc_call =
@@ -235,7 +212,7 @@ let handle_request (caps : < caps ; .. >) conf chan_in chan_out size =
       ~__FILE__ ~__LINE__
       ("RPC " ^ name_of_call rpc_call.Out.call)
     @@ fun _scope ->
-    try handle_call caps conf rpc_call.Out.call with
+    try handle_call conf rpc_call.Out.call with
     (* Catch-all here. No matter what happens while handling this request, we
      * need to send a response back. *)
     | e ->
@@ -256,12 +233,12 @@ let handle_request (caps : < caps ; .. >) conf chan_in chan_out size =
   let res_str = Semgrep_output_v1_j.string_of_function_result result in
   write_packet chan_out res_str
 
-let rec handle_multiple_requests (caps : < caps ; .. >) conf chan_in chan_out =
+let rec handle_multiple_requests conf chan_in chan_out =
   match read_header chan_in with
   | Ok Stop -> ()
   | Ok (Size size) -> begin
-      handle_request caps conf chan_in chan_out size;
-      handle_multiple_requests caps conf chan_in chan_out
+      handle_request conf chan_in chan_out size;
+      handle_multiple_requests conf chan_in chan_out
     end
   | Error str ->
       write_packet chan_out
@@ -272,6 +249,4 @@ let rec handle_multiple_requests (caps : < caps ; .. >) conf chan_in chan_out =
 (*****************************************************************************)
 
 (* For now, just handle one request and then exit. *)
-let main (caps : < caps ; .. >) conf =
-  handle_multiple_requests caps conf stdin stdout
-[@@profiling]
+let main conf = handle_multiple_requests conf stdin stdout [@@profiling]

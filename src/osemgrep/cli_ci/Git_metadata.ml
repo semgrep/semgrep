@@ -137,15 +137,14 @@ let env : env Term.t =
 (* Entry point *)
 (*****************************************************************************)
 
-class meta (caps : < Cap.exec >) ~scan_environment
-  ~(baseline_ref : Digestif.SHA1.t option) env =
+class meta ~scan_environment ~(baseline_ref : Digestif.SHA1.t option) env =
   object (self)
     method project_metadata : Project_metadata.t =
       let commit_title : string =
-        Git_wrapper.command_exn caps [ "show"; "-s"; "--format=%B" ]
+        Git_wrapper.command_exn [ "show"; "-s"; "--format=%B" ]
       in
       let commit_author_email_str : string =
-        Git_wrapper.command_exn caps [ "show"; "-s"; "--format=%ae" ]
+        Git_wrapper.command_exn [ "show"; "-s"; "--format=%ae" ]
       in
       (* old: |> Emile.of_string |> Result.get_ok
        * but github generates emails like
@@ -154,11 +153,11 @@ class meta (caps : < Cap.exec >) ~scan_environment
        * the raw string as in pysemgrep
        *)
       let commit_author_name : string =
-        Git_wrapper.command_exn caps [ "show"; "-s"; "--format=%an" ]
+        Git_wrapper.command_exn [ "show"; "-s"; "--format=%an" ]
       in
       (* Returns strict ISO 8601 time as str of head commit *)
       let commit_timestamp : Timedesc.Timestamp.t =
-        Git_wrapper.command_exn caps [ "show"; "-s"; "--format=%cI" ]
+        Git_wrapper.command_exn [ "show"; "-s"; "--format=%cI" ]
         |> Timedesc.Timestamp.of_iso8601 |> Result.get_ok
       in
       {
@@ -203,7 +202,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
       | Some repo_name -> repo_name
       | None ->
           let str =
-            Git_wrapper.command_exn caps [ "rev-parse"; "--show-toplevel" ]
+            Git_wrapper.command_exn [ "rev-parse"; "--show-toplevel" ]
           in
           Printf.sprintf "local_scan/%s" (Fpath.basename (Fpath.v str))
 
@@ -217,7 +216,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
       | Some repo_url -> Some repo_url
       | None -> (
           let cmd = (Cmd.Name "git", [ "remote"; "get-url"; "origin" ]) in
-          match CapExec.string_of_run caps#exec ~trim:true cmd with
+          match UCmd.string_of_run ~trim:true cmd with
           | Ok (str, _status) ->
               Project_metadata.get_url_from_sstp_url (Some str)
           | Error (`Msg _err) ->
@@ -233,7 +232,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
       | Some branch -> Some branch
       | None -> (
           let cmd = (Cmd.Name "git", [ "rev-parse"; "--abbrev-ref"; "HEAD" ]) in
-          match CapExec.string_of_run caps#exec ~trim:true cmd with
+          match UCmd.string_of_run ~trim:true cmd with
           | Ok (branch, (_, `Exited 0)) -> Some branch
           | Ok _
           | Error (`Msg _) ->
@@ -246,7 +245,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
       | Some sha1 -> Some sha1
       | None -> (
           let cmd = (Cmd.Name "git", [ "rev-parse"; "HEAD" ]) in
-          match CapExec.string_of_run caps#exec ~trim:true cmd with
+          match UCmd.string_of_run ~trim:true cmd with
           | Ok (str, (_, `Exited 0)) -> Digestif.SHA1.of_hex_opt str
           | Ok _
           | Error (`Msg _) ->

@@ -141,13 +141,13 @@ let extract_block_override (data : string) : (app_block_override, string) result
 (* Step1 : start scan *)
 (*****************************************************************************)
 
-let start_scan_async caps (request : Out.scan_request) :
+let start_scan_async token (request : Out.scan_request) :
     (Out.scan_response, string * Exit_code.t option) result Lwt.t =
   let headers =
     [
       ("Content-Type", "application/json");
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url start_scan_route in
@@ -156,7 +156,7 @@ let start_scan_async caps (request : Out.scan_request) :
     body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
   in
   Logs.debug (fun m -> m "Starting scan: %s" pretty_body);
-  let%lwt response = Http_helpers.post ~body ~headers caps#network url in
+  let%lwt response = Http_helpers.post ~body ~headers url in
   let res =
     match response with
     | Ok { body = Ok body; _ } ->
@@ -186,14 +186,14 @@ Please make sure they have been set correctly.
   in
   Lwt.return res
 
-let start_scan caps request = Lwt_platform.run (start_scan_async caps request)
+let start_scan token request = Lwt_platform.run (start_scan_async token request)
 
 (*****************************************************************************)
 (* Step2 : upload findings *)
 (*****************************************************************************)
 
 (* python: was called report_findings *)
-let upload_findings_async caps ~scan_id ~results ~complete :
+let upload_findings_async token ~scan_id ~results ~complete :
     (app_block_override, string) result Lwt.t =
   let results = Out.string_of_ci_scan_results results in
   let complete = Out.string_of_ci_scan_complete complete in
@@ -204,13 +204,13 @@ let upload_findings_async caps ~scan_id ~results ~complete :
     [
       ("Content-Type", "application/json");
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   Logs.debug (fun m -> m "Sending findings and ignores blob");
   let body = results in
   let%lwt () =
-    match%lwt Http_helpers.post ~body ~headers caps#network url with
+    match%lwt Http_helpers.post ~body ~headers url with
     | Ok { body = Ok body; _ } ->
         let errors = extract_errors body in
         errors
@@ -230,7 +230,7 @@ let upload_findings_async caps ~scan_id ~results ~complete :
   in
   Logs.debug (fun m -> m "Sending complete blob");
   let body = complete in
-  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  match%lwt Http_helpers.post ~body ~headers url with
   | Ok { body = Ok body; _ } -> Lwt.return (extract_block_override body)
   | Ok { body = Error msg; code; _ } ->
       let msg =
@@ -240,21 +240,21 @@ let upload_findings_async caps ~scan_id ~results ~complete :
       Lwt.return_error msg
   | Error e -> Lwt.return_error (spf "Failed to upload findings: %s" e)
 
-let upload_findings caps ~scan_id ~results ~complete =
-  Lwt_platform.run (upload_findings_async caps ~scan_id ~results ~complete)
+let upload_findings token ~scan_id ~results ~complete =
+  Lwt_platform.run (upload_findings_async token ~scan_id ~results ~complete)
 
 (*****************************************************************************)
 (* Error reporting to the backend *)
 (*****************************************************************************)
 
 (* report a failure for [scan_id] to Semgrep App *)
-let report_failure_async caps ~scan_id (exit_code : Exit_code.t) : unit Lwt.t =
+let report_failure_async token ~scan_id (exit_code : Exit_code.t) : unit Lwt.t =
   let int_code = Exit_code.to_int exit_code in
   let headers =
     [
       ("Content-Type", "application/json");
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let url =
@@ -268,7 +268,7 @@ let report_failure_async caps ~scan_id (exit_code : Exit_code.t) : unit Lwt.t =
     }
   in
   let body = Out.string_of_ci_scan_failure failure in
-  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  match%lwt Http_helpers.post ~body ~headers url with
   | Ok { body = Ok _; _ } -> Lwt.return_unit
   | Ok { body = Error msg; code; _ } ->
       Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg);
@@ -277,8 +277,8 @@ let report_failure_async caps ~scan_id (exit_code : Exit_code.t) : unit Lwt.t =
       Logs.warn (fun m -> m "Failed to report failure: %s" e);
       Lwt.return_unit
 
-let report_failure caps ~scan_id exit_code =
-  Lwt_platform.run (report_failure_async caps ~scan_id exit_code)
+let report_failure token ~scan_id exit_code =
+  Lwt_platform.run (report_failure_async token ~scan_id exit_code)
 
 (*****************************************************************************)
 (* Other ways to fetch a config (deprecated?) *)
@@ -292,7 +292,7 @@ let report_failure caps ~scan_id exit_code =
  * pysemgrep: called get_deployment_from_token
  *)
 (* coupling(eio-port): if you change this you must change the eio version *)
-let deployment_config_async caps : Out.deployment_config option Lwt.t =
+let deployment_config_async token : Out.deployment_config option Lwt.t =
   let headers =
     [
       (* The agent is needed by many endpoints in our backend guarded by
@@ -300,11 +300,11 @@ let deployment_config_async caps : Out.deployment_config option Lwt.t =
        * alt: use Metrics_.string_of_user_agent()
        *)
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
-  let%lwt response = Http_helpers.get ~headers caps#network url in
+  let%lwt response = Http_helpers.get ~headers url in
   let deployment_opt =
     match response with
     | Ok { body = Ok body; _ } ->
@@ -322,7 +322,7 @@ let deployment_config_async caps : Out.deployment_config option Lwt.t =
   Lwt.return deployment_opt
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let deployment_config_eio caps : Out.deployment_config option =
+let deployment_config_eio token : Out.deployment_config option =
   let headers =
     [
       (* The agent is needed by many endpoints in our backend guarded by
@@ -330,11 +330,11 @@ let deployment_config_eio caps : Out.deployment_config option =
        * alt: use Metrics_.string_of_user_agent()
        *)
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
-  let response = Http_helpers.get_eio ~headers caps#network url in
+  let response = Http_helpers.get_eio ~headers url in
   let deployment_opt =
     match response with
     | Ok { body = Ok body; _ } ->
@@ -382,8 +382,8 @@ let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
 
 (* Returns a url with scan config encoded via search params based on a magic
  * environment variable *)
-let url_for_policy ?(from_hooks = false) caps =
-  let depl_config_opt = deployment_config caps in
+let url_for_policy ?(from_hooks = false) token =
+  let depl_config_opt = deployment_config token in
   match depl_config_opt with
   | None ->
       Error.abort
@@ -406,7 +406,7 @@ let url_for_policy ?(from_hooks = false) caps =
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let fetch_scan_config_string_async ~dry_run ~secrets ~sca ~full_scan ~repository
-    caps : (string, string) result Lwt.t =
+    token : (string, string) result Lwt.t =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
    * or with a scan_id.
    * python:
@@ -419,11 +419,11 @@ let fetch_scan_config_string_async ~dry_run ~secrets ~sca ~full_scan ~repository
   let headers =
     [
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let%lwt conf_string =
-    let%lwt response = Http_helpers.get ~headers caps#network url in
+    let%lwt response = Http_helpers.get ~headers url in
     let results =
       match response with
       | Ok { body = Ok body; _ } -> Ok body
@@ -443,7 +443,7 @@ let fetch_scan_config_string_async ~dry_run ~secrets ~sca ~full_scan ~repository
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let fetch_scan_config_string_eio ~dry_run ~secrets ~sca ~full_scan ~repository
-    caps : (string, string) result =
+    token : (string, string) result =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
    * or with a scan_id.
    * python:
@@ -456,11 +456,11 @@ let fetch_scan_config_string_eio ~dry_run ~secrets ~sca ~full_scan ~repository
   let headers =
     [
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let conf_string =
-    let response = Http_helpers.get_eio ~headers caps#network url in
+    let response = Http_helpers.get_eio ~headers url in
     let results =
       match response with
       | Ok { body = Ok body; _ } -> Ok body
@@ -483,13 +483,13 @@ let fetch_scan_config_string_eio ~dry_run ~secrets ~sca ~full_scan ~repository
 (*****************************************************************************)
 
 (* Query the TR cache for matches *)
-let query_tr_cache_async caps (request : Out.tr_query_cache_request) :
+let query_tr_cache_async token (request : Out.tr_query_cache_request) :
     (Out.tr_query_cache_response, string) result Lwt.t =
   let headers =
     [
       ("Content-Type", "application/json");
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let url =
@@ -497,7 +497,7 @@ let query_tr_cache_async caps (request : Out.tr_query_cache_request) :
   in
   let body = Out.string_of_tr_query_cache_request request in
 
-  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  match%lwt Http_helpers.post ~body ~headers url with
   | Ok { body = Ok body; _ } -> (
       try
         let response = Out.tr_query_cache_response_of_string body in
@@ -512,32 +512,32 @@ let query_tr_cache_async caps (request : Out.tr_query_cache_request) :
   | Error e -> Lwt.return_error (spf "Failed to query TR cache: %s" e)
 
 (* Add entries to the TR cache *)
-let add_to_tr_cache_async caps (request : Out.tr_add_cache_request) :
+let add_to_tr_cache_async token (request : Out.tr_add_cache_request) :
     (unit, string) result Lwt.t =
   let headers =
     [
       ("Content-Type", "application/json");
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url tr_cache_route in
   let body = Out.string_of_tr_add_cache_request request in
 
-  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  match%lwt Http_helpers.post ~body ~headers url with
   | Ok { body = Ok _; _ } -> Lwt.return_ok ()
   | Ok { body = Error msg; code; _ } ->
       Lwt.return_error
         (spf "Failed to add to TR cache, API server returned %u: %s" code msg)
   | Error e -> Lwt.return_error (spf "Failed to add to TR cache: %s" e)
 
-let query_tr_cache caps request =
-  Lwt_platform.run (query_tr_cache_async caps request)
+let query_tr_cache token request =
+  Lwt_platform.run (query_tr_cache_async token request)
 
-let add_to_tr_cache caps request =
-  Lwt_platform.run (add_to_tr_cache_async caps request)
+let add_to_tr_cache token request =
+  Lwt_platform.run (add_to_tr_cache_async token request)
 
-let fetch_pro_binary caps platform_kind =
+let fetch_pro_binary token platform_kind =
   let uri =
     Uri.(
       add_query_params'
@@ -545,19 +545,19 @@ let fetch_pro_binary caps platform_kind =
            (pro_binary_route platform_kind))
         [ ("version", Version.version) ])
   in
-  let headers = [ Auth.auth_header_of_token caps#token ] in
-  Http_helpers.get ~headers caps#network uri
+  let headers = [ Auth.auth_header_of_token token ] in
+  Http_helpers.get ~headers uri
 
 (* for semgrep show identity *)
-let get_identity_async caps =
+let get_identity_async token =
   let headers =
     [
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url identity_route in
-  let%lwt res = Http_helpers.get ~headers caps#network url in
+  let%lwt res = Http_helpers.get ~headers url in
   match res with
   | Ok { body = Ok body; _ } -> Lwt.return body
   | Ok { body = Error msg; code; _ } ->
@@ -571,17 +571,17 @@ let get_identity_async caps =
       Lwt.return ""
 
 (* for semgrep publish *)
-let upload_rule_to_registry_async caps json =
+let upload_rule_to_registry_async token json =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url registry_rule_route in
   let headers =
     [
       ("Content-Type", "application/json");
       ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
+      Auth.auth_header_of_token token;
     ]
   in
   let body = JSON.string_of_json (JSON.from_yojson json) in
-  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  match%lwt Http_helpers.post ~body ~headers url with
   | Ok { body = Ok body; _ } -> Lwt.return_ok body
   | Ok { body = Error msg; code; _ } ->
       let msg =
@@ -593,13 +593,12 @@ let upload_rule_to_registry_async caps json =
       Lwt.return_error msg
   | Error e -> Lwt.return_error (spf "Failed to upload rule to registry: %s" e)
 
-let upload_rule_to_registry caps json =
-  Lwt_platform.run (upload_rule_to_registry_async caps json)
+let upload_rule_to_registry token json =
+  Lwt_platform.run (upload_rule_to_registry_async token json)
 
 (* TODO: (2025-12-11) we can remove this once we fully switch over to
    the new style of per-subproject symbol analysis *)
-let get_symbol_analysis_s3_url caps ~token ~scan_id :
-    (Uri.t, string) result Lwt.t =
+let get_symbol_analysis_s3_url ~token ~scan_id : (Uri.t, string) result Lwt.t =
   let url =
     Uri.with_path !Semgrep_envvars.v.semgrep_url (symbol_analysis_route scan_id)
   in
@@ -610,7 +609,7 @@ let get_symbol_analysis_s3_url caps ~token ~scan_id :
       Auth.auth_header_of_token token;
     ]
   in
-  match%lwt Http_helpers.get ~headers caps#network url with
+  match%lwt Http_helpers.get ~headers url with
   | Ok { body = Ok body_json; _ } -> (
       (* Parse the JSON to extract the upload_url *)
       match Out.symbol_analysis_upload_response_of_string body_json with
@@ -628,8 +627,8 @@ let get_symbol_analysis_s3_url caps ~token ~scan_id :
       let msg = spf "Failed to get symbol analysis upload url: %s" e in
       Lwt.return_error msg
 
-let get_subproject_symbol_analysis_s3_url caps ~token ~scan_id ~manifest
-    ~lockfile : (Uri.t, string) result Lwt.t =
+let get_subproject_symbol_analysis_s3_url ~token ~scan_id ~manifest ~lockfile :
+    (Uri.t, string) result Lwt.t =
   let url =
     Uri.with_path !Semgrep_envvars.v.semgrep_url
       (subproject_symbol_analysis_route scan_id)
@@ -645,7 +644,7 @@ let get_subproject_symbol_analysis_s3_url caps ~token ~scan_id ~manifest
     Out.string_of_subproject_symbol_analysis_url_request
       { manifest_path = manifest; lockfile_path = lockfile }
   in
-  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  match%lwt Http_helpers.post ~body ~headers url with
   | Ok { body = Ok body_json; _ } -> (
       (* Parse the JSON to extract the upload_url *)
       match Out.symbol_analysis_upload_response_of_string body_json with
@@ -665,7 +664,7 @@ let get_subproject_symbol_analysis_s3_url caps ~token ~scan_id ~manifest
       in
       Lwt.return_error msg
 
-let upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis :
+let upload_symbol_analysis_to_s3 ~upload_url symbol_analysis :
     (string, string) result Lwt.t =
   try
     Logs.debug (fun m ->
@@ -679,9 +678,7 @@ let upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis :
     in
     let body = Out.string_of_symbol_analysis symbol_analysis in
     (* Upload the symbol analysis to the S3 upload_url *)
-    match%lwt
-      Http_helpers.put ~body ~headers:upload_headers caps#network upload_url
-    with
+    match%lwt Http_helpers.put ~body ~headers:upload_headers upload_url with
     (* Handle the good case *)
     | Ok { body = Ok _; _ } -> Lwt.return_ok "Symbol analysis uploaded"
     | Ok { body = Error msg; code; _ } ->
@@ -709,29 +706,26 @@ let upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis :
 
 (* TODO: (2025-12-11) we can remove this once we fully switch over to
    the new style of per-subproject symbol analysis *)
-let upload_symbol_analysis_async caps ~token ~scan_id symbol_analysis :
+let upload_symbol_analysis_async ~token ~scan_id symbol_analysis :
     (string, string) result Lwt.t =
-  match%lwt get_symbol_analysis_s3_url caps ~token ~scan_id with
-  | Ok upload_url ->
-      upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis
+  match%lwt get_symbol_analysis_s3_url ~token ~scan_id with
+  | Ok upload_url -> upload_symbol_analysis_to_s3 ~upload_url symbol_analysis
   | Error msg -> Lwt.return_error msg
 
-let upload_subproject_symbol_analysis_async caps ~token ~scan_id ~manifest
-    ~lockfile symbol_analysis : (string, string) result Lwt.t =
+let upload_subproject_symbol_analysis_async ~token ~scan_id ~manifest ~lockfile
+    symbol_analysis : (string, string) result Lwt.t =
   match%lwt
-    get_subproject_symbol_analysis_s3_url caps ~token ~scan_id ~manifest
-      ~lockfile
+    get_subproject_symbol_analysis_s3_url ~token ~scan_id ~manifest ~lockfile
   with
-  | Ok upload_url ->
-      upload_symbol_analysis_to_s3 caps ~upload_url symbol_analysis
+  | Ok upload_url -> upload_symbol_analysis_to_s3 ~upload_url symbol_analysis
   | Error msg -> Lwt.return_error msg
 
-let upload_symbol_analysis caps ~token ~scan_id symbol_analysis =
+let upload_symbol_analysis ~token ~scan_id symbol_analysis =
   Lwt_platform.run
-    (upload_symbol_analysis_async caps ~token ~scan_id symbol_analysis)
+    (upload_symbol_analysis_async ~token ~scan_id symbol_analysis)
 
-let upload_subproject_symbol_analysis caps ~token ~scan_id ~manifest ~lockfile
+let upload_subproject_symbol_analysis ~token ~scan_id ~manifest ~lockfile
     symbol_analysis =
   Lwt_platform.run
-    (upload_subproject_symbol_analysis_async caps ~token ~scan_id ~manifest
-       ~lockfile symbol_analysis)
+    (upload_subproject_symbol_analysis_async ~token ~scan_id ~manifest ~lockfile
+       symbol_analysis)

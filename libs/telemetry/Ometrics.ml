@@ -476,7 +476,6 @@ let default_boundaries =
    counts per bucket, and then a total sum and count of the population.
    Optionally it will also record the min and max.
 
-
    Boundaries define the buckets into which data points are recorded, and
    buckets are lower bound exclusive, and upper bound inclusive. A histogram
    without buckets will only record sum, count, and optionally min/max of the

@@ -10,10 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-type caps =
-  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
-
-val hook_run_mcp : (caps -> Mcp_CLI.conf -> unit) option Hook.t
+val hook_run_mcp : (Mcp_CLI.conf -> unit) option Hook.t
 
 (*
    Parse a semgrep-mcp command, execute it and exit.
@@ -22,7 +19,7 @@ val hook_run_mcp : (caps -> Mcp_CLI.conf -> unit) option Hook.t
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < caps ; .. > -> string array -> Exit_code.t
+val main : string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < caps ; .. > -> Mcp_CLI.conf -> Exit_code.t
+val run_conf : Mcp_CLI.conf -> Exit_code.t

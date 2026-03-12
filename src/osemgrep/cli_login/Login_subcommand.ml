@@ -27,11 +27,7 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* We need Cap.exec because we call the 'open' command line tool to
- * open a browser.
- *)
-type caps = < Cap.stdout ; Cap.network ; Cap.exec >
-
+(* We call the 'open' command line tool to open a browser. *)
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -92,7 +88,7 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
   Logs.app (fun m -> m "%s" preamble)
 
 (* Print out the flow, create the activation url and open the url in a browser *)
-let start_interactive_flow (caps : < Cap.exec ; .. >) : Uuidm.t option =
+let start_interactive_flow () : Uuidm.t option =
   (* TODO: use 'Console.get_highlight ()' to obey the global color settings. *)
   if not Unix.(isatty stdin) then (
     let msg =
@@ -116,7 +112,7 @@ You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
       Some session_id)
     else
       let cmd = (Cmd.Name "open", [ Uri.to_string url ]) in
-      match CapExec.status_of_run caps#exec cmd with
+      match UCmd.status_of_run cmd with
       | Ok _ ->
           Logs.app (fun m -> m "Opening your sign-in link automatically...");
           let msg =
@@ -130,10 +126,9 @@ You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
       | __else__ -> None)
 
 (* NOTE: fetch_token will save the token iff valid (else error) *)
-let fetch_token caps session_id =
+let fetch_token session_id =
   match
-    Semgrep_login.fetch_token caps ~wait_hook:Console_Spinner.show_spinner
-      session_id
+    Semgrep_login.fetch_token ~wait_hook:Console_Spinner.show_spinner session_id
   with
   | Error msg ->
       Logs.err (fun m -> m "%s" msg);
@@ -150,7 +145,7 @@ let fetch_token caps session_id =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
+let run_conf (conf : Login_CLI.conf) : Exit_code.t =
   CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
   @@ fun () ->
   Logs.debug (fun m -> m "conf = %s" (Login_CLI.show_conf conf));
@@ -173,7 +168,7 @@ let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
       Logs.debug (fun m ->
           m "using seed %s with uuid %s" conf.one_time_seed
             (Uuidm.to_string shared_secret));
-      fetch_token caps shared_secret
+      fetch_token shared_secret
   (* If the token only exists in env, and well formed, exit ok *)
   | None, Some token ->
       Logs.debug (fun m ->
@@ -181,8 +176,7 @@ let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
             "Token in settings file is unset, environment variable \
              (SEMGREP_API_TOKEN) is set and well formed, saving the env token \
              to the settings file and exiting ok");
-      let caps = Auth.cap_token_and_network token caps in
-      save_token caps
+      save_token token
   | Some file_token, Some env_token ->
       (* If the token exists in both locations, but aren't the same, tell user
          and exit error *)
@@ -201,8 +195,7 @@ let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
               "Token is set in settings file, and environment variable \
                (SEMGREP_API_TOKEN) is set and well formed, using env var token \
                and exiting ok");
-        let caps = Auth.cap_token_and_network env_token caps in
-        save_token caps)
+        save_token env_token)
   (* If the token exists in the settings file, nowhere else, exit error *)
   | Some _, None ->
       Logs.app (fun m ->
@@ -217,7 +210,7 @@ let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
             "Token is not set in settings file, and environment variable \
              (SEMGREP_API_TOKEN) is not set or not well formed, starting \
              interactive login flow");
-      let session_id = start_interactive_flow caps in
+      let session_id = start_interactive_flow () in
       match session_id with
       | None -> Exit_code.fatal ~__LOC__
       | Some session_id -> (
@@ -225,20 +218,19 @@ let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
           (* wait 100ms for the browser to open and then start showing the spinner *)
           match
             Semgrep_login.fetch_token ~wait_hook:Console_Spinner.show_spinner
-              caps session_id
+              session_id
           with
           | Error msg ->
               Logs.err (fun m -> m "%s" msg);
               Exit_code.fatal ~__LOC__
           | Ok (token, display_name) ->
               Console_Spinner.erase_spinner ();
-              let caps = Auth.cap_token_and_network token caps in
-              save_token caps ~display_name))
+              save_token token ~display_name))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
+let main (argv : string array) : Exit_code.t =
   let conf = Login_CLI.parse_argv argv in
-  run_conf caps conf
+  run_conf conf

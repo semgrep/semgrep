@@ -598,12 +598,12 @@ let test_irrelevant_rule_file target_file =
    any files, place the rule/target pair in the rules folder but annotate
    in a comment that the test targets filter_irrelevant_rules to help
    future debuggers. *)
-let filter_irrelevant_rules_tests (caps : < Cap.readdir ; .. >) =
+let filter_irrelevant_rules_tests =
   Testo.categorize "filter irrelevant rules"
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
        Common2.glob (dir / "*")
-       |> File_type.files_of_dirs_or_files caps (function
+       |> File_type.files_of_dirs_or_files (function
             | File_type.Config File_type.Yaml -> false
             | _ -> true (* TODO include .test.yaml*))
      in
@@ -770,11 +770,11 @@ let lang_tainting_tests () =
 (* DEPRECATED: this is redundant because we now have 'make rules-test'
  * which calls 'osemgrep-pro test --pro tests/rules tests/rules_v2'
  *)
-let full_rule_regression_tests (caps : < Cap.readdir ; .. >) =
+let full_rule_regression_tests =
   let path = tests_path / "rules" in
-  let tests1 = Test_engine.make_tests ~prepend_lang:true caps [ path ] in
+  let tests1 = Test_engine.make_tests ~prepend_lang:true [ path ] in
   let path = tests_path / "rules_v2" in
-  let tests2 = Test_engine.make_tests ~prepend_lang:true caps [ path ] in
+  let tests2 = Test_engine.make_tests ~prepend_lang:true [ path ] in
   let tests = tests1 @ tests2 in
   let groups =
     tests
@@ -802,9 +802,9 @@ let full_rule_regression_tests (caps : < Cap.readdir ; .. >) =
  * DEPRECATED: this is redundant because we now have 'make rules-test'
  * which calls 'osemgrep-pro test --pro tests/taint_maturity'
  *)
-let full_rule_taint_maturity_tests caps =
+let full_rule_taint_maturity_tests =
   let path = tests_path / "taint_maturity" in
-  Testo.categorize "taint maturity" (Test_engine.make_tests caps [ path ])
+  Testo.categorize "taint maturity" (Test_engine.make_tests [ path ])
 
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "semgrep-rules repo Java", so one can just run the Java tests
@@ -817,9 +817,9 @@ let full_rule_taint_maturity_tests caps =
  * DEPRECATED: this is redundant because we now have 'make rules-test'
  * which calls 'osemgrep-pro test --pro tests/semgrep-rules'
  *)
-let semgrep_rules_repo_tests caps : Testo.t list =
+let semgrep_rules_repo_tests : Testo.t list =
   let path = tests_path / "semgrep-rules" in
-  let tests = Test_engine.make_tests caps [ path ] in
+  let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
     |> List_.filter_map (fun (test : Testo.t) ->
@@ -901,17 +901,17 @@ let semgrep_rules_repo_tests caps : Testo.t list =
 (* All tests *)
 (*****************************************************************************)
 
-let tests (caps : < Cap.readdir ; .. >) =
+let tests =
   List_.flatten
     [
       (* full testing for many languages *)
       lang_regression_tests ~polyglot_pattern_path;
       lang_autofix_tests ~polyglot_pattern_path;
       eval_regression_tests ();
-      filter_irrelevant_rules_tests caps;
+      filter_irrelevant_rules_tests;
       lang_tainting_tests ();
       maturity_tests ();
-      full_rule_taint_maturity_tests caps;
-      full_rule_regression_tests caps;
-      semgrep_rules_repo_tests caps;
+      full_rule_taint_maturity_tests;
+      full_rule_regression_tests;
+      semgrep_rules_repo_tests;
     ]

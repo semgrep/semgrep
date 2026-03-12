@@ -28,19 +28,19 @@ module Log = Log_paths.Log
 (* Helpers *)
 (*************************************************************************)
 
-let rec iter_dir_entries caps func dir names =
-  List.iter (iter_dir_entry caps func dir) names
+let rec iter_dir_entries func dir names =
+  List.iter (iter_dir_entry func dir) names
 
-and iter_dir_entry caps func (dir : Fpath.t) (name : Fpath.t) =
-  iter caps func Fpath.(dir // name)
+and iter_dir_entry func (dir : Fpath.t) (name : Fpath.t) =
+  iter func Fpath.(dir // name)
 
 (*************************************************************************)
 (* Entry points *)
 (*************************************************************************)
 
-and iter caps func path =
+and iter func path =
   match UUnix.lstat path with
-  | Ok { Unix.st_kind = S_DIR; _ } -> iter_dir caps func path
+  | Ok { Unix.st_kind = S_DIR; _ } -> iter_dir func path
   | Ok stat (* regular file, symlink, etc. *) -> func path stat
   | Error (code, _func, info) ->
       Log.warn (fun m ->
@@ -48,23 +48,23 @@ and iter caps func path =
             !!path);
       ()
 
-and iter_dir caps func dir =
-  let names = CapFS.read_dir_entries caps dir in
-  iter_dir_entries caps func dir names
+and iter_dir func dir =
+  let names = CapFS.read_dir_entries dir in
+  iter_dir_entries func dir names
 
-let fold_left caps func init path =
+let fold_left func init path =
   let acc = ref init in
-  iter caps (fun path stat -> acc := func !acc path stat) path;
+  iter (fun path stat -> acc := func !acc path stat) path;
   !acc
 
-let list_with_stat caps path =
-  fold_left caps (fun acc path stat -> (path, stat) :: acc) [] path |> List.rev
+let list_with_stat path =
+  fold_left (fun acc path stat -> (path, stat) :: acc) [] path |> List.rev
 
-let list caps path = list_with_stat caps path |> List_.map fst
+let list path = list_with_stat path |> List_.map fst
 
 (* python: Target.files_from_filesystem *)
-let list_regular_files ?(keep_root = false) caps root_path =
-  list_with_stat caps root_path
+let list_regular_files ?(keep_root = false) root_path =
+  list_with_stat root_path
   |> List_.filter_map (fun (path, (stat : Unix.stats)) ->
          Log.debug (fun m -> m "root: %s path: %s" !!root_path !!path);
          if keep_root && path = root_path then Some path

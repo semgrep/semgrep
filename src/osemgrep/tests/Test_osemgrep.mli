@@ -10,5 +10,5 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* we need CLI.caps here because we call directly CLI.main in some tests *)
-val tests : CLI.caps -> Testo.t list
+(* we call directly CLI.main in some tests *)
+val tests : unit -> Testo.t list

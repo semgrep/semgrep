@@ -37,7 +37,7 @@ let t = Testo.create ?skipped:Testutil.skip_on_windows
 (*****************************************************************************)
 
 (* no need for a token to access public rules in the registry *)
-let test_scan_config_registry_no_token (caps : CLI.caps) =
+let test_scan_config_registry_no_token () =
   t __FUNCTION__
     ~broken:
       "Flakey: Rule fetching isn't mocked; sometimes causes request timeouts."
@@ -45,7 +45,7 @@ let test_scan_config_registry_no_token (caps : CLI.caps) =
        them across tests *)
     (Testutil_login.with_login_test_env ~chdir:true (fun _tmp_path ->
          let exit_code =
-           CLI.main caps
+           CLI.main
              [|
                "semgrep";
                "scan";
@@ -58,7 +58,7 @@ let test_scan_config_registry_no_token (caps : CLI.caps) =
          Exit_code.Check.ok exit_code))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
-let test_scan_config_registry_with_invalid_token caps : Testo.t =
+let test_scan_config_registry_with_invalid_token () : Testo.t =
   t ~checked_output:(Testo.stderr ()) __FUNCTION__
     ~normalize:[ Testo.mask_not_substrings [ "Saved access token" ] ]
     ~broken:
@@ -72,11 +72,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
                   * some metrics call, so simpler to call directly
                   * Login_subcommand.
                   *)
-                 let exit_code =
-                   Login_subcommand.main
-                     (caps :> Login_subcommand.caps)
-                     [| "semgrep-login" |]
-                 in
+                 let exit_code = Login_subcommand.main [| "semgrep-login" |] in
                  Exit_code.Check.ok exit_code));
 
          (* Even if we are allowed to login with a fake token (because
@@ -90,7 +86,6 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
           *)
          try
            Scan_subcommand.main
-             (caps :> Scan_subcommand.caps)
              [|
                "semgrep-scan";
                "--experimental";
@@ -108,14 +103,14 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
                msg;
              ()))
 
-let test_absolute_target_path caps =
+let test_absolute_target_path () =
   let func () =
     UTmp.with_temp_file ~contents:"hello\n" ~suffix:".py" (fun path ->
         assert (Fpath.is_abs path);
         (* We want 'path' to be in a folder other than the current
            folder. *)
         assert (!!(Fpath.parent path) <> Unix.getcwd ());
-        Scan_subcommand.main caps
+        Scan_subcommand.main
           [|
             "semgrep-scan";
             "--experimental";
@@ -167,11 +162,11 @@ let with_read_from_named_pipe ~data func =
               close_out_noerr writer)))
     ~finally:(fun () -> Sys.remove !!pipe_path)
 
-let test_named_pipe (caps : Scan_subcommand.caps) =
+let test_named_pipe () =
   let func () =
     (* Search for pattern "hello" in a named pipe containing "hello" *)
     with_read_from_named_pipe ~data:"hello\n" (fun pipe_path ->
-        Scan_subcommand.main caps
+        Scan_subcommand.main
           [|
             "semgrep-scan";
             "--experimental";
@@ -189,12 +184,11 @@ let test_named_pipe (caps : Scan_subcommand.caps) =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : CLI.caps) =
-  let scan_caps = (caps :> Scan_subcommand.caps) in
+let tests () =
   Testo.categorize "Osemgrep multi subcommands (e2e)"
     [
-      test_scan_config_registry_no_token caps;
-      test_scan_config_registry_with_invalid_token caps;
-      test_absolute_target_path scan_caps;
-      test_named_pipe scan_caps;
+      test_scan_config_registry_no_token ();
+      test_scan_config_registry_with_invalid_token ();
+      test_absolute_target_path ();
+      test_named_pipe ();
     ]

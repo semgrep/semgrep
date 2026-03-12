@@ -25,7 +25,6 @@ val default_exception_handler : 'a -> Exception.t -> string
     exception to a string *)
 
 val parmap :
-  < Cap.fork > ->
   ?init:(int -> unit) ->
   ?finalize:(unit -> unit) ->
   num_jobs:int ->
@@ -34,7 +33,7 @@ val parmap :
   ('a -> 'b) ->
   'a list ->
   ('b, 'c) result list
-(** [parmap caps ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs] is
+(** [parmap ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs] is
     like [Parmap.parmap], but will return a result, containing [Ok(f x)] if it
     succeeds, or if an exception is raised while [f x] is being computed and is
     not caught, the result will contain [Error (exception_handler x e)] where

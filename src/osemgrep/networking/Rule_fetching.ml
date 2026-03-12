@@ -50,8 +50,6 @@ module XP = Xpattern
  * loading them from disk (alt: parse rules from a buffer instead of a file)
  * readdir: for config_string denotating local directories
  *)
-type caps = < Cap.network ; Cap.tmp ; Cap.readdir >
-
 (* python: was called ConfigFile, and called a 'config' in text output.
  * TODO? maybe we don't need this intermediate type anymore; just return
  * a pair, which would remove the need for partition_rules_and_invalid.
@@ -132,7 +130,7 @@ let partition_rules_and_invalid (xs : rules_and_origin list) :
   (rules, invalid_rules)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
-let fetch_content_from_url_async ?token_opt ?timeout_secs caps (url : Uri.t) :
+let fetch_content_from_url_async ?token_opt ?timeout_secs (url : Uri.t) :
     string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
@@ -148,7 +146,7 @@ let fetch_content_from_url_async ?token_opt ?timeout_secs caps (url : Uri.t) :
               Auth.auth_header_of_token token;
             ]
     in
-    match%lwt Http_helpers.get ?headers ?timeout_secs caps#network url with
+    match%lwt Http_helpers.get ?headers ?timeout_secs url with
     | Ok { body = Ok body; _ } -> Lwt.return body
     | Ok { body = Error error; code; _ } ->
         Error.abort
@@ -163,7 +161,7 @@ let fetch_content_from_url_async ?token_opt ?timeout_secs caps (url : Uri.t) :
   content
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let fetch_content_from_url_eio ?token_opt caps (url : Uri.t) : string =
+let fetch_content_from_url_eio ?token_opt (url : Uri.t) : string =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
@@ -178,7 +176,7 @@ let fetch_content_from_url_eio ?token_opt caps (url : Uri.t) : string =
               Auth.auth_header_of_token token;
             ]
     in
-    match Http_helpers.get_eio ?headers caps#network url with
+    match Http_helpers.get_eio ?headers url with
     | Ok { body = Ok body; _ } -> body
     | Ok { body = Error error; code; _ } ->
         Error.abort
@@ -192,16 +190,16 @@ let fetch_content_from_url_eio ?token_opt caps (url : Uri.t) : string =
   Logs.info (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
 
-let fetch_content_from_registry_url_async ~token_opt caps url =
+let fetch_content_from_registry_url_async ~token_opt url =
   Metrics_.g.is_using_registry <- true;
-  fetch_content_from_url_async ?token_opt caps url
+  fetch_content_from_url_async ?token_opt url
 
-let fetch_content_from_registry_url_eio ~token_opt caps url =
+let fetch_content_from_registry_url_eio ~token_opt url =
   Metrics_.g.is_using_registry <- true;
-  fetch_content_from_url_eio ?token_opt caps url
+  fetch_content_from_url_eio ?token_opt url
 
-let fetch_content_from_registry_url ~token_opt caps url =
-  Lwt_platform.run (fetch_content_from_registry_url_async ~token_opt caps url)
+let fetch_content_from_registry_url ~token_opt url =
+  Lwt_platform.run (fetch_content_from_registry_url_async ~token_opt url)
 [@@profiling]
 
 (*****************************************************************************)
@@ -221,7 +219,7 @@ let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
    *)
   AST_generic_to_jsonnet.program gen
 
-let mk_import_callback (caps : < Cap.network ; Cap.tmp ; .. >) base str =
+let mk_import_callback base str =
   match str with
   | s when s =~ ".*\\.y[a]?ml$" ->
       (* On the fly conversion from yaml to jsonnet. We can do
@@ -262,15 +260,14 @@ let mk_import_callback (caps : < Cap.network ; Cap.tmp ; .. >) base str =
               * parse_rule should take an import_callback as a parameter.
               *)
              let contents =
-               fetch_content_from_registry_url ~token_opt:None caps url
+               fetch_content_from_registry_url ~token_opt:None url
              in
              (* TODO: this assumes every URLs are for yaml, but maybe we could
               * also import URLs to jsonnet files or gist! or look at the
               * header mimetype when downloading the URL to decide how to
               * convert it further?
               *)
-             CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml"
-               (fun file ->
+             UTmp.with_temp_file ~contents ~suffix:".yaml" (fun file ->
                  (* LATER: adjust locations so refer to registry URL *)
                  parse_yaml_for_jsonnet file))
 [@@profiling]
@@ -324,7 +321,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
 (* similar to Parse_rule.parse_file but with special import callbacks
  * for a registry-aware jsonnet.
  *)
-let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
+let parse_rule ~rewrite_rule_ids ~origin (file : Fpath.t) :
     (Rule_error.rules_and_invalid, Rule_error.t) Result.t =
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
@@ -339,8 +336,8 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
                any point.");
         let ast = Parse_jsonnet.parse_program file in
         let core =
-          Desugar_jsonnet.desugar_program
-            ~import_callback:(mk_import_callback caps) file ast
+          Desugar_jsonnet.desugar_program ~import_callback:mk_import_callback
+            file ast
         in
         let value_ = Eval_jsonnet.eval_program core in
         let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
@@ -367,11 +364,11 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
  *  Parse_rule.is_valid_rule_filename, but we still need ojsonnet to
  *  be done).
  *)
-let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
+let load_rules_from_file ~rewrite_rule_ids ~origin (file : Fpath.t) :
     (rules_and_origin, Rule_error.t) result =
   Logs.info (fun m -> m "loading local config from %s" !!file);
   if Sys_.Fpath.exists file then
-    match parse_rule ~rewrite_rule_ids ~origin caps file with
+    match parse_rule ~rewrite_rule_ids ~origin file with
     | Ok (rules, invalid_rules) ->
         Logs.info (fun m -> m "Done loading local config from %s" !!file);
         Ok { rules; invalid_rules; origin = Local_file file }
@@ -384,9 +381,9 @@ let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") ?timeout_secs
-    caps url : (rules_and_origin, Rule_error.t) result Lwt.t =
+    url : (rules_and_origin, Rule_error.t) result Lwt.t =
   let%lwt contents =
-    fetch_content_from_url_async ?token_opt ?timeout_secs caps url
+    fetch_content_from_url_async ?token_opt ?timeout_secs url
   in
   let ext, contents =
     if ext = "policy" then
@@ -402,14 +399,14 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") ?timeout_secs
       | _failure -> (ext, contents)
     else (ext, contents)
   in
-  CapTmp.with_temp_file caps#tmp ~contents ~suffix:("." ^ ext) (fun file ->
-      load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
+  UTmp.with_temp_file ~contents ~suffix:("." ^ ext) (fun file ->
+      load_rules_from_file ~rewrite_rule_ids:false ~origin file)
   |> Lwt.return
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let load_rules_from_url_eio ~origin ?token_opt ?(ext = "yaml") caps url :
+let load_rules_from_url_eio ~origin ?token_opt ?(ext = "yaml") url :
     (rules_and_origin, Rule_error.t) result =
-  let contents = fetch_content_from_url_eio ?token_opt caps url in
+  let contents = fetch_content_from_url_eio ?token_opt url in
   let ext, contents =
     if ext = "policy" then
       (* project rule_config, from config_resolver.py in _make_config_request *)
@@ -424,18 +421,17 @@ let load_rules_from_url_eio ~origin ?token_opt ?(ext = "yaml") caps url :
       | _failure -> (ext, contents)
     else (ext, contents)
   in
-  CapTmp.with_temp_file caps#tmp ~contents ~suffix:("." ^ ext) (fun file ->
-      load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
+  UTmp.with_temp_file ~contents ~suffix:("." ^ ext) (fun file ->
+      load_rules_from_file ~rewrite_rule_ids:false ~origin file)
 
-let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
+let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") url :
     (rules_and_origin, Rule_error.t) result =
-  Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext caps url)
+  Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext url)
 [@@profiling]
 
-(* TODO: merge caps and token_opt and caps_opt? *)
+(* TODO: merge token_opt? *)
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
-    (caps : < caps ; .. >) kind :
+let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt kind :
     (* alt: (rules_and_origin list, Rule.Error.t list) result
        here and below:
        we could do this, but it lacks flexibility compared with this output type
@@ -450,7 +446,7 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
   match kind with
   | C.File path ->
       Result_.partition
-        (load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file path) caps)
+        (load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file path))
         [ path ]
   | C.Dir dir ->
       (* We used to skip dot files under [dir], but keeping rules/.semgrep.yml,
@@ -459,11 +455,11 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
        * we used to fetch rules from ~/.semgrep/ implicitely when --config
        * was not given, but this feature was removed, so now we can KISS.
        *)
-      List_files.list caps dir
+      List_files.list dir
       |> List.filter Rule_file.is_valid_rule_filename
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
-               caps file)
+               file)
       |> Result_.partition Fun.id
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
@@ -471,15 +467,13 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
        * to untrusted endpoints. There should be a relatively painless way
        * to do this, but this can be addressed in a follow-up PR.
        *)
-      let rules =
-        load_rules_from_url_eio ~origin:(Untrusted_remote url) caps url
-      in
+      let rules = load_rules_from_url_eio ~origin:(Untrusted_remote url) url in
       [ rules ] |> Result_.partition Fun.id
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let contents = fetch_content_from_registry_url_eio ~token_opt caps url in
-      CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml" (fun file ->
-          [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
+      let contents = fetch_content_from_registry_url_eio ~token_opt url in
+      UTmp.with_temp_file ~contents ~suffix:".yaml" (fun file ->
+          [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry file ])
       |> Result_.partition Fun.id
   | C.A Policy
   | C.A Hooks ->
@@ -492,14 +486,11 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
                   token")
         | Some token -> token
       in
-      let caps' = Auth.cap_token_and_network token caps in
       let uri =
-        Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) caps'
+        Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) token
       in
-      let caps'' = Auth.cap_token_and_network_and_tmp token caps in
       let rules_and_errors =
-        load_rules_from_url_eio ?token_opt ~ext:"policy" ~origin:Registry caps''
-          uri
+        load_rules_from_url_eio ?token_opt ~ext:"policy" ~origin:Registry uri
       in
       Metrics_.g.is_using_app <- true;
       [ rules_and_errors ] |> Result_.partition Fun.id
@@ -507,10 +498,8 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"
 
-(* TODO: merge caps and token_opt and caps_opt? *)
 (* coupling(eio-port): if you change this you must change the eio version *)
-let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-    (caps : < caps ; .. >) kind :
+let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt kind :
     (* alt: (rules_and_origin list, Rule.Error.t list) result
        here and below:
        we could do this, but it lacks flexibility compared with this output type
@@ -526,8 +515,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
   | C.File path ->
       Lwt.return
         (Result_.partition
-           (load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file path)
-              caps)
+           (load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file path))
            [ path ])
   | C.Dir dir ->
       (* We used to skip dot files under [dir], but keeping rules/.semgrep.yml,
@@ -536,11 +524,11 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
        * we used to fetch rules from ~/.semgrep/ implicitely when --config
        * was not given, but this feature was removed, so now we can KISS.
        *)
-      List_files.list caps dir
+      List_files.list dir
       |> List.filter Rule_file.is_valid_rule_filename
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
-               caps file)
+               file)
       |> Result_.partition Fun.id |> Lwt.return
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
@@ -549,16 +537,14 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
        * to do this, but this can be addressed in a follow-up PR.
        *)
       let%lwt rules =
-        load_rules_from_url_async ~origin:(Untrusted_remote url) caps url
+        load_rules_from_url_async ~origin:(Untrusted_remote url) url
       in
       [ rules ] |> Result_.partition Fun.id |> Lwt.return
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
-      let%lwt contents =
-        fetch_content_from_registry_url_async ~token_opt caps url
-      in
-      CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml" (fun file ->
-          [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
+      let%lwt contents = fetch_content_from_registry_url_async ~token_opt url in
+      UTmp.with_temp_file ~contents ~suffix:".yaml" (fun file ->
+          [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry file ])
       |> Result_.partition Fun.id |> Lwt.return
   | C.A Policy
   | C.A Hooks ->
@@ -571,11 +557,9 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
                   token")
         | Some token -> token
       in
-      let caps' = Auth.cap_token_and_network token caps in
       let uri =
-        Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) caps'
+        Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) token
       in
-      let caps'' = Auth.cap_token_and_network_and_tmp token caps in
       let timeout_secs =
         match kind with
         | C.A Hooks -> Some 30.0
@@ -583,7 +567,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       in
       let%lwt rules_and_errors =
         load_rules_from_url_async ?token_opt ~ext:"policy" ~origin:Registry
-          ?timeout_secs caps'' uri
+          ?timeout_secs uri
       in
       Metrics_.g.is_using_app <- true;
       [ rules_and_errors ] |> Result_.partition Fun.id |> Lwt.return
@@ -591,10 +575,10 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"
 
-let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
+let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt kind :
     rules_and_origin list * Rule_error.t list =
   Lwt_platform.run
-    (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind)
+    (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt kind)
 [@@profiling]
 
 (*****************************************************************************)
@@ -647,7 +631,7 @@ let rules_and_origin_of_rule rule =
   { rules = [ rule ]; invalid_rules = []; origin = CLI_argument }
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
+let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_
     (src : Rules_source.t) : (rules_and_origin list * Rule_error.t list) Lwt.t =
   let%lwt rules_and_origins, errors =
     match src with
@@ -658,7 +642,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
                  let in_docker = !Semgrep_envvars.v.in_docker in
                  let config = Rules_config.parse_config_string ~in_docker str in
                  rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-                   caps config)
+                   config)
         in
         let rules_and_origins_nested, errors_nested =
           Common2.unzip pairs_list
@@ -721,8 +705,8 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
  * to use the _async variant above mixed with a spinner as in
  * Scan_subcommand.rules_from_rules_source()
  *)
-let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
+let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict
     (src : Rules_source.t) : rules_and_origin list * Rule_error.t list =
   Lwt_platform.run
-    (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps src)
+    (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict src)
 [@@profiling]

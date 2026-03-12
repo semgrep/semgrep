@@ -40,8 +40,7 @@ let log_command cmd =
    file, delete the temporary file, and return what was in the temporary file
    before it was closed. *)
 let with_temp_file_out (f : Fpath.t -> 'a) : 'a * string =
-  (* This is an internal implementation detail, so no need to worry about
-     using CapTmp. *)
+  (* This is an internal implementation detail. *)
   (* nosemgrep: forbid-tmp *)
   UTmp.with_temp_file (fun path ->
       let res = f path in
@@ -62,7 +61,7 @@ let env_of_env (env : Cmd.env option) : Bos.OS.Env.t option =
   let* { vars; inherit_parent_env } = env in
   let start_env =
     if inherit_parent_env then
-      (* alt: we could require the Cap.argv capability here *)
+      (* alt: we could require an explicit env argument here *)
       match Bos.OS.Env.current () with
       | Ok start_env -> start_env
       | Error (`Msg err) -> failwith (spf "Bos.OS.Env.current failed: %s" err)

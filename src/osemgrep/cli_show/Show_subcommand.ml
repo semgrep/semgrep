@@ -25,7 +25,7 @@ module Out = Semgrep_output_v1_t
  *
  * LATER: get rid of Core_CLI.dump_pattern and Core_CLI.dump_ast functions
  *
- * Note that we're using CapConsole.out() here, to print on stdout (Logs.app()
+ * Note that we're using UConsole here, to print on stdout (Logs.app()
  * is printing on stderr, but for a show command it's probably better to
  * print on stdout).
  *)
@@ -50,8 +50,6 @@ let pro_sca_output_functions_plugin =
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.readdir ; Cap.fork >
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -96,20 +94,18 @@ let require_experimental_flag (conf : Show_CLI.conf) func : Exit_code.t =
 (* Main logic *)
 (*****************************************************************************)
 
-let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
+let run_conf (conf : Show_CLI.conf) : Exit_code.t =
   CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
   @@ fun () ->
   Logs.debug (fun m -> m "conf = %s" (Show_CLI.show_conf conf));
-  let print = CapConsole.print caps#stdout in
+  let print = UConsole.print in
   match conf.show_kind with
   | Version ->
       print Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok ~__LOC__
-  | Identity ->
-      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Identity
-  | Deployment ->
-      Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Deployment
+  | Identity -> Whoami.print Whoami.Identity
+  | Deployment -> Whoami.print Whoami.Deployment
   | SupportedLanguages ->
       print (spf "supported languages are: %s" Analyzer.supported_analyzers);
       Exit_code.ok ~__LOC__ (* dumpers *)
@@ -203,9 +199,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
       let rules_and_errors, errors =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
-          ~token_opt
-          (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
-          config
+          ~token_opt config
       in
 
       if errors <> [] then
@@ -221,7 +215,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpTargets (scanning_root, target_conf, config_str_opt) -> (
       (* coupling: similar to parts of Core_scan.targets_of_config *)
       let target_paths, _errors, skipped =
-        Find_targets.get_targets caps target_conf [ scanning_root ]
+        Find_targets.get_targets target_conf [ scanning_root ]
       in
       match config_str_opt with
       | None ->
@@ -244,9 +238,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
           let rules_and_errors, _errors =
             Rule_fetching.rules_from_dashdash_config
               ~rewrite_rule_ids:true (* command-line default *)
-              ~token_opt
-              (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
-              config
+              ~token_opt config
           in
           let rules, _invalid =
             Rule_fetching.partition_rules_and_invalid rules_and_errors
@@ -294,6 +286,6 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
-  let conf = Show_CLI.parse_argv caps argv in
-  run_conf caps conf
+let main (argv : string array) : Exit_code.t =
+  let conf = Show_CLI.parse_argv argv in
+  run_conf conf

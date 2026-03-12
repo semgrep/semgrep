@@ -312,7 +312,6 @@ let fix_tokens_ASI xs =
         push_sc_before_x x;
         Common.push x res;
 
-
         (* ]
          * <keyword>
         *)
@@ -354,7 +353,6 @@ let fix_tokens_ASI xs =
       ->
         push_sc_before_x x;
         Common.push x res;
-
 
         (* else *)
     | _, _ ->

@@ -45,8 +45,8 @@ let test_maker_err dir : Testo.t list =
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true))
 
-let mk_tests (caps : < Cap.time_limit >) (subdir : Fpath.t)
-    (strategys : Conf.eval_strategy list) : Testo.t list =
+let mk_tests (subdir : Fpath.t) (strategys : Conf.eval_strategy list) :
+    Testo.t list =
   Common2.glob Fpath.(v "tests" / "jsonnet" // subdir / "*.jsonnet")
   |> List_.map (fun file ->
          t
@@ -78,7 +78,7 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : Fpath.t)
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
                           (fun () ->
-                            Time_limit.set_timeout caps
+                            Time_limit.set_timeout
                               ~name:("ojsonnet-" ^ str_strategy) timeout
                               (fun () ->
                                 let value_ = Eval_jsonnet.eval_program core in
@@ -108,16 +108,15 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : Fpath.t)
                         failwith
                           (spf "this threw an error with %s" str_strategy))))
 
-let tests (caps : < Cap.time_limit >) : Testo.t list =
+let tests : Testo.t list =
   Testo.categorize_suites "ojsonnet"
     [
-      mk_tests caps (Fpath.v "pass/") [ Conf.EvalSubst; Conf.EvalEnvir ];
-      mk_tests caps (Fpath.v "only_subst/") [ Conf.EvalSubst ];
-      mk_tests caps (Fpath.v "only_envir/") [ Conf.EvalEnvir ];
-      mk_tests caps (Fpath.v "tutorial/pass/")
-        [ Conf.EvalSubst; Conf.EvalEnvir ];
-      mk_tests caps (Fpath.v "tutorial/only_subst/") [ Conf.EvalSubst ];
-      mk_tests caps (Fpath.v "tutorial/only_envir/") [ Conf.EvalEnvir ];
+      mk_tests (Fpath.v "pass/") [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests (Fpath.v "only_subst/") [ Conf.EvalSubst ];
+      mk_tests (Fpath.v "only_envir/") [ Conf.EvalEnvir ];
+      mk_tests (Fpath.v "tutorial/pass/") [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests (Fpath.v "tutorial/only_subst/") [ Conf.EvalSubst ];
+      mk_tests (Fpath.v "tutorial/only_envir/") [ Conf.EvalEnvir ];
       (* TODO
            test_maker_pass_fail dir_fail false;
            test_maker_pass_fail dir_fail_tutorial false;

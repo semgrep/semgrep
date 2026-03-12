@@ -74,10 +74,10 @@ let extract_sig renamed (m : Core_match.t) =
    baseline commit scan. Matches are considered identical if the
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
-let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
+let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (head : Core_result.t) (renamed : (Fpath.t * Fpath.t) list) =
   let sigs = Hashtbl.create 10 in
-  Git_wrapper.run_with_worktree_exn caps ~commit (fun () ->
+  Git_wrapper.run_with_worktree_exn ~commit (fun () ->
       List.iter
         (fun ({ pm; _ } : Core_result.processed_match) ->
           pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
@@ -116,9 +116,9 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
    the files and rules linked with matches from the head checkout
    scan. Subsequently, eliminate any previously identified matches
    from the results of the head checkout scan. *)
-let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
-    (profiler : Profiler.t) (result_or_exn : Core_result.result_or_exn)
-    (rules : Rule.rules) (commit : string) (status : Git_wrapper.status)
+let scan_baseline_and_remove_duplicates (profiler : Profiler.t)
+    (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
+    (commit : string) (status : Git_wrapper.status)
     (diff_scan_func : diff_scan_func) : Core_result.result_or_exn =
   let/ r = result_or_exn in
   if r.processed_matches <> [] then
@@ -148,7 +148,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
           (* TODO explain this code, break it down into functions and test
              them.
              Or delete this code. *)
-          Git_wrapper.run_with_worktree_exn caps ~commit (fun () ->
+          Git_wrapper.run_with_worktree_exn ~commit (fun () ->
               let prepare_targets paths =
                 (* TODO: what's happening here? *)
                 paths |> Fpaths.of_list |> add_renamed |> remove_added
@@ -186,16 +186,16 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
     match baseline_result with
     | Error _exn -> (* TODO: don't ignore exceptions *) baseline_result
     | Ok baseline_r ->
-        Ok (remove_matches_in_baseline caps commit baseline_r r status.renamed)
+        Ok (remove_matches_in_baseline commit baseline_r r status.renamed)
   else Ok r
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (profiler : Profiler.t)
-    (baseline_commit : string) (rules : Rule.rules)
-    (diff_scan_func : diff_scan_func) : Core_result.result_or_exn =
+let scan_baseline (profiler : Profiler.t) (baseline_commit : string)
+    (rules : Rule.rules) (diff_scan_func : diff_scan_func) :
+    Core_result.result_or_exn =
   Logs.info (fun m ->
       m "running differential scan on base commit %s" baseline_commit);
   Metrics_.g.payload.environment.isDiffScan <- true;
@@ -217,5 +217,5 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (profiler : Profiler.t)
         (* running on HEAD *)
         diff_scan_func added_or_modified rules)
   in
-  scan_baseline_and_remove_duplicates caps profiler head_scan_result rules
-    commit status diff_scan_func
+  scan_baseline_and_remove_duplicates profiler head_scan_result rules commit
+    status diff_scan_func

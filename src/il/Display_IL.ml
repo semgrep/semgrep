@@ -148,22 +148,20 @@ let short_string_of_node node =
   let str = short_string_of_node_kind node.n in
   if node.at_exit then str ^ " @exit" else str
 
-let pp_cfg (caps : < Cap.exec ; Cap.tmp >) f ?title (flow : cfg) : unit =
+let pp_cfg f ?title (flow : cfg) : unit =
   flow.graph
-  |> Ograph_call_dot_gv.pp_ograph_mutable_generic caps ?title
+  |> Ograph_call_dot_gv.pp_ograph_mutable_generic ?title
        ~s_of_node:(fun (_nodei, node) ->
          (short_string_of_node node, None, None))
        f
 
 (* using internally graphviz dot and ghostview on X11 *)
-let display_cfg (caps : < Cap.exec ; Cap.tmp >) ?title (flow : cfg) : unit =
+let display_cfg ?title (flow : cfg) : unit =
   flow.graph
-  |> Ograph_call_dot_gv.print_ograph_mutable_generic
-       (caps :> < Cap.exec >)
-       ?title
+  |> Ograph_call_dot_gv.print_ograph_mutable_generic ?title
        ?output_file:
          (Option.map
-            (fun s -> Fpath.(CapTmp.get_temp_dir_name caps#tmp / (s ^ ".dot")))
+            (fun s -> Fpath.(UTmp.get_temp_dir_name () / (s ^ ".dot")))
             title)
        ~s_of_node:(fun (_nodei, node) ->
          (short_string_of_node node, None, None))

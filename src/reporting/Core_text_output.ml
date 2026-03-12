@@ -52,9 +52,9 @@ let rec join_with_space_if_needed xs =
 (* Print_aux *)
 (*****************************************************************************)
 
-let print_match_lines ?(str = "") ?(spaces = 0) (caps : < Cap.stdout >)
-    (file : Fpath.t) (start_line : int) (end_line : int) : unit =
-  let print = CapConsole.print caps#stdout in
+let print_match_lines ?(str = "") ?(spaces = 0) (file : Fpath.t)
+    (start_line : int) (end_line : int) : unit =
+  let print = UConsole.print in
   let prefix = spf "%s:%d" !!file start_line in
   let lines_str =
     match UFile.lines_of_file (start_line, end_line) file with
@@ -67,10 +67,10 @@ let print_match_lines ?(str = "") ?(spaces = 0) (caps : < Cap.stdout >)
   (* todo? some context too ? *)
   lines_str |> List.iter (fun s -> print (spaces_string ^ " " ^ s))
 
-let print_intermediate_vars ~spaces (caps : < Cap.stdout >)
-    (vars : Out.match_intermediate_var list) : unit =
+let print_intermediate_vars ~spaces (vars : Out.match_intermediate_var list) :
+    unit =
   let spaces_string = String.init spaces (fun _ -> ' ') in
-  let print str = CapConsole.print caps#stdout (spaces_string ^ str) in
+  let print str = UConsole.print (spaces_string ^ str) in
   let rec loop_print curr_file = function
     | [] -> ()
     | (var : Out.match_intermediate_var) :: vars ->
@@ -80,44 +80,42 @@ let print_intermediate_vars ~spaces (caps : < Cap.stdout >)
   in
   loop_print None vars
 
-let rec print_taint_call_trace (caps : < Cap.stdout >) ~spaces = function
+let rec print_taint_call_trace ~spaces = function
   | Out.CliLoc (loc, _content) ->
-      print_match_lines caps ~spaces loc.path loc.start.line loc.end_.line
+      print_match_lines ~spaces loc.path loc.start.line loc.end_.line
   | CliCall ((loc, _content), intermediate_vars, call_trace) ->
-      let print = CapConsole.print caps#stdout in
+      let print = UConsole.print in
       let spaces_string = String.init spaces (fun _ -> ' ') in
       print (spaces_string ^ "call to");
-      print_match_lines caps ~spaces loc.path loc.start.line loc.end_.line;
+      print_match_lines ~spaces loc.path loc.start.line loc.end_.line;
       if intermediate_vars <> [] then (
         print (spf "%sthese intermediate values are tainted:" spaces_string);
-        print_intermediate_vars caps ~spaces:(spaces + 2) intermediate_vars);
+        print_intermediate_vars ~spaces:(spaces + 2) intermediate_vars);
       print (spaces_string ^ "then");
-      print_taint_call_trace caps ~spaces:(spaces + 2) call_trace
+      print_taint_call_trace ~spaces:(spaces + 2) call_trace
 
-let print_taint_trace (caps : < Cap.stdout >)
-    (taint_trace : Out.match_dataflow_trace) =
-  let print = CapConsole.print caps#stdout in
+let print_taint_trace (taint_trace : Out.match_dataflow_trace) =
+  let print = UConsole.print in
   print "  * Taint may come from this source:";
-  taint_trace.taint_source
-  |> Option.iter (print_taint_call_trace caps ~spaces:4);
+  taint_trace.taint_source |> Option.iter (print_taint_call_trace ~spaces:4);
   (match taint_trace.intermediate_vars with
   | Some []
   | None ->
       ()
   | Some intermediate_vars ->
       print "  * These intermediate values are tainted:";
-      print_intermediate_vars caps ~spaces:4 intermediate_vars);
+      print_intermediate_vars ~spaces:4 intermediate_vars);
   print "  * This is how taint reaches the sink:";
-  taint_trace.taint_sink |> Option.iter (print_taint_call_trace caps ~spaces:4)
+  taint_trace.taint_sink |> Option.iter (print_taint_call_trace ~spaces:4)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let print_match (caps : < Cap.stdout >) (match_ : Out.core_match) : unit =
+let print_match (match_ : Out.core_match) : unit =
   let str = spf "with rule %s" (Rule_ID.to_string match_.check_id) in
   let file = match_.path in
   let start_line = match_.start.line in
   let end_line = match_.end_.line in
-  print_match_lines caps ~str file start_line end_line;
-  match_.extra.dataflow_trace |> Option.iter (print_taint_trace caps)
+  print_match_lines ~str file start_line end_line;
+  match_.extra.dataflow_trace |> Option.iter print_taint_trace

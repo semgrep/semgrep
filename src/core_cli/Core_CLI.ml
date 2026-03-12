@@ -180,8 +180,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
 [@@action]
 
 (* TODO: remove, deprecated by osemgrep show dump-ast *)
-let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
-    (lang : Lang.t) (file : Fpath.t) =
+let dump_ast ?(naming = false) (lang : Lang.t) (file : Fpath.t) =
   Core_actions.try_with_log_exn_and_reraise file (fun () ->
       let res =
         if naming then Parse_target.parse_and_resolve_name lang file
@@ -191,10 +190,10 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
       (* 80 columns is too little *)
       Format.set_margin 120;
       let s = dump_v_to_format v in
-      CapConsole.print caps#stdout s;
+      UConsole.print s;
       if Parsing_result2.has_error res then (
         log_parsing_errors file res;
-        Core_exit_code.(exit_semgrep caps#exit False)))
+        Core_exit_code.(exit_semgrep False)))
 [@@action]
 
 (*****************************************************************************)
@@ -202,9 +201,8 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
 (*****************************************************************************)
 
 (* also used in semgrep-pro *)
-let output_core_results (caps : < Cap.stdout ; Cap.stderr ; Cap.exit >)
-    (result_or_exn : Core_result.result_or_exn) (config : Core_scan_config.t) :
-    unit =
+let output_core_results (result_or_exn : Core_result.result_or_exn)
+    (config : Core_scan_config.t) : unit =
   (* TODO: delete this comment and -stat_matches
    * note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
@@ -236,10 +234,9 @@ let output_core_results (caps : < Cap.stdout ; Cap.stderr ; Cap.exit >)
       let s = Out.string_of_core_output res in
       Logs.debug (fun m ->
           m "size of returned JSON string: %d" (String.length s));
-      CapConsole.print caps#stdout s;
+      UConsole.print s;
       match result_or_exn with
-      | Error exn ->
-          Core_exit_code.exit_semgrep caps#exit (Unknown_exception exn)
+      | Error exn -> Core_exit_code.exit_semgrep (Unknown_exception exn)
       | Ok _ -> ())
   (* The matches have already been printed before in Core_scan.scan(). We just
    * print the errors here (and matching explanations).
@@ -253,14 +250,12 @@ let output_core_results (caps : < Cap.stdout ; Cap.stderr ; Cap.exit >)
             |> List_.filter_map (fun processed_match ->
                    match Core_json_output.match_to_match processed_match with
                    | Error (e : Core_error.t) ->
-                       CapConsole.eprint caps#stderr
-                         (Core_error.string_of_error e);
+                       UConsole.eprint (Core_error.string_of_error e);
                        None
                    | Ok (match_ : Out.core_match) -> Some match_)
           in
           let matches = Core_json_output.dedup_and_sort matches in
-          matches
-          |> List.iter (Core_text_output.print_match (caps :> < Cap.stdout >));
+          matches |> List.iter Core_text_output.print_match;
           if config.matching_explanations then
             res.explanations
             |> Option.iter (List.iter Matching_explanation.print);
@@ -349,26 +344,20 @@ let mk_config ?rules () : Core_scan_config.t =
 (* The actions *)
 (*****************************************************************************)
 
-let all_actions ?(par_conf = Parallelism_config.default) (caps : Cap.all_caps)
-    () =
+let all_actions ?(par_conf = Parallelism_config.default) () =
   let num_jobs = Core_scan_config.finalize_num_jobs !num_jobs in
   [
     (* this is run by pysemgrep --validate *)
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v
-        (Check_rule.check_files
-           (caps :> < Cap.stdout ; Core_scan.caps ; Cap.readdir >)
-           !output_format) );
+      Arg_.mk_action_n_conv Fpath.v (Check_rule.check_files !output_format) );
     (* this is run by scripts (stats/.../run-lang) used by some of our workflows
      * (e.g., cron-parsing-stats.jsonnet)
      *)
     ( "-parsing_stats",
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Arg_.mk_action_n_arg (fun xs ->
-          Test_parsing.parsing_stats
-            (caps :> < Cap.time_limit ; Cap.memory_limit ; Cap.readdir >)
-            (Lang.of_opt_exn !lang)
+          Test_parsing.parsing_stats (Lang.of_opt_exn !lang)
             ~json:
               (match !output_format with
               | Json _ -> true
@@ -388,8 +377,7 @@ let all_actions ?(par_conf = Parallelism_config.default) (caps : Cap.all_caps)
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
-      Arg_.mk_action_0_arg
-        (Core_actions.dump_exts_of_lang (caps :> < Cap.stdout >)) );
+      Arg_.mk_action_0_arg Core_actions.dump_exts_of_lang );
     ("-dump_pattern", " <file>", Arg_.mk_action_1_conv Fpath.v dump_pattern);
     ( "-dump_patterns_of_rule",
       " <file>",
@@ -398,9 +386,7 @@ let all_actions ?(par_conf = Parallelism_config.default) (caps : Cap.all_caps)
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (dump_ast ~naming:false
-             (caps :> < Cap.stdout ; Cap.exit >)
-             (Lang.of_opt_exn !lang))
+          (dump_ast ~naming:false (Lang.of_opt_exn !lang))
           file );
     ( "-dump_lang_ast",
       " <file>",
@@ -412,18 +398,12 @@ let all_actions ?(par_conf = Parallelism_config.default) (caps : Cap.all_caps)
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (dump_ast ~naming:true
-             (caps :> < Cap.stdout ; Cap.exit >)
-             (Lang.of_opt_exn !lang))
+          (dump_ast ~naming:true (Lang.of_opt_exn !lang))
           file );
-    ( "-dump_il",
-      " <file>",
-      Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_il (caps :> < Cap.stdout >)) );
+    ("-dump_il", " <file>", Arg_.mk_action_1_conv Fpath.v Core_actions.dump_il);
     ( "-pp_il",
       " <file> pretty-print IL in familiar-ish syntax",
-      Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.pp_il (caps :> < Cap.stdout >)) );
+      Arg_.mk_action_1_conv Fpath.v Core_actions.pp_il );
     ( "-dump_rule",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v Core_actions.dump_rule );
@@ -448,43 +428,27 @@ let all_actions ?(par_conf = Parallelism_config.default) (caps : Cap.all_caps)
     ( "-test_parse_tree_sitter",
       " <dir> test tree-sitter parser on target files",
       Arg_.mk_action_1_arg (fun root ->
-          Test_parsing.test_parse_tree_sitter
-            (caps :> < Cap.readdir >)
-            (Lang.of_opt_exn !lang) (Fpath.v root)) );
+          Test_parsing.test_parse_tree_sitter (Lang.of_opt_exn !lang)
+            (Fpath.v root)) );
     ( "-translate_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
         (Translate_rule.translate_files Parse_rule.parse) );
     ( "-stat_rules",
       " <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v
-        (Check_rule.stat_files (caps :> < Cap.stdout ; Cap.readdir >)) );
+      Arg_.mk_action_n_conv Fpath.v Check_rule.stat_files );
     ( "-parse_rules",
       " <dir>",
-      Arg_.mk_action_1_conv Fpath.v
-        (Test_parsing.test_parse_rules (caps :> < Cap.readdir >)) );
+      Arg_.mk_action_1_conv Fpath.v Test_parsing.test_parse_rules );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
     ( "-sarif_sort",
       " <JSON file>",
       Arg_.mk_action_1_conv Fpath.v Core_actions.sarif_sort );
     ( "-rpc",
       " don't use this unless you already know",
-      Arg_.mk_action_0_arg (fun () ->
-          RPC.(
-            main
-              (caps
-                :> < Cap.exec
-                   ; Cap.tmp
-                   ; Cap.network
-                   ; Cap.readdir
-                   ; Cap.random
-                   ; Cap.chdir
-                   ; Core_scan.caps >)
-              { par_conf; num_jobs })) );
+      Arg_.mk_action_0_arg (fun () -> RPC.(main { par_conf; num_jobs })) );
   ]
-  @ Test_analyze_generic.actions
-      (caps :> < Cap.exec ; Cap.tmp >)
-      ~parse_program:Parse_target.parse_program
+  @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_dataflow_tainting.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program
 
@@ -518,7 +482,7 @@ let reset_options () =
   symbol_analysis := Core_scan_config.default.symbol_analysis;
   action := ""
 
-let options caps (actions : unit -> Arg_.cmdline_actions) =
+let options (actions : unit -> Arg_.cmdline_actions) =
   [
     ( "-rules",
       Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
@@ -634,15 +598,15 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
         Arg.Unit
           (fun () ->
             let version = spf "semgrep-core version: %s" Version.version in
-            CapConsole.print caps#stdout version;
-            Core_exit_code.(exit_semgrep caps#exit Success)),
+            UConsole.print version;
+            Core_exit_code.(exit_semgrep Success)),
         "  guess what" );
       ( "-ocaml_version",
         Arg.Unit
           (fun () ->
             let version = spf "OCaml version: %s" Sys.ocaml_version in
-            CapConsole.print caps#stdout version;
-            Core_exit_code.(exit_semgrep caps#exit Success)),
+            UConsole.print version;
+            Core_exit_code.(exit_semgrep Success)),
         "  The version of OCaml that was used to build this binary" );
     ]
   @ [
@@ -695,11 +659,9 @@ let register_exception_printers () =
 (* Run a scan *)
 (*****************************************************************************)
 
-let run caps (config : Core_scan_config.t) : unit =
-  let res = Core_scan.scan caps config in
-  output_core_results
-    (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
-    res config
+let run (config : Core_scan_config.t) : unit =
+  let res = Core_scan.scan config in
+  output_core_results res config
 
 (* We want to only run the Parmap runtime iff --x-parmap is set.
  * coupling: Pro_CLI.ml
@@ -767,7 +729,7 @@ let maybe_with_tracing function_name engine analysis_flags
 (* Main entry point *)
 (*****************************************************************************)
 
-let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
+let main_exn (argv : string array) : unit =
   Logs_.with_basic_setup ~level:None @@ fun () ->
   reset_options ();
   (* coupling: lots of similarities with what we do in CLI.main *)
@@ -786,7 +748,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  if Sys.unix then CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
+  if Sys.unix then Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
 
   let usage_msg =
     spf "Usage: %s [options] -rules <file> -targets <file>\nOptions:"
@@ -806,9 +768,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
 
   (* does side effect on many global flags *)
   let args =
-    Arg_.parse_options
-      (options caps (all_actions caps))
-      usage_msg (Array.of_list argv)
+    Arg_.parse_options (options all_actions) usage_msg (Array.of_list argv)
   in
   (* Duplicated in Pro_core_CLI.ml *)
   let level : Logs.level option = if !debug then Some Debug else Some Warning in
@@ -841,9 +801,9 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
               | xs
                 when List.mem !action
                        (Arg_.action_list
-                          (all_actions caps ~par_conf:config.par_conf ())) ->
+                          (all_actions ~par_conf:config.par_conf ())) ->
                   Arg_.do_action !action xs
-                    (all_actions caps ~par_conf:config.par_conf ())
+                    (all_actions ~par_conf:config.par_conf ())
               | _ when not (String_.empty !action) ->
                   failwith ("unrecognized action or wrong params: " ^ !action)
               (* --------------------------------------------------------- *)
@@ -868,7 +828,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                            need more complex file targeting use semgrep"
                   in
                   let config = { config with target_source } in
-                  run caps config)))
+                  run config)))
 
-let main (caps : Cap.all_caps) (argv : string array) : unit =
-  UCommon.main_boilerplate (fun () -> main_exn caps argv)
+let main (argv : string array) : unit =
+  UCommon.main_boilerplate (fun () -> main_exn argv)

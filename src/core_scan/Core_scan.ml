@@ -114,9 +114,6 @@ module Out = Semgrep_output_v1_j
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
-(* TODO: stdout (sometimes) *)
-type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
-
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
    A target handler returns (matches, was_scanned) where was_scanned indicates
@@ -325,9 +322,8 @@ let targets_of_scanning_roots ~(par_conf : Parallelism_config.t)
   let targeting_conf =
     translate_targeting_conf_from_pysemgrep par_conf num_jobs targeting_conf
   in
-  let caps = Cap.readdir_UNSAFE () in
   let target_paths, errors, skipped =
-    Find_targets.get_targets caps targeting_conf scanning_roots
+    Find_targets.get_targets targeting_conf scanning_roots
   in
   (target_paths, errors, skipped)
 
@@ -365,17 +361,16 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
                 (Core_scan_config.finalize_num_jobs config.num_jobs)
                 targeting_conf
             in
-            (* Ideally Core_Scan.scan does not require Cap.readdir because all
-             * file targeting processing would be done before and just call scan()
-             * with prepared Targets. However there is experimental work to move
-             * pysemgrep file targeting to OCaml and pass scanning_roots to
-             * semgrep-core hence the need for readdir, but because this
+            (* Ideally Core_Scan.scan would not need to do file targeting
+             * because all file targeting processing would be done before and
+             * just call scan() with prepared Targets. However there is
+             * experimental work to move pysemgrep file targeting to OCaml
+             * and pass scanning_roots to semgrep-core, but because this
              * is experimental, let's forge it for now to avoid modifying
              * all the callers.
              *)
-            let caps = Cap.readdir_UNSAFE () in
             let targets, errors, skipped =
-              Find_targets.get_targets caps targeting_conf scanning_roots
+              Find_targets.get_targets targeting_conf scanning_roots
             in
             let targets =
               Core_targeting.targets_for_files_and_rules targets rules
@@ -666,11 +661,10 @@ let exception_handler (res : ('a, Target.t * exn) Result.t) =
 
   TODO: remove this function once we remove parmap
  *)
-let parmap_map caps ~num_jobs f xs =
+let parmap_map ~num_jobs f xs =
   let num_jobs = Core_scan_config.finalize_num_jobs num_jobs in
   xs
   |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
-       (caps :> < Cap.fork >)
        ~num_jobs f
   |> List_.map (fun x ->
          match x with
@@ -679,8 +673,7 @@ let parmap_map caps ~num_jobs f xs =
              core_error_to_match_result target core_error)
 
 (* Returns a list of match results and a separate list of scanned targets *)
-let iter_targets_and_get_matches_and_exn_to_errors
-    (caps : < Cap.fork ; Cap.memory_limit ; .. >) (config : Core_scan_config.t)
+let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     (handle_target : target_handler) (targets : Target.t list) :
     Core_result.matches_single_file_with_time list * Target.t list =
   (* The target is None when the file was not scanned *)
@@ -709,10 +702,8 @@ let iter_targets_and_get_matches_and_exn_to_errors
       Common.with_time (fun () ->
           try
             Memory_limit.run_with_memory_limit
-              (caps :> < Cap.memory_limit >)
               ~get_context:(get_context_for_memory_limit target)
-              ~mem_limit_mb:config.max_memory_mb
-              (fun () ->
+              ~mem_limit_mb:config.max_memory_mb (fun () ->
                 (* we used to call Time_limit.set_timeout() here, but
                  * this is now done in Match_rules.check() because we
                  * now timeout per rule, not per file since pysemgrep
@@ -784,9 +775,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
           targets
         |> List_.map exception_handler
     | Parallelism_config.Process ->
-        parmap_map
-          (caps :> < Cap.fork >)
-          ~num_jobs:config.num_jobs process_target targets
+        parmap_map ~num_jobs:config.num_jobs process_target targets
   in
 
   let matches, opt_paths = List_.split xs in
@@ -890,8 +879,7 @@ let rules_for_target ~combine_js_with_ts ~respect_rule_paths (target : Target.t)
 (* a "core" scan *)
 (*****************************************************************************)
 
-let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
-    (config : Core_scan_config.t)
+let match_rules ~matches_hook (config : Core_scan_config.t)
     (prefilter_cache_opt : Match_env.prefilter_policy) (rules : Rule.t list)
     (xtarget : Xtarget.t) : Core_result.matches_single_file =
   let xconf : Match_env.xconfig =
@@ -902,21 +890,13 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
       filter_irrelevant_rules = prefilter_cache_opt;
     }
   in
-  let caps = (caps :> < Cap.time_limit >) in
   let timeout : Match_rules.timeout_config option =
-    let caps = (caps :> < Cap.time_limit >) in
     let eio =
       match config.par_conf with
       | Parallelism_config.Process -> false
       | Parallelism_config.Eio_executor _ -> true
     in
-    Some
-      {
-        timeout = config.timeout;
-        threshold = config.timeout_threshold;
-        caps;
-        eio;
-      }
+    Some { timeout = config.timeout; threshold = config.timeout_threshold; eio }
   in
   (* !!Calling Match_rules!! Calling the matching engine!! *)
   Match_rules.check ~matches_hook ~timeout xconf rules xtarget
@@ -925,9 +905,8 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors
  * coupling: with Pro_scan.mk_target_handler()
  *)
-let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
-    (valid_rules : Rule.t list) (prefilter_policy : Match_env.prefilter_policy)
-    : target_handler =
+let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
+    (prefilter_policy : Match_env.prefilter_policy) : target_handler =
  (* Note that this function runs in another process *)
  fun (target : Target.t) ->
   let rules =
@@ -940,7 +919,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
           rules? In particular, can we skip print_cli_progress? *)
   let xtarget = Xtarget.resolve parse_and_resolve_name target in
   let matches : Core_result.matches_single_file =
-    match_rules caps ~matches_hook:Fun.id config prefilter_policy rules xtarget
+    match_rules ~matches_hook:Fun.id config prefilter_policy rules xtarget
   in
   (* So we can display matches incrementally in osemgrep!
           * Note that this is run in a child process of Parmap, so
@@ -951,7 +930,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
   (matches, was_scanned)
 
 (* coupling: with Pro_scan.core_scan_exn() *)
-let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
+let scan_exn (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
   Logs.debug (fun m -> m "Core_scan.scan_exn %s" (Core_scan_config.show config));
   (* the rules *)
@@ -983,12 +962,8 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
       ~valid_rules ~invalid_rules;
     (* !!Let's go!! *)
     targets
-    |> iter_targets_and_get_matches_and_exn_to_errors
-         (caps :> < Cap.fork ; Cap.memory_limit >)
-         config
-         (mk_target_handler
-            (caps :> < Cap.time_limit >)
-            config valid_rules prefilter_policy)
+    |> iter_targets_and_get_matches_and_exn_to_errors config
+         (mk_target_handler config valid_rules prefilter_policy)
   in
 
   (* the OSS engine was invoked so no interfile langs *)
@@ -1090,13 +1065,12 @@ let post_nosemgrep ~strict pm =
  * targets.
  * coupling: with Pro_scan.scan() which is a copy paste mostly
  *)
-let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
-    Core_result.result_or_exn =
+let scan (config : Core_scan_config.t) : Core_result.result_or_exn =
   try
     let timed_rules =
       Common.with_time (fun () -> applicable_rules_of_config config)
     in
-    let res : Core_result.t = scan_exn caps config timed_rules in
+    let res : Core_result.t = scan_exn config timed_rules in
     Ok
       (res
       |> post_process_matches post_autofix

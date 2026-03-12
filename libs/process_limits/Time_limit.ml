@@ -62,15 +62,14 @@ let clear_timer () = Domain.DLS.set current_timer None
 
 (* could be in Control section *)
 
-let clear_timer_unix caps =
+let clear_timer_unix () =
   clear_timer ();
-  CapUnix.setitimer caps#time_limit Unix.ITIMER_REAL
-    { Unix.it_value = 0.; it_interval = 0. }
+  Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = 0.; it_interval = 0. }
   |> ignore
 
-let set_timer_unix max_duration caps info =
+let set_timer_unix max_duration () info =
   set_timer info;
-  CapUnix.setitimer caps#time_limit Unix.ITIMER_REAL
+  Unix.setitimer Unix.ITIMER_REAL
     { Unix.it_value = max_duration; it_interval = 0. }
   |> ignore
 
@@ -83,7 +82,7 @@ let mk_raise_timeout info start_time =
 
   raise (Timeout (info, result_info))
 
-(* [timed_computation_and_clear_timer info caps max_duration f] is the
+(* [timed_computation_and_clear_timer info max_duration f] is the
    pair [(timed_f, clear_timer)], where
 
    - [timed_f ()] runs the computation [f], limited by a timelimit that
@@ -96,16 +95,16 @@ let mk_raise_timeout info start_time =
    unreliable. See gc_alarm_timed_computation_and_clear_timer for how we do
    timeouts when using multicore or on windows
 *)
-let timed_computation_and_clear_timer info caps max_duration f :
+let timed_computation_and_clear_timer info max_duration f :
     (unit -> 'a option * Exception.timeout_result_info) * (unit -> unit) =
   let raise_timeout = mk_raise_timeout info in
   (* We're on a posix compatible system *)
-  let clear_timer () = clear_timer_unix caps in
+  let clear_timer () = clear_timer_unix () in
   let timed_computation () =
     let start = Unix.gettimeofday () in
     Sys.set_signal Sys.sigalrm
       (Sys.Signal_handle (fun _ -> raise_timeout start));
-    set_timer_unix max_duration caps info;
+    set_timer_unix max_duration () info;
     let x = f () in
     clear_timer ();
     let actual_duration = Unix.gettimeofday () -. info.max_duration in
@@ -126,7 +125,6 @@ let timed_computation_and_clear_timer info caps max_duration f :
    scheduling code, which you then could not catch. If it is in a separate
    thread then we ensure it's always caught by the thread level exception
    handler.
-
 
    NOTE: we do NOT use the memprof profiler, since memprof profilers are
    exclusive, so if we did do that then we couldn't use it for anything else.
@@ -173,8 +171,7 @@ let gc_alarm_timed_computation_and_clear_timer info max_duration f :
 
   question: can we have a signal and so exn when in a exn handler ?
 *)
-let set_timeout (caps : < Cap.time_limit >) ~name ?(eio = false) max_duration f
-    =
+let set_timeout ~name ?(eio = false) max_duration f =
   let info = { Exception.name; max_duration } in
 
   (* Use the old SIGALRM-based timeout mechanism. *)
@@ -190,7 +187,7 @@ let set_timeout (caps : < Cap.time_limit >) ~name ?(eio = false) max_duration f
     let res =
       if eio || Sys.win32 then
         gc_alarm_timed_computation_and_clear_timer info max_duration f
-      else timed_computation_and_clear_timer info caps max_duration f
+      else timed_computation_and_clear_timer info max_duration f
     in
     res
   in
@@ -219,4 +216,4 @@ let set_timeout (caps : < Cap.time_limit >) ~name ?(eio = false) max_duration f
 let set_timeout_opt ~name ?eio time_limit f =
   match time_limit with
   | None -> Some (f ())
-  | Some (x, caps) -> set_timeout caps ~name ?eio x f
+  | Some x -> set_timeout ~name ?eio x f

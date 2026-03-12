@@ -10,8 +10,4 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val test_rules :
-  ?unit_testing:bool ->
-  < Core_scan.caps ; Cap.readdir ; .. > ->
-  Fpath.t list ->
-  unit
+val test_rules : ?unit_testing:bool -> Fpath.t list -> unit

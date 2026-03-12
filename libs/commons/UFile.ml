@@ -146,14 +146,14 @@ module Legacy = struct
   (** [dir_contents] returns the paths of all regular files that are
  * contained in [dir]. Each file is a path starting with [dir].
   *)
-  let dir_contents (caps : < Cap.readdir ; .. >) ?(strict = false) dir =
+  let dir_contents ?(strict = false) dir =
     let rec loop result = function
       | f :: fs -> (
           if not (Sys_.file_exists f) then loop result fs
           else
             match Sys_.is_directory f with
             | true ->
-                CapFS.read_dir_entries caps (Fpath.v f)
+                CapFS.read_dir_entries (Fpath.v f)
                 |> List_.map (fun x -> Filename.concat f !!x)
                 |> List.append fs |> loop result
             | false -> loop (f :: result) fs)
@@ -166,12 +166,11 @@ module Legacy = struct
           (spf "files_of_dirs_or_files_no_vcs_nofilter: %s does not exist" dir);
     loop [] [ dir ]
 
-  let files_of_dirs_or_files_no_vcs_nofilter (caps : < Cap.readdir ; .. >)
-      ?strict xs =
+  let files_of_dirs_or_files_no_vcs_nofilter ?strict xs =
     xs
     |> List_.map (fun x ->
            if Sys_.is_directory x then
-             let files = dir_contents caps ?strict x in
+             let files = dir_contents ?strict x in
              List.filter (fun x -> not (Re.execp vcs_re x)) files
            else [ x ])
     |> List_.flatten
@@ -209,9 +208,9 @@ let file_kind_of_yojson (yojson : Yojson.Safe.t) =
            "Could not convert to Unix.file_kind expected `String, received %s"
            Yojson.Safe.(to_string json))
 
-let files_of_dirs_or_files_no_vcs_nofilter caps ?strict xs =
+let files_of_dirs_or_files_no_vcs_nofilter ?strict xs =
   xs |> Fpath_.to_strings
-  |> Legacy.files_of_dirs_or_files_no_vcs_nofilter caps ?strict
+  |> Legacy.files_of_dirs_or_files_no_vcs_nofilter ?strict
   |> Fpath_.of_strings
 
 let cat path = Legacy.cat !!path

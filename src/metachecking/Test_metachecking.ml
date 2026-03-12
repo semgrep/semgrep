@@ -31,11 +31,10 @@ module TCM = Test_compare_matches
 (* Entry point *)
 (*****************************************************************************)
 
-let test_rules ?(unit_testing = false)
-    (caps : < Core_scan.caps ; Cap.readdir ; .. >) xs =
+let test_rules ?(unit_testing = false) xs =
   let fullxs =
     xs
-    |> File_type.files_of_dirs_or_files caps (function
+    |> File_type.files_of_dirs_or_files (function
          | FT.Config FT.Yaml -> true
          | _ -> false)
     |> List_.exclude (fun filepath ->
@@ -57,7 +56,7 @@ let test_rules ?(unit_testing = false)
          let target =
            try
              let d, b, ext = Filename_.dbe_of_filename !!file in
-             let entries = CapFS.read_dir_entries caps (Fpath.v d) in
+             let entries = CapFS.read_dir_entries (Fpath.v d) in
              entries
              |> List_.find_some (fun file2 ->
                     let path2 = Filename.concat d !!file2 |> Fpath.v in
@@ -90,7 +89,7 @@ let test_rules ?(unit_testing = false)
 
          (* actual *)
          let actual_errors =
-           try Check_rule.run_checks caps file [ target ] with
+           try Check_rule.run_checks file [ target ] with
            | exn ->
                failwith
                  (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))

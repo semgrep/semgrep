@@ -258,8 +258,5 @@ let start ~(handler : handler) server =
 
 (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
 
-let create caps capabilities =
-  {
-    session = Legacy_session.create caps capabilities;
-    state = State.Uninitialized;
-  }
+let create capabilities =
+  { session = Legacy_session.create capabilities; state = State.Uninitialized }

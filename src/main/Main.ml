@@ -90,27 +90,25 @@
 let () =
   Pyro_caml_instruments.maybe_with_memprof_sampler ~sampling_rate:1e-4
   @@ fun () ->
-  Cap.main (fun (caps : Cap.all_caps) ->
-      let argv = CapSys.argv caps#argv in
-      let argv0 =
-        (* remove the possible ".exe" extension for Windows and ".bc" *)
-        Fpath.v argv.(0) |> Fpath.base |> Fpath.rem_ext |> Fpath.to_string
-      in
-      match argv0 with
-      (* osemgrep!! *)
-      | "osemgrep" ->
-          let exit_code = CLI.main (caps :> CLI.caps) argv in
-          if not (Exit_code.Equal.ok exit_code) then
-            Logs.info (fun m ->
-                m "Error: %s\nExiting with error status %i: %s\n%!"
-                  exit_code.description exit_code.code
-                  (String.concat " " (Array.to_list argv)));
-          CapStdlib.exit caps#exit exit_code.code
-      (* legacy semgrep-core *)
-      | _else_ -> begin
-          (* Added as part of the upgrade to OCaml 5. Under our typical workloads, this
-           * appears to yield similar performance to the default value of space_overhead
-           * under OCaml 4. *)
-          Gc.set { (Gc.get ()) with space_overhead = 40 };
-          Core_CLI.main caps argv
-        end)
+  let argv = Sys.argv in
+  let argv0 =
+    (* remove the possible ".exe" extension for Windows and ".bc" *)
+    Fpath.v argv.(0) |> Fpath.base |> Fpath.rem_ext |> Fpath.to_string
+  in
+  match argv0 with
+  (* osemgrep!! *)
+  | "osemgrep" ->
+      let exit_code = CLI.main argv in
+      if not (Exit_code.Equal.ok exit_code) then
+        Logs.info (fun m ->
+            m "Error: %s\nExiting with error status %i: %s\n%!"
+              exit_code.description exit_code.code
+              (String.concat " " (Array.to_list argv)));
+      Stdlib.exit exit_code.code
+  (* legacy semgrep-core *)
+  | _else_ ->
+      (* Added as part of the upgrade to OCaml 5. Under our typical workloads, this
+       * appears to yield similar performance to the default value of space_overhead
+       * under OCaml 4. *)
+      Gc.set { (Gc.get ()) with space_overhead = 40 };
+      Core_CLI.main argv

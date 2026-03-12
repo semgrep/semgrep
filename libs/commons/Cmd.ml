@@ -42,8 +42,7 @@ type run_status = Bos.OS.Cmd.run_status
 (* API *)
 (*****************************************************************************)
 (* Note that we use here just Bos.Cmd, which is safe, and not Bos.OS.Cmd
- * which actually execute stuff and is so unsafe (and people should prefer
- * to use CapExec.ml)
+ * which actually executes stuff (see UCmd.ml for that).
  *)
 
 let to_cmd (Name str, args) = Bos.Cmd.(v str %% of_list args)

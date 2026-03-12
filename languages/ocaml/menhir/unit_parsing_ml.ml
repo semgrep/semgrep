@@ -21,7 +21,7 @@ let t = Testo.create
 (* ran from the root of the semgrep repository *)
 let tests_path = Fpath.v "tests"
 
-let tests (caps : < Cap.tmp >) =
+let tests =
   Testo.categorize "parsing_ml"
     [
       t "regression files" (fun () ->
@@ -40,7 +40,7 @@ let tests (caps : < Cap.tmp >) =
        * sub-sub expressions inside parenthesis).
        *)
       t "visitor" (fun () ->
-          CapTmp.with_temp_file caps#tmp ~suffix:".ml"
+          UTmp.with_temp_file ~suffix:".ml"
             ~contents:"open Foo1\nmodule A = Foo2\n" (fun file ->
               let _ast = Parse_ml.parse_program file in
               let _cnt = ref 0 in

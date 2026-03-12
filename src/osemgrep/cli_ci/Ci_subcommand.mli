@@ -10,17 +10,6 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-type caps =
-  < Cap.stdout
-  ; Cap.network
-  ; Cap.exec
-  ; Cap.tmp
-  ; Cap.chdir
-  ; Cap.readdir
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit >
-
 (*
    Parse a semgrep-ci command, execute it and exit.
 
@@ -28,10 +17,10 @@ type caps =
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < caps ; .. > -> string array -> Exit_code.t
+val main : string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < caps ; .. > -> Ci_CLI.conf -> Exit_code.t
+val run_conf : Ci_CLI.conf -> Exit_code.t
 
 (* used by Test_is_blocking_Helpers.ml used itself in Test.ml *)
 val rule_is_blocking : JSON.t -> bool

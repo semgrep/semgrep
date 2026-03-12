@@ -12,9 +12,7 @@
 *)
 (* Small wrapper around the 'git' command-line program.
  *
- * The functions in this module will call the external 'git' program, hence
- * the use of the Cap.exec capability.
- * TODO: generalize the use of Cap.exec to all functions!
+ * The functions in this module call the external 'git' program.
  *)
 
 exception Git_error of string
@@ -27,13 +25,13 @@ exception Git_error of string
 val fatal : ('a, string) Result.t -> 'a
 (** Unwrap the result or raise a 'Git_error' exception in case of an error. *)
 
-val command : < Cap.exec > -> Cmd.args -> (string, string) result
+val command : Cmd.args -> (string, string) result
 (** Very general helper to run a git command and return its output
     if everthing went fine or log the error (using Logs) and
     raise an Error exn otherwise.
 *)
 
-val command_exn : < Cap.exec > -> Cmd.args -> string
+val command_exn : Cmd.args -> string
 
 type ls_files_kind =
   (* --cached, the default:
@@ -105,18 +103,10 @@ val merge_base_exn : commit:string -> string
    don't need to git stash anything, or expect a clean working tree.
 *)
 val run_with_worktree :
-  < Cap.chdir ; Cap.tmp ; .. > ->
-  commit:string ->
-  ?branch:string ->
-  (unit -> 'a) ->
-  ('a, string) result
+  commit:string -> ?branch:string -> (unit -> 'a) -> ('a, string) result
 
 val run_with_worktree_exn :
-  < Cap.chdir ; Cap.tmp ; .. > ->
-  commit:string ->
-  ?branch:string ->
-  (unit -> 'a) ->
-  'a
+  commit:string -> ?branch:string -> (unit -> 'a) -> 'a
 
 type status = {
   added : Fpath.t list;
@@ -262,7 +252,7 @@ type contribution = {
   commit_author_email : string;
 }
 
-val logs : ?cwd:Fpath.t -> ?since:float -> < Cap.exec > -> contribution list
+val logs : ?cwd:Fpath.t -> ?since:float -> unit -> contribution list
 (** [logs ()] will run 'git log' in the current directory and returns for each
     log a contribution record.
     It returns an empty list if it found nothing relevant.

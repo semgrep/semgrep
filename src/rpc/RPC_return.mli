@@ -16,7 +16,6 @@ val autofix : bool -> Out.edit list -> int * (int * string list) list
 val format : Out.output_format -> Out.format_context -> Out.cli_output -> string
 
 val sarif_format :
-  < Cap.tmp > ->
   Out.fpath (* path to a temporary files containing the rules *) ->
   Out.format_context ->
   is_pro:bool ->
@@ -24,13 +23,12 @@ val sarif_format :
   Out.cli_output ->
   string
 
-val contributions : < Cap.exec > -> Out.contributions
+val contributions : unit -> Out.contributions
 val validate : Out.fpath -> Out.core_error option
 
 (* TODO: switch all those option ref to Hook.t *)
 val hook_resolve_dependencies :
-  (< Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.readdir > ->
-  download_dependency_source_code:bool ->
+  (download_dependency_source_code:bool ->
   allow_local_builds:bool ->
   package_manager_env:(string * string) list ->
   Out.dependency_source list ->
@@ -39,20 +37,15 @@ val hook_resolve_dependencies :
   ref
 
 val hook_transitive_reachability_analyzer :
-  (< Cap.readdir ; Core_scan.caps ; Cap.network ; Cap.exec ; Cap.tmp > ->
-  Out.transitive_reachability_filter_params ->
-  Out.transitive_finding list)
+  (Out.transitive_reachability_filter_params -> Out.transitive_finding list)
   option
   ref
 
 val hook_dump_rule_partitions :
-  (< Cap.random > -> Out.dump_rule_partitions_params -> bool) option ref
+  (Out.dump_rule_partitions_params -> bool) option ref
 
 val hook_match_subprojects : (Out.fpath list -> Out.subproject list) option ref
 
 val hook_run_symbol_analysis :
-  (< Cap.readdir > ->
-  Out.symbol_analysis_params ->
-  (Out.symbol_analysis, string) result)
-  option
+  (Out.symbol_analysis_params -> (Out.symbol_analysis, string) result) option
   ref

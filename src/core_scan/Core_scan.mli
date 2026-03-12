@@ -15,16 +15,13 @@
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* See the comment for scan() below explaining the need for those capabilities *)
-type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
-
 (* Entry point. This is used in Core_CLI.ml for semgrep-core, in tests,
  * and finally in osemgrep.
  *
- * [scan caps config] runs a core scan with a fixed list of targets
+ * [scan config] runs a core scan with a fixed list of targets
  * and rules and capture any exception.
- * This internally calls Match_rules.check() on every files, in
- * parallel, with some time and memory limits, and aggregate the results
- * (hence the need for Cap.fork, Cap.time_limit, Cap.memory_limit above).
+ * This internally calls Match_rules.check() on every file, in
+ * parallel, with some time and memory limits, and aggregates the results.
  *
  * It can print things on stdout depending on Core_scan_config.output_format:
  *  - incremental dots when used from pysemgrep in Json true mode
@@ -35,17 +32,9 @@ type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
  * The rest of the output is done in the caller of scan() such as
  * Core_CLI.main_exn() for semgrep-core with Core_CLI.output_core_results().
  *
- * alt: we should require Cap.stdout above, but this is false when using the
- * NoOutput output_format so for now we internally use Cap.stdout_caps_UNSAFE()
- * or UConsole. In theory, scan() can be completely pure.
- *
- * We require Cap.fork for Parmap.
- * We require Cap.time_limit for timeout in Check_rules().
- * We require Cap.readdir for ??
- *
  * The scan function has the type [func] defined above.
  *)
-val scan : < caps ; .. > -> Core_scan_config.t -> Core_result.result_or_exn
+val scan : Core_scan_config.t -> Core_result.result_or_exn
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-pro *)
@@ -113,7 +102,6 @@ val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 type target_handler = Target.t -> Core_result.matches_single_file * bool
 
 val iter_targets_and_get_matches_and_exn_to_errors :
-  < Cap.fork ; Cap.memory_limit > ->
   Core_scan_config.t ->
   target_handler ->
   Target.t list ->
@@ -139,7 +127,6 @@ val parse_and_resolve_name :
 
 (* small wrapper around Match_rules.check *)
 val match_rules :
-  < Cap.time_limit ; .. > ->
   matches_hook:(Core_match.t list -> Core_match.t list) ->
   Core_scan_config.t ->
   Match_env.prefilter_policy ->

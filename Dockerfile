@@ -48,7 +48,6 @@ FROM scratch AS build-files
 WORKDIR /src
 COPY dune dune-project ./
 COPY cli/src/semgrep/semgrep_interfaces/ ./cli/src/semgrep/semgrep_interfaces/
-COPY TCB ./TCB
 COPY interfaces ./interfaces
 COPY languages ./languages
 COPY libs ./libs

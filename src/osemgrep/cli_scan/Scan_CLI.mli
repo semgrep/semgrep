@@ -70,11 +70,10 @@ val default : conf
    This function may raise an exn in case of an error parsing argv
    but this should be caught by CLI.safe_run.
 
-   ugly: need to pass Cap.tmp to support named pipes
-   TODO: would be better to do that in Scan_subcommand.ml instead, after
-   parsing the arguments.
+   TODO: would be better to handle named pipes in Scan_subcommand.ml
+   instead, after parsing the arguments.
 *)
-val parse_argv : < Cap.tmp > -> string array -> conf
+val parse_argv : string array -> conf
 
 (* exported because used by Interactive_CLI.ml too (and some by Ci_CLI.ml) *)
 val o_lang : string option Cmdliner.Term.t

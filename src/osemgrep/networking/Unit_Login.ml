@@ -87,10 +87,9 @@ let with_mock_envvars_and_normal_responses f =
 (* Tests *)
 (*****************************************************************************)
 
-let save_token_tests caps =
+let save_token_tests =
   let valid_token_test () =
-    let caps = Auth.cap_token_and_network ok_token caps in
-    match Semgrep_login.save_token caps with
+    match Semgrep_login.save_token ok_token with
     | Ok _deployment_config ->
         Alcotest.(check bool)
           "logged in" true
@@ -98,8 +97,7 @@ let save_token_tests caps =
     | Error e -> failwith e
   in
   let invalid_token_test () =
-    let caps = Auth.cap_token_and_network bad_token caps in
-    match Semgrep_login.save_token caps with
+    match Semgrep_login.save_token bad_token with
     | Ok _deployment_config -> failwith "Expected error"
     | Error _ ->
         Alcotest.(check bool)
@@ -112,9 +110,9 @@ let save_token_tests caps =
   in
   Testo.categorize "save_token" tests
 
-let fetch_token_tests caps =
+let fetch_token_tests =
   let fetch_basic () =
-    let token = Semgrep_login.fetch_token caps secret in
+    let token = Semgrep_login.fetch_token secret in
     match token with
     | Ok (token, username) ->
         let str_token = Auth.string_of_token token in
@@ -132,8 +130,7 @@ let fetch_token_tests caps =
       | _ -> incr retry_count
     in
     let token =
-      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook caps
-        secret
+      Semgrep_login.fetch_token ~min_wait_ms:0 ~next_wait_ms:0 ~wait_hook secret
     in
     match token with
     | Error e ->
@@ -150,6 +147,6 @@ let fetch_token_tests caps =
         (with_mock_envvars (with_mock_four_o_four_responses fetch_no_internet));
     ]
 
-let tests caps =
+let tests =
   Testo.categorize_suites "Osemgrep Login"
-    [ save_token_tests caps; fetch_token_tests caps ]
+    [ save_token_tests; fetch_token_tests ]

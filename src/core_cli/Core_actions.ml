@@ -69,9 +69,9 @@ let try_with_log_exn_and_reraise (file : Fpath.t) f =
 (* Dumpers *)
 (*****************************************************************************)
 
-let dump_il (caps : < Cap.stdout >) file =
+let dump_il file =
   let module G = AST_generic in
-  let print s = CapConsole.print caps#stdout s in
+  let print s = UConsole.print s in
   let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
@@ -102,17 +102,17 @@ let dump_il (caps : < Cap.stdout >) file =
   Visit_function_defs.visit report_func_def_with_name ast
 [@@action]
 
-let pp_il (caps : < Cap.stdout >) file =
+let pp_il file =
   let ast = Parse_target.parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   Implicit_return.mark_implicit_return lang ast;
   let xs = AST_to_IL.program lang ast in
   let output = Pretty_IL.program xs in
-  CapConsole.print caps#stdout output
+  UConsole.print output
 [@@action]
 
-let dump_exts_of_lang (caps : < Cap.stdout >) () =
+let dump_exts_of_lang () =
   let lang_to_exts =
     Lang.keys
     |> List_.map (fun lang_str ->
@@ -121,7 +121,7 @@ let dump_exts_of_lang (caps : < Cap.stdout >) () =
                lang_str ^ "->" ^ String.concat ", " (Lang.exts_of_lang lang)
            | None -> "")
   in
-  CapConsole.print caps#stdout
+  UConsole.print
     (spf "Language to supported file extension mappings:\n %s"
        (String.concat "\n" lang_to_exts))
 [@@action]

@@ -21,11 +21,7 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps =
-  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
-
-let hook_run_mcp : (caps -> Mcp_CLI.conf -> unit) option Hook.t =
-  Hook.create None
+let hook_run_mcp : (Mcp_CLI.conf -> unit) option Hook.t = Hook.create None
 
 (*****************************************************************************)
 (* Main logic *)
@@ -33,14 +29,14 @@ let hook_run_mcp : (caps -> Mcp_CLI.conf -> unit) option Hook.t =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : < caps ; .. >) (conf : Mcp_CLI.conf) : Exit_code.t =
+let run_conf (conf : Mcp_CLI.conf) : Exit_code.t =
   CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
     (fun () ->
       Logs.debug (fun m -> m "Starting semgrep-mcp");
       (* let's go! *)
       match Hook.get hook_run_mcp with
       | Some run_mcp ->
-          run_mcp (caps :> caps) conf;
+          run_mcp conf;
           Exit_code.ok ~__LOC__
       | None ->
           Logs.err (fun m ->
@@ -53,6 +49,6 @@ let run_conf (caps : < caps ; .. >) (conf : Mcp_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
+let main (argv : string array) : Exit_code.t =
   let conf = Mcp_CLI.parse_argv argv in
-  run_conf caps conf
+  run_conf conf

@@ -19,7 +19,7 @@ let response_fn delay _resp _body =
   let resp_body = Cohttp_lwt.Body.of_string expected_body in
   Lwt.return Http_mock_client.(basic_response ~status:200 resp_body)
 
-let test_http_timeout _caps =
+let test_http_timeout () =
   let successful_req =
     Http_mock_client.with_mocked_http (response_fn 0.1) (fun () ->
         let%lwt result = Http_helpers.call_client ~timeout_secs:0.2 `GET uri in
@@ -41,7 +41,7 @@ let test_http_timeout _caps =
   Lwt_platform.run (successful_req ());
   Lwt_platform.run (timedout_req ())
 
-let test_ok_bias _caps =
+let test_ok_bias () =
   (* All things being equal, if both promises resolve we should choose the Ok
    * over the Error. *)
   let successful_req =
@@ -57,9 +57,6 @@ let test_ok_bias _caps =
     (let _ = Lwt_unix.sleep 0.1 in
      successful_req ())
 
-let tests caps =
+let tests =
   Testo.categorize "Http_helpers"
-    [
-      t "test_http_timeout" (fun () -> test_http_timeout caps);
-      t "test_ok_bias" (fun () -> test_ok_bias caps);
-    ]
+    [ t "test_http_timeout" test_http_timeout; t "test_ok_bias" test_ok_bias ]

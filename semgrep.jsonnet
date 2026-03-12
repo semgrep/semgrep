@@ -51,7 +51,6 @@ local semgrep_rules = [
       exclude: ['common2.ml'],
     },
   },
-  // See also TCB/forbid_console.jsonnet
   {
     id: 'no-fmt',
     match: { any: ['Fmt.$X ...'] },
@@ -83,7 +82,6 @@ local semgrep_rules = [
   },
   //TODO: 'no-format' and 'no-ocolor-format'
 
-  // See also TCB/forbid_network.jsonnet
   {
     id: 'no-http-outside-networking',
     match: {
@@ -306,14 +304,9 @@ local semgrep_rules = [
 ];
 
 // ----------------------------------------------------------------------------
-// TCB rules
+// Parallelism rules
 // ----------------------------------------------------------------------------
 local parallelism = import 'libs/parallelism/rules.jsonnet';
-
-// ----------------------------------------------------------------------------
-// TCB rules
-// ----------------------------------------------------------------------------
-local tcb = import 'TCB/forbid_everything.jsonnet';
 
 // ----------------------------------------------------------------------------
 // Skip and last-minute override
@@ -348,7 +341,7 @@ local override_messages = {
 // Entry point
 // ----------------------------------------------------------------------------
 
-local all = yml.rules + semgrep_rules + ocaml_rules + tcb.rules + parallelism.rules;
+local all = yml.rules + semgrep_rules + ocaml_rules + parallelism.rules;
 
 {
   rules:

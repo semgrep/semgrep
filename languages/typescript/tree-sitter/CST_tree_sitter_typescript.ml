@@ -370,7 +370,6 @@ type import_specifier = [
   | `Semg_ellips of Token.t (* "..." *)
 ]
 
-
 type jsx_namespace_name = (
     jsx_identifier_ * Token.t (* ":" *) * jsx_identifier_
 )
@@ -506,7 +505,6 @@ and pair_pattern = [
     )
   | `Semg_ellips of Token.t (* "..." *)
 ]
-
 
 and anon_choice_pair_pat_3ff9cbe = [
     `Pair_pat of pair_pattern
@@ -1072,7 +1070,6 @@ and for_statement = (
   * Token.t (* ")" *)
   * statement
 )
-
 
 and formal_parameter = [
     `Semg_ellips of Token.t (* "..." *)
@@ -1801,7 +1798,6 @@ and type_query_instantiation_expression = (
     anon_choice_import_c99ceb4 * type_arguments
 )
 
-
 and type_query_member_expression = (
     anon_choice_type_id_e96bf13 * anon_choice_DOT_d88d0af
   * anon_choice_priv_prop_id_89abb74
@@ -1926,7 +1922,6 @@ type number_ (* inlined *) = (
 )
 
 type type_identifier (* inlined *) = identifier (*tok*)
-
 
 type import_alias (* inlined *) = (
     Token.t (* "import" *) * identifier (*tok*) * Token.t (* "=" *)
@@ -2213,7 +2208,6 @@ type unary_expression (* inlined *) = (
 )
 
 type union_type (* inlined *) = (type_ option * Token.t (* "|" *) * type_)
-
 
 type yield_expression (* inlined *) = (
     Token.t (* "yield" *)

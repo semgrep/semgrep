@@ -32,14 +32,11 @@ module Out = Semgrep_output_v1_j
 (* Types and Constants *)
 (*****************************************************************************)
 
-(* We need Cap.time_limit because we timeout after 10s if the install fails
- * We need Cap.exec because we run semgrep -pro_version as part of
- * the install process.
+(* We timeout after 10s if the install fails, and we run
+ * semgrep -pro_version as part of the install process.
  * TODO: add stdout, but does not even use stdout right now, it abuses
- * Logs.app but we should switch to CapConsole.print
+ * Logs.app but we should switch to UConsole.print
  *)
-type caps = < Cap.network ; Cap.time_limit ; Cap.exec >
-
 let version_stamp_filename = "pro-installed-by.txt"
 
 (*****************************************************************************)
@@ -53,8 +50,7 @@ let add_semgrep_pro_version_stamp current_executable_path =
   (* THINK: does this append or write entirely? *)
   UFile.write_file pro_version_stamp_path Version.version
 
-let download_semgrep_pro_async (caps : < Cap.network ; .. >) platform_kind dest
-    =
+let download_semgrep_pro_async platform_kind dest =
   let dest = !!dest in
   match (Semgrep_settings.load ()).api_token with
   | None ->
@@ -62,8 +58,7 @@ let download_semgrep_pro_async (caps : < Cap.network ; .. >) platform_kind dest
           m "No API token found, please run `semgrep login` first.");
       Lwt.return_false
   | Some token -> (
-      let caps = Auth.cap_token_and_network token caps in
-      match%lwt Semgrep_App.fetch_pro_binary caps platform_kind with
+      match%lwt Semgrep_App.fetch_pro_binary token platform_kind with
       | Ok { body = Ok body; response; _ } ->
           (* Make sure no such binary exists. We have had weird situations
            * when the downloaded binary was corrupted, and overwriting it did
@@ -104,8 +99,8 @@ let download_semgrep_pro_async (caps : < Cap.network ; .. >) platform_kind dest
           Logs.err (fun m -> m "Error downloading Semgrep Pro: %s" msg);
           Lwt.return_false)
 
-let download_semgrep_pro caps platform_kind dest =
-  Lwt_platform.run (download_semgrep_pro_async caps platform_kind dest)
+let download_semgrep_pro platform_kind dest =
+  Lwt_platform.run (download_semgrep_pro_async platform_kind dest)
 
 (*****************************************************************************)
 (* Main logic *)
@@ -113,8 +108,7 @@ let download_semgrep_pro caps platform_kind dest =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
-    Exit_code.t =
+let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
   CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
   @@ fun () ->
   (match conf.common.maturity with
@@ -175,8 +169,7 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
       Exit_code.fatal ~__LOC__
   | _ ->
       let platform_kind =
-        let caps_exec = (caps :> < Cap.exec >) in
-        match (Platform.kernel caps_exec, Platform.arch caps_exec) with
+        match (Platform.kernel (), Platform.arch ()) with
         | Darwin, Arm
         | Darwin, Arm64 ->
             Semgrep_App.Osx_arm64
@@ -200,7 +193,7 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
 
       let download_succeeded =
         match conf.custom_binary with
-        | None -> download_semgrep_pro caps platform_kind semgrep_pro_path_tmp
+        | None -> download_semgrep_pro platform_kind semgrep_pro_path_tmp
         | Some custom_binary_path ->
             FileUtil.cp [ custom_binary_path ] !!semgrep_pro_path_tmp;
             true
@@ -235,12 +228,10 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
         let version =
           let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
           let opt =
-            Time_limit.set_timeout
-              (caps :> < Cap.time_limit >)
-              ~name:"check pro version" 10.0 ~eio:false
+            Time_limit.set_timeout ~name:"check pro version" 10.0 ~eio:false
               (fun () ->
                 (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
-                let result = CapExec.string_of_run caps#exec ~trim:true cmd in
+                let result = UCmd.string_of_run ~trim:true cmd in
                 match result with
                 | Ok (output, _) -> Some output
                 | Error _ -> None)
@@ -268,6 +259,6 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
+let main (argv : string array) : Exit_code.t =
   let conf = Install_semgrep_pro_CLI.parse_argv argv in
-  run_conf caps conf
+  run_conf conf

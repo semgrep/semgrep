@@ -22,19 +22,13 @@
  *   {"total":111,"bad":0,"percent_correct":100.0}
  *)
 val parsing_stats :
-  < Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; .. > ->
-  ?json:bool ->
-  ?verbose:bool ->
-  Lang.t ->
-  string (* filename *) list ->
-  unit
+  ?json:bool -> ?verbose:bool -> Lang.t -> string (* filename *) list -> unit
 
 (* Similar to [parsing_stats], but uses only tree-sitter parsers,
  * and stop the parsing at the tree-sitter CST level (it does not
  * try to convert this CST in the generic AST).
  *)
-val test_parse_tree_sitter :
-  < Cap.readdir ; .. > -> Lang.t -> Fpath.t (* root *) -> unit
+val test_parse_tree_sitter : Lang.t -> Fpath.t (* root *) -> unit
 
 (* Dump the tree-sitter CST of the given file (it automatically detects
  * the language and parser to use based on the filename extension). *)
@@ -53,8 +47,8 @@ val dump_lang_ast : Lang.t -> Fpath.t -> unit
  *)
 val diff_pfff_tree_sitter : Fpath.t list -> unit
 
-(* [test_parse_rules caps root] recursively explores [root] to
+(* [test_parse_rules root] recursively explores [root] to
  * find YAML files containing rules and check if they
  * parse correctly using Parse_rule.parse.
  *)
-val test_parse_rules : < Cap.readdir ; .. > -> Fpath.t (* root *) -> unit
+val test_parse_rules : Fpath.t (* root *) -> unit

@@ -30,7 +30,7 @@
 (*****************************************************************************)
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let send_eio caps =
+let send_eio () =
   (* Populate the sent_at timestamp *)
   Metrics_.prepare_to_send ();
   let user_agent = Metrics_.string_of_user_agent () in
@@ -44,9 +44,7 @@ let send_eio caps =
    *)
   Logs.debug (fun m ->
       m "Sending metrics (with user agent '%s') data: %s" user_agent metrics);
-  let response =
-    Http_helpers.post_eio ~body:metrics ~headers caps#network url
-  in
+  let response = Http_helpers.post_eio ~body:metrics ~headers url in
   (match response with
   | Ok { body = Ok body; _ } -> (
       (* TODO: find where the schema of the response is defined and
@@ -77,7 +75,7 @@ let send_eio caps =
   ()
 
 (* coupling(eio-port): if you change this you must change the eio version *)
-let send_async caps =
+let send_async () =
   (* Populate the sent_at timestamp *)
   Metrics_.prepare_to_send ();
   let user_agent = Metrics_.string_of_user_agent () in
@@ -91,9 +89,7 @@ let send_async caps =
    *)
   Logs.debug (fun m ->
       m "Sending metrics (with user agent '%s') data: %s" user_agent metrics);
-  let%lwt response =
-    Http_helpers.post ~body:metrics ~headers caps#network url
-  in
+  let%lwt response = Http_helpers.post ~body:metrics ~headers url in
   (match response with
   | Ok { body = Ok body; _ } -> (
       (* TODO: find where the schema of the response is defined and
@@ -123,6 +119,6 @@ let send_async caps =
   | Error e -> Logs.warn (fun m -> m "Failed to send metrics: %s" e));
   Lwt.return_unit
 
-let send caps =
+let send () =
   Logs.info (fun m -> m "Sending metrics");
-  Lwt_platform.run (send_async caps)
+  Lwt_platform.run (send_async ())

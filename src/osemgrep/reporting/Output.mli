@@ -54,7 +54,6 @@ val too_much_data : string
  * to log in and try Pro.
  *)
 val output_result :
-  < Cap.stdout > ->
   (* derived from CLI flags *)
   conf ->
   (* derived from runtime info *)

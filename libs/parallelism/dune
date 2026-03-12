@@ -2,8 +2,8 @@
  (public_name parallelism)
  (wrapped false)
  (libraries
-   TCB
    eio
+   eio_main
    eio.mock
    logs
  )

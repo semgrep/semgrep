@@ -80,57 +80,53 @@ let generate_ograph_xxx g filename =
 (*****************************************************************************)
 
 (* TODO: switch from cmd_to_list to UCmd.status_of_run with
- * properly built Cmd, or even switch to CapExec!
+ * properly built Cmd.
  *)
-let launch_png_cmd (caps : < Cap.exec ; .. >) filename =
-  CapExec.cmd_to_list caps#exec (spf "dot -Tpng %s -o %s.png" filename filename)
-  |> ignore;
-  CapExec.cmd_to_list caps#exec (spf "open %s.png" filename) |> ignore;
+let launch_png_cmd filename =
+  UCmd.cmd_to_list (spf "dot -Tpng %s -o %s.png" filename filename) |> ignore;
+  UCmd.cmd_to_list (spf "open %s.png" filename) |> ignore;
   ()
 
-let launch_gv_cmd (caps : < Cap.exec ; .. >) filename =
-  CapExec.cmd_to_list caps#exec
-    ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;")
+let launch_gv_cmd filename =
+  UCmd.cmd_to_list ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;")
   |> ignore;
-  CapExec.cmd_to_list caps#exec ("gv " ^ filename ^ ".ps") |> ignore;
+  UCmd.cmd_to_list ("gv " ^ filename ^ ".ps") |> ignore;
   (* weird: I needed this when I launch the program with '&' via eshell,
    * otherwise 'gv' did not get the chance to be launched
    * Unix.sleep 1;
    *)
   ()
 
-let display_graph_cmd (caps : < Cap.exec ; .. >) filename =
-  match Platform.kernel caps with
-  | Platform.Darwin -> launch_png_cmd caps filename
-  | Platform.Linux -> launch_gv_cmd caps filename
+let display_graph_cmd filename =
+  match Platform.kernel () with
+  | Platform.Darwin -> launch_png_cmd filename
+  | Platform.Linux -> launch_gv_cmd filename
   | Platform.Windows ->
       (* TODO: Add support for lanching dot on windows: https://opam.ocaml.org/packages/conf-graphviz/ *)
       ()
   | Platform.OtherKernel _ -> ()
 
-let print_ograph_mutable caps g filename display_graph =
+let print_ograph_mutable g filename display_graph =
   generate_ograph_xxx g filename;
-  if display_graph then display_graph_cmd caps filename
+  if display_graph then display_graph_cmd filename
 
-let print_ograph_mutable_generic (caps : < Cap.exec >) ?title
-    ?(display_graph = true)
+let print_ograph_mutable_generic ?title ?(display_graph = true)
     ?(output_file = Fpath.(UTmp.get_temp_dir_name () / "ograph.dot")) ~s_of_node
     g =
   UFile.with_open_out output_file (fun (_, oc) ->
       let f = Format.formatter_of_out_channel oc in
       generate_ograph_generic g title s_of_node f);
-  if display_graph then display_graph_cmd caps (Fpath.to_string output_file)
+  if display_graph then display_graph_cmd (Fpath.to_string output_file)
 
-let pp_ograph_mutable_generic (caps : < Cap.exec ; .. >) ?title ~s_of_node f g :
-    unit =
-  CapTmp.with_temp_file caps#tmp (fun tmp ->
+let pp_ograph_mutable_generic ?title ~s_of_node f g : unit =
+  UTmp.with_temp_file (fun tmp ->
       (* Write dot code *)
       UFile.with_open_out tmp (fun (_, oc) ->
           let f = Format.formatter_of_out_channel oc in
           generate_ograph_generic g title s_of_node f);
       (* Generate svg and put in original buffer *)
       match
-        CapExec.string_of_run caps#exec ~trim:false
+        UCmd.string_of_run ~trim:false
           (Name "dot", [ "-Tsvg_inline"; Format.asprintf "%a" Fpath.pp tmp ])
       with
       | Ok (s, (_, `Exited 0)) -> Format.fprintf f "<pre>%s</pre>" s

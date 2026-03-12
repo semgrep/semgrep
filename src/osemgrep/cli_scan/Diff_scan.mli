@@ -19,14 +19,11 @@ type diff_scan_func = Fppath.t list -> Rule.rules -> Core_result.result_or_exn
  * the files and rules linked with matches from the head checkout
  *  scan. Subsequently, eliminate any previously identified matches
  * from the results of the head checkout scan.
- * Regarding the capabilities:
- *  - Cap.chdir and Cap.tmp for Git_wrapper.run_with_worktree
- *  - Cap.readdir is used via an unsafe call for recomputing some targets for
- *     interfile
+ * Note: uses Git_wrapper.run_with_worktree (which does chdir and
+ * creates tmp dirs) and recomputes some targets for interfile.
  *)
 
 val scan_baseline :
-  < Cap.chdir ; Cap.tmp ; .. > ->
   Profiler.t ->
   string (* baseline commit *) ->
   Rule.rules ->

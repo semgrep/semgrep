@@ -10,4 +10,4 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val tests : < Rule_fetching.caps ; .. > -> Testo.t list
+val tests : Testo.t list

@@ -115,8 +115,8 @@ let finalize () =
   ()
 
 (* Run jobs in parallel, using number of cores specified with -j *)
-let map_targets__run_in_forked_process_do_not_modify_globals caps
-    ~(num_jobs : int) (f : Target.t -> 'a) (targets : Target.t list) :
+let map_targets__run_in_forked_process_do_not_modify_globals ~(num_jobs : int)
+    (f : Target.t -> 'a) (targets : Target.t list) :
     ('a, Target.t * Core_error.t) result list =
   (* Parmap uses fork() which is not supported on non-Unix platforms
      (Windows) *)
@@ -192,5 +192,5 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps
     (* We must pause tracing here as forking with tracing on causes segfaults.
        See comments on this function in Tracing.ml *)
     Telemetry.with_otel_paused (fun () ->
-        Parmap_.parmap caps ~init ~finalize ~num_jobs ~chunksize:1
-          ~exception_handler f targets))
+        Parmap_.parmap ~init ~finalize ~num_jobs ~chunksize:1 ~exception_handler
+          f targets))

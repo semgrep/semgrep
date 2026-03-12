@@ -17,9 +17,6 @@ val scan_config_parser_ref : (string -> Semgrep_output_v1_t.scan_config) ref
 (** [scan_config_parser_ref] is a reference to a function that parses a scan
     config from a string *)
 
-type caps =
-  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
-
 type session_cache = {
   mutable rules : Rule.t list;
   (* Rules can take a long time to fetch + load, so we want to minimize it *)
@@ -53,14 +50,13 @@ type t = {
   search_config : Legacy_search_config.t option;
   metrics : Legacy_ls_metrics.t;
   is_intellij : bool;
-  caps : caps; [@opaque]
 }
 
 val show : t -> string
 (** [show t] returns a string representation of the session *)
 
-val create : caps -> ServerCapabilities.t -> t
-(** [create caps capabilities] creates a [Session.t] given server capabilities *)
+val create : ServerCapabilities.t -> t
+(** [create capabilities] creates a [Session.t] given server capabilities *)
 
 val send_metrics :
   ?core_time:Semgrep_output_v1_j.profile ->

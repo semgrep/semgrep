@@ -19,28 +19,26 @@ open Printf
 (*
    List targets by invoking Find_targets.get_targets directly.
 *)
-let list_targets_internal ?(conf = Find_targets.default_conf) ?roots caps =
+let list_targets_internal ?(conf = Find_targets.default_conf) ?roots () =
   let roots =
     match roots with
     | None -> [ Scanning_root.of_string "." ]
     | Some roots -> roots
   in
-  let selected, _errors, _skipped =
-    Find_targets.get_target_fpaths caps conf roots
-  in
+  let selected, _errors, _skipped = Find_targets.get_target_fpaths conf roots in
   printf "Target files:\n";
   selected |> List.iter (fun fpath -> printf "  %s\n" (Fpath.to_string fpath))
 
-let run_osemgrep caps argv =
+let run_osemgrep argv =
   printf "RUN %s\n%!" (argv |> Array.to_list |> String.concat " ");
-  CLI.main caps argv
+  CLI.main argv
 
 (*
    List targets by going through the full semgrep command.
 *)
-let osemgrep_ls caps =
+let osemgrep_ls () =
   let exit_code =
-    run_osemgrep caps [| "semgrep"; "scan"; "--experimental"; "--x-ls"; "." |]
+    run_osemgrep [| "semgrep"; "scan"; "--experimental"; "--x-ls"; "." |]
   in
   Alcotest.(check int) "exit code" 0 (Exit_code.to_int exit_code)
 
@@ -55,21 +53,21 @@ let semgrepignore lines : Testutil_files.t =
 type repo_with_tests = {
   repo_name : string;
   repo_files : Testutil_files.t list;
-  tests : (string * (CLI.caps -> unit)) list;
+  tests : (string * (unit -> unit)) list;
 }
 
 let test_list_from_project_root =
   ( "list target files from project root (internal)",
-    fun caps -> list_targets_internal caps )
+    fun () -> list_targets_internal () )
 
 let test_cli_list_from_project_root =
-  ("list target files from project root", fun caps -> osemgrep_ls caps)
+  ("list target files from project root", fun () -> osemgrep_ls ())
 
 let test_list_targets_from_subdir ?roots cwd =
-  let func caps =
+  let func () =
     Testutil_files.with_chdir cwd (fun () ->
         printf "cwd: %s\n" (Sys.getcwd ());
-        list_targets_internal ?roots caps)
+        list_targets_internal ?roots ())
   in
   let name = "list target files from " ^ Fpath.to_string cwd in
   (name, func)
@@ -127,7 +125,7 @@ let normalize =
 (*
    Create a list of tests for each test repo.
 *)
-let tests caps : Testo.t list =
+let tests () : Testo.t list =
   repos_with_tests
   |> List_.map (fun { repo_name; repo_files; tests } ->
          tests
@@ -140,5 +138,5 @@ let tests caps : Testo.t list =
                        files even if they're gitignored *)
                     Testutil_git.with_git_repo ~verbose:true
                       ~force_add_gitignored_files:true repo_files (fun _cwd ->
-                        test_func caps))))
+                        test_func ()))))
   |> List_.flatten

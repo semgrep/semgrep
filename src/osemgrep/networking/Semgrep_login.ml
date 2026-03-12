@@ -34,8 +34,8 @@ type login_session = shared_secret * Uri.t
  * strong "piracy" verification and allow users to cheat.
  * Note that Semgrep_settings can also get the token from the environment.
  * coupling: auth.is_logged_in_weak() in pysemgrep
- * TODO: should take Cap.network at least, so when we're ready to move
- * to an actual network (possibly cached) call, we are ready.
+ * TODO: we may want to move to an actual network (possibly cached) call
+ * in the future.
  *)
 let is_logged_in_weak () =
   let settings = Semgrep_settings.load () in
@@ -61,36 +61,35 @@ let make_login_url () =
         ]) )
 
 (* coupling(eio-port): if you change this you must change the eio version *)
-let save_token_async ?ident caps =
+let save_token_async ?ident token =
   Option.iter
     (fun v -> Logs.debug (fun m -> m "saving token for user %s" v))
     ident;
   let settings = Semgrep_settings.load () in
-  Semgrep_App.deployment_config_async caps
+  Semgrep_App.deployment_config_async token
   |> Lwt.map (function
        | None -> Error "Login token is not valid. Please try again."
        | Some deployment_config
          when Semgrep_settings.save
-                Semgrep_settings.{ settings with api_token = Some caps#token }
-         ->
+                Semgrep_settings.{ settings with api_token = Some token } ->
            Ok deployment_config
        | _ -> Error "Failed to save token. Please try again.")
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let save_token_eio ?ident caps =
+let save_token_eio ?ident token =
   Option.iter
     (fun v -> Logs.debug (fun m -> m "saving token for user %s" v))
     ident;
   let settings = Semgrep_settings.load () in
-  Semgrep_App.deployment_config_eio caps |> function
+  Semgrep_App.deployment_config_eio token |> function
   | None -> Error "Login token is not valid. Please try again."
   | Some deployment_config
     when Semgrep_settings.save
-           Semgrep_settings.{ settings with api_token = Some caps#token } ->
+           Semgrep_settings.{ settings with api_token = Some token } ->
       Ok deployment_config
   | _ -> Error "Failed to save token. Please try again."
 
-let save_token ?ident caps = Lwt_platform.run (save_token_async ?ident caps)
+let save_token ?ident token = Lwt_platform.run (save_token_async ?ident token)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let verify_token_async token =
@@ -106,7 +105,7 @@ let verify_token token = Lwt_platform.run (verify_token_async token)
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let fetch_token_eio ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
-    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) caps shared_secret =
+    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> ()) shared_secret =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
   in
@@ -141,7 +140,7 @@ let fetch_token_eio ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
         in
         Error msg
     | n -> (
-        let resp = Http_helpers.post_eio ~body ~headers caps#network url in
+        let resp = Http_helpers.post_eio ~body ~headers url in
         match resp with
         | Ok { body = Ok body; _ } -> (
             try
@@ -152,8 +151,7 @@ let fetch_token_eio ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
                   (* NOTE: We should probably use user_id over user_name for uniqueness constraints *)
                   let ident = json |> member "user_name" |> to_string in
                   let token = Auth.unsafe_token_of_string str_token in
-                  let caps = Auth.cap_token_and_network token caps in
-                  let result = save_token_eio ~ident caps in
+                  let result = save_token_eio ~ident token in
                   Result.bind result (fun _deployment_config ->
                       Ok (token, ident))
               | `Null
@@ -199,7 +197,7 @@ let fetch_token_eio ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
-    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> Lwt.return_unit) caps
+    ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> Lwt.return_unit)
     shared_secret =
   let apply_backoff current_wait_ms =
     Float.to_int (Float.ceil (Float.of_int current_wait_ms *. 1.3))
@@ -235,7 +233,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
         in
         Lwt.return (Error msg)
     | n -> (
-        let%lwt resp = Http_helpers.post ~body ~headers caps#network url in
+        let%lwt resp = Http_helpers.post ~body ~headers url in
         match resp with
         | Ok { body = Ok body; _ } -> (
             try
@@ -246,8 +244,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
                   (* NOTE: We should probably use user_id over user_name for uniqueness constraints *)
                   let ident = json |> member "user_name" |> to_string in
                   let token = Auth.unsafe_token_of_string str_token in
-                  let caps = Auth.cap_token_and_network token caps in
-                  let%lwt result = save_token_async ~ident caps in
+                  let%lwt result = save_token_async ~ident token in
                   Result.bind result (fun _deployment_config ->
                       Ok (token, ident))
                   |> Lwt.return
@@ -294,10 +291,10 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
   fetch_token' next_wait_ms max_retries
 
 let fetch_token ?(min_wait_ms = 2000) ?(next_wait_ms = 1000) ?(max_retries = 12)
-    ?(wait_hook = fun _delay_ms -> ()) caps shared_secret =
+    ?(wait_hook = fun _delay_ms -> ()) shared_secret =
   Lwt_platform.run
     (fetch_token_async ~min_wait_ms ~next_wait_ms ~max_retries
        ~wait_hook:(fun delay_ms ->
          wait_hook delay_ms;
          Lwt.return_unit)
-       caps shared_secret)
+       shared_secret)

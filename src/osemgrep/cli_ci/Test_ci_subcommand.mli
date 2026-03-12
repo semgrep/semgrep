@@ -10,4 +10,4 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val tests : Ci_subcommand.caps -> Testo.t list
+val tests : unit -> Testo.t list

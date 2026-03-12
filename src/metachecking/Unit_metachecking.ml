@@ -60,17 +60,16 @@ let metachecker_checks_tests () =
                   ~to_location:TCM.location_of_core_error actual expected)))
 
 (* Test the entire `-test_check` path *)
-let metachecker_regression_tests caps =
+let metachecker_regression_tests =
   [
     t "metachecker" (fun () ->
         let path = tests_path / "metachecks" in
-        Test_metachecking.test_rules ~unit_testing:true caps [ path ]);
+        Test_metachecking.test_rules ~unit_testing:true [ path ]);
   ]
 
 (*****************************************************************************)
 (* All tests *)
 (*****************************************************************************)
 
-let tests caps =
-  List_.flatten
-    [ metachecker_checks_tests (); metachecker_regression_tests caps ]
+let tests =
+  List_.flatten [ metachecker_checks_tests (); metachecker_regression_tests ]

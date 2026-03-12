@@ -20,7 +20,6 @@
  * See: Parmap_.mli for why this returns a result list!
  *)
 val map_targets__run_in_forked_process_do_not_modify_globals :
-  < Cap.fork > ->
   num_jobs:int ->
   (Target.t -> 'a) ->
   (* job function *) Target.t list ->

@@ -2,7 +2,6 @@
  (public_name commons)
  (wrapped false)
  (libraries
-   TCB
    collections
    ; stdlib
    str
@@ -40,6 +39,8 @@
    parmap
    parallelism
    eio_main
+   ; magic stuff
+   obackward
  )
  (inline_tests)
  ; can't use profiling.ppx because of circular dependencies :(

@@ -10,10 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* See Console.mli for more information
- *
- * DO NOT USE THIS FILE! You should use CapConsole.mli instead.
- *)
+(* See Console.mli for more information. *)
 
 (*
    Set the global state indicating whether we want text to use color and

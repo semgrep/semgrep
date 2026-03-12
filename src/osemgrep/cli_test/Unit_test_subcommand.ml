@@ -131,7 +131,7 @@ let normalize = [ Testutil_logs.mask_time ]
 (* Tests *)
 (*****************************************************************************)
 
-let mk_matching_explanation_tests (caps : Test_subcommand.caps) =
+let mk_matching_explanation_tests () =
   let tests =
     [
       ( "matching diagnosis unexpected match",
@@ -165,7 +165,7 @@ let mk_matching_explanation_tests (caps : Test_subcommand.caps) =
           Testutil_files.with_tempfiles ~verbose:true ~chdir:true files
             (fun _cwd ->
               let exit_code =
-                Test_subcommand.main caps
+                Test_subcommand.main
                   [| "semgrep-test"; "."; "--matching-diagnosis" |]
               in
               Exit_code.Check.findings exit_code)))
@@ -175,5 +175,5 @@ let mk_matching_explanation_tests (caps : Test_subcommand.caps) =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < Test_subcommand.caps >) =
-  Testo.categorize "Osemgrep Test (e2e)" (mk_matching_explanation_tests caps)
+let tests () =
+  Testo.categorize "Osemgrep Test (e2e)" (mk_matching_explanation_tests ())

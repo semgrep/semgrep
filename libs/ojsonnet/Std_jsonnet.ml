@@ -320,7 +320,6 @@ limitations under the License.
     else
       error 'Expected string or array, got %s' % std.type(arr),
 
-
   format(str, vals)::
 
     /////////////////////////////
@@ -442,7 +441,6 @@ limitations under the License.
       else
         error 'Unrecognised conversion type: ' + c;
 
-
     // Parsed initial %, now the rest.
     local parse_code(str, i) =
       assert i < std.length(str) : 'Truncated format code.';
@@ -477,7 +475,6 @@ limitations under the License.
           parse_codes(str, i + 1, out, cur + c) tailstrict;
 
     local codes = parse_codes(str, 0, [], '');
-
 
     ///////////////////////
     // Format the values //
@@ -812,7 +809,6 @@ limitations under the License.
       else
         aux(func, arr, func(running, arr[idx]), idx + 1) tailstrict;
     aux(func, arr, init, 0),
-
 
   filterMap(filter_func, map_func, arr)::
     if !std.isFunction(filter_func) then
@@ -1264,7 +1260,6 @@ limitations under the License.
         '\n---\n', [std.manifestYamlDoc(e, indent_array_in_object, quote_keys) for e in value]
       ) + if c_document_end then '\n...\n' else '\n',
 
-
   manifestPython(v)::
     if std.isObject(v) then
       local fields = [
@@ -1357,7 +1352,6 @@ limitations under the License.
       error 'Can only base64 encode strings / arrays of single bytes.'
     else
       aux(bytes, 0, ''),
-
 
   base64DecodeBytes(str)::
     if std.length(str) % 4 != 0 then
@@ -1567,7 +1561,6 @@ limitations under the License.
           aux(a, b, 0)
       else
         std.primitiveEquals(a, b),
-
 
   resolvePath(f, r)::
     local arr = std.split(f, '/');

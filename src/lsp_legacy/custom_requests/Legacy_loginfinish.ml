@@ -92,23 +92,21 @@ let on_request session id params : Legacy_session.t * Legacy_lsp_.Reply.t =
               |> Option.to_result ~none:"got invalid parameters"
               |> Lwt.return
             in
-            let caps = Cap.network_caps_UNSAFE () in
             let^ token, _ =
               Semgrep_login.fetch_token_async
                 ~min_wait_ms:wait_before_retry_in_ms ~max_retries
                 ~wait_hook:(fun delay_ms ->
                   Lwt_platform.sleep Float.(of_int delay_ms /. 1000.))
-                caps sessionId
+                sessionId
             in
-            let caps = Auth.cap_token_and_network token caps in
             let^ deployment =
-              Semgrep_App.deployment_config_async caps
+              Semgrep_App.deployment_config_async token
               |> Lwt.map (Option.to_result ~none:"failed to get deployment")
             in
             (* TODO: state.app_session.authenticate()
                basically, just add the token to the metrics once that exists
             *)
-            let^ _deployment = Semgrep_login.save_token_async caps in
+            let^ _deployment = Semgrep_login.save_token_async token in
             let%lwt () =
               Reply.apply send
                 (Reply.both

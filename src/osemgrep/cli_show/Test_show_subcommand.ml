@@ -31,8 +31,6 @@ let t = Testo.create ?skipped:Testutil.skip_on_windows
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type caps = Show_subcommand.caps
-
 (* Mask this field that is populated using a global counter *)
 let mask_id_info_id =
   Testo.mask_pcre_pattern {|id_info_id\s*=\s*[0-9]+|} ~replace:(fun _ ->
@@ -122,10 +120,10 @@ let fake_deployment = {|{"deployment":{"id":42,"name":"fake_deployment"}}|}
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
-let test_error_no_arguments (caps : < caps ; .. >) : Testo.t =
+let test_error_no_arguments : Testo.t =
   t __FUNCTION__ (fun () ->
       try
-        let _exit = Show_subcommand.main caps [| "semgrep-show" |] in
+        let _exit = Show_subcommand.main [| "semgrep-show" |] in
         failwith "semgrep show should return an exn and not reached here"
       with
       | Error.Semgrep_error
@@ -138,23 +136,23 @@ let test_error_no_arguments (caps : < caps ; .. >) : Testo.t =
  * have to mask.
  *)
 (*
-let test_version (caps : caps) : Testo.t =
+let test_version : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       let exit_code =
-        Show_subcommand.main caps [| "semgrep-show"; "version" |]
+        Show_subcommand.main [| "semgrep-show"; "version" |]
       in
       Exit_code.Check.ok exit_code)
 *)
 
 (* similar to test_misc.py test_cli_test_show_supported_languages *)
-let test_supported_languages (caps : < caps ; .. >) : Testo.t =
+let test_supported_languages : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       let exit_code =
-        Show_subcommand.main caps [| "semgrep-show"; "supported-languages" |]
+        Show_subcommand.main [| "semgrep-show"; "supported-languages" |]
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_config (caps : < caps ; .. >) : Testo.t =
+let test_dump_config : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -169,13 +167,12 @@ let test_dump_config (caps : < caps ; .. >) : Testo.t =
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
           (fun _cwd ->
-            Show_subcommand.main caps
-              [| "semgrep-show"; "dump-config"; "rule.yml" |])
+            Show_subcommand.main [| "semgrep-show"; "dump-config"; "rule.yml" |])
       in
       Exit_code.Check.ok exit_code)
 
 (* less: could also test the dump-ast -json *)
-let test_dump_ast (caps : < caps ; .. >) : Testo.t =
+let test_dump_ast : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -187,24 +184,23 @@ let test_dump_ast (caps : < caps ; .. >) : Testo.t =
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
           (fun _cwd ->
-            Show_subcommand.main caps
+            Show_subcommand.main
               [| "semgrep-show"; "dump-ast"; "python"; "foo.py" |])
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_ast_when_error (caps : < caps ; .. >) : Testo.t =
+let test_dump_ast_when_error : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize:[ Testutil_logs.mask_time ]
     __FUNCTION__ (fun () ->
       let files = [ F.File ("error.js", "function (") ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
           (fun _cwd ->
-            Show_subcommand.main caps
-              [| "semgrep-show"; "dump-ast"; "error.js" |])
+            Show_subcommand.main [| "semgrep-show"; "dump-ast"; "error.js" |])
       in
       Exit_code.Check.invalid_code exit_code)
 
-let test_dump_pattern (caps : < caps ; .. >) : Testo.t =
+let test_dump_pattern : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -213,14 +209,14 @@ let test_dump_pattern (caps : < caps ; .. >) : Testo.t =
         normalize_whitespace;
       ] __FUNCTION__ (fun () ->
       let exit_code =
-        Show_subcommand.main caps
+        Show_subcommand.main
           [| "semgrep-show"; "dump-pattern"; "python"; "foo(..., $X == $X)" |]
       in
       Exit_code.Check.ok exit_code)
 
-let test_identity (caps : < caps ; .. >) : Testo.t =
+let test_identity : Testo.t =
   (* TODO: we use stdxxx here because we're using Logs.app for some of the output
-   * instead of CapConsole in Whoami.ml, but we should really use CapConsole
+   * instead of UConsole in Whoami.ml, but we should really use UConsole
    * and just capture stdout here.
    *)
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
@@ -228,7 +224,7 @@ let test_identity (caps : < caps ; .. >) : Testo.t =
         (* we need to be logged in otherwise we will not contact the server *)
         with_fake_login fake_settings (fun () ->
             with_fake_identity_response fake_identity (fun () ->
-                Show_subcommand.main caps [| "semgrep-show"; "identity" |]))
+                Show_subcommand.main [| "semgrep-show"; "identity" |]))
       in
       (* TODO: please don't capture alcotest output
 
@@ -238,12 +234,12 @@ let test_identity (caps : < caps ; .. >) : Testo.t =
       *)
       Exit_code.Check.ok ~quiet:true exit_code)
 
-let test_deployment (caps : < caps ; .. >) : Testo.t =
+let test_deployment : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       let exit_code =
         with_fake_login fake_settings (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
-                Show_subcommand.main caps [| "semgrep-show"; "deployment" |]))
+                Show_subcommand.main [| "semgrep-show"; "deployment" |]))
       in
       Exit_code.Check.ok exit_code)
 
@@ -251,20 +247,20 @@ let test_deployment (caps : < caps ; .. >) : Testo.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < caps ; .. >) =
+let tests () =
   Testo.categorize "Osemgrep Show (e2e)"
     [
-      test_error_no_arguments caps;
+      test_error_no_arguments;
       (* This follows the same order than that the cases in
        * Show_CLI.show_kind (Version | SupportedLanguages | Identity | ...)
        *)
-      (*      test_version caps; *)
-      test_supported_languages caps;
-      test_identity caps;
-      test_deployment caps;
-      test_dump_pattern caps;
-      test_dump_ast caps;
-      test_dump_ast_when_error caps;
-      test_dump_config caps;
+      (*      test_version; *)
+      test_supported_languages;
+      test_identity;
+      test_deployment;
+      test_dump_pattern;
+      test_dump_ast;
+      test_dump_ast_when_error;
+      test_dump_config;
       (* TODO? engine_path and command_for_core *)
     ]

@@ -287,7 +287,7 @@ let dump_targets_cmd =
   in
   Cmd.v info term
 
-let debug_cmd caps =
+let debug_cmd =
   let doc = "Open an interactive debugging view" in
   let output_dir_info =
     Arg.info [ "output-dir" ] ~docv:"DIR"
@@ -311,7 +311,7 @@ let debug_cmd caps =
       const (fun output_dir roots common json config ->
           let output_dir =
             Option.map Fpath.v output_dir
-            |> Option.value ~default:(CapTmp.get_temp_dir_name caps#tmp)
+            |> Option.value ~default:(UTmp.get_temp_dir_name ())
           in
           let debug_settings =
             {
@@ -443,7 +443,7 @@ let cmdline_info = Cmd.info "semgrep show" ~doc ~man
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
+let parse_argv (argv : string array) : conf =
   let default =
     Term.(
       const (fun args ->
@@ -471,7 +471,7 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
         dump_ast_cmd;
         dump_config_cmd;
         dump_targets_cmd;
-        debug_cmd caps;
+        debug_cmd;
         dump_lockfile_cmd;
         project_root_cmd;
         resources_cmd;

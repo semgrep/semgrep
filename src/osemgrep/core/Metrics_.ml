@@ -326,7 +326,7 @@ let string_of_user_agent () = String.concat " " g.user_agent
 (* we pass an anonymous_user_id here to avoid a dependency cycle with
  * ../configuring/Semgrep_settings.ml
  *)
-let init (caps : < Cap.random ; .. >) ~anonymous_user_id ~ci =
+let init ~anonymous_user_id ~ci =
   (* Reset the fields of [g] back to their default values, in case init()
    * has been previously called (for instance, during e2e tests which may
    * run multiple distinct subcommands within the same process). *)
@@ -337,7 +337,7 @@ let init (caps : < Cap.random ; .. >) ~anonymous_user_id ~ci =
   g.user_agent <- g'.user_agent;
 
   g.payload.started_at <- now ();
-  g.payload.event_id <- Uuidm.v4_gen (CapRandom.get_state caps#random ()) ();
+  g.payload.event_id <- Uuidm.v4_gen (Random.get_state ()) ();
   g.payload.anonymous_user_id <- Uuidm.to_string anonymous_user_id;
   (* TODO: this field in semgrep_metrics.atd should be a boolean *)
   if ci then g.payload.environment.ci <- Some "true"

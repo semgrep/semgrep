@@ -23,11 +23,11 @@ let t = Testo.create
 (* Code *)
 (*****************************************************************************)
 
-let real_fetch_tests caps =
+let real_fetch_tests =
   let fetch_ocaml_rules () =
     match
       Rule_fetching.rules_from_dashdash_config ~rewrite_rule_ids:false
-        ~token_opt:None caps (Rules_config.R (Pack "ocaml"))
+        ~token_opt:None (Rules_config.R (Pack "ocaml"))
     with
     | [ { rules; _ } ], [] ->
         Alcotest.(check bool) "fetch ocaml rules" true (not @@ List_.null rules)
@@ -46,5 +46,4 @@ let real_fetch_tests caps =
       t ~broken "fetch ocaml rules 5" fetch_ocaml_rules;
     ]
 
-let tests caps =
-  Testo.categorize_suites "OSemgrep Fetch" [ real_fetch_tests caps ]
+let tests = Testo.categorize_suites "OSemgrep Fetch" [ real_fetch_tests ]

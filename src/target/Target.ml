@@ -64,7 +64,6 @@ let of_yojson (_ : Yojson.Safe.t) : (t, string) result =
 let tempfile_of_git_blob sha =
   let contents = sha |> Git_wrapper.cat_file_blob |> Result.get_ok in
   (* TODO: delete this file when done! For this, use 'with_temp_file'. *)
-  (* TODO: use CapTmp, but that requires to change lots of callers *)
   let file =
     (* nosemgrep: forbid-tmp *)
     UTmp.new_temp_file ~prefix:"git-blob-"

@@ -94,24 +94,9 @@ module Out = Semgrep_output_v1_j
 (* Types *)
 (*****************************************************************************)
 
-(* This is mostly a superset of Scan_subcommand.caps so see the comment
- * in Scan_subcommand.ml for some explanations of why we need those
- * capabilities. Otherwise, here are the CI-specific explanations:
- * - Cap.exec for git
- * - Cap.tmp for decode_json_rules
- * TODO: remain fs related capabilities (mostly Cap.FS.files_argv_r)
+(* This is mostly a superset of Scan_subcommand functionality.
+ * CI-specific extras: calls git and uses temp files for decode_json_rules.
  *)
-type caps =
-  < Cap.stdout
-  ; Cap.network
-  ; Cap.exec
-  ; Cap.tmp
-  ; Cap.chdir
-  ; Cap.readdir
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit >
-
 (*****************************************************************************)
 (* Log and test infra (logging/mocking the backend) *)
 (*****************************************************************************)
@@ -125,25 +110,22 @@ type caps =
  *  response rather than the HTTP GET/POST level.
  * alt: move in Semgrep_App.mli instead or in a Mock_Semgrep_App.mli
  *
- * Note that we need to have ['caps] polymorphic param below even though we
- * always use further below '<Cap.network; Auth.cap_token; ..>' because
- * we can't have '..' (a row type variable) inside a monomorphic record.
  *)
-type 'caps app = {
+type app = {
   start_scan :
-    'caps ->
+    Auth.token ->
     Out.scan_request ->
     (Out.scan_response, string * Exit_code.t option) result;
   upload_findings :
-    'caps ->
+    Auth.token ->
     scan_id:int ->
     results:Out.ci_scan_results ->
     complete:Out.ci_scan_complete ->
     (Semgrep_App.app_block_override, string) result;
-  report_failure : 'caps -> scan_id:int -> Exit_code.t -> unit;
+  report_failure : Auth.token -> scan_id:int -> Exit_code.t -> unit;
 }
 
-let real_backend : < Cap.network ; Auth.cap_token ; .. > app =
+let real_backend : app =
   {
     start_scan = Semgrep_App.start_scan;
     upload_findings = Semgrep_App.upload_findings;
@@ -163,17 +145,17 @@ let real_backend : < Cap.network ; Auth.cap_token ; .. > app =
  *  relevant logged JSON response from the backend.
  *)
 
-let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
+let mk_log_backend (dir : Fpath.t) : app =
   if not (UFile.is_dir ~follow_symlinks:false dir) then
     UFile.make_directories dir;
   {
     start_scan =
-      (fun caps request ->
+      (fun token request ->
         let file = dir / "scan_request.json" in
         Logs.info (fun m -> m "saving scan_request in %s" !!file);
         let str = Out.string_of_scan_request request |> JSON.prettify in
         UFile.write_file ~file str;
-        let res = real_backend.start_scan caps request in
+        let res = real_backend.start_scan token request in
         (match res with
         | Error _ -> ()
         | Ok scan_response ->
@@ -184,7 +166,7 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
             UFile.write_file ~file str);
         res);
     upload_findings =
-      (fun caps ~scan_id ~results ~complete ->
+      (fun token ~scan_id ~results ~complete ->
         let file = dir / "results.json" in
         Logs.info (fun m -> m "saving results in %s" !!file);
         let str = Out.string_of_ci_scan_results results |> JSON.prettify in
@@ -196,7 +178,7 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
         UFile.write_file ~file str;
 
         (* less: save the response from the backend *)
-        real_backend.upload_findings caps ~scan_id ~results ~complete);
+        real_backend.upload_findings token ~scan_id ~results ~complete);
     report_failure = real_backend.report_failure;
   }
 
@@ -210,11 +192,10 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
  *  some /fake_backend/.../scan_response.json and we can use those
  *  fake CI config on the semgrep repo itself.
  *)
-let mk_fake_backend base (dir : Fpath.t) :
-    < Cap.network ; Auth.cap_token ; .. > app =
+let mk_fake_backend base (dir : Fpath.t) : app =
   {
     start_scan =
-      (fun _caps _request ->
+      (fun _token _request ->
         let file = dir / "scan_response.json" in
         let str = UFile.read_file file in
         let resp = Out.scan_response_of_string str in
@@ -305,8 +286,8 @@ let sanity_check_contributions (contribs : Out.contribution list) : unit =
  * coupling: if you add more cases below, you probably need to modify
  * Ci_CLI.cmdline_term to pass more env there.
  *)
-let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
-    : Project_metadata.t =
+let generate_meta_from_environment (baseline_ref : Digestif.SHA1.t option) :
+    Project_metadata.t =
   let extract_env term =
     let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
     let eval term =
@@ -324,10 +305,10 @@ let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
   | Some "true" ->
       let env = extract_env Git_metadata.env in
       let gha_env = extract_env Github_metadata.env in
-      (new Github_metadata.meta caps baseline_ref env gha_env)#project_metadata
+      (new Github_metadata.meta ~baseline_ref env gha_env)#project_metadata
   | _else ->
       let env = extract_env Git_metadata.env in
-      (new Git_metadata.meta caps ~scan_environment:"git" ~baseline_ref env)
+      (new Git_metadata.meta ~scan_environment:"git" ~baseline_ref env)
         #project_metadata
 
 (* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
@@ -397,33 +378,30 @@ let project_config () : Out.ci_config_from_repo option =
 (*****************************************************************************)
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
-let caps_with_token (token_opt : Auth.token option) caps =
-  let token =
-    match token_opt with
-    | Some tok -> tok
-    | None ->
-        Logs.app (fun m ->
-            m
-              "run `semgrep login` before using `semgrep ci` or use `semgrep \
-               scan` and set `--config`");
-        Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
-  in
-  Auth.cap_token_and_network_and_tmp_and_exec token caps
+let check_token (token_opt : Auth.token option) =
+  match token_opt with
+  | Some tok -> tok
+  | None ->
+      Logs.app (fun m ->
+          m
+            "run `semgrep login` before using `semgrep ci` or use `semgrep \
+             scan` and set `--config`");
+      Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
 
 (* [rules] contains the rules in JSON format. That's how the registry send
  * them because it's faster than using YAML.
  * TODO: factorize with Session.decode_rules()
  *)
-let decode_json_rules caps (rules : Yojson.Basic.t) :
-    Rule_fetching.rules_and_origin =
+let decode_json_rules (rules : Yojson.Basic.t) : Rule_fetching.rules_and_origin
+    =
   (* TODO: ugly to have to convert back to string and use intermediate tmp
    * file. We should optimize and parse directly from the JSON data structure
    *)
   let data = Yojson.Basic.to_string rules in
-  CapTmp.with_temp_file caps#tmp ~contents:data ~suffix:".json" (fun file ->
+  UTmp.with_temp_file ~contents:data ~suffix:".json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
-          caps file
+          file
       with
       | Ok rules -> rules
       | Error _err ->
@@ -432,8 +410,7 @@ let decode_json_rules caps (rules : Yojson.Basic.t) :
           *)
           failwith "impossible: received an invalid rule from CI")
 
-let scan_response_and_rules (caps : < Cap.network ; Auth.cap_token ; .. >) app
-    (prj_meta : Out.project_metadata) :
+let scan_response_and_rules app token (prj_meta : Out.project_metadata) :
     Semgrep_App.scan_id
     * Out.scan_response
     * Rule_fetching.rules_and_origin list =
@@ -450,7 +427,7 @@ let scan_response_and_rules (caps : < Cap.network ; Auth.cap_token ; .. >) app
       metadata_dict["is_sca_scan"] = supply_chain
       proj_config = ProjectConfig.load_all()
   *)
-  match app.start_scan caps request with
+  match app.start_scan token request with
   | Error (msg, exit_code_opt) -> (
       Logs.err (fun m -> m "Could not start scan %s" msg);
       match exit_code_opt with
@@ -471,18 +448,14 @@ let scan_response_and_rules (caps : < Cap.network ; Auth.cap_token ; .. >) app
             scan_response.info.deployment_name scan_id);
 
       let rules_and_origins =
-        try
-          decode_json_rules
-            (caps :> < Cap.network ; Cap.tmp >)
-            scan_response.config.rules
-        with
+        try decode_json_rules scan_response.config.rules with
         | Error.Semgrep_error (_, opt_ex) as e ->
             let ex =
               match opt_ex with
               | None -> Exit_code.fatal ~__LOC__
               | Some exit_code -> exit_code
             in
-            app.report_failure caps ~scan_id ex;
+            app.report_failure token ~scan_id ex;
             let e = Exception.catch e in
             Exception.reraise e
       in
@@ -711,13 +684,13 @@ let is_scan_failure_error (error_type : Out.error_type) : bool =
 
 (* from scans.py *)
 let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
-    (caps : < Cap.exec >) (cli_output : Out.cli_output) (rules : Rule.rule list)
-    : Out.ci_scan_results * Out.ci_scan_complete =
+    (cli_output : Out.cli_output) (rules : Rule.rule list) :
+    Out.ci_scan_results * Out.ci_scan_complete =
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
   let rule_ids = rules |> List_.map (fun r -> fst r.Rule.id) in
-  let contributions = Parse_contribution.get_contributions caps in
+  let contributions = Parse_contribution.get_contributions () in
   sanity_check_contributions contributions;
 
   (*
@@ -842,19 +815,18 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   (results, complete)
 
-let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
-    app (deployment_name : string) (scan_id : Semgrep_App.scan_id)
-    (prj_meta : Out.project_metadata) blocking_findings filtered_rules
-    (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
+let upload_findings app token (deployment_name : string)
+    (scan_id : Semgrep_App.scan_id) (prj_meta : Out.project_metadata)
+    blocking_findings filtered_rules (cli_output : Out.cli_output) :
+    Semgrep_App.app_block_override =
   Logs.app (fun m -> m "  Uploading findings.");
   let results, complete =
     findings_and_complete
-      (caps :> < Cap.exec >)
       ~has_blocking_findings:(not (List_.null blocking_findings))
       ~commit_date:"" ~engine_requested:`OSS cli_output filtered_rules
   in
   let override =
-    match app.upload_findings caps ~scan_id ~results ~complete with
+    match app.upload_findings token ~scan_id ~results ~complete with
     | Ok a -> a
     | Error msg ->
         Logs.err (fun m -> m "Failed to report findings: %s" msg);
@@ -891,7 +863,7 @@ let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
+let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let conf = ci_conf.scan_conf in
   CLI_common.with_logging
     ~color:(if conf.output_conf.force_color then On else Auto)
@@ -910,7 +882,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
       ());
 
   (* test infra. see tests/ci/fake_backend/ for more info *)
-  let app : _ app =
+  let app : app =
     match (ci_conf.fake_backend, ci_conf.log_backend) with
     | None, None -> real_backend
     | None, Some dir -> mk_log_backend dir
@@ -942,9 +914,9 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   assert (conf.target_roots =*= []);
 
   (* step3: token -> start_scan -> scan_id x scan_response -> rules *)
-  let caps' = caps_with_token settings.api_token caps in
+  let token = check_token settings.api_token in
   (* TODO: pass baseline commit! *)
-  let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
+  let prj_meta = generate_meta_from_environment None in
   Logs.app (fun m -> m "%s" (Console.heading "Debugging Info"));
   report_scan_environment prj_meta;
 
@@ -959,15 +931,14 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     ci_conf.x_distributed_scan_conf;
   Distributed_scan_stub.maybe_validate_partial_scan_results_then_exit
     ci_conf.x_distributed_scan_conf;
-  Distributed_scan_stub.maybe_upload_partial_scan_results_then_exit
-    (caps' :> < Cap.network ; Auth.cap_token >)
+  Distributed_scan_stub.maybe_upload_partial_scan_results_then_exit token
     ci_conf.x_distributed_scan_conf;
 
   (* ===== End of steps related to distributed scans ===== *)
 
   (* TODO: fix_head_if_github_action(metadata) *)
   let scan_id, scan_response, rules_and_origin =
-    scan_response_and_rules caps' app prj_meta
+    scan_response_and_rules app token prj_meta
   in
 
   (* TODO: we should use those fields!
@@ -1070,24 +1041,15 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     in
 
     let targets_and_ignored =
-      Find_targets.get_targets caps conf.targeting_conf [ target_root ]
+      Find_targets.get_targets conf.targeting_conf [ target_root ]
     in
     let res =
-      Scan_subcommand.check_targets_with_rules
-        (* caps - network *)
-        (caps
-          :> < Cap.stdout
-             ; Cap.chdir
-             ; Cap.tmp
-             ; Cap.fork
-             ; Cap.time_limit
-             ; Cap.memory_limit
-             ; Cap.readdir >)
-        conf profiler rules_and_origin targets_and_ignored
+      Scan_subcommand.check_targets_with_rules conf profiler rules_and_origin
+        targets_and_ignored
     in
     match res with
     | Error e ->
-        app.report_failure caps' ~scan_id e;
+        app.report_failure token ~scan_id e;
         Logs.err (fun m -> m "Encountered error when running rules");
         e
     | Ok (filtered_rules, res, cli_output) ->
@@ -1132,7 +1094,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         report_scan_completed ~blocking_findings ~blocking_rules
           ~non_blocking_findings ~non_blocking_rules;
         let app_block_override =
-          upload_findings caps' app deployment_name scan_id prj_meta
+          upload_findings app token deployment_name scan_id prj_meta
             blocking_findings filtered_rules cli_output
         in
         (* Upload scan-adjacent information, such as symbol analysis
@@ -1145,8 +1107,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         | None -> ()
         | Some symbol_analysis -> (
             match
-              Semgrep_App.upload_symbol_analysis caps' ~token:caps'#token
-                ~scan_id symbol_analysis
+              Semgrep_App.upload_symbol_analysis ~token ~scan_id symbol_analysis
             with
             | Error msg ->
                 Logs.warn (fun m ->
@@ -1159,7 +1120,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   with
   | Error.Semgrep_error (_, ex) as e ->
       let r = ex ||| Exit_code.fatal ~__LOC__ in
-      app.report_failure caps' ~scan_id r;
+      app.report_failure token ~scan_id r;
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));
       let e = Exception.catch e in
@@ -1169,6 +1130,6 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
+let main (argv : string array) : Exit_code.t =
   let conf = Ci_CLI.parse_argv argv in
-  run_conf caps conf
+  run_conf conf

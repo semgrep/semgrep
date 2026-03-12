@@ -2,7 +2,6 @@
  (public_name commons2)
  (wrapped false)
  (libraries
-    TCB
     commons
  )
  (preprocess

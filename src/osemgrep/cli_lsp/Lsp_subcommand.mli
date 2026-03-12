@@ -10,11 +10,8 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-type caps =
-  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
-
 val hook_pro_language_server :
-  (caps -> Eio_unix.Stdenv.base -> Lsp_CLI.conf -> unit) option Hook.t
+  (Eio_unix.Stdenv.base -> Lsp_CLI.conf -> unit) option Hook.t
 
 (*
    Parse a semgrep-lsp command, execute it and exit.
@@ -23,7 +20,7 @@ val hook_pro_language_server :
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < caps ; .. > -> string array -> Exit_code.t
+val main : string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < caps ; .. > -> Lsp_CLI.conf -> Exit_code.t
+val run_conf : Lsp_CLI.conf -> Exit_code.t

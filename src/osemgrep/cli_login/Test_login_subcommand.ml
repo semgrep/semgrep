@@ -75,15 +75,15 @@ let with_semgrep_logged_in f =
  * be even more "e2e" by calling CLI.main() instead, but that would require
  * to move this file out of cli_login/ because of mutual dependencies.
  *)
-let test_logout_not_logged_in caps : Testo.t =
+let test_logout_not_logged_in () : Testo.t =
   t ~checked_output:(Testo.stderr ())
     ~normalize:[ Testo.mask_not_substring "You are not logged in" ]
     __FUNCTION__
     (Testutil_login.with_login_test_env (fun () ->
-         let exit_code = Logout_subcommand.main caps [| "semgrep-logout" |] in
+         let exit_code = Logout_subcommand.main [| "semgrep-logout" |] in
          Exit_code.Check.ok exit_code))
 
-let test_login_no_tty caps : Testo.t =
+let test_login_no_tty () : Testo.t =
   t ~checked_output:(Testo.stderr ())
     ~normalize:
       [ Testo.mask_not_substring "meant to be run in an interactive terminal" ]
@@ -95,11 +95,11 @@ let test_login_no_tty caps : Testo.t =
          let old_stdin = Unix.dup Unix.stdin in
          let in_, _out_ = Unix.pipe () in
          Unix.dup2 in_ Unix.stdin;
-         let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
+         let exit_code = Login_subcommand.main [| "semgrep-login" |] in
          Unix.dup2 old_stdin Unix.stdin;
          Exit_code.Check.fatal exit_code))
 
-let test_login_with_env_token caps : Testo.t =
+let test_login_with_env_token () : Testo.t =
   t ~checked_output:(Testo.stderr ())
     ~normalize:
       [
@@ -116,39 +116,29 @@ let test_login_with_env_token caps : Testo.t =
     (Testutil_login.with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
              with_fake_deployment_response fake_deployment (fun () ->
-                 let exit_code =
-                   Login_subcommand.main caps [| "semgrep-login" |]
-                 in
+                 let exit_code = Login_subcommand.main [| "semgrep-login" |] in
                  Exit_code.Check.ok exit_code);
 
              (* login should fail on second call *)
-             let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
+             let exit_code = Login_subcommand.main [| "semgrep-login" |] in
              Exit_code.Check.fatal exit_code);
 
          (* clear login (by logging out) *)
-         let exit_code =
-           Logout_subcommand.main
-             (caps :> < Cap.stdout >)
-             [| "semgrep-logout" |]
-         in
+         let exit_code = Logout_subcommand.main [| "semgrep-logout" |] in
          Exit_code.Check.ok exit_code;
 
          (* logout twice should work *)
-         let exit_code =
-           Logout_subcommand.main
-             (caps :> < Cap.stdout >)
-             [| "semgrep-logout" |]
-         in
+         let exit_code = Logout_subcommand.main [| "semgrep-logout" |] in
          Exit_code.Check.ok exit_code))
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : Login_subcommand.caps) =
+let tests () =
   Testo.categorize "Osemgrep Login (e2e)"
     [
-      test_logout_not_logged_in (caps :> < Cap.stdout >);
-      test_login_no_tty caps;
-      test_login_with_env_token caps;
+      test_logout_not_logged_in ();
+      test_login_no_tty ();
+      test_login_with_env_token ();
     ]

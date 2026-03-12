@@ -33,7 +33,7 @@
  * DEPRECATED: use instead paths/List_files.mli
  *)
 val files_of_dirs_or_files_no_vcs_nofilter :
-  < Cap.readdir ; .. > -> ?strict:bool -> Fpath.t list -> Fpath.t list
+  ?strict:bool -> Fpath.t list -> Fpath.t list
 
 (*****************************************************************************)
 (* IO *)
@@ -181,10 +181,7 @@ val make_directories : Fpath.t -> unit
 (* Deprecated! *)
 module Legacy : sig
   val files_of_dirs_or_files_no_vcs_nofilter :
-    < Cap.readdir ; .. > ->
-    ?strict:bool ->
-    string (* root *) list ->
-    string (* filename *) list
+    ?strict:bool -> string (* root *) list -> string (* filename *) list
 
   val cat : string (* filename *) -> string list
   val write_file : file:string (* filename *) -> string -> unit
@@ -197,9 +194,6 @@ module Legacy : sig
 
   (* NOT IN MAIN API *)
   val dir_contents :
-    < Cap.readdir ; .. > ->
-    ?strict:bool ->
-    string (* filename *) ->
-    string (* filename *) list
+    ?strict:bool -> string (* filename *) -> string (* filename *) list
   (** [dir_contents dir] will return a recursive list of all files in a dir *)
 end

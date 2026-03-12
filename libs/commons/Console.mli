@@ -17,7 +17,7 @@
    Programs such as Semgrep use both stdout and stderr to display
    human-readable messages.
 
-   See UConsole.ml or better CapConsole.ml to actually print messages.
+   See UConsole.ml to actually print messages.
    This is the shared "safe" part of console management.
 *)
 
@@ -30,9 +30,9 @@ type highlight_setting = Auto | On | Off [@@deriving show]
 (* The result of applying 'highlight_setting' *)
 type highlight = On | Off [@@deriving show]
 
-(* Note that this module use the globals at the end of this file to
+(* Note that this module uses the globals at the end of this file to
  * store the current settings but they should be manipulated only
- * by UConsole.setup() (or CapConsole.setup())
+ * by UConsole.setup()
  *)
 
 type color = ANSITerminal.color =

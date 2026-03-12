@@ -56,7 +56,7 @@ let format (kind : Out.output_format) (ctx : Out.format_context)
   let xs = Output.format kind ctx cli_output in
   String.concat "\n" xs
 
-let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
+let sarif_format (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
     ~show_dataflow_traces (cli_output : Out.cli_output) : string =
   let fake_config =
     {
@@ -80,8 +80,8 @@ let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
   in
   Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json
 
-let contributions (caps : < Cap.exec >) : Out.contributions =
-  Parse_contribution.get_contributions caps
+let contributions () : Out.contributions =
+  Parse_contribution.get_contributions ()
 
 let validate (path : Out.fpath) : Out.core_error option =
   try

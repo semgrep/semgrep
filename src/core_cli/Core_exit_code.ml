@@ -40,9 +40,8 @@ let code_of_reason = function
   | Bad_command_line -> 1
   | Unknown_exception _ -> (* same code as an uncaught exception *) 2
 
-let exit_semgrep (caps : Cap.Process.exit) reason =
+let exit_semgrep reason =
   let code = code_of_reason reason in
   let msg = string_of_reason reason in
-  ignore caps;
   Logs.info (fun m -> m "exit %i: %s" code msg);
   raise (UnixExit (code, msg))

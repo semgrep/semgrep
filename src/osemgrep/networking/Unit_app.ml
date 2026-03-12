@@ -10,7 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-let test_upload_subproject_symbol_analysis caps =
+let test_upload_subproject_symbol_analysis =
   let with_mock_response =
     Http_mock_client.with_mocked_http (fun req _ ->
         match Uri.path (Cohttp.Request.uri req) with
@@ -29,7 +29,7 @@ let test_upload_subproject_symbol_analysis caps =
     let manifest = Some (Fpath.v "/path/to/manifest") in
     let lockfile = Some (Fpath.v "/path/to/lockfile") in
     let result =
-      Semgrep_App.upload_subproject_symbol_analysis caps ~token ~scan_id:123
+      Semgrep_App.upload_subproject_symbol_analysis ~token ~scan_id:123
         ~manifest ~lockfile []
     in
     match result with
@@ -39,8 +39,8 @@ let test_upload_subproject_symbol_analysis caps =
   in
   with_mock_response test
 
-let tests caps =
+let tests =
   [
     Testo.create "upload_subproject_symbol_analysis"
-      (test_upload_subproject_symbol_analysis caps);
+      test_upload_subproject_symbol_analysis;
   ]

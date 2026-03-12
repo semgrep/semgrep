@@ -42,12 +42,7 @@ module Log = Log_git_wrapper.Log
 (* Types and constants *)
 (*****************************************************************************)
 
-(* To make sure we don't call other commands!
- * TODO: we could create a special git_cap capabilities instead of using
- * Cap.exec. We could have
- *   type git_cap
- *   val git_cap_of_exec: Cap.exec -> git_cap
- *)
+(* To make sure we don't call other commands! *)
 let git : Cmd.name = Cmd.Name "git"
 
 type status = {
@@ -274,9 +269,9 @@ let blobs_by_commit objects commits =
 (*****************************************************************************)
 
 (* Similar to Sys.command, but specific to git *)
-let command (caps : < Cap.exec >) (args : Cmd.args) : (string, string) result =
+let command (args : Cmd.args) : (string, string) result =
   let cmd : Cmd.t = (git, args) in
-  match CapExec.string_of_run caps#exec ~trim:true cmd with
+  match UCmd.string_of_run ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> Ok str
   | Ok _
   | Error (`Msg _) ->
@@ -297,7 +292,7 @@ Try running the command yourself to debug the issue.|}
             (Cmd.to_string cmd));
       Error "Error when we run a git command"
 
-let command_exn caps args = command caps args |> fatal
+let command_exn args = command args |> fatal
 
 let commit_blobs_by_date objects =
   Log.info (fun m -> m "getting commits");
@@ -463,7 +458,7 @@ let merge_base ~(commit : string) : (string, string) result =
 
 let merge_base_exn ~commit = merge_base ~commit |> fatal
 
-let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
+let run_with_worktree ~commit ?branch f =
   let cwd = getcwd () |> Fpath.to_dir_path in
   let/ git_root =
     match project_root_for_files_in_dir cwd with
@@ -479,7 +474,7 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
     let rand = Stdlib.Random.State.make_self_init () in
     let uuid = Uuidm.v4_gen rand () in
     let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
-    let dir = CapTmp.get_temp_dir_name caps#tmp / dir_name in
+    let dir = UTmp.get_temp_dir_name () / dir_name in
     Unix.mkdir !!dir 0o777;
     dir
   in
@@ -494,12 +489,11 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
   match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) ->
       let work () =
-        Fpath.append temp_dir relative_path
-        |> Fpath.to_string |> CapSys.chdir caps#chdir;
+        Fpath.append temp_dir relative_path |> Fpath.to_string |> Sys.chdir;
         Ok (f ())
       in
       let cleanup () =
-        cwd |> Fpath.to_string |> CapSys.chdir caps#chdir;
+        cwd |> Fpath.to_string |> Sys.chdir;
         let cmd = (git, [ "worktree"; "remove"; !!temp_dir ]) in
         match UCmd.status_of_run ~quiet:true cmd with
         | Ok (`Exited 0) ->
@@ -515,8 +509,8 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
   | Ok _ -> Error ("Could not create git worktree for " ^ commit)
   | Error (`Msg msg) -> Error (spf "Could not create git worktree: %s" msg)
 
-let run_with_worktree_exn caps ~commit ?branch f =
-  run_with_worktree caps ~commit ?branch f |> fatal
+let run_with_worktree_exn ~commit ?branch f =
+  run_with_worktree ~commit ?branch f |> fatal
 
 let status ?cwd ?commit () =
   let cmd =
@@ -780,7 +774,7 @@ let time_to_str (timestamp : float) : string =
   let day = date.tm_mday in
   Printf.sprintf "%04d-%02d-%02d" year month day
 
-let logs ?cwd ?since (_caps_exec : < Cap.exec >) : contribution list =
+let logs ?cwd ?since () : contribution list =
   let cmd : Cmd.t =
     match since with
     | None -> (git, cd cwd @ [ "log"; git_log_format ])

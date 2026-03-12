@@ -254,8 +254,8 @@ let dump_tree_sitter_cst (lang : Lang.t) (file : Fpath.t) : unit =
            Tree_sitter_fga.Boilerplate.dump_extras
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
-let test_parse_tree_sitter (caps : < Cap.readdir ; .. >) lang root =
-  let paths = Find_targets_lang.get_target_fpaths caps root lang in
+let test_parse_tree_sitter lang root =
+  let paths = Find_targets_lang.get_target_fpaths root lang in
   let stat_list = ref [] in
   paths
   |> List.iter (fun file ->
@@ -351,9 +351,7 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
    This is meant to run the same parsers as semgrep-core does for normal
    semgrep scans.
 *)
-let parsing_common
-    (caps : < Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; .. >)
-    ?(verbose = true) (lang : Lang.t) (root : Fpath.t) =
+let parsing_common ?(verbose = true) (lang : Lang.t) (root : Fpath.t) =
   let timeout_seconds = 10.0 in
   (* Without the use of Memory_limit below, we were getting some
    * 'Fatal error: out of memory' errors in the parsing stat CI job,
@@ -391,7 +389,7 @@ let parsing_common
   Logs.info (fun m -> m "running with a timeout of %f.1s" timeout_seconds);
   Logs.info (fun m -> m "running with a memory limit of %d MiB" mem_limit_mb);
 
-  let paths = Find_targets_lang.get_target_fpaths caps root lang in
+  let paths = Find_targets_lang.get_target_fpaths root lang in
   (* TODO? remove the skipped returned? *)
   let skipped = [] in
   let stats =
@@ -404,15 +402,10 @@ let parsing_common
            let stat =
              try
                match
-                 Memory_limit.run_with_memory_limit
-                   (caps :> < Cap.memory_limit >)
-                   ~mem_limit_mb
-                   (fun () ->
-                     Time_limit.set_timeout
-                       (caps :> < Cap.time_limit >)
-                       ~name:"Test_parsing.parsing_common" ~eio:false
-                       timeout_seconds
-                       (fun () -> Parse_target.parse_and_resolve_name lang file))
+                 Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
+                     Time_limit.set_timeout ~name:"Test_parsing.parsing_common"
+                       ~eio:false timeout_seconds (fun () ->
+                         Parse_target.parse_and_resolve_name lang file))
                with
                | Some res ->
                    let ast_stat = AST_stat.stat res.ast in
@@ -457,10 +450,8 @@ let parsing_common
    be nice to find out about timeouts. I think the timeout threshold should
    in seconds/MB or equivalent units, not seconds per file."
 *)
-let parse_project
-    (caps : < Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; .. >) ~verbose
-    lang name root =
-  let stat_list, _skipped = parsing_common caps ~verbose lang root in
+let parse_project ~verbose lang name root =
+  let stat_list, _skipped = parsing_common ~verbose lang root in
   let stat_list =
     List.filter (fun stat -> not stat.PS.have_timeout) stat_list
   in
@@ -570,14 +561,14 @@ let print_json lang results =
   let s = Parsing_stats_j.string_of_t stats in
   print_endline (Yojson.Safe.prettify s)
 
-let parse_projects caps ~verbose lang project_dirs =
+let parse_projects ~verbose lang project_dirs =
   project_dirs
   |> List_.map (fun dir ->
          let name = dir in
-         parse_project caps ~verbose lang name (Fpath.v dir))
+         parse_project ~verbose lang name (Fpath.v dir))
 
-let parsing_stats caps ?(json = false) ?(verbose = false) lang project_dirs =
-  let stat_list = parse_projects caps ~verbose lang project_dirs in
+let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
+  let stat_list = parse_projects ~verbose lang project_dirs in
   report_counts ();
   if json then print_json lang stat_list
   else
@@ -607,8 +598,8 @@ let diff_pfff_tree_sitter xs =
 (* Rule parsing *)
 (*****************************************************************************)
 
-let test_parse_rules (caps : < Cap.readdir ; .. >) root =
-  let targets = Find_targets_lang.get_target_fpaths caps root Lang.Yaml in
+let test_parse_rules root =
+  let targets = Find_targets_lang.get_target_fpaths root Lang.Yaml in
   targets
   |> List.iter (fun file ->
          Logs.info (fun m -> m "processing %s" !!file);

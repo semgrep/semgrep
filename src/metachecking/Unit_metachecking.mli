@@ -10,4 +10,4 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val tests : < Core_scan.caps ; Cap.readdir ; .. > -> Testo.t list
+val tests : Testo.t list

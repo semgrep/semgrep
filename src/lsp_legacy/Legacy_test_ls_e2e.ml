@@ -57,8 +57,8 @@ type server_info = {
 
 type test_info = { server : server_info; root : Fpath.t }
 
-let create_info caps =
-  let server = Legacy_rpc_server.create caps Legacy_ls.capabilities in
+let create_info () =
+  let server = Legacy_rpc_server.create Legacy_ls.capabilities in
   let handler : Legacy_rpc_server.handler =
     {
       on_request = Legacy_request_handler.on_request;
@@ -739,7 +739,7 @@ let do_search ?(pattern = "print(...)") ?(includes = []) ?(excludes = []) info =
   let%lwt info, matches = gather_matches info resp in
   Lwt.return (info, matches)
 
-let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
+let with_session (f : test_info -> unit Lwt.t) : unit Lwt.t =
   (* Not setting this means that really nasty errors happen when an exception
      is raised inside of an Lwt.async, when running the Alcotests.
      As in, the tests will just exit with no error message at all.
@@ -757,13 +757,13 @@ let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
   Testutil_login.with_login_test_env ~chdir:false
     (fun () ->
       with_git_tmp_path (fun root ->
-          let server_info = create_info caps in
+          let server_info = create_info () in
           let test_info = { server = server_info; root } in
           f test_info))
     ()
 
-let test_ls_specs caps () =
-  with_session caps (fun { server = info; root } ->
+let test_ls_specs () =
+  with_session (fun { server = info; root } ->
       let files = mock_files root in
       let%lwt info = check_startup info [ root ] files in
       let%lwt info =
@@ -885,8 +885,8 @@ let test_ls_specs caps () =
       expect_empty_msg empty;
       Lwt.return_unit)
 
-let test_ls_ext caps () =
-  with_session caps (fun { server = info; root } ->
+let test_ls_ext () =
+  with_session (fun { server = info; root } ->
       let files = mock_files root in
       Testutil_files.with_chdir root (fun () ->
           let%lwt info = check_startup info [ root ] files in
@@ -1002,8 +1002,8 @@ let test_ls_ext caps () =
           ignore info;
           Lwt.return_unit))
 
-let test_ls_multi caps () =
-  with_session caps (fun { server = info; root } ->
+let test_ls_multi () =
+  with_session (fun { server = info; root } ->
       let ( (workspace1_root, workspace1_files),
             (workspace2_root, workspace2_files) ) =
         mock_workspaces root
@@ -1066,8 +1066,8 @@ let test_ls_multi caps () =
       ignore info;
       Lwt.return_unit)
 
-let test_login caps () =
-  with_session caps (fun { server = info; root } ->
+let test_login () =
+  with_session (fun { server = info; root } ->
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
       *)
@@ -1088,16 +1088,16 @@ let test_login caps () =
           ignore info;
           Lwt.return_unit))
 
-let test_ls_no_folders caps () =
-  with_session caps (fun { server = info; _ } ->
+let test_ls_no_folders () =
+  with_session (fun { server = info; _ } ->
       let%lwt info = check_startup info [] [] in
 
       let%lwt info = send_exit info in
       ignore info;
       Lwt.return_unit)
 
-let test_search_includes_excludes caps () =
-  with_session caps (fun { server = info; root } ->
+let test_search_includes_excludes () =
+  with_session (fun { server = info; root } ->
       let files = mock_search_files root in
 
       let%lwt info = check_startup info [ root ] files in
@@ -1180,8 +1180,8 @@ let test_search_includes_excludes caps () =
 
       Lwt.return_unit)
 
-let test_ls_delete_cache caps () =
-  with_session caps (fun { server = info; root } ->
+let test_ls_delete_cache () =
+  with_session (fun { server = info; root } ->
       (* Helpers *)
       (* a string -> Fpath.t helper *)
       let to_fpath_exn (s : string) : Fpath.t =
@@ -1261,38 +1261,36 @@ let pair ?expected_outcome ?skipped ?tags ?tolerate_chdir name func =
     Testo_lwt.create ?tags ?expected_outcome:expected_outcome_lwt ?skipped ~solo
       ?tolerate_chdir name func )
 
-let promise_tests caps =
+let promise_tests () =
   [
-    pair "LS specs" (test_ls_specs caps) ?skipped:Testutil.skip_on_windows
+    pair "LS specs" test_ls_specs ?skipped:Testutil.skip_on_windows
       ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
         will stay log in, which can mangle some of the later tests.
     *)
-    pair "Test LS login" (test_login caps)
+    pair "Test LS login" test_login
       ~skipped:
         {|Keep this test commented out while it is xfail.
 Because logging in is side-effecting, if the test never completes, we
 will stay log in, which can mangle some of the later tests.|}
       ~expected_outcome:
         (Should_fail "TODO: currently failing in js tests in CI");
-    pair "LS /semgrep/search includes/excludes"
-      (test_search_includes_excludes caps)
+    pair "LS /semgrep/search includes/excludes" test_search_includes_excludes
       ?skipped:Testutil.skip_on_windows ~tolerate_chdir:true;
-    pair "LS exts" (test_ls_ext caps) ?skipped:Testutil.skip_on_windows
+    pair "LS exts" test_ls_ext ?skipped:Testutil.skip_on_windows
       ~tolerate_chdir:true;
-    pair "LS with no folders" (test_ls_no_folders caps)
+    pair "LS with no folders" test_ls_no_folders
       ?skipped:Testutil.skip_on_windows;
-    pair "LS multi-workspaces" (test_ls_multi caps)
-      ?skipped:Testutil.skip_on_windows ~tolerate_chdir:true;
-    pair "Test LS cache deletion"
-      (test_ls_delete_cache caps)
+    pair "LS multi-workspaces" test_ls_multi ?skipped:Testutil.skip_on_windows
+      ~tolerate_chdir:true;
+    pair "Test LS cache deletion" test_ls_delete_cache
       ?skipped:Testutil.skip_on_windows;
   ]
   |> List_.split
 
-let tests caps =
-  let sync_promise_tests, _ = promise_tests caps in
+let tests () =
+  let sync_promise_tests, _ = promise_tests () in
   Testo.categorize "Language Server (e2e)" sync_promise_tests
 
 (*
@@ -1301,6 +1299,6 @@ let tests caps =
    or an equivalent call that starts/ends the event loop. This is in fact
    the only reason why Alcotest_lwt and Testo_lwt must exist.
 *)
-let lwt_tests caps =
-  let _, async_promise_tests = promise_tests caps in
+let lwt_tests () =
+  let _, async_promise_tests = promise_tests () in
   Testo_lwt.categorize "Language Server (e2e)" async_promise_tests

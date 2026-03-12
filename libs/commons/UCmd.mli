@@ -10,9 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* You should prefer to use the safer CapExec.ml module. This UCmd module
- * is for Unsafe use of Cmd (hence the name). see TCB/Cap.mli for more info.
- *)
+(* Wrappers around Bos.OS.Cmd to run external commands. *)
 
 val run_subprocess :
   ?env:Cmd.env -> Cmd.t -> (Bos.OS.Cmd.status, [> Rresult.R.msg ]) result

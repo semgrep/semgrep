@@ -23,37 +23,37 @@ let t = Testo.create
 (* Helpers *)
 (*****************************************************************************)
 
-let get_and_check_lwt caps url =
+let get_and_check_lwt url =
   Logs.debug (fun m -> m "GET %s" url);
   let uri = Uri.of_string url in
   (* Check OK Status *)
-  match%lwt Http_helpers.get caps#network uri with
+  match%lwt Http_helpers.get uri with
   | Ok { body = Ok body; _ } -> Lwt.return body
   | Ok { body = Error e; _ }
   | Error e ->
       Alcotest.failf "Error (%s): %s" url e
 
-let post_and_check_lwt caps url body =
+let post_and_check_lwt url body =
   Logs.debug (fun m -> m "POST %s" url);
   let uri = Uri.of_string url in
   (* Check OK Status *)
-  match%lwt Http_helpers.post ~body caps#network uri with
+  match%lwt Http_helpers.post ~body uri with
   | Ok { body = Ok body; _ } -> Lwt.return body
   | Ok { body = Error e; _ }
   | Error e ->
       Alcotest.failf "Error (%s): %s" url e
 
-let get_and_check_multi_lwt ?(parallel = false) caps urls (f : string -> unit) =
+let get_and_check_multi_lwt ?(parallel = false) urls (f : string -> unit) =
   Logs.debug (fun m ->
       m "GET (%s)" (if parallel then "parallel" else "sequential"));
   let iter_fn = if parallel then Lwt_list.iter_p else Lwt_list.iter_s in
   Lwt_platform.run
     (urls
     |> iter_fn (fun url ->
-           let%lwt resp = get_and_check_lwt caps url in
+           let%lwt resp = get_and_check_lwt url in
            Lwt.return (f resp)))
 
-let post_and_check_multi_lwt ?(parallel = false) caps
+let post_and_check_multi_lwt ?(parallel = false)
     (url_body_pairs : (string * string) list) (f : string -> unit) =
   Logs.debug (fun m ->
       m "POST (%s)" (if parallel then "parallel" else "sequential"));
@@ -61,27 +61,25 @@ let post_and_check_multi_lwt ?(parallel = false) caps
   Lwt_platform.run
     (url_body_pairs
     |> iter_fn (fun (url, body) ->
-           let%lwt resp = post_and_check_lwt caps url body in
+           let%lwt resp = post_and_check_lwt url body in
            Lwt.return (f resp)))
 
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
 
-let html_tests caps =
+let html_tests =
   let urls =
     [ "https://www.google.com/"; "https://semgrep.dev/"; "https://github.com/" ]
   in
   let check_fn body =
     Alcotest.(check bool) "Body is not empty" true (String.length body <> 0)
   in
-  let get () = get_and_check_multi_lwt caps urls check_fn in
-  let get_parallel () =
-    get_and_check_multi_lwt ~parallel:true caps urls check_fn
-  in
+  let get () = get_and_check_multi_lwt urls check_fn in
+  let get_parallel () = get_and_check_multi_lwt ~parallel:true urls check_fn in
   Testo.categorize "Basic HTML" [ t "GET" get; t "GET (parallel)" get_parallel ]
 
-let json_tests caps =
+let json_tests =
   let urls =
     [
       "https://api.github.com/";
@@ -95,25 +93,23 @@ let json_tests caps =
       (Yojson.Safe.from_string body
       |> Yojson.Safe.Util.to_assoc |> List.length > 0)
   in
-  let get () = get_and_check_multi_lwt caps urls check_fn in
-  let get_parallel () =
-    get_and_check_multi_lwt ~parallel:true caps urls check_fn
-  in
+  let get () = get_and_check_multi_lwt urls check_fn in
+  let get_parallel () = get_and_check_multi_lwt ~parallel:true urls check_fn in
   Testo.categorize "Basic JSON" [ t "GET" get; t "GET (parallel)" get_parallel ]
 
-let post_tests caps =
+let post_tests =
   let url_body_pairs = [ ("https://postman-echo.com/post", "") ] in
   let check_fn body =
     Alcotest.(check bool) "Body is not empty" true (String.length body <> 0)
   in
-  let post () = post_and_check_multi_lwt caps url_body_pairs check_fn in
+  let post () = post_and_check_multi_lwt url_body_pairs check_fn in
   let post_parallel () =
-    post_and_check_multi_lwt ~parallel:true caps url_body_pairs check_fn
+    post_and_check_multi_lwt ~parallel:true url_body_pairs check_fn
   in
   Testo.categorize "Basic POST"
     [ t "POST" post; t "POST (parallel)" post_parallel ]
 
 (* TODO: We should use the mock network here, so we can re-enable these tests *)
-let tests caps =
+let tests =
   Testo.categorize_suites "OSemgrep Networking"
-    [ html_tests caps; json_tests caps; post_tests caps ]
+    [ html_tests; json_tests; post_tests ]

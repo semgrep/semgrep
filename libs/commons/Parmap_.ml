@@ -93,7 +93,7 @@ let wrap_result f ~exception_handler x =
 (* API *)
 (*****************************************************************************)
 
-let parmap _caps ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs =
+let parmap ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs =
   (* Why do this? The nanny state doesn't trust you to to use parmap AND catch
      all your exceptions. And if you don't catch all your exceptions and one
      happens, then parmap will try to unmarshal your exception into the data

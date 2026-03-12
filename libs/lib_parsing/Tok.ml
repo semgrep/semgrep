@@ -522,7 +522,6 @@ Now I just have
 because I don't use berkeley DB. I use codegraph and an entity_finder
 we just focus on use/def and does not store huge asts on disk.
 
-
 let rec distribute_info_items_toplevel2 xs toks filename =
   match xs with
   | [] -> raise Impossible
@@ -536,7 +535,6 @@ let rec distribute_info_items_toplevel2 xs toks filename =
       | Ast_js.St (Ast_js.Nop None) ->
           distribute_info_items_toplevel2 xs toks filename
       | _ ->
-
 
       let ii = Lib_parsing_php.ii_of_any (Ast.Toplevel ast) in
       (* ugly: I use a fakeInfo for lambda f_name, so I have

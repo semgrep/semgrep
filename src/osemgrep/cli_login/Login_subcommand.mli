@@ -10,17 +10,15 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* Cap.exec because we call the 'open' command line tool to open a URL *)
-type caps = < Cap.stdout ; Cap.network ; Cap.exec >
-
+(* Calls the 'open' command line tool to open a URL in the browser *)
 (*
    Parse a semgrep-login command, execute it and exit.
 
-   Usage: main caps [| "semgrep-login"; ... |]
+   Usage: main [| "semgrep-login"; ... |]
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < caps ; .. > -> string array -> Exit_code.t
+val main : string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < caps ; .. > -> Login_CLI.conf -> Exit_code.t
+val run_conf : Login_CLI.conf -> Exit_code.t

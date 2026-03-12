@@ -48,8 +48,7 @@ module Out = Semgrep_output_v1_t
 let test_find_targets ?expected_outcome ?includes ?(excludes = [])
     ?(non_git_files : F.t list = []) ?(respect_gitignore = true)
     ?(extra_gitignore_patterns_to_exclude_git_untracked_files = [])
-    ?(scanning_root = ".") ~with_git (caps : < Cap.readdir ; .. >) name
-    (files : F.t list) =
+    ?(scanning_root = ".") ~with_git name (files : F.t list) =
   let category = if with_git then "with git" else "without git" in
   let test_func () =
     printf "Test name: %s > %s\n" category name;
@@ -82,7 +81,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
           }
         in
         let targets, errors, skipped_targets =
-          Find_targets.get_target_fpaths caps conf
+          Find_targets.get_target_fpaths conf
             [ Scanning_root.of_fpath (Fpath.v scanning_root) ]
         in
         (match includes with
@@ -116,35 +115,34 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
         Testo.mask_line ~after:"(root-commit) " ~before:"]" ();
       ]
 
-let tests_with_or_without_git caps ~with_git =
+let tests_with_or_without_git ~with_git =
   [
-    test_find_targets caps ~with_git "basic test" [ F.File (".gitignore", "") ];
+    test_find_targets ~with_git "basic test" [ F.File (".gitignore", "") ];
     (* Select file 'a', not 'b' *)
-    test_find_targets caps ~with_git "basic gitignore"
+    test_find_targets ~with_git "basic gitignore"
       [ F.File (".gitignore", "b\n"); F.file "a"; F.file "b" ];
     (* Select file 'a', not 'b' *)
-    test_find_targets caps ~with_git "basic semgrepignore"
+    test_find_targets ~with_git "basic semgrepignore"
       [ F.File (".semgrepignore", "b\n"); F.file "a"; F.file "b" ];
     (* Select file 'a', not 'b' *)
-    test_find_targets caps ~with_git ~excludes:[ "b" ] "basic exclude"
+    test_find_targets ~with_git ~excludes:[ "b" ] "basic exclude"
       [ F.file "a"; F.file "b" ];
     (* Select file 'a', not 'b' *)
-    test_find_targets caps ~with_git ~includes:[ "a" ] "basic include"
+    test_find_targets ~with_git ~includes:[ "a" ] "basic include"
       [ F.file "a"; F.file "b" ];
     (* Select file 'a', not 'b' *)
-    test_find_targets caps ~with_git ~includes:[ "a" ] "deep include"
+    test_find_targets ~with_git ~includes:[ "a" ] "deep include"
       [ F.dir "dir" [ F.file "a"; F.file "b" ] ];
-    test_find_targets caps ~with_git ~scanning_root:"a.py"
-      "scanning root as a file"
+    test_find_targets ~with_git ~scanning_root:"a.py" "scanning root as a file"
       [ F.file "a.py" ];
     (* Select the symlink and not the regular file it's pointing to. *)
-    test_find_targets caps ~with_git ~scanning_root:"a.py"
+    test_find_targets ~with_git ~scanning_root:"a.py"
       "scanning root as a symlink to a regular file"
       [ F.Symlink ("a.py", "b.py"); F.File ("b.py", "some content") ];
-    test_find_targets caps ~with_git ~scanning_root:"a.py"
+    test_find_targets ~with_git ~scanning_root:"a.py"
       "scanning root as a symlink to a missing regular file"
       [ F.Symlink ("a.py", "b.py") ];
-    test_find_targets caps ~with_git ~scanning_root:"link-to-src"
+    test_find_targets ~with_git ~scanning_root:"link-to-src"
       "scanning root as a symlink to a folder"
       [ F.dir "src" [ F.file "a.py" ]; F.Symlink ("link-to-src", "src") ];
     (*
@@ -152,7 +150,7 @@ let tests_with_or_without_git caps ~with_git =
        filters.
     *)
     (* Can't select file 'a' via --include when semgrepignoring its folder. *)
-    test_find_targets caps ~with_git ~includes:[ "*.c" ]
+    test_find_targets ~with_git ~includes:[ "*.c" ]
       "semgrepignore file takes precedence over --include"
       [
         F.File (".semgrepignore", "dir\n");
@@ -162,13 +160,12 @@ let tests_with_or_without_git caps ~with_git =
     (* An explicit target is a scanning root that's also a target file
        and should not be ignored by the usual exclusion mechanisms
        (.semgrepignore, --include, --exclude) *)
-    test_find_targets caps ~with_git ~scanning_root:"a.py"
-      "scan explicit target"
+    test_find_targets ~with_git ~scanning_root:"a.py" "scan explicit target"
       [ F.file "a.py"; F.File (".semgrepignore", "a.py\n") ];
     (* Unspecified behavior: what to do with a scanning root that's
        a symlink to a file that's semgrepignored? Should it be considered
        an explicit target? This test assumes so. We could change it. *)
-    test_find_targets caps ~with_git ~scanning_root:"symlink.py"
+    test_find_targets ~with_git ~scanning_root:"symlink.py"
       "scan symlink to semgrepignored target"
       [
         F.symlink "symlink.py" "semgrepignored.py";
@@ -182,32 +179,32 @@ let tests_with_or_without_git caps ~with_git =
    for the special kind of projects 'Gitignore_project' which is used
    only in some tests.
 *)
-let tests_with_git_only caps =
+let tests_with_git_only () =
   let with_git = true in
   [
     (* Select 'a' and 'c', not 'b'. *)
-    test_find_targets caps ~with_git "gitignore file is always consulted"
+    test_find_targets ~with_git "gitignore file is always consulted"
       ~non_git_files:[ F.file "a"; F.file "b" ]
       [ F.File (".gitignore", "b\n"); F.file "c" ];
     (* Can't select file 'a' via --include when gitignoring its folder. *)
-    test_find_targets caps ~with_git ~includes:[ "a" ]
+    test_find_targets ~with_git ~includes:[ "a" ]
       "gitignore file takes precedence over --include"
       [
         F.File (".gitignore", "dir\n");
         F.dir "dir" [ F.file "a"; F.file "b" ];
         F.file "c";
       ];
-    test_find_targets caps ~with_git "symlinks from git are filtered too"
+    test_find_targets ~with_git "symlinks from git are filtered too"
       [ F.Symlink ("lnk", "missing"); F.File ("a", "some content") ];
-    test_find_targets caps ~with_git "respect gitignore"
+    test_find_targets ~with_git "respect gitignore"
       [ F.File (".gitignore", "package-lock.json\n"); F.file "package.json" ]
       ~non_git_files:[ F.file "package-lock.json" ]
       ~respect_gitignore:true;
-    test_find_targets caps ~with_git "disable gitignore"
+    test_find_targets ~with_git "disable gitignore"
       [ F.File (".gitignore", "package-lock.json\n"); F.file "package.json" ]
       ~non_git_files:[ F.file "package-lock.json" ]
       ~respect_gitignore:false;
-    test_find_targets caps ~with_git "disable gitignore with exclude"
+    test_find_targets ~with_git "disable gitignore with exclude"
       [
         F.File (".gitignore", "package-lock.json\ngarbage\n");
         F.dir "src" [ F.file "package.json" ];
@@ -230,8 +227,8 @@ let tests_with_git_only caps =
         ];
   ]
 
-let tests (caps : < Cap.readdir ; .. >) =
+let tests =
   Testo.categorize "Find_targets"
-    (tests_with_or_without_git caps ~with_git:true
-    @ tests_with_git_only caps
-    @ tests_with_or_without_git caps ~with_git:false)
+    (tests_with_or_without_git ~with_git:true
+    @ tests_with_git_only ()
+    @ tests_with_or_without_git ~with_git:false)

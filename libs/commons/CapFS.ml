@@ -12,7 +12,7 @@
 *)
 open Fpath_.Operators
 
-let readdir (_caps : Cap.FS.readdir) handle = Unix.readdir handle |> Fpath.v
+let readdir handle = Unix.readdir handle |> Fpath.v
 
 (* helpers *)
 
@@ -21,11 +21,11 @@ let with_dir_handle (path : Fpath.t) func =
   Common.protect ~finally:(fun () -> Unix.closedir dir) (fun () -> func dir)
 
 (* Read the names found in a directory, excluding "." and "..". *)
-let read_dir_entries (caps : < Cap.readdir ; .. >) path =
+let read_dir_entries path =
   with_dir_handle path (fun dir ->
       let rec loop acc =
         (* alt: use Sys.readdir which already filters "." and ".." *)
-        match readdir caps#readdir dir with
+        match readdir dir with
         | name
           when Fpath.is_current_dir name (* "." *)
                || Fpath.is_parent_dir name (* ".." *) ->
@@ -40,7 +40,7 @@ let is_empty_dir (path : Fpath.t) : bool =
   Array.length (Sys.readdir !!path) = 0
 
 (* also in Testo.ml, Testutil_files.ml and autofix-printing-stats *)
-let with_chdir (caps : < Cap.chdir ; .. >) (path : Fpath.t) func =
+let with_chdir (path : Fpath.t) func =
   let orig_cwd = Unix.getcwd () in
-  CapSys.chdir caps#chdir !!path;
-  Common.protect ~finally:(fun () -> CapSys.chdir caps#chdir orig_cwd) func
+  Sys.chdir !!path;
+  Common.protect ~finally:(fun () -> Sys.chdir orig_cwd) func

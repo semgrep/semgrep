@@ -22,7 +22,7 @@ module Out = Semgrep_output_v1_j
 
    Partially translated from output.py
 
-   We're using CapConsole.print() below, not Logs.app(), because we want to
+   We're using UConsole.print() below, not Logs.app(), because we want to
    output findings on stdout (Logs.app uses stderr). That also mean semgrep will
    display findings even with --quiet.
 *)
@@ -176,10 +176,9 @@ let format (kind : Output_format.t) (ctx : Out.format_context)
                  in
                  String.concat ":" parts)
 
-let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
-    (ctx : Out.format_context) (cli_output : Out.cli_output)
-    (hrules : Rule.hrules) : unit =
-  let print = CapConsole.print caps#stdout in
+let dispatch_output_format (conf : conf) (ctx : Out.format_context)
+    (cli_output : Out.cli_output) (hrules : Rule.hrules) : unit =
+  let print = UConsole.print in
   match conf.output_format with
   (* matches have already been displayed in a file_match_results_hook *)
   | Incremental -> ()
@@ -190,7 +189,7 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
   | Gitlab_secrets -> format Gitlab_secrets ctx cli_output |> List.iter print
   | Json -> format Json ctx cli_output |> List.iter print
   | Text ->
-      CapConsole.print_no_nl caps#stdout
+      UConsole.print_no_nl
         (Text_output.text_output ~max_chars_per_line:conf.max_chars_per_line
            ~max_lines_per_finding:conf.max_lines_per_finding cli_output)
   | Sarif ->
@@ -236,9 +235,8 @@ let preprocess_result ~fips_mode ~fixed_lines (res : Core_runner_result.t) :
 (* python: mix of output.OutputSettings(), output.OutputHandler(), and
  * output.output() all at once.
  *)
-let output_result (caps : < Cap.stdout >) (conf : conf)
-    (runtime_params : Out.format_context) (profiler : Profiler.t)
-    (res : Core_runner_result.t) : Out.cli_output =
+let output_result (conf : conf) (runtime_params : Out.format_context)
+    (profiler : Profiler.t) (res : Core_runner_result.t) : Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -277,7 +275,7 @@ let output_result (caps : < Cap.stdout >) (conf : conf)
     else cli_output
   in
   (* the actual output on stdout *)
-  dispatch_output_format caps conf runtime_params cli_output res.hrules;
+  dispatch_output_format conf runtime_params cli_output res.hrules;
   (* we return cli_output as the caller might use it *)
   cli_output
 [@@profiling]

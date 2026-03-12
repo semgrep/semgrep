@@ -51,14 +51,6 @@ module A = Test_annotation
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-(* = Cap.tmp is for Pro_scan.caps
- * (no need for Cap.network; the tested rules should be local)
- *)
-type caps = < Cap.stdout ; Core_scan.caps ; Cap.tmp ; Cap.readdir >
-
-(* Core_scan.caps | Pro_scan.caps *)
-type scan_caps = < Core_scan.caps ; Cap.tmp >
-
 (* Rules and targets to test together.
  * Usually the target list contains just one file, but in some cases
  * one rule can be tested on multiple files such as a with a .js and a .ts
@@ -121,12 +113,11 @@ let hook_pro_init : (unit -> unit) Hook.t =
  *    other languages)
  *)
 let hook_pro_scan :
-    (scan_caps ->
-    Core_scan_config.t ->
+    (Core_scan_config.t ->
     [ `Intrafile | `Interfile of Fpath.t ] ->
     Core_result.result_or_exn)
     Hook.t =
-  Hook.create (fun _caps _config _kind ->
+  Hook.create (fun _config _kind ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
 
 (*****************************************************************************)
@@ -134,13 +125,11 @@ let hook_pro_scan :
 (*****************************************************************************)
 
 (* TODO? Move to Rule_tests.ml? *)
-let find_targets_for_rule (caps : < Cap.readdir ; .. >) (rule_file : Fpath.t) :
-    Fpath.t list =
+let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
   let dir, base = Fpath.split_base rule_file in
   (* ex: "useless-if" (without the ".yaml") *)
   let base_no_ext = Fpath.rem_ext base in
-  dir
-  |> CapFS.read_dir_entries caps
+  dir |> CapFS.read_dir_entries
   |> List_.exclude (fun p ->
          Fpath.equal p base || List.mem "fixed" (Fpath_.exts p))
   |> List_.filter_map (fun p ->
@@ -149,19 +138,18 @@ let find_targets_for_rule (caps : < Cap.readdir ; .. >) (rule_file : Fpath.t) :
            Some (dir // p)
          else None)
 
-let rules_and_targets (caps : < Cap.readdir ; .. >)
-    (kind : Test_CLI.target_kind) : (test, error) result list =
+let rules_and_targets (kind : Test_CLI.target_kind) : (test, error) result list
+    =
   match kind with
   | Test_CLI.Dir (dir, None) ->
       (* coupling: similar to Test_engine.test_rules() *)
       let rule_files =
-        [ dir ]
-        |> UFile.files_of_dirs_or_files_no_vcs_nofilter caps
+        [ dir ] |> UFile.files_of_dirs_or_files_no_vcs_nofilter
         |> List.filter Rule_file.is_valid_rule_filename
       in
       rule_files
       |> List_.map (fun (rule_file : Fpath.t) ->
-             match find_targets_for_rule caps rule_file with
+             match find_targets_for_rule rule_file with
              | [] ->
                  (* stricter: (but reported via config_missing_tests in JSON)*)
                  Logs.warn (fun m ->
@@ -333,9 +321,9 @@ let tests_result_of_tests_result (results : t_res list) (errors : error list) :
     config_with_errors = [];
   }
 
-let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
-    (res : Out.tests_result) : unit =
-  let print str = CapConsole.print caps#stdout str in
+let report_tests_result ~matching_diagnosis ~json (res : Out.tests_result) :
+    unit =
+  let print str = UConsole.print str in
   if json then
     let s = Out.string_of_tests_result res in
     print s
@@ -458,7 +446,7 @@ let core_scan_config (conf : Test_CLI.conf) (rules : Rule.t list)
     par_conf = Parallelism_config.Process;
   }
 
-let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
+let run_rules_against_targets_for_engine (env : env) (rules : Rule.t list)
     (targets : Target.t list) : Core_result.t =
   (* old:
    * let xtarget = Test_engine.xtarget_of_file analyzer target in
@@ -468,15 +456,14 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
   let config = core_scan_config env.conf rules targets in
   let res_or_exn : Core_result.result_or_exn =
     match env.engine with
-    | A.OSS -> Core_scan.scan caps config
-    | A.Pro -> (Hook.get hook_pro_scan) (caps :> scan_caps) config `Intrafile
+    | A.OSS -> Core_scan.scan config
+    | A.Pro -> (Hook.get hook_pro_scan) config `Intrafile
     | A.Deep ->
         (* LATER: support also interfile tests where many targets are in
          * a subdir (using the same name than the rule file)
          *)
         let root, _base = Fpath.split_base env.rule_file in
-        (* Pro_scan.caps but can't reference it from OSS/ *)
-        (Hook.get hook_pro_scan) (caps :> scan_caps) config (`Interfile root)
+        (Hook.get hook_pro_scan) config (`Interfile root)
   in
   match res_or_exn with
   | Error exn -> Exception.reraise exn
@@ -707,12 +694,11 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
 (*****************************************************************************)
 
 (* alt: call it run_env? *)
-let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
-    (targets : Target.t list)
+let run_engine (env : env) (rules : Rule.t list) (targets : Target.t list)
     (files_and_annots : (Fpath.t * A.annotations) list) :
     test_result list * fixtest_result list * error list =
   let res : Core_result.t =
-    run_rules_against_targets_for_engine caps env rules targets
+    run_rules_against_targets_for_engine env rules targets
   in
   let expected : (Fpath.t * A.annotations) list =
     files_and_annots
@@ -744,8 +730,8 @@ let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
   (checks, fixtest, errors)
 
 (* run one test using the different engines if --pro *)
-let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
-    (rule_file : Fpath.t) (rules : Rule.t list) (target_fpaths : Fpath.t list) :
+let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
+    (target_fpaths : Fpath.t list) :
     test_result list * fixtest_result list * error list =
   (* note that even one target file can result in different targets
    * if the rules contain multiple analyzers.
@@ -771,7 +757,7 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
 
   let env = { rule_file; target_files; engine = A.OSS; conf } in
   let checks_oss, fixtest_oss, errors_oss =
-    run_engine caps env rules targets files_and_annots
+    run_engine env rules targets files_and_annots
   in
   (* When conf.pro, we should run the engine 3 times:
    *  - with Core_scan and check just the ruleid:
@@ -788,7 +774,7 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
      *)
     let checks_pro, _, errors_pro =
       let env = { env with engine = A.Pro } in
-      run_engine caps env rules targets files_and_annots
+      run_engine env rules targets files_and_annots
     in
     (* adjust rule id to have the --PRO suffix so the different matching results
      * are visible in the JSON
@@ -804,7 +790,7 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
     (* same for deep *)
     let checks_deep, _, errors_deep =
       let env = { env with engine = A.Deep } in
-      run_engine caps env rules targets files_and_annots
+      run_engine env rules targets files_and_annots
     in
     let checks_deep =
       checks_deep
@@ -818,8 +804,8 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
     (checks, fixtest_oss, errors)
   else (checks_oss, fixtest_oss, errors_oss)
 
-let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
-    (tests : test list) : (t_res, error) result list =
+let run_tests (conf : Test_CLI.conf) (tests : test list) :
+    (t_res, error) result list =
   (* LATER: in theory we could use Parmap here or better Domains which
    * would avoid the cost of fork (which is significant when running
    * lots of very small tests like what we have in semgrep-rules/).
@@ -834,7 +820,7 @@ let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
                  m "processing target(s) %s"
                    (target_files |> Fpath_.to_strings |> String.concat ", "));
              let checks, fixtest, errors =
-               run_test caps conf rule_file rules target_files
+               run_test conf rule_file rules target_files
              in
              let successes = (rule_file, checks, fixtest) in
              let errors = List_.map Result.error errors in
@@ -864,7 +850,7 @@ let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
 (*****************************************************************************)
 (* Run the conf *)
 (*****************************************************************************)
-let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
+let run_conf (conf : Test_CLI.conf) : Exit_code.t =
   (* Metrics_.configure Metrics_.On; ?? and allow to disable it?
    * semgrep-rules/Makefile is running semgrep --test with metrics=off
    * (and also --disable-version-check), but maybe because it is used from
@@ -882,13 +868,11 @@ let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
    * TODO: multiple targets analyzed together for --pro interfile analysis.
    *)
   let tests, tests_errors =
-    rules_and_targets caps conf.target |> Result_.partition Fun.id
+    rules_and_targets conf.target |> Result_.partition Fun.id
   in
 
   (* step2: run the tests *)
-  let result, res_errors =
-    run_tests caps conf tests |> Result_.partition Fun.id
-  in
+  let result, res_errors = run_tests conf tests |> Result_.partition Fun.id in
 
   (* step3: report the test results *)
   let res : Out.tests_result =
@@ -899,9 +883,7 @@ let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
    * fixtests, so better to not imitate for now.
    *)
   (* final report *)
-  report_tests_result
-    (caps :> < Cap.stdout >)
-    ~matching_diagnosis ~json:conf.json res;
+  report_tests_result ~matching_diagnosis ~json:conf.json res;
 
   (* step4: compute the exit code *)
 
@@ -926,6 +908,6 @@ let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
+let main (argv : string array) : Exit_code.t =
   let conf = Test_CLI.parse_argv argv in
-  run_conf caps conf
+  run_conf conf

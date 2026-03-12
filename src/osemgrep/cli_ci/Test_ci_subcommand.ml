@@ -60,7 +60,7 @@ type _ Effect.t += Return of string
    blanket effect handlers. Longer-term this test should be re-written in a way
    which it doesn't rely on running 1/2 of something and then making some
    non-local jump before terminating. *)
-let test_sms_scan_id (caps : Ci_subcommand.caps) =
+let test_sms_scan_id () =
   t "sms_scan_id e2e from env to scan request field" (fun () ->
       (* the network mock *)
       let make_response_fn (req : Cohttp.Request.t) (body : Cohttp_lwt.Body.t) =
@@ -87,7 +87,7 @@ let test_sms_scan_id (caps : Ci_subcommand.caps) =
                       Effect.Shallow.(
                         continue_with
                           (fiber (fun () ->
-                               Ci_subcommand.main caps
+                               Ci_subcommand.main
                                  [| "semgrep-ci"; "--experimental" |]))
                           ()
                           {
@@ -131,5 +131,4 @@ let test_sms_scan_id (caps : Ci_subcommand.caps) =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < Ci_subcommand.caps >) =
-  Testo.categorize "Osemgrep ci (e2e)" [ test_sms_scan_id caps ]
+let tests () = Testo.categorize "Osemgrep ci (e2e)" [ test_sms_scan_id () ]

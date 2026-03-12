@@ -254,8 +254,8 @@ let check r =
   | `SCA _ -> (* TODO *) []
   | `Join _ -> (* TODO *) []
 
-let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
-    (rules : Fpath.t list) : Core_error.t list =
+let semgrep_check (metachecks : Fpath.t) (rules : Fpath.t list) :
+    Core_error.t list =
   let match_to_semgrep_error (m : Core_match.t) : Core_error.t =
     let loc, _ = m.range_loc in
     (* TODO use the end location in errors *)
@@ -285,7 +285,7 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
       par_conf = Parallelism_config.create env;
     }
   in
-  let res = Core_scan.scan caps config in
+  let res = Core_scan.scan config in
   match res with
   | Ok result ->
       result.processed_matches
@@ -293,11 +293,10 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
       |> List_.map match_to_semgrep_error
   | Error exn -> Exception.reraise exn
 
-let run_checks (caps : < Core_scan.caps ; Cap.readdir ; .. >)
-    (metachecks : Fpath.t) (xs : Fpath.t list) : Core_error.t list =
+let run_checks (metachecks : Fpath.t) (xs : Fpath.t list) : Core_error.t list =
   let yaml_xs =
     xs
-    |> File_type.files_of_dirs_or_files caps (function
+    |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
   in
@@ -310,7 +309,7 @@ let run_checks (caps : < Core_scan.caps ; Cap.readdir ; .. >)
           m "no valid yaml rules to run on (.test.yaml files are excluded)");
       []
   | _ ->
-      let semgrep_found_errs = semgrep_check caps metachecks rules in
+      let semgrep_found_errs = semgrep_check metachecks rules in
       let ocaml_found_errs =
         rules
         |> List.concat_map (fun file ->
@@ -328,12 +327,9 @@ let run_checks (caps : < Core_scan.caps ; Cap.readdir ; .. >)
       in
       semgrep_found_errs @ ocaml_found_errs
 
-(* for semgrep-core -check_rules, called from pysemgrep --validate
- * caps = Core_scan.caps + Cap.stdout
- *)
-let check_files (caps : < Cap.stdout ; Core_scan.caps ; Cap.readdir ; .. >)
-    (output_format : Core_scan_config.output_format) (input : Fpath.t list) :
-    unit =
+(* for semgrep-core -check_rules, called from pysemgrep --validate *)
+let check_files (output_format : Core_scan_config.output_format)
+    (input : Fpath.t list) : unit =
   let errors =
     match input with
     | []
@@ -342,7 +338,7 @@ let check_files (caps : < Cap.stdout ; Core_scan.caps ; Cap.readdir ; .. >)
           (No_metacheck_file
              "check_rules needs a metacheck file or directory and rules to run \
               on")
-    | metachecks :: xs -> run_checks caps metachecks xs
+    | metachecks :: xs -> run_checks metachecks xs
   in
   match output_format with
   | NoOutput -> ()
@@ -355,14 +351,14 @@ let check_files (caps : < Cap.stdout ; Core_scan.caps ; Cap.readdir ; .. >)
         Core_result.mk_result_with_just_errors errors
       in
       let json = Core_json_output.core_output_of_matches_and_errors res in
-      CapConsole.print caps#stdout (SJ.string_of_core_output json)
+      UConsole.print (SJ.string_of_core_output json)
 
 (* for semgrep-core -stat_rules *)
-let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
+let stat_files xs =
   let generate_prefilter = Prefiltering.File.of_rule ~interfile:false in
   let fullxs =
     xs
-    |> File_type.files_of_dirs_or_files caps (function
+    |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
   in
@@ -392,5 +388,4 @@ let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
              Logs.warn (fun m ->
                  m "stat_files: error in %a: %s" Fpath.pp file
                    (Rule_error.string_of_error e)));
-  CapConsole.print caps#stdout
-    (spf "good = %d, no regexp found = %d" !good !bad)
+  UConsole.print (spf "good = %d, no regexp found = %d" !good !bad)

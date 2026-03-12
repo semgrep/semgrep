@@ -20,10 +20,7 @@ let on_request (session : Legacy_session.t) id _params :
   | Some token ->
       ( session,
         Legacy_lsp_.Reply.later (fun send ->
-            let%lwt deployment =
-              Semgrep_App.deployment_config_async
-                (Auth.cap_token_and_network token (Cap.network_caps_UNSAFE ()))
-            in
+            let%lwt deployment = Semgrep_App.deployment_config_async token in
             match deployment with
             | None ->
                 (* technically this is not the correct thing to respond, this means there was an error

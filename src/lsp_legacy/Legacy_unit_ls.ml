@@ -40,9 +40,9 @@ let setup_git workspace =
     Bos.Cmd.(
       v "git" % "-C" % Fpath.to_string workspace % "checkout" % "-B" % "main")
 
-let mock_session caps =
+let mock_session () =
   let capabilities = Lsp.Types.ServerCapabilities.create () in
-  let session = Legacy_session.create caps capabilities in
+  let session = Legacy_session.create capabilities in
   session
 
 let set_session_targets (session : Legacy_session.t) folders =
@@ -162,9 +162,9 @@ let with_mock_envvars f () =
 (* Tests *)
 (*****************************************************************************)
 
-let session_targets caps =
+let session_targets () =
   let test_session expected workspace_folders only_git_dirty =
-    let session = mock_session caps in
+    let session = mock_session () in
     let user_settings = { session.user_settings with only_git_dirty } in
     let session = { session with user_settings; workspace_folders } in
     let session = set_session_targets session workspace_folders in
@@ -274,7 +274,7 @@ let processed_run () =
   in
   Testo.categorize "Processed Run" tests
 
-let ci_tests caps =
+let ci_tests () =
   let with_ci_client =
     let make_fn (req : Cohttp.Request.t) body =
       ignore body;
@@ -296,7 +296,7 @@ let ci_tests caps =
     Http_mock_client.with_mocked_http make_fn
   in
   let test_cache_session () =
-    let session = mock_session caps in
+    let session = mock_session () in
     Lwt_platform.run (Legacy_session.cache_session session);
     let rules = session.cached_session.rules in
     Alcotest.(check int) "rules" 1 (List.length rules);
@@ -318,6 +318,6 @@ let test_ls_libev () = Lwt_platform.set_engine ()
 let libev_tests =
   Testo.categorize "Lib EV tests" [ t "Test LS with libev" test_ls_libev ]
 
-let tests caps =
+let tests () =
   Testo.categorize_suites "Language Server (unit)"
-    [ session_targets caps; processed_run (); ci_tests caps; libev_tests ]
+    [ session_targets (); processed_run (); ci_tests (); libev_tests ]

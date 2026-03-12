@@ -460,8 +460,7 @@ let webpl_type_of_file file =
 let is_syncweb_obj_file file = !!file =~ ".*md5sum_"
 let is_json_filename filename = !!filename =~ ".*\\.json$"
 
-let files_of_dirs_or_files caps p xs =
-  xs
-  |> UFile.files_of_dirs_or_files_no_vcs_nofilter caps
+let files_of_dirs_or_files p xs =
+  xs |> UFile.files_of_dirs_or_files_no_vcs_nofilter
   |> List.filter (fun filename -> p (file_type_of_file filename))
   |> List_.sort

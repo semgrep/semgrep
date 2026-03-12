@@ -5,7 +5,6 @@
    (:include flags.sexp))
   )
  (libraries
-  TCB
   pyro-caml-instruments
   semgrep.core_cli
   semgrep.osemgrep_cli

@@ -21,7 +21,7 @@
 
    - App: unlike the other levels, this prints ordinary messages without any
      special formatting. Note that this still prints the message on stderr,
-     not stdout (use Console.ml and CapConsole.ml for printing on stdout).
+     not stdout (use Console.ml and UConsole.ml for printing on stdout).
 
    - Error ('err'): error condition that prevent the program from running
      normally.
@@ -105,16 +105,16 @@ val with_setup :
 {v
      $ LOG_TAGS=Match_rules,Core_scan semgrep -e 'Obj.magic' -l ocaml --debug
      ...
-     [00.45][INFO](Core_scan): Analyzing TCB/CapStdlib.ml
+     [00.45][INFO](Core_scan): Analyzing libs/commons/UCmd.ml
      [00.45][INFO](Core_scan): Analyzing tests/parsing/ocaml/attribute_type.ml
-     [00.45][DEBUG](Match_rules): checking TCB/CapStdlib.ml with 1 rules
+     [00.45][DEBUG](Match_rules): checking libs/commons/UCmd.ml with 1 rules
      [00.45][DEBUG](Match_rules): checking tests/parsing/ocaml/attribute_type.ml with 1 rules
-     [00.45][DEBUG](Match_rules): looking for ["Pred",["Idents",["Obj","magic"]]] in TCB/CapStdlib.ml
+     [00.45][DEBUG](Match_rules): looking for ["Pred",["Idents",["Obj","magic"]]] in libs/commons/UCmd.ml
      [00.45][DEBUG](Match_rules): looking for ["Pred",["Idents",["Obj","magic"]]] in tests/parsing/ocaml/attribute_type.ml
      [00.45][DEBUG](Match_rules): skipping rule - for tests/parsing/ocaml/attribute_type.ml
-     [00.45][DEBUG](Match_rules): skipping rule - for TCB/CapStdlib.ml
+     [00.45][DEBUG](Match_rules): skipping rule - for libs/commons/UCmd.ml
      [00.45][DEBUG](Core_scan): done with tests/parsing/ocaml/attribute_type.ml
-     [00.45][DEBUG](Core_scan): done with TCB/CapStdlib.ml
+     [00.45][DEBUG](Core_scan): done with libs/commons/UCmd.ml
      [00.45][INFO](Core_scan): Analyzing tests/parsing/ocaml/basic.mli
      [00.45][INFO](Core_scan): Analyzing src/fixing/tests/Unit_autofix_printer.mli
      [00.45][DEBUG](Match_rules): checking tests/parsing/ocaml/basic.mli with 1 rules

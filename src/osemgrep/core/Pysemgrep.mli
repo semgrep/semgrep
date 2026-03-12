@@ -10,7 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val pysemgrep : < Cap.exec > -> string array -> Exit_code.t
+val pysemgrep : string array -> Exit_code.t
 (** Dispatch to pysemgrep, returning its exit code. On Unix this replaces the
     current process via [execvp] and never returns; on Windows it spawns a
     subprocess and waits for it. *)

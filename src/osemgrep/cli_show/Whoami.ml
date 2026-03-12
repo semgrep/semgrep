@@ -18,17 +18,15 @@ module OutJ = Semgrep_output_v1_j
 
 type identity_kind = Identity | Deployment
 
-let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
-    Exit_code.t =
+let print (kind : identity_kind) : Exit_code.t =
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
   | Some token -> (
-      let caps = Auth.cap_token_and_network token caps in
       match kind with
       | Identity ->
           (* get_identity_async returns the identity string or empty on failure *)
-          let id = Lwt_platform.run (Semgrep_App.get_identity_async caps) in
+          let id = Lwt_platform.run (Semgrep_App.get_identity_async token) in
           if id = "" then (
             Logs.app (fun m ->
                 m "%s Failed to determine identity" (Console.error_tag ()));
@@ -39,7 +37,7 @@ let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
             Exit_code.ok ~__LOC__)
       | Deployment -> (
           let (x : OutJ.deployment_config option) =
-            Lwt_platform.run (Semgrep_App.deployment_config_async caps)
+            Lwt_platform.run (Semgrep_App.deployment_config_async token)
           in
           match x with
           | None ->

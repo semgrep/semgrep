@@ -13,7 +13,7 @@
 (*
    Parse a semgrep-scan command, execute it and exit.
 
-   Usage: main caps [| "semgrep-scan"; ... |]
+   Usage: main [| "semgrep-scan"; ... |]
 
    This function returns an exit code to be passed to the 'exit' function.
 
@@ -21,33 +21,14 @@
    subcommands when using legacy flags (e.g., with 'semgrep scan --test').
 *)
 
-type caps =
-  < Cap.stdout
-  ; Cap.network
-  ; Cap.tmp
-  ; Cap.chdir
-  ; Cap.readdir
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit >
-
-val main : < caps ; .. > -> string array -> Exit_code.t
+val main : string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < caps ; .. > -> Scan_CLI.conf -> Exit_code.t
-val run_scan_conf : < caps ; .. > -> Scan_CLI.conf -> Exit_code.t
+val run_conf : Scan_CLI.conf -> Exit_code.t
+val run_scan_conf : Scan_CLI.conf -> Exit_code.t
 
 (* internal: also used in CI *)
 val check_targets_with_rules :
-  (* caps - network *)
-  < Cap.stdout
-  ; Cap.chdir
-  ; Cap.tmp
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit
-  ; Cap.readdir
-  ; .. > ->
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->

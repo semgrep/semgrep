@@ -74,23 +74,23 @@ let grow_heap goal_bytes =
    This test should print a warning.
    TODO: capture the output and check that the warning is there.
 *)
-let test_stack_warning caps =
-  Memory_limit.run_with_memory_limit caps ~stack_warning_kb:100 ~mem_limit_mb:0
+let test_stack_warning () =
+  Memory_limit.run_with_memory_limit ~stack_warning_kb:100 ~mem_limit_mb:0
     (fun () -> grow_stack 3_000_000)
 
-let test_memory_limit_with_heap caps =
+let test_memory_limit_with_heap () =
   Gc.full_major ();
   try
-    Memory_limit.run_with_memory_limit caps ~mem_limit_mb:10 (fun () ->
+    Memory_limit.run_with_memory_limit ~mem_limit_mb:10 (fun () ->
         (* Ensure the heap grows to over the limit. *)
         grow_heap 11_000_000);
     assert false
   with
   | Memory_limit.ExceededMemoryLimit _ -> (* success *) ()
 
-let test_memory_limit_with_stack caps =
+let test_memory_limit_with_stack () =
   try
-    Memory_limit.run_with_memory_limit caps ~mem_limit_mb:1 (fun () ->
+    Memory_limit.run_with_memory_limit ~mem_limit_mb:1 (fun () ->
         grow_stack 1_500_000);
     assert false
   with
@@ -103,11 +103,11 @@ let skip_if_ocaml_5 tests =
            Testo.update ~skipped:(Some "ocaml 5") test
          else test)
 
-let tests (caps : < Cap.memory_limit >) =
+let tests () =
   [
-    t "stack warning" (fun () -> test_stack_warning caps);
-    t "memory limit (heap)" (fun () -> test_memory_limit_with_heap caps);
-    t "memory limit (stack)" (fun () -> test_memory_limit_with_stack caps);
+    t "stack warning" (fun () -> test_stack_warning ());
+    t "memory limit (heap)" (fun () -> test_memory_limit_with_heap ());
+    t "memory limit (stack)" (fun () -> test_memory_limit_with_stack ());
   ]
   |> Testo.categorize "memory limits"
   |> skip_if_ocaml_5

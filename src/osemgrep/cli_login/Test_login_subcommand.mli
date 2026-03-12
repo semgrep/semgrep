@@ -10,7 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val tests : Login_subcommand.caps -> Testo.t list
+val tests : unit -> Testo.t list
 
 (* to be reused in other tests *)
 

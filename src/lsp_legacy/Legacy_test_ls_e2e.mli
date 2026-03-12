@@ -10,8 +10,8 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-val tests : Legacy_session.caps -> Testo.t list
-val lwt_tests : Legacy_session.caps -> Testo_lwt.t list
+val tests : unit -> Testo.t list
+val lwt_tests : unit -> Testo_lwt.t list
 
 (* Shared with the main test suite.
    TODO: relocate to a more logical library? *)

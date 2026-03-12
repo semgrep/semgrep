@@ -27,15 +27,8 @@ val hook_pro_read_and_validate_partial_scan_results :
   (expected:Fpath.t -> actual:Fpath.t -> bool) option Hook.t
 
 val hook_pro_read_and_upload_partial_scan_results :
-  (< Cap.network ; Auth.cap_token > ->
-  scan_id:int ->
-  partial_results:Fpath.t ->
-  bool)
-  option
-  Hook.t
+  (Auth.token -> scan_id:int -> partial_results:Fpath.t -> bool) option Hook.t
 
 val maybe_merge_partial_scan_results_then_exit : conf -> unit
 val maybe_validate_partial_scan_results_then_exit : conf -> unit
-
-val maybe_upload_partial_scan_results_then_exit :
-  < Cap.network ; Auth.cap_token > -> conf -> unit
+val maybe_upload_partial_scan_results_then_exit : Auth.token -> conf -> unit

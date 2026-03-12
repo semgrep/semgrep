@@ -308,8 +308,8 @@ let parse_program file =
   let res = parse file in
   res.Parsing_result.ast
 
-let program_of_string (caps : < Cap.tmp >) (w : string) : Ast.a_program =
-  CapTmp.with_temp_file caps#tmp ~contents:w ~suffix:".js" parse_program
+let program_of_string (w : string) : Ast.a_program =
+  UTmp.with_temp_file ~contents:w ~suffix:".js" parse_program
 
 (*****************************************************************************)
 (* Sub parsers *)

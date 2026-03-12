@@ -32,10 +32,7 @@ open Common
  *  - Ocolor_format.printf
  *  - UCommon.pr
  *  - ...
- *  - and now UConsole.print() and CapConsole.print too :)
- *
- * (See also TCB/forbid_console.jsonnet for the list of functions we
- * want to forbid to enforce instead the use of this module and CapConsole.ml)
+ *  - and now UConsole.print() too :)
  *
  * One of the goal of this module is to provide another way that can be
  * mocked and grepped and redirected more easily. This is useful
@@ -50,8 +47,7 @@ open Common
  *    and we use Common.pr in too many contexts. The use of a separate
  *    UConsole.print() makes it clear this is intended to be the real output
  *    of the program.
- *  - use directly ANSITerminal.ml but again can't be mocked, does not
- *    play well with capabilities so we need to wrap it anyway (CapConsole.ml),
+ *  - use directly ANSITerminal.ml but again can't be mocked
  *    and does not automatically disable colors depending on a highlight config.
  *  - use Fmt but Format pretty printing is too complex for most use cases
  *    and not really needed.
@@ -69,8 +65,7 @@ open Common
  * The 'Logs_' module depends on this module because logging
  * is done on stderr by default.
  *
- * This module contains the shared part between UConsole.ml and
- * CapConsole.ml
+ * This module contains the shared part used by UConsole.ml
  *
  * Some notes on Windows:
  * The default terminal of Windows does not handle ANSI sequences and so

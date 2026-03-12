@@ -15,9 +15,8 @@ type kernel = Darwin | Linux | Windows | OtherKernel of string
 
 module Log = Log_commons.Log
 
-let arch (caps : < Cap.exec >) =
-  (Cmd.Name "uname", [ "-m" ]) |> CapExec.string_of_run ~trim:true caps#exec
-  |> function
+let arch () =
+  (Cmd.Name "uname", [ "-m" ]) |> UCmd.string_of_run ~trim:true |> function
   | Ok (output, (_, `Exited 0)) -> (
       match String.lowercase_ascii output with
       | "arm" -> Arm
@@ -33,11 +32,10 @@ let arch (caps : < Cap.exec >) =
    target native Windows executables without a cygwin dependency. *)
 let is_windows = Sys.win32
 
-let kernel (caps : < Cap.exec >) =
+let kernel () =
   if is_windows then Windows
   else
-    (Cmd.Name "uname", []) |> CapExec.string_of_run ~trim:true caps#exec
-    |> function
+    (Cmd.Name "uname", []) |> UCmd.string_of_run ~trim:true |> function
     | Ok (output, (_, `Exited 0)) -> (
         match String.lowercase_ascii output with
         | "darwin" -> Darwin

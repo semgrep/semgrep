@@ -76,4 +76,4 @@ val handle_client_message :
     the message structure itself (but not if the message is valid but something
     went wrong while handling it)  *)
 
-val create : Legacy_session.caps -> Lsp.Types.ServerCapabilities.t -> t
+val create : Lsp.Types.ServerCapabilities.t -> t

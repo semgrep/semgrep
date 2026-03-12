@@ -124,7 +124,7 @@ rules:
       "$LHS + res1 SINK(<... res2 ...>) SOURCE()" );
   ]
 
-let test_string_of_formulas _caps =
+let test_string_of_formulas () =
   Testo.categorize "string_of_formulas"
     (string_of_formulas_expectations
     |> List_.map (fun (title, rule, mvars, expected) ->
@@ -159,5 +159,5 @@ let test_string_of_formulas _caps =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests caps =
-  Testo.categorize_suites "Osemgrep reporting" [ test_string_of_formulas caps ]
+let tests =
+  Testo.categorize_suites "Osemgrep reporting" [ test_string_of_formulas () ]

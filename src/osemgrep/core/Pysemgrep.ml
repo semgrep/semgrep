@@ -29,10 +29,10 @@ exception Fallback
 (*************************************************************************)
 
 (* Windows-specific helper to spawn pysemgrep with the given arguments. *)
-let win_spawn_pysemgrep (caps : < Cap.exec >) args : Exit_code.t =
+let win_spawn_pysemgrep args : Exit_code.t =
   let cmd = (Cmd.Name "pysemgrep", args) in
   let env = Some { Cmd.vars = []; inherit_parent_env = true } in
-  match CapExec.run_subprocess ?env caps#exec cmd with
+  match UCmd.run_subprocess ?env cmd with
   | Ok (`Exited n) ->
       Exit_code.of_int ~__LOC__ ~code:n
         ~description:(spf "pysemgrep exited with code %d" n)
@@ -45,7 +45,7 @@ let win_spawn_pysemgrep (caps : < Cap.exec >) args : Exit_code.t =
       Exit_code.of_int ~__LOC__ ~code:127 ~description:msg
 
 (* dispatch back to pysemgrep! *)
-let pysemgrep (caps : < Cap.exec >) argv : Exit_code.t =
+let pysemgrep argv : Exit_code.t =
   Logs.debug (fun m ->
       m "execute pysemgrep: %s"
         (argv |> Array.to_list
@@ -58,9 +58,9 @@ let pysemgrep (caps : < Cap.exec >) argv : Exit_code.t =
      and exits the current one, breaking CLI interactivity. *)
   if Sys.win32 then
     (* argv.(0) is the program name (e.g., ["osemgrep"] or ["osemgrep-pro"]).
-       [CapUnix.execvp] via [Unix.execvp] allows specifying a different process
+       [Unix.execvp] allows specifying a different process
        name from the executable name ["pysemgrep"], in this case. The
-       [Bos.OS.Cmd.run_status] function used via [CapExec.run_subprocess]
+       [Bos.OS.Cmd.run_status] function used via [UCmd.run_subprocess]
        doesn't allow specifying a program name separately.
        But, the ["pysemgrep"] code doesn't seem to be using this program name,
        and it should be safe to drop it to use the [Bos] library. *)
@@ -69,5 +69,5 @@ let pysemgrep (caps : < Cap.exec >) argv : Exit_code.t =
       | [] -> invalid_arg (__FUNCTION__ ^ ": empty argv")
       | _program_name :: args -> args
     in
-    win_spawn_pysemgrep caps args
-  else CapUnix.execvp caps#exec cmd_name argv
+    win_spawn_pysemgrep args
+  else Unix.execvp cmd_name argv

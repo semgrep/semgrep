@@ -10,9 +10,6 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-type caps =
-  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
-
-let start caps =
+let start () =
   Logs.app (fun m -> m "Starting legacy language server");
-  Lwt_platform.run (Legacy_ls.start caps)
+  Lwt_platform.run (Legacy_ls.start ())

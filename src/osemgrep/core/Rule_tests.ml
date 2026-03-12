@@ -124,7 +124,6 @@ let get_config_filenames original_config =
      |> List.filter (fun f -> not (Sys_.is_directory f))
      |> List_.map (Fpath.add_seg path)
 
-
    let get_config_filenames target =
      let does_not_start_with_dot p =
        not (String.starts_with ~prefix:"." (Fpath.basename p))

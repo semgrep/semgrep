@@ -30,19 +30,3 @@ val well_formed : token -> bool
     expected. Currently this just checks if the string is non-empty *)
 
 val equal : token -> token -> bool
-
-(* TODO? rename semgrep_token? *)
-type cap_token = < token : token >
-
-val cap_token_and_network :
-  token -> < Cap.network ; .. > -> < cap_token ; Cap.network >
-
-val cap_token_and_network_and_tmp :
-  token ->
-  < Cap.network ; Cap.tmp ; .. > ->
-  < cap_token ; Cap.network ; Cap.tmp >
-
-val cap_token_and_network_and_tmp_and_exec :
-  token ->
-  < Cap.network ; Cap.tmp ; Cap.exec ; .. > ->
-  < cap_token ; Cap.network ; Cap.tmp ; Cap.exec >
