@@ -7,6 +7,6 @@ class IntegerHexTest {
         int b = 0x1;
 
         // ruleid: java-integer-hex-comparison
-        int c = 0x01; // EXPECTED but currently FAILS
+        int c = 0x01; 
     }
 }

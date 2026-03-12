@@ -73,7 +73,16 @@ let c_octal_opt s =
   else Int64.of_string_opt s
 
 let parse (s, t) = (Int64.of_string_opt s, t)
-let parse_c_octal (s, t) = (c_octal_opt s, t)
+
+let parse_c_octal (s, t) =
+  let value =
+    match c_octal_opt s with
+    | Some v -> Some v
+    | None -> (
+        try Some (Int64.of_string s) with
+        | Failure _ -> None)
+  in
+  (value, t)
 
 let of_float f =
   let iopt =

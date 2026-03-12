@@ -149,6 +149,7 @@ let tests (caps : Cap.all_caps) =
         Unit_memory_limit.tests (caps :> < Cap.memory_limit >);
         Unit_tok.tests;
         Unit_parsed_float.tests;
+        Unit_parsed_int.tests;
         Unit_Ppath.tests;
         Unit_Rpath.tests;
         Unit_git_wrapper.tests;
