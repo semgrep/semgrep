@@ -7,6 +7,7 @@
    semgrep_core
    semgrep.matching
    semgrep.printing
+   telemetry
  )
  (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_profiling))
 )

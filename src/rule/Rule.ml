@@ -230,6 +230,10 @@ type sink_requires =
 
 type by_side_effect = Only | Yes | No [@@deriving show]
 
+type taint_spec_id = string [@@deriving show]
+(** A unique identifier for a taint spec pattern (source, sink, sanitizer, or
+    propagator). See e.g. 'Parse_rule.parse_taint_source'. *)
+
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
  *)
@@ -241,7 +245,7 @@ type taint_spec = {
 }
 
 and taint_source = {
-  source_id : string;  (** See 'Parse_rule.parse_taint_source'. *)
+  source_id : taint_spec_id;
   source_formula : formula;
   source_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `source(...)`, then the
@@ -276,7 +280,7 @@ and taint_source = {
  * because they are a bit confusing to use sometimes.
  *)
 and taint_sanitizer = {
-  sanitizer_id : string;
+  sanitizer_id : taint_spec_id;
   sanitizer_formula : formula;
   sanitizer_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `sanitize(...)`, then
@@ -302,7 +306,7 @@ and taint_sanitizer = {
 }
 
 and taint_sink = {
-  sink_id : string;  (** See 'Parse_rule.parse_taint_sink'. *)
+  sink_id : taint_spec_id;
   sink_formula : formula;
   sink_exact : bool;
       (** If 'true' (the default), if the formula were e.g. `sink(...)`, then the
@@ -332,7 +336,7 @@ and taint_sink = {
  * will also be marked as tainted.
  *)
 and taint_propagator = {
-  propagator_id : string;
+  propagator_id : taint_spec_id;
   propagator_formula : formula;
   propagator_by_side_effect : bool;
   from : Mvar.t wrap;

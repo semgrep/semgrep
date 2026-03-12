@@ -235,6 +235,9 @@ let parse_options rule_id (key : key) value =
 (* Parsers for taint *)
 (*****************************************************************************)
 
+let mk_taint_spec_id env prefix =
+  prefix ^ String.concat ":" env.path ^ ":" ^ Rule_ID.to_string env.id
+
 let parse_by_side_effect env (key : key) x =
   match x.G.e with
   | G.L (String (_, ("true", _), _)) -> Ok R.Yes
@@ -289,7 +292,7 @@ let parse_taint_requires env key x =
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     (Rule.taint_source, Rule_error.t) result =
-  let source_id = "source:" ^ String.concat ":" env.path in
+  let source_id = mk_taint_spec_id env "source:" in
   let parse_from_dict dict f =
     let/ source_exact =
       take_opt dict env parse_bool "exact"
@@ -344,7 +347,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
 
 let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
     (Rule.taint_propagator, Rule_error.t) result =
-  let propagator_id = "propagator:" ^ String.concat ":" env.path in
+  let propagator_id = mk_taint_spec_id env "propagator:" in
   let f =
     if is_old then Parse_rule_formula.parse_formula_old_from_dict
     else Parse_rule_formula.parse_formula_from_dict
@@ -383,7 +386,7 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
   parse_from_dict dict f
 
 let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
-  let sanitizer_id = "sanitizer:" ^ String.concat ":" env.path in
+  let sanitizer_id = mk_taint_spec_id env "sanitizer:" in
   let parse_from_dict dict f =
     let/ sanitizer_exact =
       take_opt dict env parse_bool "exact"
@@ -473,7 +476,7 @@ let parse_taint_sink_mvar_requires env key x =
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     (Rule.taint_sink, Rule_error.t) result =
-  let sink_id = "sink:" ^ String.concat ":" env.path in
+  let sink_id = mk_taint_spec_id env "sink:" in
   let parse_from_dict dict f =
     let/ sink_requires =
       match dict_take_opt dict "requires" with

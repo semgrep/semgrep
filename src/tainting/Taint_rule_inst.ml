@@ -75,6 +75,12 @@ type t = {
       (** Whether the rule requires tracking "control taint". If it does not,
        * then we avoid adding control taint-variables to environment. *)
   preds : Taint_spec_preds.t;
+  stats : Taint_coverage_stats.file_rule_stats;
+      (** Per-file per-rule coverage stats, what sources and what sinks have matched?
+
+        TODO: If we just had the raw_spec_matches here we could easily compute
+            these stats from the matches later.
+        *)
 }
 (** Taint rule instantiated for a given file.
   *

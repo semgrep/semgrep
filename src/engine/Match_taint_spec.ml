@@ -646,13 +646,18 @@ let preds_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file) xconf
     raw_spec_matches_of_taint_rule ~per_file_formula_cache xconf !!(file.path)
       ast_and_errors rule
   in
+  let stats =
+    Taint_coverage_stats.record_taint_spec_matches
+      ~sources:(List_.map snd raw_spec_matches.raw_sources)
+      ~sinks:(List_.map snd raw_spec_matches.raw_sinks)
+  in
   let spec_matches = spec_matches_of_raw (rule :> Rule.rule) raw_spec_matches in
   let preds = mk_taint_spec_match_preds (rule :> Rule.rule) spec_matches in
-  (preds, raw_spec_matches, expls)
+  (preds, stats, raw_spec_matches, expls)
 
 let taint_config_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file)
     xconf ast_and_errors rule =
-  let preds, raw_spec_matches, expls =
+  let preds, stats, raw_spec_matches, expls =
     preds_of_rule ~per_file_formula_cache ~file xconf ast_and_errors rule
   in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
@@ -664,6 +669,7 @@ let taint_config_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file)
         options;
         track_control = rule_needs_to_track_control_taint rule;
         preds;
+        stats;
       },
     raw_spec_matches,
     expls )
@@ -744,16 +750,21 @@ let taint_config_of_group ~per_file_formula_cache ~(file : Taint_rule_inst.file)
     'raw_spec_matches', and the 'expls'. *)
   let raw_spec_matches =
     group_spec_matches
-    |> List_.map (fun (_, raw_spec_matches, _) -> raw_spec_matches)
+    |> List_.map (fun (_, _, raw_spec_matches, _) -> raw_spec_matches)
     |> fold_raw_spec_matches
   in
   let expls =
-    group_spec_matches |> List.concat_map (fun (_, _, expls) -> expls)
+    group_spec_matches |> List.concat_map (fun (_, _, _, expls) -> expls)
   in
   let preds =
     group_spec_matches
-    |> List_.map (fun (preds, _, _) -> preds)
+    |> List_.map (fun (preds, _, _, _) -> preds)
     |> Taint_rule_group.fold_preds
+  in
+  let stats =
+    group_spec_matches
+    |> List_.map (fun (_, stats, _, _) -> stats)
+    |> Taint_coverage_stats.merge_file_rule_stats
   in
   let rule_or_group = `Group group in
   let xconf =
@@ -764,7 +775,7 @@ let taint_config_of_group ~per_file_formula_cache ~(file : Taint_rule_inst.file)
   in
   let options = xconf.config in
   let track_control = rules |> List.exists rule_needs_to_track_control_taint in
-  ( Taint_rule_inst.{ file; rule_or_group; options; track_control; preds },
+  ( Taint_rule_inst.{ file; rule_or_group; options; track_control; preds; stats },
     raw_spec_matches,
     expls )
 [@@trace_trace]
