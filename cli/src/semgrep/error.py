@@ -322,7 +322,16 @@ class InvalidScanningRootError(SemgrepError):
     paths: Sequence[Path]
 
     def __str__(self) -> str:
-        lines = (f"Invalid scanning root: {pathname}" for pathname in self.paths)
+        lines = []
+        for pathname in self.paths:
+            if pathname.is_symlink():
+                lines.append(
+                    f"Invalid scanning root: {pathname} is a symbolic link.\n"
+                    f"  Semgrep skips symbolic links to avoid scanning the same file twice.\n"
+                    f"  Consider passing the target it points to directly: {pathname.resolve()}"
+                )
+            else:
+                lines.append(f"Invalid scanning root: {pathname}")
         return "\n".join(lines)
 
 

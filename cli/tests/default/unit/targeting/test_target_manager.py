@@ -85,6 +85,30 @@ def test_nonexistent(tmp_path, monkeypatch):
 
 
 @pytest.mark.quick
+def test_symlink_scanning_root(tmp_path, monkeypatch):
+    """
+    Test that passing a symlink as a scanning root raises InvalidScanningRootError
+    with a helpful message that mentions 'symbolic link' and the resolved target path.
+    """
+    real_file = tmp_path / "real.py"
+    real_file.touch()
+    symlink = tmp_path / "link.py"
+    symlink.symlink_to(real_file)
+
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(InvalidScanningRootError) as exc_info:
+        TargetManager(
+            scanning_root_strings=frozenset([symlink]),
+        )
+    assert exc_info.value.paths == (symlink,)
+    error_msg = str(exc_info.value)
+    assert "symbolic link" in error_msg
+    assert "link.py" in error_msg
+    assert str(real_file.resolve()) in error_msg
+
+
+@pytest.mark.quick
 def test_delete_git(tmp_path, monkeypatch):
     """
     Check that deleted files are not included in expanded targets
