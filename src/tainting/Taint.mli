@@ -136,7 +136,6 @@ type var =
   | Control_var  (** Polymorphic taint variable, but for the "control-flow". *)
 
 type source = {
-  rule_id : Rule_ID.t;  (** EXPERIMENT: Group taint rules *)
   call_trace : Rule.taint_source call_trace;
   label : string;
       (** The label of this particular taint.
@@ -185,9 +184,6 @@ and orig =
 and taint = { orig : orig; rev_tokens : rev_tainted_tokens }
 (** At a given program location, taint is given by its origin (i.e. 'orig') and
  * the path it took from that origin to the current location (i.e. 'tokens'). *)
-
-val is_valid_taint_for_rule : Rule_ID.t -> taint -> bool
-(** EXPERIMENT: Group taint rules *)
 
 val trace_of_pm : Core_match.t * 'a -> 'a call_trace
 val pm_of_trace : 'a call_trace -> Core_match.t * 'a

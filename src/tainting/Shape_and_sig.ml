@@ -301,13 +301,6 @@ and Effect : sig
         (** The metavariable environment that results of merging the environment from
             matching the source and the one from matching the sink. *)
   }
-  (* EXPERIMENT: Group taint rules
-
-     INVARIANT(taints_to_sink):
-       Taints in 'taints_with_trace' are "valid" for the rule the sink corresponds
-       to, that is, 'taints_with_trace.taint.rule_id = sink.pm.rule_id'.
-       See 'Taint_rule_group.mli'.
-   *)
 
   type taints_to_return = {
     data_taints : Taint.taints;

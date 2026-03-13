@@ -241,12 +241,6 @@ type var =
   | Control_var
 
 type source = {
-  rule_id : Rule_ID.t;
-  (* EXPERIMENT: Group taint rules
-
-    We keep track of rule_id for when we run taint on groups of taint rules.
-    See Taint_rule_group.mli for details. But we use this to distinguish
-    taints that belong to different rules. *)
   call_trace : R.taint_source call_trace;
   label : string;
       (* This is needed because we may change the label of a taint,
@@ -260,13 +254,6 @@ type source = {
 
 and orig = Src of source | Var of var
 and taint = { orig : orig; rev_tokens : rev_tainted_tokens }
-
-(** [is_valid_taint_for_rule rule_id taint] returns [true] if [taint] is valid for the
-    rule with id [rule_id], otherwise returns [false]. *)
-let is_valid_taint_for_rule (rule_id : Rule_ID.t) (taint : taint) : bool =
-  match taint.orig with
-  | Var _ -> true
-  | Src source -> Rule_ID.equal source.rule_id rule_id
 
 (* See NOTE "on compare functions" *)
 let compare_precondition (_ts1, f1) (_ts2, f2) =
@@ -293,39 +280,21 @@ let compare_var v1 v2 =
 
 (* See NOTE "on compare functions" *)
 let compare_source
-    {
-      rule_id = rule_id1;
-      call_trace = call_trace1;
-      label = label1;
-      precondition = precondition1;
-    }
-    {
-      rule_id = rule_id2;
-      call_trace = call_trace2;
-      label = label2;
-      precondition = precondition2;
-    } =
+    { call_trace = call_trace1; label = label1; precondition = precondition1 }
+    { call_trace = call_trace2; label = label2; precondition = precondition2 } =
   (* Comparing metavariable environments this way is not robust, e.g.:
    * [("$A",e1);("$B",e2)] is not considered equal to [("$B",e2);("$A",e1)].
    * For our purposes, this is OK.
    *)
   let pm1, ts1 = pm_of_trace call_trace1
   and pm2, ts2 = pm_of_trace call_trace2 in
-  (* We compare rule ids, because when we run dataflow with a group of rules,
-   * we could have taints that belong to different rules.
-   *
-   * Tean: We could change this comparison in the future. Right now, each
-   * source has a rule id attached to it, but it could be the case that if they
-   * actually correspond to the same source, we could merge them in some way? *)
-  match Rule_ID.compare rule_id1 rule_id2 with
+  match compare_matches pm1 pm2 with
   | 0 -> (
-      match compare_matches pm1 pm2 with
+      let l1 = label1 ^ ts1.R.label in
+      let l2 = label2 ^ ts2.R.label in
+      match String.compare l1 l2 with
       | 0 -> (
-          let l1 = label1 ^ ts1.R.label in
-          let l2 = label2 ^ ts2.R.label in
-          match String.compare l1 l2 with
-          | 0 -> (
-              (* It's important that we include preconditions as a distinguishing factor
+          (* It's important that we include preconditions as a distinguishing factor
              between two taints.
 
              Otherwise, suppose that we had a taint with label A with precondition `false`
@@ -333,15 +302,14 @@ let compare_source
              if we pick the wrong one, we might fallaciously say a taint label finding does
              not actually occur.
           *)
-              match (precondition1, precondition2) with
-              | None, _
-              | _, None ->
-                  (* 'None' here is the same as 'true', although the `requires` of both taints
-                   * may not be the same, in this specific case we consider them "the same",
-                   * see 'pick_best_taint'. *)
-                  0
-              | Some pre1, Some pre2 -> compare_precondition pre1 pre2)
-          | other -> other)
+          match (precondition1, precondition2) with
+          | None, _
+          | _, None ->
+              (* 'None' here is the same as 'true', although the `requires` of both taints
+               * may not be the same, in this specific case we consider them "the same",
+               * see 'pick_best_taint'. *)
+              0
+          | Some pre1, Some pre2 -> compare_precondition pre1 pre2)
       | other -> other)
   | other -> other
 
@@ -377,13 +345,11 @@ let show_var var =
   | Taint_in_shape_var lval -> "'<" ^ show_lval lval ^ ">"
   | Control_var -> "'<control>"
 
-let rec show_source { call_trace; rule_id = _; label; precondition } =
+let rec show_source { call_trace; label; precondition } =
   (* We want to show the actual label, not the originating label.
      This may change, for instance, if we have ever propagated this taint to
      a different label.
   *)
-  (* TODO: Show rule_id? Not showing by default because it clutters debug
-   * output. It could also cause conflicts with snapshot tests. *)
   let pm, ts = pm_of_trace call_trace in
   let matched_str =
     let tok1, tok2 = pm.range_loc in
@@ -753,7 +719,6 @@ let src_of_pm ~incoming ((pm : PM.t), (source : Rule.taint_source)) =
       Some
         (Src
            {
-             rule_id = pm.rule_id.id;
              call_trace = PM (pm, source);
              label = source.label;
              precondition = None;
@@ -767,12 +732,7 @@ let src_of_pm ~incoming ((pm : PM.t), (source : Rule.taint_source)) =
       in
       Some
         (Src
-           {
-             rule_id = pm.rule_id.id;
-             call_trace = PM (pm, source);
-             label = source.label;
-             precondition;
-           })
+           { call_trace = PM (pm, source); label = source.label; precondition })
 
 let taint_of_pm ~incoming pm =
   match src_of_pm ~incoming pm with

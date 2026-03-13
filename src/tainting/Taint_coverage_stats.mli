@@ -31,10 +31,6 @@ val record_taint_spec_matches :
   file_rule_stats
 (** Build per-file per-file stats from raw spec-matches in [Match_taint_spec]. *)
 
-val merge_file_rule_stats : file_rule_stats list -> file_rule_stats
-(** Merge a list of per-file stats into one, summing all match counts.
-    EXPERIMENT: Group taint rules *)
-
 (*****************************************************************************)
 (* Coverage stats (accumulated across files) *)
 (*****************************************************************************)
@@ -56,13 +52,9 @@ type t = (Rule_ID.t, rule_stats) Hashtbl.t
 
 val create : unit -> t
 
-val add :
-  t ->
-  rule_or_group:[ `Rule of Rule_ID.t | `Group of Taint_rule_group.t ] ->
-  file_rule_stats ->
-  unit
-(** [add tbl ~rule_or_group file_rule_stats] accumulates [file_rule_stats] into
-    the stats for the rule identified by [rule_or_group]. *)
+val add : t -> rule:Rule_ID.t -> file_rule_stats -> unit
+(** [add tbl ~rule file_rule_stats] accumulates [file_rule_stats] into
+    the stats for the rule identified by [rule]. *)
 
 val pretty : t -> string
 (** Pretty-print coverage stats.

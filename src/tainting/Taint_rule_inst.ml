@@ -68,8 +68,7 @@ type file = {
 
 type t = {
   file : file;
-  rule_or_group : [ `Rule of Rule_ID.t | `Group of Taint_rule_group.t ];
-      (* EXPERIMENT: Group taint rules. *)
+  rule : Rule_ID.t;
   options : Rule_options.t;
   track_control : bool;
       (** Whether the rule requires tracking "control taint". If it does not,
@@ -99,22 +98,13 @@ let mk_file ~lang ~path ~handle_effects =
   }
 
 let record_timeout t opt_name =
-  let num_rules =
-    match t.rule_or_group with
-    | `Rule _ -> 1
-    | `Group group -> Taint_rule_group.length group
-  in
   match Hashtbl.find_opt t.file.timeouts opt_name with
   | None ->
-      let first_rule =
-        match t.rule_or_group with
-        | `Rule rule_id -> rule_id
-        | `Group group -> fst (Taint_rule_group.first_rule group).id
-      in
-      Hashtbl.add t.file.timeouts opt_name { first_rule; num_rules };
+      Hashtbl.add t.file.timeouts opt_name
+        { first_rule = t.rule; num_rules = 1 };
       ()
   | Some stats ->
-      stats.num_rules <- stats.num_rules + num_rules;
+      stats.num_rules <- stats.num_rules + 1;
       ()
 
 let check_timeouts_and_warn ~interfile file : E.ErrorSet.t =

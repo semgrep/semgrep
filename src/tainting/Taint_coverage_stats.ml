@@ -42,9 +42,6 @@ type file_rule_stats = {
 }
 (** Per-file per-rule stats: source/sink match counts for one rule on one file. *)
 
-let empty_file_rule_stats () =
-  { file_source_stats = SourceMap.empty; file_sink_stats = SinkMap.empty }
-
 let record_taint_spec_matches ~sources ~sinks =
   let incr_count = function
     | None -> Some 1
@@ -65,22 +62,6 @@ let record_taint_spec_matches ~sources ~sinks =
          SinkMap.empty
   in
   { file_source_stats; file_sink_stats }
-
-let merge_file_rule_stats stats_list =
-  stats_list
-  |> List.fold_left
-       (fun stats_acc fr_stats ->
-         {
-           file_source_stats =
-             SourceMap.union
-               (fun _source n1 n2 -> Some (n1 + n2))
-               stats_acc.file_source_stats fr_stats.file_source_stats;
-           file_sink_stats =
-             SinkMap.union
-               (fun _sink n1 n2 -> Some (n1 + n2))
-               stats_acc.file_sink_stats fr_stats.file_sink_stats;
-         })
-       (empty_file_rule_stats ())
 
 (*****************************************************************************)
 (* Rule stats (accumulated across files) *)
@@ -130,17 +111,12 @@ type t = (Rule_ID.t, rule_stats) Hashtbl.t
 
 let create () : t = Hashtbl.create 100
 
-let rule_id_of_rule_or_group = function
-  | `Rule rule_id -> rule_id
-  | `Group group -> fst (Taint_rule_group.first_rule group).Rule.id
-
-let add (stats : t) ~rule_or_group (file_rule_stats : file_rule_stats) =
-  let rule_id = rule_id_of_rule_or_group rule_or_group in
+let add (stats : t) ~rule (file_rule_stats : file_rule_stats) =
   let rule_stats =
-    match Hashtbl.find_opt stats rule_id with
+    match Hashtbl.find_opt stats rule with
     | None ->
         let rule_stats = create_rule_stats () in
-        Hashtbl.add stats rule_id rule_stats;
+        Hashtbl.add stats rule rule_stats;
         rule_stats
     | Some rule_stats -> rule_stats
   in
