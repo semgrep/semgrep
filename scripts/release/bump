@@ -73,6 +73,25 @@ update_pyproject_toml() {
   git add "$target"
 }
 
+update_uv_lock() {
+  target=cli/uv.lock
+  targets+=" $target"
+  echo "Updating $target"
+  (
+    cd cli
+    uv lock
+  )
+  numstat_output=$(git diff --numstat -- "$target")
+  IFS=$'\t' read -r added_lines removed_lines _ <<<"$numstat_output"
+  if [ "$added_lines" != "1" ] || [ "$removed_lines" != "1" ]; then
+    printf '%s\n' "$numstat_output" >&2
+    error <<EOF
+uv lock changed $target beyond the expected one-line replacement.
+EOF
+  fi
+  git add "$target"
+}
+
 # Update files containing the release ID.
 #
 # Ideally this shouldn't modify source files,
@@ -81,6 +100,7 @@ bump() {
   update_init_py
   update_setup_py
   update_pyproject_toml
+  update_uv_lock
   update_version_ml
 }
 
@@ -112,7 +132,7 @@ fi
 
 bump
 
-if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core/Version.ml\|../scripts/run-pro-benchmarks.sh\|cli/pyproject.toml'; then
+if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core/Version.ml\|../scripts/run-pro-benchmarks.sh\|cli/pyproject.toml\|cli/uv.lock'; then
   error <<EOF
 The release branch contains unexpected changes, cancelling release.
 EOF
