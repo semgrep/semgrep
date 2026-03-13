@@ -125,6 +125,26 @@ def download_semgrep_pro(
             shutil.copyfileobj(r_raw, f)
 
 
+# coupling: this function is duplicated in cli/setup.py.
+# Deduplication would require setup.py to import from the semgrep package, which
+# is not ideal
+def linux_detect_libc() -> str:
+    # parses the system's `ldd`'s version check
+    try:
+        result = subprocess.run(
+            ["ldd", "--version"],
+            capture_output=True,
+            text=True,
+        )
+        # musl's ldd prints to stderr, glibc's ldd to stdout
+        out = result.stdout + result.stderr
+        if "musl" in out:
+            return "musl"
+    except Exception:
+        pass
+    return "glibc"
+
+
 def run_install_semgrep_pro() -> None:
     semgrep_pro_path = determine_semgrep_pro_path()
 
@@ -144,27 +164,29 @@ def run_install_semgrep_pro() -> None:
 
     logger.debug(f"platform is {sys.platform}")
     # TODO: cleanup and use consistent arch name like in pro-release.jsonnet
-    if sys.platform.startswith("darwin"):
-        # TODO? other arms than arm64? let's just check a prefix.
-        if platform.machine().startswith("arm"):
+    is_arm = platform.machine().startswith(("arm", "aarch"))
+    libc = linux_detect_libc() if sys.platform == "linux" else ""
+    match (sys.platform, is_arm, libc):
+        case ("darwin", True, _):
             platform_kind = "osx-arm64"
-        else:
+        case ("darwin", False, _):
             platform_kind = "osx-x86_64"
-    elif sys.platform.startswith("linux"):
-        if platform.machine().startswith("arm") or platform.machine().startswith(
-            "aarch"
-        ):
+        case ("linux", True, "glibc"):
+            platform_kind = "manylinux-arm64"
+        case ("linux", False, "glibc"):
+            platform_kind = "manylinux-x86"
+        case ("linux", True, "musl"):
             platform_kind = "linux-arm64"
-        else:
+        case ("linux", False, "musl"):
+            # NOTE: see pro_release.yml as to why this is the musl x86 binary name
             platform_kind = "manylinux"
-    elif sys.platform == "win32":
-        platform_kind = "windows"
-    else:
-        platform_kind = "manylinux"
-        logger.info(
-            "Running on potentially unsupported platform. Installing linux compatible binary"
-        )
-
+        case ("win32", _, _):
+            platform_kind = "windows"
+        case _:
+            platform_kind = "manylinux"
+            logger.info(
+                "Running on potentially unsupported platform. Installing linux compatible binary"
+            )
     # Download the binary into a temporary location, check it, then install it.
     # This should prevent bad installations.
 

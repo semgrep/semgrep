@@ -32,7 +32,9 @@ IS_WINDOWS = platform.system() == "Windows"
 WHEEL_CMD = "bdist_wheel"
 
 
-# parses the system's `ldd`'s version check
+# coupling: this function is duplicated in src/semgrep/commands/install.py.
+# Deduplication would require setup.py to import from the semgrep package, which
+# is not ideal
 def linux_detect_libc():
     try:
         result = subprocess.run(
