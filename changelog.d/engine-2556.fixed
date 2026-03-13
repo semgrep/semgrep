@@ -1,0 +1,1 @@
+Pro: Experimental interfile tainting for Ruby now disambiguates between variable accesses and zero-argument method calls.

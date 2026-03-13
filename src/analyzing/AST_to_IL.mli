@@ -19,9 +19,8 @@ type env
 val empty_ctx : ctx
 (** Creates empty context *)
 
-val add_entity_name : ctx -> AST_generic.ident -> ctx
-(** Appends the string representation of the {!AST_generic.ident} to
-    the set of entity names in {!ctx}  *)
+val build_ctx : Lang.t -> AST_generic.stmt list -> ctx
+(** Builds the {!ctx} needed for an AST_to_IL translation.  *)
 
 val program : Lang.t -> AST_generic.stmt list -> IL.program
 (** Translates a Generic AST program into IL. *)

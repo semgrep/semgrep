@@ -321,14 +321,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
   let (matches, errors), all_taint_time =
     Common.with_time (fun () ->
         (* THINK: Is this needed? Can't we just now check the type of 'n'? *)
-        let ctx = ref AST_to_IL.empty_ctx in
-        Visit_function_defs.visit
-          (fun opt_ent _fdef ->
-            match opt_ent with
-            | Some { name = EN (Id (n, _)); _ } ->
-                ctx := AST_to_IL.add_entity_name !ctx n
-            | __else__ -> ())
-          ast;
+        let ctx = AST_to_IL.build_ctx file.lang ast in
 
         let glob_env, glob_effects =
           OSS_taint_input_env.mk_file_env taint_inst ast
@@ -361,7 +354,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
                       (Option.map IL.str_of_name opt_name ||| "???"));
                 let (_flow, fdef_effects, _mapping), taint_time =
                   Common.with_time (fun () ->
-                      check_fundef taint_inst opt_name !ctx ~glob_env fdef)
+                      check_fundef taint_inst opt_name ctx ~glob_env fdef)
                 in
                 prof_add_taint_time tainting_stats file.path opt_name rule
                   taint_time;

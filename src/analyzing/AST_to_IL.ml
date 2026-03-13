@@ -378,6 +378,20 @@ let mk_class_constructor_name (ty : G.type_) cons_id_info : G.name option =
 let add_entity_name ctx ident : ctx =
   { entity_names = IdentSet.add (H.str_of_ident ident) ctx.entity_names }
 
+let build_ctx lang ast : ctx =
+  (* At this point we only use the ctx on Ruby, to disambiguate
+     variable accesses from zero-argument calls. *)
+  if lang =*= Lang.Ruby then (
+    let ctx = ref empty_ctx in
+    Visit_function_defs.visit
+      (fun opt_ent _fdef ->
+        match opt_ent with
+        | Some { name = EN (Id (n, _)); _ } -> ctx := add_entity_name !ctx n
+        | __else__ -> ())
+      ast;
+    !ctx)
+  else empty_ctx
+
 let def_expr_evaluates_to_value (lang : Lang.t) : bool =
   match lang with
   | Elixir -> true
