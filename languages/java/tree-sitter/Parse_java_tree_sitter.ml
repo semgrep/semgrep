@@ -135,7 +135,8 @@ let inferred_parameters (env : env) ((v1, v2, v3, v4) : CST.inferred_parameters)
     token env v4
     (* ")" *)
   in
-  (v1, v2 :: v3, v4) Int (Parsed_int.parse_c_octal (s, t))
+  (v1, v2 :: v3, v4);
+  Int (Parsed_int.parse_c_octal (s, t))
 
 let multiline_string_fragment (env : env) (x : CST.multiline_string_fragment) =
   match x with
