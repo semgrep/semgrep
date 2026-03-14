@@ -121,22 +121,21 @@ let inferred_parameters (env : env) ((v1, v2, v3, v4) : CST.inferred_parameters)
   in
   let v2 = anon_choice_id_662bcdc env v2 in
   let v3 =
-    List_.map
-      (fun (v1, v2) ->
-        let _v1 =
-          token env v1
-          (* "," *)
-        in
-        let v2 = anon_choice_id_662bcdc env v2 in
-        v2)
-      v3
-  in
-  let v4 =
-    token env v4
-    (* ")" *)
-  in
-  (v1, v2 :: v3, v4);
-  Int (Parsed_int.parse_c_octal (s, t))
+  List_.map
+    (fun (v1, v2) ->
+      let _v1 =
+        token env v1
+        (* "," *)
+      in
+      let v2 = anon_choice_id_662bcdc env v2 in
+      v2)
+    v3
+in
+let v4 =
+  token env v4
+  (* ")" *)
+in
+Int (Parsed_int.parse_c_octal (s, t))
 
 let multiline_string_fragment (env : env) (x : CST.multiline_string_fragment) =
   match x with
