@@ -62,7 +62,7 @@ def get_url_from_sstp_url(sstp_url: Optional[str]) -> Optional[str]:
     parser and rebuilding it into an HTTP/S url
     """
 
-    if sstp_url is None:
+    if not sstp_url:
         return None
     p = Parser(sstp_url)
     result = p.parse()
@@ -165,7 +165,8 @@ class GitMeta:
             )
             if git_parse.returncode != 0:
                 logger.warning(
-                    f"Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project with remote origin defined"
+                    "Unable to infer repo_url. `semgrep ci` must be run from within a git repository with a remote origin defined. "
+                    "Set SEMGREP_REPO_URL to override, or use `semgrep scan` instead."
                 )
             repo_url = git_parse.stdout.strip()
 
