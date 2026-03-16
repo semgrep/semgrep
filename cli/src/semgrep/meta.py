@@ -443,14 +443,14 @@ class GithubMeta(GitMeta):
         """
         Ref name of the branch pull request if from
         """
-        return self.glom_event(T["pull_request"]["head"]["ref"])  # type:ignore
+        return self.glom_event(T["pull_request"]["head"]["ref"])  # type: ignore
 
     @cachedproperty
     def _base_branch_ref(self) -> str:
         """
         Ref name of the branch pull request is merging into
         """
-        return self.glom_event(T["pull_request"]["base"]["ref"])  # type:ignore
+        return self.glom_event(T["pull_request"]["base"]["ref"])  # type: ignore
 
     @cachedproperty
     def base_branch_hash(self) -> Optional[str]:
