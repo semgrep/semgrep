@@ -1,13 +1,13 @@
 from framework import db_access
 
 
-def fn(params):
+def fn1(params):
     params["sql"] = "select value from table where x = %s" % params["test"]
     # ruleid: sql-injection
     db_access.mysql_dict(params)
 
 
-def fn(params):
+def fn2(params):
     # In Pro, with index-sensitivity, this vvv does not sanitize 'params' but just `params["sql"]`!
     params["sql"] = "select value from table where x = %s" % db_access.escape(
         params["test"]
@@ -16,7 +16,7 @@ def fn(params):
     db_access.mysql_dict(params)
 
 
-def fn(params):
+def fn3(params):
     # In Pro, with index-sensitivity, this vvv does not sanitize 'params' but just `params["sql"]`!
     params["sql"] = "select xyz from table"  # 'params' is sanitized here
     # protodook: ok: sql-injection
@@ -33,7 +33,7 @@ def fn(params):
         db_access.mysql_update(params)
 
 
-def fn(params):
+def fn4(params):
     # In Pro, with index-sensitivity, this vvv does not sanitize 'params' but just `params["name"]`!
     params["name"] = "test"  # 'params' is sanitized here
     params["sql"] = "select * from params where name = %(name)s" % params
@@ -41,7 +41,7 @@ def fn(params):
     db_access.mysql_update(params)
 
 
-def fn(params):
+def fn5(params):
     alt = params
 
     params["sql"] = "select * from params where name = %(name)s" % alt
@@ -49,7 +49,7 @@ def fn(params):
     db_access.mysql_update(params)
 
 
-def fn(params):
+def fn6(params):
     alt = params
     params["name"] = "x"  # 'params' is sanitized here
     params["sql"] = "select * from params where name = %(name)s" % alt
@@ -60,7 +60,7 @@ def fn(params):
     db_access.mysql_update(params)
 
 
-def fn(params):
+def fn7(params):
     alt = params.copy()
     params["name"] = "x"
 
