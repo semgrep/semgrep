@@ -13,7 +13,7 @@ def test2():
     #ruleid: test
     sink()
 
-def test2():
+def test3():
   if foo():
     source()
   bar()
