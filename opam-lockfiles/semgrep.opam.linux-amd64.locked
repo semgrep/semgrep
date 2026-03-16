@@ -236,10 +236,10 @@ depends: [
   "timedesc" {= "3.1.0"}
   "timedesc-tzdb" {= "3.1.0"}
   "timedesc-tzlocal" {= "3.1.0"}
-  "tls" {= "2.0.3"}
-  "tls-eio" {= "2.0.3"}
-  "tls-lwt" {= "2.0.3"}
-  "tls-mirage" {= "2.0.3"}
+  "tls" {= "2.0.4"}
+  "tls-eio" {= "2.0.4"}
+  "tls-lwt" {= "2.0.4"}
+  "tls-mirage" {= "2.0.4"}
   "topkg" {= "1.1.1"}
   "tree-sitter" {= "dev"}
   "tsort" {= "2.2.0"}
