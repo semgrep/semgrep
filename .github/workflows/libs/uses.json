@@ -15,6 +15,9 @@
       "setup-python": "v5",
       "upload-artifact": "v4"
     },
+    "anthropics":{
+      "claude-code-action": "v1"
+    },
     "astral-sh": {
       "setup-uv": "v7"
     },
@@ -51,7 +54,8 @@
       "gh-action-pypi-publish": "v1.13.0"
     },
     "semgrep": {
-      "setup-ocaml": "latest"
+      "setup-ocaml": "latest",
+      "claude-taskmaster": "v0.1.1"
     },
     "slackapi": {
       "slack-github-action": "v1.23.0"

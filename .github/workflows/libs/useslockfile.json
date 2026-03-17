@@ -15,6 +15,9 @@
       "setup-python": "a26af69be951a213d495a4c3e4e4022e16d87065",
       "upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02"
     },
+    "anthropics": {
+      "claude-code-action": "cd77b50d2b0808657f8e6774085c8bf54484351c"
+    },
     "astral-sh": {
       "setup-uv": "6ee6290f1cbc4156c0bdd66691b2c144ef8df19a"
     },
@@ -51,6 +54,7 @@
       "gh-action-pypi-publish": "ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e"
     },
     "semgrep": {
+      "claude-taskmaster": "db18f502a8ea22de153bb33084eec8a5fe3d3960",
       "setup-ocaml": "ce6a88f72f48e02a172c93eb93177b21659e7032"
     },
     "slackapi": {
