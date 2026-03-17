@@ -535,11 +535,6 @@ let log_scan_inputs (config : Core_scan_config.t) ~targets ~errors ~skipped
 
 let log_scan_results (config : Core_scan_config.t) (res : Core_result.t)
     ~scanned_targets ~skipped_targets =
-  (* TODO: delete this comment and -stat_matches.
-   * note: uncomment the following and use semgrep-core -stat_matches
-   * to debug too-many-matches issues.
-   * Common2.write_value matches "/tmp/debug_matches";
-   *)
   let num_matches = List.length res.processed_matches in
   let num_errors = List.length res.errors in
   config.telemetry
