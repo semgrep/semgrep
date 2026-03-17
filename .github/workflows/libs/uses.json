@@ -55,7 +55,7 @@
     },
     "semgrep": {
       "setup-ocaml": "latest",
-      "claude-taskmaster": "v0.1.1"
+      "claude-taskmaster": "v0.1.6"
     },
     "slackapi": {
       "slack-github-action": "v1.23.0"
