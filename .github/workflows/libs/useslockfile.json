@@ -54,7 +54,7 @@
       "gh-action-pypi-publish": "ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e"
     },
     "semgrep": {
-      "claude-taskmaster": "db18f502a8ea22de153bb33084eec8a5fe3d3960",
+      "claude-taskmaster": "e1257e01e0b87b9eaad37f8b83ff3d66abe14e9f",
       "setup-ocaml": "ce6a88f72f48e02a172c93eb93177b21659e7032"
     },
     "slackapi": {
