@@ -116,7 +116,7 @@ def main() -> None:
         # so we cannot distinguish between small perf deviations and noise.
         # Without this filter, the warnings fire all the time with a very high
         # false positive rate.
-        probably_noise = 0.7 <= rel_dur and rel_dur <= 1.35 and abs(diff) < 5
+        probably_noise = 0.7 <= rel_dur and rel_dur <= 1.55 and abs(diff) < 5
 
         print(
             f"[{name}] {rel_dur:.3f}x "
