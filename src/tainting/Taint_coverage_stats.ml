@@ -225,13 +225,14 @@ let record_summary_in_span summary span =
   Tracing.add_data_to_span span
     [
       ("lang", `String (Lang.to_string summary.lang));
-      ( "taint.pro.coverage.may_produce_findings",
+      ( "taint.interfile.coverage.may_produce_findings",
         `Int summary.may_produce_findings );
-      ("taint.pro.coverage.somewhat_relevant", `Int summary.somewhat_relevant);
-      ( "taint.pro.coverage.sources_but_no_sinks",
+      ( "taint.interfile.coverage.somewhat_relevant",
+        `Int summary.somewhat_relevant );
+      ( "taint.interfile.coverage.sources_but_no_sinks",
         `Int summary.sources_but_no_sinks );
-      ( "taint.pro.coverage.sinks_but_no_sources",
+      ( "taint.interfile.coverage.sinks_but_no_sources",
         `Int summary.sinks_but_no_sources );
-      ( "taint.pro.coverage.no_sources_no_sinks",
+      ( "taint.interfile.coverage.no_sources_no_sinks",
         `Int summary.no_sources_no_sinks );
     ]
