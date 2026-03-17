@@ -203,11 +203,6 @@ let dump_ast ?(naming = false) (lang : Lang.t) (file : Fpath.t) =
 (* also used in semgrep-pro *)
 let output_core_results (result_or_exn : Core_result.result_or_exn)
     (config : Core_scan_config.t) : unit =
-  (* TODO: delete this comment and -stat_matches
-   * note: uncomment the following and use semgrep-core -stat_matches
-   * to debug too-many-matches issues.
-   * Common2.write_value matches "/tmp/debug_matches";
-   *)
   match config.output_format with
   (* note that the dots have been displayed before in Core_scan.scan ()
    * for pysemgrep. Here we print the matches (and errors).
