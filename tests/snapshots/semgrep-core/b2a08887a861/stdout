@@ -19,44 +19,44 @@
                         (ExprStmt (
                            { e =
                              (Call (
-                                { e = (Special ((Op Minus), _)); e_id = 0;
-                                  e_range = None; is_implicit_return = false;
+                                { e =
+                                  (Special ((IncrDecr (Incr, Postfix)), _));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
                                   facts = <opaque> },
                                 (_,
                                  [(Arg
                                      { e =
-                                       (Call (
-                                          { e =
-                                            (Special
-                                               ((IncrDecr (Incr, Postfix)), _));
-                                            e_id = 0; e_range = None;
-                                            is_implicit_return = false;
-                                            facts = <opaque> },
-                                          (_,
-                                           [(Arg
-                                               { e =
-                                                 (N
-                                                    (Id (("a", _),
-                                                       { id_resolved =
-                                                         ref (None);
-                                                         id_resolved_alternatives =
-                                                         ref ([]);
-                                                         id_type = ref (None);
-                                                         id_svalue =
-                                                         ref (None);
-                                                         id_flags = ref (0);
-                                                         id_info_id = _ }
-                                                       )));
-                                                 e_id = 0; e_range = None;
-                                                 is_implicit_return = false;
-                                                 facts = <opaque> })
-                                             ],
-                                           _)
-                                          ));
+                                       (N
+                                          (Id (("a", _),
+                                             { id_resolved = ref (None);
+                                               id_resolved_alternatives =
+                                               ref ([]);
+                                               id_type = ref (None);
+                                               id_svalue = ref (None);
+                                               id_flags = ref (0);
+                                               id_info_id = _ }
+                                             )));
                                        e_id = 0; e_range = None;
                                        is_implicit_return = false;
-                                       facts = <opaque> });
-                                   (Arg
+                                       facts = <opaque> })
+                                   ],
+                                 _)
+                                ));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           _));
+                        s_range = None };
+                       { s =
+                         (ExprStmt (
+                            { e =
+                              (Call (
+                                 { e = (Special ((Op Minus), _)); e_id = 0;
+                                   e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> },
+                                 (_,
+                                  [(Arg
                                       { e =
                                         (N
                                            (Id (("a", _),
@@ -71,13 +71,13 @@
                                         e_id = 0; e_range = None;
                                         is_implicit_return = false;
                                         facts = <opaque> })
-                                   ],
-                                 _)
-                                ));
-                             e_id = 0; e_range = None;
-                             is_implicit_return = false; facts = <opaque> },
-                           _));
-                        s_range = None };
+                                    ],
+                                  _)
+                                 ));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            _));
+                         s_range = None };
                        { s =
                          (ExprStmt (
                             { e =

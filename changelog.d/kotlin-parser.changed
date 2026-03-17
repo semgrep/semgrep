@@ -1,0 +1,1 @@
+The Kotlin tree-sitter parser has been updated to the latest available grammar significantly improving Kotlin support in Semgrep.
