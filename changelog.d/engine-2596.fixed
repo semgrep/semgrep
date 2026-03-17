@@ -1,1 +1,0 @@
-Pro: Memoize tsconfig.json parsing to avoid redundant re-parsing across a project hierarchy.

@@ -1529,7 +1529,7 @@ wheels = [
 
 [[package]]
 name = "semgrep"
-version = "1.153.0"
+version = "1.156.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
