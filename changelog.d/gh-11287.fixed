@@ -1,0 +1,1 @@
+Fix Python parsing for files that contains empty strings (or quotes in docstrings) along with match statements.
