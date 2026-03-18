@@ -76,7 +76,9 @@ class SemgrepError(Exception):
     # - __post_init__ is an initialization method called by @dataclasses.
     # - __attrs_post_init__ is an initialization method called by @attrs.
     #
-    def __init__(
+    # noqa: B042 — kwargs are intentionally stored as instance attributes
+    # and not forwarded to Exception.__init__(), which doesn't accept them.
+    def __init__(  # noqa: B042
         self,
         *args: object,
         code: int = FATAL_EXIT_CODE,
@@ -544,7 +546,9 @@ class DependencyResolutionSemgrepError(SemgrepError):
     An error that occurred during dependency resolution.
     """
 
-    def __init__(
+    # noqa: B042 — kwargs are intentionally stored as instance attributes
+    # and not forwarded to Exception.__init__(), which doesn't accept them.
+    def __init__(  # noqa: B042
         self,
         *args: object,
         type_: out.ResolutionErrorKind,

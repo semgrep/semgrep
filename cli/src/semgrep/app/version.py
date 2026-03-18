@@ -267,7 +267,7 @@ def get_no_findings_msg() -> Optional[str]:
     if not state.env.with_new_cli_ux:
         return base_msg
     msg = re.sub("\n(\n+)?", "\\1\n   ", base_msg)
-    groups = re.split(r"\s+(?=https:)", msg, 1)
+    groups = re.split(r"\s+(?=https:)", msg, maxsplit=1)
     if len(groups) == 2:
         pretty_url = with_color(Colors.cyan, f"{groups[1]}", underline=True)
         return f"\n✨ {groups[0]} {pretty_url}"
