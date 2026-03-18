@@ -18,7 +18,6 @@ import pytest
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
-from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
@@ -42,7 +41,6 @@ from semdep.parsers.yarn import parse_yarn
             ("go.mod", DependencyParser(parse_go_mod)),
             ("gradle.lockfile", DependencyParser(parse_gradle)),
             ("maven_dep_tree.txt", DependencyParser(parse_pom_tree)),
-            ("package-lock.json", DependencyParser(parse_package_lock)),
             ("poetry.lock", DependencyParser(parse_poetry)),
             ("requirements.txt", DependencyParser(parse_requirements)),
             ("yarn.lock", DependencyParser(parse_yarn)),

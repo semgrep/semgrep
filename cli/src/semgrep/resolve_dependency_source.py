@@ -31,7 +31,6 @@ from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
 from semdep.parsers.mix import parse_mix
-from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.packages_lock_c_sharp import (
     parse_packages_lock as parse_packages_lock_c_sharp,
 )
@@ -72,7 +71,7 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] 
     out.LockfileKind(out.PipRequirementsTxt()): DependencyParser(parse_requirements),
     out.LockfileKind(out.PoetryLock()): DependencyParser(parse_poetry),
     out.LockfileKind(out.UvLock()): None,
-    out.LockfileKind(out.NpmPackageLockJson()): DependencyParser(parse_package_lock),
+    out.LockfileKind(out.NpmPackageLockJson()): None,
     out.LockfileKind(out.YarnLock()): DependencyParser(parse_yarn),
     out.LockfileKind(out.PnpmLock()): DependencyParser(parse_pnpm),
     out.LockfileKind(out.GemfileLock()): DependencyParser(parse_gemfile),
@@ -658,31 +657,6 @@ def group_packages_by_name_version_and_line_number(
     return packages
 
 
-def find_root_package_heuristic(
-    resolved_deps: List[out.ResolvedDependency],
-) -> Optional[out.ResolvedDependency]:
-    """Heuristic to identify root package resolved by Python npm lockfile parser.
-
-    The Python parser for npm lockfile v3 includes the root package, which the
-    OCaml parser doesn't. We implement a heuristic to identify the root package
-    in the Python parser results, so that we can ignore it in comparisons.
-    """
-    resolved = sorted(resolved_deps, key=lambda r: get_line_number(r))
-    if resolved:
-        first, _ = resolved[0].value
-        transitive = out.DependencyKind(out.Transitive())
-        # NOTE: It's quite unlikely that the first package resolved by other
-        # parsers would be a transitive dependency. So, this shouldn't be a
-        # problem with other parsers too.
-        if (
-            not first.allowed_hashes
-            and first.resolved_url is None
-            and first.transitivity == transitive
-        ):
-            return resolved[0]
-    return None
-
-
 def dependency_resolution_is_at_least_as_accurate(
     py: DependencyResolutionResult,
     ml: DependencyResolutionResult,
@@ -704,27 +678,10 @@ def dependency_resolution_is_at_least_as_accurate(
     pr.check_eq(set(py.errors), set(ml.errors), "Parser errors")
     pr.check_eq(set(py.targets), set(ml.targets), "Parser targets")
     pr.check_eq(py_res_meth, ml_res_meth, "Parser resolution method")
-    pr.check_gte(len(py_resolved), len(ml_resolved), "Number of resolved dependencies")
+    pr.check_eq(len(py_resolved), len(ml_resolved), "Number of resolved dependencies")
 
     py_resolved_nvs = set(name_version_tuple(r) for r in py_resolved)
     ml_resolved_nvs = set(name_version_tuple(r) for r in ml_resolved)
-    py_extra_nvs = py_resolved_nvs - ml_resolved_nvs
-    # TODO: This if block exists only to handle the presence of the root
-    # package in the Python npm lockfile parser. We can get rid of this
-    # entirely once the Python npm lockfile parser is gone!
-    if py_extra_nvs:
-        pr.check_eq(
-            1,
-            len(py_extra_nvs),
-            "Number of extra name/version pairs in Python parser result",
-        )
-        # If Python parser has resolved extra name/versions, check if it's the
-        # root package (heuristically) and ignore it if so
-        root_py = find_root_package_heuristic(py_resolved)
-        if root_py:
-            nv = name_version_tuple(root_py)
-            py_resolved_nvs.remove(nv)
-
     pr.check_eq(
         py_resolved_nvs,
         ml_resolved_nvs,
