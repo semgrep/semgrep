@@ -19,7 +19,6 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 PTT_OCAML_PARSER_SUBPROJECT_KINDS: List[SubprojectKind] = [
-    (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
     (out.ManifestKind(out.Csproj()), out.LockfileKind(out.NugetPackagesLockJson())),
     (out.ManifestKind(out.BuildGradle()), out.LockfileKind(out.GradleLockfile())),
     (out.ManifestKind(out.BuildGradleKts()), out.LockfileKind(out.GradleLockfile())),
@@ -72,7 +71,10 @@ TR_OCAML_RESOLVER_SUBPROJECT_KINDS: List[SubprojectKind] = [
 
 # Subproject kinds that we use ocaml parsers for always.
 ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS: List[SubprojectKind] = [
-    (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock()))
+    # NOTE: Allow no manifest for npm package-lock in tests.
+    (None, out.LockfileKind(out.NpmPackageLockJson())),
+    (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
+    (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
 ]
 
 # All subproject kinds that are supported for transitive reachability, regardless
