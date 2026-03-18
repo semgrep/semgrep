@@ -60,6 +60,7 @@ from attrs import Factory, define, field, frozen
 from wcmatch import glob
 
 from semgrep.constants import TOO_MUCH_DATA, UNSUPPORTED_EXT_IGNORE_LANGS, Colors
+from semgrep.core_output import core_error_to_semgrep_error
 from semgrep.error import InvalidScanningRootError, SemgrepCoreError
 from semgrep.formatter.text import BASE_WIDTH as width
 from semgrep.semgrep_types import LANGUAGE, FileExtension, Language, Shebang
@@ -759,7 +760,9 @@ class ScanningRoot:
             )
             for x in res.target_paths
         )
-        # TODO: check for errors?
+        for err in res.errors:
+            semgrep_err = core_error_to_semgrep_error(err)
+            logger.warning(f"Target discovery error: {semgrep_err}")
         return TargetScanResult(
             selected_files=target_paths,
             files_with_insufficient_permissions=frozenset(),
