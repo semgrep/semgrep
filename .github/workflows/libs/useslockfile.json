@@ -16,13 +16,13 @@
       "upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02"
     },
     "anthropics": {
-      "claude-code-action": "cd77b50d2b0808657f8e6774085c8bf54484351c"
+      "claude-code-action": "1b422b3517b51140e4484faab676c5e68b914866"
     },
     "astral-sh": {
-      "setup-uv": "6ee6290f1cbc4156c0bdd66691b2c144ef8df19a"
+      "setup-uv": "37802adc94f370d6bfd71619e3f0bf239e1f3b78"
     },
     "aws-actions": {
-      "amazon-ecr-login": "062b18b96a7aff071d4dc91bc00c4c1a7945b076",
+      "amazon-ecr-login": "c962da2960ed15f492addc26fffa274485265950",
       "configure-aws-credentials": "7474bc4690e29a8392af63c5b98e7449536d5c3a"
     },
     "cachix": {
@@ -61,7 +61,7 @@
       "slack-github-action": "007b2c3c751a190b6f0f040e47ed024deaa72844"
     },
     "softprops": {
-      "action-gh-release": "a06a81a03ee405af7f2048a818ed3f03bbf83c7b"
+      "action-gh-release": "153bb8e04406b158c6c84fc1615b65b24149a1fe"
     },
     "tibdex": {
       "github-app-token": "3beb63f4bd073e61482598c45c71c1019b59b73a"
