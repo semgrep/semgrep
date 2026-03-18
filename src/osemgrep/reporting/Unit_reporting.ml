@@ -155,9 +155,48 @@ let test_string_of_formulas () =
                          (spf "could not parse or more than one rule for %s"
                             title)))))
 
+let test_truncate_sarif_id () =
+  Testo.categorize "truncate_sarif_id"
+    [
+      t "short id unchanged" (fun () ->
+          let id = "rules.my-rule" in
+          Alcotest.(check string)
+            __LOC__ id
+            (Sarif_output.truncate_sarif_id id));
+      t "exactly 255 chars unchanged" (fun () ->
+          let id = String.make 255 'a' in
+          Alcotest.(check string)
+            __LOC__ id
+            (Sarif_output.truncate_sarif_id id));
+      t "256 chars truncated to 255" (fun () ->
+          let id = String.make 256 'a' in
+          let result = Sarif_output.truncate_sarif_id id in
+          Alcotest.(check int)
+            __LOC__ 255
+            (String.length result));
+      t "very long id truncated to 255" (fun () ->
+          let id = String.make 400 'x' in
+          let result = Sarif_output.truncate_sarif_id id in
+          Alcotest.(check int)
+            __LOC__ Sarif_output.max_sarif_id_length
+            (String.length result));
+      t "distinct long ids produce distinct results" (fun () ->
+          let id_a = String.make 300 'a' in
+          let id_b = String.make 300 'b' in
+          let result_a = Sarif_output.truncate_sarif_id id_a in
+          let result_b = Sarif_output.truncate_sarif_id id_b in
+          Alcotest.(check bool) __LOC__ false (String.equal result_a result_b));
+      t "deterministic" (fun () ->
+          let id = String.make 300 'z' in
+          let r1 = Sarif_output.truncate_sarif_id id in
+          let r2 = Sarif_output.truncate_sarif_id id in
+          Alcotest.(check string) __LOC__ r1 r2);
+    ]
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let tests =
-  Testo.categorize_suites "Osemgrep reporting" [ test_string_of_formulas () ]
+  Testo.categorize_suites "Osemgrep reporting"
+    [ test_string_of_formulas (); test_truncate_sarif_id () ]

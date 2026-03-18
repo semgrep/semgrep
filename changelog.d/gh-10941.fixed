@@ -1,0 +1,1 @@
+Truncate SARIF rule identifiers to 255 characters so that output can be uploaded to GitHub code scanning without errors

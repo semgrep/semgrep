@@ -37,6 +37,21 @@ module Sarif = Sarif.Sarif_v_2_1_0_v
 (* Helpers *)
 (*****************************************************************************)
 
+(* GitHub's SARIF upload enforces a maximum identifier length of 255.
+   See https://github.com/semgrep/semgrep/issues/10941 *)
+let max_sarif_id_length = 255
+
+(* Truncate a SARIF identifier to [max_sarif_id_length] characters. When
+   truncation is needed we keep a prefix and append a short hash so that
+   distinct long IDs are unlikely to collide. *)
+let truncate_sarif_id (id : string) : string =
+  if String.length id <= max_sarif_id_length then id
+  else
+    let hash = Digest.string id |> Digest.to_hex in
+    let hash_suffix = Str.first_chars hash 8 in
+    let prefix_len = max_sarif_id_length - 1 - String.length hash_suffix in
+    Str.first_chars id prefix_len ^ "-" ^ hash_suffix
+
 (* SARIF v2.1.0-compliant severity string.
  * See the "level" property in the spec
  * See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
@@ -136,7 +151,9 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
    * including the severity of the finding is stored within "rules".
    * The results then reference the ID of the rule
    *)
-  let rule_id_str = Rule_ID.to_string (fst rule.id) in
+  let rule_id_str =
+    Rule_ID.to_string (fst rule.id) |> truncate_sarif_id
+  in
   let default_configuration =
     Sarif.create_reporting_configuration
       ~level:(severity_of_severity rule.severity)
@@ -411,7 +428,7 @@ let result (ctx : Out.format_context) show_dataflow_traces
     else [ ("matchBasedId/v1", Gated_data.msg) ]
   in
   Sarif.create_result
-    ~rule_id:(Rule_ID.to_string cli_match.check_id)
+    ~rule_id:(Rule_ID.to_string cli_match.check_id |> truncate_sarif_id)
     ~message:(message cli_match.extra.message)
     ~locations:[ location ] ~fingerprints ~properties ?code_flows ?fixes
     ?suppressions ()

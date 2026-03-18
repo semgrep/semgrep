@@ -11,6 +11,10 @@
    LICENSE for more details.
 *)
 (* Formats the CLI output to the SARIF format. *)
+
+val max_sarif_id_length : int
+val truncate_sarif_id : string -> string
+
 val sarif_output :
   Rule.hrules ->
   Semgrep_output_v1_t.format_context ->
