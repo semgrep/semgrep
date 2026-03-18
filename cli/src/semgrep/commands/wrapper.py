@@ -66,7 +66,7 @@ def handle_command_errors(func: Callable) -> Callable:
             else:
                 exit_code = e.code
             exc = e
-        except BaseException as e:  # noqa: W0718
+        except BaseException as e:  # noqa: W0718, B036
             exit_code = FATAL_EXIT_CODE
             exc = e
         else:
