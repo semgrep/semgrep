@@ -84,6 +84,11 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
        * some point we should introduce a `Class` type and unwrap it here upon
        * instantiation. *)
       | G.New (_tk, t, _ii, _) -> (type_of_ast_generic_type lang t, None)
+      (* Go's make() is translated as Call with an ArgType first argument *)
+      | G.Call
+          ( { e = G.N (G.Id (("make", _), _)); _ },
+            (_, G.ArgType t :: _, _) ) ->
+          (type_of_ast_generic_type lang t, None)
       (* Binary operator *)
       | G.Call ({ e = Special (Op op, _); _ }, (_l, [ Arg e1; Arg e2 ], _r)) ->
           let t1, _id = type_of_expr lang e1 in

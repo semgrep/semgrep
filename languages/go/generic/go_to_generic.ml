@@ -232,14 +232,14 @@ let top_func () =
             let st = G.OtherStmt (G.OS_Todo, [ G.T ty ]) |> G.s in
             G.F st)
   and expr_or_type v = either expr type_ v
-  (* used for translating call make/call new *)
+  (* used for translating call new() to a New node *)
   and gen_new ty (l, args, r) t name =
     let return (ty, args) =
       G.New (fake t name, ty, G.empty_id_info (), (l, args, r))
     in
     let args = arguments args in
-    (* this translation (esp for make) depends on the first argument,
-     * where
+    (* The first argument to new() is a type, but in patterns it can
+     * be a metavariable, ellipsis, or expression.
      *)
     match ty with
     (* the first arg is indeed a type *)
@@ -269,15 +269,31 @@ let top_func () =
     | Index (v1, v2) ->
         let v1 = expr v1 and v2 = bracket index v2 in
         G.ArrayAccess (v1, v2)
-    (* It's much better to trans these calls to new/ref(new), as:
-     * x : *tau =  new(tau)
-     * x :  tau = make(tau)
-     * and other sem(grep)antic information is useful for future analysis.
+    (* x : *tau = new(tau)  →  Ref(New(...))
+     * Translating new() to New preserves type information for analysis.
      *)
     | Call (Id ("new", t), None, (l, [ ty ], r)) ->
         G.Ref (fake t "new", gen_new ty (l, [], r) t "new" |> G.e)
+    (* x : tau = make(tau, ...)  →  Call(make, ArgType :: args)
+     * We keep make() as a Call (not New) so that pattern matching can
+     * distinguish make() calls from composite literals ([]T{...}).
+     * See https://github.com/semgrep/semgrep/issues/9558
+     *)
     | Call (Id ("make", t), None, (l, ty :: args, r)) ->
-        gen_new ty (l, args, r) t "make"
+        let make_id =
+          G.N (G.Id (ident ("make", t), G.empty_id_info ())) |> G.e
+        in
+        let rest_args = arguments args in
+        let first_arg =
+          match ty with
+          | ArgType ty -> G.ArgType (type_ ty)
+          | Arg (Id v1) ->
+              G.ArgType (G.TyN (G.Id (v1, G.empty_id_info ())) |> G.t)
+          | Arg (Ellipsis tok) -> G.Arg (G.Ellipsis tok |> G.e)
+          | Arg exp -> G.Arg (expr exp)
+          | ArgDots _ -> raise Impossible
+        in
+        G.Call (make_id, (l, first_arg :: rest_args, r))
     | Call v1 ->
         let e, args = call_expr v1 in
         G.Call (e, args)

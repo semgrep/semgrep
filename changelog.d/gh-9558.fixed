@@ -1,0 +1,1 @@
+Fix Go pattern matching so that make() patterns no longer incorrectly match slice/map composite literals
