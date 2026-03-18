@@ -23,7 +23,6 @@ from tests.fixtures import RunSemgrep
 
 from semdep.package_restrictions import is_in_range
 from semdep.parsers.go_mod import parse_go_mod
-from semdep.parsers.package_lock import parse_package_lock
 from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
@@ -82,8 +81,6 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/rust_short_lockfile",
         ),
         ("rules/dependency_aware/ansi-html.yaml", "dependency_aware/ansi"),
-        ("rules/dependency_aware/js-sca.yaml", "dependency_aware/js"),
-        ("rules/dependency_aware/generic-sca.yaml", "dependency_aware/generic"),
         (
             "rules/dependency_aware/java-gradle-sca.yaml",
             "dependency_aware/gradle",
@@ -144,10 +141,6 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/monorepo.yaml",
             "dependency_aware/monorepo/",
         ),
-        (
-            "rules/dependency_aware/nested_package_lock.yaml",
-            "dependency_aware/nested_package_lock/",
-        ),
         ("rules/dependency_aware/js-yarn2-sca.yaml", "dependency_aware/yarn2"),
         ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm"),
         ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-workspaces"),
@@ -168,14 +161,6 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements3",
-        ),
-        (
-            "rules/dependency_aware/transitive_and_direct.yaml",
-            "dependency_aware/transitive_and_direct/transitive_not_reachable_if_direct",
-        ),
-        (
-            "rules/dependency_aware/transitive_and_direct.yaml",
-            "dependency_aware/transitive_and_direct/direct_reachable_transitive_unreachable",
         ),
         (
             "rules/dependency_aware/no-pattern.yaml",
@@ -200,18 +185,6 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/maven-guice.yaml",
             "dependency_aware/maven_dep_tree_release_version",
-        ),
-        (
-            "rules/dependency_aware/js-sca.yaml",
-            "dependency_aware/package-lock_resolved_false",
-        ),
-        (
-            "rules/dependency_aware/js-sca.yaml",
-            "dependency_aware/deeply_nested_package_lock",
-        ),
-        (
-            "rules/dependency_aware/js-yarn2-sca.yaml",
-            "dependency_aware/package-lock-v3",
         ),
         (
             "rules/dependency_aware/php-sca.yaml",
@@ -257,14 +230,6 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/dart",
         ),
         (
-            "rules/dependency_aware/js-sca.yaml",
-            "dependency_aware/npm-empty",
-        ),
-        (
-            "rules/dependency_aware/js-sca.yaml",
-            "dependency_aware/npm-malformed",
-        ),
-        (
             "rules/dependency_aware/swift-sca.yaml",
             "dependency_aware/swiftpm/v1",
         ),
@@ -279,10 +244,6 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/swift-sca.yaml",
             "dependency_aware/swiftpm_missing_version",
-        ),
-        (
-            "rules/dependency_aware/multi-dep-rule.yaml",
-            "dependency_aware/multi-dep-rule",
         ),
     ],
 )
@@ -554,7 +515,6 @@ def test_maven_version_comparison(version, specifier, outcome):
 LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
     "requirements.txt": DependencyParser(parse_requirements),
     "yarn.lock": DependencyParser(parse_yarn),
-    "package-lock.json": DependencyParser(parse_package_lock),
     "Pipfile.lock": DependencyParser(parse_pipfile),
     "poetry.lock": DependencyParser(parse_poetry),
     "pnpm-lock.yaml": DependencyParser(parse_pnpm),
@@ -593,24 +553,6 @@ LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
         "targets/dependency_aware/osv_parsing/yarn/empty.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/cache-compressionlevel.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/multiple-constraints.v1/yarn.lock",
-        "targets/dependency_aware/osv_parsing/package-lock/files.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies-dup.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/scoped-packages.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/one-package-dev.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/one-package.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/commits.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/two-packages.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/empty.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/files.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/one-package-dev.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/scoped-packages.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies-dup.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/one-package.v1/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/two-packages.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/commits.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies.v2/package-lock.json",
-        "targets/dependency_aware/osv_parsing/package-lock/empty.v2/package-lock.json",
         "targets/dependency_aware/osv_parsing/pipfile/empty/Pipfile.lock",
         "targets/dependency_aware/osv_parsing/pipfile/one-package/Pipfile.lock",
         "targets/dependency_aware/osv_parsing/pipfile/no-version/Pipfile.lock",
