@@ -1123,8 +1123,18 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       if String.starts_with "f" l then InterpolatedString (t1, s, t2)
       else
         match s with
+        | [] -> Literal (Str ("", t1))
         | [ x ] -> x
-        | _ -> raise Common.Impossible)
+        | xs ->
+            let concatenated =
+              xs
+              |> List_.map (fun x ->
+                     match x with
+                     | Literal (Str (s, _)) -> s
+                     | _ -> raise Common.Impossible)
+              |> String.concat ""
+            in
+            Literal (Str (concatenated, t1)))
   | `Conc_str (v1, v2) ->
       let _, v1, _ = map_string_ env v1 in
       let v2 = List_.map (map_string_ env) v2 in
