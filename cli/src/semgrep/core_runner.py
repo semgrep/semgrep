@@ -203,7 +203,7 @@ def open_and_ignore(fname: str) -> None:
     try:
         with open(fname, "rb"):
             pass  # Not expected, but not a problem.
-    except BaseException:
+    except BaseException:  # noqa: B036
         pass  # Expected outcome
 
 
@@ -439,7 +439,7 @@ class StreamingSemgrepCore:
                 contents = in_file.read()
                 logger.debug(f"read_file: disk read {fname}: {len(contents)} bytes")
                 return (contents, 0)
-        except BaseException as e:
+        except BaseException as e:  # noqa: B036
             logger.debug(f"read_file: reading {fname}: exn: {e!r}")
             exnClass = type(e).__name__
             return (f"{fname}: {exnClass}: {e}".encode(), 1)

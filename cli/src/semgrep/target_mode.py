@@ -32,17 +32,17 @@ from attr import frozen
 
 @frozen
 class WholeScan:
-    ()
+    pass
 
 
 @frozen
 class HistoricalScan:
-    ()
+    pass
 
 
 @frozen
 class DiffScan:
-    ()
+    pass
 
 
 @frozen

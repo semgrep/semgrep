@@ -67,8 +67,8 @@ def main() -> None:
 
     # zip only works when all entries are present and correct and in same order
 
-    for expected, findings in zip(expected, findings):
-        if findings_differ(expected, findings):
+    for exp, find in zip(expected, findings):
+        if findings_differ(exp, find):
             errors += 1
 
     # Fail only after printing and sending all messages
