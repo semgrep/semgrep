@@ -51,8 +51,8 @@ type error = Pcre.error =
    for usage.
    https://mmottl.github.io/pcre-ocaml/api/pcre/Pcre/index.html#val-regexp
 
-   This takes care of setting PCRE_EXTRA_MATCH_LIMIT and
-   PCRE_EXTRA_MATCH_LIMIT_RECURSION to the same value across platforms.
+   This takes care of setting deterministic PCRE match and recursion
+   limits across platforms.
 
    Any flags needed to make things work with UTF-8 are passed automatically.
 *)
