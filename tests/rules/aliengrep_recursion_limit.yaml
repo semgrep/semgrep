@@ -1,0 +1,12 @@
+# If this test starts segfaulting instead of failing gracefully, check both
+# that the legacy PCRE recursion limit is still in place and that the runtime
+# is still configuring the expected C FFI stack size.
+rules:
+- id: aliengrep-recursion-limit
+  languages:
+  - generic
+  options:
+    generic_engine: aliengrep
+  pattern: "(...)"
+  message: found something
+  severity: WARNING
