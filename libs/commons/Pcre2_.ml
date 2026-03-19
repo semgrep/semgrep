@@ -79,13 +79,18 @@ let extra_flag = `UTF
 [@@@pyro_caml "auto"]
 
 (*
-   'limit' and 'limit_recursion' are set explicitly to make semgrep
+   Match and depth limits are set explicitly to make semgrep
    fail consistently across platforms (e.g. CI vs. local Mac).
-   The default compile-time defaults are 10_000_000 for both
-   'limit' and 'limit_recursion' but they can be overridden during
-   the installation of the pcre library. We protect ourselves
-   from such custom installs.
+   The default compile-time defaults are 10_000_000, but they can be
+   overridden during the installation of the pcre library. We protect
+   ourselves from such custom installs.
 *)
+let match_limit = 1_000_000
+
+(* TODO: 1_000_000 is probably too high for PCRE2 depth too; leave it as-is
+   until we derive a justified limit from PCRE2's depth/stack behavior. *)
+let depth_limit = 1_000_000
+
 let regexp ?iflags ?(flags = []) ?chtables pat =
   (* pcre doesn't mind if a flag is duplicated so we just append extra flags *)
   let flags = extra_flag :: flags in
@@ -96,8 +101,8 @@ let regexp ?iflags ?(flags = []) ?chtables pat =
    * and perf/input/semgrep_targets.yaml for an example where Semgrep appeared to
    * hang (but it was just the Pcre2 engine taking way too much time). *)
   let regexp =
-    Pcre2.regexp ~limit:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
-      ~depth_limit:1_000_000
+    Pcre2.regexp ~limit:match_limit (* sets PCRE_EXTRA_MATCH_LIMIT *)
+      ~depth_limit
         (* sets the backtracking depth limit field in a match context; see `pcre2_set_depth_limit(3)` *)
       ?iflags ~flags ?chtables pat
   in
