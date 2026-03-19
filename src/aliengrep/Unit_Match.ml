@@ -19,6 +19,7 @@
    used to build values.
 *)
 [@@@warning "-37"]
+[@@@alert "-deprecated"]
 
 open Printf
 open Match
@@ -189,6 +190,24 @@ let test_explicit_brackets () =
   check slconf {|(...)|} {|([)]|} [ Num_matches 0 ];
   check slconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
 
+(* If this starts segfaulting again instead of returning RecursionLimit, check
+   both that the legacy PCRE recursion limit is still set in Pcre_.regexp and
+   that the OCaml runtime is still configuring the expected C FFI stack size. *)
+let test_recursion_limit () =
+  let pat = Pat_compile.from_string slconf {|(...)|} in
+  let nesting = 10_100 in
+  let target = String.make nesting '(' ^ "x" ^ String.make nesting ')' in
+  (match Pcre_.exec_all ~rex:pat.pcre target with
+  | Error Pcre.RecursionLimit -> ()
+  | Error err ->
+      Alcotest.failf "expected RecursionLimit, got %s" (Pcre_.show_error err)
+  | Ok matches ->
+      Alcotest.failf "expected RecursionLimit, got %d matches"
+        (Array.length matches));
+  let matches = Match.search pat target in
+  Alcotest.(check int)
+    "recursion limit returns no matches" 0 (List.length matches)
+
 let test_custom_brackets () =
   check mlconf {|(...)|} "((x))" [ Num_matches 1; Match_value "((x))" ];
   check mlconf {|(...)|} "((x ))" [ Num_matches 1; Match_value "((x ))" ];
@@ -345,6 +364,7 @@ let tests =
       t "metavariables" test_metavariables;
       t "ellipsis brackets" test_ellipsis_brackets;
       t "explicit brackets" test_explicit_brackets;
+      t "recursion limit" test_recursion_limit;
       t "custom brackets" test_custom_brackets;
       t "backreferences" test_backreferences;
       t "ellipsis metavariable" test_ellipsis_metavariable;

@@ -68,13 +68,22 @@ let extra_flag = `UTF8
 [@@@pyro_caml "auto"]
 
 (*
-   'limit' and 'limit_recursion' are set explicitly to make semgrep
+   Match and recursion limits are set explicitly to make semgrep
    fail consistently across platforms (e.g. CI vs. local Mac).
-   The default compile-time defaults are 10_000_000 for both
-   'limit' and 'limit_recursion' but they can be overridden during
-   the installation of the pcre library. We protect ourselves
-   from such custom installs.
+   The default compile-time defaults are 10_000_000, but they can be
+   overridden during the installation of the pcre library. We protect
+   ourselves from such custom installs.
 *)
+let match_limit = 1_000_000
+
+(* https://www.pcre.org/original/doc/html/pcrestack.html estimates about
+   500 bytes of stack per recursion, so 10k recursions use about 5 MB of
+   stack. That stays below the common 8 MB Unix stack limit with headroom
+   for the rest of the process stack. Our OCaml fork also explicitly sets
+   8 MB C FFI stack sizes for OCaml domains, so staying well under that
+   budget matters for calls into PCRE. *)
+let recursion_limit = 10_000
+
 let regexp ?study ?iflags ?(flags = []) ?chtables pat =
   (* pcre doesn't mind if a flag is duplicated so we just append extra flags *)
   let flags = extra_flag :: flags in
@@ -85,8 +94,9 @@ let regexp ?study ?iflags ?(flags = []) ?chtables pat =
    * and perf/input/semgrep_targets.yaml for an example where Semgrep appeared to
    * hang (but it was just the Pcre engine taking way too much time). *)
   let regexp =
-    Pcre.regexp ?study ~limit:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
-      ~limit_recursion:1_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
+    Pcre.regexp ?study ~limit:match_limit (* sets PCRE_EXTRA_MATCH_LIMIT *)
+      ~limit_recursion:recursion_limit
+        (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
       ?iflags ~flags ?chtables pat
   in
   { pattern = pat; regexp }
