@@ -38,7 +38,8 @@ local copy_from_docker_step(target, output_dir, file='Dockerfile', platforms=def
   name: 'Copy all files from %s to GHA runner machine' % target,
   uses: uses.depot.build_push_action,
   with: {
-    project: '${{ secrets.DEPOT_PROJECT_ID }}',
+    // Expect the checkout root for this build context to include a depot.json
+    // with the Depot project ID for the repo/workspace being built.
     context: '.',
     platforms: platforms,
     file: file,
@@ -315,8 +316,9 @@ local build_steps(
             ),
       uses: uses.depot.build_push_action,
       with: {
-        project: '${{ secrets.DEPOT_PROJECT_ID }}',
-
+        // Expect the checkout root for this build context to include a
+        // depot.json with the Depot project ID for the repo/workspace being
+        // built.
         // By default, build-push-action (depot/ and docker/) git clone the
         // repo and remove the .git, which is a sane default for most
         // Dockerfile, but in our case wee call 'git lfs fetch' so
@@ -353,10 +355,10 @@ local build_steps(
         // depot will fallback to docker-buildx which uses emulation (which is
         // really slow). So if this job suddently takes more than 15min,
         // it's probably because there is a problem somewhere and the
-        // fallback is activated. A common solution is to reset the depot.dev
-        // cache (especially useful when depot.dev gets confused by changes
-        // in submodules in a PR) by clicking "Reset cache" at the bottom of
-        // https://depot.dev/orgs/9ks3jwp44z/projects/t321zh0146/settings
+        // fallback is activated. A common solution is to reset the active
+        // repo's depot.dev cache using the "Reset cache" button at the
+        // bottom of the project settings page, especially if depot.dev gets
+        // confused by changes in submodules in a PR.
         // We used to set this to true, just in case Depot had some bugs
         // but this would fallback for any error, not just Depot error,
         // and then you need to wait 1h30min to actually see the error
