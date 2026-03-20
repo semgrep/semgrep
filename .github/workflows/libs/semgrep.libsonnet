@@ -309,7 +309,7 @@ local build_wheel_steps(arch, copy_semgrep_pro=false) =
   [
     {
       name: 'Copy artifacts to wheel',
-      run: 'cp artifacts/* cli/src/semgrep/bin',
+      run: 'cp -LR artifacts/* cli/src/semgrep/bin',
     },
     {
       name: 'Clean up old artifacts',
