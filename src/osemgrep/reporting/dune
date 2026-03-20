@@ -21,7 +21,6 @@
    semgrep.reporting
    semgrep.targeting
    semgrep.fixing ; for Cli_json_output.ml
-   semgrep.parsing ; for Unit_reporting use of Parse_rule.ml
  )
  (preprocess
    (pps

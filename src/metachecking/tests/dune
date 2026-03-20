@@ -1,0 +1,10 @@
+(library
+ (public_name semgrep.metachecking.tests)
+ (name semgrep_metachecking_tests)
+ (wrapped false)
+ (libraries
+   semgrep.metachecking
+   semgrep.engine.tests
+ )
+ (preprocess (pps ppx_profiling))
+)
