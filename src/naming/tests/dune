@@ -1,0 +1,15 @@
+(library
+ (public_name semgrep.naming.tests)
+ (name semgrep_naming_tests)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-lang_GENERIC-naming
+ )
+ (preprocess
+    (pps
+      ppx_profiling
+      ppx_deriving.show
+    )
+ )
+)
