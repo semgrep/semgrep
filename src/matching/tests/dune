@@ -1,0 +1,10 @@
+(library
+ (public_name semgrep.matching.tests)
+ (name semgrep_matching_tests)
+ (wrapped false)
+ (libraries
+   commons
+   semgrep.matching
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling commons.ppx))
+)

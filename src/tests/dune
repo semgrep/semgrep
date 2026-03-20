@@ -24,15 +24,25 @@
     semgrep.core_cli
     semgrep.printing.tests
     semgrep.fixing.tests
-    semgrep.metachecking
+    semgrep.metachecking.tests
+    semgrep.naming.tests
+    semgrep.matching.tests
     semgrep.parsing
+    semgrep.parsing.tests
+    semgrep.reporting.tests
+    semgrep.targeting.tests
     semgrep.matching
     semgrep.engine
+    aliengrep.tests
     parser_python.menhir parser_python.ast_generic
 
     osemgrep_legacy_language_server
 
     osemgrep_cli_login
+    semgrep.osemgrep_networking.tests
+    semgrep.osemgrep_cli_ci.tests
+    semgrep.osemgrep_cli_test.tests
+    semgrep.osemgrep_reporting.tests
     semgrep.osemgrep_tests
   )
  (modes native byte) ; bytecode here for debugging
