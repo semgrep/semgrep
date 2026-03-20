@@ -234,7 +234,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
     name: 'Make artifact for %s' % path,
     run: |||
       mkdir artifacts
-      cp %s artifacts/
+      cp -LR %s artifacts/
       tar czf artifacts.tgz artifacts
       # so that we can untar later and not get a message
       # about existing artifacts/ directory
