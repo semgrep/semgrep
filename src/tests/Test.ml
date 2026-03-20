@@ -180,7 +180,7 @@ let tests =
         Legacy_test_ls_e2e.tests ();
         (* End osemgrep tests *)
         Spacegrep_tests.Test.tests ();
-        Aliengrep.Unit_tests.tests;
+        Unit_tests.tests;
         Unit_core_json_output.tests;
         (* Inline tests *)
         Testo.get_registered_tests ();

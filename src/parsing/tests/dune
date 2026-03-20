@@ -3,8 +3,10 @@
  (name semgrep_parsing_tests)
  (wrapped false)
  (libraries
+   commons
+   semgrep.core
    semgrep.parsing
    semgrep.targeting ; for Test_parsing.ml
  )
- (preprocess (pps ppx_profiling ppx_deriving.show))
+ (preprocess (pps ppx_profiling ppx_deriving.show commons.ppx))
 )
