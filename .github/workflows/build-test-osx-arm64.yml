@@ -25,7 +25,7 @@ jobs:
       - name: Make artifact for ./bin/semgrep-core
         run: |
           mkdir artifacts
-          cp ./bin/semgrep-core artifacts/
+          cp -LR ./bin/semgrep-core artifacts/
           tar czf artifacts.tgz artifacts
           # so that we can untar later and not get a message
           # about existing artifacts/ directory
