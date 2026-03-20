@@ -45,7 +45,6 @@ jobs:
           labels: ${{ steps.semgrep-cli-prepare-metadata.outputs.labels }}
           load: true
           platforms: linux/amd64,linux/arm64
-          project: ${{ secrets.DEPOT_PROJECT_ID }}
           push: false
           tags: ${{ steps.semgrep-cli-prepare-metadata.outputs.tags }}
           target: semgrep-cli
