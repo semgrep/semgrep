@@ -1,0 +1,12 @@
+(library
+ (public_name semgrep.reporting.tests)
+ (name semgrep_reporting_tests)
+ (wrapped false)
+ (libraries
+   commons
+   semgrep.core
+   semgrep.reporting
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show ppx_profiling commons.ppx))
+)

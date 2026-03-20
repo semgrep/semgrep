@@ -1,0 +1,18 @@
+(library
+ (public_name semgrep.targeting.tests)
+ (name semgrep_targeting_tests)
+ (wrapped false)
+ (libraries
+   commons
+   semgrep.core
+   semgrep.targeting
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     commons.ppx
+   )
+ )
+)

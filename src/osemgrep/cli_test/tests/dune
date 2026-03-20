@@ -1,0 +1,15 @@
+(library
+ (public_name semgrep.osemgrep_cli_test.tests)
+ (name osemgrep_cli_test_tests)
+ (wrapped false)
+ (libraries
+   commons
+   semgrep.osemgrep_cli_test
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+   )
+ )
+)
