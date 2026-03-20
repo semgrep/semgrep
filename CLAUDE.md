@@ -48,7 +48,7 @@ Functionality is incrementally migrated from Python to OCaml via the RPC library
 | `src/matching/` | Pattern matching utilities and language-specific adaptations |
 | `src/tainting/` | Taint analysis and tracking |
 | **Language Support** | |
-| `languages/` | Language parsers |
+| `languages/` | Per-language parser definitions: AST types, Generic AST mappings, and tree-sitter grammars |
 | `src/parsing/` | Language parsers with Tree-sitter integration |
 | **Rules & Configuration** | |
 | `src/rule/` | Rule parsing and multi-layer transformation (YAML → Rule.t → Mini_rule.t) |
@@ -73,6 +73,12 @@ Functionality is incrementally migrated from Python to OCaml via the RPC library
 | `src/core/`, `src/core_cli/` | Foundation libraries with utilities, file system operations, logging |
 | `src/printing/` | Pretty printing for AST, IL, error messages |
 | `src/tests/` | Test cases |
+| **Supporting Libraries & Infrastructure** | |
+| `libs/` | Reusable OCaml libraries: collections, file paths, parallelism, profiling, telemetry, tree-sitter runtime, and more |
+| `cli/` | Python command-line interface (orchestration, AppSec Platform communication, Supply Chain analysis) |
+| `interfaces/` | ATD (Abstract Type Definition) files for data exchange between Python CLI and OCaml core |
+| `tests/` | Integration and end-to-end test suite (patterns, rules, parsing, tainting, autofix, etc.) |
+| `perf/` | Performance benchmarking framework for realistic across-repository benchmarks |
 
 ## Developer Setup
 
