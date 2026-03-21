@@ -533,7 +533,7 @@ impl<A> Default for B<A> where *mut A: C + D {}
  * ===================================
  */
 
-pub extern {
+unsafe extern {
   pub fn napi_module_register(mod_: *mut napi_module);
 }
 

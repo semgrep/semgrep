@@ -312,6 +312,7 @@ let map_reserved_identifier (env : env) (x : CST.reserved_identifier) : G.ident
   | `Defa tok -> ident env tok (* "default" *)
   | `Union tok -> ident env tok (* "union" *)
   | `Gen tok -> ident env tok (* "gen" *)
+  | `Raw tok -> ident env tok (* "raw" *)
 
 let map_tok_prec_p1_lt (env : env) (tok : CST.tok_prec_p1_lt) =
   (* tok_prec_p1_lt *) token env tok
@@ -348,8 +349,9 @@ let map_primitive_type (env : env) (x : CST.anon_choice_u8_6dad923) : G.type_ =
 let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
     G.literal =
   let ldquote =
-    token env v1
-    (* pattern "b?\"" *)
+    match v1 with
+    | `DQUOT tok -> token env tok (* normal string *)
+    | `Pat_a3a04ed tok -> token env tok (* byte string or c string *)
   in
   let strs =
     List_.map

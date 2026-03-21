@@ -1,0 +1,1 @@
+Fix Rust parsing of "&raw" where "raw" is an identifier.
