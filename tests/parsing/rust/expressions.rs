@@ -438,3 +438,10 @@ fn main() {
   if *x < 0 { const { &4i32.pow(4) } } else { x }
   let three_ranges = [const { (0..=5).into_inner() }; 3];
 }
+
+/* Taking references to variables named "raw"
+   (without tripping over raw pointer syntax)  */
+fn foo() {
+  let raw: i32 = 0;
+  let p = &raw;
+}
