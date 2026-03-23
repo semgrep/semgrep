@@ -19,7 +19,7 @@
       "claude-code-action": "v1"
     },
     "astral-sh": {
-      "setup-uv": "v7"
+      "setup-uv": "v7.6"
     },
     "aws-actions": {
       "amazon-ecr-login": "v2",
