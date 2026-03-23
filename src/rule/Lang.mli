@@ -170,3 +170,8 @@ val assoc : (string * t) list
 
 (* list of languages *)
 val keys : string list
+
+val allows_call_without_parens : t -> bool
+(** Returns true iff the language allows calls without parentheses,
+    and that we have typing information allowing us to know whether
+    the identifier refers to a zero-arity function. *)
