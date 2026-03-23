@@ -213,3 +213,8 @@ let of_opt_exn lang_opt =
   match lang_opt with
   | None -> failwith (unsupported_language_message "unset")
   | Some x -> x
+
+let allows_call_without_parens = function
+  | Scala -> true
+  | _ ->
+      (* N.B Ruby allows parenless calls, but we don't have typing info *) false
