@@ -430,6 +430,42 @@ type compile_pattern_matching_fn =
 let hook_compile_pattern_matching : compile_pattern_matching_fn option Hook.t =
   Hook.create None
 
+let is_ruby_parenless_call env lval =
+  (* In Ruby, a bare identifier is ambiguous. It could be a variable
+   access or a zero-argument method call. Emit as a call iff the name
+   matches a known entity. *)
+  match (env.lang, lval) with
+  | Lang.Ruby, { base = Var { ident; _ }; _ } ->
+      IdentSet.mem (H.str_of_ident ident) env.ctx.entity_names
+  | _ -> false
+
+let is_zero_arity_function (g_expr : G.expr) : bool =
+  match g_expr.e with
+  | G.N name
+  | G.DotAccess (_, _, G.FN name) -> (
+      match name with
+      | G.Id (_, { id_type = { contents = Some ty }; _ })
+      | G.IdQualified { name_info = { id_type = { contents = Some ty }; _ }; _ }
+        -> (
+          match ty with
+          | { t = G.TyFun ([], _); _ } -> true
+          | _ -> false)
+      | _ -> false)
+  | _ -> false
+
+(* Some languages allow function calls without parentheses. So a simple identifier
+   or field access is ambiguous. We only need to consider the case of zero-arity
+   function calls, as the AST correctly encodes the other cases as function calls. *)
+let should_emit_call_without_parens (env : env) (g_expr : G.expr) (lval : lval)
+    : bool =
+  match env.lang with
+  | Lang.Ruby ->
+      (* N.B Ruby is not a Pro language, so we shouldn't rely on typing info *)
+      is_ruby_parenless_call env lval
+  | lang when Lang.allows_call_without_parens lang ->
+      is_zero_arity_function g_expr
+  | _ -> false
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -927,20 +963,10 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
       let exp = mk_e (Fetch lval) eorig in
       (* TODO: Does this really need to be a name (?) in the first place? Why
          can't this be call? Syntactic ambiguity? *)
-      let ident_function_call_hack exp =
-        (* Taking into account Ruby's ability to allow function calls without
-         * parameters or parentheses, we are conducting a check to determine
-         * if a function with the same name as the identifier exists, specifically
-         * for Ruby. *)
-        match lval with
-        | { base = Var { ident; _ }; _ }
-          when env.lang =*= Lang.Ruby
-               && IdentSet.mem (H.str_of_ident ident) env.ctx.entity_names ->
-            let tok = G.fake "call" in
-            add_call env tok eorig ~ret (Call (exp, []))
-        | _ -> exp
-      in
-      ident_function_call_hack exp
+      if should_emit_call_without_parens env g_expr lval then
+        let tok = G.fake "call" in
+        add_call env tok eorig ~ret (Call (exp, []))
+      else exp
   | G.Assign
       ( ({ e = G.N obj; _ } as obj_e),
         _,
