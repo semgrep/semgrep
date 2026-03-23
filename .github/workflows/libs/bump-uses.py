@@ -65,13 +65,32 @@ class UsesFile(BaseModel):
 
 
 def get_github_client() -> Github:
+    import subprocess
+
     auth_token = os.getenv("GITHUB_TOKEN")
     if auth_token:
         console.print("Using GITHUB_TOKEN for authentication")
-        auth = Auth.Token(auth_token)
-        return Github(auth=auth)
-    else:
-        return Github()
+        return Github(auth=Auth.Token(auth_token))
+
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            token = result.stdout.strip()
+            if token:
+                console.print("Using token from [bold]gh auth token[/bold]")
+                return Github(auth=Auth.Token(token))
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    console.print(
+        "[yellow]Warning: No GitHub token found, using unauthenticated access[/yellow]"
+    )
+    return Github()
 
 
 def find_tag(g: Github, repo_full_name: str, tag: str) -> Tag.Tag | None:
