@@ -1,0 +1,11 @@
+(library
+ (public_name paths.tests)
+ (name paths_tests)
+ (wrapped false)
+ (libraries
+   paths
+   commons
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)

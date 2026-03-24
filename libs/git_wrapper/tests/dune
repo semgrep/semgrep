@@ -1,0 +1,11 @@
+(library
+ (public_name git_wrapper.tests)
+ (name git_wrapper_tests)
+ (wrapped false)
+ (libraries
+   git_wrapper
+   commons
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)
