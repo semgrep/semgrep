@@ -78,7 +78,7 @@ let fix_sgrep_module_item xs =
   * function decl (because 'function_decl' accepts id_opt, see its comment).
   * This is why we intercept this case by returning instead an Expr pattern.
   *)
-  | [DefStmt ({name = (s, _); _}, FuncDef def)]
+  | [DefStmt ({name = {str = s; _}; _}, FuncDef def)]
     when s = anon_semgrep_lambda ->
       Expr (Fun (def, None))
   | [ExprStmt (e, sc) as x] ->
@@ -121,7 +121,7 @@ let mk_def ?(attrs=None) (idopt, defkind) =
   (* TODO: fun default_opt -> ... *)
   let name =
     match idopt with
-    | None -> Flag_parsing.sgrep_guard (anon_semgrep_lambda, Tok.unsafe_fake_tok "")
+    | None -> Flag_parsing.sgrep_guard (fake_id anon_semgrep_lambda (Tok.unsafe_fake_tok ""))
     | Some id -> id
   in
   match attrs with
@@ -430,7 +430,7 @@ sgrep_spatch_pattern:
      (* We don't need to pass the attrs into `mk_def` because they're already
         in the FuncDef.
       *)
-     Partial (PartialDef (mk_def (Some $4,
+     Partial (PartialDef (mk_def (Some (to_real_id $4),
       FuncDef
        { f_kind = (Method, $5)
        ; f_params = $5, $6, $7
@@ -447,7 +447,7 @@ sgrep_spatch_pattern:
      let static = attr_opt Static $2 in
      let async = attr_opt Async $3 in
 
-      Property (Field {fld_name = PN $4; fld_attrs=$1 @ static @ async; fld_type = $5; fld_body = None }) }
+      Property (Field {fld_name = PN (to_real_id $4); fld_attrs=$1 @ static @ async; fld_type = $5; fld_body = None }) }
 
   | (* decorators, with body *)
     decorator+ T_STATIC? T_ASYNC? T_ID
@@ -458,7 +458,7 @@ sgrep_spatch_pattern:
      let static = attr_opt Static $2 in
      let async = attr_opt Async $3 in
      let fun_ = mk_Fun ~attrs:($1 @ static @ async) (Method, $5) sig_ ($9, $10, $11) in
-     Property (mk_Field (PN $4) (Some fun_))
+     Property (mk_Field (PN (to_real_id $4)) (Some fun_))
    }
 
 
@@ -471,7 +471,7 @@ sgrep_spatch_pattern:
    {
      let sig_ = (None, ($2, $3, $4), $5) in
      let fun_ = mk_Fun (Method, $2) sig_ ($6, $7, $8) in
-     Property (mk_Field (PN $1) (Some fun_));
+     Property (mk_Field (PN (to_real_id $1)) (Some fun_));
    }
 
  | assignment_expr_no_stmt  EOF  { Expr $1 }
@@ -530,7 +530,7 @@ import_clause:
  |                    import_names    { $1 }
 
 import_default: binding_id
-  { (fun t path -> [Import (t, [((default_entity, snd $1), Some $1)], path)]) }
+  { (fun t path -> [Import (t, [(real_id default_entity $1.tok, Some $1)], path)]) }
 
 import_names:
  | "*" T_AS binding_id
@@ -561,8 +561,8 @@ import_specifier:
  | binding_id                 { Some ($1, None) }
  | id T_AS binding_id         { Some ($1, Some ($3)) }
  (* not in ECMA, not sure what it means *)
- | T_DEFAULT T_AS binding_id  { Some (("default",$1), Some ($3)) }
- | T_DEFAULT                  { Some (("default",$1), None) }
+ | T_DEFAULT T_AS binding_id  { Some (real_id "default" $1, Some ($3)) }
+ | T_DEFAULT                  { Some (real_id "default" $1, None) }
  (* sgrep-ext: this is to allow people to write patterns like
   * import {..., Foo, ...} from 'Bar', but internally we just skip
   * those ... and will return an Import {Foo} from 'Bar'
@@ -928,8 +928,8 @@ decorators:
  | decorator+   { $1 }
 
 decorator_name:
- | T_ID { [$1] }
- | decorator_name "." T_ID { $1 @ [$3] }
+ | T_ID { [to_real_id $1] }
+ | decorator_name "." T_ID { $1 @ [to_real_id $3] }
 
 decorator: "@" decorator_name arguments?  { NamedAttr ($1, $2, $3) }
 
@@ -991,13 +991,13 @@ primary_type2:
                                 G.E (G.L (G.String $1))]) *)  }
 
 predefined_type:
- | T_ANY_TYPE      { "any", $1 }
- | T_NUMBER_TYPE   { "number", $1 }
- | T_BOOLEAN_TYPE  { "boolean", $1 }
- | T_STRING_TYPE   { "string", $1 }
- | T_VOID          { "void", $1 }
+ | T_ANY_TYPE      { real_id "any" $1 }
+ | T_NUMBER_TYPE   { real_id "number" $1 }
+ | T_BOOLEAN_TYPE  { real_id "boolean" $1 }
+ | T_STRING_TYPE   { real_id "string" $1 }
+ | T_VOID          { real_id "void" $1 }
  (* not in Typescript grammar, but often part of union type *)
- | T_NULL          { "null", $1 }
+ | T_NULL          { real_id "null" $1 }
 
 %inline
 type_reference: type_reference_aux
@@ -1014,12 +1014,12 @@ type_reference_aux:
 
 (* was called type_reference in Flow *)
 type_name:
- | T_ID { [$1] }
- | module_name "." T_ID { $1 @ [$3] }
+ | T_ID { [to_real_id $1] }
+ | module_name "." T_ID { $1 @ [to_real_id $3] }
 
 module_name:
- | T_ID { [$1] }
- | module_name "." T_ID { $1 @ [$3] }
+ | T_ID { [to_real_id $1] }
+ | module_name "." T_ID { $1 @ [to_real_id $3] }
 
 union_type: primary_or_union_type T_BIT_OR primary_type
     { TyOr ($1, $2, $3) }
@@ -1039,20 +1039,20 @@ type_member:
     { { fld_name = $1; fld_attrs = [attr (Optional, $2)]; fld_type = Some $3;
         fld_body = None } }
  | "[" T_ID ":" T_STRING_TYPE "]" complex_annotation sc_or_comma
-    { let fld_name = PN ("IndexMethod??TODO?", $1) in
+    { let fld_name = PN (fake_id "IndexMethod??TODO?" (snd $2)) in
       { fld_name; fld_attrs = []; fld_type = Some $6; fld_body = None}
     }
  | "[" T_ID ":" T_NUMBER_TYPE "]" complex_annotation sc_or_comma
-    { let fld_name = PN ("IndexMethod??TODO?", $1) in
+    { let fld_name = PN (fake_id "IndexMethod??TODO?" (snd $2)) in
       { fld_name; fld_attrs = []; fld_type = Some $6; fld_body = None}
     }
 
 (* no [xxx] here *)
 property_name_typescript:
  | id    { PN $1 }
- | string_literal  { PN $1 }
- | numeric_literal_as_string { PN $1 }
- | ident_keyword   { PN $1 }
+ | string_literal  { PN (to_real_id $1) }
+ | numeric_literal_as_string { PN (to_real_id $1) }
+ | ident_keyword   { PN (to_real_id $1) }
 
 
 param_type_list:
@@ -1204,8 +1204,8 @@ iteration_stmt:
 
 initializer_no_in: "=" assignment_expr_no_in { $2 }
 
-continue_stmt: T_CONTINUE id? sc { Continue ($1, $2, $3) }
-break_stmt:    T_BREAK    id? sc { Break ($1, $2, $3) }
+continue_stmt: T_CONTINUE id? sc { Continue ($1, Option.map (fun id -> (id.str, id.tok)) $2, $3) }
+break_stmt:    T_BREAK    id? sc { Break ($1, Option.map (fun id -> (id.str, id.tok)) $2, $3) }
 
 return_stmt: T_RETURN expr? sc { Return ($1, $2, $3) }
 
@@ -1213,7 +1213,7 @@ with_stmt: T_WITH "(" expr ")" stmt1 { With ($1, $3, $5) }
 
 switch_stmt: T_SWITCH "(" expr ")" case_block { Switch ($1, $3, $5) }
 
-labelled_stmt: id ":" stmt1 { Label ($1, $3) }
+labelled_stmt: id ":" stmt1 { Label (($1.str, $1.tok), $3) }
 
 
 throw_stmt: T_THROW expr sc { Throw ($1, $2, $3) }
@@ -1386,7 +1386,7 @@ member_expr(x):
  | T_SUPER "[" expr "]"              { ArrAccess(mk_Super($1),($2,$3,$4))}
  | T_SUPER access field_name            { ObjAccess(mk_Super($1), $2, PN $3) }
  | T_NEW "." id {
-     if fst $3 = "target"
+     if $3.str = "target"
      then special NewTarget $1 []
      else raise (Parsing.Parse_error)
   }
@@ -1542,9 +1542,11 @@ argument:
 (* less: we should split $1 in 2 tokens, like we do in tree-sitter-js *)
 xhp_html:
  | T_XHP_OPEN_TAG xhp_attribute* T_XHP_GT xhp_child* T_XHP_CLOSE_TAG
-     { { xml_kind = XmlClassic (snd $1, $1, $3, snd $5); xml_attrs=$2; xml_body=$4 } }
+     { let id1 = to_real_id $1 in
+       { xml_kind = XmlClassic (snd $1, id1, $3, snd $5); xml_attrs=$2; xml_body=$4 } }
  | T_XHP_OPEN_TAG xhp_attribute* T_XHP_SLASH_GT
-     { { xml_kind = XmlSingleton (snd $1, $1, $3); xml_attrs = $2; xml_body = [] } }
+     { let id1 = to_real_id $1 in
+       { xml_kind = XmlSingleton (snd $1, id1, $3); xml_attrs = $2; xml_body = [] } }
  (* reactjs-ext: https://reactjs.org/docs/fragments.html#short-syntax *)
  | T_XHP_SHORT_FRAGMENT xhp_child* T_XHP_CLOSE_TAG
      { { xml_kind = XmlFragment ($1, snd $3); xml_attrs = []; xml_body = $2 } }
@@ -1558,12 +1560,12 @@ xhp_child:
 
 xhp_attribute:
  | T_XHP_ATTR "=" xhp_attribute_value
-    { XmlAttr ($1, $2, $3) }
+    { XmlAttr (to_real_id $1, $2, $3) }
  | "{" "..." assignment_expr "}"
     { XmlAttrExpr ($1, special Spread $2 [$3],$4)}
  (* reactjs-ext: see https://www.reactenlightenment.com/react-jsx/5.7.html *)
  | T_XHP_ATTR
-    { XmlAttr ($1, Tok.fake_tok (snd $1) "=", L (Bool(true, snd $1))) }
+    { XmlAttr (to_real_id $1, Tok.fake_tok (snd $1) "=", L (Bool(true, snd $1))) }
  | "..."
     { XmlEllipsis $1 }
 
@@ -1572,7 +1574,7 @@ xhp_attribute_value:
  | "{" expr sc? "}"   { $2 }
  | "..."              { Ellipsis $1 }
  (* sgrep-ext: only metavariable actually *)
- | T_XHP_ATTR { Flag_parsing.sgrep_guard (idexp $1) }
+ | T_XHP_ATTR { Flag_parsing.sgrep_guard (idexp (to_real_id $1)) }
 
 (*----------------------------*)
 (* interpolated strings *)
@@ -1680,8 +1682,8 @@ primary_no_stmt: TUnknown TComment { raise Impossible }
 (*************************************************************************)
 (* used for entities, parameters, labels, etc. *)
 id:
- | T_ID  %prec below_COLON               { $1 }
- | ident_semi_keyword { Tok.content_of_tok $1, $1 }
+ | T_ID  %prec below_COLON               { to_real_id $1 }
+ | ident_semi_keyword { real_id (Tok.content_of_tok $1) $1 }
 
 (* add here keywords which are not considered reserved by ECMA *)
 ident_semi_keyword:
@@ -1726,17 +1728,17 @@ ident_keyword_bis:
 
 field_name:
  | id            { $1 }
- | ident_keyword { $1 }
+ | ident_keyword { to_real_id $1 }
 
 method_name:
  | id            { $1 }
- | ident_keyword { $1 }
+ | ident_keyword { to_real_id $1 }
 
 property_name:
  | id              { PN $1 }
- | string_literal  { PN $1 }
- | numeric_literal_as_string { PN $1 }
- | ident_keyword   { PN $1 }
+ | string_literal  { PN (to_real_id $1) }
+ | numeric_literal_as_string { PN (to_real_id $1) }
+ | ident_keyword   { PN (to_real_id $1) }
  (* es6: *)
  | "[" assignment_expr "]" { PN_Computed ($2) }
 
