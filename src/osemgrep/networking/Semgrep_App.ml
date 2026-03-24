@@ -71,6 +71,15 @@ let deployment_route = "/api/agent/deployments/current"
  *)
 let scan_config_route = "/api/agent/deployments/scans/config"
 
+(* routes to be used by most of the semgrep commands
+ * to kick off scans asynchronously and download the config
+ * when it's ready
+ *)
+let start_scan_v2_route = "/api/cli/v2/scans"
+
+let get_config_v2_route scan_request_id =
+  spf "/api/cli/v2/scans/%s/config" scan_request_id
+
 (* used by semgrep show identity *)
 let identity_route = "/api/agent/identity"
 
@@ -415,6 +424,7 @@ let fetch_scan_config_string_async ~dry_run ~secrets ~sca ~full_scan ~repository
    *   else:
    *    app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
    *)
+  Metrics_.add_feature ~category:"config_download" ~name:"legacy_config_lwt";
   let url = scan_config_uri ~secrets ~sca ~dry_run ~full_scan repository in
   let headers =
     [
@@ -452,6 +462,7 @@ let fetch_scan_config_string_eio ~dry_run ~secrets ~sca ~full_scan ~repository
    *   else:
    *    app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
    *)
+  Metrics_.add_feature ~category:"config_download" ~name:"legacy_config_eio";
   let url = scan_config_uri ~secrets ~sca ~dry_run ~full_scan repository in
   let headers =
     [
@@ -477,6 +488,220 @@ let fetch_scan_config_string_eio ~dry_run ~secrets ~sca ~full_scan ~repository
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   conf_string
+
+(*****************************************************************************)
+(* Scan config v2 (start-then-poll) *)
+(*****************************************************************************)
+
+(* Builds a minimal v2 scan request and returns it
+ * together with the client-generated scan_request_id used for polling. *)
+let make_scan_request_v2 ?(secrets = false) ?(sca = false) () :
+    Out.create_scan_request_v2 * string =
+  let unique_id = Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) () in
+  let scan_request_id = Uuidm.to_string unique_id in
+  (* Mirror legacy product selection: always request SAST and conditionally add
+   * Secrets/SCA based on caller flags. The server returns the intersection with
+   * the deployment's available_products, so requesting an unlicensed product is
+   * safe (no 400 as long as SAST is available). *)
+  let requested_products =
+    [ `SAST ]
+    @ (if secrets then [ `Secrets ] else [])
+    @ if sca then [ `SCA ] else []
+  in
+  let request : Out.create_scan_request_v2 =
+    {
+      project_metadata =
+        {
+          scan_environment = "config-generation";
+          (* Repository identity fields: omitted so the server falls back to
+           * deployment-level config rather than a specific repo's config. *)
+          repository = "";
+          project_id = None;
+          repo_url = None;
+          repo_id = None;
+          org_id = None;
+          repo_display_name = None;
+          (* Git commit context: not available outside a CI environment.
+           * These fields are used by the server to record scan history and
+           * to compute merge-base for diff scans, neither of which applies
+           * to a config-only fetch. *)
+          branch = None;
+          commit = None;
+          commit_title = None;
+          commit_timestamp = None;
+          commit_author_email = None;
+          commit_author_name = None;
+          commit_author_username = None;
+          commit_author_image_url = None;
+          (* CI and pull-request context: not present outside a CI pipeline.
+           * ci_job_url and on describe the CI environment; the PR fields
+           * describe the triggering pull request. None of these are relevant
+           * to a config-only fetch. *)
+          ci_job_url = None;
+          on = "unknown";
+          pull_request_author_username = None;
+          pull_request_author_image_url = None;
+          pull_request_id = None;
+          pull_request_title = None;
+          (* Diff-scan fields: not relevant for config generation.
+           * So is_full_scan is always true. base_branch_head_commit, base_sha,
+           * and start_sha are only meaningful for incremental diff scans. *)
+          base_branch_head_commit = None;
+          base_sha = None;
+          start_sha = None;
+          is_full_scan = true;
+          (* Deprecated product flags: the v2 server ignores these in favour of
+           * scan_metadata.requested_products. All set to None. *)
+          is_sca_scan = None;
+          is_code_scan = None;
+          is_secrets_scan = None;
+        };
+      scan_metadata =
+        {
+          cli_version = Version.version;
+          unique_id;
+          requested_products;
+          (* Always a dry run: the purpose of calling this endpoint is to fetch the
+           * config, not to persist a scan record. *)
+          dry_run = true;
+          sms_scan_id = None;
+          ecosystems = [];
+          packages = [];
+          enable_mal_deps = None;
+        };
+      project_config = None;
+    }
+  in
+  (request, scan_request_id)
+
+type poll_outcome =
+  | Poll_success of Out.scan_configuration
+  | Poll_failure of string
+  | Poll_pending of float (* server-provided poll interval in seconds *)
+
+(* Parses a poll response body, updates the mutable deadline/interval refs
+ * from any server-provided [polling] hint, and returns a poll_outcome. *)
+let handle_poll_response ~scan_request_id ~server_deadline ~server_poll_interval
+    body : (poll_outcome, string) result =
+  let parsed =
+    match Out.get_config_response_v2_of_string body with
+    | exception exn ->
+        Error
+          (spf "Failed to parse v2 scan config response: %s"
+             (Printexc.to_string exn))
+    | r -> Ok r
+  in
+  match parsed with
+  | Error _ as e -> e
+  | Ok { status; polling; config; _ } -> (
+      (match polling with
+      | Some { recommended_wait_seconds; seconds_until_timeout } ->
+          server_poll_interval := Float.of_int recommended_wait_seconds;
+          server_deadline :=
+            Unix.gettimeofday () +. Float.of_int seconds_until_timeout
+      | None -> ());
+      match (status, config) with
+      | Failure, _ ->
+          Ok
+            (Poll_failure
+               (spf "v2 scan config generation failed (scan_request_id=%s)"
+                  scan_request_id))
+      | Pending, _ -> Ok (Poll_pending !server_poll_interval)
+      | Success, None ->
+          Error "v2 scan config status is Success but config is missing"
+      | Success, Some sc ->
+          Logs.debug (fun m ->
+              m "Received v2 scan config (scan_request_id=%s)" scan_request_id);
+          Ok (Poll_success sc))
+
+(* coupling(backend): if you change this you must change start_scan_v2 in scans.py *)
+(* TODO: implement an lwt-based version *)
+(* poll for the v2 scan config after the scan has been created *)
+let poll_scan_config_v2_eio ~scan_request_id ~headers :
+    (Out.scan_configuration, string) result =
+  let get_config_url =
+    Uri.with_path !Semgrep_envvars.v.semgrep_url
+      (get_config_v2_route scan_request_id)
+  in
+  let start_time = Unix.gettimeofday () in
+  (* informed bounds overridable by the server *)
+  let server_deadline = ref (start_time +. 180.) in
+  let server_poll_interval = ref 5. in
+  (* hard bounds for safety *)
+  let maximum_deadline = start_time +. 300. in
+  let minimum_poll_interval = 1. in
+  let maximum_poll_interval = 60. in
+  let poll_attempts = ref 0 in
+  let rec poll () =
+    if Unix.gettimeofday () >= Float.min !server_deadline maximum_deadline then
+      let elapsed = Unix.gettimeofday () -. start_time in
+      Error
+        (spf
+           "Config generation timed out after %.0f seconds \
+            (scan_request_id=%s, %d attempts)"
+           elapsed scan_request_id !poll_attempts)
+    else begin
+      incr poll_attempts;
+      match Http_helpers.get_eio ~headers get_config_url with
+      | Error e -> Error (spf "Failed to poll v2 scan config: %s" e)
+      | Ok { body = Error msg; code; _ } ->
+          Error (spf "v2 scan config poll returned %u: %s" code msg)
+      | Ok { body = Ok body; _ } -> (
+          match
+            handle_poll_response ~scan_request_id ~server_deadline
+              ~server_poll_interval body
+          with
+          | Error e -> Error e
+          | Ok (Poll_success sc) -> Ok sc
+          | Ok (Poll_failure msg) -> Error msg
+          | Ok (Poll_pending interval) ->
+              (* Never wait less than minimum poll interval to avoid hammering
+               * the server *)
+              let wait =
+                Float.min
+                  (Float.max interval minimum_poll_interval)
+                  maximum_poll_interval
+              in
+              Unix.sleepf wait;
+              poll ())
+    end
+  in
+  poll ()
+
+(* TODO: implement an lwt-based version *)
+(* Fetch a config using the v2 endpoints *)
+let fetch_scan_config_v2_eio ?(secrets = false) ?(sca = false) token :
+    (Out.scan_configuration, string) result =
+  Metrics_.add_feature ~category:"config_download" ~name:"v2_config_eio";
+  let request, scan_request_id = make_scan_request_v2 ~secrets ~sca () in
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token token;
+    ]
+  in
+  let start_scan_url =
+    Uri.with_path !Semgrep_envvars.v.semgrep_url start_scan_v2_route
+  in
+  let request_body = Out.string_of_create_scan_request_v2 request in
+  Logs.debug (fun m ->
+      m "Starting v2 scan config fetch (scan_request_id=%s)" scan_request_id);
+  match Http_helpers.post_eio ~body:request_body ~headers start_scan_url with
+  | Error e -> Error (spf "Failed to create v2 scan: %s" e)
+  | Ok { body = Error msg; code; _ } ->
+      Error (spf "Failed to create v2 scan, server returned %u: %s" code msg)
+  | Ok { body = Ok body; _ } ->
+      (match Out.create_scan_response_v2_of_string body with
+      | { info = { id; deployment_id; deployment_name; _ } } ->
+          Logs.debug (fun m ->
+              m
+                "v2 scan created: scan_id=%s deployment_id=%d \
+                 deployment_name=%s"
+                (Option.fold ~none:"null" ~some:string_of_int id)
+                deployment_id deployment_name)
+      | exception _ -> ());
+      poll_scan_config_v2_eio ~scan_request_id ~headers
 
 (*****************************************************************************)
 (* Other endpoints *)
