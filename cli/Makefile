@@ -54,7 +54,7 @@ clean:
 # it happens, we can get a traceback.
 PYTEST ?= \
    PYTHONFAULTHANDLER=1 \
-  uv run pytest \
+  uv run --locked pytest \
     -n auto -vv --tb=long --timeout=300 --durations=10 $(PYTEST_EXTRA_ARGS)
 
 # This is run from .github/workflow/tests.jsonnet (which sets
