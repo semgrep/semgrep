@@ -1,0 +1,2 @@
+It is now possible to match a class name like in `$C.getInstance(...)`, and then
+use  `metavariable-type` on `$C` to check its type.
