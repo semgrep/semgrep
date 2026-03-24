@@ -1,0 +1,11 @@
+(library
+ (public_name lib_parsing.tests)
+ (name lib_parsing_tests)
+ (wrapped false)
+ (libraries
+   lib_parsing
+   commons
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)

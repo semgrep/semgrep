@@ -1,0 +1,11 @@
+(library
+ (public_name process_limits.tests)
+ (name process_limits_tests)
+ (wrapped false)
+ (libraries
+   process_limits
+   commons
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)

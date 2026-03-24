@@ -1,0 +1,12 @@
+(library
+ (public_name gitignore.tests)
+ (name gitignore_tests)
+ (wrapped false)
+ (libraries
+   gitignore
+   commons
+   paths
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)

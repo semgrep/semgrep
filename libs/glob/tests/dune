@@ -1,0 +1,11 @@
+(library
+ (public_name glob.tests)
+ (name glob_tests)
+ (wrapped false)
+ (libraries
+   glob
+   alcotest
+ )
+ (flags (:standard -open Glob))
+ (preprocess (pps ppx_deriving.show))
+)

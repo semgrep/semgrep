@@ -1,0 +1,11 @@
+(library
+ (public_name ojsonnet.tests)
+ (name ojsonnet_tests)
+ (wrapped false)
+ (libraries
+   ojsonnet
+   commons
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)
