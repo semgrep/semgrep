@@ -107,7 +107,7 @@ let rec js_expr_to_json_value (e : JS.expr) : value =
             | JS.Field { fld_name = JS.PN name; fld_body = Some value; _ }
             | JS.FieldColon { fld_name = JS.PN name; fld_body = Some value; _ }
               ->
-                Some (name, js_expr_to_json_value value)
+                Some ((name.JS.str, name.JS.tok), js_expr_to_json_value value)
             (* In theory we should handle all the cases and raise
              * an error instead
              *)
@@ -115,7 +115,7 @@ let rec js_expr_to_json_value (e : JS.expr) : value =
           props
       in
       Object (l, json_props, r)
-  | JS.Id (_, tok) -> error tok
+  | JS.Id { tok; _ } -> error tok
   | JS.IdSpecial (_, tok) -> error tok
   | JS.Assign (_, tok, _) -> error tok
   | JS.Class ({ c_kind = _, tok; _ }, _) -> error tok

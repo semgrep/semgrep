@@ -5,7 +5,7 @@
             (Id (("!MultiVarDef!", _),
                { id_resolved = ref ((Some (Global, _)));
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (4); id_info_id = _ }
+                 id_svalue = ref (None); id_flags = ref (5); id_info_id = _ }
                )));
          attrs = [(KeywordAttr (Var, _))]; tparams = None },
        (VarDef

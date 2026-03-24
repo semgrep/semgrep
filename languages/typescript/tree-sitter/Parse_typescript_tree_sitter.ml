@@ -145,7 +145,8 @@ let is_semgrep_pattern_we_would_rather_parse_as_expression cst =
 
 module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
 
-let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
+let identifier (env : env) (tok : CST.identifier) : a_ident =
+  str env tok |> to_real_id
 
 let identifier_ (env : env) (x : CST.identifier_) : expr =
   match x with
@@ -269,10 +270,10 @@ let string_ (env : env) (x : CST.string_) : string wrap =
       let toks = (v2 |> List_.map snd) @ [ close ] in
       (str, Tok.combine_toks open_ toks)
 
-let module_export_name (env : env) (x : CST.module_export_name) =
+let module_export_name (env : env) (x : CST.module_export_name) : a_ident =
   match x with
   | `Id tok -> identifier env tok
-  | `Str x -> string_ env x
+  | `Str x -> string_ env x |> to_real_id
 
 let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import_export) =
   let star =
@@ -289,10 +290,11 @@ let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import_export) =
   in
   (star, id)
 
-let jsx_identifier_ (env : env) (x : CST.jsx_identifier_) =
+let jsx_identifier_ (env : env) (x : CST.jsx_identifier_) : a_ident =
   match x with
   | `Jsx_id tok ->
-      str env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
+      (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
+      str env tok |> to_real_id
   | `Id tok -> identifier env tok
 
 let jsx_namespace_name (env : env) ((v1, v2, v3) : CST.jsx_namespace_name) =
@@ -304,13 +306,13 @@ let jsx_namespace_name (env : env) ((v1, v2, v3) : CST.jsx_namespace_name) =
   let v3 = jsx_identifier_ env v3 in
   (v1, v3)
 
-let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
+let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) : a_ident =
   match x with
   | `Choice_jsx_id x -> jsx_identifier_ env x
   | `Jsx_name_name x ->
       let id1, id2 = jsx_namespace_name env x in
-      let str = fst id1 ^ ":" ^ fst id2 in
-      (str, Tok.combine_toks (snd id1) [ snd id2 ])
+      let s = id1.str ^ ":" ^ id2.str in
+      real_id s (Tok.combine_toks id1.tok [ id2.tok ])
 
 let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) :
     a_ident list =
@@ -335,17 +337,17 @@ let jsx_element_name (env : env) (x : CST.jsx_element_name) : a_ident =
   | `Choice_jsx_id x -> jsx_identifier_ env x
   | `Nested_id x ->
       let xs = nested_identifier env x in
-      let str = xs |> List_.map fst |> String.concat "." in
+      let s = xs |> List_.map (fun id -> id.str) |> String.concat "." in
       let hd, tl =
         match xs with
         | [] -> raise Impossible
         | x :: xs -> (x, xs)
       in
-      (str, Tok.combine_toks (snd hd) (tl |> List_.map snd))
+      real_id s (Tok.combine_toks hd.tok (tl |> List_.map (fun id -> id.tok)))
   | `Jsx_name_name x ->
       let id1, id2 = jsx_namespace_name env x in
-      let str = fst id1 ^ ":" ^ fst id2 in
-      (str, Tok.combine_toks (snd id1) [ snd id2 ])
+      let s = id1.str ^ ":" ^ id2.str in
+      real_id s (Tok.combine_toks id1.tok [ id2.tok ])
 
 let jsx_closing_element (env : env) ((v1, v2, v3) : CST.jsx_closing_element) =
   let v1 =
@@ -443,8 +445,9 @@ let map_anon_choice_DOT_d88d0af (env : env) (x : CST.anon_choice_DOT_d88d0af) =
 let map_anon_choice_priv_prop_id_89abb74 (env : env)
     (x : CST.anon_choice_priv_prop_id_89abb74) : a_ident =
   match x with
-  | `Priv_prop_id tok -> (* private_property_identifier *) str env tok
-  | `Id tok -> (* identifier *) str env tok
+  | `Priv_prop_id tok ->
+      (* private_property_identifier *) str env tok |> to_real_id
+  | `Id tok -> (* identifier *) str env tok |> to_real_id
 
 let type_or_typeof (env : env) (x : CST.anon_choice_type_2b11f6b) =
   match x with
@@ -560,14 +563,14 @@ let import_specifier (env : env) (x : CST.import_specifier) :
       None
 
 let concat_nested_identifier (idents : a_ident list) : a_ident =
-  let str = idents |> List_.map fst |> String.concat "." in
-  let tokens = List_.map snd idents in
+  let s = idents |> List_.map (fun id -> id.str) |> String.concat "." in
+  let tokens = List_.map (fun id -> id.tok) idents in
   let x, xs =
     match tokens with
     | [] -> assert false
     | x :: xs -> (x, xs)
   in
-  (str, Tok.combine_toks x xs)
+  real_id s (Tok.combine_toks x xs)
 
 (* 'import id = require(...)' are Commonjs-style import.
  * See https://www.typescriptlang.org/docs/handbook/2/modules.html#commonjs-style-import-and-export- for reference.
@@ -633,7 +636,7 @@ let nested_type_identifier (env : env)
     (* "." *)
   in
   let v3 =
-    str env v3
+    str env v3 |> to_real_id
     (* identifier *)
   in
   v1 @ [ v3 ]
@@ -739,7 +742,7 @@ let import_clause (env : env) (x : CST.import_clause) =
       in
       fun t path ->
         let default =
-          Import (t, [ ((default_entity, snd v1), Some v1) ], path)
+          Import (t, [ (real_id default_entity v1.tok, Some v1) ], path)
         in
         default :: v2 t path
 
@@ -778,7 +781,8 @@ let rec parenthesized_expression ?(keep_parens = true) (env : env)
         | Some x -> (
             let tok, ty = type_annotation env x in
             match (env.extra, v1) with
-            | Pattern, Id ((s, _) as id) when AST_generic.is_metavar_name s ->
+            | Pattern, Id ({ str = s; _ } as id)
+              when AST_generic.is_metavar_name s ->
                 TypedMetavar (id, tok, ty)
             | _ -> Cast (v1, tok, ty))
         | None -> v1)
@@ -885,7 +889,7 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
                 let v2 = jsx_attribute_value env v2 in
                 (v1bis, v2)
             (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
-            | None -> (snd v1, L (Bool (true, snd v1)))
+            | None -> (v1.tok, L (Bool (true, v1.tok)))
           in
           XmlAttr (v1, teq, v2)
       (* less: we could enforce that it's only a Spread operation *)
@@ -919,7 +923,7 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
       | `Choice_jsx_elem x ->
           let xml = jsx_element_ env x in
           Xml xml)
-  | `Semg_meta tok -> Id (str env tok)
+  | `Semg_meta tok -> Id (to_real_id (str env tok))
 
 and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   match x with
@@ -1548,7 +1552,7 @@ and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
     | None -> None
   in
   let v2 =
-    str env v2
+    str env v2 |> to_real_id
     (* identifier *)
   in
   let _v3 =
@@ -1898,7 +1902,7 @@ and module__ (env : env) ((v1, v2) : CST.module__) =
   let v1 =
     (* module identifier *)
     match v1 with
-    | `Str x -> string_ env x
+    | `Str x -> string_ env x |> to_real_id
     | `Id tok -> identifier env tok (* identifier *)
     | `Nested_id x -> nested_identifier env x |> concat_nested_identifier
   in
@@ -2586,9 +2590,7 @@ and type_query (env : env) ((v1, v2) : CST.type_query) : type_ =
     | `Type_query_member_exp x -> map_type_query_member_expression env x
     | `Type_query_call_exp x -> map_type_query_call_expression env x
     | `Type_query_inst_exp x -> map_type_query_instantiation_expression env x
-    | `Id tok ->
-        let id = (* identifier *) str env tok in
-        Id id
+    | `Id tok -> Id (identifier env tok)
     | `This tok ->
         let tthis = (* "this" *) token env tok in
         IdSpecial (This, tthis)
@@ -2598,9 +2600,7 @@ and type_query (env : env) ((v1, v2) : CST.type_query) : type_ =
 and map_anon_choice_type_id_e96bf13 (env : env)
     (x : CST.anon_choice_type_id_e96bf13) : expr =
   match x with
-  | `Id tok ->
-      let id = (* identifier *) str env tok in
-      idexp_or_special id
+  | `Id tok -> identifier env tok |> idexp_or_special
   | `This tok ->
       let tthis = (* "this" *) token env tok in
       IdSpecial (This, tthis)
@@ -2613,12 +2613,8 @@ and map_type_query_call_expression (env : env)
   let e =
     match v1 with
     (* ?? what is that? *)
-    | `Import tok ->
-        let id = (* import *) str env tok in
-        idexp_or_special id
-    | `Id tok ->
-        let id = (* identifier *) str env tok in
-        idexp_or_special id
+    | `Import tok -> identifier env tok |> idexp_or_special
+    | `Id tok -> identifier env tok |> idexp_or_special
     | `Type_query_member_exp x -> map_type_query_member_expression env x
     | `Type_query_subs_exp x -> map_type_query_subscript_expression env x
   in
@@ -2883,7 +2879,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
 
 and mapped_type_clause (env : env) ((v1, v2, v3, v4) : CST.mapped_type_clause) =
   let id =
-    str env v1
+    identifier env v1
     (* identifier *)
   in
   let tin =
@@ -3113,7 +3109,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
           in
           let v2 =
             match v2 with
-            | Some tok -> Some (identifier env tok) (* identifier *)
+            | Some tok -> Some (str env tok) (* identifier *)
             | None -> None
           in
           let v3 = semicolon env v3 in
@@ -3125,7 +3121,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
           in
           let v2 =
             match v2 with
-            | Some tok -> Some (identifier env tok) (* identifier *)
+            | Some tok -> Some (str env tok) (* identifier *)
             | None -> None
           in
           let v3 = semicolon env v3 in
@@ -3152,13 +3148,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
           [ Throw (v1, v2, v3) ]
       | `Empty_stmt tok -> [ empty_stmt env tok (* ";" *) ]
       | `Labe_stmt (v1, v2, v3) ->
-          let v1 = id_or_reserved_id env v1 in
+          let id = id_or_reserved_id env v1 in
           let _v2 =
             token env v2
             (* ":" *)
           in
           let v3 = statement1 env v3 in
-          [ Label (v1, v3) ])
+          [ Label ((id.str, id.tok), v3) ])
   | `Semg_ellips tok ->
       (* "..." *)
       let tok = token env tok in
@@ -3281,7 +3277,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 let tok2, path = from_clause env v2 in
                 v1
                 |> List.concat_map (fun (n1, n2opt) ->
-                       let tmpname = ("!tmp_" ^ fst n1, snd n1) in
+                       let tmpname = fake_id ("!tmp_" ^ n1.str) n1.tok in
                        let import =
                          Import (tok2, [ (n1, Some tmpname) ], path)
                        in
@@ -3491,7 +3487,7 @@ and anon_choice_export_stmt_f90d83f (env : env)
   | `Call_sign_ x ->
       let _tparams, x = call_signature env x in
       let ty = mk_functype x in
-      let name = PN ("CTOR??TODO", fake) in
+      let name = PN (fake_id "CTOR??TODO" fake) in
       let fld =
         { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None }
       in
@@ -3514,13 +3510,13 @@ and anon_choice_export_stmt_f90d83f (env : env)
         | None -> None
       in
       let ty = mk_functype (v3, v4) in
-      let fld_name = PN ("new", v1) in
+      let fld_name = PN (real_id "new" v1) in
       let fld_attrs = v0 |> List_.map attr in
       let fld = { fld_name; fld_attrs; fld_type = Some ty; fld_body = None } in
       Left (Field fld)
   | `Index_sign x ->
       let ty = index_signature env x in
-      let name = PN ("IndexMethod??TODO?", fake) in
+      let name = PN (fake_id "IndexMethod??TODO?" fake) in
       let fld =
         { fld_name = name; fld_attrs = []; fld_type = Some ty; fld_body = None }
       in
@@ -3670,17 +3666,17 @@ and property_name (env : env) (x : CST.property_name) =
       let id = id_or_reserved_id env x in
       PN id
   | `Priv_prop_id tok ->
-      let id = str env tok in
-      PN id
+      let s, t = str env tok in
+      PN (real_id s t)
   | `Str x ->
-      let s = string_ env x in
-      PN s
+      let s, t = string_ env x in
+      PN (real_id s t)
   | `Num tok ->
-      let n =
+      let s, t =
         number_as_string env tok
         (* number *)
       in
-      PN n
+      PN (real_id s t)
   | `Comp_prop_name (v1, v2, v3) ->
       let _v1 =
         token env v1
@@ -4211,7 +4207,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
         (* "type" *)
       in
       let id =
-        str env v2
+        identifier env v2
         (* identifier *)
       in
       let _tparamsTODO =
@@ -4312,7 +4308,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
               (* "global" *)
             in
             let v2 = statement_block env v2 in
-            let name = ("!global!", v1) in
+            let name = fake_id "!global!" v1 in
             let f_kind = (G.LambdaKind, fake) in
             let f =
               {
@@ -4382,7 +4378,7 @@ and extends_type_clause (env : env) ((v1, v2, v3) : CST.extends_type_clause) :
 and map_anon_choice_type_id_a85f573 (env : env)
     (x : CST.anon_choice_type_id_a85f573) : type_ =
   match x with
-  | `Id tok -> TyName [ (* identifier *) str env tok ]
+  | `Id tok -> TyName [ (* identifier *) identifier env tok ]
   | `Nested_type_id x -> TyName (nested_type_identifier env x)
   | `Gene_type x -> TyName (generic_type env x)
 
@@ -4414,7 +4410,9 @@ let method_pattern (env : env) (x : CST.method_pattern) : any =
           let id =
             match fld_name with
             | PN id -> id
-            | _ -> ("fake_method_name", Tok.unsafe_fake_tok "fake_method_name")
+            | _ ->
+                fake_id "fake_method_name"
+                  (Tok.unsafe_fake_tok "fake_method_name")
           in
           (* This should be guaranteed to be a function type. I don't want to
              alter the base behavior or have to duplicate it, though.
@@ -4430,7 +4428,7 @@ let method_pattern (env : env) (x : CST.method_pattern) : any =
                ( { name = id; attrs },
                  FuncDef
                    {
-                     f_kind = (G.Method, snd id);
+                     f_kind = (G.Method, id.tok);
                      f_params = fb [];
                      f_body = Block (fb []);
                      f_rettype;
@@ -4454,7 +4452,7 @@ let semgrep_pattern (env : env) (x : CST.semgrep_pattern) : any =
           in
           let v3 = expression env v3 in
           match v1 with
-          | PN id -> Partial (PartialSingleField (id, v2, v3))
+          | PN id -> Partial (PartialSingleField ((id.str, id.tok), v2, v3))
           (* This probably shouldn't happen. We expect any pattern like
            `foo: <expr>`
            to have just a simple ident on the left.
@@ -4485,7 +4483,7 @@ let semgrep_pattern (env : env) (x : CST.semgrep_pattern) : any =
       in
       match v3 with
       | `Id tok ->
-          let v3 = (* identifier *) str env tok in
+          let v3 = (* identifier *) identifier env tok in
           Stmt (DefStmt (basic_entity v3, FuncDef f))
       | `Semg_ellips tok -> Partial (PartialFunOrFuncDef (token env tok, f)))
   | `Fina_clause x ->
@@ -4666,7 +4664,7 @@ let parse_pattern str =
                    } ))
       (* Similarly, this is likely a partial `if`. It looks like `if(e)`.
        *)
-      | Expr (Apply (Id ("if", tok), (_, [], _), (_, [ e ], _))) ->
+      | Expr (Apply (Id { str = "if"; tok; _ }, (_, [], _), (_, [ e ], _))) ->
           Partial (PartialIf (tok, e))
       | Program ss -> Stmts ss
       | other -> other)

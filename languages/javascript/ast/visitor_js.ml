@@ -73,7 +73,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
    fun of_a (v1, v2, v3) ->
     let v1 = v_info v1 and v2 = of_a v2 and v3 = v_info v3 in
     ()
-  and v_name v = v_wrap v_string v
+  and v_name (v : a_ident) =
+    let _ = v_string v.str and _ = v_info v.tok in
+    ()
   and v_ident x = v_name x
   and v_filename v = v_wrap v_string v
   and v_special = function
@@ -519,7 +521,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         ()
     | ImportFile (t, v1) ->
         let t = v_tok t in
-        let v1 = v_name v1 in
+        let v1 = v_filename v1 in
         ()
     | ModuleAlias (t, v1, v2) ->
         let t = v_tok t in
