@@ -19,7 +19,12 @@ let wrap_type_expr lang str =
   | Lang.Java -> Some (spf "(%s x)" str)
   | Lang.Python -> Some (spf "x: %s" str)
   | Lang.Go -> Some (spf "var x %s" str)
-  | Lang.Kotlin -> Some (spf "x as %s" str)
+  | Lang.Kotlin ->
+      (* HACK: Due to a (likely) parser bug, we parse `x as javax.crypto.Cipher`
+        incorrectly as `(x as javax).crypto.Cipher`, but we can parse the type
+        correctly if we just add parentheses around the type:
+        `x as (javax.crypto.Cipher)`. *)
+      Some (spf "x as (%s)" str)
   | Lang.Scala -> Some (spf "x.asInstanceOf[%s]" str)
   (* for php, casting expression only allows primitive types so we use func def instead. *)
   | Lang.Php -> Some (spf "function foo(%s $x) {}" str)
