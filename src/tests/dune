@@ -34,6 +34,14 @@
     semgrep.matching
     semgrep.engine
     aliengrep.tests
+    glob.tests
+    gitignore.tests
+    git_wrapper.tests
+    paths.tests
+    lib_parsing.tests
+    ojsonnet.tests
+    process_limits.tests
+    parser_regexp.tests
     parser_python.menhir parser_python.ast_generic
 
     osemgrep_legacy_language_server
