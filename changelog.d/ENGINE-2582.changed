@@ -1,0 +1,1 @@
+Pro: Reduces redundant recomputation during inter-file taint analysis by serializing intermediate results to disk.
