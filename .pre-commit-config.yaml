@@ -213,6 +213,15 @@ repos:
         language: script
         files: "\\.mli?$"
 
+  - repo: local
+    hooks:
+      - id: check-uv-lock
+        name: Check cli/uv.lock is up to date
+        entry: uv lock --check --project cli
+        language: system
+        files: "^cli/(pyproject\\.toml|uv\\.lock)$"
+        pass_filenames: false
+
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------

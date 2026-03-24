@@ -138,7 +138,7 @@ local install_x86_artifacts = {
 local install_python_deps = {
   name: 'Install Python dependencies',
   'working-directory': 'cli',
-  run: 'uv sync',
+  run: 'uv sync --locked',
 };
 
 // Run pytest with many python versions
@@ -230,7 +230,7 @@ local test_qa_job = {
         'working-directory': 'cli',
         run: |||
           export PATH=/github/home/.local/bin:$PATH
-          uv sync
+          uv sync --locked
         |||,
       },
       {
