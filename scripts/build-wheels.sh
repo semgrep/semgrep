@@ -11,7 +11,7 @@ set -ex
 
 # Invoke `uv` to build the wheel, which invokes the build backend (`setup.py`)
 cd cli
-uv sync
+uv sync --locked
 uv build
 
 # Do some sanity checks on the built packages. These checks are done as part of
