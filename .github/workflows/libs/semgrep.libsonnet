@@ -198,7 +198,7 @@ local osemgrep_test_steps_after_checkout = [
     run: |||
       apk add --no-cache python3 py3-pip
       pip install --no-cache-dir --ignore-installed --break-system-packages distlib uv==%s
-      (cd cli; uv sync)
+      (cd cli; uv sync --locked)
     ||| % actions.default_uv_version,
   },
   {
