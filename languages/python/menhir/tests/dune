@@ -1,0 +1,12 @@
+(library
+ (public_name parser_python.menhir.tests)
+ (name parser_python_menhir_tests)
+ (wrapped false)
+ (libraries
+   parser_python.menhir
+   commons
+   commons2
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)
