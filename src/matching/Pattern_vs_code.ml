@@ -1632,9 +1632,17 @@ and m_compatible_type lang typed_mvar t e =
       (* for matching ids *)
       (* this is covered by the basic type propagation done in Naming_AST.ml *)
       (* TODO Remove this case in favor of the newer type inference below. *)
-      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
-          (* NOTE: Name values must be represented with MV.Id! *)
+      (* NOTE: Name values must be represented with MV.Id! *)
+      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob)))
+        when Option.is_some !tb ->
           m_type_option (Some t) !tb >>= fun () ->
+          envf typed_mvar (MV.Id (idb, Some id_infob))
+      | TyN na, B.N (B.Id (idb, ({ B.id_resolved = rb; _ } as id_infob)) as nb)
+        when Option.is_some !rb ->
+          (* If both are names we try to match them, `e` could be a class name.
+            This allows `metavariable-type:` to also work on class names, e.g.
+            matching `new $C(...)` and checking `$C`'s type. *)
+          m_name na nb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _else_ -> fail ())
       >||>
