@@ -52,7 +52,8 @@ let wrap _of_a (v1, v2) =
   (v1, v2)
 
 let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
-let name v = wrap id v
+let wrap_name v = wrap id v
+let name (v : a_ident) : G.ident = (v.str, v.tok)
 let ident x = name x
 let filename v = wrap string v
 let label v = wrap string v
@@ -198,11 +199,11 @@ and xml { xml_kind = xml_tag; xml_attrs; xml_body } =
 and xml_kind = function
   | XmlClassic (v0, v1, v2, v3) ->
       (* TODO Correctly parse Foo.Bar into IdQualified *)
-      let v1 = G.Id (ident v1, G.empty_id_info ()) in
+      let v1 = G.Id (ident v1, G.empty_id_info ~hidden:v1.fake ()) in
       G.XmlClassic (v0, v1, v2, v3)
   | XmlSingleton (v0, v1, v2) ->
       (* TODO Correctly parse Foo.Bar into IdQualified *)
-      let v1 = G.Id (ident v1, G.empty_id_info ()) in
+      let v1 = G.Id (ident v1, G.empty_id_info ~hidden:v1.fake ()) in
       XmlSingleton (v0, v1, v2)
   | XmlFragment (v1, v2) -> XmlFragment (v1, v2)
 
@@ -248,8 +249,9 @@ and expr (x : expr) =
       e
   | L x -> G.L (literal x) |> G.e
   | Id v1 ->
+      let hidden = v1.fake in
       let v1 = name v1 in
-      G.N (G.Id (v1, G.empty_id_info ())) |> G.e
+      G.N (G.Id (v1, G.empty_id_info ~hidden ())) |> G.e
   | IdSpecial v1 ->
       (let x = special v1 in
        match x with
@@ -462,7 +464,7 @@ and for_header = function
         match v1 with
         (* TODO: v_init is not always _NONE! when we use multivardef!!! *)
         | Left ({ name = id; attrs = _TODO }, { v_init = _NONE; _ }) ->
-            G.PatId (id, G.empty_id_info ())
+            G.PatId (ident id, G.empty_id_info ~hidden:id.fake ())
         | Right e ->
             let e = expr e in
             H.expr_to_pattern e
@@ -474,7 +476,7 @@ and for_header = function
         match v1 with
         (* TODO: v_init is not always _NONE! when we use multivardef!!! *)
         | Left ({ name = id; attrs = _TODO }, { v_init = _NONE; _ }) ->
-            G.PatId (id, G.empty_id_info ())
+            G.PatId (ident id, G.empty_id_info ~hidden:id.fake ())
         | Right e ->
             let e = expr e in
             H.expr_to_pattern e
@@ -496,8 +498,8 @@ and case = function
  *)
 and type_ x =
   match x with
-  | TyBuiltin id -> G.ty_builtin (ident id)
-  | TyName xs -> G.TyN (H.name_of_ids xs) |> G.t
+  | TyBuiltin id -> G.ty_builtin (wrap_name id)
+  | TyName xs -> G.TyN (H.name_of_ids (List_.map ident xs)) |> G.t
   (* TODO: use TyExpr now? or special TyLiteral? *)
   | TyLiteral l ->
       let l = G.L (literal l) in
@@ -541,9 +543,10 @@ and tuple_type_member x =
   | TyTupRest (tok, x) -> G.TyRest (tok, type_ x) |> G.t
 
 and entity { name = n; attrs } =
+  let hidden = n.fake in
   let n = name n in
   let attrs = list attribute attrs in
-  G.basic_entity n ~attrs
+  G.basic_entity n ~hidden ~attrs
 
 and definition (ent, def) =
   let ent = entity ent in
@@ -566,10 +569,11 @@ and definition (ent, def) =
 
 and var_of_var
     ({ name = x_name; attrs }, { v_kind = x_kind; v_init = x_init; v_type }) =
+  let hidden = x_name.fake in
   let v1 = name x_name in
   let attrs = list attribute attrs in
   let v2 = var_kind x_kind in
-  let ent = G.basic_entity v1 ~attrs:(v2 :: attrs) in
+  let ent = G.basic_entity v1 ~hidden ~attrs:(v2 :: attrs) in
   let v3 = option expr x_init in
   let v_type = option type_ v_type in
   (ent, { G.vinit = v3; vtype = v_type; vtok = G.no_sc })
@@ -604,6 +608,7 @@ and pattern x =
 and parameter x =
   match x with
   | { p_name; p_default; p_dots; p_type; p_attrs } -> (
+      let hidden = p_name.fake in
       let v1 = name p_name in
       let pdefault = option expr p_default in
       let v3 = bool p_dots in
@@ -615,7 +620,7 @@ and parameter x =
           pdefault;
           ptype;
           pattrs;
-          pinfo = G.empty_id_info ();
+          pinfo = G.empty_id_info ~hidden ();
         }
       in
       match v3 with
@@ -633,7 +638,7 @@ and attribute = function
         | None -> fb []
       in
       let args = list argument args |> List_.map G.arg in
-      let name = H.name_of_ids ids in
+      let name = H.name_of_ids (List_.map ident ids) in
       G.NamedAttr (t, name, (t1, args, t2))
 
 and keyword_attribute (x, tok) =
@@ -739,8 +744,9 @@ and property x =
       G.F (G.OtherStmt (G.OS_Todo, [ G.TodoK v1; G.S v2 ]) |> G.s)
 
 and alias v1 =
+  let hidden = v1.fake in
   let v1 = name v1 in
-  (v1, G.empty_id_info ())
+  (v1, G.empty_id_info ~hidden ())
 
 and module_directive x =
   match x with
@@ -764,7 +770,7 @@ and module_directive x =
    * we now want import "foo" to be used to match any form of import
    *)
   | ImportFile (t, v1) ->
-      let v1 = name v1 in
+      let v1 = wrap_name v1 in
       (* old: G.OtherDirective (G.OI_ImportEffect, [G.I v1]) *)
       G.ImportAs (t, G.FileName v1, None)
   | Export (t, v1) ->

@@ -92,7 +92,11 @@ type sc = Tok.t [@@deriving show]
 (* Name *)
 (* ------------------------------------------------------------------------- *)
 
-type a_ident = string wrap [@@deriving show]
+type a_ident = { str : string; tok : tok; fake : bool } [@@deriving show]
+
+let real_id str tok = { str; tok; fake = false }
+let fake_id str tok = { str; tok; fake = true }
+let to_real_id (str, tok) = { str; tok; fake = false }
 
 type special =
   (* Special values *)
@@ -627,9 +631,9 @@ let special_of_id_opt s =
 let idexp id = Id id
 
 let idexp_or_special id =
-  match special_of_id_opt (fst id) with
+  match special_of_id_opt id.str with
   | None -> idexp id
-  | Some special -> IdSpecial (special, snd id)
+  | Some special -> IdSpecial (special, id.tok)
 
 (* note that this should be avoided as much as possible for sgrep, because
  * what was before a simple sequence of stmts in the same block can suddently
@@ -646,7 +650,7 @@ let unsafe_stmt1 xs = stmt1_with Tok.unsafe_fake_bracket xs
 let basic_entity id = { name = id; attrs = [] }
 
 let mk_default_entity_def tok exp =
-  let n = (default_entity, tok) in
+  let n = real_id default_entity tok in
   (* TODO: look at exp and transform in FuncDef/ClassDef? *)
   let def =
     ( basic_entity n,
@@ -663,7 +667,7 @@ let var_pattern_to_var v_kind pat tok init_opt =
   | Id id, None -> (basic_entity id, { v_kind; v_init = None; v_type = None })
   | _ ->
       let s = AST_generic.special_multivardef_pattern in
-      let id = (s, tok) in
+      let id = fake_id s tok in
       let init =
         match init_opt with
         | Some init -> Assign (pat, tok, init)
@@ -712,7 +716,7 @@ let parameter_to_pattern tok (param : parameter) : a_pattern =
 
 let mk_const_var id e =
   ( basic_entity id,
-    VarDef { v_kind = (Const, snd id); v_init = Some e; v_type = None } )
+    VarDef { v_kind = (Const, id.tok); v_init = Some e; v_type = None } )
 
 let add_decorators_to_declaration decorators declaration =
   let ent, defkind = declaration in
