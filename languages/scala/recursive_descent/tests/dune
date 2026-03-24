@@ -1,0 +1,12 @@
+(library
+ (public_name parser_scala.recursive_descent.tests)
+ (name parser_scala_recursive_descent_tests)
+ (wrapped false)
+ (libraries
+   parser_scala.recursive_descent
+   commons
+   commons2
+   alcotest
+ )
+ (preprocess (pps ppx_deriving.show))
+)

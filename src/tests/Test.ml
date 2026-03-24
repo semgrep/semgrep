@@ -130,14 +130,14 @@ let tests =
         Commons_tests.tests;
         Collections_tests.tests;
         Unit_list_files.tests ();
-        Glob.Unit_glob.tests;
+        Unit_glob.tests;
         Unit_semgrepignore.tests;
         Unit_gitignore.tests;
         Unit_include_filter.tests;
         Unit_disk_cache.tests;
         Unit_parsing.tests ();
         Unit_entropy.tests;
-        Parser_regexp.Unit_parsing.tests;
+        Parser_regexp_tests.Unit_parsing.tests;
         Unit_ReDoS.tests;
         Unit_guess_lang.tests;
         Unit_cgroup_limits.tests;

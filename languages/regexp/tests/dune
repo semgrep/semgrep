@@ -1,0 +1,12 @@
+(library
+ (public_name parser_regexp.tests)
+ (name parser_regexp_tests)
+ (libraries
+   parser_regexp
+   commons
+   commons2
+   alcotest
+ )
+ (flags (:standard -open Parser_regexp))
+ (preprocess (pps ppx_deriving.show))
+)
