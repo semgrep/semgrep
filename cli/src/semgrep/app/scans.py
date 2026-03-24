@@ -417,6 +417,7 @@ class ScanHandler:
         response = self.start_scan_v1(project_metadata, project_config)
         self._handle_scan_response(response)
 
+    # coupling(backend): if you change this you must change poll_scan_config_v2 in Semgrep_App.ml
     @telemetry.trace()
     def start_scan_v2(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
