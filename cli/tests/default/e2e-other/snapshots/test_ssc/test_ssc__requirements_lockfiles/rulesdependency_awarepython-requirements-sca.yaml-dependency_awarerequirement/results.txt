@@ -83,7 +83,7 @@
 
   Dependency Sources                                     Resolution Method   Ecosystem   Dependencies   Rules
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  targets/dependency_aware/requirement/requirement.txt   Lockfile            Pypi        39                 1
+  targets/dependency_aware/requirement/requirement.txt   Lockfile            Pypi        40                 1
 
 
   Analysis   Rules
