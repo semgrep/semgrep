@@ -30,7 +30,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = List_.map
+let list = List.map
 let string = id
 let bool = id
 
@@ -725,7 +725,7 @@ and item { i; iattrs } =
   | Type (_t, v1) ->
       let xs = list type_declaration v1 in
       xs
-      |> List_.map (function
+      |> List.map (function
            | Either.Left (ent, def) ->
                (* add attrs to all mutual type decls *)
                let ent = add_attrs ent attrs in
@@ -769,8 +769,8 @@ and item { i; iattrs } =
         G.OtherStmt
           ( G.OS_Todo,
             [ G.TodoK t ]
-            @ List_.map (fun x -> G.S x) xs
-            @ List_.map (fun x -> G.At x) attrs )
+            @ List.map (fun x -> G.S x) xs
+            @ List.map (fun x -> G.At x) attrs )
         |> G.s;
       ]
 

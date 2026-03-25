@@ -277,7 +277,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
                 (spf "%s actually exist! remove it from exceptions" !!path));
      let features = List.filter (fun x -> not (List.mem x exns)) features in
      features
-     |> List_.map (fun base ->
+     |> List.map (fun base ->
             Testo.create ~tags:(Test_tags.tags_of_lang lang) base (fun () ->
                 let path = dir / (base ^ ext) in
                 (* if it's a does-not-apply (NA) case, consider adding it
@@ -387,7 +387,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
 *)
 let regression_tests_for_lang ~polyglot_pattern_path files lang =
   files
-  |> List_.map (fun file ->
+  |> List.map (fun file ->
          Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
            (fun () ->
              let sgrep_file =
@@ -425,7 +425,7 @@ let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
   (* TODO: infer dir and ext from lang using Lang helper functions *)
   let lang_tests =
     lang_data
-    |> List_.map (fun (lang, dir, ext) ->
+    |> List.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -435,7 +435,7 @@ let lang_regression_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_patterns in
   let regular_tests =
     full_lang_info
-    |> List_.map (fun (lang, dir, ext) ->
+    |> List.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -466,7 +466,7 @@ let lang_regression_tests ~polyglot_pattern_path =
 
 let autofix_tests_for_lang ~polyglot_pattern_path files lang =
   files
-  |> List_.map (fun file ->
+  |> List.map (fun file ->
          Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
            (fun () ->
              let sgrep_file =
@@ -527,7 +527,7 @@ let lang_autofix_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_autofix in
   let lang_tests =
     full_lang_info
-    |> List_.map (fun (lang, dir, ext) ->
+    |> List.map (fun (lang, dir, ext) ->
            pack_tests_for_lang ~lang_test_fn:autofix_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
@@ -608,7 +608,7 @@ let filter_irrelevant_rules_tests =
             | _ -> true (* TODO include .test.yaml*))
      in
      target_files
-     |> List_.map (fun target_file -> test_irrelevant_rule_file target_file))
+     |> List.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
 (* Tainting tests *)
@@ -676,7 +676,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
   in
   let actual =
     matches
-    |> List_.map (fun (m : PM.t) ->
+    |> List.map (fun (m : PM.t) ->
            E.
              {
                rule_id = Some m.rule_id.id;
@@ -693,7 +693,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
 
 let tainting_tests_for_lang files lang =
   files
-  |> List_.map (fun file ->
+  |> List.map (fun file ->
          Testo.create ~tags:(Test_tags.tags_of_lang lang) (Fpath.basename file)
            (fun () ->
              let rules_file =
@@ -778,7 +778,7 @@ let full_rule_regression_tests =
   let tests = tests1 @ tests2 in
   let groups =
     tests
-    |> List_.map (fun (test : Testo.t) ->
+    |> List.map (fun (test : Testo.t) ->
            let group =
              match String.split_on_char ' ' test.name with
              | lang :: _ -> lang
@@ -789,7 +789,7 @@ let full_rule_regression_tests =
   in
 
   Testo.categorize_suites "full rule"
-    (groups |> List_.map (fun (group, tests) -> Testo.categorize group tests))
+    (groups |> List.map (fun (group, tests) -> Testo.categorize group tests))
 
 (* TODO: For now we only have taint maturity tests for Beta, there are no
  * specific tests for GA.
@@ -847,7 +847,7 @@ let semgrep_rules_repo_tests : Testo.t list =
                     || s =/~ ".*/apex/lang/.*"
                        (* but the following are generic rules ... *)
                        && not @@ Fpath.Set.mem s @@ Fpath.Set.of_list
-                          @@ List_.map Fpath.v
+                          @@ List.map Fpath.v
                           @@ [
                                "tests/semgrep-rules/apex/lang/best-practice/ncino/tests/UseAssertClass.yaml";
                                "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidNativeDmlInLoops.yaml";
@@ -882,9 +882,9 @@ let semgrep_rules_repo_tests : Testo.t list =
 
   Testo.categorize_suites "semgrep-rules repo"
     (groups
-    |> List_.map (fun (group, tests) ->
+    |> List.map (fun (group, tests) ->
            tests
-           |> List_.map (fun (test : Testo.t) ->
+           |> List.map (fun (test : Testo.t) ->
                   match group with
                   | "XFAIL" ->
                       (* TODO: populate the excuse below with the exact reason

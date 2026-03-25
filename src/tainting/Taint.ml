@@ -168,9 +168,7 @@ let show_offset offset =
   | Ostr s -> Printf.sprintf "[%s]" s
   | Oany -> "[*]"
 
-let show_offset_list offset =
-  offset |> List_.map show_offset |> String.concat ""
-
+let show_offset_list offset = offset |> List.map show_offset |> String.concat ""
 let show_lval { base; offset } = show_base base ^ show_offset_list offset
 
 let offset_of_IL (o : IL.offset) =
@@ -188,7 +186,7 @@ let offset_of_rev_IL_offset ~rev_offset = List.rev_map offset_of_IL rev_offset
 let rev_IL_offset_of_offset offset =
   let os =
     offset
-    |> List_.map (function
+    |> List.map (function
          | Ofld x -> Some IL.{ o = Dot x; oorig = NoOrig }
          | Oint i ->
              Some
@@ -378,7 +376,7 @@ and show_taints_with_trace precondition =
   | None -> ""
   | Some (ts, pre) ->
       Common.spf "{/PRE|%s|if %s/}"
-        (List_.map show_taint ts |> String.concat " + ")
+        (List.map show_taint ts |> String.concat " + ")
         (show_precondition pre)
 
 and show_taint taint =
@@ -537,7 +535,7 @@ end
 type taints = Taint_set.t
 
 let show_taints taints =
-  taints |> Taint_set.elements |> List_.map show_taint |> String.concat ", "
+  taints |> Taint_set.elements |> List.map show_taint |> String.concat ", "
   |> fun str -> "{ " ^ str ^ " }"
 
 (*****************************************************************************)
@@ -550,7 +548,7 @@ let labels_in_precondition pre =
     | R.PLabel l -> LabelSet.singleton l
     | R.PAnd pres
     | R.POr pres ->
-        pres |> List_.map loop |> List.fold_left LabelSet.union LabelSet.empty
+        pres |> List.map loop |> List.fold_left LabelSet.union LabelSet.empty
     | R.PNot pre -> loop pre
   in
   loop pre

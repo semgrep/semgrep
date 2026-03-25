@@ -45,7 +45,7 @@ let errors_from_skipped_tokens xs =
       let e = exn_of_loc x in
       let err = E.exn_to_error ~file:x.Loc.pos.file e in
       let locs =
-        xs |> List_.map Semgrep_output_utils.location_of_token_location
+        xs |> List.map Semgrep_output_utils.location_of_token_location
       in
       Core_error.ErrorSet.singleton { err with typ = OutJ.PartialParsing locs }
 
@@ -272,7 +272,7 @@ let fail_on_errors errors =
   | [] -> ()
   | errors ->
       let error_strs =
-        List_.map (fun (Tree_sitter_error err : Res.error) -> err.msg) errors
+        List.map (fun (Tree_sitter_error err : Res.error) -> err.msg) errors
       in
       failwith (String.concat "\n" error_strs)
 

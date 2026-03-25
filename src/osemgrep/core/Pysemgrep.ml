@@ -49,7 +49,7 @@ let pysemgrep argv : Exit_code.t =
   Logs.debug (fun m ->
       m "execute pysemgrep: %s"
         (argv |> Array.to_list
-        |> List_.map (fun arg -> spf "%S" arg)
+        |> List.map (fun arg -> spf "%S" arg)
         |> String.concat " "));
   (* pysemgrep should be in the PATH, thx to the code in
      ../../../cli/bin/semgrep *)

@@ -42,7 +42,7 @@ let loc_of_substring target_str substrings capture_id =
               (Pcre.get_substrings substrings
               |> Array.to_list
                  (* nosemgrep: ocaml.lang.best-practice.string.ocamllint-useless-sprintf *)
-              |> List_.map (Printf.sprintf "%S")
+              |> List.map (Printf.sprintf "%S")
               |> String.concat ";"));
         assert false
   in
@@ -56,7 +56,7 @@ let convert_match (pat : Pat_compile.t) target_str
     (substrings : Pcre.substrings) =
   let match_loc = loc_of_substring target_str substrings 0 in
   let captures =
-    List_.map
+    List.map
       (fun (capture_id, mv) ->
         let loc = loc_of_substring target_str substrings capture_id in
         Log.debug (fun m ->
@@ -71,4 +71,4 @@ let convert_match (pat : Pat_compile.t) target_str
 let search (pat : Pat_compile.t) target_str : match_ list =
   Pcre_.exec_all_noerr ~rex:pat.pcre target_str
   |> Array.to_list
-  |> List_.map (convert_match pat target_str)
+  |> List.map (convert_match pat target_str)

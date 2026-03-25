@@ -103,7 +103,7 @@ module Out = Semgrep_output_v1_j
  *It works best on Linux machines.
  *
  * We also have had stack overflows. OCaml <=4.14.0, we avoided this using
- * `List_.map`, which is tail-recursive, instead of `List.map`.
+ * `List.map`, which is tail-recursive, instead of `List.map`.
  *)
 
 (*****************************************************************************)
@@ -161,7 +161,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
   let per_files =
     matches
-    |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
+    |> List.map (fun ({ pm; _ } : Core_result.processed_match) ->
            (pm.path.internal_path_to_content, pm))
     |> Assoc.group_assoc_bykey_eff
   in
@@ -179,18 +179,18 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   in
   let new_errors, new_skipped =
     offending_file_list
-    |> List_.map (fun (file : Fpath.t) ->
+    |> List.map (fun (file : Fpath.t) ->
            (* logging useful info for rule writers *)
            Logs.warn (fun m ->
                m "too many matches on %s, generating exn for it" !!file);
            let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
-             |> List_.map (fun (m : Core_match.t) ->
+             |> List.map (fun (m : Core_match.t) ->
                     let rule_id = m.rule_id in
                     ((rule_id.id, rule_id.pattern_string), m))
              |> Assoc.group_assoc_bykey_eff
-             |> List_.map (fun (k, xs) -> (k, List.length xs))
+             |> List.map (fun (k, xs) -> (k, List.length xs))
              |> Assoc.sort_by_val_highfirst
              (* nosemgrep *)
            in
@@ -218,7 +218,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            in
            let skipped =
              sorted_offending_rules
-             |> List_.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
+             |> List.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
                     let details =
                       Some
                         (spf
@@ -295,7 +295,7 @@ let translate_targeting_conf_from_pysemgrep (par_conf : Parallelism_config.t)
     semgrepignore_filename = conf.semgrepignore_filename;
     always_select_explicit_targets = conf.always_select_explicit_targets;
     explicit_targets =
-      conf.explicit_targets |> List_.map Fpath.v
+      conf.explicit_targets |> List.map Fpath.v
       |> Find_targets.Explicit_targets.of_list;
     force_project_root =
       conf.force_project_root
@@ -318,7 +318,7 @@ let translate_targeting_conf_from_pysemgrep (par_conf : Parallelism_config.t)
 let targets_of_scanning_roots ~(par_conf : Parallelism_config.t)
     ~(num_jobs : int) ({ root_paths; targeting_conf } : Out.scanning_roots) :
     Fppath.t list * Core_error.t list * Out.skipped_target list =
-  let scanning_roots = List_.map Scanning_root.of_fpath root_paths in
+  let scanning_roots = List.map Scanning_root.of_fpath root_paths in
   let targeting_conf =
     translate_targeting_conf_from_pysemgrep par_conf num_jobs targeting_conf
   in
@@ -336,8 +336,8 @@ let get_targets_for_pysemgrep ~(par_conf : Parallelism_config.t)
   let target_paths, errors, skipped =
     targets_of_scanning_roots ~par_conf ~num_jobs scanning_roots
   in
-  let target_paths = List_.map atd_fppath_of_fppath target_paths in
-  let errors = List_.map Core_json_output.error_to_error errors in
+  let target_paths = List.map atd_fppath_of_fppath target_paths in
+  let errors = List.map Core_json_output.error_to_error errors in
   { target_paths; errors; skipped }
 
 (* Compute the set of targets, either by reading what was passed
@@ -355,7 +355,7 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
         match UFile.read_file target_file |> Out.targets_of_string with
         | `Scanning_roots { root_paths; targeting_conf } ->
             (* new: use osemgrep's target discovery *)
-            let scanning_roots = List_.map Scanning_root.of_fpath root_paths in
+            let scanning_roots = List.map Scanning_root.of_fpath root_paths in
             let targeting_conf =
               translate_targeting_conf_from_pysemgrep config.par_conf
                 (Core_scan_config.finalize_num_jobs config.num_jobs)
@@ -379,13 +379,13 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
         | `Targets targets ->
             (* legacy: receive discovered target paths from pysemgrep *)
             targets
-            |> List_.map Target.target_of_target
+            |> List.map Target.target_of_target
             |> filter_existing_targets |> no_error)
   in
 
   let fpaths =
-    List_.map Target.internal_path targets
-    @ List_.map (fun (t : Out.skipped_target) -> t.path) skipped
+    List.map Target.internal_path targets
+    @ List.map (fun (t : Out.skipped_target) -> t.path) skipped
   in
   Trace_data.record_phase_data ~fpaths ~rules span;
   (targets, errors, skipped)
@@ -587,7 +587,7 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
           file
       *)
       rule_ids
-      |> List_.map (fun error_rule_id ->
+      |> List.map (fun error_rule_id ->
              E.mk_error ~rule_id:error_rule_id ~loc Out.Timeout)
       |> ESet.of_list
   | Out_of_memory ->
@@ -661,7 +661,7 @@ let parmap_map ~num_jobs f xs =
   xs
   |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
        ~num_jobs f
-  |> List_.map (fun x ->
+  |> List.map (fun x ->
          match x with
          | Ok res -> res
          | Error (target, core_error) ->
@@ -768,7 +768,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
         warn_if_insufficent_cpus num_jobs;
         Concurrent_map_targets.map_targets ~conf ~num_jobs process_target
           targets
-        |> List_.map exception_handler
+        |> List.map exception_handler
     | Parallelism_config.Process ->
         parmap_map ~num_jobs:config.num_jobs process_target targets
   in
@@ -935,7 +935,7 @@ let scan_exn (config : Core_scan_config.t)
         (List.length invalid_rules));
 
   let (rule_errors : E.t list) =
-    invalid_rules |> List_.map E.error_of_invalid_rule
+    invalid_rules |> List.map E.error_of_invalid_rule
   in
   (* the targets *)
   let targets, target_discovery_errors, skipped =
@@ -948,7 +948,7 @@ let scan_exn (config : Core_scan_config.t)
   let file_results, (scanned_targets : Target.t list) =
     (* Do some trace stuff *)
     let%trace span = "Core_scan.scan_exn.OSS" in
-    (let target_fpaths = List_.map Target.internal_path targets in
+    (let target_fpaths = List.map Target.internal_path targets in
      Trace_data.record_phase_data ~rules:valid_rules ~fpaths:target_fpaths
        ~timeout:config.timeout ~memory_limit:config.max_memory_mb
        ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
@@ -965,7 +965,7 @@ let scan_exn (config : Core_scan_config.t)
   let interfile_languages_used = [] in
   let (res : Core_result.t) =
     Core_result.mk_result file_results
-      (List_.map (fun r -> (r, `OSS)) valid_rules)
+      (List.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned_targets interfile_languages_used ~rules_parse_time
   in
   let processed_matches, new_errors, new_skipped =
@@ -1004,7 +1004,7 @@ let post_process_matches (f : post_processor) (res : Core_result.t) :
   let errors = ref [] in
   let processed_matches =
     res.processed_matches
-    |> List_.map (fun pm ->
+    |> List.map (fun pm ->
            let pm, errs =
              (* We don't want a bug in [f] (e.g., a nosemgrep parsing error)
               * to crash the whole scan hence the error management below.

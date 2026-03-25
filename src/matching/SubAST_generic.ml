@@ -151,7 +151,7 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Comprehension (_, (_, (e, xs), _)) ->
       e
       :: (xs
-         |> List_.map (function
+         |> List.map (function
               | CompFor (_, _pat, _, e) -> e
               | CompIf (_, e) -> e))
   | New (_, _t, _ii, args) -> subexprs_of_args args
@@ -319,7 +319,7 @@ let substmts_of_stmt st =
            | CaseEllipsis _ -> [])
   | Try (_, st, xs, opt1, opt2) -> (
       [ st ]
-      @ (xs |> List_.map Common2.thd3)
+      @ (xs |> List.map Common2.thd3)
       @ (match opt1 with
         | None -> []
         | Some (_, st) -> [ st ])
@@ -349,7 +349,7 @@ let substmts_of_stmt st =
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
-            def.cbody |> Tok.unbracket |> List_.map (function F st -> st))
+            def.cbody |> Tok.unbracket |> List.map (function F st -> st))
   | RawStmt x -> Raw_tree.anys x |> substmts_of_any_list
 
 (*****************************************************************************)
@@ -407,7 +407,7 @@ let flatten_substmts_of_stmts xs =
        (* getting deeply nested lambdas stmts *)
        let lambdas = es |> List.concat_map lambdas_in_expr_memo in
        lambdas
-       |> List_.map (fun def -> H.funcbody_to_stmt def.fbody)
+       |> List.map (fun def -> H.funcbody_to_stmt def.fbody)
        |> List.iter aux);
 
     let xs = substmts_of_stmt x in

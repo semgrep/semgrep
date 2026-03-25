@@ -50,7 +50,7 @@ let pattern_of_ids ids =
   | [ id ] -> G.PatId (id, G.empty_id_info ()) |> G.p
   | _ ->
       let xs =
-        ids |> List_.map (fun id -> G.PatId (id, G.empty_id_info ()) |> G.p)
+        ids |> List.map (fun id -> G.PatId (id, G.empty_id_info ()) |> G.p)
       in
       G.PatTuple (fb xs) |> G.p
 
@@ -172,7 +172,7 @@ and map_anon_choice_temp_lit_c764a73 (env : env)
   match x with
   | `Temp_lit x ->
       let sopt = map_template_literal env x in
-      sopt |> Option.to_list |> List_.map (fun s -> Left3 s)
+      sopt |> Option.to_list |> List.map (fun s -> Left3 s)
   | `Temp_interp (v1, v2, v3, v4, v5) ->
       let v1 = (* template_interpolation_start *) token env v1 in
       (* TODO: what is this ~? *)
@@ -389,7 +389,7 @@ and map_function_arguments (env : env) ((v1, v2, v3) : CST.function_arguments) :
     G.argument list =
   let v1 = map_expression env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -465,7 +465,7 @@ and map_object_elem (env : env) (x : CST.object_elem) : G.field =
 and map_object_elems (env : env) ((v1, v2, v3) : CST.object_elems) =
   let v1 = map_object_elem env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           match v1 with
@@ -505,7 +505,7 @@ and map_splat (env : env) (x : CST.splat) =
         let access = G.FDynamic (G.Special (G.HashSplat, v1) |> G.e) in
         G.DotAccess (e, v1, access) |> G.e
       in
-      let v2 = List_.map (map_anon_choice_get_attr_7bbf24f env) v2 in
+      let v2 = List.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
   | `Full_splat (v1, v2) ->
       let v1 = (* "[*]" *) token env v1 in
@@ -513,7 +513,7 @@ and map_splat (env : env) (x : CST.splat) =
         let access = G.Special (G.HashSplat, v1) |> G.e in
         G.ArrayAccess (e, (v1, access, v1)) |> G.e
       in
-      let v2 = List_.map (map_anon_choice_get_attr_7bbf24f env) v2 in
+      let v2 = List.map (map_anon_choice_get_attr_7bbf24f env) v2 in
       fun e -> v2 |> List.fold_left (fun acc f -> f acc) (f1 e)
 
 and map_template_expr (env : env) (x : CST.template_expr) =
@@ -542,7 +542,7 @@ and map_template_expr (env : env) (x : CST.template_expr) =
 and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
   let v1 = map_expression env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -569,7 +569,7 @@ let map_block_type env v1 : block_type wrap =
 let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : block =
   let btype = (* identifier *) map_block_type env v1 in
   let blabels =
-    List_.map
+    List.map
       (fun x ->
         match x with
         | `Str_lit x ->
@@ -590,7 +590,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : block =
   { btype; blabels; bbody = (lb, body, rb) }
 
 and map_body (env : env) (xs : CST.body) : block_body_element list =
-  List_.map
+  List.map
     (fun x ->
       match x with
       | `Attr x ->

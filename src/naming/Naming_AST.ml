@@ -550,7 +550,7 @@ let resolution_visitor =
                 if Lang.is_js env.lang then
                   let _, fields, _ = c.cbody in
                   js_get_angular_constructor_args env attrs
-                    (List_.map (fun (F x) -> x) fields)
+                    (List.map (fun (F x) -> x) fields)
                 else []
               in
               (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
@@ -878,7 +878,7 @@ let resolution_visitor =
               | Some { entname = ImportedEntity xs, _sidm; _ } ->
                   (* The entity is fully qualified, no need for sid *)
                   let sid = SId.unsafe_default in
-                  let rest_of_middle = List_.map fst rest_of_middle in
+                  let rest_of_middle = List.map fst rest_of_middle in
                   let canonical =
                     xs @ dotted_to_canonical (rest_of_middle @ [ id ])
                   in

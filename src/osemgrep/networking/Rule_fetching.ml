@@ -96,7 +96,7 @@ let prefix_for_fpath_opt (fpath : Fpath.t) : string option =
   | [ _file ] -> None
   | _file :: dirs ->
       let prefix =
-        dirs |> List.rev |> List_.map (fun s -> s ^ ".") |> String.concat ""
+        dirs |> List.rev |> List.map (fun s -> s ^ ".") |> String.concat ""
       in
       Some prefix
 
@@ -292,7 +292,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
         match (obj : JSON.t) with
         | Object members ->
             JSON.Object
-              (List_.map
+              (List.map
                  (function
                    | key', _ when key = key' -> (key, v)
                    | x -> x)
@@ -350,7 +350,7 @@ let parse_rule ~rewrite_rule_ids ~origin (file : Fpath.t) :
   in
   match rules_and_invalid with
   | Ok (rules, invalid) ->
-      Ok (List_.map (modify_registry_provided_metadata origin) rules, invalid)
+      Ok (List.map (modify_registry_provided_metadata origin) rules, invalid)
   | Error err -> Error err
 
 (*****************************************************************************)
@@ -457,7 +457,7 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt kind :
        *)
       List_files.list dir
       |> List.filter Rule_file.is_valid_rule_filename
-      |> List_.map (fun file ->
+      |> List.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                file)
       |> Result_.partition Fun.id
@@ -526,7 +526,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt kind :
        *)
       List_files.list dir
       |> List.filter Rule_file.is_valid_rule_filename
-      |> List_.map (fun file ->
+      |> List.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                file)
       |> Result_.partition Fun.id |> Lwt.return
@@ -604,7 +604,7 @@ let langs_of_pattern (pat, analyzer_opt) : Analyzer.t list =
        *)
       let all_langs =
         Lang.assoc
-        |> List_.map (fun (_k, l) -> l)
+        |> List.map (fun (_k, l) -> l)
         |> List_.deduplicate
         (* TODO: we currently get a segfault with the Dart parser
          * (for example on a pattern like ': string (* filename *)'), so we
@@ -675,7 +675,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_
         let valid_langs = langs_of_pattern (pat, analyzer_opt) in
         let rules_and_origins =
           valid_langs
-          |> List_.map (fun analyzer ->
+          |> List.map (fun analyzer ->
                  let xpat =
                    match Parse_rule.parse_fake_xpattern analyzer pat with
                    | Ok xpat -> xpat

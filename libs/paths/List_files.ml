@@ -60,7 +60,7 @@ let fold_left func init path =
 let list_with_stat path =
   fold_left (fun acc path stat -> (path, stat) :: acc) [] path |> List.rev
 
-let list path = list_with_stat path |> List_.map fst
+let list path = list_with_stat path |> List.map fst
 
 (* python: Target.files_from_filesystem *)
 let list_regular_files ?(keep_root = false) root_path =

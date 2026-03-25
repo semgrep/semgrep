@@ -174,12 +174,12 @@ let generic_to_json rule_id (key : key) ast : (J.t, Rule_error.t) Result.t =
         (* should use the unescaped string *)
         Ok (J.String s)
     | G.Container (Array, (_, xs, _)) ->
-        let/ xs = Base.Result.all (List_.map aux xs) in
+        let/ xs = Base.Result.all (List.map aux xs) in
         Ok (J.Array xs)
     | G.Container (Dict, (_, xs, _)) ->
         let/ xs =
           Base.Result.all
-            (List_.map
+            (List.map
                (fun x ->
                  match x.G.e with
                  | G.Container
@@ -375,7 +375,7 @@ let parse_string env (key : key) x =
 
 let parse_list env (key : key) f x =
   match x.G.e with
-  | G.Container (Array, (_, xs, _)) -> List_.map (f env) xs |> Base.Result.all
+  | G.Container (Array, (_, xs, _)) -> List.map (f env) xs |> Base.Result.all
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 let parse_listi env (key : key) f x =

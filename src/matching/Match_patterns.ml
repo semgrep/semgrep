@@ -676,7 +676,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
               !stmts_rules
               |> List.iter (fun (pattern, rule) ->
                      Profiling.measure "Semgrep_generic.kfields" (fun () ->
-                         let x = List_.map (fun (F x) -> x) x in
+                         let x = List.map (fun (F x) -> x) x in
                          let matches_with_env =
                            match_sts_sts rule pattern x m_env
                          in

@@ -121,7 +121,7 @@ let on_notification (server : Legacy_rpc_server.t) notification =
         Legacy_session.cache_workspace_targets session;
         let paths =
           paths
-          |> List_.map (fun { FileDelete.uri } ->
+          |> List.map (fun { FileDelete.uri } ->
                  Str.string_after uri (String.length "file://") |> Fpath.v)
           (* Be careful! Because each file that DidDeleteFiles sends us might actually
              be a folder, we cannot just delete findings from those paths.

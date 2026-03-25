@@ -60,7 +60,7 @@ let get_environment ~ignore_empty () =
 
 let string_of_set (set : EnvEntrySet.t) =
   set |> EnvEntrySet.elements
-  |> List_.map (fun { variable; value } -> spf "%s=%s" variable value)
+  |> List.map (fun { variable; value } -> spf "%s=%s" variable value)
   |> String.concat ", "
 
 (*
@@ -204,7 +204,7 @@ let tests =
 let tests_with_delayed_error () =
   try
     Printf.printf "Gathering tests from %s...\n%!" (Sys.getcwd ());
-    let tests = tests |> List_.map (with_env_check ~ignore_empty:true) in
+    let tests = tests |> List.map (with_env_check ~ignore_empty:true) in
     Printf.printf "Done gathering tests.\n%!";
     tests
   with

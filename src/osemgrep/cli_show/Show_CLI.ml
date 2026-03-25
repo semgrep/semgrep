@@ -321,7 +321,7 @@ let debug_cmd =
                   Find_targets.default_conf with
                   explicit_targets =
                     Find_targets.Explicit_targets.of_list
-                      (List_.map Fpath.v roots);
+                      (List.map Fpath.v roots);
                 };
               rules_source = Rules_source.Configs config;
             }

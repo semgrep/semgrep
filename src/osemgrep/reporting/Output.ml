@@ -112,7 +112,7 @@ let format (kind : Output_format.t) (ctx : Out.format_context)
       [ Yojson.Basic.to_string gitlab_secrets_json ]
   | Vim ->
       cli_output.results
-      |> List_.map (fun (m : Out.cli_match) ->
+      |> List.map (fun (m : Out.cli_match) ->
              match m with
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
@@ -130,7 +130,7 @@ let format (kind : Output_format.t) (ctx : Out.format_context)
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
-      |> List_.map (fun (m : Out.cli_match) ->
+      |> List.map (fun (m : Out.cli_match) ->
              match m with
              | {
               check_id;
@@ -207,7 +207,7 @@ let dispatch_output_format (conf : conf) (ctx : Out.format_context)
       print (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Files_with_matches ->
       cli_output.results
-      |> List_.map (fun (x : Out.cli_match) -> !!(x.path))
+      |> List.map (fun (x : Out.cli_match) -> !!(x.path))
       |> Set_.of_list |> Set_.elements |> List_.sort |> String.concat "\n"
       |> print
 
@@ -260,7 +260,7 @@ let output_result (conf : conf) (runtime_params : Out.format_context)
     if conf.output_mcp_scan_results then
       let total_bytes_scanned =
         res.scanned |> Fpath_.Fpath_set.elements
-        |> List_.map (fun path ->
+        |> List.map (fun path ->
                match UFile.filesize path with
                | Ok n -> n
                | Error _ -> 0)

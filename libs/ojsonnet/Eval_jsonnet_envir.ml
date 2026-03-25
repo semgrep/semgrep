@@ -70,7 +70,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
   (* lazy evaluation of Array elements *)
   | Array (l, xs, r) ->
       let elts =
-        xs |> List_.map (fun x -> to_lazy_value env x) |> Array.of_list
+        xs |> List.map (fun x -> to_lazy_value env x) |> Array.of_list
       in
       V.Array (l, elts, r)
   | Lambda f -> V.Lambda (f, env.locals)
@@ -195,7 +195,7 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   let _, (rassert, rflds), r = objr in
   let hobjr =
     rflds
-    |> List_.map (fun { V.fld_name = s, _; _ } -> s)
+    |> List.map (fun { V.fld_name = s, _; _ } -> s)
     |> Hashtbl_.hashset_of_list
   in
   let asserts = lassert @ rassert in
@@ -206,7 +206,7 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   (* Add Super to the environment of the right fields *)
   let rflds' =
     rflds
-    |> List_.map (fun ({ V.fld_value; _ } as fld) ->
+    |> List.map (fun ({ V.fld_value; _ } as fld) ->
            (* TODO: here we bind super to objl, and this works for simple
             * examples (e.g., basic_super1.jsonnet) but failed for
             * more complex examples where the accessed field uses self, as in
@@ -262,7 +262,7 @@ and eval_obj_inside env (l, x, r) : V.t =
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
-      let asserts_with_env = List_.map (fun x -> (x, env)) assertsTODO in
+      let asserts_with_env = List.map (fun x -> (x, env)) assertsTODO in
       V.Object (l, (asserts_with_env, fields), r)
   (* big TODO *)
   | ObjectComp _x -> error l "TODO: ObjectComp"
@@ -309,7 +309,7 @@ and manifest_value (v : V.t) : JSON.t =
   | Array (_, arr, _) ->
       J.Array
         (Array.to_list arr
-        |> List_.map (fun (entry : V.lazy_value) ->
+        |> List.map (fun (entry : V.lazy_value) ->
                manifest_value (to_value entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) as obj ->
       (* TODO: evaluate asserts *)

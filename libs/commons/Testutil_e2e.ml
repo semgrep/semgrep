@@ -97,7 +97,7 @@ let skip_test_if_missing_prerequisites ~prerequisite_exists command_names
 
 let skip_tests_if_missing_prerequisites ~prerequisite_exists command_names tests
     =
-  List_.map
+  List.map
     (skip_test_if_missing_prerequisites ~prerequisite_exists command_names)
     tests
 

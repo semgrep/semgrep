@@ -124,7 +124,7 @@ let unknown_metavar_in_comparison r f =
        be used in the focus-metavariable clauses, and check nested formulas *)
     let cond_mvs, cond_errors =
       conditions
-      |> List_.map (fun (_, condition) ->
+      |> List.map (fun (_, condition) ->
              match condition with
              | CondEval _
              | CondType _
@@ -178,7 +178,7 @@ let unknown_metavar_in_comparison r f =
           | __else__ -> []
         in
         ( [ metavars; ellipsis_metavars; regexp_captured_mvars ]
-          |> List_.map Mvar_set.of_list
+          |> List.map Mvar_set.of_list
           |> List.fold_left Mvar_set.union Mvar_set.empty,
           [] )
     | Inside (_, f)
@@ -189,7 +189,7 @@ let unknown_metavar_in_comparison r f =
     | Or (_, xs) ->
         (* Collect and check from the conjuncts. Pass down the metavariables
            from the parent *)
-        let mv_sets = List_.map (collect_metavars parent_mvs) xs in
+        let mv_sets = List.map (collect_metavars parent_mvs) xs in
         List.fold_left
           (* TODO originally we took the intersection, since strictly
            * speaking a metavariable needs to be in all cases of a pattern-either
@@ -269,7 +269,7 @@ let semgrep_check (metachecks : Fpath.t) (rules : Fpath.t list) :
   (* the targets are actually the rules! metachecking! *)
   let targets : Target.t list =
     rules
-    |> List_.map (fun file ->
+    |> List.map (fun file ->
            Target.mk_unfilterable_target (Analyzer.of_lang lang) file)
   in
 
@@ -289,8 +289,8 @@ let semgrep_check (metachecks : Fpath.t) (rules : Fpath.t list) :
   match res with
   | Ok result ->
       result.processed_matches
-      |> List_.map (fun (m : Core_result.processed_match) -> m.pm)
-      |> List_.map match_to_semgrep_error
+      |> List.map (fun (m : Core_result.processed_match) -> m.pm)
+      |> List.map match_to_semgrep_error
   | Error exn -> Exception.reraise exn
 
 let run_checks (metachecks : Fpath.t) (xs : Fpath.t list) : Core_error.t list =

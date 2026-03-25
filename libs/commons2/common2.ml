@@ -45,7 +45,7 @@ let rec list_last = function
 
 let (list_of_string : string -> char list) = function
   | "" -> []
-  | s -> List_.enum 0 (String.length s - 1) |> List_.map (String.get s)
+  | s -> List_.enum 0 (String.length s - 1) |> List.map (String.get s)
 
 let foldl1 p xs =
   match xs with
@@ -86,7 +86,7 @@ let spf = Printf.sprintf
 (* String_of *)
 (*****************************************************************************)
 
-let string_of_list f xs = "[" ^ (xs |> List_.map f |> String.concat ";") ^ "]"
+let string_of_list f xs = "[" ^ (xs |> List.map f |> String.concat ";") ^ "]"
 
 let string_of_option f = function
   | None -> "None "
@@ -104,7 +104,7 @@ let error_cant_have x = internal_error ("cant have this case" ^ Dumper.dump x)
 (*****************************************************************************)
 
 let string_of_char c = String.make 1 c
-let string_of_chars cs = cs |> List_.map (String.make 1) |> String.concat ""
+let string_of_chars cs = cs |> List.map (String.make 1) |> String.concat ""
 
 (*****************************************************************************)
 (* Tuples *)
@@ -251,7 +251,7 @@ type 'a nonempty = Nonempty of 'a * 'a list
 
 let ( @: ) x (Nonempty (y, xs)) = Nonempty (x, y :: xs)
 let nonempty_to_list (Nonempty (x, xs)) = x :: xs
-let nonempty_map f (Nonempty (x, xs)) = Nonempty (f x, List_.map f xs)
+let nonempty_map f (Nonempty (x, xs)) = Nonempty (f x, List.map f xs)
 let nonempty_length (Nonempty (_, xs)) = 1 + List.length xs
 
 (*x: common.ml *)
@@ -261,7 +261,7 @@ let nonempty_length (Nonempty (_, xs)) = 1 + List.length xs
 
 let rec inits = function
   | [] -> [ [] ]
-  | e :: l -> [] :: List_.map (fun l -> e :: l) (inits l)
+  | e :: l -> [] :: List.map (fun l -> e :: l) (inits l)
 
 let rec zip xs ys =
   match (xs, ys) with
@@ -409,7 +409,7 @@ let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun (k, v) -> Hashtbl_.push h k v);
   let keys = Hashtbl_.hkeys h in
-  keys |> List_.map (fun k -> (k, Hashtbl_.get_stack h k))
+  keys |> List.map (fun k -> (k, Hashtbl_.get_stack h k))
 
 let diff_set_eff xs1 xs2 =
   let h1 = Hashtbl_.hashset_of_list xs1 in
@@ -461,8 +461,8 @@ let regression_testing_vs newscore bestscore =
 
   let allres =
     Hashtbl_.hash_to_list newscore
-    |> List_.map fst
-    $+$ (Hashtbl_.hash_to_list bestscore |> List_.map fst)
+    |> List.map fst
+    $+$ (Hashtbl_.hash_to_list bestscore |> List.map fst)
   in
   allres
   |> List.iter (fun res ->
@@ -574,7 +574,7 @@ let inits_of_relative_dir dir =
   in
   inits dirs
   |> List_.tl_exn "unexpected empty list"
-  |> List_.map relative_path_of_segs
+  |> List.map relative_path_of_segs
 
 let dirs_and_base_of_file file =
   let dir, base = (Filename.dirname file, Filename.basename file) in

@@ -96,9 +96,9 @@ let recognise_and_collect ~rex (line_num, line) =
                     Fix later.
                  *)
                  String.split_on_char ',' s
-                 |> List_.map (fun id ->
+                 |> List.map (fun id ->
                         (line_num, Common2.strip ' ' id, begin_ofs))
-                 |> List_.map Option.some
+                 |> List.map Option.some
              | Ok None
              | Error _ ->
                  (* TODO: log something? *)
@@ -174,7 +174,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
       let ids = ids_line @ ids_previous_line in
       let ids =
         ids |> List_.filter_map Fun.id
-        |> List_.map (fun (line_num, s, col) ->
+        |> List.map (fun (line_num, s, col) ->
                (* [String.split_on_char] can **not** return an empty list. *)
                ( line_num,
                  List.hd (String.split_on_char ' ' s) (* nosemgrep: list-hd *),

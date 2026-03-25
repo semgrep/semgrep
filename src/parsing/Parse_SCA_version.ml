@@ -106,7 +106,7 @@ let parse_constraints (s : string) : SCA_pattern.version_constraints =
   let xs = Str.split_delim (Str.regexp "[ \t]*,[ \t]*") s in
   SCA_pattern.SCA_And
     (xs
-    |> List_.map (fun s ->
+    |> List.map (fun s ->
            (* "> 1.0.2" *)
            let s = String.trim s in
            if s =~ "^\\([=<>]+\\)[ \t]*\\([^ ]+\\)$" then

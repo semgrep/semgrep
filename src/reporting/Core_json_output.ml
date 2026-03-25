@@ -203,7 +203,7 @@ let metavar_string_of_any any =
   any |> AST_generic_helpers.ii_of_any
   |> List.filter Tok.is_origintok
   |> List.sort Tok.compare_pos
-  |> List_.map Tok.content_of_tok
+  |> List.map Tok.content_of_tok
   |> Core_text_output.join_with_space_if_needed
 
 let get_propagated_value default_start mvalue =
@@ -272,7 +272,7 @@ let token_to_intermediate_var token : Out.match_intermediate_var =
     : Out.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
-  List_.map token_to_intermediate_var tokens
+  List.map token_to_intermediate_var tokens
 
 let rec taint_call_trace (trace : Taint_trace.call_trace) :
     Out.match_call_trace option =
@@ -429,7 +429,7 @@ let unsafe_match_to_match
         taint_trace_to_dataflow_trace trace)
   in
 
-  let metavars = pm.env |> List_.map (metavars startp) in
+  let metavars = pm.env |> List.map (metavars startp) in
   let metadata =
     let* json = pm.rule_id.metadata in
     let rule_metadata = JSON.to_yojson json in
@@ -526,12 +526,12 @@ let extra_to_extra (extra : Matching_explanation.extra) :
     before_negation_matches =
       extra.before_negation_matches
       |> Option.map
-           (List_.map (fun pm ->
+           (List.map (fun pm ->
                 unsafe_match_to_match (Core_result.mk_processed_match pm)));
     before_filter_matches =
       extra.before_filter_matches
       |> Option.map
-           (List_.map (fun pm ->
+           (List.map (fun pm ->
                 unsafe_match_to_match (Core_result.mk_processed_match pm)));
   }
 
@@ -541,10 +541,10 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
   let tloc = Tok.unsafe_loc_of_tok pos in
   {
     op;
-    children = children |> List_.map explanation_to_explanation;
+    children = children |> List.map explanation_to_explanation;
     matches =
       matches
-      |> List_.map (fun pm ->
+      |> List.map (fun pm ->
              unsafe_match_to_match (Core_result.mk_processed_match pm));
     loc = OutUtils.location_of_token_location tloc;
     extra = Option.map extra_to_extra extra;
@@ -615,18 +615,16 @@ let quick_profiling_to_tainting_time (quick_profiling : QProf.t) :
 let profiling_to_profiling (opt_quick_profiling : QProf.t option)
     ~fixpoint_timeouts (profiling_data : Core_profiling.t) : Out.profile =
   let rule_ids : Rule_ID.t list =
-    profiling_data.rules ||| []
-    |> List_.map (fun (rule : Rule.t) -> fst rule.id)
+    profiling_data.rules ||| [] |> List.map (fun (rule : Rule.t) -> fst rule.id)
   in
   {
     targets =
       profiling_data.file_times
-      |> List_.map
-           (fun { Core_profiling.file = target; rule_times; run_time } ->
+      |> List.map (fun { Core_profiling.file = target; rule_times; run_time } ->
              let (rule_id_to_rule_prof
                    : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
                rule_times ||| []
-               |> List_.map (fun (rp : Core_profiling.rule_profiling) ->
+               |> List.map (fun (rp : Core_profiling.rule_profiling) ->
                       (rp.rule_id, rp))
                |> Hashtbl_.hash_of_list
              in
@@ -636,7 +634,7 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
                  path = target;
                  match_times =
                    rule_ids
-                   |> List_.map (fun rule_id ->
+                   |> List.map (fun rule_id ->
                           try
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
@@ -650,7 +648,7 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
                   *)
                  parse_times =
                    rule_ids
-                   |> List_.map (fun rule_id ->
+                   |> List.map (fun rule_id ->
                           try
                             let rprof : Core_profiling.rule_profiling =
                               Hashtbl.find rule_id_to_rule_prof rule_id
@@ -711,7 +709,7 @@ let make_simple_profiling_entry (entry : Profiling.entry) : Out.profiling_entry
   { name = entry.name; total_time = entry.total_time; count = entry.count }
 
 let export_simple_profiling_results () : Out.profiling_entry list =
-  Profiling.export () |> List_.map make_simple_profiling_entry
+  Profiling.export () |> List.map make_simple_profiling_entry
 
 (* TODO: We used to return some stats, should we generalize
    that and return what is currently in parsing_data.py instead?
@@ -743,8 +741,8 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     Result_.partition match_to_match res.processed_matches
   in
   let errs = new_errs @ res.errors in
-  let errors = errs |> List_.map error_to_error in
-  let fixpoint_timeouts = res.fixpoint_timeouts |> List_.map error_to_error in
+  let errors = errs |> List.map error_to_error in
+  let fixpoint_timeouts = res.fixpoint_timeouts |> List.map error_to_error in
   {
     results = matches |> dedup_and_sort;
     errors;
@@ -755,11 +753,11 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
             should update this section to output the results
             specifically for pysemgrep. *)
         skipped = None;
-        scanned = res.scanned |> List_.map Target.internal_path;
+        scanned = res.scanned |> List.map Target.internal_path;
       };
     skipped_rules =
       res.skipped_rules
-      |> List_.map (fun ((kind, rule_id, tk) : Rule_error.invalid_rule) ->
+      |> List.map (fun ((kind, rule_id, tk) : Rule_error.invalid_rule) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              Out.
                {
@@ -772,11 +770,11 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
       |> Option.map
            (profiling_to_profiling res.quick_profiling ~fixpoint_timeouts);
     explanations =
-      res.explanations |> Option.map (List_.map explanation_to_explanation);
+      res.explanations |> Option.map (List.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;
     interfile_languages_used =
       Some
-        (List_.map (fun l -> Analyzer.to_string l) res.interfile_languages_used);
+        (List.map (fun l -> Analyzer.to_string l) res.interfile_languages_used);
     engine_requested = Some `OSS;
     version = Version.version;
     symbol_analysis = res.symbol_analysis;

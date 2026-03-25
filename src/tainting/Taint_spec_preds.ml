@@ -90,6 +90,6 @@ let show_sink_requires req =
   | UniReq precond -> Rule.show_precondition precond
   | MultiReq mvars_w_preconds ->
       mvars_w_preconds
-      |> List_.map (fun (prop_var, precond) ->
+      |> List.map (fun (prop_var, precond) ->
              spf "%s|%s" prop_var (Rule.show_precondition precond))
       |> String.concat "; "

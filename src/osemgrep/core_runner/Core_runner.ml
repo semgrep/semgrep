@@ -221,7 +221,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
 let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
   (* similar to Core_command.output_core_results code *)
   let scanned =
-    res.scanned |> List_.map Target.internal_path |> Fpath_.Fpath_set.of_list
+    res.scanned |> List.map Target.internal_path |> Fpath_.Fpath_set.of_list
   in
   let match_results = Core_json_output.core_output_of_matches_and_errors res in
   (* TOPORT? or move in semgrep-core so get info ASAP
@@ -263,7 +263,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
              Rule_ID.to_string (fst r.Rule.id))
     in
     let rule_errors : Core_error.t list =
-      invalid_rules |> List_.map Core_error.error_of_invalid_rule
+      invalid_rules |> List.map Core_error.error_of_invalid_rule
     in
     let config : Core_scan_config.t = core_scan_config_of_conf conf in
     let config = { config with file_match_hook } in
@@ -329,7 +329,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
       }
     in
     let scanned =
-      res.scanned |> List_.map Target.internal_path |> Set_.of_list
+      res.scanned |> List.map Target.internal_path |> Set_.of_list
     in
 
     Metrics_.add_max_memory_bytes res.profiling;

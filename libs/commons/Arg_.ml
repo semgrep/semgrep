@@ -152,15 +152,15 @@ exception WrongNumberOfArguments
 
 let options_of_actions action_ref actions =
   actions
-  |> List_.map (fun (key, doc, _func) ->
+  |> List.map (fun (key, doc, _func) ->
          (key, Arg.Unit (fun () -> action_ref := key), doc))
 
 let (action_list : cmdline_actions -> Arg.key list) =
- fun xs -> List_.map (fun (a, _b, _c) -> a) xs
+ fun xs -> List.map (fun (a, _b, _c) -> a) xs
 
 let (do_action : Arg.key -> string list (* args *) -> cmdline_actions -> unit) =
  fun key args xs ->
-  let assoc = xs |> List_.map (fun (a, _b, c) -> (a, c)) in
+  let assoc = xs |> List.map (fun (a, _b, c) -> (a, c)) in
   let action_func = List.assoc key assoc in
   action_func args
 
@@ -190,4 +190,4 @@ let mk_action_4_arg f = function
 
 let mk_action_n_arg f = f
 let mk_action_1_conv conv f = mk_action_1_arg (fun str -> f (conv str))
-let mk_action_n_conv conv f = mk_action_n_arg (fun xs -> f (List_.map conv xs))
+let mk_action_n_conv conv f = mk_action_n_arg (fun xs -> f (List.map conv xs))

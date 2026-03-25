@@ -522,11 +522,11 @@ type any =
 let unwrap = fst
 
 let is_final xs =
-  let xs = List_.map fst xs in
+  let xs = List.map fst xs in
   List.mem Final xs
 
 let is_final_static xs =
-  let xs = List_.map fst xs in
+  let xs = List.map fst xs in
   List.mem Final xs && List.mem Static xs
 
 let basic_entity id mods = { name = id; mods; type_ = None }
@@ -588,9 +588,9 @@ let decls f mods vtype vars =
   let dcl (v, init) =
     f { f_var = canon_var mods (Some vtype) v; f_init = init }
   in
-  List_.map dcl vars
+  List.map dcl vars
 
-let typ_of_qualified_id xs = TClass (xs |> List_.map (fun id -> (id, None)))
+let typ_of_qualified_id xs = TClass (xs |> List.map (fun id -> (id, None)))
 
 let name_of_id id =
   (*Name ([[], id]) *)

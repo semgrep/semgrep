@@ -91,15 +91,6 @@ rules:
     languages: [ocaml]
     severity: ERROR
 
-  - id: no-list-map
-    pattern: List.map
-    message: >-
-      `List.map` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `List_.map` instead.
-    fix: List_.map
-    languages: [ocaml]
-    severity: ERROR
-
   - id: no-list-filter-map
     pattern: List.filter_map
     message: >-

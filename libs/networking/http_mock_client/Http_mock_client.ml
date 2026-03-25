@@ -172,7 +172,7 @@ let check_header req header header_val =
 let check_headers actual_headers expected_headers =
   let lowercase_and_sort xs =
     xs
-    |> List_.map (fun (x, y) -> (String.lowercase_ascii x, y))
+    |> List.map (fun (x, y) -> (String.lowercase_ascii x, y))
     |> List.sort (fun (x, _) (y, _) -> String.compare x y)
   in
   let actual_headers = actual_headers |> Header.to_list |> lowercase_and_sort in
@@ -303,7 +303,7 @@ let trim_front s =
 
 let parse_headers headers =
   headers
-  |> List_.map (fun header ->
+  |> List.map (fun header ->
          let i = String.index header ':' in
          let before, after =
            ( Str.first_chars header i,

@@ -103,7 +103,7 @@ let parse_json (file : string) : env * code =
             | _ -> failwith "only expressions are supported"
           in
           let metavars =
-            xs |> List_.map (fun (s, json) -> (s, metavar_of_json s json))
+            xs |> List.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           let env =
             {
@@ -284,13 +284,13 @@ let rec eval env code =
   | G.Call ({ e = G.Special (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
         args
-        |> List_.map (function
+        |> List.map (function
              | G.Arg e -> eval env e
              | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
-      let vs = List_.map (eval env) xs in
+      let vs = List.map (eval env) xs in
       List vs
   (* Emulate Python str just enough *)
   | G.Call ({ e = G.N (G.Id (("str", _), _)); _ }, (_, [ G.Arg e ], _)) ->
@@ -353,7 +353,7 @@ and eval_concat_string_op env code _op args =
   (* The op appears to not be important. We can just concatenate all the
      arguments.
   *)
-  args |> List_.map (eval_concat_string_element env code) |> String.concat ""
+  args |> List.map (eval_concat_string_element env code) |> String.concat ""
 
 and eval_concat_string_element env code arg =
   match arg with

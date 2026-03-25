@@ -218,4 +218,4 @@ let quote_arg arg = if is_safe_arg arg then arg else Filename.quote arg
 (*
    A safe and pretty converter from a list of arguments to a shell command.
 *)
-let quote_command_for_bash args = List_.map quote_arg args |> String.concat " "
+let quote_command_for_bash args = List.map quote_arg args |> String.concat " "

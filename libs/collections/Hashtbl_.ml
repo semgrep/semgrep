@@ -43,7 +43,7 @@ let hash_of_list xs =
 
 type 'a hashset = ('a, bool) Hashtbl.t
 
-let hashset_to_list h = hash_to_list h |> List_.map fst
+let hashset_to_list h = hash_to_list h |> List.map fst
 
 (* old: slightly slower?
  * let hashset_of_list xs =

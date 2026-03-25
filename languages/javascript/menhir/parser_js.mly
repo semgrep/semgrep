@@ -981,7 +981,7 @@ primary_type2:
  | type_reference       { $1 }
  | object_type
     { let (t1, xs, t2) = $1 in
-      TyRecordAnon ((t1, List_.map (fun x -> Field x) xs, t2)) }
+      TyRecordAnon ((t1, List.map (fun x -> Field x) xs, t2)) }
  | "[" listc(type_) "]" { let members = List.map (fun x -> TyTupMember x) $2 in
                           TyTuple ($1, members, $3) }
  (* not in Typescript grammar *)

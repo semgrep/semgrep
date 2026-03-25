@@ -35,19 +35,19 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
     | OCaml.VString v1 -> J.String v1
     | OCaml.VInt i -> J.Int (Int64.to_int i)
-    | OCaml.VTuple xs -> J.Array (List_.map aux xs)
-    | OCaml.VDict xs -> J.Object (List_.map (fun (k, v) -> (k, aux v)) xs)
+    | OCaml.VTuple xs -> J.Array (List.map aux xs)
+    | OCaml.VDict xs -> J.Object (List.map (fun (k, v) -> (k, aux v)) xs)
     | OCaml.VSum (s, xs) -> (
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ :: _ :: _ -> J.Object [ (s, J.Array (List_.map aux xs)) ])
+        | _ :: _ :: _ -> J.Object [ (s, J.Array (List.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%Ld" s i64)
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]
     | OCaml.VRef v -> J.Object [ ("ref@", aux v) ]
-    | OCaml.VList xs -> J.Array (List_.map aux xs)
+    | OCaml.VList xs -> J.Array (List.map aux xs)
     | OCaml.VTODO _ -> J.String "VTODO"
   in
   aux v
@@ -115,7 +115,7 @@ let pp_il file =
 let dump_exts_of_lang () =
   let lang_to_exts =
     Lang.keys
-    |> List_.map (fun lang_str ->
+    |> List.map (fun lang_str ->
            match Lang.of_string_opt lang_str with
            | Some lang ->
                lang_str ^ "->" ^ String.concat ", " (Lang.exts_of_lang lang)
@@ -141,7 +141,7 @@ let prefilter_of_rules ~interfile file =
   | Ok rules ->
       let xs =
         rules
-        |> List_.map (fun r ->
+        |> List.map (fun r ->
                let pre_opt = Prefiltering.File.of_rule ~interfile r in
                let pre_atd_opt =
                  Option.map Prefiltering.File.to_semgrep_formula pre_opt
@@ -170,13 +170,13 @@ let sarif_sort (file : Fpath.t) =
       x with
       runs =
         x.runs
-        |> List_.map (fun (r : S.run) ->
+        |> List.map (fun (r : S.run) ->
                {
                  r with
                  invocations =
                    r.invocations
                    |> Option.map
-                        (List_.map (fun (i : S.invocation) ->
+                        (List.map (fun (i : S.invocation) ->
                              {
                                i with
                                tool_execution_notifications =

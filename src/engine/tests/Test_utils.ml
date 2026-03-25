@@ -55,7 +55,7 @@ let compare_fixes ?polyglot_pattern_path ~file matches =
     Result.map UFile.read_file expected_fixed_file
   in
   let processed_matches =
-    Autofix.produce_autofixes (List_.map Core_result.mk_processed_match matches)
+    Autofix.produce_autofixes (List.map Core_result.mk_processed_match matches)
   in
   match expected_fixed_text with
   (* if we have no fixes and no .fixed file, no problem *)

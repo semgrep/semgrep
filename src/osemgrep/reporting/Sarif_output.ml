@@ -85,14 +85,14 @@ let tags_of_metadata metadata =
   (* Also add the "security" tag when the rule has CWE tags. *)
   let cwe =
     match JSON.member "cwe" metadata with
-    | Some (JSON.Array cwe) -> List_.map best_effort_string cwe @ [ "security" ]
+    | Some (JSON.Array cwe) -> List.map best_effort_string cwe @ [ "security" ]
     | Some single_cwe -> [ best_effort_string single_cwe; "security" ]
     | None -> []
   in
   let owasp =
     match JSON.member "owasp" metadata with
     | Some (JSON.Array owasp) ->
-        List_.map (fun o -> "OWASP-" ^ best_effort_string o) owasp
+        List.map (fun o -> "OWASP-" ^ best_effort_string o) owasp
     | Some o -> [ "OWASP-" ^ best_effort_string o ]
     | None -> []
   in
@@ -113,7 +113,7 @@ let tags_of_metadata metadata =
   in
   let tags =
     match JSON.member "tags" metadata with
-    | Some (JSON.Array tags) -> List_.map best_effort_string tags
+    | Some (JSON.Array tags) -> List.map best_effort_string tags
     | Some _
     | None ->
         []
@@ -188,7 +188,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     let tags = tags_of_metadata metadata in
     [
       ("precision", `String "very-high");
-      ("tags", `List (List_.map (fun s -> `String s) tags));
+      ("tags", `List (List.map (fun s -> `String s) tags));
     ]
     @ security_severity
   in
@@ -208,7 +208,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     match JSON.member "references" metadata with
     | Some (JSON.String s) -> [ spf "[%s](%s)" s s ]
     | Some (JSON.Array xs) ->
-        List_.map
+        List.map
           (function
             | JSON.String s -> spf "[%s](%s)" s s
             | non_string -> JSON.string_of_json non_string)
@@ -218,7 +218,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
         []
   in
   let references_joined =
-    List_.map (fun s -> spf " - %s\n" s) (references @ other_references)
+    List.map (fun s -> spf " - %s\n" s) (references @ other_references)
   in
   let references_markdown =
     match references_joined with
@@ -285,7 +285,7 @@ let thread_flow_location (cli_match : Out.cli_match) message
 
 let intermediate_var_locations cli_match intermediate_vars =
   intermediate_vars
-  |> List_.map (fun ({ location; content } : Out.match_intermediate_var) ->
+  |> List.map (fun ({ location; content } : Out.match_intermediate_var) ->
          let propagation_message_text =
            spf "Propagator : '%s' @ '%s:%d'" content
              (Fpath.to_string location.path)
@@ -444,7 +444,7 @@ let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
       hrules |> Hashtbl.to_seq |> List.of_seq
       (* sorting for snapshot stability *)
       |> List.sort (fun (aid, _) (bid, _) -> Rule_ID.compare aid bid)
-      |> List_.map (fun (_ruleid, r) -> rule ~hide_nudge ctx r)
+      |> List.map (fun (_ruleid, r) -> rule ~hide_nudge ctx r)
     in
     let tool =
       let driver =
@@ -456,7 +456,7 @@ let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
     in
     let results =
       cli_output.results |> Semgrep_output_utils.sort_cli_matches
-      |> List_.map (result ctx show_dataflow_traces)
+      |> List.map (result ctx show_dataflow_traces)
     in
     let invocation =
       (* TODO no test case(s) for executionNotifications being non-empty *)
@@ -467,7 +467,7 @@ let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
                (* less: could sort more *)
                | Some a1, Some b1 -> Fpath.compare a1 b1
                | _else_ -> Stdlib.compare a b)
-        |> List_.map error_to_sarif_notification
+        |> List.map error_to_sarif_notification
       in
       Sarif.create_invocation ~execution_successful:true
         ~tool_execution_notifications ()

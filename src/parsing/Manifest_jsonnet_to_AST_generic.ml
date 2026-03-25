@@ -53,7 +53,7 @@ let rec value_to_expr (v : V.t) : G.expr =
   | Array (l, arr, r) ->
       let xs =
         arr |> Array.to_list
-        |> List_.map (fun (entry : V.lazy_value) ->
+        |> List.map (fun (entry : V.lazy_value) ->
                value_to_expr
                  (match entry.lv with
                  | Closure (env, e) ->

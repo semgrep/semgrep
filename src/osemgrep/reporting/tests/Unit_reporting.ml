@@ -127,14 +127,14 @@ rules:
 let test_string_of_formulas () =
   Testo.categorize "string_of_formulas"
     (string_of_formulas_expectations
-    |> List_.map (fun (title, rule, mvars, expected) ->
+    |> List.map (fun (title, rule, mvars, expected) ->
            t title (fun () ->
                UTmp.with_temp_file ~contents:rule (fun file ->
                    match Parse_rule.parse file with
                    | Ok [ rule ] ->
                        let mvars =
                          mvars
-                         |> List_.map (fun (mvar, mvalue_str) ->
+                         |> List.map (fun (mvar, mvalue_str) ->
                                 ( mvar,
                                   Out.
                                     {

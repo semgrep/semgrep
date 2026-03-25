@@ -257,10 +257,10 @@ and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
 
 let blobs_by_commit objects commits =
   commits
-  |> List_.map (fun commit ->
+  |> List.map (fun commit ->
          let tree = tree_of_commit objects commit in
          (commit, tree))
-  |> List_.map (fun (commit, tree) ->
+  |> List.map (fun (commit, tree) ->
          let blobs = blobs_of_tree objects tree in
          (commit, blobs))
 
@@ -345,12 +345,10 @@ let make_untracked_exclude_option (option : untracked_exclude_option) =
 
 let ls_files ?(cwd = Fpath.v ".") ?(untracked_exclude = []) ?(kinds = [])
     root_paths =
-  let roots = root_paths |> List_.map Fpath.to_string in
-  let kinds = kinds |> List_.map string_of_ls_files_kind in
+  let roots = root_paths |> List.map Fpath.to_string in
+  let kinds = kinds |> List.map string_of_ls_files_kind in
   let exclude_options =
-    untracked_exclude
-    |> List_.map make_untracked_exclude_option
-    |> List_.flatten
+    untracked_exclude |> List.map make_untracked_exclude_option |> List_.flatten
   in
   let cmd =
     ( git,
@@ -435,7 +433,7 @@ let sparse_shallow_filtered_checkout_exn url path =
    and checkout the files we want.
 *)
 let sparse_checkout_add ?cwd folders =
-  let folders = List_.map Fpath.to_string folders in
+  let folders = List.map Fpath.to_string folders in
   let cmd =
     ( git,
       cd cwd
@@ -640,7 +638,7 @@ let dirty_paths ?cwd () =
   in
   (* out_lines splits on newlines, so we always have an extra space at the end *)
   let files = List.filter (fun f -> not (String.trim f = "")) lines in
-  let files = List_.map (fun l -> Fpath.v (Str.string_after l 3)) files in
+  let files = List.map (fun l -> Fpath.v (Str.string_after l 3)) files in
   files
 
 let init ?cwd ?(branch = "main") () =
@@ -669,7 +667,7 @@ let config_get ?cwd key =
 let config_get_exn ?cwd key = config_get ?cwd key |> fatal
 
 let add ?cwd ?(force = false) files =
-  let files = List_.map Fpath.to_string files in
+  let files = List.map Fpath.to_string files in
   let cmd = (git, cd cwd @ [ "add" ] @ flag "--force" force @ files) in
   match UCmd.status_of_run cmd with
   | Ok (`Exited 0) -> Ok ()
