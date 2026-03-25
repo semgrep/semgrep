@@ -150,7 +150,7 @@ zip-safe = false
 where = ["src"]
 
 [tool.setuptools.package-data]
-semgrep = ["bin/*"]
+semgrep = ["bin/*", "bin/libs/*"]
 
 [tool.pytest.ini_options]
 # coupling: if you add a dep here it would be great if you added it to the top

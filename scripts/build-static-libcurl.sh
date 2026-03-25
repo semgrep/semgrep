@@ -10,7 +10,9 @@
 
 set -eu
 
-if [[ -e /etc/alpine-release ]]; then
+if [[ "${FORCE_DYNLINK-}" == "true" ]]; then
+    echo "FORCE_DYNLINK is set, skipping static libcurl build"
+elif [[ -e /etc/alpine-release ]]; then
     CURL_VERSION="8.5.0"
 
     ALPINE_APK_DEPS=(pkgconf openssl-dev openssl-libs-static zlib-static)
