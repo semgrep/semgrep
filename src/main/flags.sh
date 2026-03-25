@@ -50,7 +50,8 @@ if [[ -n "${SEMGREP_NIX_BUILD-}" ]]; then
     FLAGS=()
     CCLIB=()
     CCOPT=()
-elif [[ -n "${FORCE_DYNLINK-}" ]]; then
+elif [[ "${FORCE_DYNLINK-}" == "true" ]]; then
+    >&2 echo "FORCE_DYNLINK set to true; not adding any linking flags"
     FLAGS=()
     CCLIB=()
     CCOPT=()
