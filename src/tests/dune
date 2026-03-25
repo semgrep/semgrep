@@ -43,6 +43,8 @@
     process_limits.tests
     parser_regexp.tests
     parser_python.menhir parser_python.ast_generic
+    parser_python.menhir.tests
+    parser_scala.recursive_descent.tests
 
     osemgrep_legacy_language_server
 
