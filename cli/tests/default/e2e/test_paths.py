@@ -10,9 +10,31 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import json
+
 import pytest
 from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
+
+
+# Regression test for https://github.com/semgrep/semgrep/issues/11560
+# When a single file is passed as a scanning root, rule paths.include
+# filtering should still work. Before the fix, the ppath was set to just
+# the filename (e.g. "/included.js") instead of the full project-relative
+# path, so the "included/" pattern in the directory-included rule's
+# paths.include never matched.
+@pytest.mark.kinda_slow
+def test_paths_single_file_target(run_semgrep_in_tmp: RunSemgrep):
+    result = run_semgrep_in_tmp(
+        "rules/paths.yaml",
+        target_name="exclude_include/included/included.js",
+    )
+    results = json.loads(result.stdout)["results"]
+    matched_rule_ids = {r["check_id"] for r in results}
+    assert any(rid.endswith("directory-included") for rid in matched_rule_ids), (
+        f"paths.include filtering broken for single-file target; "
+        f"matched rules: {matched_rule_ids}"
+    )
 
 
 # Test in-rule path filtering: paths.include, paths.exclude.
