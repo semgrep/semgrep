@@ -110,7 +110,7 @@ let sources_of_taints ?preferred_label taints =
    * they need to specify the parameters as taint sources. *)
   let taint_sources =
     taints
-    |> List_.filter_map
+    |> List.filter_map
          (fun { Effect.taint = { orig; rev_tokens }; sink_trace } ->
            match orig with
            | Src src -> Some (src, List.rev rev_tokens, sink_trace)

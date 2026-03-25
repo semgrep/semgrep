@@ -543,7 +543,7 @@ and map_pattern env pat : lval * stmt list =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> List_.mapi (fun i pat_i ->
+        |> List.mapi (fun i pat_i ->
                let eorig = Related (G.P pat_i) in
                let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
@@ -665,7 +665,7 @@ and map_assign env ~g_expr lhs tok rhs : exp =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> List_.mapi (fun i lhs_i ->
+        |> List.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Parsed_int.of_int i)) in
                let offset_i =
                  {
@@ -1337,7 +1337,7 @@ and map_record env ((_tok, origfields, _) as record_def) : exp =
   let e_gen = G.Record record_def |> G.e in
   let fields =
     origfields
-    |> List_.filter_map (function
+    |> List.filter_map (function
          | G.F
              {
                s =
@@ -1452,7 +1452,7 @@ and map_xml_expr env ~ret eorig xml : exp =
   in
   let body =
     xml.G.xml_body
-    |> List_.filter_map (function
+    |> List.filter_map (function
          | G.XmlExpr (tok, Some eorig, _) ->
              let exp = map_expr env eorig in
              let _, lval = mk_aux_var env tok exp in
@@ -1481,7 +1481,7 @@ and map_xml_expr env ~ret eorig xml : exp =
       let e = mk_e (Fetch name_lval) (SameAs name_eorig) in
       let fields =
         xml.G.xml_attrs
-        |> List_.filter_map (function
+        |> List.filter_map (function
              | G.XmlAttr (id, tok, eorig) ->
                  (* e.g. <Foo x={y}/> *)
                  let attr_name =
@@ -1527,7 +1527,7 @@ and map_xml_expr env ~ret eorig xml : exp =
   | None ->
       let attrs =
         xml.G.xml_attrs
-        |> List_.filter_map (function
+        |> List.filter_map (function
              | G.XmlAttr (_, tok, eorig)
              | G.XmlAttrExpr (tok, eorig, _) ->
                  let exp = map_expr env eorig in

@@ -18,13 +18,9 @@
    Shadow the original, unsafe (@) by using 'open List_.Operators'.
 *)
 module Operators : sig
-  (* same as 'List_.append' defined below. *)
+  (* same as 'List.append' defined below. *)
   val ( @ ) : 'a list -> 'a list -> 'a list
 end
-
-(* Stack-safe implementation of List.append aka (@).
-   See also the Operators submodule which provides a safe (@). *)
-val append : 'a list -> 'a list -> 'a list
 
 (* Shortcut for xs =*= [].
  * It is not that shorter, but it avoids to use =*= which helps
@@ -85,12 +81,6 @@ val combine_exn : 'a list -> 'b list -> ('a * 'b) list
     @raise Map2_different_lengths if the lists have different lengths
 *)
 
-val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
-(** Same as [List.mapi] but stack-safe and slightly faster on short lists.
-    Additionally, we guarantee that the mapping function is applied from
-    left to right like for [List.iter].
-*)
-
 val flatten : 'a list list -> 'a list
 (** Same as [List.flatten] but tail recursive. *)
 
@@ -122,9 +112,6 @@ val deduplicate_gen : get_key:('a -> 'key) -> 'a list -> 'a list
 val deduplicate : 'a list -> 'a list
 
 (* options and lists *)
-
-val filter_map : ('a -> 'b option) -> 'a list -> 'b list
-(** Same as [List.filter_map] but tail recursive. *)
 
 val filter_map_endo : ('a -> 'a option) -> 'a list -> 'a list
 (** Like 'filter_map' but the mapping must be an endomorphism.

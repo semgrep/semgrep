@@ -469,7 +469,7 @@ let scan_summary ~respect_gitignore ~max_target_bytes ~num_valid_rules
           | Experimental ->
               None);
         ]
-        |> List_.filter_map Fun.id
+        |> List.filter_map Fun.id
       in
       let out_partial =
         opt_msg

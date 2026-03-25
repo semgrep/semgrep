@@ -259,7 +259,7 @@ let output report_type (matches : Out.cli_match list) : JSON.yojson =
       ]
   in
   let vulnerabilities =
-    List_.filter_map
+    List.filter_map
       (fun (cli_match : Out.cli_match) ->
         match cli_match.extra.severity with
         | `Experiment

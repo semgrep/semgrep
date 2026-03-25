@@ -242,7 +242,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
       | Ok res ->
           let matches =
             res.processed_matches
-            |> List_.filter_map (fun processed_match ->
+            |> List.filter_map (fun processed_match ->
                    match Core_json_output.match_to_match processed_match with
                    | Error (e : Core_error.t) ->
                        UConsole.eprint (Core_error.string_of_error e);

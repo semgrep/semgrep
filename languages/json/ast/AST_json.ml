@@ -101,7 +101,7 @@ let rec js_expr_to_json_value (e : JS.expr) : value =
   | JS.Arr (l, xs, r) -> Array (l, List.map js_expr_to_json_value xs, r)
   | JS.Obj (l, props, r) ->
       let json_props =
-        List_.filter_map
+        List.filter_map
           (fun prop ->
             match prop with
             | JS.Field { fld_name = JS.PN name; fld_body = Some value; _ }

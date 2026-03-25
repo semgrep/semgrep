@@ -55,7 +55,7 @@ let parse_env_entry ~ignore_empty s =
    excluding empty values. *)
 let get_environment ~ignore_empty () =
   Unix.environment () |> Array.to_list
-  |> List_.filter_map (parse_env_entry ~ignore_empty)
+  |> List.filter_map (parse_env_entry ~ignore_empty)
   |> EnvEntrySet.of_list
 
 let string_of_set (set : EnvEntrySet.t) =

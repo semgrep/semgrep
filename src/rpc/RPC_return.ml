@@ -32,12 +32,10 @@ let autofix (dryrun : bool) (edits : Out.edit list) :
     (* We need to include the index of each edit along with its fixed_lines so
      * that the Python code can mutate the right match. *)
     let fixed_lines =
-      List_.mapi
-        (fun i edit -> (i, Fixed_lines.make_fixed_lines env edit))
-        edits
+      List.mapi (fun i edit -> (i, Fixed_lines.make_fixed_lines env edit)) edits
     in
     let fixed_lines =
-      List_.filter_map
+      List.filter_map
         (function
           | i, Some x -> Some (i, x)
           | _, None -> None)

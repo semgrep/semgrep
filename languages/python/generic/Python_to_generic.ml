@@ -453,7 +453,7 @@ and subscript env e1 (t1, e2, t2) : G.expr_kind =
   then
     let indices =
       e2
-      |> List_.filter_map (function
+      |> List.filter_map (function
            | Index v1 -> Some v1
            | Slice _ -> None)
     in
@@ -619,7 +619,7 @@ and type_alias_def env (_tok, v1, v2) =
   *)
   | Subscript (lhs, (l, args, r), _ctx) -> (
       let tparams =
-        List_.filter_map
+        List.filter_map
           (fun slice ->
             match slice with
             (* Don't know how to interpret these, they shouldn't be allowed, so skip

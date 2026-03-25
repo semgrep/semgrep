@@ -1117,7 +1117,7 @@ and repack_case_with_following_cases env tk (st_case_empty_body : stmt) xs =
 and repack_case_with_following_stmts _env (st_case_only : stmt) sts : stmt =
   let sts =
     sts
-    |> List_.filter_map (function
+    |> List.filter_map (function
          | X x -> Some x
          (* TODO? skipped directive code? *)
          | _ -> None)
@@ -1520,7 +1520,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
         in
         let ent = map_entity env ent in
         let v_v_type = map_type_ env t in
-        let args = params |> List_.filter_map param_to_arg_opt in
+        let args = params |> List.filter_map param_to_arg_opt in
         if List.length params <> List.length args then None
         else
           let v_v_init = map_init env (ObjInit (Args (p1, args, p2))) in
@@ -1547,7 +1547,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
           | _ -> None
         in
         let ent = map_entity env ent in
-        let params = args |> List_.filter_map arg_to_param_opt in
+        let params = args |> List.filter_map arg_to_param_opt in
         if List.length params <> List.length args then None
         else
           let v_v_type =

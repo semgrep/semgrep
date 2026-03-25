@@ -385,7 +385,7 @@ let parse_listi env (key : key) f x =
   in
   match x.G.e with
   | G.Container (Array, (_, xs, _)) ->
-      List_.mapi get_component xs |> Base.Result.all
+      List.mapi get_component xs |> Base.Result.all
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 let parse_string_wrap_list conv env (key : key) e =
