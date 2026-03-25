@@ -1271,7 +1271,7 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
     in
     let/ xs =
       rules
-      |> List_.mapi (fun i rule ->
+      |> List.mapi (fun i rule ->
              match parse_one_rule ~rewrite_rule_ids i rule with
              | Ok rule -> Ok (Either.Left rule)
              | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }

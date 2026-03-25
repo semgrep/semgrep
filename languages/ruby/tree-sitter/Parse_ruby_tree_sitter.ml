@@ -2388,7 +2388,7 @@ and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
   (Tok.fake_tok v1 ":", AtomFromString (v1, res, v3))
 
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
-  List_.filter_map
+  List.filter_map
     (fun x ->
       match x with
       | `Str_content tok ->

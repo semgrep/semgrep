@@ -119,7 +119,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
     let start_line = max 0 (start.pos.line - 1) in
     let end_line = end_.pos.line in
     match UFile.lines_of_file (start_line, end_line) path with
-    | Ok xs -> xs |> List_.mapi (fun idx x -> (start_line + idx, x))
+    | Ok xs -> xs |> List.mapi (fun idx x -> (start_line + idx, x))
     | Error err ->
         (* nosemgrep: no-logs-in-library *)
         Logs.warn (fun m ->
@@ -173,7 +173,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
   | ids_line, ids_previous_line ->
       let ids = ids_line @ ids_previous_line in
       let ids =
-        ids |> List_.filter_map Fun.id
+        ids |> List.filter_map Fun.id
         |> List.map (fun (line_num, s, col) ->
                (* [String.split_on_char] can **not** return an empty list. *)
                ( line_num,

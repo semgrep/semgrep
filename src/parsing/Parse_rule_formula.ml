@@ -323,7 +323,7 @@ and parse_pair_old env ((key, value) : key * G.expr) :
   let env = { env with path = fst key :: env.path } in
   let parse_listi env (key : key) f x =
     match x.G.e with
-    | G.Container (Array, (_, xs, _)) -> List_.mapi f xs |> Base.Result.all
+    | G.Container (Array, (_, xs, _)) -> List.mapi f xs |> Base.Result.all
     | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
   in
   let get_pattern str_e = parse_xpattern_expr env str_e in

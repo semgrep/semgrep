@@ -1170,7 +1170,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
 (* NOTE(lowering): MacroDef only allows idents as parameters *)
 (* ? is this true? *)
 and map_macroparams_hack (_env : env) ((_v1, params, _v3) : parameters) =
-  List_.filter_map
+  List.filter_map
     (fun p ->
       match p with
       | Param { pname = Some id; _ } -> Some id
@@ -2137,7 +2137,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
   | `Export_stmt (v1, v2, v3) ->
       let v1 = (* "export" *) str env v1 in
       let v3 =
-        List_.filter_map
+        List.filter_map
           (fun v2 ->
             let* v2 = map_exportable env v2 in
             Some (G.Anys (List.map (fun x -> G.I x) v2)))
@@ -2156,7 +2156,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
         | `Import_list x ->
             map_import_list env x
             (* Filter map here, as unrelated imports need not interfere with each other. *)
-            |> List_.filter_map Fun.id
+            |> List.filter_map Fun.id
             |> List.map (fun (dotted, idopt) ->
                    if is_using then
                      let dk = ImportAll (tk, DottedName dotted, tk) |> G.d in

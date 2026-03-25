@@ -387,13 +387,13 @@ let get_unexpected_matching_diagnosis ~target_file ~rule_file ~matched_line
         res)
       explanations
     |> Option.get |> List.rev
-    |> List_.filter_map (fun (node : ME.t) ->
+    |> List.filter_map (fun (node : ME.t) ->
            match is_killing_node node with
            | None -> None
            | Some kind -> Some (node, kind))
   in
   let killing_parents =
-    List_.filter_map
+    List.filter_map
       (fun ((parent : ME.t), kind) ->
         match Tok.loc_of_tok parent.pos with
         | Error _ -> None
@@ -507,7 +507,7 @@ let diagnose_unexpected_no_match ~rule_file ~(unmatched_line : int)
       *)
       let killing_nodes = get_killing_nodes ~line:unmatched_line explanations in
       `Killed_by_nodes
-        (List_.filter_map
+        (List.filter_map
            (fun ((parent : ME.t), kind) ->
              match (Tok.loc_of_tok parent.pos, kind) with
              | Error _, _ -> None

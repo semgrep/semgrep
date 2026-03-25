@@ -59,7 +59,7 @@ let ongoing_meth = "semgrep/searchOngoing"
 
 let parse_globs ~kind (strs : Yojson.Safe.t list) =
   strs
-  |> List_.filter_map (function
+  |> List.filter_map (function
        | `String s -> (
            try
              let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
@@ -147,7 +147,7 @@ module Request_params = struct
              ("excludes", `List excludes);
            ]) ->
         let patterns =
-          List_.filter_map
+          List.filter_map
             (function
               | `Assoc
                   [ ("positive", `Bool positive); ("pattern", `String pattern) ]
@@ -497,7 +497,7 @@ let rec search_single_target (session : Legacy_session.t) =
   | Some (session, (rules, file, xconf)) -> (
       try
         let matches =
-          List_.filter_map
+          List.filter_map
             (fun rule ->
               (* !!calling the engine!! *)
               Legacy_scan_helpers.run_core_search xconf rule file)

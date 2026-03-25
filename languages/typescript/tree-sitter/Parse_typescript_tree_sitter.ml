@@ -660,7 +660,7 @@ let export_specifiers (env : env)
       CST.export_specifier
       * (Tree_sitter_run.Token.t * CST.export_specifier) list) :
     (a_ident * a_ident option) list =
-  map_sep_list env v1 v2 export_specifier |> List_.filter_map (fun opt -> opt)
+  map_sep_list env v1 v2 export_specifier |> List.filter_map (fun opt -> opt)
 
 let export_clause (env : env) ((v1, v2, v3, v4) : CST.export_clause) =
   let _open =
@@ -700,7 +700,7 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
               v2)
             v2
         in
-        v1 :: v2 |> List_.filter_map Fun.id
+        v1 :: v2 |> List.filter_map Fun.id
     | None -> []
   in
   let _trailing_comma =
@@ -2414,7 +2414,7 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       let t1, xs, t2 = object_type env x in
       let xs =
         xs
-        |> List_.filter_map (function
+        |> List.filter_map (function
              (* TODO *)
              | Left prop -> Some prop
              | Right _sts -> None)
@@ -3424,7 +3424,7 @@ and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
 
 and anon_rep_COMMA_opt_choice_exp_ca698a5 (env : env)
     (xs : CST.anon_rep_COMMA_opt_choice_exp_ca698a5) =
-  List_.filter_map
+  List.filter_map
     (fun (v1, v2) ->
       let _v1 =
         token env v1
@@ -4265,7 +4265,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let t1, xs, t2 = object_type env v5 in
       let xs =
         xs
-        |> List_.filter_map (function
+        |> List.filter_map (function
              (* TODO *)
              | Left _fld -> None
              | Right _sts -> None)

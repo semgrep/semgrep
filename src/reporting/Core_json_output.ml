@@ -678,7 +678,7 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
      *)
     total_bytes =
       profiling_data.file_times
-      |> List_.filter_map (fun { Core_profiling.file = target; _ } ->
+      |> List.filter_map (fun { Core_profiling.file = target; _ } ->
              match UFile.filesize target with
              | Ok n -> Some n
              | Error (code, _func, info) ->

@@ -461,7 +461,7 @@ let resolved_name_kind env lang =
 (* !also set the id_info of the parameter as a side effect! *)
 let params_of_parameters env params : scope =
   params |> Tok.unbracket
-  |> List_.filter_map (function
+  |> List.filter_map (function
        | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = SId.mk () in
            let resolved = { entname = (Parameter, sid); enttype = typ } in
@@ -479,7 +479,7 @@ let js_get_angular_constructor_args env attrs defs =
       attrs
   in
   defs
-  |> List_.filter_map (function
+  |> List.filter_map (function
        | {
            s =
              DefStmt

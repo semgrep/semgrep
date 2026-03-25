@@ -613,7 +613,7 @@ let langs_of_pattern (pat, analyzer_opt) : Analyzer.t list =
         |> List_.exclude (fun x -> x =*= Lang.Dart)
       in
       all_langs
-      |> List_.filter_map (fun l ->
+      |> List.filter_map (fun l ->
              match
                let analyzer =
                  Analyzer.of_lang l |> analyzer_compatible_with_pat

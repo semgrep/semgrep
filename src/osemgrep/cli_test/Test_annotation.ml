@@ -236,7 +236,7 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
               |> List.map String.trim
             in
             xs
-            |> List_.filter_map (fun id_str ->
+            |> List.filter_map (fun id_str ->
                    match Rule_ID.of_string_opt id_str with
                    | Some id -> Some ({ kind; engine; others; id }, idx)
                    | None ->
@@ -318,7 +318,7 @@ let group_by_rule_id (annots : annotations) : (Rule_ID.t, linenb list) Assoc.t =
 let filter_todook (annots : annotations) (xs : linenb list) : linenb list =
   let (todooks : linenb Set_.t) =
     annots
-    |> List_.filter_map (fun ({ kind; _ }, line) ->
+    |> List.filter_map (fun ({ kind; _ }, line) ->
            match kind with
            (* + 1 because the expected/reported is the line after the annotation *)
            | Todook -> Some (line + 1)

@@ -131,7 +131,7 @@ let ws_prefix s =
 let dedent_lines (lines : string list) =
   let ws_prefixes =
     List.sort compare
-      (List_.filter_map
+      (List.filter_map
          (fun line ->
            if String.(length (trim line)) =|= 0 then None
            else Some (ws_prefix line))

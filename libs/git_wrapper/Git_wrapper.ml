@@ -298,7 +298,7 @@ let commit_blobs_by_date objects =
   Log.info (fun m -> m "getting commits");
   let commits =
     objects |> ROHashtbl.to_seq |> List.of_seq
-    |> List_.filter_map (fun (_, value) ->
+    |> List.filter_map (fun (_, value) ->
            match value with
            | Git.Value.Commit commit -> Some commit
            | _ -> None)
@@ -785,7 +785,7 @@ let logs ?cwd ?since () : contribution list =
       (* out_lines splits on newlines, so always an extra space at the end *)
       lines
       |> List.filter (fun f -> not (String.trim f = ""))
-      |> List_.filter_map parse_git_log_format_line
+      |> List.filter_map parse_git_log_format_line
   | _ ->
       (* nosemgrep: no-logs-in-library *)
       Logs.warn (fun m -> m "running %s failed" (Cmd.show cmd));

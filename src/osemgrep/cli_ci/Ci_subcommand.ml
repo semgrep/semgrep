@@ -712,8 +712,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
     |> List.partition (fun (m : Out.cli_match) ->
            Option.value ~default:false m.extra.is_ignored)
   in
-  let findings = List_.mapi (finding_of_cli_match commit_date) new_matches in
-  let ignores = List_.mapi (finding_of_cli_match commit_date) new_ignored in
+  let findings = List.mapi (finding_of_cli_match commit_date) new_matches in
+  let ignores = List.mapi (finding_of_cli_match commit_date) new_ignored in
   let ci_token =
     match Sys.getenv_opt "GITHUB_TOKEN" with
     (* GitHub (cloud) *)
@@ -727,7 +727,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   (* Collect paths that failed to scan (timeout, OOM, etc.) *)
   let skipped_paths =
     cli_output.errors
-    |> List_.filter_map (fun (err : Out.cli_error) ->
+    |> List.filter_map (fun (err : Out.cli_error) ->
            if is_scan_failure_error err.type_ then err.path else None)
     |> List.sort_uniq Fpath.compare
   in
