@@ -276,7 +276,7 @@ let rec to_ast_generic_type_ ?tok lang
       let kind = (G.Object, G.fake "object") in
       let fields =
         fields
-        |> List_.map (fun (fld_label, fld_type) ->
+        |> List.map (fun (fld_label, fld_type) ->
                let entity : G.entity =
                  {
                    name =
@@ -298,7 +298,7 @@ let rec to_ast_generic_type_ ?tok lang
   | Function (params, tret) ->
       let params =
         params
-        |> List_.map (function
+        |> List.map (function
              | Param { pident; ptype } -> (
                  let topt = to_ast_generic_type_ lang f ptype in
                  match topt with

@@ -76,7 +76,7 @@ let plural n = if n >= 2 then "s" else ""
 let compare_actual_to_expected ~to_location actual_findings
     expected_findings_lines =
   let actual_findings : (Fpath.t * int) list =
-    List_.map to_location actual_findings
+    List.map to_location actual_findings
   in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =

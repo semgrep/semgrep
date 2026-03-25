@@ -143,7 +143,7 @@ let log_parsing_errors file (res : Parsing_result2.t) =
       m "errs = %s" (Parsing_result2.format_errors ~style:Auto res.errors));
   Logs.debug (fun m ->
       m "skipped = %s"
-        (List_.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
+        (List.map (fun e -> "  " ^ Dumper.dump e) res.skipped_tokens
         |> String.concat "\n"))
 
 (* works with -lang *)

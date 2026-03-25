@@ -118,7 +118,7 @@ let extract_errors (data : string) : string list =
       Logs.debug (fun m ->
           m "results response = %s" (Out.show_ci_scan_results_response response));
       errors
-      |> List_.map (fun (x : Out.ci_scan_results_response_error) -> x.message)
+      |> List.map (fun (x : Out.ci_scan_results_response_error) -> x.message)
   | exception exn ->
       Logs.err (fun m ->
           m "Failed to decode server reply as json %s: %s"

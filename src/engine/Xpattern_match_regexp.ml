@@ -63,7 +63,7 @@ let regexp_matcher ?(base_offset = 0) regex_functions big_str (file : Fpath.t)
     (regexp : 'regex) =
   let subs = regex_functions.exec_all_noerr regexp big_str in
   subs |> Array.to_list
-  |> List_.map (fun sub ->
+  |> List.map (fun sub ->
          (* Below, we add `base_offset` to any instance of `bytepos`, because
             the `bytepos` we obtain is only within the range of the string
             being searched, which may itself be offset from a larger file.

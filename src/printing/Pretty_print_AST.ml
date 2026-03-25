@@ -491,7 +491,7 @@ and for_stmt env (for_tok, hdr, s) =
         F.sprintf "%s; %s; %s" (show_init_list init) (opt_expr cond)
           (opt_expr next)
     | ForEach (pat, tok, e) -> for_each (pat, tok, e)
-    | MultiForEach fors -> String.concat ";" (List_.map multi_for_each fors)
+    | MultiForEach fors -> String.concat ";" (List.map multi_for_each fors)
     | ForEllipsis tok -> token ~d:"..." tok
   in
   let body_str = stmt { env with level = env.level + 1 } s in
@@ -506,7 +506,7 @@ and type_ t =
     match t.t_attrs with
     | [] -> ""
     | attrs ->
-        let attr_strs = attrs |> List_.map (fun _attr -> "@attr") in
+        let attr_strs = attrs |> List.map (fun _attr -> "@attr") in
         " " ^ String.concat " " attr_strs
   in
   let base_str =
@@ -515,13 +515,13 @@ and type_ t =
     | TyApply (base, (_, args, _)) ->
         let base_str = type_ base in
         let args_str =
-          args |> List_.map type_argument_to_string |> String.concat ", "
+          args |> List.map type_argument_to_string |> String.concat ", "
         in
         F.sprintf "%s<%s>" base_str args_str
     | TyFun (params, ret) ->
         let params_str =
           params
-          |> List_.map (function
+          |> List.map (function
                | Param p -> (
                    match (p.pname, p.ptype) with
                    | Some id, Some ty ->
@@ -553,7 +553,7 @@ and type_ t =
         (* For expressions, just show simplified form *)
         F.sprintf "%s[...]" (type_ ty)
     | TyTuple (_, tys, _) ->
-        let tys_str = tys |> List_.map type_ |> String.concat ", " in
+        let tys_str = tys |> List.map type_ |> String.concat ", " in
         F.sprintf "(%s)" tys_str
     | TyVar id -> F.sprintf "'%s" (ident id)
     | TyAny _ -> "_"
@@ -577,7 +577,7 @@ and type_ t =
           else
             let field_strs =
               fields
-              |> List_.map (function
+              |> List.map (function
                    | F { s = DefStmt (ent, FieldDefColon fld); _ } -> (
                        match (ent.name, fld.vtype) with
                        | EN (Id (id, _)), Some ty ->
@@ -608,7 +608,7 @@ and name_to_string = function
   | IdQualified { name_last = id, _; name_middle = None; _ } -> ident id
   | IdQualified { name_last = id, _; name_middle = Some (QDots parts); _ } ->
       let parts_str =
-        parts |> List_.map (fun ((s, _), _) -> s) |> String.concat "."
+        parts |> List.map (fun ((s, _), _) -> s) |> String.concat "."
       in
       F.sprintf "%s.%s" parts_str (ident id)
   | IdQualified { name_last = id, _; name_middle = Some (QExpr (_e, _)); _ } ->
@@ -777,7 +777,7 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   match name_middle with
   | Some (QDots dot_ids) ->
       (* TODO: do not do fst, look also at type qualification *)
-      F.sprintf "%s.%s" (dotted_access env (List_.map fst dot_ids)) (ident id)
+      F.sprintf "%s.%s" (dotted_access env (List.map fst dot_ids)) (ident id)
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
   | None -> ident id
 

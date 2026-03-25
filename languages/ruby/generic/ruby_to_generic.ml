@@ -37,7 +37,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = List_.map
+let list = List.map
 let bool = id
 let string = id
 let fake tok s = Tok.fake_tok tok s
@@ -129,7 +129,7 @@ let rec expr e =
           G.DotAccess (e, t, fld))
   | DotAccessEllipsis (e, t) -> G.DotAccessEllipsis (expr e, t)
   | Splat (t, eopt) ->
-      let xs = option expr eopt |> Option.to_list |> List_.map G.arg in
+      let xs = option expr eopt |> Option.to_list |> List.map G.arg in
       let special = G.Special (G.Spread, t) |> G.e in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->
@@ -396,7 +396,7 @@ and interpolated_string (t1, xs, t2) : G.expr_kind =
   let xs = xs |> fold_constants |> list (string_contents t1) in
   G.Call
     ( G.Special (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
-      (t1, xs |> List_.map (fun e -> G.Arg e), t2) )
+      (t1, xs |> List.map (fun e -> G.Arg e), t2) )
 
 and string_contents tok = function
   | StrChars s -> G.L (G.String (fb s)) |> G.e
@@ -647,14 +647,14 @@ and stmt st =
         | Some e -> Some (G.Cond e)
       in
       G.Switch
-        (t, condopt, whens @ default |> List_.map (fun x -> G.CasesAndBody x))
+        (t, condopt, whens @ default |> List.map (fun x -> G.CasesAndBody x))
       |> G.s
   | ExnBlock b -> body_exn b
 
 and when_clause (t, pats, sts) =
   let pats = list pattern pats in
   let st = list_stmt1 sts in
-  (pats |> List_.map (fun pat -> G.Case (t, pat)), st)
+  (pats |> List.map (fun pat -> G.Case (t, pat)), st)
 
 and args_to_label_ident xs = xs |> args_to_exprs |> exprs_to_label_ident
 
@@ -677,7 +677,7 @@ and exprs_to_eopt = function
       let xs = list expr xs in
       Some (G.Container (G.Tuple, Tok.unsafe_fake_bracket xs) |> G.e)
 
-and qualified qual = List_.map variable qual
+and qualified qual = List.map variable qual
 
 and pattern_as_exp pat =
   match pat with
@@ -704,7 +704,7 @@ and pattern pat =
   | PatAtom (tk, a) -> promote (atom tk a)
   | PatDisj (p1, p2) -> G.PatDisj (pattern p1, pattern p2)
   | PatExpr e -> promote (expr e).G.e
-  | PatTuple (l, ps, r) -> G.PatTuple (l, List_.map pattern ps, r)
+  | PatTuple (l, ps, r) -> G.PatTuple (l, List.map pattern ps, r)
   | PatConstructor (qual, ps) ->
       let name =
         match List.rev (qualified qual) with
@@ -713,7 +713,7 @@ and pattern pat =
             raise Impossible
         | last :: rev_prefix ->
             let qualifier =
-              List_.map (fun id -> (id, None)) rev_prefix |> List.rev
+              List.map (fun id -> (id, None)) rev_prefix |> List.rev
             in
             G.IdQualified
               {
@@ -723,8 +723,8 @@ and pattern pat =
                 name_info = G.empty_id_info ();
               }
       in
-      G.PatConstructor (name, List_.map pattern ps)
-  | PatList (l, ps, r) -> G.PatList (l, List_.map patlist_arg ps, r)
+      G.PatConstructor (name, List.map pattern ps)
+  | PatList (l, ps, r) -> G.PatList (l, List.map patlist_arg ps, r)
   | PatWhen (pat, exp) -> G.PatWhen (pattern pat, expr exp)
   | PatAs (pat, id) -> G.PatAs (pattern pat, (ident id, G.empty_id_info ()))
   | PatPin (_tk, exp) ->

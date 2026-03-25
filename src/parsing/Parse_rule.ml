@@ -103,7 +103,7 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
   | xs -> (
       let rule_id, _ = id in
       let/ langs =
-        xs |> List_.map (parse_language ~id:rule_id) |> Base.Result.all
+        xs |> List.map (parse_language ~id:rule_id) |> Base.Result.all
       in
       match langs with
       | [] -> error rule_id (snd id) "we need at least one language"
@@ -756,8 +756,7 @@ let parse_step_fields env key (value : G.expr) : (R.step, Rule_error.t) result =
 let parse_steps env key (value : G.expr) : (R.step list, Rule_error.t) result =
   let parse_step step = parse_step_fields env key step in
   match value.G.e with
-  | G.Container (Array, (_, xs, _)) ->
-      List_.map parse_step xs |> Base.Result.all
+  | G.Container (Array, (_, xs, _)) -> List.map parse_step xs |> Base.Result.all
   | _ -> error_at_key env.id key ("Expected a list for " ^ fst key)
 
 (*****************************************************************************)

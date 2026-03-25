@@ -424,8 +424,8 @@ let add_configs_hash configs =
 let add_rules_hashes_and_rules_profiling ?profiling:_TODO rules =
   let hashes =
     rules
-    |> List_.map Rule.sha256_of_rule
-    |> List_.map Digestif.SHA256.to_hex
+    |> List.map Rule.sha256_of_rule
+    |> List.map Digestif.SHA256.to_hex
     |> List.sort String.compare
   in
   let rulesHash_value =
@@ -480,7 +480,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     | None -> Hashtbl.create 0
     | Some (prof : Core_profiling.t) ->
         prof.file_times
-        |> List_.map (fun ({ Core_profiling.file; _ } as file_prof) ->
+        |> List.map (fun ({ Core_profiling.file; _ } as file_prof) ->
                (file, file_prof))
         |> Hashtbl_.hash_of_list
   in
@@ -495,13 +495,13 @@ let add_targets_stats (targets : Fpath.t Set_.t)
                    fprof.rule_times
                    |> Option.map (fun rule_times ->
                           rule_times
-                          |> List_.map (fun rt ->
+                          |> List.map (fun rt ->
                                  rt.Core_profiling.rule_parse_time)
                           |> Common2.sum_float),
                    fprof.rule_times
                    |> Option.map (fun rule_times ->
                           rule_times
-                          |> List_.map (fun rt ->
+                          |> List.map (fun rt ->
                                  rt.Core_profiling.rule_match_time)
                           |> Common2.sum_float) )
              | None -> (None, None, None)
@@ -532,7 +532,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
   g.payload.performance.totalBytesScanned <-
     Some
       (file_stats
-      |> List_.map (fun { Semgrep_metrics_t.size; _ } -> size)
+      |> List.map (fun { Semgrep_metrics_t.size; _ } -> size)
       |> Common2.sum_int);
   g.payload.performance.numTargets <- Some (List.length targets)
 
@@ -544,7 +544,7 @@ let string_of_error (err : Out.cli_error) : string =
 
 let add_errors errors =
   g.payload.errors.errors <-
-    Some (errors |> List_.map (fun (err : Out.cli_error) -> string_of_error err))
+    Some (errors |> List.map (fun (err : Out.cli_error) -> string_of_error err))
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)
@@ -564,7 +564,7 @@ let add_feature ~category ~name =
 let add_findings (findings : Out.cli_match list) =
   let findings =
     findings
-    |> List_.map (fun (finding : Out.cli_match) ->
+    |> List.map (fun (finding : Out.cli_match) ->
            ( Rule_ID.to_string finding.check_id,
              ({
                 path = Fpath.to_string finding.path;

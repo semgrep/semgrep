@@ -154,7 +154,7 @@ module Legacy = struct
             match Sys_.is_directory f with
             | true ->
                 CapFS.read_dir_entries (Fpath.v f)
-                |> List_.map (fun x -> Filename.concat f !!x)
+                |> List.map (fun x -> Filename.concat f !!x)
                 |> List.append fs |> loop result
             | false -> loop (f :: result) fs)
       | [] -> result
@@ -168,7 +168,7 @@ module Legacy = struct
 
   let files_of_dirs_or_files_no_vcs_nofilter ?strict xs =
     xs
-    |> List_.map (fun x ->
+    |> List.map (fun x ->
            if Sys_.is_directory x then
              let files = dir_contents ?strict x in
              List.filter (fun x -> not (Re.execp vcs_re x)) files
@@ -345,7 +345,7 @@ let find_first_match_with_whole_line path ?split:(chr = '\n') =
   let res = Bytes.create len in
   really_input ic res 0 len;
   let lines = Bytes.split_on_char chr res in
-  let lines = List_.map Bytes.unsafe_to_string lines in
+  let lines = List.map Bytes.unsafe_to_string lines in
   lines |> List.find_opt (fun str -> String_.contains ~term str)
 
 let find_first_match_with_whole_line path ?split term =
@@ -374,7 +374,7 @@ let lines_of_file (start_line, end_line) (file : Fpath.t) :
         try
           Ok
             (line_idx
-            |> List_.map (fun i ->
+            |> List.map (fun i ->
                    try arr.(i) with
                    | Invalid_argument s ->
                        raise (Invalid_argument (spf "%s on index %d" s i))))

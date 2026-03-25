@@ -22,7 +22,7 @@ type ('a, 'b) t = ('a * 'b) list
 (*****************************************************************************)
 (* Set-like operations *)
 (*****************************************************************************)
-let keys assoc = List_.map fst assoc
+let keys assoc = List.map fst assoc
 let join_keys assoc1 assoc2 = keys assoc1 @ keys assoc2 |> List_.deduplicate
 
 (*****************************************************************************)
@@ -86,4 +86,4 @@ let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun (k, v) -> Hashtbl_.push h k v);
   let keys = Hashtbl_.hkeys h in
-  keys |> List_.map (fun k -> (k, Hashtbl_.get_stack h k))
+  keys |> List.map (fun k -> (k, Hashtbl_.get_stack h k))

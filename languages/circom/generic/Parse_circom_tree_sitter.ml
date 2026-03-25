@@ -97,7 +97,7 @@ let map_string_ (env : env) (x : CST.string_) : string wrap bracket =
   | `DQUOT_rep_choice_str_imme_elt_inside_double_quote_DQUOT (v1, v2, v3) ->
       let l = (* "\"" *) token env v1 in
       let xs =
-        List_.map
+        List.map
           (fun x ->
             match x with
             | `Str_imme_elt_inside_double_quote tok ->
@@ -110,7 +110,7 @@ let map_string_ (env : env) (x : CST.string_) : string wrap bracket =
   | `SQUOT_rep_choice_str_imme_elt_inside_quote_SQUOT (v1, v2, v3) ->
       let l = (* "'" *) token env v1 in
       let xs =
-        List_.map
+        List.map
           (fun x ->
             match x with
             | `Str_imme_elt_inside_quote tok ->
@@ -176,7 +176,7 @@ let map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
     | Some (v1, v2, v3) ->
         let v1 = map_parameter env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 = (* "," *) token env v1 in
               let v2 = map_parameter env v2 in
@@ -378,7 +378,7 @@ and map_tuple (env : env) ((v1, v2, v3, v4, v5) : CST.tuple) =
   let lb = (* "(" *) token env v1 in
   let expr = map_expression env v2 in
   let other_exprs =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let other_expr = map_expression env v2 in
@@ -421,7 +421,7 @@ and map_call_expression (env : env)
 and map_argument_list (env : env) ((v1, v2) : CST.argument_list) =
   let arg1 = map_expression env v1 |> G.arg in
   let other_args =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -444,7 +444,7 @@ and map_array_ (env : env) ((v1, v2, v3, v4, v5) : CST.array_) =
   let lb = (* "[" *) token env v1 in
   let expr1 = map_expression env v2 in
   let items =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_expression env v2 in
@@ -534,7 +534,7 @@ let map_signal_tags (env : env) ((v1, v2, v3, v4) : CST.signal_tags) =
   let lb = (* "{" *) token env v1 in
   let tag1 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
   let other_tags =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
@@ -569,7 +569,7 @@ let map_type_ (env : env) (x : CST.type_) =
       G.ty_builtin x
 
 let map_array_definition (env : env) (xs : CST.array_definition) ty =
-  List_.map
+  List.map
     (fun (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
       let eopt = map_expression env v2 in
@@ -583,7 +583,7 @@ let map_variable_initialization (env : env)
     (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 |> left_strip_space
   in
   let v2TODO =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
         let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2 in
@@ -667,7 +667,7 @@ and map_variable_declaration_statement (env : env)
   let ty = map_type_ env v1 in
   let id, e = map_variable_initialization env v2 ty in
   let v3TODO =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_variable_initialization env v2 ty in
@@ -693,7 +693,7 @@ and map_statement (env : env) (x : CST.statement) =
       Return (v1, v2, v3) |> G.s
   | `Blk_stmt (v1, v2, v3) ->
       let v1 = (* "{" *) token env v1 in
-      let v2 = List_.map (map_statement env) v2 in
+      let v2 = List.map (map_statement env) v2 in
       let v3 = (* "}" *) token env v3 in
       Block (v1, v2, v3) |> G.s
   | `If_stmt (v1, v2, v3, v4, v5, v6) ->
@@ -729,14 +729,14 @@ and map_statement (env : env) (x : CST.statement) =
 let map_function_body (env : env) ((v1, v2, v3) : CST.function_body) :
     function_body =
   let lb = (* "{" *) token env v1 in
-  let xs = List_.map (map_statement env) v2 in
+  let xs = List.map (map_statement env) v2 in
   let rb = (* "}" *) token env v3 in
   FBStmt (Block (lb, xs, rb) |> G.s)
 
 let map_template_body (env : env) ((v1, v2, v3) : CST.template_body) :
     function_body =
   let lb = (* "{" *) token env v1 in
-  let xs = List_.map (map_statement env) v2 in
+  let xs = List.map (map_statement env) v2 in
   let rb = (* "}" *) token env v3 in
   FBStmt (Block (lb, xs, rb) |> G.s)
 
@@ -753,7 +753,7 @@ let map_main_component_public_signals (env : env)
   let first_param = map_parameter env v4 in
   let params =
     first_param
-    :: List_.map
+    :: List.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_parameter env v2 in
@@ -820,7 +820,7 @@ let map_source_unit (env : env) (x : CST.source_unit) : item list =
   match x with
   | `Dire x ->
       let xs = map_directive env x in
-      xs |> List_.map (fun dir -> DirectiveStmt dir |> G.s)
+      xs |> List.map (fun dir -> DirectiveStmt dir |> G.s)
   | `Defi x ->
       let def = map_definition env x in
       [ DefStmt def |> G.s ]
@@ -828,10 +828,10 @@ let map_source_unit (env : env) (x : CST.source_unit) : item list =
 let map_source_file (env : env) (x : CST.source_file) =
   match x with
   | `Rep_source_unit v1 ->
-      let xss = List_.map (map_source_unit env) v1 in
+      let xss = List.map (map_source_unit env) v1 in
       Pr (List_.flatten xss)
   | `Rep1_stmt xs ->
-      let xs = List_.map (map_statement env) xs in
+      let xs = List.map (map_statement env) xs in
       Ss xs
   | `Exp x ->
       let e = map_expression env x in

@@ -102,9 +102,7 @@ let fix_tokens_lbody toks =
         toks
     in
     let horigin =
-      toks
-      |> List_.map (fun t -> (TH.info_of_tok t, t))
-      |> Hashtbl_.hash_of_list
+      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Hashtbl_.hash_of_list
     in
 
     let retag_lbrace = Hashtbl.create 101 in
@@ -203,7 +201,7 @@ let fix_tokens_lbody toks =
 
     (* use the tagged information and transform tokens *)
     toks
-    |> List_.map (function
+    |> List.map (function
          | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
          | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
          | T.LBRACE info when Hashtbl.mem retag_lbrace_semgrep info ->

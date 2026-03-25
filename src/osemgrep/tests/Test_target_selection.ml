@@ -127,9 +127,9 @@ let normalize =
 *)
 let tests () : Testo.t list =
   repos_with_tests
-  |> List_.map (fun { repo_name; repo_files; tests } ->
+  |> List.map (fun { repo_name; repo_files; tests } ->
          tests
-         |> List_.map (fun (test_name, test_func) ->
+         |> List.map (fun (test_name, test_func) ->
                 Testo.create ?skipped:Testutil.skip_on_windows
                   ~category:[ "target selection on real git repos"; repo_name ]
                   ~checked_output:(Testo.stdout ()) ~normalize test_name

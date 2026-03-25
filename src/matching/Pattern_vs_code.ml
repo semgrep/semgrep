@@ -529,7 +529,7 @@ let rec m_name_inner a b =
         let new_qualifier =
           match List.rev dotted with
           | [] -> raise Impossible
-          | _x :: xs -> List.rev xs |> List_.map (fun id -> (id, None))
+          | _x :: xs -> List.rev xs |> List.map (fun id -> (id, None))
         in
         let new_middle =
           match new_qualifier with
@@ -653,7 +653,7 @@ and m_name a b =
              that the location data of the imports we are inserting should not matter.
           *)
           let import_with_fake_location =
-            List_.map (fun (s, _) -> (s, G.fake "")) import
+            List.map (fun (s, _) -> (s, G.fake "")) import
           in
           let b_ids = import_with_fake_location @ dotted_b in
           m_name_inner a (H.name_of_ids b_ids))
@@ -678,7 +678,7 @@ and m_qualifier a b =
   match (a, b) with
   (* Like for m_dotted_name, [$X] should match anything *)
   | G.QDots [ ((str, t), _) ], B.QDots b when Mvar.is_metavar_name str ->
-      envf (str, t) (MV.E (make_dotted (List_.map fst b)))
+      envf (str, t) (MV.E (make_dotted (List.map fst b)))
   | G.QDots (_ :: _ :: _ as a), B.QDots [ b ] ->
       (* This cannot be matched with `m_list`, so the only way we could get a
          match would be if `b` was an absolute path like those used by Pro
@@ -973,7 +973,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
            }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
-      let full = (names |> List_.map fst) @ [ alabel ] in
+      let full = (names |> List.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 ->
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -2170,8 +2170,8 @@ and m_ac_op tok op aargs_ac bargs_ac =
           in
           let tout =
             m_list__m_argument
-              (List_.map G.arg avars_dots)
-              (List_.map B.arg bs') tin
+              (List.map G.arg avars_dots)
+              (List.map B.arg bs') tin
           in
           [ ([], tout) ])
       |> m_comb_flatten

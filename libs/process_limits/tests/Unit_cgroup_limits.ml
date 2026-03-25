@@ -130,4 +130,4 @@ let make_test (x : test_spec) =
           let res = Cgroup_limits.get_max_cpus ~cgroup_files () in
           Alcotest.check testable "CPU limit" x.expected_output res))
 
-let tests : Testo.t list = List_.map make_test test_data
+let tests : Testo.t list = List.map make_test test_data

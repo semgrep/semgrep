@@ -477,7 +477,7 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
 *)
 let aggregate_file_stats (results : (string * Parsing_stat.t list) list) :
     Parsing_stats_t.project_stats list =
-  List_.map
+  List.map
     (fun (project_name, file_stats) ->
       let acc =
         {
@@ -563,7 +563,7 @@ let print_json lang results =
 
 let parse_projects ~verbose lang project_dirs =
   project_dirs
-  |> List_.map (fun dir ->
+  |> List.map (fun dir ->
          let name = dir in
          parse_project ~verbose lang name (Fpath.v dir))
 

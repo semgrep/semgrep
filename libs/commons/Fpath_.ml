@@ -27,8 +27,8 @@ open Eq.Operators
 (* API *)
 (*****************************************************************************)
 
-let of_strings strings = List_.map Fpath.v strings
-let to_strings paths = List_.map Fpath.to_string paths
+let of_strings strings = List.map Fpath.v strings
+let to_strings paths = List.map Fpath.to_string paths
 let ( !! ) = Fpath.to_string
 let to_posix_string p = Fpath.segs p |> String.concat "/"
 

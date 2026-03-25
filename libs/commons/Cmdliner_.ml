@@ -53,7 +53,7 @@ let sha1 =
 
 (* Turn "a" into "-a" and "abc" into "--abc" *)
 let add_option_dashes option_names =
-  List_.map
+  List.map
     (fun s ->
       assert (s <> "");
       if String.length s =|= 1 then "-" ^ s else "--" ^ s)

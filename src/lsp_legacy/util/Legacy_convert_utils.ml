@@ -43,4 +43,4 @@ let convert_severity (severity : OutJ.match_severity) : DiagnosticSeverity.t =
       Information
 
 let workspace_folders_to_paths =
-  List_.map (fun ({ uri; _ } : WorkspaceFolder.t) -> Uri.to_path uri |> Fpath.v)
+  List.map (fun ({ uri; _ } : WorkspaceFolder.t) -> Uri.to_path uri |> Fpath.v)

@@ -68,7 +68,7 @@ let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 
 let mvars_of_regexp_string s =
   Pcre2_.pcre_compile s |> Pcre2_.pcre_regexp |> Pcre2.names |> Array.to_list
-  |> Common.(List_.map (fun s -> spf "$%s" s))
+  |> Common.(List.map (fun s -> spf "$%s" s))
 
 let is_anonymous_metavar s = s =*= "$_"
 

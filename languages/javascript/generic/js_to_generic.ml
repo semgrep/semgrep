@@ -32,7 +32,7 @@ module Log = Log_parser_javascript.Log
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = List_.map
+let list = List.map
 let bool = id
 let string = id
 let error = AST_generic.error
@@ -124,7 +124,7 @@ let special (x, tok) =
           (fun args ->
             G.Call
               ( G.Special (G.ConcatString G.InterpolatedConcat, tok) |> G.e,
-                args |> List_.map (fun e -> G.Arg e) |> fb ))
+                args |> List.map (fun e -> G.Arg e) |> fb ))
       else
         SR_NeedArgs
           (fun args ->
@@ -144,7 +144,7 @@ let special (x, tok) =
                                   *)
                                  (G.ConcatString G.TaggedTemplateLiteral, tok)
                                |> G.e,
-                               rest |> List_.map (fun e -> G.Arg e) |> fb )
+                               rest |> List.map (fun e -> G.Arg e) |> fb )
                           |> G.e);
                       ] ))
   | ArithOp op -> SR_Special (G.Op op, tok)
@@ -242,7 +242,7 @@ and expr (x : expr) =
       G.Cast (v3, v2, v1) |> G.e
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr (v1, List_.map (fun e -> G.E e) v2) |> G.e
+      G.OtherExpr (v1, List.map (fun e -> G.E e) v2) |> G.e
   | ParenExpr (l, e, r) ->
       let e = expr e in
       H.set_e_range l r e;
@@ -308,13 +308,13 @@ and expr (x : expr) =
       (* Since the attrs aren't included in the AST, at least update the range
        * to include them. See
        * https://github.com/semgrep/semgrep/issues/7353 *)
-      let attrs_any = List_.map (fun attr -> G.At attr) more_attrs in
+      let attrs_any = List.map (fun attr -> G.At attr) more_attrs in
       H.set_e_range_with_anys (G.Dk (G.FuncDef def) :: attrs_any) e;
       e
   | Instantiation (v1, v2) ->
       let v1 = expr v1 and l, v2, _r = bracket (list type_) v2 in
       G.OtherExpr
-        (("Instantiation", l), G.E v1 :: List_.map (fun ty -> G.T ty) v2)
+        (("Instantiation", l), G.E v1 :: List.map (fun ty -> G.T ty) v2)
       |> G.e
   | Satisfies (v1, v2, v3) ->
       let v1 = expr v1 and v3 = type_ v3 in
@@ -324,18 +324,18 @@ and expr (x : expr) =
       let _v2_TODO = bracket (list type_) v2 in
       let v3 = bracket (list expr) v3 in
       (match x with
-      | SR_Special v -> G.Call (G.Special v |> G.e, bracket (List_.map G.arg) v3)
+      | SR_Special v -> G.Call (G.Special v |> G.e, bracket (List.map G.arg) v3)
       | SR_Literal l ->
           Log.warn (fun m -> m "Weird: literal in call position");
           (* apparently there's code like (null)("fs"), no idea what that is *)
-          G.Call (G.L l |> G.e, bracket (List_.map G.arg) v3)
+          G.Call (G.L l |> G.e, bracket (List.map G.arg) v3)
       | SR_NeedArgs f -> f (Tok.unbracket v3)
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
             ( G.OtherExpr (categ, []) |> G.e,
-              bracket (List_.map (fun e -> G.Arg e)) v3 )
-      | SR_Expr e -> G.Call (e |> G.e, bracket (List_.map G.arg) v3))
+              bracket (List.map (fun e -> G.Arg e)) v3 )
+      | SR_Expr e -> G.Call (e |> G.e, bracket (List.map G.arg) v3))
       |> G.e
   | Apply (v1, v2, v3) ->
       let v1 = expr v1
@@ -347,12 +347,12 @@ and expr (x : expr) =
       let lhs =
         match v1.e with
         | G.N name ->
-            let tyargs = List_.map (fun ty -> G.TA ty) v2 in
+            let tyargs = List.map (fun ty -> G.TA ty) v2 in
             G.N (AST_generic_helpers.add_type_args_to_name name (l, tyargs, r))
             |> G.e
         | _ -> v1
       in
-      G.Call (lhs, bracket (List_.map (fun e -> G.Arg e)) v3) |> G.e
+      G.Call (lhs, bracket (List.map (fun e -> G.Arg e)) v3) |> G.e
   | New (tok, e, args) ->
       let tok = info tok in
       let e = expr e in
@@ -450,7 +450,7 @@ and for_header = function
       | Left vars ->
           let vars =
             vars
-            |> List_.map (fun x ->
+            |> List.map (fun x ->
                    let a, b = var_of_var x in
                    G.ForInitVar (a, b))
           in
@@ -499,7 +499,7 @@ and case = function
 and type_ x =
   match x with
   | TyBuiltin id -> G.ty_builtin (wrap_name id)
-  | TyName xs -> G.TyN (H.name_of_ids (List_.map ident xs)) |> G.t
+  | TyName xs -> G.TyN (H.name_of_ids (List.map ident xs)) |> G.t
   (* TODO: use TyExpr now? or special TyLiteral? *)
   | TyLiteral l ->
       let l = G.L (literal l) in
@@ -512,10 +512,10 @@ and type_ x =
       let t = type_ t in
       G.TyArray ((lt, None, rt), t) |> G.t
   | TyTuple (lt, xs, rt) ->
-      let xs = List_.map tuple_type_member xs in
+      let xs = List.map tuple_type_member xs in
       G.TyTuple (lt, xs, rt) |> G.t
   | TyFun (params, typ_opt) ->
-      let params = List_.map parameter_binding params in
+      let params = List.map parameter_binding params in
       let rett =
         match typ_opt with
         | None -> G.ty_builtin ("void", Tok.unsafe_fake_tok "void")
@@ -524,7 +524,7 @@ and type_ x =
       G.TyFun (params, rett) |> G.t
   | TyRecordAnon (lt, properties, rt) ->
       G.TyRecordAnon
-        ((G.Class, Tok.fake_tok lt ""), (lt, List_.map property properties, rt))
+        ((G.Class, Tok.fake_tok lt ""), (lt, List.map property properties, rt))
       |> G.t
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in
@@ -534,7 +534,7 @@ and type_ x =
       let t1 = type_ t1 in
       let t2 = type_ t2 in
       G.TyAnd (t1, tk, t2) |> G.t
-  | TypeTodo (categ, xs) -> G.OtherType (categ, List_.map any xs) |> G.t
+  | TypeTodo (categ, xs) -> G.OtherType (categ, List.map any xs) |> G.t
 
 and tuple_type_member x =
   match x with
@@ -637,8 +637,8 @@ and attribute = function
         | Some x -> x
         | None -> fb []
       in
-      let args = list argument args |> List_.map G.arg in
-      let name = H.name_of_ids (List_.map ident ids) in
+      let args = list argument args |> List.map G.arg in
+      let name = H.name_of_ids (List.map ident ids) in
       G.NamedAttr (t, name, (t1, args, t2))
 
 and keyword_attribute (x, tok) =
@@ -755,7 +755,7 @@ and module_directive x =
       G.OtherDirective (("ReExportNamespace", v1), [ G.Str (fb v4) ])
   | Import (t, v1, v2) ->
       let v1 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let v1 = name v1 and v2 = option name v2 in
             H.mk_import_from_kind v1 v2)
@@ -781,7 +781,7 @@ and list_stmt xs =
   (* converting require() in import, so they can benefit from the
    * other goodies coming with import in semgrep (e.g., equivalence aliasing)
    *)
-  xs |> List_.map (fun st -> [ stmt st ]) |> List_.flatten
+  xs |> List.map (fun st -> [ stmt st ]) |> List_.flatten
 
 and program v = list_stmt v
 

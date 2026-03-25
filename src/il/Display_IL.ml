@@ -39,7 +39,7 @@ let string_of_offset offset =
 
 let string_of_offset_list offset =
   if offset <> [] then
-    "." ^ String.concat "." (List_.map string_of_offset offset)
+    "." ^ String.concat "." (List.map string_of_offset offset)
   else ""
 
 let string_of_lval { base; rev_offset } =
@@ -90,7 +90,7 @@ let string_of_argument arg =
       string_of_exp e
 
 let string_of_arguments args =
-  List_.map string_of_argument args |> String.concat ","
+  List.map string_of_argument args |> String.concat ","
 
 let short_string_of_node_kind nkind =
   match nkind with
@@ -146,7 +146,7 @@ let short_string_of_node_kind nkind =
         | PatVariable var -> str_of_name var
         | PatConstructor (ctor, params) ->
             fst ctor.ident ^ "("
-            ^ String.concat ", " (List_.map str_of_name params)
+            ^ String.concat ", " (List.map str_of_name params)
             ^ ")")
   | NTodo _ -> "<to-do stmt>"
 

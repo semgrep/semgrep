@@ -150,18 +150,18 @@ let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
            Formula_cache.cached_find_opt formula_cache pf (fun () ->
                range_w_metas_of_formula xconf xtarget rule pf)
          in
-         (ranges |> List_.map (fun rwm -> (rwm, x)), expls))
+         (ranges |> List.map (fun rwm -> (rwm, x)), expls))
 
 let find_sources_ranges formula_cache xconf xtarget rule (spec : R.taint_spec) =
   find_range_w_metas formula_cache xconf xtarget rule
     (spec.sources |> snd
-    |> List_.map (fun (src : R.taint_source) -> (src.source_formula, src)))
+    |> List.map (fun (src : R.taint_source) -> (src.source_formula, src)))
 [@@trace_trace]
 
 let find_sinks_ranges formula_cache xconf xtarget rule (spec : R.taint_spec) =
   find_range_w_metas formula_cache xconf xtarget rule
     (spec.sinks |> snd
-    |> List_.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
+    |> List.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
 [@@trace_trace]
 
 let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
@@ -176,7 +176,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
                  sanitizer.sanitizer_formula)
          in
          ( ranges
-           |> List_.map (fun x -> (sanitizer.R.not_conflicting, x, sanitizer)),
+           |> List.map (fun x -> (sanitizer.R.not_conflicting, x, sanitizer)),
            expls ))
 [@@trace_trace]
 
@@ -350,7 +350,7 @@ let raw_spec_matches_of_taint_rule ~per_file_formula_cache xconf file
     if xconf.matching_explanations then
       let ranges_to_pms ranges_and_stuff =
         ranges_and_stuff
-        |> List_.map (fun (rwm, _) ->
+        |> List.map (fun (rwm, _) ->
                RM.range_to_pattern_match_adjusted rule rwm)
       in
       [
@@ -525,7 +525,7 @@ let mk_requires_and_propagation_points_of_sink
 let requires_and_propagation_points_of_sinks sinks_ranges =
   let sinks_ranges, sink_req_props =
     sinks_ranges
-    |> List_.map mk_requires_and_propagation_points_of_sink
+    |> List.map mk_requires_and_propagation_points_of_sink
     |> List_.split
   in
   (sinks_ranges, List_.flatten sink_req_props)
@@ -648,8 +648,8 @@ let preds_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file) xconf
   in
   let stats =
     Taint_coverage_stats.record_taint_spec_matches
-      ~sources:(List_.map snd raw_spec_matches.raw_sources)
-      ~sinks:(List_.map snd raw_spec_matches.raw_sinks)
+      ~sources:(List.map snd raw_spec_matches.raw_sources)
+      ~sinks:(List.map snd raw_spec_matches.raw_sinks)
   in
   let spec_matches = spec_matches_of_raw (rule :> Rule.rule) raw_spec_matches in
   let preds = mk_taint_spec_match_preds (rule :> Rule.rule) spec_matches in

@@ -51,7 +51,7 @@ let internal_UNSAFE_find_offset_in_obj o obj =
 let debug_offset offset =
   match offset with
   | [] -> "<NO OFFSET>"
-  | _ :: _ -> offset |> List_.map T.show_offset |> String.concat ""
+  | _ :: _ -> offset |> List.map T.show_offset |> String.concat ""
 
 (*********************************************************)
 (* Misc *)
@@ -518,7 +518,7 @@ let update_offset_and_unify new_taints new_shape offset opt_cell =
                 m
                   "Already tracking too many taint sources for %s, will not \
                    track more"
-                  (offset |> List_.map T.show_offset |> String.concat ""));
+                  (offset |> List.map T.show_offset |> String.concat ""));
             (xtaint, shape))
     in
     update_offset_in_cell ~f:add_new_taints offset cell

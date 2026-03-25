@@ -76,7 +76,7 @@ let (matches_of_matcher :
                        matcher.matcher target_content internal_path xpat
                      in
                      xs
-                     |> List_.map (fun ((loc1, loc2), env) ->
+                     |> List.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = Match_env.fake_rule_id (id, pstr) in
                             {

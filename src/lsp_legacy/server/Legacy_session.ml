@@ -100,7 +100,7 @@ let dirty_paths_of_folder folder =
   let git_repo = Git_wrapper.project_root_for_files_in_dir folder in
   if Option.is_some git_repo then
     let dirty_paths = Git_wrapper.dirty_paths ~cwd:folder () in
-    Some (List_.map (fun x -> folder // x) dirty_paths)
+    Some (List.map (fun x -> folder // x) dirty_paths)
   else None
 
 (* TODO: registry caching is not anymore in semgrep-OSS! *)
@@ -258,7 +258,7 @@ let fetch_ci_rules_and_origins () =
 
 let cache_workspace_targets session =
   let folders = session.workspace_folders in
-  let targets = List_.map (fun f -> (f, get_targets session f)) folders in
+  let targets = List.map (fun f -> (f, get_targets session f)) folders in
   List.iter
     (fun (folder, targets) ->
       Hashtbl.replace session.cached_workspace_targets folder targets)
@@ -270,7 +270,7 @@ let targets session : Fpath.t list =
   (* These are "dirty paths" because they may not necessarily be files. They may also be folders.
    *)
   let dirty_paths_by_workspace =
-    List_.map (fun f -> (f, dirty_paths_of_folder f)) session.workspace_folders
+    List.map (fun f -> (f, dirty_paths_of_folder f)) session.workspace_folders
   in
   let member_folder_dirty_files file folder =
     let dirty_paths_opt = List.assoc folder dirty_paths_by_workspace in
@@ -309,7 +309,7 @@ let fetch_rules session =
   let home = !Semgrep_envvars.v.user_home_dir in
   let rules_source =
     session.user_settings.configuration
-    |> List_.map (fun config_path ->
+    |> List.map (fun config_path ->
            if Uri_.is_url config_path then config_path
            else
              let f = Fpath.v config_path |> Fpath.normalize in
@@ -409,7 +409,7 @@ let save_local_skipped_fingerprints session =
   UFile.make_directories save_dir;
   let save_file_name =
     String.concat "_"
-      (List_.map (fun f -> f |> Fpath.basename) session.workspace_folders)
+      (List.map (fun f -> f |> Fpath.basename) session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in
@@ -422,7 +422,7 @@ let load_local_skipped_fingerprints session =
   let save_dir = !Env.v.user_dot_semgrep_dir / "cache" / "fingerprints" in
   let save_file_name =
     String.concat "_"
-      (List_.map (fun f -> f |> Fpath.basename) session.workspace_folders)
+      (List.map (fun f -> f |> Fpath.basename) session.workspace_folders)
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in

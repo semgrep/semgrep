@@ -350,10 +350,10 @@ let mk_result (results : matches_single_file_with_time list)
     (skipped_rules : Rule_error.invalid_rule list) (scanned : Target.t list)
     (interfile_languages_used : Analyzer.t list) ~rules_parse_time : t =
   let%trace span = "Core_result.mk_result" in
-  (let target_fpaths = List_.map Target.internal_path scanned in
+  (let target_fpaths = List.map Target.internal_path scanned in
    let all_rule_ids =
-     List_.map (fun r -> fst (fst r).Rule.id) rules_with_engine
-     @ List_.map (fun (_, id, _) -> id) skipped_rules
+     List.map (fun r -> fst (fst r).Rule.id) rules_with_engine
+     @ List.map (fun (_, id, _) -> id) skipped_rules
    in
    Trace_data.record_phase_data ~fpaths:target_fpaths ~rules:all_rule_ids span);
   (* concatenating information from the match_result list *)
@@ -363,7 +363,7 @@ let mk_result (results : matches_single_file_with_time list)
     (* These fixes and ignores are initially all unset, and will be populated
        after we run our Pre_post_core_scan
     *)
-    |> List_.map mk_processed_match
+    |> List.map mk_processed_match
   in
   let explanations =
     results |> List.concat_map (fun (x : _ match_result) -> x.explanations)
@@ -387,7 +387,7 @@ let mk_result (results : matches_single_file_with_time list)
     {
       rules =
         Core_profiling.if_profiling ~default:None (fun () ->
-            Some (List_.map fst rules_with_engine));
+            Some (List.map fst rules_with_engine));
       rules_parse_time;
       file_times;
       (* Notably, using the `top_heap_words` does not measure cumulative
@@ -423,7 +423,7 @@ let mk_result (results : matches_single_file_with_time list)
     rules_with_targets = [];
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
-      rules_with_engine |> List_.map (fun (r, ek) -> (fst r.Rule.id, ek));
+      rules_with_engine |> List.map (fun (r, ek) -> (fst r.Rule.id, ek));
     interfile_languages_used;
     symbol_analysis = None;
   }

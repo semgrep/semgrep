@@ -92,8 +92,8 @@ let mk_params ~lang ~fix ~includes ~excludes pattern =
     | None -> `Null
     | Some fix -> `String fix
   in
-  let includes = List_.map (fun x -> `String x) includes in
-  let excludes = List_.map (fun x -> `String x) excludes in
+  let includes = List.map (fun x -> `String x) includes in
+  let excludes = List.map (fun x -> `String x) excludes in
   let params =
     `Assoc
       [
@@ -233,7 +233,7 @@ let formula_of_signed_patterns analyzer patterns =
   match patterns with
   | [ signed_pat ] -> of_signed_pattern signed_pat
   | _ ->
-      let/ patterns = List_.map of_signed_pattern patterns |> Base.Result.all in
+      let/ patterns = List.map of_signed_pattern patterns |> Base.Result.all in
       Ok (Rule.And (Tok.unsafe_fake_tok "", patterns) |> Rule.f)
 
 (*****************************************************************************)
@@ -265,7 +265,7 @@ let filter_out_multiple_python (rules : Rule.search_rule list) :
 
 let mk_env (session : Legacy_session.t) (params : Request_params.t) =
   let scanning_roots =
-    List_.map Scanning_root.of_fpath session.workspace_folders
+    List.map Scanning_root.of_fpath session.workspace_folders
   in
   let files =
     session.cached_workspace_targets |> Hashtbl.to_seq_values |> List.of_seq
@@ -300,7 +300,7 @@ let get_relevant_analyzers (env : env) : Analyzer.t list =
       let file_langs = Lang.langs_of_filename file in
       List.iter (fun lang -> Hashtbl.replace lang_set lang ()) file_langs)
     env.initial_files;
-  Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Analyzer.of_lang
+  Hashtbl.to_seq_keys lang_set |> List.of_seq |> List.map Analyzer.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
@@ -310,7 +310,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
      This is a map from pattern -> valid langs for that pattern
   *)
   let langs_of_patterns =
-    List_.map
+    List.map
       (fun { Request_params.positive = _; pattern } ->
         Rule_fetching.langs_of_pattern (pattern, lang))
       patterns
@@ -436,12 +436,12 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
 let json_of_matches
     (matches_by_file : (Fpath.t * Core_result.processed_match list) list) =
   let json =
-    List_.map
+    List.map
       (fun (path, matches) ->
         let uri = !!path |> Uri.of_path |> Uri.to_string in
         let matches =
           matches
-          |> List_.map (fun (m : Core_result.processed_match) ->
+          |> List.map (fun (m : Core_result.processed_match) ->
                  let range = Conv.range_of_toks m.pm.range_loc in
                  let range_json = Range.yojson_of_t range in
                  let line = List.nth (UFile.cat path) range.start.line in

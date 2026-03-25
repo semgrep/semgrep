@@ -43,7 +43,7 @@ let simplify_atom (x : Pattern_AST.atom) : simplified_node =
   | Metavar s -> Metavar s
 
 let rec simplify_ast (x : Pattern_AST.t) : simplified_ast =
-  List_.map simplify_node x
+  List.map simplify_node x
 
 and simplify_node (x : Pattern_AST.node) : simplified_node =
   match x with
@@ -225,11 +225,11 @@ aime
 
 let test =
   let suite =
-    List_.map
+    List.map
       (fun (name, input, expected_output) ->
         t name (fun () -> run_debug input expected_output))
       debug_corpus
-    @ List_.map
+    @ List.map
         (fun (name, input, expected_output) ->
           t name (fun () -> run_pretty input expected_output))
         pretty_corpus

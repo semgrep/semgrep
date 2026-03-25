@@ -58,7 +58,7 @@ let expr ?(unescape_strings = false) x =
         | Record (lp, xs, rp) ->
             let ys =
               xs
-              |> List_.map (function
+              |> List.map (function
                    | G.F
                        {
                          s =
@@ -74,7 +74,7 @@ let expr ?(unescape_strings = false) x =
             in
             let zs =
               ys
-              |> List_.map (function
+              |> List.map (function
                    | Either.Left (id, e) ->
                        let key =
                          (* we don't want $FLD: 1 to be transformed
@@ -137,10 +137,10 @@ let rec value_to_generic (x : value) : G.expr =
   (* TODO? apply also the special string treatment above ? *)
   | String (s, tok) -> G.L (G.String (fb (s, tok))) |> G.e
   | Array (l, xs, r) ->
-      G.Container (G.Array, (l, List_.map value_to_generic xs, r)) |> G.e
+      G.Container (G.Array, (l, List.map value_to_generic xs, r)) |> G.e
   | Object (l, kvs, r) ->
       let kvs' =
-        List_.map
+        List.map
           (fun ((k, tok), v) ->
             let key = G.L (G.String (fb (k, tok))) |> G.e in
             let value = value_to_generic v in

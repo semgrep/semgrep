@@ -75,12 +75,12 @@ let test =
   Testo.categorize_suites "Src_file"
     [
       Testo.categorize "highlight"
-        (List_.map
+        (List.map
            (fun (name, input, start, end_, expected_output) ->
              t name (fun () -> test_highlight input start end_ expected_output))
            highlight_corpus);
       Testo.categorize "lines_of_range"
-        (List_.map
+        (List.map
            (fun (name, input, start_word, end_word, expected_output) ->
              t name (fun () ->
                  test_lines_of_range input start_word end_word expected_output))

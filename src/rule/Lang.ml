@@ -107,7 +107,7 @@ let is_proprietary = has_tag "is_proprietary"
 (* Get the info associated with a language *)
 let info : t -> Language.info =
   let assoc =
-    List_.map (fun (info : Language.info) -> (info.id, info)) Language.list
+    List.map (fun (info : Language.info) -> (info.id, info)) Language.list
   in
   let tbl = Hashtbl_.hash_of_list assoc in
   fun key ->
@@ -119,7 +119,7 @@ let info : t -> Language.info =
 let assoc =
   List.concat_map
     (fun (info : Language.info) ->
-      List_.map (fun key -> (key, info.id)) info.keys)
+      List.map (fun key -> (key, info.id)) info.keys)
     Language.list
 
 let lang_map = ROHashtbl.of_seq (List.to_seq assoc)

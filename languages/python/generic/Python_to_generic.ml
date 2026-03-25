@@ -91,7 +91,7 @@ let is_in_scope env s =
 (*****************************************************************************)
 let id x = x
 let option = Option.map
-let list = List_.map
+let list = List.map
 let string = id
 let bool = id
 let fake tok s = Tok.fake_tok tok s
@@ -123,9 +123,7 @@ let module_name env (v1, dots) =
          always be the first n elements. Should we assert this is true
          when debugging so this will explode otherwise? *)
       let count =
-        toks
-        |> List_.map Tok.content_of_tok
-        |> String.concat "" |> String.length
+        toks |> List.map Tok.content_of_tok |> String.concat "" |> String.length
       in
       let tok = List_.hd_exn "unexpected empty list" toks in
       let prefixes =
@@ -172,7 +170,7 @@ let rec expr env (x : expr) =
         ( G.Special (G.ConcatString (G.FString "f"), unsafe_fake "concat") |> G.e,
           ( v1,
             xs
-            |> List_.map (fun x ->
+            |> List.map (fun x ->
                    let x = expr env x in
                    G.Arg x),
             v3 ) )
@@ -183,7 +181,7 @@ let rec expr env (x : expr) =
           |> G.e,
           fb
             (xs
-            |> List_.map (fun x ->
+            |> List.map (fun x ->
                    let x = expr env x in
                    G.Arg x)) )
       |> G.e
@@ -260,12 +258,10 @@ let rec expr env (x : expr) =
       G.Comprehension (G.Dict, (l, e1, r)) |> G.e
   | BoolOp ((v1, tok), v2) ->
       let v1 = boolop v1 and v2 = list (expr env) v2 in
-      G.Call (G.Special (G.Op v1, tok) |> G.e, fb (v2 |> List_.map G.arg))
-      |> G.e
+      G.Call (G.Special (G.Op v1, tok) |> G.e, fb (v2 |> List.map G.arg)) |> G.e
   | BinOp (v1, (v2, tok), v3) ->
       let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
-      G.Call
-        (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
+      G.Call (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
       |> G.e
   | UnaryOp ((v1, tok), v2) ->
       let op = unaryop v1 and v2 = expr env v2 in
@@ -275,15 +271,15 @@ let rec expr env (x : expr) =
       match (v2, v3) with
       | [ (op, tok) ], [ e ] ->
           G.Call
-            (G.Special (G.Op op, tok) |> G.e, fb ([ v1; e ] |> List_.map G.arg))
+            (G.Special (G.Op op, tok) |> G.e, fb ([ v1; e ] |> List.map G.arg))
           |> G.e
       | _ ->
           let anyops =
             v2
-            |> List_.map (function arith, tok ->
+            |> List.map (function arith, tok ->
                    G.E (G.Special (G.Op arith, tok) |> G.e))
           in
-          let anys = anyops @ (v3 |> List_.map (fun e -> G.E e)) in
+          let anys = anyops @ (v3 |> List.map (fun e -> G.E e)) in
           G.OtherExpr (("CmpOps", unsafe_fake ""), anys) |> G.e)
   | Call (v1, v2) ->
       let v1 = expr env v1 in
@@ -470,9 +466,9 @@ and subscript env e1 (t1, e2, t2) : G.expr_kind =
    *)
     else
     let e2' =
-      e2 |> List_.map (fun x -> single_index_or_slice env e1 (fb x) |> G.e)
+      e2 |> List.map (fun x -> single_index_or_slice env e1 (fb x) |> G.e)
     in
-    G.OtherExpr (("Slices", t1), e2' |> List_.map (fun x -> G.E x))
+    G.OtherExpr (("Slices", t1), e2' |> List.map (fun x -> G.E x))
 
 and param_pattern_pat env = function
   | PatternName n -> G.PatId (name env n, G.empty_id_info ())
@@ -490,7 +486,7 @@ and parameters env xs : G.parameter list =
         G.ParamPattern (PatTuple (fb ps))
   in
   xs
-  |> List_.map (function
+  |> List.map (function
        | ParamDefault ((param_pat, topt), e) ->
            let topt = option (type_ env) topt in
            let e = expr env e in
@@ -640,7 +636,7 @@ and type_alias_def env (_tok, v1, v2) =
           in
           [ G.DefStmt (ent, def) |> G.s ]
       | _ ->
-          let tparam_anys = List_.map (fun x -> G.Tp x) tparams in
+          let tparam_anys = List.map (fun x -> G.Tp x) tparams in
           [ G.OtherStmt (G.OS_Todo, [ G.Anys tparam_anys; G.Dk def ]) |> G.s ])
   (* Case 2: The type does not, in which case it is likely just a `Name`.
       But, let's call `expr_to_entity_name_opt` for future-proofing.
@@ -690,7 +686,7 @@ and stmt_aux env x =
           cimplements = [];
           cmixins = [];
           cparams = fb [];
-          cbody = fb (v3 |> List_.map (fun x -> fieldstmt x));
+          cbody = fb (v3 |> List.map (fun x -> fieldstmt x));
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
@@ -700,7 +696,7 @@ and stmt_aux env x =
       [ G.Return (t, v1, G.sc) |> G.s ]
   | Delete (_t, v1) ->
       let v1 = list (expr env) v1 in
-      [ G.OtherStmt (G.OS_Delete, v1 |> List_.map (fun x -> G.E x)) |> G.s ]
+      [ G.OtherStmt (G.OS_Delete, v1 |> List.map (fun x -> G.E x)) |> G.s ]
   | If (t, v1, v2, v3) ->
       let v1 = expr env v1
       and v2 = list_stmt1 env v2
@@ -720,7 +716,7 @@ and stmt_aux env x =
                  [
                    G.While (t, G.Cond v1, v2) |> G.s;
                    G.OtherStmt
-                     (G.OS_WhileOrElse, v3 |> List_.map (fun x -> G.S x))
+                     (G.OS_WhileOrElse, v3 |> List.map (fun x -> G.S x))
                    |> G.s;
                  ])
             |> G.s;
@@ -740,7 +736,7 @@ and stmt_aux env x =
                  [
                    G.For (t, header, body) |> G.s;
                    G.OtherStmt
-                     (G.OS_ForOrElse, orelse |> List_.map (fun x -> G.S x))
+                     (G.OS_ForOrElse, orelse |> List.map (fun x -> G.S x))
                    |> G.s;
                  ])
             |> G.s;
@@ -772,7 +768,7 @@ and stmt_aux env x =
       and v2 = info v2
       and v3 = expr env v3 in
       let v1 =
-        List_.map
+        List.map
           (fun (e, tyopt) ->
             match tyopt with
             | None -> e
@@ -884,7 +880,7 @@ and stmt_aux env x =
   | Assert (t, v1, v2) ->
       let v1 = expr env v1 and v2 = option (expr env) v2 in
       let es = v1 :: Option.to_list v2 in
-      let args = es |> List_.map G.arg in
+      let args = es |> List.map G.arg in
       [ G.Assert (t, fb args, G.sc) |> G.s ]
   | ImportAs (t, v1, v2) ->
       let mname = module_name env v1
@@ -900,7 +896,7 @@ and stmt_aux env x =
   | NonLocal (t, v1) ->
       let v1 = list (name env) v1 in
       v1
-      |> List_.map (fun x ->
+      |> List.map (fun x ->
              let ent = G.basic_entity x in
              G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
   | ExprStmt v1 ->
@@ -923,7 +919,7 @@ and stmt_aux env x =
   | Print (tok, _dest, vals, _nl) ->
       let id = Name (("print", tok), Load) in
       stmt_aux env
-        (ExprStmt (Call (id, fb (vals |> List_.map (fun e -> Arg e)))))
+        (ExprStmt (Call (id, fb (vals |> List.map (fun e -> Arg e)))))
   | Exec (tok, e, _eopt, _eopt2) ->
       let id = Name (("exec", tok), Load) in
       stmt_aux env (ExprStmt (Call (id, fb [ Arg e ])))

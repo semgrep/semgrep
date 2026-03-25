@@ -121,7 +121,7 @@ let wrap_parser tree_sitter_parser ast_mapper =
     | Some cst ->
         (if res.errors <> [] then
            let error_strs =
-             List_.map
+             List.map
                (fun err -> err.Tree_sitter_run.Tree_sitter_error.msg)
                res.errors
            in

@@ -160,7 +160,7 @@ let fold_with_expls ~f ~init env xs =
   (acc, List.rev expls)
 
 let pms_of_ranges env (ranges : RM.ranges) : PM.t list =
-  ranges |> List_.map (RM.range_to_pattern_match_adjusted env.rule)
+  ranges |> List.map (RM.range_to_pattern_match_adjusted env.rule)
 
 let formula_has_as_metavariable (f : R.formula) =
   let ans = ref false in
@@ -268,7 +268,7 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
         Common.with_time (fun () ->
             let mini_rules =
               patterns
-              |> List_.map (function pat, b, c, d ->
+              |> List.map (function pat, b, c, d ->
                      mini_rule_of_pattern analyzer rule (pat, b, c, d))
             in
 
@@ -370,7 +370,7 @@ let run_selector_on_ranges env selector_opt ranges =
       Log.debug (fun m ->
           m "run_selector_on_ranges: found %d matches" (List.length res.matches));
       res.matches
-      |> List_.map RM.match_result_to_range
+      |> List.map RM.match_result_to_range
       |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
            ranges
 
@@ -413,7 +413,7 @@ let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
     in
     let focus_matches =
       fm_mval_range_locs
-      |> List_.map (fun (focus_mvar, mval, range_loc) ->
+      |> List.map (fun (focus_mvar, mval, range_loc) ->
              {
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                path = env.xtarget.path;
@@ -449,7 +449,7 @@ let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
      *)
     let focused_ranges_list =
       focus_mvars_list
-      |> List_.map (fun (_tok, focus_mvars) ->
+      |> List.map (fun (_tok, focus_mvars) ->
              (* focus_mvars is a list of the metavariables under a single
                 focus-metavariable statement.
 
@@ -493,7 +493,7 @@ let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
 
 let apply_as_on_ranges ranges as_ =
   ranges
-  |> List_.map (fun (range : RM.t) ->
+  |> List.map (fun (range : RM.t) ->
          {
            range with
            mvars =
@@ -585,7 +585,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
          *)
         let children =
           subs
-          |> List_.map (fun pat ->
+          |> List.map (fun pat ->
                  let match_result =
                    matches_of_patterns
                      ~has_as_metavariable:env.has_as_metavariable env.rule
@@ -624,7 +624,7 @@ let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
   | None -> None
   | Some ({ ME.children; extra; _ } as me) ->
       let children =
-        List_.map (fun x -> Some x) children @ filter_expls @ focus_expls
+        List.map (fun x -> Some x) children @ filter_expls @ focus_expls
         |> List_.filter_map Fun.id
       in
       let extra =
@@ -886,12 +886,12 @@ and evaluate_formula env opt_context
         let ranges_with_bindings = filter_ranges env ranges cond in
         let expl =
           if_explanations env
-            (List_.map fst ranges_with_bindings)
+            (List.map fst ranges_with_bindings)
             []
             (OutJ.Filter (Tok.content_of_tok tok), tok)
         in
         (ranges_with_bindings, expl))
-      ~init:(List_.map (fun x -> (x, [])) formula_kind_ranges)
+      ~init:(List.map (fun x -> (x, [])) formula_kind_ranges)
       env conditions
   in
 
@@ -910,7 +910,7 @@ and evaluate_formula env opt_context
            *)
            r
            :: (new_bindings_list
-              |> List_.map (fun new_bindings ->
+              |> List.map (fun new_bindings ->
                      { r with RM.mvars = new_bindings @ r.RM.mvars })))
   in
 
@@ -935,7 +935,7 @@ and evaluate_formula env opt_context
     match fix with
     | None -> ranges
     | Some fix ->
-        List_.map
+        List.map
           (fun (r : RM.t) ->
             { r with origin = { r.origin with fix_text = Some fix } })
           ranges
@@ -965,28 +965,28 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
       let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
       let ranges =
         match_results
-        |> List_.map RM.match_result_to_range
-        |> List_.map (fun r -> { r with RM.kind })
+        |> List.map RM.match_result_to_range
+        |> List.map (fun r -> { r with RM.kind })
       in
       (* we can decompose the pattern in subpatterns to provide
           * intermediate explanations for complex patterns like A...B
       *)
       let children =
-        children_explanations_of_xpat env xpat |> List_.map (fun x -> Some x)
+        children_explanations_of_xpat env xpat |> List.map (fun x -> Some x)
       in
       let expl = if_explanations env ranges children (OutJ.XPat pstr, tok) in
       (ranges, expl)
   | R.Inside (tok, formula) ->
       let ranges, expls = evaluate_formula env opt_context formula in
       let expl = if_explanations env ranges [ expls ] (OutJ.Inside, tok) in
-      (List_.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
+      (List.map (fun r -> { r with RM.kind = RM.Inside }) ranges, expl)
   | R.Anywhere (tok, formula) ->
       let ranges, expls = evaluate_formula env opt_context formula in
       let expl = if_explanations env ranges [ expls ] (OutJ.Anywhere, tok) in
-      (List_.map (fun r -> { r with RM.kind = RM.Anywhere }) ranges, expl)
+      (List.map (fun r -> { r with RM.kind = RM.Anywhere }) ranges, expl)
   | R.Or (tok, xs) ->
       let ranges, expls =
-        xs |> List_.map (evaluate_formula env opt_context) |> Common2.unzip
+        xs |> List.map (evaluate_formula env opt_context) |> Common2.unzip
       in
       let ranges = List_.flatten ranges in
       let expl = if_explanations env ranges expls (OutJ.Or, tok) in
@@ -1011,7 +1011,7 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
 
       (* let's start with the positive ranges *)
       let posrs, posrs_expls =
-        List_.map (evaluate_formula env opt_context) pos |> Common2.unzip
+        List.map (evaluate_formula env opt_context) pos |> Common2.unzip
       in
       (* subtle: we need to process and intersect the pattern-inside after
           * (see tests/rules/inside.yaml).
@@ -1152,7 +1152,7 @@ let check_rule ~matches_hook ({ R.mode = `Search formula; _ } as r) xconf
     res with
     RP.matches =
       final_ranges
-      |> List_.map (RM.range_to_pattern_match_adjusted r)
+      |> List.map (RM.range_to_pattern_match_adjusted r)
       (* dedup similar findings (we do that also in Match_patterns.ml,
        * but different mini-rules matches can now become the same match)
        *)

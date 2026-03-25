@@ -297,7 +297,7 @@ let str_of_info_fake_ok ii =
   | Ab -> raise (NoTokenLocation "Ab")
 
 let combine_toks x xs =
-  let str = xs |> List_.map str_of_info_fake_ok |> String.concat "" in
+  let str = xs |> List.map str_of_info_fake_ok |> String.concat "" in
   tok_add_s str x
 
 let count_char c str =
@@ -459,7 +459,7 @@ let empty_tok_after tok : t =
   | Error _ -> rewrap_str "" tok
 
 let combine_bracket_contents (open_, xs, _close) =
-  let toks = List_.map snd xs in
+  let toks = List.map snd xs in
   match toks with
   | x :: xs -> combine_toks x xs
   | [] -> empty_tok_after open_

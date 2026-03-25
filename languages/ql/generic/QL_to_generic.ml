@@ -31,7 +31,7 @@ module H = AST_generic_helpers
 
 let id x = x
 let option = Option.map
-let list = List_.map
+let list = List.map
 let string = id
 let bool = id
 let unsafe_fake s = Tok.unsafe_fake_tok s
@@ -94,12 +94,12 @@ and param_of_vardecl = function
   | VardeclEllipsis tok -> G.ParamEllipsis tok
 
 and params_any_of_vardecls vardecls =
-  G.Params (List_.map param_of_vardecl vardecls)
+  G.Params (List.map param_of_vardecl vardecls)
 
 and predicate_definition (v1, v2, v3, v4) =
   let v1 = option type_ v1 in
   let ent = G.basic_entity (ident v2) in
-  let fparams = List_.map param_of_vardecl v3 |> fb in
+  let fparams = List.map param_of_vardecl v3 |> fb in
   let body =
     match v4 with
     | PredicateExpr None -> G.FBNothing
@@ -158,14 +158,14 @@ and expr (x : expr) =
         rank_exprs;
         body = l, { vardecls; formula; as_exprs; agg_orderbys }, r;
       } ->
-      let rank_exprs = List_.map (fun x -> G.E (expr x)) rank_exprs in
+      let rank_exprs = List.map (fun x -> G.E (expr x)) rank_exprs in
       let formula =
         match formula with
         | None -> []
         | Some x -> [ G.Arg (expr x) ]
       in
       let as_exprs =
-        List_.map
+        List.map
           (fun (x, y) ->
             match y with
             | None -> G.E (expr x)
@@ -173,7 +173,7 @@ and expr (x : expr) =
           as_exprs
       in
       let orderbys =
-        List_.map
+        List.map
           (fun (x, y) ->
             let direction =
               match y with
@@ -213,8 +213,7 @@ and expr (x : expr) =
       G.Conditional (v1, v2, v3) |> G.e
   | BinOp (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
-      G.Call
-        (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
+      G.Call (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
       |> G.e
   | UnaryOp ((v1, tok), v2) ->
       let op = unaryop v1 and v2 = expr v2 in
@@ -326,7 +325,7 @@ and class_definition (v1, v2, v3) =
           ClassDef
             {
               G.ckind = (G.Class, v1);
-              cextends = List_.map (fun x -> (type_ x, None)) extends;
+              cextends = List.map (fun x -> (type_ x, None)) extends;
               cimplements = list type_ instancesof;
               cbody = bracket (list (fun x -> G.F (stmt x))) stmts;
               cparams = fb [];
@@ -353,7 +352,7 @@ and select { from; where; select; sel_orderbys } =
   in
   let select =
     G.Anys
-      (List_.map
+      (List.map
          (fun (e, i) ->
            let e = G.E (expr e) in
            match i with
@@ -363,7 +362,7 @@ and select { from; where; select; sel_orderbys } =
   in
   let orderbys =
     G.Anys
-      (List_.map
+      (List.map
          (fun (x, y) ->
            let e = G.E (expr x) in
            match y with
@@ -404,7 +403,7 @@ and stmt = function
       *)
       let ent = G.basic_entity (ident v2) in
       let elems =
-        List_.map
+        List.map
           (fun (id, vardecls, expr_opt) ->
             let expr_opt =
               match expr_opt with
@@ -424,7 +423,7 @@ and stmt = function
          OrType is again inconvenient here, so we Other out.
       *)
       let ent = G.basic_entity (ident v1) in
-      let elems = List_.map (fun x -> G.E (G.N (name_of_type_ x) |> G.e)) v2 in
+      let elems = List.map (fun x -> G.E (G.N (name_of_type_ x) |> G.e)) v2 in
       G.DefStmt
         ( ent,
           G.TypeDef { tbody = OtherTypeKind (("CodeQLTypeUnion", tok), elems) }
