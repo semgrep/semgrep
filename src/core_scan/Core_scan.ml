@@ -168,7 +168,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 
   let offending_file_list =
     per_files
-    |> List_.filter_map (fun (file, xs) ->
+    |> List.filter_map (fun (file, xs) ->
            if List.length xs > max_match_per_file then Some file else None)
   in
   let offending_files = Hashtbl_.hashset_of_list offending_file_list in
@@ -775,7 +775,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 
   let matches, opt_paths = List_.split xs in
   let scanned =
-    opt_paths |> List_.filter_map Fun.id
+    opt_paths |> List.filter_map Fun.id
     (* old: It's necessary to remove duplicates because extracted targets are
        mapped back to their original target, and you can have multiple
        extracted targets for a single file. Might as well sort too

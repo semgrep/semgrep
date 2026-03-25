@@ -664,7 +664,7 @@ let group_scanning_roots_by_project (conf : conf)
                  : Core_error.t)
                errors;
              false))
-    |> List_.filter_map (fun (sc_root : Scanning_root.t) ->
+    |> List.filter_map (fun (sc_root : Scanning_root.t) ->
            match
              Project.find_any_project_root ~fallback_root:None
                ~force_novcs:conf.force_novcs_project ~force_root

@@ -100,7 +100,7 @@ let hook_mk_taint_spec_match_preds :
 
 let filter_map_warn_if_None ~warn f xs =
   xs
-  |> List_.filter_map (fun x ->
+  |> List.filter_map (fun x ->
          let opt_y = f x in
          if Option.is_none opt_y then Log.warn (fun m -> m "%s" warn);
          opt_y)
@@ -588,7 +588,7 @@ let any_is_in_matches_OSS rule matches ~get_id any =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
-  |> List_.filter_map (fun (rwm, spec) ->
+  |> List.filter_map (fun (rwm, spec) ->
          if Range.( $<=$ ) r rwm.RM.r then
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
@@ -610,7 +610,7 @@ let any_is_in_propagators_matches_OSS matches any :
   | None -> []
   | Some r ->
       matches
-      |> List_.filter_map (fun (tm : _ TM.t) ->
+      |> List.filter_map (fun (tm : _ TM.t) ->
              if is_exact_match ~match_range:tm.range r then Some tm else None)
 
 let mk_taint_spec_match_preds rule matches =

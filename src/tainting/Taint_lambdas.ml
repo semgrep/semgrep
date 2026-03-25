@@ -239,7 +239,7 @@ let is_use_of_lambda env lval =
       None
 
 let find_lambdas_used_in_node env node =
-  ILH.rlvals_of_node node.IL.n |> List_.filter_map (is_use_of_lambda env)
+  ILH.rlvals_of_node node.IL.n |> List.filter_map (is_use_of_lambda env)
 
 let check_if_node_defines_unused_lambda env ~lambdas node =
   match node.IL.n with

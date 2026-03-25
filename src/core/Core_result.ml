@@ -381,7 +381,7 @@ let mk_result (results : matches_single_file_with_time list)
     let file_times =
       Core_profiling.if_profiling ~default:[] (fun () ->
           results
-          |> List_.filter_map (fun (result : matches_single_file_with_time) ->
+          |> List.filter_map (fun (result : matches_single_file_with_time) ->
                  result.profiling))
     in
     {

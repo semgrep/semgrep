@@ -580,7 +580,7 @@ let map_use_decl (env : env) attrs ((v1, v2, v3, v4) : CST.use_decl) :
                  in
                  first :: rest)
           |> Option.value ~default:[]
-          |> List_.filter_map (fun x -> x)
+          |> List.filter_map (fun x -> x)
         in
 
         let _comma = v4 |> Option.map (fun x -> (* "," *) token env x) in
@@ -1251,7 +1251,7 @@ let map_struct_decl (env : env) attrs (x : CST.struct_decl) : G.stmt =
 
       let body =
         body
-        |> List_.mapi (fun idx x ->
+        |> List.mapi (fun idx x ->
                let var_def =
                  { G.vinit = None; G.vtype = Some x; vtok = G.no_sc }
                in
@@ -1424,7 +1424,7 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
       [ G.F (G.Record (sc, inner, sc) |> G.e |> G.exprstmt) ]
   | G.PatTuple (_, elements, _) ->
       elements
-      |> List_.mapi (fun idx pat ->
+      |> List.mapi (fun idx pat ->
              let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
              (* (element, ..., _) | expr
                 =>        element | expr.idx *)
@@ -1433,7 +1433,7 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
       |> List_.flatten
   | G.PatConstructor (name, elements) ->
       elements
-      |> List_.mapi (fun idx pat ->
+      |> List.mapi (fun idx pat ->
              let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
              let right = G.Cast (G.TyN name |> G.t, sc, right) |> G.e in
              (* Name(_, element, ..., _) | expr
@@ -2592,7 +2592,7 @@ let map_module_ (env : env) attrs (addr : ident option)
     | `Module_kw tok -> (* "module" *) token env tok
   in
   let prefix, name = map_module_path env v2 in
-  let prefix = [ addr; prefix ] |> List_.filter_map Fun.id in
+  let prefix = [ addr; prefix ] |> List.filter_map Fun.id in
   let _ = (* "{" *) token env v3 in
   let body = List.map (map_declaration env) v4 |> List_.flatten in
   let _ = (* "}" *) token env v5 in

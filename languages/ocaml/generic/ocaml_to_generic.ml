@@ -671,7 +671,7 @@ and attribute x =
   | NamedAttr (t1, (dotted, xs), t2) ->
       let args =
         xs
-        |> List_.filter_map (function
+        |> List.filter_map (function
              | { i = TopExpr e; iattrs = [] } ->
                  let e = expr e in
                  Some (G.Arg e)

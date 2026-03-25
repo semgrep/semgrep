@@ -166,7 +166,7 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
       let m = Array.length basic_args in
       let binds =
         params
-        |> List_.mapi (fun i (P (id, teq, ei')) ->
+        |> List.mapi (fun i (P (id, teq, ei')) ->
                let ei'' =
                  match i with
                  | _ when i < m -> basic_args.(i) (* ei *)
@@ -335,7 +335,7 @@ let eval_std_method_ (env : V.env) (e0 : expr) (method_str, tk) (l, args, r) =
           let elts' =
             (* TODO? use Array.to_seqi instead? *)
             eis |> Array.to_list |> List_.index_list
-            |> List_.filter_map (fun (ei, ji) ->
+            |> List.filter_map (fun (ei, ji) ->
                    match
                      env.eval_std_filter_element { env with locals } tk f ei
                    with

@@ -106,7 +106,7 @@ let read_string ?(source_name = "<pattern>") conf str =
            conf.pcre.pattern)
   | Ok res ->
       res
-      |> List_.filter_map (function
+      |> List.filter_map (function
            | Pcre.Delim _
            | Pcre.NoGroup ->
                None
