@@ -131,7 +131,7 @@
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  targets/dependency_aware/requirements_multiple_lockfiles_simil   Lockfile            Pypi        78                 1
+  targets/dependency_aware/requirements_multiple_lockfiles_simil   Lockfile            Pypi        80                 1
   ar_deps/requirements/prod.txt,
   targets/dependency_aware/requirements_multiple_lockfiles_simil
   ar_deps/requirements/stage.txt,
