@@ -487,7 +487,7 @@ and eval_obj_inside env (l, x, r) : V.t =
       let hdupes = Hashtbl.create 16 in
       let fields =
         fields
-        |> List_.filter_map
+        |> List.filter_map
              (fun { fld_name = FExpr (tk, ei, _); fld_hidden; fld_value } ->
                match eval_expr env ei with
                | Primitive (Null _) -> None
@@ -644,7 +644,7 @@ and manifest_value (v : V.t) : JSON.t =
       (* TODO: evaluate asserts *)
       let xs =
         fields
-        |> List_.filter_map (fun { V.fld_name; fld_hidden; fld_value } ->
+        |> List.filter_map (fun { V.fld_name; fld_hidden; fld_value } ->
                match fst fld_hidden with
                | A.Hidden -> None
                | A.Visible

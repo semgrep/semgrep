@@ -165,7 +165,7 @@ let get_global_attr_opt key =
       if String.equal kv.key key then Some (_key_value_conv kv) else None)
     !Otel.Globals.global_attributes
 
-let find_global_attrs attr_keys = List_.filter_map get_global_attr_opt attr_keys
+let find_global_attrs attr_keys = List.filter_map get_global_attr_opt attr_keys
 
 (*****************************************************************************)
 (* Entry points for setting up telemetry *)

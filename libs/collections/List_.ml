@@ -48,8 +48,6 @@ let map2_opt f l1 l2 =
 let flatten xss =
   xss |> List.fold_left (fun acc xs -> List.rev_append xs acc) [] |> List.rev
 
-let append a b = List.rev_append (List.rev a) b
-
 (* List.fold_right is non-tailrec as of OCaml 5.3. *)
 let fold_right func xs acc =
   List.fold_left (fun acc x -> func x acc) acc (List.rev xs)
@@ -77,9 +75,6 @@ let rec last_opt xs =
   | [] -> None
   | [ x ] -> Some x
   | _ :: tl -> last_opt tl
-
-(* nosemgrep: no-list-mapi *)
-let mapi = List.mapi
 
 let rec drop n xs =
   match (n, xs) with
@@ -162,8 +157,7 @@ let filter_map_endo f xs =
   if !changed then xs' else xs
 
 (* nosemgrep: no-list-filter-map *)
-let filter_map = List.filter_map
-let filter_some xs = filter_map (fun x -> x) xs
+let filter_some xs = List.filter_map (fun x -> x) xs
 
 let rec find_some_opt p = function
   | [] -> None

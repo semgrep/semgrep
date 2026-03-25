@@ -130,7 +130,7 @@ let find_targets_rules ~(strict : bool) ~token_opt
    *)
   let targets =
     rules_and_origin
-    |> List_.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
+    |> List.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
            match x.origin with
            | Local_file path ->
                (* For the sake of honoring include/exclude paths filters

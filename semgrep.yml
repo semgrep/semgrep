@@ -91,24 +91,6 @@ rules:
     languages: [ocaml]
     severity: ERROR
 
-  - id: no-list-filter-map
-    pattern: List.filter_map
-    message: >-
-      `List.filter_map` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `List_.filter_map` instead.
-    fix: List_.filter_map
-    languages: [ocaml]
-    severity: ERROR
-
-  - id: no-list-mapi
-    pattern: List.mapi
-    message: >-
-      `List.mapi` creates O(N) stack depth, and can lead to a
-      stack overflow. Use `List_.mapi` instead.
-    fix: List_.mapi
-    languages: [ocaml]
-    severity: ERROR
-
   - id: no-list-fold-right
     pattern: List.fold_right
     fix: List_.fold_right

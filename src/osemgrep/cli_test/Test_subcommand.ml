@@ -132,7 +132,7 @@ let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
   dir |> CapFS.read_dir_entries
   |> List_.exclude (fun p ->
          Fpath.equal p base || List.mem "fixed" (Fpath_.exts p))
-  |> List_.filter_map (fun p ->
+  |> List.filter_map (fun p ->
          (* the ~multi:true should then handle the foo.test.yaml *)
          if Fpath.equal (Fpath.rem_ext ~multi:true p) base_no_ext then
            Some (dir // p)
@@ -305,13 +305,13 @@ let tests_result_of_tests_result (results : t_res list) (errors : error list) :
     (* TODO: change the schema and use an enum instead of those fields *)
     config_missing_tests =
       errors
-      |> List_.filter_map (function
+      |> List.filter_map (function
            | MissingTest rule_file -> Some rule_file
            | _else_ -> None)
       |> List.sort Fpath.compare;
     config_missing_fixtests =
       errors
-      |> List_.filter_map (function
+      |> List.filter_map (function
            | MissingFixtest rule_file -> Some rule_file
            | _else_ -> None)
       |> List.sort Fpath.compare;
@@ -659,7 +659,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
 let compare_for_autofix (env : env) (rules : Rule.t list)
     (matches : Core_match.t list) : (fixtest_result, error) result list =
   env.target_files
-  |> List_.filter_map (fun (target : Fppath.t) ->
+  |> List.filter_map (fun (target : Fppath.t) ->
          match
            ( fixtest_of_target_opt target,
              rules |> List.exists rule_contain_fix_or_fix_regex )
@@ -835,7 +835,7 @@ let run_tests (conf : Test_CLI.conf) (tests : test list) :
                (Error.Semgrep_error (s, Some (Exit_code.missing_config ~__LOC__)))
          | Ok (_, _ :: _)
          | Error _ ->
-             (* alt: use List_.filter_map above and be more fault tolerant
+             (* alt: use List.filter_map above and be more fault tolerant
               * with a Stack_.push (UnparsableRule rule_file) errors;
               * but simpler to raise errors early for now
               *)

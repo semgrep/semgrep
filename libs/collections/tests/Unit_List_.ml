@@ -45,7 +45,7 @@ let test_flatten () =
 let test_append () =
   let a = [ 1; 2; 3; 4 ] in
   let b = [ 5; 6 ] in
-  Alcotest.(check (list int)) __LOC__ [ 1; 2; 3; 4; 5; 6 ] (List_.append a b)
+  Alcotest.(check (list int)) __LOC__ [ 1; 2; 3; 4; 5; 6 ] (List.append a b)
 
 let test_fold_right () =
   let cons a b = a :: b in

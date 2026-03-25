@@ -303,7 +303,7 @@ let find_rule_files roots =
 let collect_tests ?(get_analyzer = single_analyzer_from_rules)
     (xs : Fpath.t list) =
   xs |> find_rule_files
-  |> List_.filter_map (fun rule_file ->
+  |> List.filter_map (fun rule_file ->
          let* _rules, target, analyzer =
            read_rules_file ~get_analyzer rule_file
          in

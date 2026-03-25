@@ -969,7 +969,7 @@ and map_datatype_fields (env : env) (x : CST.datatype_fields) =
       let rp = (* ")" *) token env v4 in
       let all_fileds =
         all_types
-        |> List_.mapi (fun idx field_type ->
+        |> List.mapi (fun idx field_type ->
                let var_def =
                  { G.vinit = None; G.vtype = Some field_type; vtok = G.no_sc }
                in
@@ -1243,7 +1243,7 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
       [ G.F (G.Record (sc, inner, sc) |> G.e |> G.exprstmt) ]
   | G.PatTuple (_, elements, _) ->
       elements
-      |> List_.mapi (fun idx pat ->
+      |> List.mapi (fun idx pat ->
              let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
              let element = G.ArrayAccess (right, (sc, idx, sc)) |> G.e in
              transpile_let_bind env pat element)

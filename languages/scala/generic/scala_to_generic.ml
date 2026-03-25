@@ -1055,7 +1055,7 @@ and v_variable_definitions
   let topt = v_option v_type_ v_vtype in
   let eopt = v_option v_expr v_vbody in
   v_vpatterns
-  |> List_.filter_map (fun pat ->
+  |> List.filter_map (fun pat ->
          match pat with
          | PatVarid id
          | PatName (Id id, []) ->

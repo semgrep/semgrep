@@ -3014,7 +3014,7 @@ and map_ordered_field_declaration_list (env : env)
           map_ordered_field env outer_attrs visibility type_first 0
         in
         let field_rest =
-          List_.mapi
+          List.mapi
             (fun index (v1, v2, v3, v4) ->
               let _comma =
                 token env v1
@@ -3062,7 +3062,7 @@ and map_ordered_field_declaration_list_types (env : env)
         in
         let type_first = map_type_ env v3 in
         let type_rest =
-          List_.mapi
+          List.mapi
             (fun _index (v1, v2, v3, v4) ->
               let _comma =
                 token env v1

@@ -391,7 +391,7 @@ bad_function() # 2nd call
 let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   matches
   (* preserve order *)
-  |> List_.mapi (fun i x -> (i, x))
+  |> List.mapi (fun i x -> (i, x))
   (* Group by rule and path *)
   (* XXX: can we do with grouping by fingerprint only? *)
   |> Assoc.group_by (fun (_, (x : Out.cli_match)) ->
@@ -406,7 +406,7 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   (* Index per file *)
   |> List.map (fun (path_and_rule_id, matches) ->
          let matches =
-           List_.mapi
+           List.mapi
              (fun i (i', (x : Out.cli_match)) ->
                ( i',
                  {

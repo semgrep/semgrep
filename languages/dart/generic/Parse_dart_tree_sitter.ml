@@ -874,7 +874,7 @@ and map_cascade_subsection (env : env) ((v1, v2) : CST.cascade_subsection) expr
   let v4 = (* pattern [a-zA-Z_$][\w$]* *) str env v4 in
   let l, v5, r = map_arguments env v5 in
   let args_as_exprs =
-    List_.filter_map
+    List.filter_map
       (fun arg ->
         try Some (H2.argument_to_expr arg) with
         | H2.NotAnExpr -> None)
@@ -897,7 +897,7 @@ and map_constructor_invocation (env : env) (x : CST.constructor_invocation) =
       let v4 = (* pattern [a-zA-Z_$][\w$]* *) str env v4 in
       let l, v5, r = map_arguments env v5 in
       let args_as_exprs =
-        List_.filter_map
+        List.filter_map
           (fun arg ->
             try Some (H2.argument_to_expr arg) with
             | H2.NotAnExpr -> None)
@@ -917,7 +917,7 @@ and map_constructor_invocation (env : env) (x : CST.constructor_invocation) =
       let v3 = (* "new" *) str env v3 in
       let l, v4, r = map_arguments env v4 in
       let args_as_exprs =
-        List_.filter_map
+        List.filter_map
           (fun arg ->
             try Some (H2.argument_to_expr arg) with
             | H2.NotAnExpr -> None)
@@ -3294,7 +3294,7 @@ and map_const_object_expression (env : env)
   let v2 = map_type_not_void env v2 in
   let l, v4, r = map_arguments env v4 in
   let args_as_exprs =
-    List_.filter_map
+    List.filter_map
       (fun arg ->
         try Some (H2.argument_to_expr arg) with
         | H2.NotAnExpr -> None)
@@ -3387,7 +3387,7 @@ and map_uri (env : env) (x : CST.uri) : G.module_name =
          can't understand.
       *)
       DottedName
-        (List_.filter_map
+        (List.filter_map
            (function
              | { e = G.L (String (_, (s, t), _)); _ } -> Some (s, t)
              | _ -> None)

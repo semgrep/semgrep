@@ -200,12 +200,12 @@ and from_lines ~allow_include ~anchor ~name ~source_kind ~source_path lines =
     | None ->
         lines
   in
-  List_.mapi
+  List.mapi
     (fun i contents ->
       let linenum = i + 1 in
       parse_line ~anchor name source_kind linenum contents)
     lines
-  |> List_.filter_map (fun x -> x)
+  |> List.filter_map (fun x -> x)
 
 and from_string_gen ~allow_include ~anchor ~name ~source_path ~source_kind str =
   let lines = read_lines_from_string str in
