@@ -3297,7 +3297,10 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                        match n2opt with
                        | None -> [ M (Export (export_tok, n1)) ]
                        | Some n2 ->
-                           let v = Ast_js.mk_const_var n2 (idexp n1) in
+                           let v =
+                             Ast_js.mk_const_var { n2 with fake = true }
+                               (idexp n1)
+                           in
                            [ DefStmt v; M (Export (export_tok, n2)) ])
           in
           let _v3 = semicolon env v3 in
