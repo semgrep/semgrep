@@ -410,7 +410,7 @@ let get_unexpected_matching_diagnosis ~target_file ~rule_file ~matched_line
     (* TODO: more context? *)
     UFile.cat target_file |> List_.index_list_1
     |> List.filter (fun (_line, idx) -> idx =*= matched_line)
-    |> List_.map fst |> List_.map indent |> String.concat "\n"
+    |> List.map fst |> List.map indent |> String.concat "\n"
   in
   let originating_text =
     let originating_line = (Tok.unsafe_loc_of_tok node.pos).pos.line in
@@ -453,7 +453,7 @@ let diagnose_unexpected_match ~target_file ~rule_file ~(matched_line : int)
   Logs.debug (fun m ->
       m "Explanation is %s" (Common2.string_of_list ME.show explanations));
   get_introducing_nodes ~matched_line explanations
-  |> List_.map (fun (node, kind) ->
+  |> List.map (fun (node, kind) ->
          get_unexpected_matching_diagnosis ~target_file ~rule_file ~matched_line
            ~kind node explanations)
 
@@ -538,10 +538,10 @@ let diagnose_single_file ~target ~rule_file (report : Out.expected_reported)
   in
   Logs.debug (fun m ->
       m "only in actual: [%s]"
-        (String.concat ", " (List_.map string_of_int only_in_actual)));
+        (String.concat ", " (List.map string_of_int only_in_actual)));
   Logs.debug (fun m ->
       m "only in expected: [%s]"
-        (String.concat ", " (List_.map string_of_int only_in_expected)));
+        (String.concat ", " (List.map string_of_int only_in_expected)));
   let unexpected_match_diagnoses =
     List.concat_map
       (fun line ->
@@ -550,7 +550,7 @@ let diagnose_single_file ~target ~rule_file (report : Out.expected_reported)
       only_in_actual
   in
   let unexpected_no_match_diagnoses =
-    List_.map
+    List.map
       (fun line ->
         diagnose_unexpected_no_match ~rule_file ~unmatched_line:line
           explanations)
@@ -566,7 +566,7 @@ let report_unexpected_match ~target_file ~rule_file
       killing_parents;
     } =
   let report_snippet snippet =
-    snippet |> String.split_on_char '\n' |> List_.map indent
+    snippet |> String.split_on_char '\n' |> List.map indent
   in
   let text =
     let header_text =
@@ -606,7 +606,7 @@ let report_unexpected_match ~target_file ~rule_file
           in
           "Maybe the match was supposed to be filtered out by one of these \
            patterns?"
-          :: List_.map indent parent_report
+          :: List.map indent parent_report
     in
     List_.flatten [ header_text; originating_lines; parent_lines ]
   in
@@ -615,7 +615,7 @@ let report_unexpected_match ~target_file ~rule_file
 let report_unexpected_no_match ~target_file ~rule_file
     ({ line; kind } : Out.unexpected_no_match_diagnosis) =
   let report_snippet snippet =
-    snippet |> String.split_on_char '\n' |> List_.map indent
+    snippet |> String.split_on_char '\n' |> List.map indent
   in
   let text =
     let header_text =
@@ -655,12 +655,12 @@ let report ~rule_file
     ({ target; unexpected_match_diagnoses; unexpected_no_match_diagnoses } :
       diagnosis) : string =
   let unexpected_matches =
-    List_.map
+    List.map
       (report_unexpected_match ~target_file:target ~rule_file)
       unexpected_match_diagnoses
   in
   let unexpected_no_matches =
-    List_.map
+    List.map
       (report_unexpected_no_match ~target_file:target ~rule_file)
       unexpected_no_match_diagnoses
   in

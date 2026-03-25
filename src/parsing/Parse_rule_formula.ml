@@ -44,7 +44,7 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
   | G.L (String (_, (s, _), _)) ->
       Ok [ s ]
   | G.Container (Array, (_, mvs, _)) ->
-      List_.map
+      List.map
         (fun mv ->
           let+ s, _ = parse_string_wrap env key mv in
           s)
@@ -61,7 +61,7 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 (* Aliengrep word characters must be single-byte characters for now. *)
 let word_chars_of_strings env xs =
   xs
-  |> List_.map (function
+  |> List.map (function
        | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
        | x when String.length x =|= 1 (* = *) -> Ok x.[0]
        | long ->
@@ -74,7 +74,7 @@ let word_chars_of_strings env xs =
    For now, aliengrep only supports single-byte characters. *)
 let brace_pairs_of_string_pairs env xs =
   xs
-  |> List_.map (fun (open_, close) ->
+  |> List.map (fun (open_, close) ->
          let/ opening_char =
            match open_ with
            | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
@@ -625,9 +625,9 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
           | ___else___ -> (env, None)
         in
         let/ ts =
-          type_strs |> List_.map (parse_type env' key) |> Base.Result.all
+          type_strs |> List.map (parse_type env' key) |> Base.Result.all
         in
-        Ok (MetavarType (metavar, opt_analyzer, type_strs |> List_.map fst, ts))
+        Ok (MetavarType (metavar, opt_analyzer, type_strs |> List.map fst, ts))
   | "metavariable-pattern" ->
       let/ mv_pattern_dict = parse_dict env key value in
       let/ metavar = take_key mv_pattern_dict env parse_string "metavariable" in
@@ -883,7 +883,7 @@ and produce_constraint (env : env) (key : key) dict tok indicator =
       let type_list = type_list |> Option.to_list |> List_.flatten in
       let type_strs = type_strs @ type_list in
       let/ types =
-        type_strs |> List_.map (parse_type env (metavar, t)) |> Base.Result.all
+        type_strs |> List.map (parse_type env (metavar, t)) |> Base.Result.all
       in
       Ok
         (match type_strs with
@@ -892,8 +892,7 @@ and produce_constraint (env : env) (key : key) dict tok indicator =
               Left
                 ( snd ts,
                   R.CondType
-                    (metavar, opt_analyzer, type_strs |> List_.map fst, types)
-                );
+                    (metavar, opt_analyzer, type_strs |> List.map fst, types) );
             ]
         | _ -> [])
   | Cmetavar ->

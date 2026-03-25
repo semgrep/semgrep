@@ -49,7 +49,7 @@ let rec required_patterns_of_formula ({ f; conditions; _ } : Rule.formula) :
       (x : pattern_predicate requirement_tree) =
     Formula.and_
       (x
-      :: List_.map
+      :: List.map
            (fun (_, cond) : _ requirement_tree -> Formula.pred (LCond cond))
            conditions)
   and required_patterns_of_formula_kind (kind : Rule.formula_kind) :
@@ -225,7 +225,7 @@ let rec textual_requirements_of_simplified :
       let* xs = option_map textual_requirements_of_simplified xs in
       F.or_ xs
   | Pred (StringsAndMvars (xs, _)) ->
-      F.and_ (List_.map (fun x -> F.pred (P.String x)) xs)
+      F.and_ (List.map (fun x -> F.pred (P.String x)) xs)
   | Pred (Regex re) ->
       if no_regex_special_chars re then Some (F.pred (P.String re))
       else Some (F.pred (P.Regex (Pcre2_.pcre_compile re)))
@@ -281,11 +281,11 @@ let prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
     (* We must be able to match some source _and_ some sink. *)
     let sources =
       source_patterns
-      |> List_.map (fun (src : Rule.taint_source) -> src.source_formula)
+      |> List.map (fun (src : Rule.taint_source) -> src.source_formula)
     in
     let sinks =
       sink_patterns
-      |> List_.map (fun (sink : Rule.taint_sink) -> sink.sink_formula)
+      |> List.map (fun (sink : Rule.taint_sink) -> sink.sink_formula)
     in
     (* Note that this formula would likely not yield any meaningful result
        if executed by search-mode, but it works for the purpose of this

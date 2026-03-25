@@ -19,7 +19,7 @@ let make_test ?unicode_version (message, input, expected) =
       Alcotest.(check string) message expected (repr ?unicode_version input) )
 
 let test_repr =
-  List_.map make_test
+  List.map make_test
     [
       ("empty", "", "''");
       ("simple", "a", "'a'");
@@ -39,7 +39,7 @@ let test_repr =
     ]
 
 let test_repr_unicode =
-  List_.map make_test
+  List.map make_test
     [ ("unicode 'æ'", "æ", "'æ'"); ("unicode '\u{80}'", "\u{80}", "'\\x80'") ]
 
 let test_repr_unicode_version =

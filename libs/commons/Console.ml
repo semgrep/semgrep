@@ -206,15 +206,15 @@ let layout_table (h1, heading) entries =
     if i =|= 0 then 1 else dec 0 i
   in
   let len1, lengths =
-    let acc = List_.map String.length heading in
+    let acc = List.map String.length heading in
     List.fold_left
       (fun (n1, needed) (c1, curr) ->
         ( max (String.length c1) n1,
-          List_.map2_exn max needed (List_.map int_size curr) ))
+          List_.map2_exn max needed (List.map int_size curr) ))
       (String.length h1, acc)
       entries
   in
-  let lengths = List_.map (fun i -> i + 3) lengths in
+  let lengths = List.map (fun i -> i + 3) lengths in
   let line = List.fold_left (fun acc w -> acc + w) (len1 + 2) lengths |> line in
   let pad str_size len =
     let to_pad = len - str_size in
@@ -227,7 +227,7 @@ let layout_table (h1, heading) entries =
             (fun h l -> [ pad (String.length h) l; h ])
             heading lengths))
   :: line
-  :: List_.map
+  :: List.map
        (fun (e1, entries) ->
          String.concat ""
            (List_.flatten

@@ -97,7 +97,7 @@ let unsafe_concat_tokens toks : string wrap =
 
 let concat_string_wraps ((_open, xs, _close) as x) =
   let tok = Tok.combine_bracket_contents x in
-  let str = List_.map fst xs |> String.concat "" in
+  let str = List.map fst xs |> String.concat "" in
   (str, tok)
 
 (*
@@ -406,7 +406,7 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * docker_string =
     | fragments ->
         let fragments =
           fragments
-          |> List_.map (fun x ->
+          |> List.map (fun x ->
                  match x with
                  | `Imm_tok_pat_bcfc287 tok ->
                      Unquoted (str env tok (* pattern [^@\s\$]+ *))
@@ -432,7 +432,7 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * docker_string
     | fragments ->
         let fragments =
           fragments
-          |> List_.map (fun x ->
+          |> List.map (fun x ->
                  match x with
                  | `Imm_tok_pat_d2727a0 tok ->
                      Unquoted (str env tok (* pattern [a-zA-Z0-9:]+ *))
@@ -452,7 +452,7 @@ let image_name (env : env) ((x, xs) : CST.image_name) =
   in
   let fragments =
     xs
-    |> List_.map (fun x ->
+    |> List.map (fun x ->
            match x with
            | `Imm_tok_pat_2b37705 tok ->
                Unquoted (str env tok (* pattern [^@:\s\$]+ *))
@@ -470,7 +470,7 @@ let image_alias (env : env) ((x, xs) : CST.image_alias) : docker_string =
   in
   let other_fragments =
     xs
-    |> List_.map (fun x ->
+    |> List.map (fun x ->
            match x with
            | `Imm_tok_pat_9a14b5c tok ->
                Unquoted (str env tok (* pattern [-a-zA-Z0-9_]+ *))
@@ -491,7 +491,7 @@ let immediate_user_name_or_group_fragment (env : env)
 
 let immediate_user_name_or_group (env : env)
     (xs : CST.immediate_user_name_or_group) : docker_string =
-  let fragments = List_.map (immediate_user_name_or_group_fragment env) xs in
+  let fragments = List.map (immediate_user_name_or_group_fragment env) xs in
   let loc = Tok_range.of_list docker_string_fragment_loc fragments in
   (loc, fragments)
 
@@ -502,14 +502,14 @@ let user_name_or_group (env : env) ((x, xs) : CST.user_name_or_group) :
     | `Pat_05444c2 tok -> Unquoted (str env tok)
     | `Expa x -> expansion env x
   in
-  let tail = List_.map (immediate_user_name_or_group_fragment env) xs in
+  let tail = List.map (immediate_user_name_or_group_fragment env) xs in
   let fragments = head :: tail |> collapse_unquoted_fragments in
   let loc = Tok_range.of_list docker_string_fragment_loc fragments in
   (loc, fragments)
 
 let unquoted_string (env : env) (xs : CST.unquoted_string) : docker_string =
   let fragments =
-    List_.map
+    List.map
       (fun x ->
         match x with
         | `Imm_tok_pat_9f6bbb9 tok ->
@@ -553,7 +553,7 @@ let docker_string_fragment env (x : generic_path_fragment) :
 let generic_path (env : env) ((v1, v2) : generic_path) :
     docker_string_fragment list =
   let first_fragment = docker_string_fragment env v1 in
-  let more_fragments = List_.map (docker_string_fragment env) v2 in
+  let more_fragments = List.map (docker_string_fragment env) v2 in
   first_fragment :: more_fragments |> collapse_unquoted_fragments
 
 let generic_path_or_ellipsis (env : env) (x : generic_path) : str_or_ellipsis =
@@ -583,7 +583,7 @@ let assemble_heredoc_template (env : env) (opening : Token.t)
   let closing = (* heredoc_end *) token env closing in
   let fragments =
     v2
-    |> List_.map (fun (v1, v2) ->
+    |> List.map (fun (v1, v2) ->
            let v1 = (* heredoc_line *) token env v1 in
            let v2 = (* "\n" *) token env v2 in
            Tok.combine_toks v1 [ v2 ])
@@ -639,7 +639,7 @@ let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) :
     | `Expa x -> expansion env x
   in
   let other_fragments =
-    List_.map
+    List.map
       (fun x ->
         match x with
         | `Imm_tok_pat_441cd81 tok ->
@@ -660,7 +660,7 @@ let double_quoted_string (env : env) ((v1, v2, v3) : CST.double_quoted_string) :
     (* "\"" *)
   in
   let contents =
-    List_.map
+    List.map
       (fun x ->
         match x with
         | `Imm_tok_pat_589b0f8 tok ->
@@ -697,7 +697,7 @@ let single_quoted_string (env : env) ((v1, v2, v3) : CST.single_quoted_string) :
     (* "'" *)
   in
   let contents =
-    List_.map
+    List.map
       (fun x ->
         match x with
         | `Imm_tok_pat_0ab9261 tok -> str env tok (* literal characters *)
@@ -774,7 +774,7 @@ let array_element (env : env) (x : CST.array_element) : array_elt =
         (* "\"" *)
       in
       let contents =
-        List_.map
+        List.map
           (fun x ->
             match x with
             | `Imm_tok_pat_3a2a380 tok -> str env tok (* literal characters *)
@@ -817,7 +817,7 @@ let json_string_array (env : env) ((v1, v2, v3) : CST.json_string_array) :
     | Some (v1, v2) ->
         let x0 = array_element env v1 in
         let xs =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _comma =
                 token env v1
@@ -902,7 +902,7 @@ let shell_command (env : env) (x : CST.shell_command) =
       let first_frag = shell_fragment env v1 in
       let more_frags =
         v2
-        |> List_.map (fun (v1, v2) ->
+        |> List.map (fun (v1, v2) ->
                (* Keep the line continuation so as to preserve the original
                   locations when parsing the shell command.
 
@@ -963,7 +963,7 @@ let mount_param (env : env) ((v1, v2, v3, v4, v5) : CST.mount_param) =
   let _eq = token env v3 in
   let param1 = mount_param_param env v4 in
   let params =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _comma = token env v1 in
         let kv = mount_param_param env v2 in
@@ -981,7 +981,7 @@ let runlike_instruction (env : env) name params cmd =
     (* RUN, CMD, ... *)
   in
   let params =
-    List_.map
+    List.map
       (fun x ->
         match x with
         | `Param x -> Param (param env x)
@@ -996,7 +996,7 @@ let runlike_instruction (env : env) name params cmd =
 let add_or_copy (env : env) (v1, v2, src_paths, v4, heredoc_bodies) :
     add_or_copy =
   let name = str env v1 in
-  let param = List_.map (param env) v2 in
+  let param = List.map (param env) v2 in
   let src = reattach_heredoc_bodies env src_paths heredoc_bodies in
   (* heredocs are not allowed as the destination file name *)
   let dst =
@@ -1066,7 +1066,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             str env v1
             (* pattern [lL][aA][bB][eE][lL] *)
           in
-          let label_pairs = List_.map (label_pair env) v2 in
+          let label_pairs = List.map (label_pair env) v2 in
           let loc = Tok_range.of_list label_pair_loc label_pairs in
           let loc = Tok_range.extend loc (snd name) in
           (env, Label (loc, name, label_pairs))
@@ -1076,7 +1076,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             (* pattern [eE][xX][pP][oO][sS][eE] *)
           in
           let port_protos =
-            List_.map
+            List.map
               (fun x ->
                 match x with
                 | `Expose_port x -> expose_port env x
@@ -1093,7 +1093,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
           in
           let pairs =
             match v2 with
-            | `Rep1_env_pair xs -> List_.map (env_pair env) xs
+            | `Rep1_env_pair xs -> List.map (env_pair env) xs
             | `Spaced_env_pair x -> [ spaced_env_pair env x ]
           in
           let _, end_ = Tok_range.of_list env_pair_loc pairs in
@@ -1125,7 +1125,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `Path_rep_non_nl_whit_path (v1, v2) ->
                 let path0 = generic_path_or_ellipsis env (v1 :> generic_path) in
                 let paths =
-                  List_.map
+                  List.map
                     (fun (v1, v2) ->
                       let _blank =
                         token env v1
@@ -1229,7 +1229,7 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `NONE tok -> Healthcheck_none (token env tok (* "NONE" *))
             | `Rep_choice_semg_ellips_cmd_inst (v1, (name (* CMD *), args)) ->
                 let params =
-                  List_.map
+                  List.map
                     (function
                       | `Param x -> ParamParam (param env x)
                       | `Semg_ellips tok ->

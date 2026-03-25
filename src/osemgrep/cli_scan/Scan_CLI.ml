@@ -1005,7 +1005,7 @@ let o_target_roots : string list Term.t =
   in
   Arg.value
     (Arg.pos_all Arg.string
-       (default.target_roots |> List_.map Scanning_root.to_string)
+       (default.target_roots |> List.map Scanning_root.to_string)
        info)
 
 let o_project_root : string option Term.t =
@@ -1138,7 +1138,7 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
   let imply_always_select_explicit_targets = ref false in
   let target_roots =
     target_roots
-    |> List_.map (fun str ->
+    |> List.map (fun str ->
            match str with
            | "-" ->
                imply_always_select_explicit_targets := true;
@@ -1166,7 +1166,7 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
                      imply_always_select_explicit_targets := true;
                      new_path)
                else orig_path)
-    |> List_.map Scanning_root.of_fpath
+    |> List.map Scanning_root.of_fpath
   in
   if !imply_always_select_explicit_targets then
     Logs.info (fun m ->
@@ -1428,7 +1428,7 @@ let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
   if test then
     let target =
       Test_CLI.target_kind_of_roots_and_config
-        (List_.map Scanning_root.to_fpath target_roots)
+        (List.map Scanning_root.to_fpath target_roots)
         config
     in
     Some
@@ -1495,7 +1495,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       (* This is for determining whether a target path appears on the command
          line. As long as this holds, it's ok to include folders. *)
       target_roots
-      |> List_.map Scanning_root.to_fpath
+      |> List.map Scanning_root.to_fpath
       |> Find_targets.Explicit_targets.of_list
     in
 
@@ -1616,7 +1616,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     let rule_filtering_conf : Rule_filtering.conf =
       {
         Rule_filtering.exclude_rule_ids =
-          List_.map Rule_ID.of_string_exn exclude_rule_ids;
+          List.map Rule_ID.of_string_exn exclude_rule_ids;
         severity;
         exclude_products = [];
       }

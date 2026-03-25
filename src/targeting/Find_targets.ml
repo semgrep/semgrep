@@ -134,7 +134,7 @@ module Fppath_set = struct
   (* This is for occasional debugging *)
   let[@warning "-unused-value-declaration"] show set =
     spf "[%s]"
-      (set |> Self.elements |> List_.map Fppath.show |> String.concat ", ")
+      (set |> Self.elements |> List.map Fppath.show |> String.concat ", ")
 end
 
 (* Yet another file path related type ...
@@ -358,7 +358,7 @@ let filter_paths (par_conf : Parallelism_config.t) (num_jobs : int option)
     match (par_conf, num_jobs) with
     | Parallelism_config.Eio_executor conf, Some num_jobs when num_jobs > 1 ->
         Concurrent.map ~conf ~domain_count:num_jobs
-    | _, _ -> fun f l -> List_.map (fun x -> Ok (f x)) l
+    | _, _ -> fun f l -> List.map (fun x -> Ok (f x)) l
   in
 
   target_files
@@ -549,7 +549,7 @@ let git_list_files ~(baseline_commit : string option) ~untracked_exclude
                  git_ls_files ~baseline_commit
                    ~cwd:(sc_root.rpath |> Rpath.to_fpath)
                    ~untracked_exclude ~kinds:file_kinds
-                 |> List_.map (fun rel_target_fpath ->
+                 |> List.map (fun rel_target_fpath ->
                         Fppath.append_relative_fpath sc_root_fppath
                           rel_target_fpath)
                else (
@@ -596,7 +596,7 @@ let git_list_untracked_files ~baseline_commit ~respect_gitignore
   in
   let exclude =
     exclude
-    @ List_.map (fun pat -> Git_wrapper.Exclude_pattern pat) exclude_patterns
+    @ List.map (fun pat -> Git_wrapper.Exclude_pattern pat) exclude_patterns
   in
   git_list_files ~baseline_commit ~untracked_exclude:exclude [ Others ]
     project_roots
@@ -679,7 +679,7 @@ let group_scanning_roots_by_project (conf : conf)
        correctly even if the scanning_roots went through different symlink
        paths. *)
     |> Assoc.group_assoc_bykey_eff
-    |> List_.map (fun (project, scanning_roots) ->
+    |> List.map (fun (project, scanning_roots) ->
            Project.{ project; scanning_roots })
   in
   (groups, List.rev !errors)
@@ -799,14 +799,14 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
     Fppath_set.t * Out.skipped_target list =
   let regular_files_to_add =
     project_roots.scanning_roots
-    |> List_.map Project.fppath_of_scanning_root_info
+    |> List.map Project.fppath_of_scanning_root_info
     |> List.filter (fun (sc_root : Fppath.t) ->
            UFile.is_reg ~follow_symlinks:true sc_root.fpath)
   in
   let skipped_targets =
     let regular_files_to_add =
       regular_files_to_add
-      |> List_.map (fun x -> x.Fppath.fpath)
+      |> List.map (fun x -> x.Fppath.fpath)
       |> Fpath_.Fpath_set.of_list
     in
     skipped_targets
@@ -908,7 +908,7 @@ let get_targets (conf : conf) (scanning_roots : Scanning_root.t list) :
     scanning_roots |> group_scanning_roots_by_project conf
   in
   grouped_scanning_roots
-  |> List_.map (get_targets_for_project conf)
+  |> List.map (get_targets_for_project conf)
   |> List_.split
   |> fun (path_set_list, skipped_paths_list) ->
   let paths, skipped_size_minified =
@@ -946,4 +946,4 @@ let get_targets (conf : conf) (scanning_roots : Scanning_root.t list) :
 
 let get_target_fpaths conf scanning_roots =
   let selected, errors, skipped = get_targets conf scanning_roots in
-  (List_.map (fun { Fppath.fpath; _ } -> fpath) selected, errors, skipped)
+  (List.map (fun { Fppath.fpath; _ } -> fpath) selected, errors, skipped)

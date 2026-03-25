@@ -689,7 +689,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
-  let rule_ids = rules |> List_.map (fun r -> fst r.Rule.id) in
+  let rule_ids = rules |> List.map (fun r -> fst r.Rule.id) in
   let contributions = Parse_contribution.get_contributions () in
   sanity_check_contributions contributions;
 
@@ -761,7 +761,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
            Fpath.get_ext skipped_target.path)
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
-    |> List_.map (fun (ext, xs) -> (ext, List.length xs))
+    |> List.map (fun (ext, xs) -> (ext, List.length xs))
   in
 
   (* POST to /api/agent/scans/<scan_id>/complete *)

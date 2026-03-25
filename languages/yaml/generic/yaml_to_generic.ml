@@ -47,10 +47,10 @@ let rec value (v : A.value) : G.expr =
   | S (s, tok) -> G.L (G.String (fb (s, tok))) |> G.e
   | Float (fopt, tok) -> G.L (G.Float (fopt, tok)) |> G.e
   | Sequence (lbra, xs, rbra) ->
-      let xs' = List_.map value xs in
+      let xs' = List.map value xs in
       G.Container (G.Array, (lbra, xs', rbra)) |> G.e
   | Mapping (lbra, kvs, rbra) ->
-      let kvs' = List_.map value kvs in
+      let kvs' = List.map value kvs in
       G.Container (G.Dict, (lbra, kvs', rbra)) |> G.e
   | KV (k, v) ->
       let k' = value k in
@@ -69,7 +69,7 @@ let rec value (v : A.value) : G.expr =
   | Ellipsis tok -> G.Ellipsis tok |> G.e
 
 let doc_to_generic (doc : A.document) : G.program =
-  doc |> List_.map value |> List_.map G.exprstmt
+  doc |> List.map value |> List.map G.exprstmt
 
 let any_to_generic (any : A.any) : G.any =
   match any with

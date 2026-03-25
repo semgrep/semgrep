@@ -77,7 +77,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
             | None -> Legacy_session.targets session
             | Some targets -> targets)
           |> Profiler.record profiler ~name:"session_targets"
-          |> List_.map Fppath.fake_from_fpath_DEPRECATED
+          |> List.map Fppath.fake_from_fpath_DEPRECATED
         in
         Logs.info (fun m -> m "Scanning %d targets" (List.length targets));
         let runner_conf = Legacy_session.runner_conf session in
@@ -97,7 +97,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                  rather than "scanning roots".
               *)
               let roots =
-                List_.map
+                List.map
                   (fun (fppath : Fppath.t) ->
                     Scanning_root.of_fpath fppath.fpath)
                   targets
@@ -227,7 +227,7 @@ let run_core_search xconf (rule : Rule.search_rule) (file : Fpath.t) =
         in
         let matches_with_fixes =
           matches
-          |> List_.map Core_result.mk_processed_match
+          |> List.map Core_result.mk_processed_match
           |> Autofix.produce_autofixes
         in
         Some matches_with_fixes
@@ -303,7 +303,7 @@ let scan_file session uri =
         run_semgrep_detached ~targets session
       in
       Lwt.return
-        (List_.map (fun (m : Out.cli_match) -> { m with path = file }) results)
+        (List.map (fun (m : Out.cli_match) -> { m with path = file }) results)
     in
     let files = [ file ] in
     Legacy_session.record_results session results files;

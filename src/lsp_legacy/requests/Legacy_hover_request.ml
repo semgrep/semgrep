@@ -43,7 +43,7 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
         |> List.filter (fun (_, idx) -> idx < position.line)
       in
       lines
-      |> List_.map (fun (l, _) -> String.length l + 1)
+      |> List.map (fun (l, _) -> String.length l + 1)
       |> List.fold_left ( + ) 0
     in
     let charpos = base_charpos + position.character in

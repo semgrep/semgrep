@@ -46,7 +46,7 @@ let metachecker_checks_tests () =
     (let dir = tests_path / "errors" in
      let files = Common2.glob (dir / "*.yaml") in
      files
-     |> List_.map (fun file ->
+     |> List.map (fun file ->
             t (Fpath.basename file) (fun () ->
                 let actual =
                   match Parse_rule.parse file with

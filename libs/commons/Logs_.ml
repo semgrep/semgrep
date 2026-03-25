@@ -76,7 +76,7 @@ let create_tag_set (tag_list : string Logs.Tag.def list) : Logs.Tag.set =
     Logs.Tag.empty tag_list
 
 let create_tags (tags : string list) : Logs.Tag.set =
-  tags |> List_.map create_tag |> create_tag_set
+  tags |> List.map create_tag |> create_tag_set
 
 let string_of_tag (Logs.Tag.V (def, _)) = Logs.Tag.name def
 
@@ -270,10 +270,10 @@ let set_level_for_all_sources ?(quiet_log_setup = false) ~is_active_src level =
   if not quiet_log_setup then (
     Logs.debug (fun m ->
         m "Skipping logs for: [%s]"
-          (inactive_sources |> List_.map Logs.Src.name |> String.concat ", "));
+          (inactive_sources |> List.map Logs.Src.name |> String.concat ", "));
     Logs.debug (fun m ->
         m "Showing logs for: [%s]"
-          (active_sources |> List_.map Logs.Src.name |> String.concat ", ")))
+          (active_sources |> List.map Logs.Src.name |> String.concat ", ")))
 
 (* Temporarily change the log level and optionally change which log sources
    are active. All active sources log at the same level. *)
@@ -354,7 +354,7 @@ let with_setup ?(highlight_setting : Console.highlight_setting option)
   in
   let show_srcs : Re.re list =
     read_comma_sep_strs_from_env_vars read_srcs_from_env_vars
-    |> List_.optlist_to_list |> List_.map Re.Pcre.regexp
+    |> List_.optlist_to_list |> List.map Re.Pcre.regexp
   in
   let is_active_src src =
     match Logs.Src.name src with
@@ -362,7 +362,7 @@ let with_setup ?(highlight_setting : Console.highlight_setting option)
     | x -> show_srcs |> List.exists (fun re -> Re.execp re x)
   in
   let active_source_names =
-    Logs.Src.list () |> List.filter is_active_src |> List_.map Logs.Src.name
+    Logs.Src.list () |> List.filter is_active_src |> List.map Logs.Src.name
   in
   let isatty, dst = create_formatter opt_file in
   let style_renderer =
@@ -463,11 +463,11 @@ let info ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
 let debug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
 
 let list to_string xs =
-  Printf.sprintf "[%s]" (xs |> List_.map to_string |> String.concat ";")
+  Printf.sprintf "[%s]" (xs |> List.map to_string |> String.concat ";")
 
 let array to_string xs =
   Printf.sprintf "[|%s|]"
-    (xs |> Array.to_list |> List_.map to_string |> String.concat ";")
+    (xs |> Array.to_list |> List.map to_string |> String.concat ";")
 
 let option to_string opt =
   match opt with

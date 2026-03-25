@@ -108,7 +108,7 @@ let notify_custom ?params method_ =
 (** Send a bunch of notifications to the client *)
 let batch_notify notifications =
   Logs.debug (fun m -> m "Sending notifications");
-  List_.map notify notifications
+  List.map notify notifications
 
 let notify_show_message ~kind s =
   let notif =

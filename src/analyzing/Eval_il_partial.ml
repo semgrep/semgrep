@@ -270,7 +270,7 @@ and eval_lval env lval =
 
 and eval_op env wop args =
   let op, tok = wop in
-  let cs = args |> List_.map IL_helpers.exp_of_arg |> List_.map (eval env) in
+  let cs = args |> List.map IL_helpers.exp_of_arg |> List.map (eval env) in
   match (op, cs) with
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
@@ -302,7 +302,7 @@ and eval_op env wop args =
   | ___else___ -> G.NotCst
 
 let eval_concat (env : env) args =
-  match List_.map (eval env) args with
+  match List.map (eval env) args with
   | [] -> G.Lit (literal_of_string "")
   | G.Lit (G.String (_, (r, tok), _)) :: args' ->
       List.fold_left

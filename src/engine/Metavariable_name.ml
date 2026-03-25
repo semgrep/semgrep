@@ -36,7 +36,7 @@ let is_from_module module_path (e : G.expr) =
             | Some (GlobalName (cname, _), _) -> cname
             | _ -> [ id ])
         | IdQualified _ ->
-            AST_generic_helpers.dotted_ident_of_name name |> List_.map fst
+            AST_generic_helpers.dotted_ident_of_name name |> List.map fst
         | IdSpecial ((spec, _), { id_resolved; _ }) -> (
             match !id_resolved with
             | Some (GlobalName (cname, _), _) -> cname

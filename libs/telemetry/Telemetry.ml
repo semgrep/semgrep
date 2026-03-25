@@ -153,7 +153,7 @@ let set_global_attr_from_env () =
     in
     try
       Sys.getenv "OTEL_RESOURCE_ATTRIBUTES"
-      |> String.split_on_char ',' |> List_.map parse_pair
+      |> String.split_on_char ',' |> List.map parse_pair
     with
     | _ -> []
   in

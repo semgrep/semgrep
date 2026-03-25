@@ -129,7 +129,7 @@ let lines_of_range (start_offset, end_offset) str =
       String.sub str start_line_offset (end_line_offset - start_line_offset)
     in
     let lines = String.split_on_char '\n' substr in
-    List_.map trim_cr lines
+    List.map trim_cr lines
 
 let is_capitalized s =
   String.length s <> 0

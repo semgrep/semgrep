@@ -134,7 +134,7 @@ let sha256 (x : Hex_.t) = { empty_hashes with sha256 = [ x ] }
 let sha512 (x : Hex_.t) = { empty_hashes with sha512 = [ x ] }
 
 let extract_hex_values (xs : Hex_.t list) : string list =
-  List_.map Hex_.to_hex_string xs
+  List.map Hex_.to_hex_string xs
 
 let convert_hashes ({ sha1; sha256; sha512 } : hashes) :
     (string * string list) list =
@@ -169,7 +169,7 @@ let to_found_dependency ?(lockfile_path : Fpath.t option)
       children =
         children
         |> Option.map
-             (List_.map (fun (dep : t) ->
+             (List.map (fun (dep : t) ->
                   ({
                      package = (dep.package.name :> string);
                      version = (dep.package.version :> string);

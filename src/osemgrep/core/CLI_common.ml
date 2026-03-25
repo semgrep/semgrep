@@ -304,5 +304,4 @@ let eval_value ~argv cmd =
 
 let exits =
   Exit_code.all
-  |> List_.map (fun (x : Exit_code.t) ->
-         Cmd.Exit.info x.code ~doc:x.description)
+  |> List.map (fun (x : Exit_code.t) -> Cmd.Exit.info x.code ~doc:x.description)

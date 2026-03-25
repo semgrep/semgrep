@@ -62,7 +62,7 @@ let diagnostics_of_file is_intellij matches file =
   let matches =
     List.filter (fun (m : OutJ.cli_match) -> m.path = file) matches
   in
-  let diagnostics = List_.map (diagnostic_of_match is_intellij) matches in
+  let diagnostics = List.map (diagnostic_of_match is_intellij) matches in
   let diagnostics =
     List_.deduplicate_gen
       ~get_key:(fun (x : Diagnostic.t) ->
@@ -77,4 +77,4 @@ let diagnostics_of_file is_intellij matches file =
   Server_notification.PublishDiagnostics params
 
 let diagnostics_of_results ~is_intellij results files =
-  List_.map (diagnostics_of_file is_intellij results) files
+  List.map (diagnostics_of_file is_intellij results) files

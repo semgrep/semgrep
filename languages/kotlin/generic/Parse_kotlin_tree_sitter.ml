@@ -70,7 +70,7 @@ let var_to_pattern (id, ptype) =
   | None -> pat
 
 let vars_to_pattern (l, xs, r) =
-  let ys = xs |> List_.map (fun (id, ptype) -> var_to_pattern (id, ptype)) in
+  let ys = xs |> List.map (fun (id, ptype) -> var_to_pattern (id, ptype)) in
   PatTuple (l, ys, r)
 
 (*****************************************************************************)
@@ -369,7 +369,7 @@ let escape_seq (env : env) (x : CST.character_escape_seq) =
 (* pattern "\\\\[tbrn'\dq\\\\$]" *)
 
 let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
-  List_.map (type_projection_modifier env) xs
+  List.map (type_projection_modifier env) xs
 
 let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
   match x with
@@ -435,7 +435,7 @@ let return_at (env : env) ((v1, v2) : CST.return_at) =
 let identifier (env : env) ((v1, v2) : CST.identifier) : dotted_ident =
   let v1 = simple_identifier env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token env v1
@@ -574,7 +574,7 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
   v3 |> G.d
 
 let rec annotated_lambda (env : env) ((v1, v2, v3) : CST.annotated_lambda) =
-  let _v1TODO = List_.map (annotation env) v1 in
+  let _v1TODO = List.map (annotation env) v1 in
   let _v2TODO = v2 in
   lambda_literal env v3
 
@@ -610,12 +610,12 @@ and annotation (env : env) (x : CST.annotation) : attribute list =
         token env v3
         (* "[" *)
       in
-      let v4 = List_.map (unescaped_annotation env) v4 in
+      let v4 = List.map (unescaped_annotation env) v4 in
       let _v5 =
         token env v5
         (* "]" *)
       in
-      v4 |> List_.map (fun (n, args) -> NamedAttr (v1, n, args))
+      v4 |> List.map (fun (n, args) -> NamedAttr (v1, n, args))
 
 and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   match x with
@@ -661,7 +661,7 @@ and directly_assignable_expression (env : env)
       N (H2.name_of_id id) |> G.e
   | `Post_un_exp (v1, v2) ->
       let v1 = primary_expression env v1 in
-      let v2 = List_.map (postfix_unary_suffix env) v2 in
+      let v2 = List.map (postfix_unary_suffix env) v2 in
       v2 |> List.fold_left (fun acc f -> f acc) v1
 
 and postfix_unary_suffix (env : env) (x : CST.postfix_unary_suffix) =
@@ -809,7 +809,7 @@ and catch_block (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.catch_block)
     token env v2
     (* "(" *)
   in
-  let _v3TODO = List_.map (annotation env) v3 in
+  let _v3TODO = List.map (annotation env) v3 in
   let v4 = simple_identifier env v4 in
   let _v5 =
     token env v5
@@ -1040,7 +1040,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
 
 and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
     field list =
-  List_.map
+  List.map
     (fun (v1, v2) ->
       let v1 = class_member_declaration env v1 in
       let _v2 =
@@ -1095,7 +1095,7 @@ and class_parameters (env : env) ((v1, v2, v3, v4) : CST.class_parameters) :
     | Some (v1, v2) ->
         let v1 = class_parameter env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 =
                 token env v1
@@ -1365,7 +1365,7 @@ and delegation_specifiers (env : env) ((v1, v2) : CST.delegation_specifiers) :
     class_parent list =
   let v1 = delegation_specifier env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token env v1
@@ -1411,7 +1411,7 @@ and enum_class_body (env : env) ((v1, v2, v3, v4) : CST.enum_class_body) =
 and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) : field list =
   let v1 = enum_entry env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token env v1
@@ -1513,7 +1513,7 @@ and function_literal (env : env) (x : CST.function_literal) =
         | Some (v1, v2, v3) ->
             let v1 = simple_user_type env v1 in
             let v2 =
-              List_.map
+              List.map
                 (fun (v1, v2) ->
                   let _v1 =
                     token env v1
@@ -1581,7 +1581,7 @@ and function_type_parameters (env : env)
     | Some (v1, v2) ->
         let v1 = anon_choice_param_b77c1d8 env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 =
                 token env v1
@@ -1638,7 +1638,7 @@ and function_value_parameters (env : env)
     | Some (v1, v2) ->
         let v1 = function_value_parameter env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 =
                 token env v1
@@ -1698,7 +1698,7 @@ and indexing_suffix (env : env) ((v1, v2, v3, v4) : CST.indexing_suffix) =
   in
   let v2 = expression env v2 in
   let v3 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let v1 =
           token env v1
@@ -1784,7 +1784,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       | None -> Return (tret, v2, sc tret) |> G.s
       | Some id ->
           let n = N (H2.name_of_id id) |> G.e in
-          let any = Option.to_list v2 |> List_.map (fun e -> E e) in
+          let any = Option.to_list v2 |> List.map (fun e -> E e) in
           OtherStmt (OS_Todo, TodoK ("return@", tret) :: E n :: any) |> G.s)
   | `Cont tok ->
       let v1 =
@@ -1865,7 +1865,7 @@ and var_or_multivar_no_opt_type (env : env)
       let v1 = (* "(" *) token env v1 in
       let v2 = variable_declaration env v2 in
       let v3 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 = variable_declaration env v2 in
@@ -1884,7 +1884,7 @@ and var_or_multivar (env : env) (x : CST.lambda_parameter) =
       let v1 = (* "(" *) token env v1 in
       let v2 = variable_declaration env v2 in
       let v3 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 = variable_declaration env v2 in
@@ -1927,7 +1927,7 @@ and lambda_parameters (env : env) ((v1, v2) : CST.lambda_parameters) :
     G.parameter list =
   let v1 = lambda_parameter env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token env v1
@@ -1950,7 +1950,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
         token env v2
         (* "(" *)
       in
-      let _v3TODO = List_.map (annotation env) v3 in
+      let _v3TODO = List.map (annotation env) v3 in
       let pat = lambda_parameter_for_loop env v4 in
       let v5 =
         token env v5
@@ -2088,7 +2088,7 @@ and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
     | `Type_ref x -> type_reference env x
     | `Paren_type x -> parenthesized_type env x
   in
-  let v2 = List_.map (token env) (* "?" *) v2 in
+  let v2 = List.map (token env) (* "?" *) v2 in
   match v2 with
   | hd :: _tl -> TyQuestion (v1, hd) |> G.t
   | [] -> raise Impossible
@@ -2262,7 +2262,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let v2 = expression env v2 in
       let v3 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 =
               token env v1
@@ -2348,7 +2348,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         token env v3
         (* "{" *)
       in
-      let v4 = List_.map (when_entry env) v4 in
+      let v4 = List.map (when_entry env) v4 in
       let _v5 =
         token env v5
         (* "}" *)
@@ -2364,7 +2364,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       let catch, finally =
         match v3 with
         | `Rep1_catch_blk_opt_fina_blk (v1, v2) ->
-            let v1 = List_.map (catch_block env) v1 in
+            let v1 = List.map (catch_block env) v1 in
             let v2 =
               match v2 with
               | Some x -> Some (finally_block env x)
@@ -2480,7 +2480,7 @@ and statement (env : env) (x : CST.statement) : stmt =
 and statements (env : env) ((v1, v2, v3) : CST.statements) =
   let v1 = statement env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           semi env v1
@@ -2565,7 +2565,7 @@ and string_literal (env : env) (v1, v2, v3) : expr =
       G.L (G.String (l, (s1 ^ s2, Tok.combine_toks l [ t1; t2; r ]), r)) |> G.e
   | _ ->
       let v2 =
-        List_.map
+        List.map
           (fun x ->
             match x with
             | `Str_content tok ->
@@ -2599,7 +2599,7 @@ and type_arguments (env : env) ((v1, v2, v3, _, v5) : CST.type_arguments) =
   in
   let v2 = type_projection env ~tok:v1 v2 in
   let v3 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let v1 =
           token env v1
@@ -2617,7 +2617,7 @@ and type_arguments (env : env) ((v1, v2, v3, _, v5) : CST.type_arguments) =
 
 and type_constraint (env : env) ((v1, v2, v3, v4) : CST.type_constraint) :
     ident * type_ =
-  let _v1TODO = List_.map (annotation env) v1 in
+  let _v1TODO = List.map (annotation env) v1 in
   let v2 = simple_identifier env v2 in
   let _v3 =
     token env v3
@@ -2633,7 +2633,7 @@ and type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   in
   let v2 = type_constraint env v2 in
   let v3 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token env v1
@@ -2696,7 +2696,7 @@ and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
   | `Anno x -> Either.Left (annotation env x)
 
 and type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers) =
-  List_.map (type_parameter_modifier env) xs
+  List.map (type_parameter_modifier env) xs
 
 and type_parameters (env : env) ((v1, v2, v3, _, v5) : CST.type_parameters) :
     G.type_parameters =
@@ -2706,7 +2706,7 @@ and type_parameters (env : env) ((v1, v2, v3, _, v5) : CST.type_parameters) :
   in
   let v2 = type_parameter env v2 in
   let v3 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token env v1
@@ -2811,7 +2811,7 @@ and unescaped_annotation (env : env) (x : CST.unescaped_annotation) :
 and user_type (env : env) ((v1, v2) : CST.user_type) : name =
   let v1 = simple_user_type env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token env v1
@@ -2867,7 +2867,7 @@ and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) : arguments
     | Some (v1, v2, _v3) ->
         let v1 = value_argument env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 =
                 token env v1
@@ -2930,7 +2930,7 @@ and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
     | `When_cond_rep_COMMA_when_cond_opt_COMMA (v1, v2, _comma) ->
         let v1 = when_condition env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let v1 =
                 token env v1
@@ -2973,7 +2973,7 @@ and when_subject (env : env) ((v1, v2, v3, v4) : CST.when_subject) : condition =
   let _v2TODO =
     match v2 with
     | Some (v1, v2, v3, v4) ->
-        let _v1 = List_.map (annotation env) v1 in
+        let _v1 = List.map (annotation env) v1 in
         let v2 =
           token env v2
           (* "val" *)
@@ -2995,7 +2995,7 @@ and when_subject (env : env) ((v1, v2, v3, v4) : CST.when_subject) : condition =
   G.Cond v3
 
 let import_list (env : env) ((v1, v2) : CST.import_list) =
-  let v1 = List_.map (import_header env) v1 in
+  let v1 = List.map (import_header env) v1 in
   let _v2 = (* import_list_delimiter *) token env v2 in
   v1
 
@@ -3019,7 +3019,7 @@ let file_annotation (env : env) ((v1, v2, v3, v4, v5) : CST.file_annotation) =
           token env v1
           (* "[" *)
         in
-        let v2 = List_.map (unescaped_annotation env) v2 in
+        let v2 = List.map (unescaped_annotation env) v2 in
         let _v3 =
           token env v3
           (* "]" *)
@@ -3095,7 +3095,7 @@ let source_file (env : env) (x : CST.source_file) : any =
         | Some x -> shebang_line env x
         | None -> ()
       in
-      let _v2 = List_.map (file_annotation env) v2 in
+      let _v2 = List.map (file_annotation env) v2 in
       let v3 =
         match v3 with
         | Some x -> [ package_header env x ]
@@ -3103,7 +3103,7 @@ let source_file (env : env) (x : CST.source_file) : any =
       in
       let v4 = List.concat_map (import_list env) v4 in
       let v5 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let v1 = statement env v1 in
             let _v2 =
@@ -3114,7 +3114,7 @@ let source_file (env : env) (x : CST.source_file) : any =
           v5
       in
       let xs = merge_class_declarations v5 in
-      let dirs = v3 @ v4 |> List_.map (fun d -> DirectiveStmt d |> G.s) in
+      let dirs = v3 @ v4 |> List.map (fun d -> DirectiveStmt d |> G.s) in
       Pr (dirs @ xs)
   | `Semg_exp (_v1, v2) ->
       let v2 = expression env v2 in

@@ -113,7 +113,7 @@ let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
         }
       in
       Some [ span ]
-  | PartialParsing locs -> Some (locs |> List_.map core_location_to_error_span)
+  | PartialParsing locs -> Some (locs |> List.map core_location_to_error_span)
   | _else_ -> None
 
 (* # TODO benchmarking code relies on error code value right now
@@ -397,14 +397,14 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   |> Assoc.group_by (fun (_, (x : Out.cli_match)) ->
          (x.path, x.check_id, x.extra.fingerprint))
   (* Sort by start line *)
-  |> List_.map (fun (path_and_rule_id, matches) ->
+  |> List.map (fun (path_and_rule_id, matches) ->
          ( path_and_rule_id,
            List.sort
              (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
                compare a.start.offset b.start.offset)
              matches ))
   (* Index per file *)
-  |> List_.map (fun (path_and_rule_id, matches) ->
+  |> List.map (fun (path_and_rule_id, matches) ->
          let matches =
            List_.mapi
              (fun i (i', (x : Out.cli_match)) ->
@@ -423,7 +423,7 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   (* Flatten *)
   |> List.concat_map snd
   |> List.sort (fun (a, _) (b, _) -> a - b)
-  |> List_.map snd
+  |> List.map snd
 
 (*****************************************************************************)
 (* Gated logged-in fields *)
@@ -457,7 +457,7 @@ let adjust_fields_cli_output_logged_out (x : Out.cli_output) : Out.cli_output =
   let interfile_languages_used = None in
   let results =
     results
-    |> List_.map (fun (res : Out.cli_match) : Out.cli_match ->
+    |> List.map (fun (res : Out.cli_match) : Out.cli_match ->
            let { check_id; extra; path; start; end_ } : Out.cli_match = res in
            let {
              metavars = _;
@@ -603,14 +603,14 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
         (* Skipping the python intermediate RuleMatchMap for now *)
         results =
           matches
-          |> List_.map (fun (cm : Out.core_match) ->
+          |> List.map (fun (cm : Out.core_match) ->
                  let rule =
                    try Hashtbl.find hrules cm.check_id with
                    | Not_found -> raise Impossible
                  in
                  cli_match_of_core_match ~fips_mode fixed_env_opt rule cm)
           |> Semgrep_output_utils.sort_cli_matches;
-        errors = errors |> List_.map cli_error_of_core_error;
+        errors = errors |> List.map cli_error_of_core_error;
         paths;
         skipped_rules;
         explanations;

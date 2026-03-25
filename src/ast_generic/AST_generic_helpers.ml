@@ -121,7 +121,7 @@ let name_of_ids ?(case_insensitive = false) xs =
   | x :: xs ->
       let qualif =
         if xs =*= [] then None
-        else Some (QDots (xs |> List.rev |> List_.map (fun id -> (id, None))))
+        else Some (QDots (xs |> List.rev |> List.map (fun id -> (id, None))))
       in
       IdQualified
         {
@@ -184,7 +184,7 @@ let name_of_dot_access e =
         let* name_middle =
           match name_middle with
           | None -> Some []
-          | Some (QDots xs) -> Some (List_.map (fun (id, _) -> id) xs)
+          | Some (QDots xs) -> Some (List.map (fun (id, _) -> id) xs)
           | Some (QExpr _) -> None
         in
         let name_last = fst name_last in
@@ -216,7 +216,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
       let before =
         match name_middle with
         (* we skip the type parts in ds ... *)
-        | Some (QDots ds) -> ds |> List_.map fst
+        | Some (QDots ds) -> ds |> List.map fst
         | Some (QExpr _) ->
             Log.warn (fun m -> m "unexpected qualifier type");
             []
@@ -243,10 +243,10 @@ let rec expr_to_pattern e =
   match e.e with
   | N (Id (id, info)) -> PatId (id, info)
   | Container (Tuple, (t1, xs, t2)) ->
-      PatTuple (t1, xs |> List_.map expr_to_pattern, t2)
+      PatTuple (t1, xs |> List.map expr_to_pattern, t2)
   | L l -> PatLiteral l
   | Container (List, (t1, xs, t2)) ->
-      PatList (t1, xs |> List_.map expr_to_pattern, t2)
+      PatList (t1, xs |> List.map expr_to_pattern, t2)
   | Ellipsis t -> PatEllipsis t
   | Cast (ty, _tok, expr) -> PatTyped (expr_to_pattern expr, ty)
   (* TODO:  PatKeyVal and more *)
@@ -259,10 +259,10 @@ let rec pattern_to_expr p =
   (match p with
   | PatId (id, info) -> N (Id (id, info))
   | PatTuple (t1, xs, t2) ->
-      Container (Tuple, (t1, xs |> List_.map pattern_to_expr, t2))
+      Container (Tuple, (t1, xs |> List.map pattern_to_expr, t2))
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
-      Container (List, (t1, xs |> List_.map pattern_to_expr, t2))
+      Container (List, (t1, xs |> List.map pattern_to_expr, t2))
   | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
   | _ -> raise NotAnExpr)
   |> G.e
@@ -485,14 +485,14 @@ let ac_matching_nf op args =
   (* yes... here we use exceptions like a "goto" to avoid the option monad *)
   let rec nf args1 =
     args1
-    |> List_.map (function
+    |> List.map (function
          | Arg e -> e
          | ArgKwd _
          | ArgKwdOptional _
          | ArgType _
          | OtherArg _ ->
              raise_notrace Exit)
-    |> List_.map nf_one |> List_.flatten
+    |> List.map nf_one |> List_.flatten
   and nf_one e =
     match e.e with
     | Call ({ e = Special (Op op1, _tok1); _ }, (_, args1, _)) when op =*= op1
@@ -805,7 +805,7 @@ let add_semicolon_to_last_var_def_and_convert_to_stmts (sc : sc)
     | [] -> []
     | (ent, vardef) :: xs -> (ent, { vardef with vtok = Some sc }) :: xs
   in
-  ys |> List_.map (fun (ent, vardef) -> DefStmt (ent, VarDef vardef) |> G.s)
+  ys |> List.map (fun (ent, vardef) -> DefStmt (ent, VarDef vardef) |> G.s)
 
 let add_semicolon_to_last_def_and_convert_to_stmts (sc : sc)
     (xs : definition list) : stmt list =
@@ -817,4 +817,4 @@ let add_semicolon_to_last_def_and_convert_to_stmts (sc : sc)
         (ent, VarDef { vardef with vtok = Some sc }) :: xs
     | xs -> xs
   in
-  ys |> List_.map (fun (ent, def) -> DefStmt (ent, def) |> G.s)
+  ys |> List.map (fun (ent, def) -> DefStmt (ent, def) |> G.s)

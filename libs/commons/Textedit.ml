@@ -175,7 +175,7 @@ let apply_edits ~dryrun edits =
     (fun (path : Fpath.t) file_edits ->
       let file_text = UFile.read_file path in
       let file_edits =
-        List_.map (remove_newline_for_empty_replacement file_text) file_edits
+        List.map (remove_newline_for_empty_replacement file_text) file_edits
       in
       let new_text =
         match apply_edits_to_text path file_text file_edits with

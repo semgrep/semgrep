@@ -83,13 +83,13 @@ let get_persistent_bindings revert_loc r nested_matches =
     AST_generic_helpers.fix_token_locations_any revert_loc
   in
   nested_matches
-  |> List_.map (fun nested_match ->
+  |> List.map (fun nested_match ->
          (* The bindings in this match were produced from a target whose location
              data was all adjusted, to avoid re-parsing.
          *)
          let readjusted_mvars =
            nested_match.RM.mvars
-           |> List_.map (fun (mvar, mval) ->
+           |> List.map (fun (mvar, mval) ->
                   let mval =
                     mval |> MV.mvalue_to_any |> reverting_visitor
                     |> MV.mvalue_of_any
@@ -97,7 +97,7 @@ let get_persistent_bindings revert_loc r nested_matches =
                   (mvar, mval))
          in
          { nested_match with RM.mvars = readjusted_mvars })
-  |> List_.map (fun r' -> filter_new_mvars_by_range r r'.RM.mvars)
+  |> List.map (fun r' -> filter_new_mvars_by_range r r'.RM.mvars)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -280,7 +280,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                * created. *)
                               let skipped_tokens =
                                 skipped_tokens
-                                |> List_.map (fun tok -> revert_loc tok)
+                                |> List.map (fun tok -> revert_loc tok)
                               in
                               if skipped_tokens <> [] then
                                 Log.warn (fun m ->
