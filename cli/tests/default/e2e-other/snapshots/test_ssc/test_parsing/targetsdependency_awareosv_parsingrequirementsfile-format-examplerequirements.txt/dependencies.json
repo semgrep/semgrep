@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "package": "docopt",
+    "version": "0.6.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 9
+  }
+]

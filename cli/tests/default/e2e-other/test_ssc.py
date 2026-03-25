@@ -534,6 +534,7 @@ LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
         "targets/dependency_aware/osv_parsing/requirements/one-package-unconstrained/requirements.txt",
         "targets/dependency_aware/osv_parsing/requirements/non-normalized-names/requirements.txt",
         "targets/dependency_aware/osv_parsing/requirements/one-package-constrained/requirements.txt",
+        "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
         "targets/dependency_aware/osv_parsing/yarn/metadata-only.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v2/yarn.lock",
