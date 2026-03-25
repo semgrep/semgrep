@@ -128,11 +128,11 @@
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  targets/dependency_aware/requirements_nested_folder_dep_dupes/   Lockfile            Pypi        39                 1
+  targets/dependency_aware/requirements_nested_folder_dep_dupes/   Lockfile            Pypi        40                 1
   a/b/requirements/prod.txt,
   targets/dependency_aware/requirements_nested_folder_dep_dupes/
   a/b/requirements/stage.txt
-  targets/dependency_aware/requirements_nested_folder_dep_dupes/   Lockfile            Pypi        39                 1
+  targets/dependency_aware/requirements_nested_folder_dep_dupes/   Lockfile            Pypi        40                 1
   requirements.txt
 
 

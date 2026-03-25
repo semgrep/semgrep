@@ -1,0 +1,20 @@
+[
+  {
+    "package": "boto3",
+    "version": "1.35.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 4
+  },
+  {
+    "package": "litellm",
+    "version": "1.80.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 6
+  }
+]

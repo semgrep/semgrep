@@ -83,9 +83,9 @@
 
   Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  targets/dependency_aware/requirements_nested/a/b/requirements.   Lockfile            Pypi        39                 1
+  targets/dependency_aware/requirements_nested/a/b/requirements.   Lockfile            Pypi        40                 1
   txt
-  targets/dependency_aware/requirements_nested/requirements.txt    Lockfile            Pypi        38                 1
+  targets/dependency_aware/requirements_nested/requirements.txt    Lockfile            Pypi        39                 1
 
 
   Analysis   Rules

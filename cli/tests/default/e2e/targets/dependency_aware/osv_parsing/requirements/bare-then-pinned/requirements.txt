@@ -1,0 +1,10 @@
+flask
+celery
+gunicorn
+boto3==1.35.0
+pydantic>=2.0.0
+litellm==1.80.0
+google-generativeai
+langchain_core>=0.3.0
+psycopg2-binary
+mysql-connector-python>=8.3.0
