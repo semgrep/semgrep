@@ -250,18 +250,30 @@ local setup_nix_step = [
   },
 ];
 
+local build_bundle_steps =
+  [
+    {
+      name: 'Build osx bundle',
+      run: './scripts/bundle-with-libs.sh && ls -a bundle',
+    },
+  ];
 
-local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false) = [
-  opam_setup(opam_switch),
-  {
-    name: 'Install dependencies',
-    run: 'opam exec -- make install-deps',
-  },
-  {
-    name: 'Build %s' % name,
-    run: 'opam exec -- make',
-  },
-] + (if time then [
+local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false, build_bundle=false, extra_env={}) =
+  [
+    opam_setup(opam_switch),
+    {
+      name: 'Install dependencies',
+      run: 'opam exec -- make install-deps',
+    },
+    {
+      name: 'Build %s' % name,
+      run: 'opam exec -- make',
+    }
+    + (if extra_env != {} then { env: extra_env } else {}),
+
+  ] + (if build_bundle then build_bundle_steps else [])
+
+  + (if time then [
        {
          name: 'Test %s (and time it)' % name,
          run: |||
