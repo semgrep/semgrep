@@ -615,7 +615,60 @@ let handle_poll_response ~scan_request_id ~server_deadline ~server_poll_interval
           Ok (Poll_success sc))
 
 (* coupling(backend): if you change this you must change start_scan_v2 in scans.py *)
-(* TODO: implement an lwt-based version *)
+(* coupling(eio-port): if you change this you must change poll_scan_config_v2_eio *)
+(* poll for the v2 scan config after the scan has been created *)
+let poll_scan_config_v2_async ~scan_request_id ~headers :
+    (Out.scan_configuration, string) result Lwt.t =
+  let get_config_url =
+    Uri.with_path !Semgrep_envvars.v.semgrep_url
+      (get_config_v2_route scan_request_id)
+  in
+  let start_time = Unix.gettimeofday () in
+  (* informed bounds overridable by the server *)
+  let server_deadline = ref (start_time +. 180.) in
+  let server_poll_interval = ref 5. in
+  (* hard bounds for safety *)
+  let maximum_deadline = start_time +. 300. in
+  let minimum_poll_interval = 1. in
+  let maximum_poll_interval = 60. in
+  let poll_attempts = ref 0 in
+  let rec poll () =
+    if Unix.gettimeofday () >= Float.min !server_deadline maximum_deadline then
+      let elapsed = Unix.gettimeofday () -. start_time in
+      Lwt.return_error
+        (spf
+           "Config generation timed out after %.0f seconds \
+            (scan_request_id=%s, %d attempts)"
+           elapsed scan_request_id !poll_attempts)
+    else begin
+      incr poll_attempts;
+      match%lwt Http_helpers.get ~headers get_config_url with
+      | Error e -> Lwt.return_error (spf "Failed to poll v2 scan config: %s" e)
+      | Ok { body = Error msg; code; _ } ->
+          Lwt.return_error (spf "v2 scan config poll returned %u: %s" code msg)
+      | Ok { body = Ok body; _ } -> (
+          match
+            handle_poll_response ~scan_request_id ~server_deadline
+              ~server_poll_interval body
+          with
+          | Error e -> Lwt.return_error e
+          | Ok (Poll_success sc) -> Lwt.return_ok sc
+          | Ok (Poll_failure msg) -> Lwt.return_error msg
+          | Ok (Poll_pending interval) ->
+              (* Never wait less than minimum poll interval to avoid hammering
+               * the server *)
+              let wait =
+                Float.min
+                  (Float.max interval minimum_poll_interval)
+                  maximum_poll_interval
+              in
+              let%lwt () = Lwt_platform.sleep wait in
+              poll ())
+    end
+  in
+  poll ()
+
+(* coupling(eio-port): if you change this you must change poll_scan_config_v2_async *)
 (* poll for the v2 scan config after the scan has been created *)
 let poll_scan_config_v2_eio ~scan_request_id ~headers :
     (Out.scan_configuration, string) result =
@@ -668,7 +721,43 @@ let poll_scan_config_v2_eio ~scan_request_id ~headers :
   in
   poll ()
 
-(* TODO: implement an lwt-based version *)
+(* coupling(eio-port): if you change this you must change fetch_scan_config_v2_eio *)
+(* Fetch a config using the v2 endpoints *)
+let fetch_scan_config_v2_async ?(secrets = false) ?(sca = false) token :
+    (Out.scan_configuration, string) result Lwt.t =
+  Metrics_.add_feature ~category:"config_download" ~name:"v2_config_lwt";
+  let request, scan_request_id = make_scan_request_v2 ~secrets ~sca () in
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token token;
+    ]
+  in
+  let start_scan_url =
+    Uri.with_path !Semgrep_envvars.v.semgrep_url start_scan_v2_route
+  in
+  let request_body = Out.string_of_create_scan_request_v2 request in
+  Logs.debug (fun m ->
+      m "Starting v2 scan config fetch (scan_request_id=%s)" scan_request_id);
+  match%lwt Http_helpers.post ~body:request_body ~headers start_scan_url with
+  | Error e -> Lwt.return_error (spf "Failed to create v2 scan: %s" e)
+  | Ok { body = Error msg; code; _ } ->
+      Lwt.return_error
+        (spf "Failed to create v2 scan, server returned %u: %s" code msg)
+  | Ok { body = Ok body; _ } ->
+      (match Out.create_scan_response_v2_of_string body with
+      | { info = { id; deployment_id; deployment_name; _ } } ->
+          Logs.debug (fun m ->
+              m
+                "v2 scan created: scan_id=%s deployment_id=%d \
+                 deployment_name=%s"
+                (Option.fold ~none:"null" ~some:string_of_int id)
+                deployment_id deployment_name)
+      | exception _ -> ());
+      poll_scan_config_v2_async ~scan_request_id ~headers
+
+(* coupling(eio-port): if you change this you must change the lwt version *)
 (* Fetch a config using the v2 endpoints *)
 let fetch_scan_config_v2_eio ?(secrets = false) ?(sca = false) token :
     (Out.scan_configuration, string) result =
