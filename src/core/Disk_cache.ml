@@ -61,6 +61,7 @@ module type S = sig
   val write : t -> string -> value -> (handle, error) result
   val read : handle -> (value, error) result
   val rm : handle -> unit
+  val equal_handle : handle -> handle -> bool
 end
 
 module Make (V : DISK_CACHEABLE) : S with type value = V.t = struct
@@ -90,4 +91,6 @@ module Make (V : DISK_CACHEABLE) : S with type value = V.t = struct
       (* nosemgrep: no-logs-in-library *)
       Logs.warn (fun m ->
           m "Failed to remove nonexistent cached file %s" !!path)
+
+  let equal_handle = Fpath.equal
 end
