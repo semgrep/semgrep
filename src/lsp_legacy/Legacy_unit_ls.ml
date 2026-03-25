@@ -313,6 +313,145 @@ let ci_tests () =
   in
   Testo.categorize "CI Tests" tests
 
+(*****************************************************************************)
+(* V2 scan config async tests (mocked HTTP, no real network) *)
+(*****************************************************************************)
+
+let create_scan_resp_body =
+  {|{"info":{"enabled_products":[],"deployment_id":1,"deployment_name":"test"}}|}
+
+let is_v2_poll_path path = String.starts_with ~prefix:"/api/cli/v2/scans/" path
+
+let success_config_body =
+  {|{"status":"success","config":{"rules":{"rules":[]}}}|}
+
+let pending_config_body =
+  {|{"status":"pending","polling":{"recommended_wait_seconds":0,"seconds_until_timeout":60}}|}
+
+let failure_config_body = {|{"status":"failure"}|}
+
+let v2_fetch_async_tests () =
+  let fake_token () = Auth.unsafe_token_of_string "test_token" in
+
+  let async_success () =
+    let make_fn (req : Cohttp.Request.t) _body =
+      let path = Uri.path (Cohttp.Request.uri req) in
+      let body_str =
+        match path with
+        | "/api/cli/v2/scans" ->
+            Http_mock_client.check_method `POST req.meth;
+            create_scan_resp_body
+        | p when is_v2_poll_path p ->
+            Http_mock_client.check_method `GET req.meth;
+            success_config_body
+        | _ -> Alcotest.fail (Printf.sprintf "Unexpected request: %s" path)
+      in
+      Lwt.return
+        Http_mock_client.(basic_response (Cohttp_lwt.Body.of_string body_str))
+    in
+    Http_mock_client.with_mocked_http make_fn
+      (fun () ->
+        Lwt_platform.run
+          (let%lwt result =
+             Semgrep_App.fetch_scan_config_v2_async (fake_token ())
+           in
+           Alcotest.(check bool) "v2 async success" true (Result.is_ok result);
+           Lwt.return_unit))
+      ()
+  in
+
+  (* Note: the minimum sleep between polls is 1 second (see Poll_pending floor
+     in fetch_scan_config_v2_async), so this test takes ~1 second. *)
+  let async_pending_then_success () =
+    let call_count = ref 0 in
+    let make_fn (req : Cohttp.Request.t) _body =
+      let path = Uri.path (Cohttp.Request.uri req) in
+      let body_str =
+        match path with
+        | "/api/cli/v2/scans" ->
+            Http_mock_client.check_method `POST req.meth;
+            create_scan_resp_body
+        | p when is_v2_poll_path p ->
+            Http_mock_client.check_method `GET req.meth;
+            incr call_count;
+            if !call_count = 1 then pending_config_body else success_config_body
+        | _ -> Alcotest.fail (Printf.sprintf "Unexpected request: %s" path)
+      in
+      Lwt.return
+        Http_mock_client.(basic_response (Cohttp_lwt.Body.of_string body_str))
+    in
+    Http_mock_client.with_mocked_http make_fn
+      (fun () ->
+        Lwt_platform.run
+          (let%lwt result =
+             Semgrep_App.fetch_scan_config_v2_async (fake_token ())
+           in
+           Alcotest.(check bool)
+             "v2 async pending->success" true (Result.is_ok result);
+           Alcotest.(check int) "polled twice" 2 !call_count;
+           Lwt.return_unit))
+      ()
+  in
+
+  let async_server_failure () =
+    let make_fn (req : Cohttp.Request.t) _body =
+      let path = Uri.path (Cohttp.Request.uri req) in
+      let body_str =
+        match path with
+        | "/api/cli/v2/scans" ->
+            Http_mock_client.check_method `POST req.meth;
+            create_scan_resp_body
+        | p when is_v2_poll_path p ->
+            Http_mock_client.check_method `GET req.meth;
+            failure_config_body
+        | _ -> Alcotest.fail (Printf.sprintf "Unexpected request: %s" path)
+      in
+      Lwt.return
+        Http_mock_client.(basic_response (Cohttp_lwt.Body.of_string body_str))
+    in
+    Http_mock_client.with_mocked_http make_fn
+      (fun () ->
+        Lwt_platform.run
+          (let%lwt result =
+             Semgrep_App.fetch_scan_config_v2_async (fake_token ())
+           in
+           Alcotest.(check bool)
+             "v2 async server failure" true (Result.is_error result);
+           Lwt.return_unit))
+      ()
+  in
+
+  let async_post_error () =
+    let make_fn (req : Cohttp.Request.t) _body =
+      let path = Uri.path (Cohttp.Request.uri req) in
+      (match path with
+      | "/api/cli/v2/scans" -> Http_mock_client.check_method `POST req.meth
+      | _ -> Alcotest.fail (Printf.sprintf "Unexpected request: %s" path));
+      Lwt.return
+        Http_mock_client.(
+          basic_response ~status:500
+            (Cohttp_lwt.Body.of_string "Internal Server Error"))
+    in
+    Http_mock_client.with_mocked_http make_fn
+      (fun () ->
+        Lwt_platform.run
+          (let%lwt result =
+             Semgrep_App.fetch_scan_config_v2_async (fake_token ())
+           in
+           Alcotest.(check bool)
+             "v2 async POST error" true (Result.is_error result);
+           Lwt.return_unit))
+      ()
+  in
+
+  Testo.categorize "V2 scan config (async)"
+    [
+      t "success" async_success;
+      t "pending then success" async_pending_then_success;
+      t "server failure" async_server_failure;
+      t "POST error" async_post_error;
+    ]
+
 let test_ls_libev () = Lwt_platform.set_engine ()
 
 let libev_tests =
@@ -320,4 +459,10 @@ let libev_tests =
 
 let tests () =
   Testo.categorize_suites "Language Server (unit)"
-    [ session_targets (); processed_run (); ci_tests (); libev_tests ]
+    [
+      session_targets ();
+      processed_run ();
+      ci_tests ();
+      v2_fetch_async_tests ();
+      libev_tests;
+    ]
