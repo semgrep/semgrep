@@ -26,7 +26,10 @@ end)
 let with_cache f =
   match Disk_cache.setup () with
   | Error msg -> Alcotest.fail ("setup failed: " ^ msg)
-  | Ok cache -> f cache
+  | Ok cache ->
+      Common.protect
+        ~finally:(fun () -> Disk_cache.cleanup cache)
+        (fun () -> f cache)
 
 let write_ok cache key value =
   match Int_cache.write cache key value with
