@@ -226,7 +226,7 @@ and map_argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
         let rest =
           match v2 with
           | Some xs ->
-              List_.map (fun (_comma, expr) -> Arg (map_expression env expr)) xs
+              List.map (fun (_comma, expr) -> Arg (map_expression env expr)) xs
           | None -> []
         in
         arg1 :: rest
@@ -253,7 +253,7 @@ let map_direct_relationship (env : env) ((v1, v2, v3) : CST.direct_relationship)
         let rest_items =
           match rest_opt with
           | Some xs ->
-              List_.map
+              List.map
                 (fun (_comma, type_ref, _cond_opt) ->
                   map_type_reference env type_ref)
                 xs
@@ -314,7 +314,7 @@ let map_condition_declaration (env : env)
         let rest_params =
           match rest_opt with
           | Some xs ->
-              List_.map
+              List.map
                 (fun (_comma, (param_name, _colon, param_type)) ->
                   let pname = map_anon_choice_id_684e964 env param_name in
                   let ptype =
@@ -338,7 +338,7 @@ let map_condition_declaration (env : env)
   let fdef =
     {
       fkind = (G.Function, _condition_tok);
-      fparams = (lparen, List_.map (fun p -> G.Param p) params, rparen);
+      fparams = (lparen, List.map (fun p -> G.Param p) params, rparen);
       frettype = None;
       fbody = G.FBExpr body_expr;
       (* Empty body for now *)
@@ -359,7 +359,7 @@ let map_type_declaration (env : env)
   let relations =
     match v5 with
     | Some (_relations_tok, defs) ->
-        List_.map
+        List.map
           (fun x ->
             match x with
             | `Defi def ->
@@ -397,7 +397,7 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
         | `Module (_module_tok, _name) -> ()
       in
       let stmts =
-        List_.map
+        List.map
           (fun x ->
             match x with
             | `Type_decl td -> map_type_declaration env td

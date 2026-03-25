@@ -396,7 +396,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     let rule_filtering_conf =
       {
         Rule_filtering.exclude_rule_ids =
-          List_.map Rule_ID.of_string_exn exclude_rule_ids;
+          List.map Rule_ID.of_string_exn exclude_rule_ids;
         severity = [];
         exclude_products = [];
       }

@@ -140,7 +140,7 @@ let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
     (* "<" *)
   in
   let v2 = Id (str env v2 (* script_start_tag_name *), G.empty_id_info ()) in
-  let v3 = List_.map (map_attribute env) v3 in
+  let v3 = List.map (map_attribute env) v3 in
   let v4 =
     token env v4
     (* ">" *)
@@ -153,7 +153,7 @@ let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
     (* "<" *)
   in
   let v2 = Id (str env v2 (* style_start_tag_name *), G.empty_id_info ()) in
-  let v3 = List_.map (map_attribute env) v3 in
+  let v3 = List.map (map_attribute env) v3 in
   let v4 =
     token env v4
     (* ">" *)
@@ -169,7 +169,7 @@ let map_start_tag (env : env) (x : CST.start_tag) =
         (* "<" *)
       in
       let v2 = Id (str env v2 (* start_tag_name *), G.empty_id_info ()) in
-      let v3 = List_.map (map_attribute env) v3 in
+      let v3 = List.map (map_attribute env) v3 in
       let v4 =
         token env v4
         (* ">" *)
@@ -180,7 +180,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
   match x with
   | `Start_tag_rep_node_choice_end_tag (v1, v2, v3) ->
       let l, id, attrs, r = map_start_tag env v1 in
-      let v2 = List_.map (map_node env) v2 in
+      let v2 = List.map (map_node env) v2 in
       let v3 =
         match v3 with
         | `End_tag x -> map_end_tag env x
@@ -194,7 +194,7 @@ let rec map_element (env : env) (x : CST.element) : xml =
         (* "<" *)
       in
       let id = Id (str env v2 (* start_tag_name *), G.empty_id_info ()) in
-      let attrs = List_.map (map_attribute env) v3 in
+      let attrs = List.map (map_attribute env) v3 in
       let r =
         token env v4
         (* "/>" *)
@@ -296,7 +296,7 @@ let map_toplevel_node (env : env) (x : CST.toplevel_node) : xml_body =
   match x with
   | `Xmld (v1, v2, v3) ->
       let l = (* "<?xml" *) token env v1 in
-      let xml_attrs = List_.map (map_attribute env) v2 in
+      let xml_attrs = List.map (map_attribute env) v2 in
       let r = (* "?>" *) token env v3 in
       let xml =
         {
@@ -316,7 +316,7 @@ let map_document (env : env) (x : CST.document) :
     (xml_body list, xml_attribute) Either.t =
   match x with
   | `Rep_topl_node v1 ->
-      let xml_bodys = List_.map (map_toplevel_node env) v1 in
+      let xml_bodys = List.map (map_toplevel_node env) v1 in
       Left xml_bodys
   | `Topl_attr (v1, v2, v3) ->
       let id =

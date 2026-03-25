@@ -81,8 +81,8 @@ let rec eval (p : 'a -> bool) (formula : 'a t) : bool =
 
 let rec map (f : 'a -> 'b) (formula : 'a t) : 'b t =
   match formula with
-  | And xs -> And (List_.map (map f) xs)
-  | Or xs -> Or (List_.map (map f) xs)
+  | And xs -> And (List.map (map f) xs)
+  | Or xs -> Or (List.map (map f) xs)
   | Pred x -> Pred (f x)
 
 let predicates (formula : 'a t) : 'a list =

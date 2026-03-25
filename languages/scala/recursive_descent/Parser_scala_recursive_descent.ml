@@ -223,7 +223,7 @@ let convertToParam tk e =
 
 let convertToParams tk e =
   match e with
-  | Tuple (lb, xs, rb) -> (lb, (xs |> List_.map (convertToParam tk), None), rb)
+  | Tuple (lb, xs, rb) -> (lb, (xs |> List.map (convertToParam tk), None), rb)
   | _ -> fb tk ([ convertToParam tk e ], None)
 
 let makeMatchFromExpr e =
@@ -3599,7 +3599,7 @@ let usingParamClauseInner ~caseParam owner implicitmod in_ =
       in
       if is_type then
         let tys = types in_ in
-        (List_.map (fun ty -> ParamType ty) tys, Some ii)
+        (List.map (fun ty -> ParamType ty) tys, Some ii)
       else
         (* TODO: not right to reuse? *)
         (* no implciitmod?*)

@@ -157,7 +157,7 @@ let dedent_lines (lines : string list) =
     in
     eq hd tl (min (List.length hd) (List.length tl)) 0
   in
-  ( List_.map
+  ( List.map
       (fun line ->
         if String.(length (trim line)) =|= 0 then line
         else Str.string_after line longest_prefix)

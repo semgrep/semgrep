@@ -125,7 +125,7 @@ let no_analysis_features () =
   }
 
 let data_of_languages (languages : Analyzer.t list) =
-  languages |> List_.map (fun l -> (Analyzer.to_string l, `Bool true))
+  languages |> List.map (fun l -> (Analyzer.to_string l, `Bool true))
 
 (*
  record_phase_data records metrics for functions that take both sets of files

@@ -111,11 +111,11 @@ let is_compatible ~require ~provide =
 
 let flatten x =
   match x with
-  | L (lang, langs) -> List_.map (fun x -> L (x, [])) (lang :: langs)
+  | L (lang, langs) -> List.map (fun x -> L (x, [])) (lang :: langs)
   | (LRegex | LSpacegrep | LAliengrep) as x -> [ x ]
 
 let assoc : (string * t) list =
-  List_.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
+  List.map (fun (k, v) -> (k, of_lang v)) Lang.assoc
   @ [
       ("regex", LRegex);
       ("none", LRegex);

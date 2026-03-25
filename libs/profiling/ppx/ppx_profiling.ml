@@ -137,7 +137,7 @@ let module_name_of_filename s =
  *)
 let impl xs =
   xs
-  |> List_.map (fun item ->
+  |> List.map (fun item ->
          match item with
          (* let <fname> ... = ... [@@profiling <args_opt> *)
          | {

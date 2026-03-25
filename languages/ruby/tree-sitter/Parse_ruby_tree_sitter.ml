@@ -175,7 +175,7 @@ and statement (env : env) (x : CST.statement) :
       let v1 = token2 env v1 in
       let v2 = method_name env v2 in
       let v3 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 = token2 env v1 in
             let v2 = method_name env v2 in
@@ -298,7 +298,7 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) :
     | Some (v1, v2) ->
         let v1 = formal_parameter env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 = token2 env v1 in
               let v2 = formal_parameter env v2 in
@@ -315,7 +315,7 @@ and bare_parameters (env : env) ((v1, v2) : CST.bare_parameters) :
     AST.formal_param list =
   let v1 = simple_formal_parameter env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = token2 env v1 in
         let v2 = formal_parameter env v2 in
@@ -332,7 +332,7 @@ and block_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.block_parameters) :
     | Some (v1, v2) ->
         let v1 = formal_parameter env v1 in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 = token2 env v1 in
               let v2 = formal_parameter env v2 in
@@ -353,7 +353,7 @@ and block_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.block_parameters) :
         let _v1 = token2 env v1 in
         let v2 = str env v2 in
         let v3 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 = token2 env v1 in
               let v2 = str env v2 in
@@ -442,7 +442,7 @@ and when_ (env : env) ((v1, v2, v3, v4) : CST.when_) =
   let twhen = token2 env v1 in
   let v2 = pattern env v2 in
   let v3 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _tcomma = token2 env v1 in
         let v2 = pattern env v2 in
@@ -559,7 +559,7 @@ and exceptions (env : env) ((v1, v2) : CST.exceptions) : AST.expr list =
     | `Splat_arg x -> splat_argument env x
   in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = token2 env v1 in
         let v2 =
@@ -721,7 +721,7 @@ and hash_pattern_body (env : env) (x : CST.hash_pattern_body) : patlist_arg list
   | `Kw_pat_rep_COMMA_kw_pat_opt_COMMA (v1, v2, v3) ->
       let v1 = keyword_pattern env v1 in
       let v2 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token2 env v1 in
             let v2 = keyword_pattern env v2 in
@@ -737,7 +737,7 @@ and hash_pattern_body (env : env) (x : CST.hash_pattern_body) : patlist_arg list
   | `Kw_pat_rep_COMMA_kw_pat_COMMA_hash_pat_any_rest (v1, v2, v3, v4) ->
       let v1 = keyword_pattern env v1 in
       let v2 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token2 env v1 in
             let v2 = keyword_pattern env v2 in
@@ -842,7 +842,7 @@ and array_pattern_n (env : env) (x : CST.array_pattern_n) : patlist_arg list =
   | `Splat_param_rep_COMMA_pat_expr (v1, v2) ->
       let v1 = splat_parameter env v1 in
       let v2 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token2 env v1 in
             let v2 = pattern_expr env v2 in
@@ -885,7 +885,7 @@ and find_pattern_body (env : env) ((v1, v2, v3, v4) : CST.find_pattern_body) :
     patlist_arg list =
   let v1 = splat_parameter env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token2 env v1 in
         let v2 = pattern_expr env v2 in
@@ -1270,7 +1270,7 @@ and anon_lit_content_rep_pat_3d340f6_lit_content_3d2b44e (env : env)
     ((v1, v2) : CST.anon_lit_content_rep_pat_3d340f6_lit_content_3d2b44e) =
   let v1 = literal_contents env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 =
           token2 env v1
@@ -1313,7 +1313,7 @@ and hash (env : env) (v1, v2, v3) =
           | `Hash_splat_arg x -> hash_splat_argument env x
         in
         let v2 =
-          List_.map
+          List.map
             (fun (v1, v2) ->
               let _v1 = token2 env v1 in
               let v2 =
@@ -1586,7 +1586,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
             | Some x -> Some (terminator env x)
             | None -> None
           in
-          let v5 = List_.map (when_ env) v5 in
+          let v5 = List.map (when_ env) v5 in
           let v6 =
             match v6 with
             | Some x -> Some (else_ env x)
@@ -1602,7 +1602,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
             | Some x -> terminator env x
             | None -> ()
           in
-          let v4 = List_.map (in_clause env) v4 in
+          let v4 = List.map (in_clause env) v4 in
           let v5 =
             match v5 with
             | Some x -> Some (else_ env x)
@@ -1856,7 +1856,7 @@ and command_argument_list (env : env) (x : CST.command_argument_list) :
       let t = Tok.rewrap_str "..." t in
       let v2 = argument env v2 in
       let v3 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token2 env v1 in
             let v2 = argument env v2 in
@@ -1867,7 +1867,7 @@ and command_argument_list (env : env) (x : CST.command_argument_list) :
   | `Arg_rep_COMMA_arg (v1, v2) ->
       let v1 = argument env v1 in
       let v2 =
-        List_.map
+        List.map
           (fun (v1, v2) ->
             let _t = token2 env v1 in
             let v2 = argument env v2 in
@@ -1891,7 +1891,7 @@ and argument_list_with_trailing_comma (env : env)
     ((v1, v2, v3) : CST.argument_list_with_trailing_comma) : AST.argument list =
   let v1 = argument env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _ = token2 env v1 in
         let v2 = argument env v2 in
@@ -2240,7 +2240,7 @@ and right_assignment_list (env : env) ((v1, v2) : CST.right_assignment_list) :
     | `Splat_arg x -> splat_argument env x
   in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = token2 env v1 in
         let v2 =
@@ -2406,7 +2406,7 @@ and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
 and mlhs (env : env) ((v1, v2, v3) : CST.mlhs) : AST.expr list =
   let v1 = anon_choice_lhs_3a98eae env v1 in
   let v2 =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _v1 = token2 env v1 in
         let v2 = anon_choice_lhs_3a98eae env v2 in

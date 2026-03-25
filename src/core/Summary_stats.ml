@@ -183,6 +183,6 @@ module Make (Key : Key) : S with type key = Key.t = struct
              else 0.0);
         }
     in
-    let top_very_slow = stats.very_slow |> List_.map to_out_time in
+    let top_very_slow = stats.very_slow |> List.map to_out_time in
     (summary_stats, very_slow_stats, top_very_slow)
 end

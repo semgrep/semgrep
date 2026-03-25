@@ -39,7 +39,7 @@ let id x = x
 let v_string = id
 let v_float = id
 let v_bool = id
-let v_list = List_.map
+let v_list = List.map
 let v_option = Option.map
 
 let cases_to_lambda lb cases : G.function_definition =
@@ -137,7 +137,7 @@ and id_of_import_path_elem = function
   | ImportThis t -> ("this", t)
   | ImportSuper t -> ("super", t)
 
-and v_dotted_name_of_import_path v1 = List_.map id_of_import_path_elem v1
+and v_dotted_name_of_import_path v1 = List.map id_of_import_path_elem v1
 
 and v_import_expr tk import_expr =
   match import_expr with
@@ -188,7 +188,7 @@ and v_export (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
   let v2 = v_list (v_import_expr v1) v2 in
   List_.flatten v2
-  |> List_.map (fun x ->
+  |> List.map (fun x ->
          G.OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
          |> G.d)
 
@@ -221,7 +221,7 @@ and v_literal = function
       in
       let args =
         v2
-        |> List_.map (function
+        |> List.map (function
              | Either.Left lit -> G.Arg (G.L lit |> G.e)
              | Either.Right e ->
                  let special =
@@ -263,12 +263,12 @@ and v_type_kind = function
   | TyApplied (v1, v2) -> (
       let v1 = v_type_ v1 and v2 = v_bracket (v_list v_type_) v2 in
       let lp, xs, rp = v2 in
-      let args = xs |> List_.map (fun x -> G.TA x) in
+      let args = xs |> List.map (fun x -> G.TA x) in
       match v1.t with
       | G.TyN n -> G.TyApply (G.TyN n |> G.t, (lp, args, rp))
       | _ ->
           todo_type "TyAppliedComplex"
-            (G.T v1 :: (xs |> List_.map (fun x -> G.T x))))
+            (G.T v1 :: (xs |> List.map (fun x -> G.T x))))
   | TyAnon (v1, v2) ->
       (* We'd prefer to see type bounds in a `type_parameter`, but this
          nonterminal needs to become a `type_` argument anyways, and we
@@ -299,7 +299,7 @@ and v_type_kind = function
       and _v2 = v_tok v2
       and v3 = v_type_ v3 in
       let ts =
-        v1 |> Tok.unbracket |> List_.map (fun t -> G.Param (G.param_of_type t))
+        v1 |> Tok.unbracket |> List.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
   | TyPoly (v1, _v2, v3) ->
@@ -334,7 +334,7 @@ and v_type_kind = function
         ((match v1 with
          | None -> []
          | Some t -> [ G.T t ])
-        @ (defs |> List_.map (fun def -> G.Def def)))
+        @ (defs |> List.map (fun def -> G.Def def)))
   | TyMatch (ty, tok, cases) ->
       let cases = v_type_case_clauses cases in
       let ty_expr =
@@ -347,8 +347,7 @@ and v_type_kind = function
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
       let _lb, defs, _rb = v_refinement v3 in
-      todo_type "TyExistential"
-        (G.T v1 :: (defs |> List_.map (fun x -> G.Def x)))
+      todo_type "TyExistential" (G.T v1 :: (defs |> List.map (fun x -> G.Def x)))
   | TyWith (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyAnd (v1, v2, v3)
@@ -476,7 +475,7 @@ and v_expr e : G.expr =
       todo_expr "ExprUnderscore" [ G.Tk v1 ]
   | InstanciatedExpr (v1, v2) ->
       let v1 = v_expr v1 and _, v2, _ = v_bracket (v_list v_type_) v2 in
-      todo_expr "InstanciatedExpr" (G.E v1 :: List_.map (fun t -> G.T t) v2)
+      todo_expr "InstanciatedExpr" (G.E v1 :: List.map (fun t -> G.T t) v2)
   | TypedExpr (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ascription v3 in
       G.Cast (v3, v2, v1) |> G.e
@@ -790,7 +789,7 @@ and v_catch_clause (v1, v2) : G.catch list =
   match v2 with
   | CatchCases (_lb, xs, _rb) ->
       xs
-      |> List_.map (function
+      |> List.map (function
            | CC x ->
                let icase, pat, st = v_case_clause_classic x in
                (icase, G.CatchPattern pat, st)
@@ -813,13 +812,13 @@ and v_block_stat x : G.item list =
   match x with
   | D v1 ->
       let v1 = v_definition v1 in
-      v1 |> List_.map (fun def -> G.DefStmt def |> G.s)
+      v1 |> List.map (fun def -> G.DefStmt def |> G.s)
   | I v1 ->
       let v1 = v_import v1 in
-      v1 |> List_.map (fun dir -> G.DirectiveStmt dir |> G.s)
+      v1 |> List.map (fun dir -> G.DirectiveStmt dir |> G.s)
   | Ex v1 ->
       let v1 = v_export v1 in
-      v1 |> List_.map (fun dir -> G.DirectiveStmt dir |> G.s)
+      v1 |> List.map (fun dir -> G.DirectiveStmt dir |> G.s)
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in
       [ v1 ]
@@ -869,7 +868,7 @@ and v_modifier_kind = function
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  let args = v3 |> List_.map Tok.unbracket |> List_.flatten in
+  let args = v3 |> List.map Tok.unbracket |> List_.flatten in
   match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
@@ -936,13 +935,13 @@ and v_given_definition { gsig; gkind } =
         let g_tparams =
           match v_type_parameters g_tparams with
           | None -> []
-          | Some (_, xs, _) -> [ G.Anys (xs |> List_.map (fun x -> G.Tp x)) ]
+          | Some (_, xs, _) -> [ G.Anys (xs |> List.map (fun x -> G.Tp x)) ]
         in
         let g_using =
           [
             G.Anys
               (v_list v_bindings g_using |> List_.flatten
-              |> List_.map (fun x -> G.Pa x));
+              |> List.map (fun x -> G.Pa x));
           ]
         in
         g_id @ g_tparams @ g_using
@@ -952,12 +951,12 @@ and v_given_definition { gsig; gkind } =
     | GivenStructural (constr_apps, body) ->
         let v1 =
           v_list v_constr_app constr_apps
-          |> List_.map (fun (ty, argss) ->
+          |> List.map (fun (ty, argss) ->
                  let flat_args =
                    List.concat_map (fun (_, args, _) -> args) argss
                  in
                  G.Anys
-                   [ G.T ty; G.Anys (List_.map (fun x -> G.Ar x) flat_args) ])
+                   [ G.T ty; G.Anys (List.map (fun x -> G.Ar x) flat_args) ])
         in
         let v2 =
           match body with
@@ -990,11 +989,11 @@ and v_extension { ext_tok = _; ext_tparams; ext_using; ext_param; ext_methods }
   let tparams =
     match v_type_parameters ext_tparams with
     | None -> G.Anys []
-    | Some (_, xs, _) -> G.Anys (xs |> List_.map (fun tp -> G.Tp tp))
+    | Some (_, xs, _) -> G.Anys (xs |> List.map (fun tp -> G.Tp tp))
   in
   let using =
     G.Anys
-      (v_list v_bindings ext_using |> List_.map (fun params -> G.Params params))
+      (v_list v_bindings ext_using |> List.map (fun params -> G.Params params))
   in
   let params = G.Pa (v_binding None ext_param) in
   let methods = G.Anys (List.concat_map v_ext_method ext_methods) in
@@ -1005,8 +1004,8 @@ and v_extension { ext_tok = _; ext_tparams; ext_using; ext_param; ext_methods }
 
 and v_ext_method ext_method : G.any list =
   match ext_method with
-  | ExtDef def -> v_definition def |> List_.map (fun def -> G.Def def)
-  | ExtExport import -> v_import import |> List_.map (fun dir -> G.Dir dir)
+  | ExtDef def -> v_definition def |> List.map (fun def -> G.Def def)
+  | ExtExport import -> v_import import |> List.map (fun dir -> G.Dir dir)
 
 and v_constr_app (ty, args) = (v_type_ ty, v_list v_arguments args)
 
@@ -1015,7 +1014,7 @@ and v_enum_case_definition attrs v1 =
   | EnumIds ids ->
       let ids = v_list v_ident ids in
       ids
-      |> List_.map (fun id ->
+      |> List.map (fun id ->
              ( G.basic_entity id,
                G.EnumEntryDef { ee_args = None; ee_body = None } ))
   | EnumConstr { eid; etyparams; eparams; eattrs; eextends } ->
@@ -1033,7 +1032,7 @@ and v_enum_case_definition attrs v1 =
       *)
       let args =
         match
-          List_.map
+          List.map
             (fun param -> G.OtherArg (("Param", fake), [ G.Pa param ]))
             params
         with
@@ -1192,7 +1191,7 @@ and v_template_definition
   let cbody =
     match body with
     | None -> G.empty_body
-    | Some (lb, xs, rb) -> (lb, xs |> List_.map (fun st -> G.F st), rb)
+    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.F st), rb)
   in
   { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
 

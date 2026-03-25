@@ -38,4 +38,4 @@ let get_contributions () : Semgrep_output_v1_j.contribution list =
   let thirty_days_ago =
     Datetime_.time_n_days_ago ~days:30 ~time:(Datetime_.now ())
   in
-  Git_wrapper.logs ~since:thirty_days_ago () |> List_.map contrib_to_contrib
+  Git_wrapper.logs ~since:thirty_days_ago () |> List.map contrib_to_contrib

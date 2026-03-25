@@ -47,7 +47,7 @@ let get_name = function
       name
 
 let rec sort xs =
-  List_.map sort_one xs
+  List.map sort_one xs
   |> List.sort (fun a b -> String.compare (get_name a) (get_name b))
 
 and sort_one x =
@@ -174,7 +174,7 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   List.rev acc
   |>
   (* remove the leading "./" *)
-  List_.map Fpath.normalize
+  List.map Fpath.normalize
 
 let print_files files =
   flatten files |> List.iter (fun path -> Printf.printf "%s\n" !!path)
@@ -199,7 +199,7 @@ let rec read path =
   match UUnix.lstat path with
   | Ok { st_kind = S_DIR; _ } ->
       let names = get_dir_entries path in
-      Dir (name, List_.map (fun name -> read (path / name)) names)
+      Dir (name, List.map (fun name -> read (path / name)) names)
   | Ok { st_kind = S_REG; _ } -> File (name, UFile.read_file path)
   | Ok { st_kind = S_LNK; _ } -> Symlink (name, Unix.readlink !!path)
   | Ok _ -> failwith ("Testutil_files.read: unsupported file type: " ^ !!path)
@@ -210,7 +210,7 @@ let read_dir root =
   match UUnix.stat root with
   | Ok { st_kind = S_DIR; _ } ->
       let names = get_dir_entries root in
-      List_.map (fun name -> read (root / name)) names
+      List.map (fun name -> read (root / name)) names
   | _other ->
       failwith ("Testutil_files.read: root must be a directory: " ^ !!root)
 

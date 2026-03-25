@@ -211,9 +211,9 @@ let rec show_precondition (p : precondition) : string =
   | PLabel s -> s
   | PBool b -> string_of_bool b
   | PAnd preds ->
-      "(" ^ String.concat " and " (List_.map show_precondition preds) ^ ")"
+      "(" ^ String.concat " and " (List.map show_precondition preds) ^ ")"
   | POr preds ->
-      "(" ^ String.concat " or " (List_.map show_precondition preds) ^ ")"
+      "(" ^ String.concat " or " (List.map show_precondition preds) ^ ")"
   | PNot pred -> "not " ^ show_precondition pred
 
 type precondition_with_range = {
@@ -784,7 +784,7 @@ type join_rule = join_mode rule_info [@@deriving show]
 (* old: was t list -> hrules, but nice to allow for more precise hrules *)
 let hrules_of_rules (rules : 'mode rule_info list) :
     (Rule_ID.t, 'mode rule_info) Hashtbl.t =
-  rules |> List_.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
+  rules |> List.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
 
 let rules_of_hrules (hrules : hrules) : string list =
   hrules |> Hashtbl.to_seq
@@ -869,13 +869,13 @@ let rec formulas_of_mode (mode : mode) : formula list =
   | `Search formula -> [ formula ]
   | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
     ->
-      List_.map (fun src -> src.source_formula) sources
+      List.map (fun src -> src.source_formula) sources
       @ (match sanitizers with
         | None -> []
         | Some (_, sanitizers) ->
-            List_.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
-      @ List_.map (fun sink -> sink.sink_formula) sinks
-      @ List_.map (fun prop -> prop.propagator_formula) propagators
+            List.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
+      @ List.map (fun sink -> sink.sink_formula) sinks
+      @ List.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Steps steps ->
       List.concat_map

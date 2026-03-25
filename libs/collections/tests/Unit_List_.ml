@@ -19,7 +19,7 @@ open Printf
 let t = Testo.create
 
 let string_of_int_list xs =
-  sprintf "[%s]" (xs |> List_.map string_of_int |> String.concat "; ")
+  sprintf "[%s]" (xs |> List.map string_of_int |> String.concat "; ")
 
 let string_of_int_option = function
   | None -> "None"

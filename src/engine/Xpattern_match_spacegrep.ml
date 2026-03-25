@@ -35,12 +35,12 @@ let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) (file : Fpath.t)
   in
   let matches = Spacegrep.Match.search search_param src pat doc in
   matches
-  |> List_.map (fun m ->
+  |> List.map (fun m ->
          let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
          let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
          let env =
            m.Spacegrep.Match.named_captures
-           |> List_.map (fun (s, capture) ->
+           |> List.map (fun (s, capture) ->
                   let mvar = "$" ^ s in
                   let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
                   let loc = lexing_pos_to_loc file pos str in

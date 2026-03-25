@@ -261,7 +261,7 @@ let receive_diagnostics =
 
 let receive_and_sort_diagnostics packets =
   packets
-  |> List_.map receive_diagnostics
+  |> List.map receive_diagnostics
   |> List.sort
        (fun (x : PublishDiagnosticsParams.t) (y : PublishDiagnosticsParams.t) ->
          String.compare
@@ -269,7 +269,7 @@ let receive_and_sort_diagnostics packets =
            (DocumentUri.to_string y.uri))
 
 let ids_of_params (params : PublishDiagnosticsParams.t) =
-  List_.map (fun d -> d.Diagnostic.code) params.diagnostics
+  List.map (fun d -> d.Diagnostic.code) params.diagnostics
 
 let receive_diagnostic_ids packet =
   let params = receive_diagnostics packet in
@@ -371,7 +371,7 @@ let mock_workspaces root =
   FileUtil.cp ~recurse:true [ workspace1_root ] workspace2_root;
 
   let workspace2_files =
-    List_.map
+    List.map
       (fun file -> Fpath.(v workspace2_root / filename file))
       workspace1_files
     |> List.sort (fun x y ->
@@ -413,7 +413,7 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
     let workspaceFolders =
       Some
         (workspaceFolders
-        |> List_.map (fun f ->
+        |> List.map (fun f ->
                let f = Fpath.to_string f in
                { Types.WorkspaceFolder.uri = Uri.of_path f; name = f }))
     in
@@ -496,13 +496,13 @@ let send_did_delete info (path : Fpath.t) =
 (* Info comes last because otherwise the optional arguments are unerasable... shame. *)
 let send_did_change_folder ?(added = []) ?(removed = []) info =
   let added =
-    added |> List_.map Fpath.to_string
-    |> List_.map (fun file ->
+    added |> List.map Fpath.to_string
+    |> List.map (fun file ->
            WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let removed =
-    removed |> List_.map Fpath.to_string
-    |> List_.map (fun file ->
+    removed |> List.map Fpath.to_string
+    |> List.map (fun file ->
            WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let notif =
@@ -587,7 +587,7 @@ let check_diagnostics (file : Fpath.t) expected_ids
     (DocumentUri.to_string diagnostics.uri);
   let ids =
     diagnostics.diagnostics
-    |> List_.map (fun (d : Diagnostic.t) ->
+    |> List.map (fun (d : Diagnostic.t) ->
            d.code |> Option.get |> Id.yojson_of_t)
   in
   Alcotest.(check string)
@@ -661,7 +661,7 @@ let rec map_asserts (recv_asserts : (string * ('a -> unit)) list) (xs : 'a list)
       map_asserts recv_asserts pkts
   | [], pkts -> pkts
   | asserts, [] ->
-      let names = List_.map fst asserts in
+      let names = List.map fst asserts in
       Alcotest.failf "Expected more packets, got none. Expected: %s"
         (String.concat ", " names)
 
@@ -698,7 +698,7 @@ let check_startup info folders (files : Fpath.t list) =
   let scan_notifications = receive_and_sort_diagnostics remaining_packets in
   let expected_ids = [ `String "eqeq-five" ] in
   let check_diagnostics_asserts =
-    List_.map
+    List.map
       (fun file ->
         ( Printf.sprintf "Checking file %s has diagnostics"
             (Fpath.to_string file),
@@ -838,7 +838,7 @@ let test_ls_specs () =
                 m "Received diagnostics after ignore %a" Yojson.Safe.pp
                   (PublishDiagnosticsParams.yojson_of_t params));
             let not_ignored_ids =
-              List_.map
+              List.map
                 (fun d ->
                   Logs.app (fun m ->
                       m "Diagnostic: %a" Yojson.Safe.pp
@@ -902,7 +902,7 @@ let test_ls_ext () =
           let scanned_files = scanned_files_of_files files in
           let diagnostics = receive_and_sort_diagnostics leftover_packets in
           let num_diagnostics =
-            List_.map
+            List.map
               (fun (params : PublishDiagnosticsParams.t) ->
                 Logs.app (fun m ->
                     m "Received diagnostics: %a" Yojson.Safe.pp
@@ -952,7 +952,7 @@ let test_ls_ext () =
                 (List.length params.diagnostics)
           in
           let asserts =
-            List_.map
+            List.map
               (fun n ->
                 ("assert modified diagnostics", assert_modified_diagnostics n))
               (* 0 is new file, since it doesn't have any normally *)
@@ -978,7 +978,7 @@ let test_ls_ext () =
               match resp.contents with
               | `MarkupContent s -> MarkupContent.yojson_of_t s
               | `MarkedString s -> MarkedString.yojson_of_t s
-              | `List s -> `List (List_.map MarkedString.yojson_of_t s)
+              | `List s -> `List (List.map MarkedString.yojson_of_t s)
             in
             (* Assert contents is non-empty *)
             Alcotest.(check bool)
@@ -1035,7 +1035,7 @@ let test_ls_multi () =
         let expected_ids_ws1 = [] in
         let expected_ids_ws2 = [ `String "eqeq-five" ] in
         map_asserts
-          (List_.map
+          (List.map
              (check_diagnostics_count expected_ids_ws1 expected_ids_ws2)
              scanned_files)
           scan_notifications
@@ -1055,7 +1055,7 @@ let test_ls_multi () =
         let expected_ids_ws1 = [ `String "eqeq-five" ] in
         let expected_ids_ws2 = expected_ids_ws1 in
         map_asserts
-          (List_.map
+          (List.map
              (check_diagnostics_count expected_ids_ws1 expected_ids_ws2)
              scanned_files)
           scan_notifications

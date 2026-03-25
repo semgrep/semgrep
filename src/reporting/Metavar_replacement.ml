@@ -45,7 +45,7 @@ let metavar_string_of_any any =
   any |> AST_generic_helpers.ii_of_any
   |> List.filter Tok.is_origintok
   |> List.sort Tok.compare_pos
-  |> List_.map Tok.content_of_tok
+  |> List.map Tok.content_of_tok
   |> Core_text_output.join_with_space_if_needed
 
 let propagated_value_string_of_mval mval =
@@ -82,7 +82,7 @@ let of_bindings bindings =
 
 let of_out (metavars : OutJ.metavars) =
   metavars
-  |> List_.map (fun (mvar, metavar_value) ->
+  |> List.map (fun (mvar, metavar_value) ->
          let mval_content = lazy_safe metavar_value.OutJ.abstract_content in
          let propagated_content =
            Option.map

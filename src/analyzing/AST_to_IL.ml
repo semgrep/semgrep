@@ -359,7 +359,7 @@ let composite_of_container ~g_expr : G.container_operator -> IL.composite_kind =
   | Dict -> impossible (E g_expr)
 
 let mk_unnamed_args (exps : IL.exp list) : exp argument list =
-  List_.map (fun x -> Unnamed x) exps
+  List.map (fun x -> Unnamed x) exps
 
 let is_hcl lang : bool =
   match lang with
@@ -709,7 +709,7 @@ and map_assign env ~g_expr lhs tok rhs : exp =
 and map_assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig : exp =
   let tmp, _tmp_lval = mk_aux_var env tok1 rhs_exp in
   let rec do_fields acc_rev_offsets fs =
-    fs |> List_.map (do_field acc_rev_offsets)
+    fs |> List.map (do_field acc_rev_offsets)
   and do_field acc_rev_offsets f =
     match f with
     | G.F
@@ -1049,7 +1049,7 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
   | G.Record fields -> map_record env fields
   | G.Container (G.Dict, xs) -> map_dict env xs g_expr
   | G.Container (kind, xs) ->
-      let xs = bracket_keep (List_.map (map_expr env)) xs in
+      let xs = bracket_keep (List.map (map_expr env)) xs in
       let kind = map_composite_kind ~g_expr kind in
       mk_e (Composite (kind, xs)) eorig
   | G.Comprehension (kind, (b1, (e, xs), b2)) ->
@@ -1174,7 +1174,7 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
       mk_e (Fetch tmp) NoOrig
   | G.Constructor (cname, (tok1, esorig, tok2)) ->
       let cname = var_of_name cname in
-      let es = esorig |> List_.map (fun eiorig -> map_expr env eiorig) in
+      let es = esorig |> List.map (fun eiorig -> map_expr env eiorig) in
       mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.RegexpTemplate ((l, e, r), _opt) ->
       mk_e (Composite (Regexp, (l, [ map_expr env e ], r))) NoOrig
@@ -1196,7 +1196,7 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
   | G.OtherExpr ((str, tok), xs) ->
       let es =
         xs
-        |> List_.map (fun x ->
+        |> List.map (fun x ->
                match x with
                | G.E e1orig -> map_expr env e1orig
                | __else__ -> fixme_exp ToDo x (related_tok tok))
@@ -1282,8 +1282,7 @@ and map_composite_kind ~g_expr : G.container_operator -> composite_kind =
 
 (* TODO: dependency of order between arguments for instr? *)
 
-and map_arguments env xs : exp argument list =
-  xs |> List_.map (map_argument env)
+and map_arguments env xs : exp argument list = xs |> List.map (map_argument env)
 
 and map_argument env arg : exp argument =
   match arg with
@@ -1433,7 +1432,7 @@ and map_record env ((_tok, origfields, _) as record_def) : exp =
 and map_dict env (_, orig_entries, _) orig : exp =
   let entries =
     orig_entries
-    |> List_.map (fun orig_entry ->
+    |> List.map (fun orig_entry ->
            match orig_entry.G.e with
            | G.Container (G.Tuple, (_, [ korig; vorig ], _)) ->
                let ke = map_expr env korig in
@@ -1517,7 +1516,7 @@ and map_xml_expr env ~ret eorig xml : exp =
       in
       let fields = Field (children_field_name, body_exp) :: fields in
       let fields_orig =
-        let attrs = xml.G.xml_attrs |> List_.map (fun attr -> G.XmlAt attr) in
+        let attrs = xml.G.xml_attrs |> List.map (fun attr -> G.XmlAt attr) in
         let body = G.Xmls xml.G.xml_body in
         Related (G.Anys (body :: attrs))
       in
@@ -1767,7 +1766,7 @@ and map_for_var_or_expr_list env xs : stmt list =
 (*****************************************************************************)
 and map_parameters _env params : param list =
   params |> Tok.unbracket
-  |> List_.map (function
+  |> List.map (function
        | G.Param { pname = Some i; pinfo; pdefault; _ } ->
            Param { pname = var_of_id_info i pinfo; pdefault }
        | G.ParamPattern pat -> PatternParam pat
@@ -2021,7 +2020,7 @@ and map_stmt_aux env st : stmt list =
         | _ -> impossible s
       in
       let xs = Tok.unbracket xs in
-      match List_.map (fun x -> x.G.s) xs with
+      match List.map (fun x -> x.G.s) xs with
       | [
        G.For (tok, G.ForEach (pat, tok2, e), main_st);
        G.OtherStmt (G.OS_ForOrElse, else_st);
@@ -2032,7 +2031,7 @@ and map_stmt_aux env st : stmt list =
             else:
                 <else_st>
            *)
-          let else_st = else_st |> List_.map any_to_stmt in
+          let else_st = else_st |> List.map any_to_stmt in
           map_for_each env tok (pat, tok2, e) main_st (Some else_st)
       | [ G.While (tok, e, main_st); G.OtherStmt (G.OS_WhileOrElse, else_st) ]
         ->
@@ -2042,7 +2041,7 @@ and map_stmt_aux env st : stmt list =
             else:
                 <else_st>
            *)
-          let else_st = else_st |> List_.map any_to_stmt in
+          let else_st = else_st |> List.map any_to_stmt in
           map_while_aux env tok e main_st (Some else_st)
       | __else__ -> List.concat_map (map_stmt env) xs)
   | G.If (tok, cond, st1, st2) ->

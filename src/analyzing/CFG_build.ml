@@ -373,7 +373,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let matchi = state.g#add_node (IL.mk_node (F.NMatch scrutinee)) in
       state.g |> add_arc_from_opt (previ, matchi);
       let nodes =
-        List_.map
+        List.map
           (fun ({ pattern; body } : IL.pattern_branch) ->
             let casei =
               state.g#add_node (IL.mk_node (F.NCase (scrutinee, pattern)))

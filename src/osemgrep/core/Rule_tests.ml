@@ -25,7 +25,7 @@ open Fpath_.Operators
 
 let fixtest_suffix = ".fixed"
 let yml_extensions = [ ".yml"; ".yaml" ]
-let yml_test_suffixes = List_.map (fun ext -> ".test" ^ ext) yml_extensions
+let yml_test_suffixes = List.map (fun ext -> ".test" ^ ext) yml_extensions
 
 (* old: was a thing where we split up the file exts into a suffix list, then
    compared other suffix lists
@@ -58,7 +58,7 @@ let is_config_test_suffix path =
        let snd = Fpath.(get_ext (rem_ext path)) in
        snd ^ fst
      in
-     List.mem ext (List_.map (fun e -> ".test" ^ e) yml_extensions)
+     List.mem ext (List.map (fun e -> ".test" ^ e) yml_extensions)
      && not (is_config_fixtest_suffix path)
 *)
 
@@ -122,7 +122,7 @@ let get_config_filenames original_config =
      let str = Fpath.to_string path in
      Sys.readdir str |> Array.to_list
      |> List.filter (fun f -> not (Sys_.is_directory f))
-     |> List_.map (Fpath.add_seg path)
+     |> List.map (Fpath.add_seg path)
 
    let get_config_filenames target =
      let does_not_start_with_dot p =
@@ -167,7 +167,7 @@ let get_config_test_filenames ~original_config ~configs ~original_target =
       && Fpath.is_file_path target && correct_suffix
     in
 
-    List_.map
+    List.map
       (fun config ->
         ( config,
           List.filter

@@ -163,7 +163,7 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
   let xs = m1 tin in
 
   (* try m2 on each possible returned bindings *)
-  let xxs = xs |> List_.map (fun binding -> m2 () binding) in
+  let xxs = xs |> List.map (fun binding -> m2 () binding) in
   List_.flatten xxs
 
 (* the disjunctive combinator *)
@@ -457,12 +457,12 @@ let environment_of_any lang config any =
 let wipe_wildcard_imports f tin =
   let wildcard_imports = tin.wildcard_imports in
   let tout = f { tin with wildcard_imports = [] } in
-  tout |> List_.map (fun tin -> { tin with wildcard_imports })
+  tout |> List.map (fun tin -> { tin with wildcard_imports })
 
 let with_additional_wildcard_import dotted f tin =
   let wildcard_imports = tin.wildcard_imports in
   let tout = f { tin with wildcard_imports = dotted :: wildcard_imports } in
-  tout |> List_.map (fun tin -> { tin with wildcard_imports })
+  tout |> List.map (fun tin -> { tin with wildcard_imports })
 
 (*****************************************************************************)
 (* Helpers *)
@@ -473,7 +473,7 @@ let rec inits_and_rest_of_list = function
   | [ e ] -> [ ([ e ], []) ]
   | e :: l ->
       ([ e ], l)
-      :: List_.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
+      :: List.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
 
 let inits_and_rest_of_list_empty_ok = function
   | [] -> [ ([], []) ]

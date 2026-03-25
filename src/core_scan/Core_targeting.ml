@@ -68,7 +68,7 @@ let group_rules_by_target_language (rules : Rule.t list) :
 let add_typescript_to_javascript_rules_hack (rules : Rule.t list) : Rule.t list
     =
   rules
-  |> List_.map (fun r ->
+  |> List.map (fun r ->
          match r.Rule.target_analyzer with
          | LRegex
          | LSpacegrep
@@ -111,7 +111,7 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
 
 let targets_of_lang_job (x : Lang_job.t) : Target.t list =
   x.targets
-  |> List_.map (fun (path : Fppath.t) : Target.t ->
+  |> List.map (fun (path : Fppath.t) : Target.t ->
          Target.mk_target x.analyzer path)
 
 let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :

@@ -31,4 +31,4 @@ let to_string (v : t) : string =
   | Other s -> s
   | V { major; minor; incrementals } ->
       major :: minor :: incrementals
-      |> List_.map string_of_int |> String.concat "."
+      |> List.map string_of_int |> String.concat "."

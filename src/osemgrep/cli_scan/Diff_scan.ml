@@ -130,7 +130,7 @@ let scan_baseline_and_remove_duplicates (profiler : Profiler.t)
     in
     let rules_in_match =
       r.processed_matches
-      |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
+      |> List.map (fun ({ pm; _ } : Core_result.processed_match) ->
              pm.rule_id.id |> Rule_ID.to_string)
       |> String_set.of_list
     in
@@ -175,7 +175,7 @@ let scan_baseline_and_remove_duplicates (profiler : Profiler.t)
               (* How come does a match result become a target? *)
               let paths_in_match =
                 r.processed_matches
-                |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
+                |> List.map (fun ({ pm; _ } : Core_result.processed_match) ->
                        pm.path.internal_path_to_content)
                 |> prepare_targets
               in
@@ -209,8 +209,7 @@ let scan_baseline (profiler : Profiler.t) (baseline_commit : string)
      project root might result in correct ppaths but there's no guarantee.
   *)
   let added_or_modified =
-    status.added @ status.modified
-    |> List_.map Fppath.fake_from_fpath_DEPRECATED
+    status.added @ status.modified |> List.map Fppath.fake_from_fpath_DEPRECATED
   in
   let (head_scan_result : Core_result.result_or_exn) =
     Profiler.record profiler ~name:"head_core_time" (fun () ->

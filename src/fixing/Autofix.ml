@@ -78,7 +78,7 @@ let align_nonfirst_lines_at_column ~start_column text =
     | [] -> []
     | first :: rest ->
         let padding = String.make start_column ' ' in
-        first :: List_.map (fun s -> padding ^ s) rest
+        first :: List.map (fun s -> padding ^ s) rest
   in
   String.concat "\n" replacement_lines
 
@@ -388,7 +388,7 @@ let produce_autofix (m : Core_result.processed_match) =
 
 let produce_autofixes (matches : Core_result.processed_match list) =
   (* TODO Simple function, inline at callsites? *)
-  List_.map produce_autofix matches
+  List.map produce_autofix matches
 
 (* This is used for testing only. This is why it raises an exception. *)
 let apply_fixes_to_file_exn path edits =

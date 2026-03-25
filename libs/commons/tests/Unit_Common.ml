@@ -55,9 +55,9 @@ let test_common_map =
     let input = List.init len (fun i -> i) in
     let f x = x + 1 in
     let acc = ref [] in
-    let expected_output = List_.map f input in
+    let expected_output = List.map f input in
     let output =
-      List_.map
+      List.map
         (fun x ->
           let res = f x in
           acc := res :: !acc;
@@ -69,7 +69,7 @@ let test_common_map =
     assert (order = expected_output)
   in
   let tests =
-    List_.map
+    List.map
       (fun len ->
         let name = sprintf "list length = %i" len in
         let test () = test len in

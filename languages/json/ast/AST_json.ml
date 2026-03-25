@@ -98,7 +98,7 @@ let rec js_expr_to_json_value (e : JS.expr) : value =
   | JS.L (JS.Num n) -> Number n
   | JS.L (JS.String s) -> String s
   | JS.L (JS.Regexp ((tok, _, _), _)) -> error tok
-  | JS.Arr (l, xs, r) -> Array (l, List_.map js_expr_to_json_value xs, r)
+  | JS.Arr (l, xs, r) -> Array (l, List.map js_expr_to_json_value xs, r)
   | JS.Obj (l, props, r) ->
       let json_props =
         List_.filter_map

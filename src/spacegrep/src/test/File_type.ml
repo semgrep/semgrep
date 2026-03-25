@@ -46,7 +46,7 @@ let run_one expected_class data =
 
 let test =
   let suite =
-    List_.map
+    List.map
       (fun (name, expected_class, data) ->
         Testo.create name (fun () -> run_one expected_class data))
       corpus
