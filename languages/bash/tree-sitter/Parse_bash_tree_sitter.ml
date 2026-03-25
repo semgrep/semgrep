@@ -1101,7 +1101,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       *)
       let pip = pipeline_statement env v1 in
       let redirects =
-        List_.filter_map
+        List.filter_map
           (fun x ->
             match x with
             | `File_redi x -> Some (file_redirect env x)

@@ -44,7 +44,7 @@ type t = {
 
 let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
   errors
-  |> List_.filter_map (fun Out.{ location; message; rule_id; _ } ->
+  |> List.filter_map (fun Out.{ location; message; rule_id; _ } ->
          let* loc = location in
          Some
            Out.

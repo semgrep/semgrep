@@ -315,7 +315,7 @@ let merge_source_mvars (options : Rule_options.t) bindings =
      there was no conflict between bindings in different sources.
   *)
   bindings_tbl |> Hashtbl.to_seq |> List.of_seq
-  |> List_.filter_map (fun (mvar, mval_opt) ->
+  |> List.filter_map (fun (mvar, mval_opt) ->
          match mval_opt with
          | None ->
              (* This actually shouldn't really be possible, every
@@ -500,7 +500,7 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
         options.taint_unify_mvars || Option.is_none sink.rule_sink.sink_requires
       then
         taints_and_bindings
-        |> List_.filter_map (fun (t, bindings) ->
+        |> List.filter_map (fun (t, bindings) ->
                let* merged_env =
                  merge_source_sink_mvars options sink.pm.env bindings
                in

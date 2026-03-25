@@ -228,7 +228,7 @@ let glob pattern =
    *)
   let files = UFile.Legacy.dir_contents dir in
   files
-  |> List_.filter_map (fun s ->
+  |> List.filter_map (fun s ->
          if Re.execp regex s then Some (Fpath.v s) else None)
 
 let unix_diff file1 file2 =

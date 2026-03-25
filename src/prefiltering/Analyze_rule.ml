@@ -15,11 +15,11 @@ module String_set = Analyze_pattern.String_set
 module MvarSet = Analyze_pattern.MvarSet
 
 (* NOTE "AND vs OR and filter_map":
-   We cannot use `List_.filter_map` for `R.Or`, because it has the wrong
+   We cannot use `List.filter_map` for `R.Or`, because it has the wrong
    semantics. We use `None` to say "we can't handle this", or in other words,
    "we assume this pattern can match", or just "true"! So in an AND we can
    remove those "true" terms, but in an OR we need to reduce the entire OR to
-   "true". Therefore, `List_.filter_map` works for AND-semantics, but for
+   "true". Therefore, `List.filter_map` works for AND-semantics, but for
    OR-semantics we need `option_map`. *)
 let option_map f xs =
   List.fold_left
@@ -70,7 +70,7 @@ let rec required_patterns_of_formula ({ f; conditions; _ } : Rule.formula) :
     | Anywhere (_, formula) ->
         required_patterns_of_formula formula
     | And (_, xs) ->
-        List_.filter_map required_patterns_of_formula xs |> Formula.and_
+        List.filter_map required_patterns_of_formula xs |> Formula.and_
     | Or (_, xs) ->
         (* See NOTE "AND vs OR and filter_map". *)
         let* xs = option_map required_patterns_of_formula xs in
@@ -220,7 +220,7 @@ let rec textual_requirements_of_simplified :
   let module P = Predicate in
   let module F = Formula in
   function
-  | And xs -> List_.filter_map textual_requirements_of_simplified xs |> F.and_
+  | And xs -> List.filter_map textual_requirements_of_simplified xs |> F.and_
   | Or xs ->
       let* xs = option_map textual_requirements_of_simplified xs in
       F.or_ xs

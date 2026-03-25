@@ -32,7 +32,7 @@ open Fpath_.Operators
 let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
   targets
   (* This is so we can filter out targets that don't exist, for instance. *)
-  |> List_.filter_map (fun target ->
+  |> List.filter_map (fun target ->
          match UFile.filesize (Target.internal_path target) with
          | Ok size -> Some (target, size)
          | Error (code, _func, info) ->

@@ -822,7 +822,7 @@ let semgrep_rules_repo_tests : Testo.t list =
   let tests = Test_engine.make_tests [ path ] in
   let groups =
     tests
-    |> List_.filter_map (fun (test : Testo.t) ->
+    |> List.filter_map (fun (test : Testo.t) ->
            let group_opt =
              match Fpath.v test.name with
              (* note that there is no need to filter rules without targets; This

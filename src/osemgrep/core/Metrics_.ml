@@ -464,7 +464,7 @@ let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
    *)
   let ruleHashesWithFindings_value =
     filtered_matches
-    |> List_.filter_map (fun (rule, rule_matches) ->
+    |> List.filter_map (fun (rule, rule_matches) ->
            if rule_matches > 0 then
              Some
                (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches)
@@ -487,7 +487,7 @@ let add_targets_stats (targets : Fpath.t Set_.t)
 
   let file_stats =
     targets
-    |> List_.filter_map (fun path ->
+    |> List.filter_map (fun path ->
            let runTime, parseTime, matchTime =
              match Hashtbl.find_opt hprof path with
              | Some (fprof : Core_profiling.file_profiling) ->

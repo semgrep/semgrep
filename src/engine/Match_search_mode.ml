@@ -405,7 +405,7 @@ let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
     in
     let fm_mval_range_locs =
       fm_mvals
-      |> List_.filter_map (fun (focus_mvar, mval) ->
+      |> List.filter_map (fun (focus_mvar, mval) ->
              let* range_loc =
                AST_generic_helpers.range_of_any_opt (MV.mvalue_to_any mval)
              in
@@ -436,7 +436,7 @@ let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
     in
     let focused_ranges =
       (* Filter out focused ranges that are outside of the original range *)
-      List_.filter_map
+      List.filter_map
         (fun fms -> intersect (RM.match_result_to_range fms) range)
         focus_matches
     in
@@ -563,7 +563,7 @@ let if_explanations ?extra (env : env) (ranges : RM.ranges)
     (children : ME.t option list) (op, tok) : ME.t option =
   if env.xconf.matching_explanations then
     let matches = pms_of_ranges env ranges in
-    let xs = List_.filter_map (fun x -> x) children in
+    let xs = List.filter_map (fun x -> x) children in
     let expl = { ME.op; pos = tok; children = xs; matches; extra } in
     Some expl
   else None
@@ -625,7 +625,7 @@ let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
   | Some ({ ME.children; extra; _ } as me) ->
       let children =
         List.map (fun x -> Some x) children @ filter_expls @ focus_expls
-        |> List_.filter_map Fun.id
+        |> List.filter_map Fun.id
       in
       let extra =
         (* if we didn't have any filter steps, then we shouldn't change
@@ -685,7 +685,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   let file = env.xtarget.path.internal_path_to_content in
   xs
-  |> List_.filter_map (fun (r, new_bindings) ->
+  |> List.filter_map (fun (r, new_bindings) ->
          let map_bool r b = if b then Some (r, new_bindings) else None in
          let bindings = r.RM.mvars in
          match cond with

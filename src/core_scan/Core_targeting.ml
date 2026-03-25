@@ -88,7 +88,7 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
   let rules = add_typescript_to_javascript_rules_hack rules in
   let extract_languages = detect_extract_languages rules in
   rules |> group_rules_by_target_language
-  |> List_.filter_map (fun (analyzer, rules) ->
+  |> List.filter_map (fun (analyzer, rules) ->
          let targets =
            targets
            |> List.filter (fun (fppath : Fppath.t) ->
@@ -121,7 +121,7 @@ let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
       (fun lang_job (acc_targets, acc_rules) ->
         let targets = targets_of_lang_job lang_job in
         let rules = lang_job.rules in
-        (List_.append targets acc_targets, List_.append rules acc_rules))
+        (List.append targets acc_targets, List.append rules acc_rules))
       lang_jobs ([], [])
   in
   (* TODO: deduplicate rules? *)

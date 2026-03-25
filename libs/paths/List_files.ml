@@ -65,7 +65,7 @@ let list path = list_with_stat path |> List.map fst
 (* python: Target.files_from_filesystem *)
 let list_regular_files ?(keep_root = false) root_path =
   list_with_stat root_path
-  |> List_.filter_map (fun (path, (stat : Unix.stats)) ->
+  |> List.filter_map (fun (path, (stat : Unix.stats)) ->
          Log.debug (fun m -> m "root: %s path: %s" !!root_path !!path);
          if keep_root && path = root_path then Some path
          else

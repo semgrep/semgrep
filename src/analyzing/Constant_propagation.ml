@@ -354,7 +354,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         },
         _ ) ->
       xs
-      |> List_.filter_map (function
+      |> List.filter_map (function
            | F
                {
                  s =
@@ -385,7 +385,7 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         },
         _ ) ->
       xs
-      |> List_.filter_map (function
+      |> List.filter_map (function
            | F
                {
                  s =

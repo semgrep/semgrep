@@ -51,7 +51,7 @@ let (expected_error_lines_of_files :
   test_files
   |> List.concat_map (fun path ->
          UFile.cat path |> List_.index_list_1
-         |> List_.filter_map (fun (s, idx) ->
+         |> List.filter_map (fun (s, idx) ->
                 (* Right now we don't care about the actual error messages. We
                  * don't check if they match. We are just happy to check for
                  * correct lines error reporting.

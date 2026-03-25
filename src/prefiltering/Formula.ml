@@ -34,7 +34,7 @@ let or_ = function
 let pred x = Pred x
 
 let rec map_opt f = function
-  | And xs -> List_.filter_map (map_opt f) xs |> and_
+  | And xs -> List.filter_map (map_opt f) xs |> and_
   | Or xs ->
       let option_map f xs =
         List.fold_left
