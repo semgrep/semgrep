@@ -104,6 +104,13 @@ val fetch_scan_config_string_async :
   Auth.token ->
   (string, string) result Lwt.t
 
+val fetch_scan_config_v2_async :
+  ?secrets:bool ->
+  ?sca:bool ->
+  Auth.token ->
+  (Semgrep_output_v1_t.scan_configuration, string) result Lwt.t
+(** Fetch scan config via start-then-poll using the v2 endpoint (LWT). *)
+
 val fetch_scan_config_v2_eio :
   ?secrets:bool ->
   ?sca:bool ->
