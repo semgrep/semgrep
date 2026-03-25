@@ -64,6 +64,9 @@ module type S = sig
 
   val rm : handle -> unit
   (** Delete the cache file. *)
+
+  val equal_handle : handle -> handle -> bool
+  (** Structural equality on handles. *)
 end
 
 module Make (V : DISK_CACHEABLE) : S with type value = V.t
