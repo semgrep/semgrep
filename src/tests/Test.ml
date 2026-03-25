@@ -136,6 +136,8 @@ let tests =
         Unit_include_filter.tests;
         Unit_disk_cache.tests;
         Unit_parsing.tests ();
+        Unit_parsing_python.tests;
+        Unit_parsing_scala.tests;
         Unit_entropy.tests;
         Parser_regexp_tests.Unit_parsing.tests;
         Unit_ReDoS.tests;
