@@ -34,11 +34,9 @@ let rexps_of_instr x =
   | Assign (({ base = Var _; rev_offset = _ :: _ } as lval), exp) ->
       [ { e = Fetch { lval with rev_offset = [] }; eorig = NoOrig }; exp ]
   | Assign (_, exp) -> [ exp ]
-  | AssignCall (_, { c = Call (e1, args); _ }) ->
-      e1 :: List_.map exp_of_arg args
-  | AssignCall (_, { c = CallSpecial (_, args); _ }) ->
-      List_.map exp_of_arg args
-  | New (_, _, _, args) -> List_.map exp_of_arg args
+  | AssignCall (_, { c = Call (e1, args); _ }) -> e1 :: List.map exp_of_arg args
+  | AssignCall (_, { c = CallSpecial (_, args); _ }) -> List.map exp_of_arg args
+  | New (_, _, _, args) -> List.map exp_of_arg args
   | FixmeInstr _ -> []
 
 (* opti: could use a set *)
@@ -48,7 +46,7 @@ let rec lvals_of_exp e =
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
   | Composite (_, (_, xs, _)) -> lvals_of_exps xs
-  | Operator (_, xs) -> lvals_of_exps (List_.map exp_of_arg xs)
+  | Operator (_, xs) -> lvals_of_exps (List.map exp_of_arg xs)
   | RecordOrDict ys ->
       lvals_of_exps
         (ys

@@ -184,7 +184,7 @@ let secrets_format_cli_match (cli_match : Out.cli_match) =
   let r = format_cli_match cli_match in
   ("category", `String "secret_detection")
   :: (r
-     |> List_.map (function
+     |> List.map (function
           | "location", `Assoc locs ->
               let commit =
                 ( "commit",

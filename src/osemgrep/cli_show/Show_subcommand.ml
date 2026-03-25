@@ -64,19 +64,19 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
     | OCaml.VString v1 -> J.String v1
     | OCaml.VInt i -> J.Int (Int64.to_int i)
-    | OCaml.VTuple xs -> J.Array (List_.map aux xs)
-    | OCaml.VDict xs -> J.Object (List_.map (fun (k, v) -> (k, aux v)) xs)
+    | OCaml.VTuple xs -> J.Array (List.map aux xs)
+    | OCaml.VDict xs -> J.Object (List.map (fun (k, v) -> (k, aux v)) xs)
     | OCaml.VSum (s, xs) -> (
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ :: _ :: _ -> J.Object [ (s, J.Array (List_.map aux xs)) ])
+        | _ :: _ :: _ -> J.Object [ (s, J.Array (List.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%Ld" s i64)
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]
     | OCaml.VRef v -> J.Object [ ("ref@", aux v) ]
-    | OCaml.VList xs -> J.Array (List_.map aux xs)
+    | OCaml.VList xs -> J.Array (List.map aux xs)
     | OCaml.VTODO _ -> J.String "VTODO"
   in
   aux v
@@ -184,12 +184,10 @@ let run_conf (conf : Show_CLI.conf) : Exit_code.t =
               m "errors=%s\ntolerated errors=%s\nskipped=%s\ninserted=%s"
                 (Parsing_result2.format_errors errors)
                 (Parsing_result2.format_errors tolerated_errors)
-                (skipped_tokens
-                |> List_.map Tok.show_location
-                |> String.concat ", ")
-                (inserted_tokens
-                |> List_.map Tok.show_location
-                |> String.concat ", "));
+                (skipped_tokens |> List.map Tok.show_location
+               |> String.concat ", ")
+                (inserted_tokens |> List.map Tok.show_location
+               |> String.concat ", "));
           Exit_code.invalid_code ~__LOC__)
   | DumpConfig config_str ->
       let settings = Semgrep_settings.load () in
@@ -256,7 +254,7 @@ let run_conf (conf : Show_CLI.conf) : Exit_code.t =
       | Ok rules ->
           let xs =
             rules
-            |> List_.map (fun r ->
+            |> List.map (fun r ->
                    let filter = Prefiltering.File.of_rule ~interfile:false r in
                    let filter_atd =
                      Option.map Prefiltering.File.to_semgrep_formula filter

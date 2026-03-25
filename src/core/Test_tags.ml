@@ -47,7 +47,7 @@ let tags_of_langs (langs : Lang.t list) =
   match langs with
   | [] -> [ lang_generic ]
   | langs ->
-      langs |> List_.map tags_of_lang |> List_.flatten
+      langs |> List.map tags_of_lang |> List_.flatten
       |> List.sort Testo.Tag.compare
       |> List_.deduplicate_gen ~get_key:Testo.Tag.to_string
 

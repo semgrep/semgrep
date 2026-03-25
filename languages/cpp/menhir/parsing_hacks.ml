@@ -122,7 +122,7 @@ let insert_virtual_positions l =
 (*****************************************************************************)
 let fix_tokens_for_language lang xs =
   xs
-  |> List_.map (fun tok ->
+  |> List.map (fun tok ->
          if lang =*= Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
            let ii = TH.info_of_tok tok in
            T.TIdent (Tok.content_of_tok ii, ii)
@@ -170,7 +170,7 @@ let fix_tokens_fuzzy toks =
 
     (* use the tagged information and transform tokens *)
     toks
-    |> List_.map (function
+    |> List.map (function
          | T.TOCro info when Hashtbl.mem retag_lambda info ->
              T.TOCro_Lambda info
          | x -> x)
@@ -210,7 +210,7 @@ let fix_tokens_c ~macro_defs tokens =
   let tokens = Parsing_hacks_define.fix_tokens_define tokens in
   let tokens = fix_tokens_for_language Flag_cpp.C tokens in
 
-  let tokens2 = ref (tokens |> List_.map TV.mk_token_extended) in
+  let tokens2 = ref (tokens |> List.map TV.mk_token_extended) in
 
   (* ifdef *)
   let cleaner = !tokens2 |> filter_comment_stuff in
@@ -241,13 +241,13 @@ let fix_tokens_c ~macro_defs tokens =
   let xxs = Parsing_hacks_typedef.filter_for_typedef multi_grouped in
   Parsing_hacks_typedef.find_typedefs xxs;
 
-  insert_virtual_positions (!tokens2 |> List_.map (fun x -> x.TV.t))
+  insert_virtual_positions (!tokens2 |> List.map (fun x -> x.TV.t))
 
 let fix_tokens_cpp ~macro_defs tokens =
   let tokens = Parsing_hacks_define.fix_tokens_define tokens in
 
   (* let tokens = fix_tokens_for_language Flag_cpp.Cplusplus tokens in *)
-  let tokens2 = ref (tokens |> List_.map TV.mk_token_extended) in
+  let tokens2 = ref (tokens |> List.map TV.mk_token_extended) in
 
   (* ifdef *)
   let cleaner = !tokens2 |> filter_comment_stuff in
@@ -330,7 +330,7 @@ let fix_tokens_cpp ~macro_defs tokens =
   Parsing_hacks_cpp.reclassify_tokens_before_idents_or_typedefs multi_grouped;
 
   let toks =
-    insert_virtual_positions (!tokens2 |> List_.map (fun x -> x.TV.t))
+    insert_virtual_positions (!tokens2 |> List.map (fun x -> x.TV.t))
   in
   fix_tokens_fuzzy toks
 

@@ -133,7 +133,7 @@ let on_request server
   let file = uri |> Uri.to_path |> Fpath.v in
   let matches =
     let ranges =
-      List_.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
+      List.map (fun (d : Diagnostic.t) -> d.range) context.diagnostics
     in
     Legacy_session.previous_scan_of_file server.session file
     |> Option.value ~default:[]

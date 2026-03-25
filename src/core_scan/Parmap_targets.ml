@@ -48,7 +48,7 @@ let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
        (* Flip the comparison so we get descending,
         * instead of ascending, order *)
        (Fun.flip Int.compare)
-  |> List_.map fst
+  |> List.map fst
 
 let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
     Core_error.t =
@@ -153,13 +153,13 @@ let map_targets__run_in_forked_process_do_not_modify_globals ~(num_jobs : int)
   in
 
   (* old:
-   *    if num_jobs <= 1 then List_.map (fun x -> Ok (f x)) targets else ( ... )
+   *    if num_jobs <= 1 then List.map (fun x -> Ok (f x)) targets else ( ... )
    * But this was wrong because 'f' can throw exns and so we would
    * get a different semantic when num_jobs > 1 where we capture exns hence
    * the use of wrap_result below.
    *)
   if num_jobs <= 1 then
-    targets |> List_.map (fun x -> Parmap_.wrap_result f ~exception_handler x)
+    targets |> List.map (fun x -> Parmap_.wrap_result f ~exception_handler x)
   else (
     (*
        Parmap creates num_jobs children processes which listen for

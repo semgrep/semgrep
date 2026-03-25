@@ -220,7 +220,7 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
 
 and eval_args env args =
   args |> Tok.unbracket
-  |> List_.map (function
+  |> List.map (function
        | Arg e -> eval env e
        | _ -> None)
 
@@ -291,7 +291,7 @@ and eval_python_fstring env args =
   | [] -> helper ""
   | _ ->
       args
-      |> List_.map (function
+      |> List.map (function
            | Some (Lit (String _) | Cst Cstr) as x -> x
            | Some (Lit (Int (Some n, _))) -> helper (Int64.to_string n)
            | Some (Lit (Float (Some f, _))) -> helper (string_of_float f)

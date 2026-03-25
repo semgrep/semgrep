@@ -347,7 +347,7 @@ and array_ (env : env) ((v1, v2, v3) : CST.array_) =
     token env v1
     (* "(" *)
   in
-  let elements = List_.map (literal env) v2 in
+  let elements = List.map (literal env) v2 in
   let close =
     token env v3
     (* ")" *)
@@ -400,7 +400,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
 and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
   let first_pattern = literal env v1 in
   let more_patterns =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _bar =
           token env v1
@@ -453,7 +453,7 @@ and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
   in
   let name = command_name env v2 in
   let args =
-    List_.map
+    List.map
       (fun x ->
         match x with
         | `Choice_conc x -> literal env x
@@ -497,7 +497,7 @@ and command_name (env : env) (x : CST.command_name) : expression =
       Concatenation (loc, el)
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs ->
-      let el = List_.map (fun tok -> Special_character (str env tok)) xs in
+      let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       Concatenation (loc, el)
 
@@ -561,7 +561,7 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
   let first_expr = prim_exp_or_special_char env v1 in
   let exprs =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _empty_tok = token env v1 in
         prim_exp_or_special_char env v2)
@@ -680,7 +680,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
               | None -> todo env ()
             in
             let _v3_TODO () =
-              List_.map
+              List.map
                 (fun x ->
                   match x with
                   | `Choice_conc x -> literal env x
@@ -899,7 +899,7 @@ and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
         (* heredoc_body_beginning *)
       in
       let _body =
-        List_.map
+        List.map
           (fun x ->
             match x with
             | `Expa x -> expansion env x |> ignore
@@ -929,7 +929,7 @@ and herestring_redirect (env : env) ((v1, v2) : CST.herestring_redirect) =
 and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
   let first_pattern = literal env v1 in
   let more_patterns =
-    List_.map
+    List.map
       (fun (v1, v2) ->
         let _bar =
           token env v1
@@ -968,7 +968,7 @@ and literal (env : env) (x : CST.literal) : expression =
       | _ -> Concatenation (loc, el))
   | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs -> (
-      let el = List_.map (fun tok -> Special_character (str env tok)) xs in
+      let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = Tok_range.of_list AST_bash_loc.expression_loc el in
       match el with
       | [ e ] -> e
@@ -1269,7 +1269,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
               token env v1
               (* "in" *)
             in
-            let values = List_.map (literal env) v2 in
+            let values = List.map (literal env) v2 in
             Some (in_, values)
         | None ->
             (* iterate over $1, $2, ..., $# *)
@@ -1354,7 +1354,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | Some x -> statements2 env x
         | None -> Empty (then_, then_)
       in
-      let elif_branches = List_.map (elif_clause env) v5 in
+      let elif_branches = List.map (elif_clause env) v5 in
       let else_branch =
         match v6 with
         | Some x -> Some (else_clause env x)
@@ -1388,7 +1388,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let case_clauses =
         match v6 with
         | Some (v1, v2) ->
-            let cases = List_.map (case_item env) v1 in
+            let cases = List.map (case_item env) v1 in
             let last_case = last_case_item env v2 in
             cases @ [ last_case ]
         | None -> []
@@ -1504,7 +1504,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
 
 and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
   let blist =
-    List_.map (stmt_with_opt_heredoc env) v1 |> AST_bash_builder.concat_blists
+    List.map (stmt_with_opt_heredoc env) v1 |> AST_bash_builder.concat_blists
   in
   (* See stmt_with_opt_heredoc, which is almost identical except for
      the optional trailing newline. *)
@@ -1539,7 +1539,7 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
   Seq (loc, blist, last_blist)
 
 and statements2 (env : env) (xs : CST.statements2) : blist =
-  List_.map (stmt_with_opt_heredoc env) xs |> AST_bash_builder.concat_blists
+  List.map (stmt_with_opt_heredoc env) xs |> AST_bash_builder.concat_blists
 
 and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     string_fragment list bracket =

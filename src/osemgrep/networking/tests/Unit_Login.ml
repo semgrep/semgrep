@@ -106,7 +106,7 @@ let save_token_tests =
   in
   let tests =
     [ ("invalid token", invalid_token_test); ("valid token", valid_token_test) ]
-    |> List_.map (fun (n, f) -> t n (with_mock_envvars_and_normal_responses f))
+    |> List.map (fun (n, f) -> t n (with_mock_envvars_and_normal_responses f))
   in
   Testo.categorize "save_token" tests
 

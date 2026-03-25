@@ -64,7 +64,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let rule = { rule with id = (Rule_ID.of_string_exn "print", fk) } in
   let hrules = Rule.hrules_of_rules [ rule ] in
   let scanned =
-    List_.map (fun f -> Fpath.v f) files |> Fpath_.Fpath_set.of_list
+    List.map (fun f -> Fpath.v f) files |> Fpath_.Fpath_set.of_list
   in
   let match_of_file file =
     let (extra : Out.core_match_extra) =
@@ -95,7 +95,7 @@ let mock_run_results (files : string list) : Core_runner.result =
     in
     m
   in
-  let matches = List_.map match_of_file files in
+  let matches = List.map match_of_file files in
   let (core : Out.core_output) =
     {
       version = Version.version;
@@ -169,7 +169,7 @@ let session_targets () =
     let session = { session with user_settings; workspace_folders } in
     let session = set_session_targets session workspace_folders in
     let targets =
-      session |> Legacy_session.targets |> List_.map Fpath.to_string
+      session |> Legacy_session.targets |> List.map Fpath.to_string
     in
     let targets = List_.sort targets in
     let expected = List_.sort expected in
@@ -232,7 +232,7 @@ let processed_run () =
     let results = mock_run_results files in
     let matches = Legacy_processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> List_.map (fun (m : Out.cli_match) -> !!(m.path))
+      matches |> List.map (fun (m : Out.cli_match) -> !!(m.path))
     in
     let final_files = List_.sort final_files in
     let expected = List_.sort expected in

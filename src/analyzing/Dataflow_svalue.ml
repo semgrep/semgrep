@@ -54,7 +54,7 @@ let hook_transfer_of_assume = Hook.create None
 (*****************************************************************************)
 
 let eval_format env args =
-  let cs = List_.map (Eval.eval env) args in
+  let cs = List.map (Eval.eval env) args in
   if
     cs
     |> List.for_all (function
@@ -66,7 +66,7 @@ let eval_format env args =
   else G.NotCst
 
 let eval_builtin_func lang env func args =
-  let args = List_.map IL_helpers.exp_of_arg args in
+  let args = List.map IL_helpers.exp_of_arg args in
   match func with
   | { e = _; eorig = SameAs eorig } -> (
       let* gname = H.name_of_dot_access eorig in
@@ -287,7 +287,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
-        |> List_.map (fun (pi, _) -> mapping.(pi).D.out_env)
+        |> List.map (fun (pi, _) -> mapping.(pi).D.out_env)
       in
       (* Note that `VarMap.empty` represents an environment where all variables
        * are non-constant, thus `VarMap.empty` is not the neutral element wrt
@@ -368,7 +368,7 @@ let rec transfer :
             ( Some { base = Var var; rev_offset = [] },
               { c = Call (func, args); corig } ) -> (
             let args_val =
-              List_.map
+              List.map
                 (fun arg -> Eval.eval eval_env (IL_helpers.exp_of_arg arg))
                 args
             in
@@ -390,7 +390,7 @@ let rec transfer :
         | AssignCall
             ( Some { base = Var var; rev_offset = [] },
               { c = CallSpecial ((special, _), args); corig } ) ->
-            let args = List_.map IL_helpers.exp_of_arg args in
+            let args = List.map IL_helpers.exp_of_arg args in
             let cexp =
               (* We try to evaluate the special function, if we know how. *)
               if special =*= Concat then

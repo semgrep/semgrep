@@ -2318,8 +2318,8 @@ let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
-let dotted_to_canonical xs = List_.map fst xs
-let canonical_to_dotted tid xs = xs |> List_.map (fun s -> (s, tid))
+let dotted_to_canonical xs = List.map fst xs
+let canonical_to_dotted tid xs = xs |> List.map (fun s -> (s, tid))
 
 (* ------------------------------------------------------------------------- *)
 (* Entities *)
@@ -2341,16 +2341,16 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (Special spec |> e, Tok.unsafe_fake_bracket (es |> List_.map arg)) |> e
+  Call (Special spec |> e, Tok.unsafe_fake_bracket (es |> List.map arg)) |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
 let string_ (lquote, xs, rquote) : string wrap bracket =
-  let s = xs |> List_.map fst |> String.concat "" in
+  let s = xs |> List.map fst |> String.concat "" in
   let t =
     match xs with
     | [] -> Tok.fake_tok lquote ""
-    | (_, t) :: ys -> Tok.combine_toks t (List_.map snd ys)
+    | (_, t) :: ys -> Tok.combine_toks t (List.map snd ys)
   in
   (lquote, (s, t), rquote)
 
@@ -2377,12 +2377,12 @@ let interpolated (lquote, xs, rquote) =
         ( special,
           ( lquote,
             xs_with_fused_literals
-            |> List_.map (function
+            |> List.map (function
                  | Either_.Left3 x ->
                      Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
                  | Either_.Right3 (lbrace, eopt, rbrace) ->
                      let special = Special (InterpolatedElement, lbrace) |> e in
-                     let args = eopt |> Option.to_list |> List_.map arg in
+                     let args = eopt |> Option.to_list |> List.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
                  | Either_.Middle3 e -> Arg e),
             rquote ) )

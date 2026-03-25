@@ -197,7 +197,7 @@ let vof_int64 x = VInt x
 let vof_float x = VFloat x
 let vof_string x = VString x
 let vof_bool b = VBool b
-let vof_list ofa x = VList (List_.map ofa x)
+let vof_list ofa x = VList (List.map ofa x)
 
 let vof_option ofa x =
   match x with
@@ -262,7 +262,7 @@ let option_ofv a__of_sexp sexp =
 (* Format pretty printers *)
 (*****************************************************************************)
 let add_sep xs =
-  xs |> List_.map (fun x -> Either.Right x) |> List_.join_gen (Either.Left ())
+  xs |> List.map (fun x -> Either.Right x) |> List_.join_gen (Either.Left ())
 
 (*
  * OCaml value pretty printer. A similar functionnality is provided by
@@ -364,7 +364,7 @@ let map_of_option v_of_a v =
   | None -> None
   | Some x -> Some (v_of_a x)
 
-let map_of_list of_a xs = List_.map of_a xs
+let map_of_list of_a xs = List.map of_a xs
 let map_of_int x = x
 let map_of_int64 x = x
 

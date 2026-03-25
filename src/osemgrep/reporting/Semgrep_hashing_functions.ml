@@ -118,10 +118,10 @@ let string_of_formulas (xs : Rule.formula list) : string =
         go formula
     | Rule.Or (_, formulae)
     | Rule.And (_, formulae) ->
-        let xs = List_.map go formulae in
+        let xs = List.map go formulae in
         String.concat " " (List.sort String.compare xs)
   in
-  let xpat_strs = List_.map go xs in
+  let xpat_strs = List.map go xs in
   let sorted_xpat_strs = List.sort String.compare xpat_strs in
   let xpat_str = String.concat " " sorted_xpat_strs in
   xpat_str

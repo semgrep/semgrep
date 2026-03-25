@@ -114,9 +114,7 @@ let fix_tokens toks =
         toks
     in
     let horigin =
-      toks
-      |> List_.map (fun t -> (TH.info_of_tok t, t))
-      |> Hashtbl_.hash_of_list
+      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Hashtbl_.hash_of_list
     in
 
     let retag_lparen_arrow = Hashtbl.create 101 in
@@ -157,7 +155,7 @@ let fix_tokens toks =
 
     (* use the tagged information and transform tokens *)
     toks
-    |> List_.map (function
+    |> List.map (function
          | T.T_LPAREN info when Hashtbl.mem retag_lparen_arrow info ->
              T.T_LPAREN_ARROW info
          | T.T_LPAREN info when Hashtbl.mem retag_lparen_method info ->

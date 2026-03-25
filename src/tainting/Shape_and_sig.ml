@@ -572,7 +572,7 @@ end = struct
     | UniReq precond -> R.show_precondition precond
     | MultiReq taints_w_preconds ->
         taints_w_preconds
-        |> List_.map (fun (taints, pre) ->
+        |> List.map (fun (taints, pre) ->
                spf "%s|%s" (T.show_taints taints) (R.show_precondition pre))
         |> String.concat "; "
 
@@ -627,7 +627,7 @@ end = struct
     | Lp lv -> T.show_lval lv
 
   let show_args_taints (args : _ IL.argument list) =
-    spf "(%s)" (List_.map show_arg args |> String.concat ", ")
+    spf "(%s)" (List.map show_arg args |> String.concat ", ")
 
   let show : type a. a t -> string = function
     | ToSink tts -> show_taints_to_sink tts
@@ -656,7 +656,7 @@ end = struct
   end)
 
   let show s =
-    s |> to_seq |> List.of_seq |> List_.map Effect.show |> String.concat "; "
+    s |> to_seq |> List.of_seq |> List.map Effect.show |> String.concat "; "
 
   let add_list elts t = List.fold_left (fun set e -> add e set) t elts
   let union_list ts = List.fold_left union empty ts
@@ -741,11 +741,11 @@ end = struct
   let compare_params params1 params2 =
     List.compare compare_param params1 params2
 
-  let show_params params = params |> List_.map show_param |> String.concat ", "
+  let show_params params = params |> List.map show_param |> String.concat ", "
 
   let of_IL_params il_params =
     il_params
-    |> List_.map (function
+    |> List.map (function
          | IL.Param { pname; _ } -> P pname
          | IL.PatternParam _
          | IL.FixmeParam ->

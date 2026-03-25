@@ -20,8 +20,7 @@ let autofix (dryrun : bool) (edits : Out.edit list) :
     int * (int * string list) list =
   let edits =
     edits
-    |> List_.map
-         (fun Out.{ path; start_offset; end_offset; replacement_text } ->
+    |> List.map (fun Out.{ path; start_offset; end_offset; replacement_text } ->
            Textedit.
              { path; start = start_offset; end_ = end_offset; replacement_text })
   in

@@ -82,7 +82,7 @@ let vfld_name_to_fld_name fld_name =
 let vobj_to_obj l asserts fields r =
   let new_fields =
     fields
-    |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
+    |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.lv with
            | Val _
            | Closure _ ->
@@ -118,13 +118,13 @@ let to_lazy_value _env e : V.lazy_value = { lv = Unevaluated e }
 let rec substitute id sub expr =
   match expr with
   | L v -> L v
-  | Array (l, xs, r) -> Array (l, List_.map (substitute id sub) xs, r)
+  | Array (l, xs, r) -> Array (l, List.map (substitute id sub) xs, r)
   | Lambda { f_tok; f_params = lparams, params, rparams; f_body } ->
       if parameter_list_contains params id then
         Lambda { f_tok; f_params = (lparams, params, rparams); f_body }
       else
         let new_params =
-          List_.map
+          List.map
             (fun (P (name, tk, e)) -> P (name, tk, substitute id sub e))
             params
         in
@@ -139,10 +139,10 @@ let rec substitute id sub expr =
       match v with
       | Object (asserts, fields) ->
           let new_asserts =
-            List_.map (fun (tk, expr) -> (tk, substitute id sub expr)) asserts
+            List.map (fun (tk, expr) -> (tk, substitute id sub expr)) asserts
           in
           let new_fields =
-            List_.map
+            List.map
               (fun { fld_name; fld_hidden; fld_value } ->
                 match fld_name with
                 | FExpr (l, name, r) ->
@@ -169,7 +169,7 @@ let rec substitute id sub expr =
       let new_args =
         if id = "std" then args
         else
-          List_.map
+          List.map
             (fun arg ->
               match arg with
               | Arg e -> Arg (substitute id sub e)
@@ -188,7 +188,7 @@ let rec substitute id sub expr =
       if bind_list_contains binds id then Local (_tlocal, binds, _tsemi, e)
       else
         let new_binds =
-          List_.map
+          List.map
             (fun (B (name, tk, expr)) -> B (name, tk, substitute id sub expr))
             binds
         in
@@ -198,7 +198,7 @@ let rec substitute id sub expr =
   | Call (e0, (l, args, r)) ->
       let new_func = substitute id sub e0 in
       let new_args =
-        List_.map
+        List.map
           (fun arg ->
             match arg with
             | Arg e -> Arg (substitute id sub e)
@@ -219,10 +219,10 @@ let rec substitute id sub expr =
 let rec substitute_kw kw sub expr =
   match expr with
   | L v -> L v
-  | Array (l, xs, r) -> Array (l, List_.map (substitute_kw kw sub) xs, r)
+  | Array (l, xs, r) -> Array (l, List.map (substitute_kw kw sub) xs, r)
   | Lambda { f_tok; f_params = lparams, params, rparams; f_body } ->
       let new_params =
-        List_.map
+        List.map
           (fun (P (id, tok, e)) -> P (id, tok, substitute_kw kw sub e))
           params
       in
@@ -237,7 +237,7 @@ let rec substitute_kw kw sub expr =
       match v with
       | Object (asserts, fields) ->
           let new_fields =
-            List_.map
+            List.map
               (fun { fld_name = FExpr (l, e, r); fld_hidden; fld_value } ->
                 {
                   fld_name = FExpr (l, substitute_kw kw sub e, r);
@@ -267,7 +267,7 @@ let rec substitute_kw kw sub expr =
               r1 ) ),
         (l, args, r) ) ->
       let new_args =
-        List_.map
+        List.map
           (fun arg ->
             match arg with
             | Arg e -> Arg (substitute_kw kw sub e)
@@ -284,7 +284,7 @@ let rec substitute_kw kw sub expr =
           (l, new_args, r) )
   | Local (_tlocal, binds, _tsemi, e) ->
       let new_binds =
-        List_.map
+        List.map
           (fun (B (name, tk, expr)) -> B (name, tk, substitute_kw kw sub expr))
           binds
       in
@@ -294,7 +294,7 @@ let rec substitute_kw kw sub expr =
   | Call (e0, (l, args, r)) ->
       let new_func = substitute_kw kw sub e0 in
       let new_args =
-        List_.map
+        List.map
           (fun arg ->
             match arg with
             | Arg e -> Arg (substitute_kw kw sub e)
@@ -338,7 +338,7 @@ and eval_expr env expr =
   (* lazy evaluation of Array elements and Lambdas *)
   | Array (l, xs, r) ->
       let elts =
-        xs |> List_.map (fun x -> to_lazy_value env x) |> Array.of_list
+        xs |> List.map (fun x -> to_lazy_value env x) |> Array.of_list
       in
       V.Array (l, elts, r)
   (* in subst model we don't rely on closure so locals here is empty *)
@@ -509,7 +509,7 @@ and eval_obj_inside env (l, x, r) : V.t =
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
       let new_assertsTODO =
-        assertsTODO |> List_.map (fun ass -> (ass, empty_env))
+        assertsTODO |> List.map (fun ass -> (ass, empty_env))
       in
       V.Object (l, (new_assertsTODO, fields), r)
   | ObjectComp _x -> error l "TODO: ObjectComp"
@@ -520,7 +520,7 @@ and eval_plus_object env _tk objl objr =
   let asserts = lassert @ rassert in
   let hash_of_right_field_names =
     rflds
-    |> List_.map (fun { V.fld_name = s, _; _ } -> s)
+    |> List.map (fun { V.fld_name = s, _; _ } -> s)
     |> Hashtbl_.hashset_of_list
   in
 
@@ -532,7 +532,7 @@ and eval_plus_object env _tk objl objr =
 
   let lflds_overlap_hidden =
     lflds
-    |> List_.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
+    |> List.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
     |> List.to_seq |> Hashtbl.of_seq
   in
 
@@ -541,7 +541,7 @@ and eval_plus_object env _tk objl objr =
 
   let new_rh_asserts =
     lassert
-    |> List_.map (fun ((tk, e), _) ->
+    |> List.map (fun ((tk, e), _) ->
            ( tk,
              e
              |> substitute_kw fake_super (Id super)
@@ -549,7 +549,7 @@ and eval_plus_object env _tk objl objr =
   in
   let new_rh_fields =
     lflds
-    |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
+    |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.lv with
            | Val _
            | Closure _ ->
@@ -585,7 +585,7 @@ and eval_plus_object env _tk objl objr =
 
   let new_ers =
     rflds
-    |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
+    |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.lv with
            | Val _
            | Closure _ ->
@@ -638,7 +638,7 @@ and manifest_value (v : V.t) : JSON.t =
   | Array (_, arr, _) ->
       J.Array
         (arr |> Array.to_list
-        |> List_.map (fun (entry : V.lazy_value) ->
+        |> List.map (fun (entry : V.lazy_value) ->
                manifest_value (to_value env entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) ->
       (* TODO: evaluate asserts *)
@@ -652,7 +652,7 @@ and manifest_value (v : V.t) : JSON.t =
                    (* similar to what we do in eval_expr on field access *)
                    let _new_assertsTODO =
                      _assertsTODO
-                     |> List_.map (fun ((tk, prog), _) -> (tk, prog))
+                     |> List.map (fun ((tk, prog), _) -> (tk, prog))
                    in
                    let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
                    let v =

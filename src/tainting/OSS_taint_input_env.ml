@@ -52,7 +52,7 @@ let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
   in
   let id_taints =
     taint_inst.preds.is_source (G.Tk (snd id))
-    |> List_.map (fun (x : _ Taint_spec_match.t) -> (x.spec_pm, x.spec))
+    |> List.map (fun (x : _ Taint_spec_match.t) -> (x.spec_pm, x.spec))
     (* These sources come from the parameters to a function,
         which are not within the normal control flow of a code.
         We can safely say there's no incoming taints to these sources.

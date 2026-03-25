@@ -33,7 +33,7 @@ let ok ast stat tolerated_errors =
     errors = [];
     skipped_tokens = [];
     inserted_tokens = [];
-    tolerated_errors = List_.map (fun x -> Tree_sitter_error x) tolerated_errors;
+    tolerated_errors = List.map (fun x -> Tree_sitter_error x) tolerated_errors;
     stat;
   }
 
@@ -56,18 +56,18 @@ let locs_of_tree_sitter_errors errs =
   let inserted =
     List.filter (fun (err : Err.t) -> err.kind = Missing_node) errs
   in
-  ( List_.map loc_of_tree_sitter_error skipped,
-    List_.map loc_of_tree_sitter_error inserted )
+  ( List.map loc_of_tree_sitter_error skipped,
+    List.map loc_of_tree_sitter_error inserted )
 
 let partial ast stat tree_sitter_errors =
   let skipped_tokens, inserted_tokens =
     locs_of_tree_sitter_errors tree_sitter_errors
   in
-  let errors = List_.map (fun x -> Tree_sitter_error x) tree_sitter_errors in
+  let errors = List.map (fun x -> Tree_sitter_error x) tree_sitter_errors in
   { ast; errors; skipped_tokens; inserted_tokens; tolerated_errors = []; stat }
 
 let has_error x = x.errors <> []
 let format_error ?style (Tree_sitter_error x) = Err.to_string ?style x
 
 let format_errors ?style errors =
-  errors |> List_.map (format_error ?style) |> String.concat ""
+  errors |> List.map (format_error ?style) |> String.concat ""

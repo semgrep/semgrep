@@ -29,7 +29,7 @@ let check (prefilter : t) (content : string) : bool =
   Formula.eval (fun pred -> Predicate.eval pred content) prefilter
 
 let check_many (prefilters : t list) (content : string) : bool list =
-  List_.map (fun prefilter -> check prefilter content) prefilters
+  List.map (fun prefilter -> check prefilter content) prefilters
 
 let to_formula (prefilter : t) : predicate Formula.t = prefilter
 let of_formula (formula : predicate Formula.t) : t = formula
@@ -38,13 +38,13 @@ let to_semgrep_formula (prefilter : t) : Semgrep_prefilter_t.formula =
   (* Convert to the existing prefilter format for serialization *)
   let rec convert_formula = function
     | Formula.And xs -> (
-        let xs' = List_.map convert_formula xs in
+        let xs' = List.map convert_formula xs in
         match xs' with
         | [] -> failwith "Empty And not supported"
         | [ x ] -> x
         | xs -> `And xs)
     | Formula.Or xs -> (
-        let xs' = List_.map convert_formula xs in
+        let xs' = List.map convert_formula xs in
         match xs' with
         | [] -> failwith "Empty Or not supported"
         | [ x ] -> x

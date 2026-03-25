@@ -148,7 +148,7 @@ let rules_and_targets (kind : Test_CLI.target_kind) : (test, error) result list
         |> List.filter Rule_file.is_valid_rule_filename
       in
       rule_files
-      |> List_.map (fun (rule_file : Fpath.t) ->
+      |> List.map (fun (rule_file : Fpath.t) ->
              match find_targets_for_rule rule_file with
              | [] ->
                  (* stricter: (but reported via config_missing_tests in JSON)*)
@@ -158,7 +158,7 @@ let rules_and_targets (kind : Test_CLI.target_kind) : (test, error) result list
              | xs ->
                  Logs.debug (fun m ->
                      m "found targets for %s: %s" !!rule_file
-                       (xs |> List_.map Fpath.to_string |> String.concat ", "));
+                       (xs |> List.map Fpath.to_string |> String.concat ", "));
                  Ok (rule_file, xs))
   | Test_CLI.File (target, config_str) -> (
       match Rules_config.parse_config_string ~in_docker:false config_str with
@@ -289,18 +289,18 @@ let tests_result_of_tests_result (results : t_res list) (errors : error list) :
   {
     Out.results =
       results
-      |> List_.map (fun (rule_file, checks, _fix) ->
+      |> List.map (fun (rule_file, checks, _fix) ->
              ( !!rule_file,
                {
                  Out.checks =
                    checks
-                   |> List_.map (fun (id, xs) -> (Rule_ID.to_string id, xs));
+                   |> List.map (fun (id, xs) -> (Rule_ID.to_string id, xs));
                } ));
     fixtest_results =
       results
       |> List.concat_map (fun (_rule_file, _checks, fixtest_results) ->
              fixtest_results
-             |> List_.map (fun ((target_file, passed) : fixtest_result) ->
+             |> List.map (fun ((target_file, passed) : fixtest_result) ->
                     (!!(target_file.fpath), passed)));
     (* TODO: change the schema and use an enum instead of those fields *)
     config_missing_tests =
@@ -515,12 +515,12 @@ let diff_findings (actual : int list) (expected : int list) : string =
   (if List_.null only_in_expected then ""
    else
      spf "missing findings lines %s."
-       (only_in_expected |> List_.map Int.to_string |> String.concat ", "))
+       (only_in_expected |> List.map Int.to_string |> String.concat ", "))
   ^
   if List_.null only_in_actual then ""
   else
     spf "unexpected findings lines %s."
-      (only_in_actual |> List_.map Int.to_string |> String.concat ", ")
+      (only_in_actual |> List.map Int.to_string |> String.concat ", ")
 
 (* alt: use Test_compare_matches.compare_actual_to_expected but
  * it does not handle the actual rule id in the annotations and is
@@ -543,7 +543,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
       Logs.warn (fun m -> m "nothing matched for %s%s" !!(env.rule_file) xtra);
     matches
     |> Assoc.group_by (fun (pm : Core_match.t) -> pm.rule_id.id)
-    |> List_.map (fun (rule_id, pms) ->
+    |> List.map (fun (rule_id, pms) ->
            ( rule_id,
              pms
              |> Assoc.group_by (fun (pm : Core_match.t) ->
@@ -570,7 +570,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
   (* regular ruleid tests *)
   let checks : (Rule_ID.t * Out.rule_result) list =
     all_rule_ids
-    |> List_.map (fun (id : Rule_ID.t) ->
+    |> List.map (fun (id : Rule_ID.t) ->
            let actual : (Fpath.t, Core_match.t list) Assoc.t =
              matches_by_ruleid_and_file |> Assoc.find_opt id
              |> List_.optlist_to_list
@@ -582,13 +582,13 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
            let all_files : Fpath.t list = Assoc.join_keys actual expected in
            let res : (bool * (Fpath.t * Out.expected_reported)) list =
              all_files
-             |> List_.map (fun (target : Fpath.t) ->
+             |> List.map (fun (target : Fpath.t) ->
                     let matches : Core_match.t list =
                       actual |> Assoc.find_opt target |> List_.optlist_to_list
                     in
                     let (reported_lines : A.linenb list) =
                       matches
-                      |> List_.map (fun (pm : Core_match.t) ->
+                      |> List.map (fun (pm : Core_match.t) ->
                              pm.range_loc |> fst |> fun (loc : Loc.t) ->
                              loc.pos.line)
                       |> List.sort_uniq Int.compare
@@ -637,10 +637,10 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
            let (rule_result : Out.rule_result) =
              Out.
                {
-                 passed = res |> List_.map fst |> List.for_all Fun.id;
+                 passed = res |> List.map fst |> List.for_all Fun.id;
                  matches =
                    res
-                   |> List_.map (fun (_passed, (target, expected_reported)) ->
+                   |> List.map (fun (_passed, (target, expected_reported)) ->
                           (* TODO: not sure why but pysemgrep uses realpaths
                            * here, which is a bit annoying because it forces
                            * us to use masks in test snapshots
@@ -702,13 +702,13 @@ let run_engine (env : env) (rules : Rule.t list) (targets : Target.t list)
   in
   let expected : (Fpath.t * A.annotations) list =
     files_and_annots
-    |> List_.map (fun (file, annots) ->
+    |> List.map (fun (file, annots) ->
            let annots = filter_annots_for_engine env.engine annots in
            (file, annots))
   in
   let matches =
     res.processed_matches
-    |> List_.map (fun (x : Core_result.processed_match) -> x.pm)
+    |> List.map (fun (x : Core_result.processed_match) -> x.pm)
   in
   let checks =
     compare_actual_to_expected env matches expected res.explanations
@@ -743,14 +743,14 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
        Alternatively, we could use Origin.Unfilterable_target_file but
        it would require more changes.
     *)
-    List_.map Fppath.unfilterable_DEPRECATED target_fpaths
+    List.map Fppath.unfilterable_DEPRECATED target_fpaths
   in
   let targets : Target.t list =
     Core_targeting.targets_for_files_and_rules target_files rules
   in
   let files_and_annots : (Fpath.t * A.annotations) list =
     target_files
-    |> List_.map (fun (file : Fppath.t) ->
+    |> List.map (fun (file : Fppath.t) ->
            let fpath = file.fpath in
            (fpath, A.annotations fpath))
   in
@@ -782,7 +782,7 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
      *)
     let checks_pro =
       checks_pro
-      |> List_.map (fun (id, rule_result) ->
+      |> List.map (fun (id, rule_result) ->
              let s = Rule_ID.to_string id in
              let id = Rule_ID.of_string_exn (s ^ "--PRO") in
              (id, rule_result))
@@ -794,7 +794,7 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
     in
     let checks_deep =
       checks_deep
-      |> List_.map (fun (id, rule_result) ->
+      |> List.map (fun (id, rule_result) ->
              let s = Rule_ID.to_string id in
              let id = Rule_ID.of_string_exn (s ^ "--DEEP") in
              (id, rule_result))
@@ -823,7 +823,7 @@ let run_tests (conf : Test_CLI.conf) (tests : test list) :
                run_test conf rule_file rules target_files
              in
              let successes = (rule_file, checks, fixtest) in
-             let errors = List_.map Result.error errors in
+             let errors = List.map Result.error errors in
              [ Ok successes ] @ errors
          (* capture 's' and return it in the error so the user will see something
           * like "Missing semgrep extenstion needed for parsing X. Try --pro"

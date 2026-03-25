@@ -95,7 +95,7 @@ let freshvar =
 
 (* todo? auto generate the right name in otarzan? *)
 let desugar_string _env x = x
-let desugar_list f env x = x |> List_.map (fun x -> f env x)
+let desugar_list f env x = x |> List.map (fun x -> f env x)
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -394,10 +394,10 @@ and desugar_obj_inside env (l, v, r) : C.expr =
       in
       let asserts' =
         asserts
-        |> List_.map (fun assert_ -> desugar_assert_ env (assert_, binds))
+        |> List.map (fun assert_ -> desugar_assert_ env (assert_, binds))
       in
       let fields' =
-        fields |> List_.map (fun field -> desugar_field env (field, binds))
+        fields |> List.map (fun field -> desugar_field env (field, binds))
       in
       let obj = C.Object (asserts', fields') in
       if env.within_an_object && !Conf_ojsonnet.implement_self then

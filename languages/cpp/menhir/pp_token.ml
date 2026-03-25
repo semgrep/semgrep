@@ -102,7 +102,7 @@ let (cpp_engine :
       Parser.token list) =
  fun env xs ->
   xs
-  |> List_.map (fun tok ->
+  |> List.map (fun tok ->
          match tok with
          | TIdent (s, _i1) when List.mem_assoc s env -> List.assoc s env
          | x -> [ x ])
@@ -136,9 +136,9 @@ let apply_macro_defs defs xs =
             if List.length params =|= List.length xxs then
               let xxs' =
                 xxs
-                |> List_.map (fun x ->
+                |> List.map (fun x ->
                        tokens_of_paren_ordered x
-                       |> List_.map (fun x ->
+                       |> List.map (fun x ->
                               TH.visitor_info_of_tok Ast.make_expanded x.t))
               in
               id.new_tokens_before <-
@@ -209,7 +209,7 @@ let rec define_parse xs =
              | TIdent (s, _) -> Some s
              | x -> Common2.error_cant_have x)
       in
-      let body = body |> List_.map (TH.visitor_info_of_tok Ast.make_expanded) in
+      let body = body |> List.map (TH.visitor_info_of_tok Ast.make_expanded) in
       let def = (s, (Either.Right params, body)) in
       def :: define_parse xs
   | TDefine _i1 :: TIdent_Define (s, _i2) :: xs ->
@@ -219,7 +219,7 @@ let rec define_parse xs =
              | TCommentNewline_DefineEndOfMacro _ -> true
              | _ -> false)
       in
-      let body = body |> List_.map (TH.visitor_info_of_tok Ast.make_expanded) in
+      let body = body |> List.map (TH.visitor_info_of_tok Ast.make_expanded) in
       let def = (s, (Either.Left (), body)) in
       def :: define_parse xs
   | TDefine _i1 :: _ -> raise Impossible

@@ -233,7 +233,7 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
         | Some (kind, engine, others, s) ->
             let xs =
               Str.split_delim (Str.regexp "[ \t]*,[ \t]*") s
-              |> List_.map String.trim
+              |> List.map String.trim
             in
             xs
             |> List_.filter_map (fun id_str ->
@@ -268,7 +268,7 @@ let () =
       let test (str : string) (expected : t list) =
         let xs =
           annotations_of_string str (Fpath.v "foo") 0
-          |> List_.map (fun (annot, _idx) -> annot)
+          |> List.map (fun (annot, _idx) -> annot)
         in
         if not (xs =*= expected) then
           failwith
@@ -308,10 +308,10 @@ let () =
 let group_by_rule_id (annots : annotations) : (Rule_ID.t, linenb list) Assoc.t =
   annots
   |> Assoc.group_by (fun ({ id; _ }, _) -> id)
-  |> List_.map (fun (id, xs) ->
+  |> List.map (fun (id, xs) ->
          ( id,
            xs
-           |> List_.map (fun (_, line) -> line + 1)
+           |> List.map (fun (_, line) -> line + 1)
            (* should not be needed given how annotations work but safer *)
            |> List.sort_uniq Int.compare ))
 

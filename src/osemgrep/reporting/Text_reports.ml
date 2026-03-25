@@ -112,7 +112,7 @@ let rules_source (rule_source : Rules_source.t) : string =
   match rule_source with
   | Configs xs ->
       let parsed_configs =
-        xs |> List_.map (Rules_config.parse_config_string ~in_docker:false)
+        xs |> List.map (Rules_config.parse_config_string ~in_docker:false)
       in
       if
         parsed_configs
@@ -291,33 +291,33 @@ let scan_status ~num_rules ~num_targets ~respect_gitignore
           let rule_origins : (string * int list) list =
             lang_jobs
             |> List.fold_left
-                 (fun acc Lang_job.{ rules; _ } -> List_.map origin rules @ acc)
+                 (fun acc Lang_job.{ rules; _ } -> List.map origin rules @ acc)
                  []
             |> Assoc.group_by Fun.id
-            |> List_.map (fun (src, xs) ->
+            |> List.map (fun (src, xs) ->
                    (String.capitalize_ascii src, [ List.length xs ]))
           in
           prf "\n";
           let lang_stats : (string * int * int) list =
             lang_jobs
             (* Unpack each job, transforming analyzer into its mapped language key *)
-            |> List_.map (fun Lang_job.{ analyzer; targets; rules } ->
+            |> List.map (fun Lang_job.{ analyzer; targets; rules } ->
                    (analyzer_label analyzer, rules, targets))
             (* Merge jobs by mapped language key *)
             |> Assoc.group_by (fun (analyzer, _, _) -> analyzer)
-            |> List_.map (fun (analyzer, xxs) ->
+            |> List.map (fun (analyzer, xxs) ->
                    let targets =
                      xxs
                      |> List.concat_map (fun (_, _, targets) -> targets)
                      |> Assoc.group_by Fun.id
-                     |> List_.map (fun (target, _) -> target)
+                     |> List.map (fun (target, _) -> target)
                      |> List.length
                    in
                    let rules =
                      xxs
                      |> List.concat_map (fun (_, rules, _) -> rules)
                      |> Assoc.group_by Fun.id
-                     |> List_.map (fun (rules, _) -> rules)
+                     |> List.map (fun (rules, _) -> rules)
                      |> List.length
                    in
                    (analyzer, rules, targets))

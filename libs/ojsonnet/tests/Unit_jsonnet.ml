@@ -33,7 +33,7 @@ let related_file_of_target ~ext ~file =
 
 let test_maker_err dir : Testo.t list =
   Common2.glob (dir / "*jsonnet")
-  |> List_.map (fun file ->
+  |> List.map (fun file ->
          t ~category:[ !!dir ] (Fpath.basename file) (fun () ->
              let ast = Parse_jsonnet.parse_program file in
              let core = Desugar_jsonnet.desugar_program file ast in
@@ -48,7 +48,7 @@ let test_maker_err dir : Testo.t list =
 let mk_tests (subdir : Fpath.t) (strategys : Conf.eval_strategy list) :
     Testo.t list =
   Common2.glob Fpath.(v "tests" / "jsonnet" // subdir / "*.jsonnet")
-  |> List_.map (fun file ->
+  |> List.map (fun file ->
          t
            ~category:[ !!(Fpath.v "tests/jsonnet" // subdir) ]
            (Fpath.basename file)

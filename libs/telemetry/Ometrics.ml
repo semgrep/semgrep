@@ -191,7 +191,7 @@ let create_histogram_data (explicit_bounds : float list option) =
     explicit_bounds
     |> Option.map (fun bounds ->
            let bounds_and_buckets =
-             List_.map (fun bound -> (bound, 0L)) bounds
+             List.map (fun bound -> (bound, 0L)) bounds
            in
            (* We add infinity so there's an upper bound, which makes insertion a
               bit easier *)
@@ -222,7 +222,7 @@ let explicit_bounds_of_histogram (histogram : histogram_data) =
   | None -> None
   | Some bounds_and_buckets ->
       let explicit_bounds =
-        bounds_and_buckets |> List_.map fst
+        bounds_and_buckets |> List.map fst
         (* we don't want to include infinite in our bounds, but it is there for convenience *)
         (* See otel link above bounds_and_buckets in histogram_data for more info *)
         |> List.filter (fun b -> not (Float.is_infinite b))
@@ -232,7 +232,7 @@ let explicit_bounds_of_histogram (histogram : histogram_data) =
 let buckets_of_histogram (histogram : histogram_data) =
   match histogram.bounds_and_buckets with
   | None -> []
-  | Some bounds_and_buckets -> List_.map snd bounds_and_buckets
+  | Some bounds_and_buckets -> List.map snd bounds_and_buckets
 
 (* See otel link above bounds_and_buckets in histogram_data for more info *)
 let increment_bucket_count (value : float)
@@ -302,7 +302,7 @@ let exemplar_of_metric_value ?(now = now ()) ?filtered_attrs value =
       current_scope
   in
   let filtered_attributes =
-    Option.map (fun xs -> List_.map _conv_key_value xs) filtered_attrs
+    Option.map (fun xs -> List.map _conv_key_value xs) filtered_attrs
   in
   Otel.Proto.Metrics.default_exemplar ?filtered_attributes ?span_id ?trace_id
     ~time_unix_nano:now ~value ()
@@ -611,7 +611,7 @@ module Make_meter
       let attrs = attrs @ default_metric_attributes () in
       let data_point =
         let exemplars = Option.map (fun x -> [ x ]) exemplar in
-        let attributes = List_.map _conv_key_value attrs in
+        let attributes = List.map _conv_key_value attrs in
         K.make_data_point ?now ?exemplars ~attributes x
       in
       let metric = report_data_points [ data_point ] in

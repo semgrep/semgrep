@@ -239,13 +239,13 @@ let taints_of_matches env ~incoming sources =
    * a control source could influence a data source and vice-versa. *)
   let data_taints =
     data_sources
-    |> List_.map (fun x -> (x.TM.spec_pm, x.spec))
+    |> List.map (fun x -> (x.TM.spec_pm, x.spec))
     |> T.taints_of_pms ~incoming
   in
   let control_incoming = Lval_env.get_control_taints env.lval_env in
   let control_taints =
     control_sources
-    |> List_.map (fun x -> (x.TM.spec_pm, x.spec))
+    |> List.map (fun x -> (x.TM.spec_pm, x.spec))
     |> T.taints_of_pms ~incoming:control_incoming
   in
   let lval_env = Lval_env.add_control_taints env.lval_env control_taints in
@@ -291,7 +291,7 @@ let merge_source_mvars (options : Rule_options.t) bindings =
   let flat_bindings = List_.flatten bindings in
   let bindings_tbl =
     flat_bindings
-    |> List_.map (fun (mvar, _) -> (mvar, None))
+    |> List.map (fun (mvar, _) -> (mvar, None))
     |> List.to_seq |> Hashtbl.of_seq
   in
   flat_bindings
@@ -462,7 +462,7 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
       *)
       let taints_and_bindings =
         taints_with_traces
-        |> List_.map (fun ({ Effect.taint; _ } as item) ->
+        |> List.map (fun ({ Effect.taint; _ } as item) ->
                let bindings =
                  match taint.T.orig with
                  | T.Src source ->
@@ -513,7 +513,7 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
               'taints_and_bindings' are actually feasible (due to the 'requires').
               Perhaps we should only generate this 'merged_env' at the very end, in
               'matches_of_effect'. See SAF-1812  *)
-          taints_and_bindings |> List_.map snd |> merge_source_mvars options
+          taints_and_bindings |> List.map snd |> merge_source_mvars options
           |> merge_source_sink_mvars options sink.pm.env
         with
         | None -> []
@@ -521,7 +521,7 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
             [
               Effect.ToSink
                 {
-                  taints_with_trace = List_.map fst taints_and_bindings;
+                  taints_with_trace = List.map fst taints_and_bindings;
                   sink;
                   merged_env;
                 };
@@ -543,7 +543,7 @@ let effects_of_tainted_sinks env taints sinks : Effect.poly list =
             *)
            let taints_with_traces =
              taints |> Taints.elements
-             |> List_.map (fun t ->
+             |> List.map (fun t ->
                     { Effect.taint = t; sink_trace = T.PM (sink.Effect.pm, ()) })
            in
            effects_of_tainted_sink env.func.taint_inst.options
@@ -1576,7 +1576,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
   | _else -> (
       let pred_envs =
         CFG.predecessors flow ni
-        |> List_.map (fun (pi, _) -> mapping.(pi).D.out_env)
+        |> List.map (fun (pi, _) -> mapping.(pi).D.out_env)
       in
       match pred_envs with
       | [] -> Lval_env.empty
@@ -1745,7 +1745,7 @@ and check_for_lambdas env node =
           (Display_IL.short_string_of_node node));
   let effects_lambdas, out_envs_lambdas =
     lambdas_to_analyze
-    |> List_.map (fun (lambda_name, lambda_cfg) ->
+    |> List.map (fun (lambda_name, lambda_cfg) ->
            do_lambda env ~is_call:node_is_call lambda_name lambda_cfg)
     |> List_.split
   in

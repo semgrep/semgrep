@@ -191,7 +191,7 @@ let sort_extra (extra : core_match_extra) =
 let sort_core_matches (matches : core_match list) : core_match list =
   let matches =
     matches
-    |> List_.map (fun (x : core_match) -> { x with extra = sort_extra x.extra })
+    |> List.map (fun (x : core_match) -> { x with extra = sort_extra x.extra })
   in
   List.stable_sort compare_match matches
 

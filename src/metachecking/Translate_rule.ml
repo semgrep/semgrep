@@ -62,7 +62,7 @@ let rec translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
       `O
         ([
            ("metavariable", `String mv);
-           ("types", `A (List_.map (fun s -> `String s) strs));
+           ("types", `A (List.map (fun s -> `String s) strs));
          ]
         @
         match lang with
@@ -79,12 +79,12 @@ let rec translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
         @ (match modules with
           | Some [ name ] -> [ ("module", `String name) ]
           | Some names ->
-              [ ("modules", `A (List_.map (fun n -> `String n) names)) ]
+              [ ("modules", `A (List.map (fun n -> `String n) names)) ]
           | None -> [])
         @
         match fqns with
         | Some [ name ] -> [ ("fqn", `String name) ]
-        | Some names -> [ ("fqns", `A (List_.map (fun n -> `String n) names)) ]
+        | Some names -> [ ("fqns", `A (List.map (fun n -> `String n) names)) ]
         | None -> [])
   | CondRegexp (mv, re_str, _) ->
       `O [ ("metavariable", `String mv); ("regex", `String re_str) ]
@@ -172,7 +172,7 @@ and translate_taint_sink
           ( "requires",
             `A
               (mvars_w_preconds
-              |> List_.map (fun ((mvar, _tok), { range; _ }) ->
+              |> List.map (fun ((mvar, _tok), { range; _ }) ->
                      `O [ (mvar, `String (range_to_string range)) ])) );
         ]
   in
@@ -226,7 +226,7 @@ and translate_taint_propagator
     match propagator_replace_labels with
     | None -> []
     | Some strs ->
-        [ ("replace-labels", `A (List_.map (fun s -> `String s) strs)) ]
+        [ ("replace-labels", `A (List.map (fun s -> `String s) strs)) ]
   in
   let from_obj = [ ("from", `String (fst from)) ] in
   let to_obj = [ ("to", `String (fst to_)) ] in
@@ -249,20 +249,20 @@ and translate_taint_spec
     match sanitizers with
     | None -> []
     | Some (_, sanitizers) ->
-        [ ("sanitizers", `A (List_.map translate_taint_sanitizer sanitizers)) ]
+        [ ("sanitizers", `A (List.map translate_taint_sanitizer sanitizers)) ]
   in
   let propagators =
-    match List_.map translate_taint_propagator propagators with
+    match List.map translate_taint_propagator propagators with
     | [] -> []
     | other -> [ ("propagators", `A other) ]
   in
   `O
     (List_.flatten
        [
-         [ ("sources", `A (List_.map translate_taint_source (snd sources))) ];
+         [ ("sources", `A (List.map translate_taint_source (snd sources))) ];
          sanitizers;
          propagators;
-         [ ("sinks", `A (List_.map translate_taint_sink (snd sinks))) ];
+         [ ("sinks", `A (List.map translate_taint_sink (snd sinks))) ];
        ])
 
 and translate_formula f : [> `O of (string * Yaml.value) list ] =
@@ -273,7 +273,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
           (* probably shouldn't happen... *)
           []
       | [ mv ] -> [ `O [ ("focus", `String mv) ] ]
-      | mvs -> [ `O [ ("focus", `A (List_.map (fun x -> `String x) mvs)) ] ]
+      | mvs -> [ `O [ ("focus", `A (List.map (fun x -> `String x) mvs)) ] ]
     in
     let where_obj =
       match (focus, conditions) with
@@ -282,7 +282,7 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
           [
             ( "where",
               `A
-                (List_.map
+                (List.map
                    (fun (_, cond) -> translate_metavar_cond cond)
                    conditions
                 @ List.concat_map mk_focus_obj focus) );
@@ -313,16 +313,16 @@ and translate_formula f : [> `O of (string * Yaml.value) list ] =
     | Anywhere (_, f) -> `O [ ("anywhere", (aux f :> Yaml.value)) ]
     | Not (_, f) -> `O [ ("not", (aux f :> Yaml.value)) ]
     | And (_, conjuncts) ->
-        `O [ ("all", `A (List_.map aux conjuncts :> Yaml.value list)) ]
-    | Or (_, fs) -> `O [ ("any", `A (List_.map aux fs :> Yaml.value list)) ]
+        `O [ ("all", `A (List.map aux conjuncts :> Yaml.value list)) ]
+    | Or (_, fs) -> `O [ ("any", `A (List.map aux fs :> Yaml.value list)) ]
   in
   aux f
 
 let rec json_to_yaml json : Yaml.value =
   match json with
   | JSON.Object fields ->
-      `O (List_.map (fun (name, value) -> (name, json_to_yaml value)) fields)
-  | Array items -> `A (List_.map json_to_yaml items)
+      `O (List.map (fun (name, value) -> (name, json_to_yaml value)) fields)
+  | Array items -> `A (List.map json_to_yaml items)
   | String s -> `String s
   | Int i -> `Float (float_of_int i)
   | Float f -> `Float f
@@ -361,13 +361,13 @@ let replace_pattern rule_fields translated_formula : (string * Yaml.value) list
 let translate_files fparser xs =
   let formulas_by_file =
     xs
-    |> List_.map (fun file ->
+    |> List.map (fun file ->
            Logs.info (fun m -> m "translate_files: processing %s" !!file);
            let formulas =
              match fparser file with
              | Ok rules ->
                  rules
-                 |> List_.map (fun rule ->
+                 |> List.map (fun rule ->
                         match rule.mode with
                         | `Search formula
                         | `Extract { formula; _ } ->

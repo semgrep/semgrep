@@ -211,11 +211,11 @@ and pretty_exp_kind = function
   | IL.Literal lit -> pretty_literal lit
   | IL.Composite (kind, (_, es, _)) ->
       let kind_str = pretty_composite_kind kind in
-      let es_str = es |> List_.map pretty_exp |> String.concat ", " in
+      let es_str = es |> List.map pretty_exp |> String.concat ", " in
       spf "%s(%s)" kind_str es_str
   | IL.RecordOrDict fields ->
       let fields_str =
-        fields |> List_.map pretty_field_or_entry |> String.concat ", "
+        fields |> List.map pretty_field_or_entry |> String.concat ", "
       in
       spf "{ %s }" fields_str
   | IL.Cast (ty, e) ->
@@ -223,7 +223,7 @@ and pretty_exp_kind = function
   | IL.Operator (op, args) ->
       let op_str = pretty_operator op in
       let args_str =
-        args |> List_.map (pretty_argument pretty_exp) |> String.concat ", "
+        args |> List.map (pretty_argument pretty_exp) |> String.concat ", "
       in
       if List.length args = 1 then spf "%s%s" op_str args_str
       else if List.length args = 2 then
@@ -293,7 +293,7 @@ let rec pretty_instr_kind ?indent:_ = function
       in
       let fn_str = pretty_exp fn in
       let args_str =
-        args |> List_.map (pretty_argument pretty_exp) |> String.concat ", "
+        args |> List.map (pretty_argument pretty_exp) |> String.concat ", "
       in
       spf "%s%s(%s)" lv_str fn_str args_str
   | IL.AssignCall (lv_opt, { c = IL.CallSpecial ((special, _), args); _ }) ->
@@ -304,14 +304,14 @@ let rec pretty_instr_kind ?indent:_ = function
       in
       let special_str = pretty_call_special special in
       let args_str =
-        args |> List_.map (pretty_argument pretty_exp) |> String.concat ", "
+        args |> List.map (pretty_argument pretty_exp) |> String.concat ", "
       in
       spf "%s%s(%s)" lv_str special_str args_str
   | IL.New (lv, ty, ctor_opt, args) ->
       let ty_str = Pretty_print_AST.type_ ty in
       let resolved = Option.is_some ctor_opt in
       let args_str =
-        args |> List_.map (pretty_argument pretty_exp) |> String.concat ", "
+        args |> List.map (pretty_argument pretty_exp) |> String.concat ", "
       in
       spf "%s = new<resolved: %b> %s(%s)" (pretty_lval lv) resolved ty_str
         args_str
@@ -359,7 +359,7 @@ and pretty_stmt ?(indent = 0) stmt =
       let try_str = pretty_stmts ~indent:(indent + 1) try_stmts in
       let catches_str =
         catches
-        |> List_.map (fun (name, catch_stmts) ->
+        |> List.map (fun (name, catch_stmts) ->
                let catch_body = pretty_stmts ~indent:(indent + 1) catch_stmts in
                spf "%s} catch (%s) {\n%s" ind (fst name.IL.ident) catch_body)
         |> String.concat "\n"
@@ -383,7 +383,7 @@ and pretty_stmt ?(indent = 0) stmt =
       let scrutinee_str = fst scrutinee.IL.ident in
       let branches_str =
         branches
-        |> List_.map (fun { IL.pattern; body } ->
+        |> List.map (fun { IL.pattern; body } ->
                let pat_str =
                  match pattern with
                  | IL.PatLiteral lit -> G.show_literal lit
@@ -392,7 +392,7 @@ and pretty_stmt ?(indent = 0) stmt =
                  | IL.PatConstructor (name, args) ->
                      let args_str =
                        args
-                       |> List_.map (fun n -> fst n.IL.ident)
+                       |> List.map (fun n -> fst n.IL.ident)
                        |> String.concat ", "
                      in
                      spf "%s(%s)" (fst name.IL.ident) args_str
@@ -418,7 +418,7 @@ and pretty_stmt ?(indent = 0) stmt =
       ind ^ spf "FIXME_STMT<%s>;" kind_str
 
 and pretty_stmts ?(indent = 0) stmts =
-  stmts |> List_.map (pretty_stmt ~indent) |> String.concat "\n"
+  stmts |> List.map (pretty_stmt ~indent) |> String.concat "\n"
 
 (*****************************************************************************)
 (* Definitions *)
@@ -440,7 +440,7 @@ and pretty_function_definition ?(name = "") ?(indent = 0) ?(inline = false) fdef
     =
   let ind = indent_str indent in
   let params_str =
-    fdef.IL.fparams |> List_.map pretty_param |> String.concat ", "
+    fdef.IL.fparams |> List.map pretty_param |> String.concat ", "
   in
   let ret_str =
     match fdef.IL.frettype with
@@ -462,7 +462,7 @@ and pretty_class_definition ?(name = "Class") ?(indent = 0) ?(inline = false)
     | parents ->
         " extends "
         ^ (parents
-          |> List_.map (fun (ty, _args_opt) -> Pretty_print_AST.type_ ty)
+          |> List.map (fun (ty, _args_opt) -> Pretty_print_AST.type_ ty)
           |> String.concat ", ")
   in
   let implements_str =
@@ -471,12 +471,12 @@ and pretty_class_definition ?(name = "Class") ?(indent = 0) ?(inline = false)
     | impls ->
         " implements "
         ^ (impls
-          |> List_.map (fun ty -> Pretty_print_AST.type_ ty)
+          |> List.map (fun ty -> Pretty_print_AST.type_ ty)
           |> String.concat ", ")
   in
   let fields_str =
     cdef.IL.cfields
-    |> List_.map (fun (ent, vdef) ->
+    |> List.map (fun (ent, vdef) ->
            let field_name = pretty_entity_name ent.IL.name in
            let ty_str =
              match vdef.IL.vtype with
@@ -493,7 +493,7 @@ and pretty_class_definition ?(name = "Class") ?(indent = 0) ?(inline = false)
   in
   let methods_str =
     cdef.IL.cmethods
-    |> List_.map (fun (ent, fdef) ->
+    |> List.map (fun (ent, fdef) ->
            let method_name = pretty_entity_name ent.IL.name in
            pretty_function_definition ~name:method_name ~indent:(indent + 1)
              fdef)
@@ -575,7 +575,7 @@ let pretty_node_kind = function
         | IL.PatVariable n -> fst n.IL.ident
         | IL.PatConstructor (n, args) ->
             let args_str =
-              args |> List_.map (fun a -> fst a.IL.ident) |> String.concat ", "
+              args |> List.map (fun a -> fst a.IL.ident) |> String.concat ", "
             in
             spf "%s(%s)" (fst n.IL.ident) args_str
       in

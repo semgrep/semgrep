@@ -187,7 +187,7 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
       if
         not
           (taints_satisfy_sink_requires
-             (List_.map (fun t -> t.Effect.taint) taints_with_trace)
+             (List.map (fun t -> t.Effect.taint) taints_with_trace)
              sink.Effect.requires)
       then []
       else
@@ -204,7 +204,7 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
                do some postprocessing to report only relevant sources later on, but for now we
                will lazily (again) defer that computation to later.
             *)
-            let traces = List_.map trace_of_source taint_sources in
+            let traces = List.map trace_of_source taint_sources in
             (* We always report the finding on the sink that gets tainted, the call trace
                 * must be used to explain how exactly the taint gets there. At some point
                 * we experimented with reporting the match on the `sink`'s function call that
@@ -238,7 +238,7 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
             [ { sink_pm with env = merged_env; taint_trace } ]
         | `Source ->
             taint_sources
-            |> List_.map (fun source ->
+            |> List.map (fun source ->
                    let src, tokens, sink_trace = source in
                    let src_pm, _ = T.pm_of_trace src.T.call_trace in
                    let trace =
@@ -370,7 +370,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
             in
             let fields =
               cdef.G.cbody |> Tok.unbracket
-              |> List_.map (function G.F x -> x)
+              |> List.map (function G.F x -> x)
               |> G.stmt1
             in
             let stmts = AST_to_IL.stmt taint_inst.file.lang fields in
@@ -488,7 +488,7 @@ let check_rules ~matches_hook
 
   let res =
     rules
-    |> List_.map (fun rule ->
+    |> List.map (fun rule ->
            let%trace_trace sp = "OSS_match_tainting_mode.check_rules.rule" in
            Tracing.add_data_to_span sp
              [

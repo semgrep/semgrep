@@ -13,9 +13,6 @@
  * license.txt for more details.
  *)
 
-(* nosemgrep: no-list-map *)
-let map = List.map
-
 (*****************************************************************************)
 (* Additional iterators *)
 (*****************************************************************************)
@@ -140,7 +137,7 @@ let index_list xs =
   else combine_exn xs (enum 0 (List.length xs - 1))
 
 let index_list_0 xs = index_list xs
-let index_list_1 xs = xs |> index_list |> map (fun (x, i) -> (x, i + 1))
+let index_list_1 xs = xs |> index_list |> List.map (fun (x, i) -> (x, i + 1))
 
 (*****************************************************************************)
 (* Options and lists *)
@@ -198,9 +195,9 @@ let map_result = Result_.list_map
 let sort xs = List.sort compare xs
 
 let sort_by_key (key : 'a -> 'b) (cmp : 'b -> 'b -> int) (xs : 'a list) =
-  map (fun x -> (key x, x)) xs
+  List.map (fun x -> (key x, x)) xs
   |> List.sort (fun (x, _) (y, _) -> cmp x y)
-  |> map snd
+  |> List.map snd
 
 (* maybe too slow? use an hash instead to first group, and then in
  * that group remove duplicates? *)

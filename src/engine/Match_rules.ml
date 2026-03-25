@@ -197,8 +197,8 @@ let group_rules xconf rules xtarget profiling =
   *)
   let relevant_taint_rules_groups =
     relevant_taint_rules
-    |> List_.map (fun r -> (r.R.target_analyzer, r))
-    |> Assoc.group_assoc_bykey_eff |> List_.map snd
+    |> List.map (fun r -> (r.R.target_analyzer, r))
+    |> Assoc.group_assoc_bykey_eff |> List.map snd
   in
   let profiling =
     Core_quick_profiling.add_rules_selected
@@ -303,7 +303,7 @@ let check ~matches_hook ~(timeout : timeout_config option)
   in
   let res_nontaint_rules =
     nontaint_rules
-    |> List_.map (fun r ->
+    |> List.map (fun r ->
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
            in

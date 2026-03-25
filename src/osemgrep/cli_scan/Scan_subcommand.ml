@@ -154,7 +154,7 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
 let core_errors_of_fatal_rule_errors (fatal_errors : Rule_error.t list) :
     Core_error.t list =
   fatal_errors
-  |> List_.map (fun (e : Rule_error.t) -> Core_error.error_of_rule_error e)
+  |> List.map (fun (e : Rule_error.t) -> Core_error.error_of_rule_error e)
 
 (* we require stdout here to give the proper output, such as with --json *)
 let output_and_exit_from_fatal_core_errors_exn ~exit_code (conf : Scan_CLI.conf)
@@ -173,8 +173,7 @@ let output_and_exit_from_fatal_core_errors_exn ~exit_code (conf : Scan_CLI.conf)
            ( Common.spf
                "invalid configuration file found (%d configs were invalid)\n%s"
                (List.length errors)
-               (String.concat "\n"
-                  (List_.map Core_error.string_of_error errors)),
+               (String.concat "\n" (List.map Core_error.string_of_error errors)),
              Some (Exit_code.missing_config ~__LOC__) ))
   | _ ->
       let runtime_params : Out.format_context =
@@ -216,7 +215,7 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     let core_matches : Out.core_match list =
       pms
       (* OK, because we don't need the postprocessing to report the matches. *)
-      |> List_.map Core_result.mk_processed_match
+      |> List.map Core_result.mk_processed_match
       |> Result_.partition Core_json_output.match_to_match
       |> fst |> Core_json_output.dedup_and_sort
     in
@@ -226,7 +225,7 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       else None
     in
     core_matches
-    |> List_.map (fun (cm : Out.core_match) ->
+    |> List.map (fun (cm : Out.core_match) ->
            let rule =
              try Hashtbl.find hrules cm.check_id with
              | Not_found ->
@@ -356,7 +355,7 @@ let adjust_skipped (skipped : Out.skipped_target list)
     in
     let skipped =
       if in_test then
-        List_.map
+        List.map
           (fun (x : Out.skipped_target) -> { x with Out.details = None })
           skipped
       else skipped
@@ -394,7 +393,7 @@ let adjust_nosemgrep_and_autofix ~keep_ignored (res : Core_runner.result) :
     Core_runner.result =
   let filtered_matches =
     res.core.results
-    |> List_.map trim_core_match_fix
+    |> List.map trim_core_match_fix
     |> Nosemgrep.filter_ignored ~keep_ignored
   in
   { res with core = { res.core with results = filtered_matches } }
@@ -451,7 +450,7 @@ let check_targets_with_rules (conf : Scan_CLI.conf) (profiler : Profiler.t)
          errors are also surfaced to users who request --json or similar.
       *)
       let core_errors =
-        List_.map Core_error.error_of_invalid_rule invalid_rules
+        List.map Core_error.error_of_invalid_rule invalid_rules
       in
       Error
         (output_and_exit_from_fatal_core_errors_exn
@@ -545,7 +544,7 @@ let check_targets_with_rules (conf : Scan_CLI.conf) (profiler : Profiler.t)
             match result_or_exn with
             | Ok r ->
                 r.valid_rules
-                |> List_.map (fun (rv : Rule.rule) ->
+                |> List.map (fun (rv : Rule.rule) ->
                        Rule_ID.to_string (fst rv.id))
             | Error _ -> []
           in

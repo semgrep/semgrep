@@ -43,7 +43,7 @@ module OutJ = Semgrep_output_v1_j
 
 let (analyzers_of_rules : Rule.t list -> Analyzer.t list) =
  fun rs ->
-  rs |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
+  rs |> List.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
 
 let first_analyzer_of_rules (rs : Rule.t list) : Analyzer.t =
   match rs with
@@ -132,7 +132,7 @@ let test_name_for_target ~prepend_lang (langs : Lang.t list)
     let langs =
       match langs with
       | [] -> [ "Generic" ]
-      | _ -> List_.map Lang.to_capitalized_alnum langs
+      | _ -> List.map Lang.to_capitalized_alnum langs
     in
     let lang = langs |> String.concat " " in
     spf "%s %s" lang !!rule_file
@@ -175,7 +175,7 @@ let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
     unit =
   if not (E.ErrorSet.is_empty errors) then
     let errors =
-      E.ErrorSet.elements errors |> List_.map Core_error.show
+      E.ErrorSet.elements errors |> List.map Core_error.show
       |> String.concat "-----\n"
     in
     failwith (spf "parsing error(s) on %s:\n%s" !!rule_file errors)
@@ -259,7 +259,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         Test_utils.compare_fixes ~file:target res.matches;
 
         check_profiling rule_file target res;
-        let actual_errors = res.matches |> List_.map TCM.location_of_pm in
+        let actual_errors = res.matches |> List.map TCM.location_of_pm in
         actual_errors
         |> List.iter (fun (_, line) ->
                Logs.debug (fun m -> m "match at line: %d" line));
@@ -312,4 +312,4 @@ let collect_tests ?(get_analyzer = single_analyzer_from_rules)
 let make_tests ?fail_callback ?get_analyzer ?prepend_lang (xs : Fpath.t list) :
     Testo.t list =
   xs |> find_rule_files
-  |> List_.map (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang)
+  |> List.map (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang)

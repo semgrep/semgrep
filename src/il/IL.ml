@@ -144,7 +144,7 @@ end = struct
 
   let show nameset =
     "{"
-    ^ (nameset |> elements |> List_.map str_of_name |> String.concat ", ")
+    ^ (nameset |> elements |> List.map str_of_name |> String.concat ", ")
     ^ "}"
 end
 

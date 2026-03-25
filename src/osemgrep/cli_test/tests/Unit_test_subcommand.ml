@@ -153,7 +153,7 @@ let mk_matching_explanation_tests () =
         unexpected_no_match_test_content );
     ]
   in
-  List_.map
+  List.map
     (fun (test_name, rule, test_content) ->
       t ~checked_output:(Testo.stdxxx ()) ~normalize test_name (fun () ->
           (* TODO: please do not capture logs so as to avoid flaky results *)
