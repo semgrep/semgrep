@@ -145,10 +145,26 @@ def parse_requirements(
     for line_number, (package, constraints) in parsed_lockfile:
         # A package with no pinned version, skip it
         if len(constraints) != 1:
+            errors.append(
+                DependencyParserError(
+                    path=Fpath(str(lockfile_path)),
+                    parser=ScaParserName(out.PRequirements()),
+                    reason=f"Skipping dependency '{package}' because it is not pinned to an exact version",
+                    line=line_number,
+                )
+            )
             continue
         operator, version = constraints[0]
         # This should already be enforced by the parser but we'll be careful
         if operator != "==":
+            errors.append(
+                DependencyParserError(
+                    path=Fpath(str(lockfile_path)),
+                    parser=ScaParserName(out.PRequirements()),
+                    reason=f"Skipping dependency '{package}' because it uses '{operator}' instead of '=='",
+                    line=line_number,
+                )
+            )
             continue
         output.append(
             FoundDependency(
