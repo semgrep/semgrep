@@ -275,11 +275,20 @@ def _print_sca_resolution_error(error: out.ScaResolutionError) -> None:
     )
 
 
+def _sca_error_sort_key(error: out.ScaError) -> tuple:
+    e = error.value.value
+    if isinstance(e, out.DependencyParserError):
+        return (e.path.value, e.line or 0)
+    elif isinstance(e, out.ScaResolutionError):
+        return (e.dependency_source_file.value, 0)
+    return ("", 0)
+
+
 def _print_sca_resolution_errors(errors: List[out.ScaError]) -> None:
     """
     Print the given SCA resolution errors.
     """
-    for error in errors:
+    for error in sorted(errors, key=_sca_error_sort_key):
         e = error.value.value
         if isinstance(e, out.DependencyParserError):
             _print_sca_parse_error(e)
