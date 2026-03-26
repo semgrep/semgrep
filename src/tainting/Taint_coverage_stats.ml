@@ -123,6 +123,39 @@ let add (stats : t) ~rule (file_rule_stats : file_rule_stats) =
   add_file_stats_into rule_stats file_rule_stats
 
 (*****************************************************************************)
+(* Rule applicability *)
+(*****************************************************************************)
+
+(* A rule is relevant if it has a chance to produce findings, meaning:
+
+  - The rule matches *at least* one _unconstrained_ source.
+  - The rule matches *at least* one sink.
+
+  With taint labels, a source may have constraints (see `requires:` in the rule
+  language) that make it only apply conditionally, if another source has matched
+  before. For example, a source with `requires: INPUT` is only enabled if there
+  is another source producing the label `INPUT`. So we need at least one source
+  without constraints to match in order to produce a finding.
+
+  In fact, not all these rules will be truly applicable, because we would also
+  need to check that the sinks that match can be activated by the sources that
+  match. But this predicate is good enough for now.
+  *)
+
+let is_applicable (r : rule_stats) =
+  let has_unconstrained_sources =
+    r.source_stats |> Hashtbl.to_seq
+    |> Seq.exists (fun (_id, ss) -> ss.spec.Rule.source_requires = None)
+  in
+  let has_any_sinks = Hashtbl.length r.sink_stats > 0 in
+  has_unconstrained_sources && has_any_sinks
+
+let rule_is_applicable (tbl : t) (rule_id : Rule_ID.t) =
+  match Hashtbl.find_opt tbl rule_id with
+  | None -> true (* in case of doubt, keep it *)
+  | Some r -> is_applicable r
+
+(*****************************************************************************)
 (* Pretty printing *)
 (*****************************************************************************)
 
@@ -136,33 +169,35 @@ let print_spec_stats buf ~kind (ss_list : (string * _ spec_stats) list) =
 
 let pretty (stats : t) =
   (* Only print rules with unconstrained sources AND sinks, i.e. rules that
-     may actually produce findings. *)
+     are applicable (see [is_applicable]). *)
   let sort_by_id xs =
     List.sort (fun (id1, _) (id2, _) -> String.compare id1 id2) xs
   in
-  let num_skipped = ref 0 in
+  let num_not_applicable = ref 0 in
   let buf = Buffer.create 512 in
   stats |> Hashtbl.to_seq |> List.of_seq
   |> List.sort (fun (id1, _) (id2, _) -> Rule_ID.compare id1 id2)
   |> List.iter (fun (rule_id, r) ->
-         let sources =
-           r.source_stats |> Hashtbl.to_seq |> List.of_seq |> sort_by_id
-           (* Necessary sources (no 'requires:') *)
-           |> List.filter (fun (_id, ss) -> ss.spec.Rule.source_requires = None)
-         in
-         let sinks =
-           r.sink_stats |> Hashtbl.to_seq |> List.of_seq |> sort_by_id
-         in
-         if sources = [] || sinks = [] then incr num_skipped
+         if not (is_applicable r) then incr num_not_applicable
          else begin
+           let sources =
+             r.source_stats |> Hashtbl.to_seq
+             |> Seq.filter (fun (_id, ss) ->
+                    (* Necessary sources (no 'requires:') *)
+                    ss.spec.Rule.source_requires = None)
+             |> List.of_seq |> sort_by_id
+           in
+           let sinks =
+             r.sink_stats |> Hashtbl.to_seq |> List.of_seq |> sort_by_id
+           in
            Buffer.add_string buf
              (Printf.sprintf "Rule %s:\n" (Rule_ID.to_string rule_id));
            print_spec_stats buf ~kind:"source" sources;
            print_spec_stats buf ~kind:"sink" sinks
          end);
-  if !num_skipped > 0 then
+  if !num_not_applicable > 0 then
     Buffer.add_string buf
-      (Printf.sprintf "\n!!! %d rules cannot produce findings\n" !num_skipped);
+      (Printf.sprintf "\n!!! %d rules are not applicable\n" !num_not_applicable);
   Buffer.contents buf
 
 (*****************************************************************************)
@@ -189,18 +224,15 @@ let summary ~lang (tbl : t) =
   let no_sources_no_sinks = ref 0 in
   tbl
   |> Hashtbl.iter (fun _rule_id r ->
-         let has_unconstrained_sources =
-           r.source_stats |> Hashtbl.to_seq |> List.of_seq
-           |> List.exists (fun (_id, ss) -> ss.spec.Rule.source_requires = None)
-         in
          let has_any_sources = Hashtbl.length r.source_stats > 0 in
          let has_any_sinks = Hashtbl.length r.sink_stats > 0 in
-         match (has_unconstrained_sources, has_any_sources, has_any_sinks) with
-         | true, _, true -> incr may_produce_findings
-         | false, true, true -> incr somewhat_relevant
-         | _, true, false -> incr sources_but_no_sinks
-         | _, false, true -> incr sinks_but_no_sources
-         | _, false, false -> incr no_sources_no_sinks);
+         if is_applicable r then incr may_produce_findings
+         else
+           match (has_any_sources, has_any_sinks) with
+           | true, true -> incr somewhat_relevant
+           | true, false -> incr sources_but_no_sinks
+           | false, true -> incr sinks_but_no_sources
+           | false, false -> incr no_sources_no_sinks);
   {
     lang;
     may_produce_findings = !may_produce_findings;
