@@ -91,6 +91,15 @@
  ──────────────────
   Unknown        1
 
+  Failed to parse [bold]targets/dependency_aware/requirements_with_uppercase_package_name/requirements.txt[/bold] at
+  [bold]88[/bold] - Skipping dependency 'pytest' because it is not pinned to an exact version
+  Failed to parse [bold]targets/dependency_aware/requirements_with_uppercase_package_name/requirements.txt[/bold] at
+  [bold]90[/bold] - Skipping dependency 'beautifulsoup4' because it is not pinned to an exact version
+  Failed to parse [bold]targets/dependency_aware/requirements_with_uppercase_package_name/requirements.txt[/bold] at
+  [bold]95[/bold] - Skipping dependency 'eqeq-star' because it is not pinned to an exact version
+  Failed to parse [bold]targets/dependency_aware/requirements_with_uppercase_package_name/requirements.txt[/bold] at
+  [bold]108[/bold] - Skipping dependency './downloads/numpy-1.9.2-cp34-none-win32.whl' because it is not pinned to an
+  exact version
 
 
 ┌──────────────┐
