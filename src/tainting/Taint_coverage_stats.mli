@@ -59,8 +59,15 @@ val add : t -> rule:Rule_ID.t -> file_rule_stats -> unit
 val pretty : t -> string
 (** Pretty-print coverage stats.
 
-    For now we just print details for "relevan" rules that have unconstrained
-    source matches AND sink matches, i.e. rules that may actually produce findings. *)
+    Only prints details for "applicable" rules (see [rule_is_applicable]). *)
+
+val rule_is_applicable : t -> Rule_ID.t -> bool
+(** [rule_is_applicable stats rule_id] returns [true] if the rule has
+    non-zero unconstrained sources and non-zero sinks across all analyzed files,
+    i.e. it may produce taint findings.
+
+    Returns [true] for rules that have no entry in [stats], to be safe, like for
+    non-taint rules. *)
 
 (*****************************************************************************)
 (* Summary *)
