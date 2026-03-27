@@ -73,6 +73,22 @@ let env_of_env (env : Cmd.env option) : Bos.OS.Env.t option =
          (fun acc (k, v) -> Astring.String.Map.add k v acc)
          start_env)
 
+(* Convert Cmd.env to a string array for Eio process spawning.
+   Reuses env_of_env to build the merged environment map. *)
+let env_to_string_array_opt (env : Cmd.env option) : string array option =
+  match env_of_env env with
+  | None -> None
+  | Some map ->
+      Some
+        (Astring.String.Map.fold (fun k v acc -> (k ^ "=" ^ v) :: acc) map []
+        |> Array.of_list)
+
+type eio_env =
+  < clock : float Eio.Time.clock_ty Eio.Std.r
+  ; process_mgr : Eio_unix.Process.mgr_ty Eio.Std.r >
+
+let eio_env_of_base (base : Eio_unix.Stdenv.base) : eio_env = (base :> eio_env)
+
 (*****************************************************************************)
 (* Old Common.cmd_to_list *)
 (*****************************************************************************)
@@ -141,6 +157,81 @@ let string_of_run_with_stderr ~trim ?env cmd =
       in
       (* nosemgrep: forbid-exec *)
       Bos.OS.Cmd.out_string ~trim out)
+
+let string_of_run_with_timeout (eio_env : eio_env) ~timeout_seconds ~trim ?env
+    cmd =
+  Tracing.with_span ~__FILE__ ~__LINE__
+    ~data:
+      [
+        ("cmd.cmd", `String (Cmd.to_string cmd));
+        ("cmd.timeout_seconds", `Float timeout_seconds);
+      ]
+    "UCmd.string_of_run_with_timeout"
+  @@ fun sp ->
+  log_command cmd;
+  let clock = eio_env#clock in
+  let proc_mgr = eio_env#process_mgr in
+  let env_arr = env_to_string_array_opt env in
+  let Cmd.Name name, args = cmd in
+  let arg_list = name :: args in
+  let run () =
+    Eio.Switch.run (fun sw ->
+        let stdout_r, stdout_w = Eio_unix.pipe sw in
+        let stderr_r, stderr_w = Eio_unix.pipe sw in
+        (* nosemgrep: forbid-exec *)
+        let proc =
+          Eio.Process.spawn ~sw proc_mgr ?env:env_arr
+            ~stdout:(stdout_w :> Eio.Flow.sink_ty Eio.Std.r)
+            ~stderr:(stderr_w :> Eio.Flow.sink_ty Eio.Std.r)
+            arg_list
+        in
+        (* Close the write ends in the parent so reads terminate on process exit. *)
+        Eio.Resource.close stdout_w;
+        Eio.Resource.close stderr_w;
+        let read_all flow =
+          Eio.Buf_read.parse_exn Eio.Buf_read.take_all ~max_size:max_int flow
+        in
+        let stdout_str, stderr_str =
+          Eio.Fiber.pair
+            (fun () -> read_all (stdout_r :> Eio.Flow.source_ty Eio.Std.r))
+            (fun () -> read_all (stderr_r :> Eio.Flow.source_ty Eio.Std.r))
+        in
+        let status : Bos.OS.Cmd.status =
+          match Eio.Process.await proc with
+          | `Exited n -> `Exited n
+          | `Signaled n -> `Signaled n
+        in
+        let stdout_str = if trim then String.trim stdout_str else stdout_str in
+        let stderr_str = if trim then String.trim stderr_str else stderr_str in
+        (Ok (stdout_str, status), stderr_str))
+  in
+  let result =
+    match
+      try Ok (Eio.Time.with_timeout_exn clock timeout_seconds run) with
+      | Eio.Time.Timeout -> Error `Timeout
+      | Eio.Cancel.Cancelled _ as exn -> raise exn
+      | exn -> Error (`Msg (Printexc.to_string exn))
+    with
+    | Ok (result, stderr_str) -> (result, stderr_str)
+    | Error `Timeout -> (Error `Timeout, "")
+    | Error (`Msg _ as msg) -> (Error msg, "")
+  in
+  (match result with
+  | Ok (_, status), _ ->
+      let exit_code =
+        match status with
+        | `Exited n -> n
+        | `Signaled n -> -n
+      in
+      Tracing.add_data_to_span sp
+        [ ("cmd.exit_code", `Int exit_code); ("cmd.timed_out", `Bool false) ]
+  | Error `Timeout, _ ->
+      Tracing.add_data_to_span sp
+        [ ("cmd.exit_code", `Int (-1)); ("cmd.timed_out", `Bool true) ]
+  | Error (`Msg _), _ ->
+      Tracing.add_data_to_span sp
+        [ ("cmd.exit_code", `Int (-1)); ("cmd.timed_out", `Bool false) ]);
+  result
 
 let lines_of_run ~trim ?env cmd =
   log_command cmd;

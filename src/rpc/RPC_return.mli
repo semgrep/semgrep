@@ -28,7 +28,8 @@ val validate : Out.fpath -> Out.core_error option
 
 (* TODO: switch all those option ref to Hook.t *)
 val hook_resolve_dependencies :
-  (download_dependency_source_code:bool ->
+  (par_conf:Parallelism_config.t ->
+  download_dependency_source_code:bool ->
   allow_local_builds:bool ->
   package_manager_env:(string * string) list ->
   Out.dependency_source list ->
