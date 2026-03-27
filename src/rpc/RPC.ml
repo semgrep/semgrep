@@ -80,7 +80,7 @@ let handle_call (conf : config) (call : Out.function_call) :
             Option.value ~default:[] params.package_manager_env
           in
           let resolved =
-            resolve_dependencies
+            resolve_dependencies ~par_conf:conf.par_conf
               ~download_dependency_source_code:
                 params.download_dependency_source_code
               ~allow_local_builds:params.allow_local_builds ~package_manager_env

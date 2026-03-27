@@ -6,5 +6,6 @@
    alcotest
    testo
    commons
+   eio_main
  )
 )
