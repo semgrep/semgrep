@@ -45,12 +45,6 @@ module Out = Semgrep_output_v1_j
 type scan_id = int
 type app_block_override = string (* reason *) option
 
-type pro_engine_arch =
-  | Osx_arm64
-  | Osx_x86_64
-  | Manylinux_x86_64
-  | Win32_x86_64
-
 (*****************************************************************************)
 (* Routes *)
 (*****************************************************************************)
@@ -85,17 +79,6 @@ let identity_route = "/api/agent/identity"
 
 (* used by semgrep publish *)
 let registry_rule_route = "/api/registry/rules"
-
-(* used by semgrep install-semgrep-pro *)
-let pro_binary_route (platform_kind : pro_engine_arch) =
-  let arch_str =
-    match platform_kind with
-    | Osx_arm64 -> "osx-arm64"
-    | Osx_x86_64 -> "osx-x86"
-    | Manylinux_x86_64 -> "manylinux"
-    | Win32_x86_64 -> "win32-x86"
-  in
-  "api/agent/deployments/deepbinary/" ^ arch_str
 
 let symbol_analysis_route scan_id =
   spf "/api/agent/scans/%d/symbols_upload_url" scan_id
@@ -850,17 +833,6 @@ let query_tr_cache token request =
 
 let add_to_tr_cache token request =
   Lwt_platform.run (add_to_tr_cache_async token request)
-
-let fetch_pro_binary token platform_kind =
-  let uri =
-    Uri.(
-      add_query_params'
-        (with_path !Semgrep_envvars.v.semgrep_url
-           (pro_binary_route platform_kind))
-        [ ("version", Version.version) ])
-  in
-  let headers = [ Auth.auth_header_of_token token ] in
-  Http_helpers.get ~headers uri
 
 (* for semgrep show identity *)
 let get_identity_async token =

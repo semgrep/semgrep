@@ -71,19 +71,6 @@ val url_for_policy : ?from_hooks:bool -> Auth.token -> Uri.t
 val upload_rule_to_registry :
   Auth.token -> JSON.yojson -> (string, string) result
 
-(* The architecture of the Pro Engine binary to install. *)
-type pro_engine_arch =
-  | Osx_arm64
-  | Osx_x86_64
-  | Manylinux_x86_64
-  | Win32_x86_64
-
-(* used by 'semgrep install-semgrep-pro'
- * content of binary is in the body of response (get_info)
- *)
-val fetch_pro_binary :
-  Auth.token -> pro_engine_arch -> Http_helpers.client_result Lwt.t
-
 (* used by 'semgrep show deployment' and 'semgrep login' *)
 val deployment_config :
   Auth.token -> Semgrep_output_v1_t.deployment_config option
