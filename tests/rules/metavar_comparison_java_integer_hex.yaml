@@ -1,0 +1,11 @@
+rules:
+  - id: java-integer-hex-comparison
+    severity: WARNING
+    languages:
+      - java
+    message: Test metavariable-comparison with Java hex integer literals
+    patterns:
+      - pattern: $X
+      - metavariable-comparison:
+          metavariable: $X
+          comparison: $X == 1
