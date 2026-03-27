@@ -37,7 +37,8 @@ type error = NotInEio of string
  * https://github.com/ocaml-multicore/eio?tab=readme-ov-file#passing-env *)
 type env =
   < clock : float Eio.Time.clock_ty Eio.Std.r
-  ; domain_mgr : Eio.Domain_manager.ty Eio.Std.r >
+  ; domain_mgr : Eio.Domain_manager.ty Eio.Std.r
+  ; process_mgr : Eio_unix.Process.mgr_ty Eio.Std.r >
 
 type _base = Eio_unix.Stdenv.base
 
@@ -58,6 +59,13 @@ let create (env : Eio_unix.Stdenv.base) =
   Eio_executor { env :> env; base = env }
 
 let default = Process
+
+let unsafe_get_env (t : t) : (env, error) result =
+  (* This is unsafe because it exposes the full Eio environment, which
+     may not be what we want.  Use with care! *)
+  match t with
+  | Process -> Result.error (NotInEio "get_env")
+  | Eio_executor eio_state -> Result.Ok eio_state.env
 
 let unsafe_get_base (t : t) : (_base, error) result =
   (* This is unsafe because it exposes the full Eio environment, which
