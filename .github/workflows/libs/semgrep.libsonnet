@@ -258,7 +258,7 @@ local build_bundle_steps =
     },
   ];
 
-local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false, build_bundle=false, extra_env={}) =
+local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', build_bundle=false, extra_env={}) =
   [
     opam_setup(opam_switch),
     {
@@ -270,33 +270,13 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', tim
       run: 'opam exec -- make',
     }
     + (if extra_env != {} then { env: extra_env } else {}),
-
   ] + (if build_bundle then build_bundle_steps else [])
-
-  + (if time then [
-       {
-         name: 'Test %s (and time it)' % name,
-         run: |||
-           START=`date +%s`
-           opam exec -- make test
-           opam exec -- make core-test-e2e
-
-           END=`date +%s`
-           TEST_RUN_TIME=$((END-START))
-           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-         |||,
-       },
-       {
-         name: 'Report Number of Tests Stats',
-         'if': "github.ref == 'refs/heads/develop'",
-         run: './scripts/report_test_metrics.sh',
-       },
-     ] else [
-       {
-         name: 'Test %s' % name,
-         run: 'opam exec -- make test',
-       },
-     ]);
+  + [
+    {
+      name: 'Test %s' % name,
+      run: 'opam exec -- make test',
+    },
+  ];
 
 local is_windows_arch(arch) = std.findSubstr('windows', arch) != [];
 local bin_ext(arch) = if is_windows_arch(arch) then '.exe' else '';
