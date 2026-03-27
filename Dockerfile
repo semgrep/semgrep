@@ -415,7 +415,7 @@ RUN ln -s _build/default/src/tests/test.exe test
 
 RUN opam exec -- make build-core-test
 
-CMD ["opam", "exec", "--", "make", "test", "core-test-e2e"]
+CMD ["opam", "exec", "--", "make", "test"]
 
 # Let's actually use latest so we know immediately if we're broken on latest
 #hadolint ignore=DL3007

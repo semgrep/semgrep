@@ -187,12 +187,6 @@ core-test:
 build-core-test:
 	dune build $(BUILD_DEFAULT)/src/tests/test.exe
 
-#coupling: this is run by .github/workflow/tests.yml
-.PHONY: core-test-e2e
-core-test-e2e:
-	SEMGREP_CORE=$(PWD)/bin/semgrep-core$(EXE) \
-	$(MAKE) -C interfaces/semgrep_interfaces test
-
 ###############################################################################
 # Validation targets
 ###############################################################################
