@@ -99,20 +99,32 @@
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/a/b/requirements/stage.txt[/bold] at
   [bold]86[/bold] - Skipping dependency 'pytest' because it is not pinned to an exact version
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/a/b/requirements/stage.txt[/bold] at
+  [bold]87[/bold] - Skipping dependency 'pytest-cov' because it is not pinned to an exact version
+  Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/a/b/requirements/stage.txt[/bold] at
   [bold]88[/bold] - Skipping dependency 'beautifulsoup4' because it is not pinned to an exact version
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/a/b/requirements/stage.txt[/bold] at
   [bold]93[/bold] - Skipping dependency 'eqeq-star' because it is not pinned to an exact version
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/a/b/requirements/stage.txt[/bold] at
   [bold]106[/bold] - Skipping dependency './downloads/numpy-1.9.2-cp34-none-win32.whl' because it is not pinned to an
   exact version
+  Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/a/b/requirements/stage.txt[/bold] at
+  [bold]109[/bold] - Skipping dependency
+  'http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl' because
+  it is not pinned to an exact version
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/requirements.txt[/bold] at [bold]86[/bold] -
   Skipping dependency 'pytest' because it is not pinned to an exact version
+  Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/requirements.txt[/bold] at [bold]87[/bold] -
+  Skipping dependency 'pytest-cov' because it is not pinned to an exact version
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/requirements.txt[/bold] at [bold]88[/bold] -
   Skipping dependency 'beautifulsoup4' because it is not pinned to an exact version
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/requirements.txt[/bold] at [bold]93[/bold] -
   Skipping dependency 'eqeq-star' because it is not pinned to an exact version
   Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/requirements.txt[/bold] at [bold]106[/bold]
   - Skipping dependency './downloads/numpy-1.9.2-cp34-none-win32.whl' because it is not pinned to an exact version
+  Failed to parse [bold]targets/dependency_aware/requirements_nested_folder/requirements.txt[/bold] at [bold]109[/bold]
+  - Skipping dependency
+  'http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl' because
+  it is not pinned to an exact version
 
 
 ┌──────────────┐
