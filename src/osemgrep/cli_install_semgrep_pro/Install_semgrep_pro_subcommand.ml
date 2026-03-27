@@ -19,13 +19,11 @@ module Out = Semgrep_output_v1_j
 (* Prelude *)
 (*****************************************************************************)
 (*
-   Parse a semgrep-install-semgrep-pro command, execute it and exit.
+   Parse a semgrep-install-semgrep-pro --custom-binary=<path>
+   command, execute it and exit.
 
-   This command installs the Semgrep Pro Engine binary via interfacing with
-   Semgrep App, by making an HTTP request to an endpoint in the app with an
-   authentication token.
-
-   Translated from install.py
+   NOTE: this code only implements the the --custom-binary extention of the
+   `install-semgrep-pro` command.
 *)
 
 (*****************************************************************************)
@@ -50,58 +48,6 @@ let add_semgrep_pro_version_stamp current_executable_path =
   (* THINK: does this append or write entirely? *)
   UFile.write_file pro_version_stamp_path Version.version
 
-let download_semgrep_pro_async platform_kind dest =
-  let dest = !!dest in
-  match (Semgrep_settings.load ()).api_token with
-  | None ->
-      Logs.err (fun m ->
-          m "No API token found, please run `semgrep login` first.");
-      Lwt.return_false
-  | Some token -> (
-      match%lwt Semgrep_App.fetch_pro_binary token platform_kind with
-      | Ok { body = Ok body; response; _ } ->
-          (* Make sure no such binary exists. We have had weird situations
-           * when the downloaded binary was corrupted, and overwriting it did
-           * not fix it, but it was necessary to `rm -f` it.
-           *)
-          if Sys_.file_exists dest then FileUtil.rm [ dest ];
-
-          (* TODO: does this matter if we don't have a progress bar? *)
-          let _file_size =
-            Cohttp.(Header.get (Response.headers response) "Content-Length")
-            |> Option.map int_of_string |> Option.value ~default:0
-          in
-
-          UFile.write_file (Fpath.v dest) body;
-          Lwt.return_true
-      | Ok { code = 401; _ } ->
-          Logs.err (fun m ->
-              m
-                "API token not valid. Try to run `semgrep logout` and `semgrep \
-                 login` again. Or in CI, ensure your SEMGREP_APP_TOKEN \
-                 variable is set correctly.");
-          Lwt.return_false
-      | Ok { code = 403; _ } ->
-          Logs.err (fun m ->
-              m
-                "Logged in deployment does not have access to Semgrep Pro \
-                 Engine.");
-          Logs.err (fun m ->
-              m
-                "Visit https://semgrep.dev/products/pro-engine for more \
-                 information.");
-          Lwt.return_false
-      (* THINK: ??? is this raise for status? *)
-      | Ok { code; body = Error msg; _ } ->
-          Logs.err (fun m -> m "Error downloading Semgrep Pro: %d %s" code msg);
-          Lwt.return_false
-      | Error msg ->
-          Logs.err (fun m -> m "Error downloading Semgrep Pro: %s" msg);
-          Lwt.return_false)
-
-let download_semgrep_pro platform_kind dest =
-  Lwt_platform.run (download_semgrep_pro_async platform_kind dest)
-
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -111,23 +57,14 @@ let download_semgrep_pro platform_kind dest =
 let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
   CLI_common.with_logging ~color:Auto ~level:conf.common.logging_level
   @@ fun () ->
-  (match conf.common.maturity with
-  | Maturity.Default -> (
-      (* TODO: handle more confs, or fallback to pysemgrep further down *)
-      match conf with
-      (* we just handle --custom_binary for now via osemgrep; anyway it's
-       * mostly an internal developer option
-       *)
-      | { custom_binary = Some _; _ } -> ()
-      | _else_ -> raise Pysemgrep.Fallback)
-  | Maturity.Legacy -> raise Pysemgrep.Fallback
-  | Maturity.Experimental
-  | Maturity.Develop ->
-      ());
+  let custom_binary_path =
+    match conf.custom_binary with
+    | Some binary -> binary
+    (* The osemgrep implementation only implements the --custom-binary flag *)
+    | None -> raise Pysemgrep.Fallback
+  in
 
   Logs.debug (fun m -> m "conf = %s" (Install_semgrep_pro_CLI.show_conf conf));
-  (* stricter: this command was actually not tracked in pysemgrep *)
-  Metrics_.configure Metrics_.On;
 
   let pro_executable_name =
     Printf.sprintf "semgrep-core-proprietary%s"
@@ -159,101 +96,53 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
       Logs.app (fun m -> m "Overwriting Semgrep Pro Engine already installed!")
   | None -> ());
 
-  match ((Semgrep_settings.load ()).api_token, conf.custom_binary) with
-  | None, None ->
-      Logs.err (fun m ->
-          m
-            "Run `semgrep login` before running `semgrep install-semgrep-pro`. \
-             Or in non-interactive environments, ensure your SEMGREP_APP_TOKEN \
-             variable is set correctly.");
-      Exit_code.fatal ~__LOC__
-  | _ ->
-      let platform_kind =
-        match (Platform.kernel (), Platform.arch ()) with
-        | Darwin, Arm
-        | Darwin, Arm64 ->
-            Semgrep_App.Osx_arm64
-        | Darwin, _ -> Semgrep_App.Osx_x86_64
-        | Linux, _ -> Manylinux_x86_64
-        | Windows, X86_64 -> Semgrep_App.Win32_x86_64
-        | _ ->
-            Logs.app (fun m ->
-                m
-                  "Running on potentially unsupported platform. Installing \
-                   linux compatible binary");
-            Manylinux_x86_64
-      in
+  let semgrep_pro_path_tmp =
+    Fpath.set_ext ~multi:true ".tmp_download" pro_executable_path
+  in
+  (* Copy the custom binary into the tmp path *)
+  FileUtil.cp [ custom_binary_path ] !!semgrep_pro_path_tmp;
+  FileUtil.chmod
+    (`Symbolic
+       [
+         `User (`Set (`List [ `Read; `Write; `Exec ]));
+         `Group (`Set (`List [ `Read; `Exec ]));
+         `Other (`Set (`List [ `Read; `Exec ]));
+       ])
+    [ !!semgrep_pro_path_tmp ];
 
-      (* Download the binary into a temp location, check it, then install it.
-         This should prevent bad installations.
-      *)
-      let semgrep_pro_path_tmp =
-        Fpath.set_ext ~multi:true ".tmp_download" pro_executable_path
-      in
+  (* Get Pro version, it serves as a simple check that the binary works
+   * TODO: seems buggy, if passing --custom-binary ./bin/semgrep-core
+   * the program returns an error (wrong -pro_version argument) but
+   * the whole thing still succeed.
+   *)
+  let version =
+    let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
+    let opt =
+      Time_limit.set_timeout ~name:"check pro version" 10.0 ~eio:false
+        (fun () ->
+          (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
+          let result = UCmd.string_of_run ~trim:true cmd in
+          match result with
+          | Ok (output, _) -> Some output
+          | Error _ -> None)
+      |> Option.join
+    in
+    match opt with
+    | Some output -> output
+    | None ->
+        FileUtil.rm [ !!semgrep_pro_path_tmp ];
+        failwith
+          "Downloaded binary failed version check, try again or contact \
+           support@semgrep.com"
+  in
 
-      let download_succeeded =
-        match conf.custom_binary with
-        | None -> download_semgrep_pro platform_kind semgrep_pro_path_tmp
-        | Some custom_binary_path ->
-            FileUtil.cp [ custom_binary_path ] !!semgrep_pro_path_tmp;
-            true
-      in
-
-      if not download_succeeded then Exit_code.fatal ~__LOC__
-      else (
-        (* THINK: Do we need to give exec permissions to everybody? Can this be
-         * a security risk?
-         * The binary should not have setuid or setgid rights, so letting others
-         * execute it should not be a problem.
-         * Also, some OSes require read permissions to run the executable, so
-         * add the permission.
-         * On Windows, the executable needs to have write permission
-         * to be able to remove an existing executable when installing
-         * the next version.
-         *)
-        FileUtil.chmod
-          (`Symbolic
-             [
-               `User (`Set (`List [ `Read; `Write; `Exec ]));
-               `Group (`Set (`List [ `Read; `Exec ]));
-               `Other (`Set (`List [ `Read; `Exec ]));
-             ])
-          [ !!semgrep_pro_path_tmp ];
-
-        (* Get Pro version, it serves as a simple check that the binary works
-         * TODO: seems buggy, if passing --custom-binary ./bin/semgrep-core
-         * the program returns an error (wrong -pro_version argument) but
-         * the whole thing still succeed.
-         *)
-        let version =
-          let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
-          let opt =
-            Time_limit.set_timeout ~name:"check pro version" 10.0 ~eio:false
-              (fun () ->
-                (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
-                let result = UCmd.string_of_run ~trim:true cmd in
-                match result with
-                | Ok (output, _) -> Some output
-                | Error _ -> None)
-            |> Option.join
-          in
-          match opt with
-          | Some output -> output
-          | None ->
-              FileUtil.rm [ !!semgrep_pro_path_tmp ];
-              failwith
-                "Downloaded binary failed version check, try again or contact \
-                 support@semgrep.com"
-        in
-
-        (* Version check worked so we now install the binary *)
-        FileUtil.rm [ !!pro_executable_path ];
-        FileUtil.mv !!semgrep_pro_path_tmp !!pro_executable_path;
-        add_semgrep_pro_version_stamp !!pro_executable_path;
-        Logs.app (fun m ->
-            m "\nSuccessfully installed Semgrep Pro Engine (version %s)!"
-              version);
-        Exit_code.ok ~__LOC__)
+  (* Version check worked so we now install the binary *)
+  FileUtil.rm [ !!pro_executable_path ];
+  FileUtil.mv !!semgrep_pro_path_tmp !!pro_executable_path;
+  add_semgrep_pro_version_stamp !!pro_executable_path;
+  Logs.app (fun m ->
+      m "\nSuccessfully installed Semgrep Pro Engine (version %s)!" version);
+  Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)
