@@ -259,6 +259,7 @@ class Plan:
         RESOLUTION_METHOD_STRINGS = {
             out.LockfileParsing(): "Lockfile",
             out.DynamicResolution(): "Local build",
+            out.SbomParsing(): "SBOM",
         }
 
         UNRESOLVED_REASON_STRINGS = {

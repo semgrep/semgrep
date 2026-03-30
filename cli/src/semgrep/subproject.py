@@ -56,6 +56,15 @@ class DependencyResolutionConfig:
     # Parsed from SEMGREP_LOCAL_BUILD_ENV JSON object.
     local_build_env: Dict[str, str] = field(default_factory=dict)
 
+    # directory containing precomputed dependencies for subprojects
+    # in CycloneDX SBOM JSON format.
+    precomputed_dependencies_dir: Path | None = None
+
+    # Note: is_baseline_scan is scan-phase state rather than resolution config,
+    # but it's here because attach_auxillary_sboms needs it when selecting
+    # the head/ vs base/ SBOM directory during resolution.
+    is_baseline_scan: bool = False
+
 
 # A classification of subprojects we use to deterine support for various features.
 # Not a perfect classification (doesn't handle multi-lockfile sources), but works
@@ -138,6 +147,12 @@ def get_display_paths(dep: out.DependencySource) -> List[Path]:
     elif isinstance(ds, out.MultiLockfile):
         # ds.sources is a list of lockfile_dependency_source variants.
         return [path for src in ds.value for path in get_display_paths(src)]
+    elif isinstance(ds, out.AuxillarySBOM):
+        # we only include permanent SBOMs here, not ephemeral ones
+        sbom, rest = ds.value
+        return (
+            [Path(sbom.path.value)] if not sbom.is_ephemeral else []
+        ) + get_display_paths(rest)
     else:
         raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
@@ -152,6 +167,8 @@ def get_all_source_files(dep: out.DependencySource) -> List[Path]:
         return [Path(ds.value[0].path.value), Path(ds.value[1].path.value)]
     elif isinstance(ds, out.MultiLockfile):
         return [path for src in ds.value for path in get_all_source_files(src)]
+    elif isinstance(ds, out.AuxillarySBOM):
+        return [Path(ds.value[0].path.value)] + get_all_source_files(ds.value[1])
     else:
         raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
@@ -188,17 +205,27 @@ def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]
             path=ds.value[0].path,
         )
         return [lockfile_entry, manifest_entry]
+    elif isinstance(ds, out.AuxillarySBOM):
+        # we just refer to the underlying subproject for this
+        # ensure no more recursion
+        assert not isinstance(ds.value[1].value, out.AuxillarySBOM)
+        return to_stats_output(ds.value[1])
     elif isinstance(ds, out.MultiLockfile):
         return [item for src in ds.value for item in to_stats_output(src)]
     else:
         raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
 
-def _generate_subproject_id(sub: out.Subproject) -> str:
-    """Generate a consistent ID hash for a subproject based on dependency source paths."""
-    normalized_paths = sorted(
-        str(path).strip() for path in get_display_paths(sub.dependency_source)
-    )
+def generate_dependency_source_id(ds: out.DependencySource) -> str:
+    """
+    Generate an opaque string ID for the given dependency source.
+
+    Ephemeral files are not considered when computing the ID. That is,
+    the ID for a dependency source with or without an ephemeral SBOM
+    will be the same.
+    """
+    # get_display_paths skips ephemeral sboms, so we don't need special handling here
+    normalized_paths = sorted(str(path).strip() for path in get_display_paths(ds))
     return hashlib.sha256("".join(normalized_paths).encode("utf-8")).hexdigest()
 
 
@@ -207,7 +234,7 @@ def _unresolved_subproject_to_stats(
 ) -> out.SubprojectStats:
     """Convert an unresolved subproject to subproject stats."""
     return out.SubprojectStats(
-        subproject_id=_generate_subproject_id(sub.info),
+        subproject_id=generate_dependency_source_id(sub.info.dependency_source),
         dependency_sources=to_stats_output(sub.info.dependency_source),
         resolved_stats=None,
         unresolved_reason=sub.reason,
@@ -218,7 +245,7 @@ def _unresolved_subproject_to_stats(
 def _resolved_subproject_to_stats(sub: out.ResolvedSubproject) -> out.SubprojectStats:
     """Convert a resolved subproject to subproject stats."""
     return out.SubprojectStats(
-        subproject_id=_generate_subproject_id(sub.info),
+        subproject_id=generate_dependency_source_id(sub.info.dependency_source),
         dependency_sources=to_stats_output(sub.info.dependency_source),
         resolved_stats=out.DependencyResolutionStats(
             ecosystem=sub.ecosystem,
@@ -263,7 +290,7 @@ def subproject_to_plan_output(
 ) -> out.SingleSubprojectPlan:
     return out.SingleSubprojectPlan(
         root_dir=sub.root_dir,
-        subproject_id=_generate_subproject_id(sub),
+        subproject_id=generate_dependency_source_id(sub.dependency_source),
         resolution_planned=resolution_planned,
     )
 
@@ -380,6 +407,11 @@ def dep_source_to_subproject_kind(dep_source: out.DependencySource) -> Subprojec
         return (None, ds.value.kind)
     elif isinstance(ds, out.ManifestLockfile):
         return (ds.value[0].kind, ds.value[1].kind)
+    elif isinstance(ds, out.AuxillarySBOM):
+        # we just refer to the underlying subproject for this
+        # ensure no more recursion
+        assert not isinstance(ds.value[1].value, out.AuxillarySBOM)
+        return dep_source_to_subproject_kind(ds.value[1])
     elif isinstance(ds, out.MultiLockfile):
         # the SubprojectKind type doesn't really capture all the details
         # of multi-lockfile sources. We just take the first source in the list,

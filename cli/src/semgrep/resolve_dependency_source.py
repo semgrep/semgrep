@@ -104,9 +104,7 @@ class DependencyResolutionResult:
 
 def manifest_path_unless_lockfile_only(
     ds: Union[
-        out.ManifestOnly,
-        out.ManifestLockfile,
-        out.LockfileOnly,
+        out.ManifestOnly, out.ManifestLockfile, out.LockfileOnly, out.AuxillarySBOM
     ],
 ) -> out.Fpath:
     if isinstance(ds, out.LockfileOnly):
@@ -115,15 +113,22 @@ def manifest_path_unless_lockfile_only(
         return ds.value.path
     elif isinstance(ds, out.ManifestLockfile):
         return ds.value[0].path
+    elif isinstance(ds, out.AuxillarySBOM):
+        wrapped_ds = ds.value[1].value
+        # if it's wrapping a multilockfile, just take the first contained dependency source. We don't expect this to happen.
+        # TODO: rework multilockfile type, it's gross and overly general when it doesn't need to be.
+        if isinstance(wrapped_ds, out.MultiLockfile):
+            # it is not allowed for a MultiLockfile to contain another MultiLockfile
+            assert not isinstance(wrapped_ds.value[0].value, out.MultiLockfile)
+            return manifest_path_unless_lockfile_only(wrapped_ds.value[0].value)
+        return manifest_path_unless_lockfile_only(wrapped_ds)
     else:
         raise TypeError(f"Unexpected dependency_source variant1: {type(ds)}")
 
 
 def lockfile_path_unless_manifest_only(
     ds: Union[
-        out.ManifestOnly,
-        out.ManifestLockfile,
-        out.LockfileOnly,
+        out.ManifestOnly, out.ManifestLockfile, out.LockfileOnly, out.AuxillarySBOM
     ],
 ) -> out.Fpath:
     if isinstance(ds, out.LockfileOnly):
@@ -132,6 +137,17 @@ def lockfile_path_unless_manifest_only(
         return ds.value.path
     elif isinstance(ds, out.ManifestLockfile):
         return ds.value[1].path
+    elif isinstance(ds, out.AuxillarySBOM):
+        wrapped_ds = ds.value[1].value
+        # if it's wrapping a multilockfile, just take the first contained dependency source. We don't expect this to happen.
+        if isinstance(wrapped_ds, out.MultiLockfile):
+            logger.warning(
+                "Found AuxillarySBOM wrapping Multilockfile, taking first lockfile path"
+            )
+            # it is not allowed for a MultiLockfile to contain another MultiLockfile
+            assert not isinstance(wrapped_ds.value[0].value, out.MultiLockfile)
+            return lockfile_path_unless_manifest_only(wrapped_ds.value[0].value)
+        return lockfile_path_unless_manifest_only(wrapped_ds)
     else:
         raise TypeError(f"Unexpected dependency_source variant2: {type(ds)}")
 
@@ -142,6 +158,7 @@ def get_lockfile_kind(
         out.ManifestLockfile,
         out.ManifestOnly,
         out.MultiLockfile,
+        out.AuxillarySBOM,
     ],
 ) -> Optional[out.LockfileKind]:
     if isinstance(ds, out.LockfileOnly):
@@ -154,6 +171,9 @@ def get_lockfile_kind(
         )
         # In practice, there should only be a single lockfile kind.
         return kinds[0] if kinds else None
+    elif isinstance(ds, out.AuxillarySBOM):
+        assert not isinstance(ds.value[1].value, out.AuxillarySBOM)
+        return get_lockfile_kind(ds.value[1].value)
     elif isinstance(ds, out.ManifestOnly):
         return None
 
@@ -170,9 +190,7 @@ class ResolveDependenciesRpcResult:
 def _resolve_dependencies_rpc(
     *,
     dep_src: Union[
-        out.ManifestOnly,
-        out.ManifestLockfile,
-        out.LockfileOnly,
+        out.ManifestOnly, out.ManifestLockfile, out.LockfileOnly, out.AuxillarySBOM
     ],
     download_dependency_source_code: bool,
     allow_local_builds: bool,
@@ -495,6 +513,52 @@ def _handle_lockfile_source(
     )
 
 
+def _handle_auxillary_sbom_source(
+    dep_source: out.AuxillarySBOM,
+    config: DependencyResolutionConfig,
+    rpc_session: Optional[RpcSession] = None,
+) -> DependencyResolutionResult:
+    resolved_deps = _resolve_dependencies_rpc(
+        dep_src=dep_source,
+        download_dependency_source_code=config.download_dependency_source_code,
+        allow_local_builds=config.allow_local_builds,
+        rpc_session=rpc_session,
+    )
+    new_deps = resolved_deps.new_deps
+    new_errors = resolved_deps.new_errors
+    new_targets = resolved_deps.new_targets
+
+    logger.verbose(
+        f"SBOM resolution: {len(new_deps) if new_deps else 0} deps, "
+        f"{len(new_errors)} errors"
+    )
+
+    if new_deps is None:
+        # SBOM parsing failed — fall back to resolving the underlying dep source
+        # but add a safety check that there is not somehow another auxillarysbom inside,
+        # since that could cause an infinite loop as we recurse (if it's the same auxillarysbom)
+        if not isinstance(dep_source.value[1].value, out.AuxillarySBOM):
+            logger.verbose(
+                "SBOM resolution failed, falling back to underlying dep source"
+            )
+            inner_dep_source = dep_source.value[1]
+            return resolve_dependency_source(
+                inner_dep_source, config, rpc_session=rpc_session
+            )
+        else:
+            return DependencyResolutionResult(
+                deps=out.UnresolvedReason(out.UnresolvedFailed()),
+                errors=new_errors,
+                targets=new_targets,
+            )
+
+    return DependencyResolutionResult(
+        deps=(out.ResolutionMethod(out.SbomParsing()), new_deps),
+        errors=new_errors,
+        targets=new_targets,
+    )
+
+
 @simple_profiling
 @telemetry.trace(telemetry.TraceOwner.SSC)
 def resolve_dependency_source(
@@ -514,6 +578,10 @@ def resolve_dependency_source(
         "dependency_sources", [str(x) for x in get_display_paths(dep_source)]
     )
 
+    if isinstance(dep_source_, out.AuxillarySBOM):
+        return _handle_auxillary_sbom_source(
+            dep_source_, config, rpc_session=rpc_session
+        )
     if isinstance(dep_source_, out.LockfileOnly) or isinstance(
         dep_source_, out.ManifestLockfile
     ):

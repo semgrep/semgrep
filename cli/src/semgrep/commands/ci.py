@@ -224,8 +224,20 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     help="Enable malicious dependency rules for this scan.",
 )
 @click.option(
+    # for internal use, provides a path to dump subproject info to then exit
+    # subproject info includes subproject IDs that can be used to construct computed-dependency information
+    # for use with --x-computed-dependencies-dir.
     "--x-dump-subprojects-and-exit",
     "x_dump_subprojects_and_exit",
+    type=click.Path(allow_dash=True, path_type=Path),
+    hidden=True,
+)
+@click.option(
+    # for internal use, holds files with precomputed dependency information per subproject.
+    # Dependency information is keyed by subproject ID, which can be produced using
+    # --x-dump-subprojects-and-exit
+    "--x-computed-dependencies-dir",
+    "x_computed_dependencies_dir",
     type=click.Path(allow_dash=True, path_type=Path),
     hidden=True,
 )
@@ -323,6 +335,7 @@ def ci(
     use_scan_v2: bool,
     x_mem_policy: Optional[MemoryPolicy],
     x_dump_subprojects_and_exit: Optional[Path],
+    x_computed_dependencies_dir: Optional[Path],
 ) -> None:
     if x_simple_profiling:
         simple_profiling_module.enabled_simple_profiling = True
@@ -811,6 +824,7 @@ def ci(
             "x_dump_symbol_analysis": x_dump_symbol_analysis,
             **({"x_mem_policy": x_mem_policy} if x_mem_policy else {}),
             "x_dump_subprojects_and_exit": x_dump_subprojects_and_exit,
+            "x_computed_dependencies_dir": x_computed_dependencies_dir,
         }
 
         try:

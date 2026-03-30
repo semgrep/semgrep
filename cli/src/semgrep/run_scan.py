@@ -23,6 +23,7 @@
 # is now called from commands/scan.py and commands/ci.py instead.
 # old: this file used to be called semgrep_main.py
 #
+import dataclasses
 import enum
 import json
 import sys
@@ -405,11 +406,10 @@ def baseline_run(
     strict: bool,
     run_secrets: bool,
     disable_secrets_validation: bool,
-    allow_local_builds: bool,
-    ptt_enabled: bool,
     write_to_tr_cache: bool,
     fips_mode: bool,
     x_parmap: bool,
+    dependency_resolution_config: DependencyResolutionConfig,
     rpc_session: Optional[RpcSession] = None,
 ) -> RuleMatchMap:
     """
@@ -510,6 +510,10 @@ def baseline_run(
                     semgrepignore_filename=semgrepignore_filename,
                 )
 
+                base_dependency_resolution_config = dataclasses.replace(
+                    dependency_resolution_config, is_baseline_scan=True
+                )
+
                 (
                     baseline_rule_matches_by_rule,
                     baseline_semgrep_errors,
@@ -531,10 +535,9 @@ def baseline_run(
                     matching_explanations,
                     engine_type,
                     strict,
+                    base_dependency_resolution_config,
                     run_secrets,
                     disable_secrets_validation,
-                    allow_local_builds=allow_local_builds,
-                    ptt_enabled=ptt_enabled,
                     write_to_tr_cache=write_to_tr_cache,
                     fips_mode=fips_mode,
                     x_parmap=x_parmap,
@@ -639,10 +642,7 @@ def filter_dependency_aware_rules(
 def resolve_dependencies(
     dependency_aware_rules: List[Rule],
     target_manager: TargetManager,
-    allow_local_builds: bool,
-    ptt_enabled: bool,
-    resolve_all_deps_in_diff_scan: bool,
-    download_dependency_source_code: bool,
+    dependency_resolution_config: DependencyResolutionConfig,
     rpc_session: Optional[RpcSession] = None,
 ) -> Tuple[
     List[Rule],  # filtered_dependency_aware_rules
@@ -683,31 +683,6 @@ def resolve_dependencies(
             all_subprojects,
             resolved_subprojects,
         )
-
-    # Configure dependency resolution
-    local_build_env: Dict[str, str] = {}
-    local_build_env_str = environ.get("SEMGREP_LOCAL_BUILD_ENV")
-    if local_build_env_str:
-        try:
-            parsed = json.loads(local_build_env_str)
-            if isinstance(parsed, dict) and all(
-                isinstance(k, str) and isinstance(v, str) for k, v in parsed.items()
-            ):
-                local_build_env = parsed
-            else:
-                logger.warning(
-                    "SEMGREP_LOCAL_BUILD_ENV must be a JSON object with string keys and values, ignoring"
-                )
-        except json.JSONDecodeError:
-            logger.warning("Invalid JSON in SEMGREP_LOCAL_BUILD_ENV, ignoring")
-
-    dependency_resolution_config = DependencyResolutionConfig(
-        allow_local_builds=allow_local_builds,
-        ptt_enabled=ptt_enabled,
-        resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
-        download_dependency_source_code=download_dependency_source_code,
-        local_build_env=local_build_env,
-    )
 
     # Parse lockfiles to get dependency information
     (
@@ -950,14 +925,12 @@ def run_rules(
     strict: bool,
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags
     # for secrets, code, and supply chain
+    dependency_resolution_config: DependencyResolutionConfig,
     run_secrets: bool = False,
     disable_secrets_validation: bool = False,
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
-    allow_local_builds: bool = False,
-    ptt_enabled: bool = False,
-    resolve_all_deps_in_diff_scan: bool = False,
     write_to_tr_cache: bool = True,
     fips_mode: bool,
     enable_transitive_reachability: Optional[bool] = None,
@@ -993,13 +966,10 @@ def run_rules(
         all_subprojects,
         resolved_subprojects,
     ) = resolve_dependencies(
+        dependency_resolution_config=dependency_resolution_config,
         dependency_aware_rules=dependency_aware_rules,
         target_manager=target_manager,
-        allow_local_builds=allow_local_builds,
-        ptt_enabled=ptt_enabled,
-        resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
         rpc_session=rpc_session,
-        download_dependency_source_code=(enable_transitive_reachability or False),
     )
     dependency_parser_errors = [
         e.value.value
@@ -1069,8 +1039,8 @@ def run_rules(
             rule_matches_by_rule,
             join_rules,
             target_manager,
-            allow_local_builds,
-            ptt_enabled,
+            dependency_resolution_config.allow_local_builds,
+            dependency_resolution_config.ptt_enabled,
             output_handler,
             fips_mode,
         )
@@ -1232,6 +1202,7 @@ def run_scan(
     x_dump_symbol_analysis: bool = False,
     x_mem_policy: Optional[MemoryPolicy] = None,
     x_dump_subprojects_and_exit: Path | None = None,
+    x_computed_dependencies_dir: Path | None = None,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1413,6 +1384,36 @@ def run_scan(
             resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
         )
 
+    # Set up supply chain settings
+    local_build_env: Dict[str, str] = {}
+    local_build_env_str = environ.get("SEMGREP_LOCAL_BUILD_ENV")
+    if local_build_env_str:
+        try:
+            parsed = json.loads(local_build_env_str)
+            if isinstance(parsed, dict) and all(
+                isinstance(k, str) and isinstance(v, str) for k, v in parsed.items()
+            ):
+                local_build_env = parsed
+            else:
+                logger.warning(
+                    "SEMGREP_LOCAL_BUILD_ENV must be a JSON object with string keys and values, ignoring"
+                )
+        except json.JSONDecodeError:
+            logger.warning("Invalid JSON in SEMGREP_LOCAL_BUILD_ENV, ignoring")
+
+    dependency_resolution_config = DependencyResolutionConfig(
+        allow_local_builds=allow_local_builds,
+        ptt_enabled=ptt_enabled,
+        resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
+        download_dependency_source_code=enable_transitive_reachability
+        if enable_transitive_reachability is not None
+        else False,
+        local_build_env=local_build_env,
+        precomputed_dependencies_dir=x_computed_dependencies_dir,
+        is_baseline_scan=False,
+        use_experimental_ocaml_parsers=False,
+    )
+
     # ----------------------------
     # Step3: running the core engine
     # ----------------------------
@@ -1462,13 +1463,11 @@ def run_scan(
             matching_explanations,
             engine_type,
             strict,
+            dependency_resolution_config,
             run_secrets,
             disable_secrets_validation,
             with_code_rules=configs_obj.with_code_rules,
             with_supply_chain=configs_obj.with_supply_chain,
-            allow_local_builds=allow_local_builds,
-            ptt_enabled=ptt_enabled,
-            resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
             fips_mode=fips_mode,
             write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
@@ -1511,11 +1510,10 @@ def run_scan(
                 strict=strict,
                 run_secrets=run_secrets,
                 disable_secrets_validation=disable_secrets_validation,
-                allow_local_builds=allow_local_builds,
-                ptt_enabled=ptt_enabled,
                 write_to_tr_cache=write_to_tr_cache,
                 fips_mode=fips_mode,
                 x_parmap=x_parmap,
+                dependency_resolution_config=dependency_resolution_config,
                 rpc_session=rpc_session,
             )
 
