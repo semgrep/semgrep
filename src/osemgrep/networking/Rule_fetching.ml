@@ -489,6 +489,7 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt kind :
       let uri =
         Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) token
       in
+      Metrics_.add_feature ~category:"config_download" ~name:"legacy_config_eio";
       let rules_and_errors =
         load_rules_from_url_eio ?token_opt ~ext:"policy" ~origin:Registry uri
       in
@@ -565,6 +566,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt kind :
         | C.A Hooks -> Some 30.0
         | _ -> None
       in
+      Metrics_.add_feature ~category:"config_download" ~name:"legacy_config_lwt";
       let%lwt rules_and_errors =
         load_rules_from_url_async ?token_opt ~ext:"policy" ~origin:Registry
           ?timeout_secs uri

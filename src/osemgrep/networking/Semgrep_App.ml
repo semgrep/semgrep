@@ -471,6 +471,7 @@ let fetch_scan_config_string_eio ~dry_run ~secrets ~sca ~full_scan ~repository
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   conf_string
+[@@trace]
 
 (*****************************************************************************)
 (* Scan config v2 (start-then-poll) *)
@@ -774,6 +775,7 @@ let fetch_scan_config_v2_eio ?(secrets = false) ?(sca = false) token :
                 deployment_id deployment_name)
       | exception _ -> ());
       poll_scan_config_v2_eio ~scan_request_id ~headers
+[@@trace]
 
 (*****************************************************************************)
 (* Other endpoints *)
