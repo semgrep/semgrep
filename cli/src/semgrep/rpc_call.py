@@ -16,7 +16,6 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import telemetry
-from semgrep.error import SemgrepError
 from semgrep.rpc import rpc_call
 from semgrep.verbose_logging import getLogger
 
@@ -168,7 +167,8 @@ def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
     call = out.FunctionCall(out.CallGetTargets(scanning_roots))
     ret: Optional[out.RetGetTargets] = rpc_call(call, out.RetGetTargets)
     if ret is None:
-        raise SemgrepError("Failed to obtain target files from semgrep-core")
+        logger.error("Failed to obtain target files from semgrep-core")
+        return out.TargetDiscoveryResult([], [], [])
 
     logger.debug(f"get_targets response:")
     summarize("target paths", ret.value.target_paths)
