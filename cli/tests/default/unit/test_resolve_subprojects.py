@@ -22,8 +22,9 @@ from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_dependency_source import ResolveDependenciesRpcResult
-from semgrep.resolve_subprojects import find_subprojects
+from semgrep.resolve_subprojects import match_subprojects
 from semgrep.subproject import DependencyResolutionConfig
+from semgrep.subproject import subproject_to_plan_output
 from semgrep.types import fake_targets_of_paths
 
 
@@ -195,10 +196,89 @@ def test_find_subprojects(
     matchers: List[SubprojectMatcher],
     expected_subprojects: List[out.Subproject],
 ) -> None:
-    result = find_subprojects(fake_targets_of_paths(file_paths), matchers)
-    assert sorted(result, key=lambda s: s.root_dir) == sorted(
-        expected_subprojects, key=lambda s: s.root_dir
+    result = match_subprojects(fake_targets_of_paths(file_paths), matchers)
+    assert sorted(result, key=lambda s: str(s.root_dir)) == sorted(
+        expected_subprojects, key=lambda s: str(s.root_dir)
     )
+
+
+@pytest.mark.quick
+def test_subproject_plan_output_fields() -> None:
+    """subproject_to_plan_output produces the expected fields."""
+    sub = out.Subproject(
+        root_dir=out.Fpath("my-app"),
+        dependency_source=out.DependencySource(
+            out.ManifestOnly(
+                out.Manifest(
+                    out.ManifestKind(out.PomXml()),
+                    out.Fpath("my-app/pom.xml"),
+                )
+            )
+        ),
+        ecosystem=out.Ecosystem(value=out.Maven()),
+    )
+    plan = subproject_to_plan_output(sub, True)
+    assert plan.root_dir == out.Fpath("my-app")
+    assert plan.resolution_planned is True
+    assert len(plan.subproject_id) == 64  # SHA-256 hex digest
+
+
+@pytest.mark.quick
+def test_subproject_id_is_deterministic() -> None:
+    """The same subproject always produces the same ID."""
+    sub = out.Subproject(
+        root_dir=out.Fpath("src"),
+        dependency_source=out.DependencySource(
+            out.ManifestLockfile(
+                (
+                    out.Manifest(
+                        out.ManifestKind(out.PackageJson()),
+                        out.Fpath("src/package.json"),
+                    ),
+                    out.Lockfile(
+                        out.LockfileKind(out.NpmPackageLockJson()),
+                        out.Fpath("src/package-lock.json"),
+                    ),
+                )
+            )
+        ),
+        ecosystem=out.Ecosystem(value=out.Npm()),
+    )
+    id1 = subproject_to_plan_output(sub, True).subproject_id
+    id2 = subproject_to_plan_output(sub, False).subproject_id
+    assert id1 == id2  # resolution_planned doesn't affect ID
+
+
+@pytest.mark.quick
+def test_subproject_id_differs_for_different_paths() -> None:
+    """Different dependency source paths produce different IDs."""
+    sub_a = out.Subproject(
+        root_dir=out.Fpath("a"),
+        dependency_source=out.DependencySource(
+            out.ManifestOnly(
+                out.Manifest(
+                    out.ManifestKind(out.BuildGradle()),
+                    out.Fpath("a/build.gradle"),
+                )
+            )
+        ),
+        ecosystem=out.Ecosystem(value=out.Maven()),
+    )
+    sub_b = out.Subproject(
+        root_dir=out.Fpath("b"),
+        dependency_source=out.DependencySource(
+            out.ManifestOnly(
+                out.Manifest(
+                    out.ManifestKind(out.BuildGradle()),
+                    out.Fpath("b/build.gradle"),
+                )
+            )
+        ),
+        ecosystem=out.Ecosystem(value=out.Maven()),
+    )
+    id_a = subproject_to_plan_output(sub_a, True).subproject_id
+    id_b = subproject_to_plan_output(sub_b, True).subproject_id
+    assert id_a != id_b
 
 
 # Please don't use @patch because it can't be typechecked and makes refactoring

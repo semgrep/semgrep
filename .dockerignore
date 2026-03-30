@@ -240,9 +240,9 @@ cli/src/semgrep/semgrep_interfaces/**/Language
 cli/src/semgrep/semgrep_interfaces/**/before.txt
 cli/src/semgrep/semgrep_interfaces/**/after.txt
 
-# From cli/src/semgrep/semgrep_interfaces/tests/.gitignore
-cli/src/semgrep/semgrep_interfaces/tests/**/__pycache__
-cli/src/semgrep/semgrep_interfaces/tests/**/*.ast.json
+cli/src/semgrep/semgrep_interfaces/**/*.ast.json
+
+cli/src/semgrep/semgrep_interfaces/**/typecheck
 
 # From cli/tests/default/e2e/targets/dependency_aware/gradle-no-lockfile/.gitignore
 cli/tests/default/e2e/targets/dependency_aware/gradle-no-lockfile/**/.gradle
