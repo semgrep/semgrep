@@ -42,6 +42,7 @@ from semgrep.simple_profiling import simple_profiling
 from semgrep.subproject import ClosestSubprojectFinder
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import from_resolved_dependencies
+from semgrep.subproject import generate_dependency_source_id
 from semgrep.subproject import get_all_source_files
 from semgrep.subproject import subproject_to_plan_output
 from semgrep.target_manager import SCA_PRODUCT
@@ -173,6 +174,48 @@ def find_subprojects(
         )
 
     return relevant_subprojects, irrelevant_subprojects
+
+
+@telemetry.trace(owner=telemetry.TraceOwner.SSC)
+def attach_auxillary_sboms(
+    subprojects: list[out.Subproject],
+    dependency_resolution_config: DependencyResolutionConfig,
+) -> list[out.Subproject]:
+    """
+    For each subproject, look up a precomputed CycloneDX SBOM in the
+    precomputed dependencies directory and, if found, wrap the subproject's
+    dependency_source in an AuxillarySBOM variant.
+
+    Files are expected at ``<dir>/head/<subproject_id>.cdx.json`` or
+    ``<dir>/base/<subproject_id>.cdx.json`` depending on whether this is a
+    baseline scan.
+    """
+    precomputed_dir = dependency_resolution_config.precomputed_dependencies_dir
+    if precomputed_dir is None:
+        return subprojects
+
+    subdir = "base" if dependency_resolution_config.is_baseline_scan else "head"
+    result: list[out.Subproject] = []
+    for subproject in subprojects:
+        dep_source_id = generate_dependency_source_id(subproject.dependency_source)
+        sbom_path = precomputed_dir / subdir / (dep_source_id + ".cdx.json")
+        if sbom_path.exists():
+            sbom = out.Sbom(
+                kind=out.SbomKind(out.CycloneDXJson()),
+                is_ephemeral=True,
+                path=out.Fpath(str(sbom_path)),
+            )
+            new_dep_source = out.DependencySource(
+                out.AuxillarySBOM((sbom, subproject.dependency_source))
+            )
+            subproject = out.Subproject(
+                root_dir=subproject.root_dir,
+                dependency_source=new_dep_source,
+                ecosystem=subproject.ecosystem,
+            )
+            logger.verbose(f"Using precomputed SBOM for {subproject.root_dir}")
+        result.append(subproject)
+    return result
 
 
 @simple_profiling
@@ -323,6 +366,9 @@ def resolve_subprojects(
     relevant_subprojects, irrelevant_subprojects = find_subprojects(
         target_manager, config.resolve_untargeted_subprojects, dependency_aware_rules
     )
+
+    # attach precomputed SBOMs to relevant subprojects
+    relevant_subprojects = attach_auxillary_sboms(relevant_subprojects, config)
 
     # targets that were considered in generating the dependency tree
     dependency_targets: List[Path] = []

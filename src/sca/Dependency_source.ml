@@ -41,6 +41,7 @@ type t = Out.dependency_source =
    * Tuple[DependencySource, ...] which is hashable.
    *)
   | MultiLockfile of t list
+  | AuxillarySBOM of (Sbom.t * t)
 [@@deriving ord, show]
 
 (*****************************************************************************)
@@ -55,3 +56,5 @@ let rec source_files (dep_src : t) : Fpath.t list =
   | Out.ManifestLockfile (manifest, lockfile) ->
       [ manifest.path; lockfile.path ]
   | Out.MultiLockfile sources -> List.concat_map source_files sources
+  | AuxillarySBOM (sbom, dep_src) ->
+      (if sbom.is_ephemeral then [] else [ sbom.path ]) @ source_files dep_src
