@@ -258,6 +258,16 @@ def subproject_to_cli_output_info(
     )
 
 
+def subproject_to_plan_output(
+    sub: out.Subproject, resolution_planned: bool
+) -> out.SingleSubprojectPlan:
+    return out.SingleSubprojectPlan(
+        root_dir=sub.root_dir,
+        subproject_id=_generate_subproject_id(sub),
+        resolution_planned=resolution_planned,
+    )
+
+
 class ClosestSubprojectFinder:
     def __init__(self, subprojects: List[out.Subproject]):
         """

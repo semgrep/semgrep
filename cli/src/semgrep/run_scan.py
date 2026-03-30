@@ -83,6 +83,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
+from semgrep.resolve_subprojects import dump_subprojects_and_exit
 from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc import RpcSession
 from semgrep.rpc_call import dump_rule_partitions
@@ -1230,6 +1231,7 @@ def run_scan(
     x_group_taint_rules: bool = False,
     x_dump_symbol_analysis: bool = False,
     x_mem_policy: Optional[MemoryPolicy] = None,
+    x_dump_subprojects_and_exit: Path | None = None,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1401,6 +1403,15 @@ def run_scan(
 
     if x_dump_symbol_analysis:
         dump_symbol_analysis_and_exit(target_manager)
+    if x_dump_subprojects_and_exit:
+        # note: rules are currently required here in order to determine the subprojects that
+        # are relevant to changed code files
+        dump_subprojects_and_exit(
+            target_manager,
+            filtered_rules,
+            x_dump_subprojects_and_exit,
+            resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
+        )
 
     # ----------------------------
     # Step3: running the core engine

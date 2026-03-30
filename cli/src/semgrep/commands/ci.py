@@ -224,6 +224,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     help="Enable malicious dependency rules for this scan.",
 )
 @click.option(
+    "--x-dump-subprojects-and-exit",
+    "x_dump_subprojects_and_exit",
+    type=click.Path(allow_dash=True, path_type=Path),
+    hidden=True,
+)
+@click.option(
     "--x-use-scan-v2/--x-no-scan-v2",
     "use_scan_v2",
     default=True,
@@ -316,6 +322,7 @@ def ci(
     enable_mal_deps: bool,
     use_scan_v2: bool,
     x_mem_policy: Optional[MemoryPolicy],
+    x_dump_subprojects_and_exit: Optional[Path],
 ) -> None:
     if x_simple_profiling:
         simple_profiling_module.enabled_simple_profiling = True
@@ -426,6 +433,13 @@ def ci(
             # Partial scans also implies a dry run. We'll be saving results
             # to disk, but not upload them yet.
             if partial_output:
+                dry_run = True
+
+            # If we are dumping subprojects, we aren't running a real scan. We'll restart
+            # the scan later for real, so the initial one is a dry run.
+            # TODO: store scan state and continue the scan after subproject resolution
+            # rather than restarting the scan
+            if x_dump_subprojects_and_exit:
                 dry_run = True
 
             scan_handler = ScanHandler(
@@ -796,6 +810,7 @@ def ci(
             "x_group_taint_rules": x_group_taint_rules,
             "x_dump_symbol_analysis": x_dump_symbol_analysis,
             **({"x_mem_policy": x_mem_policy} if x_mem_policy else {}),
+            "x_dump_subprojects_and_exit": x_dump_subprojects_and_exit,
         }
 
         try:
