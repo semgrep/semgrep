@@ -1,1 +1,0 @@
-Supply Chain Analysis of npm package lock files now uses a proprietary OCaml-based parser, replacing the old Python version. The supply-chain functionality for these files is now available only to Semgrep Pro users.

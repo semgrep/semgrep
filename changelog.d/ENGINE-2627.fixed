@@ -1,1 +1,0 @@
-Errors during target file discovery (e.g., permission errors, git failures) are now surfaced as warnings instead of being silently ignored.

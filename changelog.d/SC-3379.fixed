@@ -1,1 +1,0 @@
-Fixed requirements.txt parser silently dropping pinned dependencies that followed unpinned package names.

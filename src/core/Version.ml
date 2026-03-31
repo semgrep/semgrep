@@ -15,4 +15,4 @@
 
   Automatically modified by scripts/release/bump.
 *)
-let version = "1.156.0"
+let version = "1.157.0"

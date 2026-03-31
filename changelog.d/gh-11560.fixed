@@ -1,1 +1,0 @@
-Fix rule paths.include/paths.exclude filtering when a single file is passed as a scan target. Previously, path patterns like '**/src/test/**/*.java' would not match because only the filename was used for filtering instead of the full project-relative path.
