@@ -96,10 +96,13 @@ let rec lvars_in_lhs expr =
   match expr.e with
   | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
   | DotAccess
-      ( { e = N (IdSpecial ((This, _), _)); _ },
+      ( (* could be 'this' for instance fields,
+          or the class name for `static` fields *)
+        _,
         _,
         FN (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ })) ) ->
       [ (id, sid) ]
+  | ArrayAccess (e, _) -> lvars_in_lhs e
   | Container ((Tuple | Array), (_, es, _)) -> List.concat_map lvars_in_lhs es
   | __else__ -> []
 
