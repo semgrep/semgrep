@@ -83,11 +83,14 @@ update_uv_lock() {
   )
   numstat_output=$(git diff --numstat -- "$target")
   IFS=$'\t' read -r added_lines removed_lines _ <<<"$numstat_output"
-  if [ "$added_lines" != "1" ] || [ "$removed_lines" != "1" ]; then
+  # Expect two changed lines. One for the Semgrep version bump itself and one
+  # for the exclude-newer line introduced in
+  # ce83fca444ee61fa0e4a4cf634d1acc5066b5c8e.
+  if [ "$added_lines" != "2" ] || [ "$removed_lines" != "2" ]; then
     printf '%s\n' "$numstat_output" >&2
     git diff "$target" >&2
     error <<EOF
-uv lock changed $target beyond the expected one-line replacement.
+uv lock changed $target beyond the expected two-line replacement.
 EOF
   fi
   git add "$target"
