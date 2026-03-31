@@ -85,6 +85,7 @@ update_uv_lock() {
   IFS=$'\t' read -r added_lines removed_lines _ <<<"$numstat_output"
   if [ "$added_lines" != "1" ] || [ "$removed_lines" != "1" ]; then
     printf '%s\n' "$numstat_output" >&2
+    git diff "$target" >&2
     error <<EOF
 uv lock changed $target beyond the expected one-line replacement.
 EOF
