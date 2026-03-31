@@ -76,6 +76,7 @@ let packet_of_notification (n : Notification.t) = Packet.Notification n
 let packet_of_response (r : Response.t) = Packet.Response r
 let packet_of_request (req : Request.t) = Packet.Request req
 let respond_json id result = packet_of_response (Response.ok id result)
+let respond_json_error id error = packet_of_response (Response.error id error)
 
 let respond (type r) (id : Id.t) (request : r CR.t) (response : r) =
   response |> CR.yojson_of_result request |> respond_json id

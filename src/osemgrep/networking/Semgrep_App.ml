@@ -276,15 +276,9 @@ let report_failure token ~scan_id exit_code =
 (* Other ways to fetch a config (deprecated?) *)
 (*****************************************************************************)
 
-(* Returns the deployment config if the token is valid, otherwise None.
- * This is mostly used by 'semgrep login' to sanity check whether the
- * token is valid before saving it.
- * old: this endpoint used to be one of the three HTTP requests of 'semgrep ci'
- * to start a scan but now everything is done in one via start_scan().
- * pysemgrep: called get_deployment_from_token
- *)
 (* coupling(eio-port): if you change this you must change the eio version *)
-let deployment_config_async token : Out.deployment_config option Lwt.t =
+let deployment_config_result_async token :
+    (Out.deployment_config, [ `Unauthorized | `Other of string ]) result Lwt.t =
   let headers =
     [
       (* The agent is needed by many endpoints in our backend guarded by
@@ -297,24 +291,24 @@ let deployment_config_async token : Out.deployment_config option Lwt.t =
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
   let%lwt response = Http_helpers.get ~headers url in
-  let deployment_opt =
-    match response with
+  Lwt.return
+    (match response with
     | Ok { body = Ok body; _ } ->
         let x = Out.deployment_response_of_string body in
-        Some x.deployment
-    | Ok { body = Error msg; code; _ } ->
+        Ok x.deployment
+    | Ok { body = Error msg; response = _; code } ->
         Logs.err (fun m ->
             m "error while retrieving deployment, %s returned %u: %s"
               (Uri.to_string url) code msg);
-        None
+        if code =|= 401 then Error `Unauthorized
+        else Error (`Other (spf "HTTP %u: %s" code msg))
     | Error e ->
         Logs.err (fun m -> m "error while retrieving deployment: %s" e);
-        None
-  in
-  Lwt.return deployment_opt
+        Error (`Other e))
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
-let deployment_config_eio token : Out.deployment_config option =
+let deployment_config_result_eio token :
+    (Out.deployment_config, [ `Unauthorized | `Other of string ]) result =
   let headers =
     [
       (* The agent is needed by many endpoints in our backend guarded by
@@ -327,21 +321,35 @@ let deployment_config_eio token : Out.deployment_config option =
   in
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
   let response = Http_helpers.get_eio ~headers url in
-  let deployment_opt =
-    match response with
-    | Ok { body = Ok body; _ } ->
-        let x = Out.deployment_response_of_string body in
-        Some x.deployment
-    | Ok { body = Error msg; code; _ } ->
-        Logs.err (fun m ->
-            m "error while retrieving deployment, %s returned %u: %s"
-              (Uri.to_string url) code msg);
-        None
-    | Error e ->
-        Logs.err (fun m -> m "error while retrieving deployment: %s" e);
-        None
-  in
-  deployment_opt
+  match response with
+  | Ok { body = Ok body; _ } ->
+      let x = Out.deployment_response_of_string body in
+      Ok x.deployment
+  | Ok { body = Error msg; code; _ } ->
+      Logs.err (fun m ->
+          m "error while retrieving deployment, %s returned %u: %s"
+            (Uri.to_string url) code msg);
+      if code =|= 401 then Error `Unauthorized
+      else Error (`Other (spf "HTTP %u: %s" code msg))
+  | Error e ->
+      Logs.err (fun m -> m "error while retrieving deployment: %s" e);
+      Error (`Other e)
+
+(* Returns the deployment config if the token is valid, otherwise None.
+ * This is mostly used by 'semgrep login' to sanity check whether the
+ * token is valid before saving it.
+ * old: this endpoint used to be one of the three HTTP requests of 'semgrep ci'
+ * to start a scan but now everything is done in one via start_scan().
+ * pysemgrep: called get_deployment_from_token
+ *)
+(* coupling(eio-port): if you change this you must change the eio version *)
+let deployment_config_async token : Out.deployment_config option Lwt.t =
+  let%lwt result = deployment_config_result_async token in
+  Lwt.return (Result.to_option result)
+
+(* coupling(eio-port): if you change this you must change the lwt version *)
+let deployment_config_eio token : Out.deployment_config option =
+  Result.to_option (deployment_config_result_eio token)
 
 (* from auth.py *)
 let deployment_config token = Lwt_platform.run (deployment_config_async token)

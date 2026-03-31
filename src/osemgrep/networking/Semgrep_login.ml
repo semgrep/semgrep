@@ -93,13 +93,19 @@ let save_token ?ident token = Lwt_platform.run (save_token_async ?ident token)
 
 (* coupling(eio-port): if you change this you must change the eio version *)
 let verify_token_async token =
-  let%lwt resopt = Semgrep_App.deployment_config_async token in
-  Lwt.return (Option.is_some resopt)
+  let%lwt result = Semgrep_App.deployment_config_result_async token in
+  Lwt.return
+    (match result with
+    | Ok _ -> `Valid
+    | Error `Unauthorized -> `Unauthorized
+    | Error (`Other msg) -> `Other msg)
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let verify_token_eio token =
-  let resopt = Semgrep_App.deployment_config_eio token in
-  Option.is_some resopt
+  match Semgrep_App.deployment_config_result_eio token with
+  | Ok _ -> `Valid
+  | Error `Unauthorized -> `Unauthorized
+  | Error (`Other msg) -> `Other msg
 
 let verify_token token = Lwt_platform.run (verify_token_async token)
 

@@ -20,16 +20,32 @@ let on_request (session : Legacy_session.t) id _params :
   | Some token ->
       ( session,
         Legacy_lsp_.Reply.later (fun send ->
-            let%lwt deployment = Semgrep_App.deployment_config_async token in
+            let%lwt deployment =
+              Semgrep_App.deployment_config_result_async token
+            in
             match deployment with
-            | None ->
-                (* technically this is not the correct thing to respond, this means there was an error
-               in logging in
-               but we don't want to take the time to fix it for the legacy LSP right now
-             *)
-                send (Legacy_lsp_.respond_json id `Null)
-            | Some deployment ->
+            | Ok deployment ->
                 send
                   (Legacy_lsp_.respond_json id
-                     (Legacy_loginfinish.mk_login_response deployment token)))
-      )
+                     (Legacy_loginfinish.mk_login_response deployment token))
+            | Error `Unauthorized ->
+                (* Returning null here means the token is invalid, and the user needs to login again *)
+                Logs.warn (fun m ->
+                    m
+                      "Invalid Semgrep token detected responding with null to \
+                       LoginStatus request");
+                Legacy_lsp_.Reply.apply send
+                  (Legacy_lsp_.Reply.now (Legacy_lsp_.respond_json id `Null))
+            | Error (`Other msg) ->
+                let err =
+                  Printf.sprintf
+                    "Failed to sign in: invalid token not cleaned up properly \
+                     or network error: %s"
+                    msg
+                in
+                Legacy_lsp_.Reply.apply send
+                  (Legacy_lsp_.Reply.now
+                     (Legacy_lsp_.respond_json_error id
+                        (Jsonrpc.Response.Error.make
+                           ~code:Jsonrpc.Response.Error.Code.InternalError
+                           ~message:err ())))) )
