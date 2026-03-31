@@ -1,0 +1,1 @@
+Computing taint configs, ~1/4-1/2 of the semgrep-core time in interfile scans, is now done in parallel according to the number of jobs
