@@ -15,6 +15,7 @@ import uuid
 import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.app.scans import _ConfigPollTimeout
 from semgrep.app.scans import ScanHandler
 
 
@@ -185,4 +186,98 @@ def test_start_scan_uses_v1_when_disabled(mocker, mock_state, mock_args):
 
     post_url = mock_state.app_session.post.call_args[0][0]
     assert post_url == f"{SEMGREP_URL}/api/cli/scans"
+    mock_state.app_session.get.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# POST-retry orchestration tests (mock _poll_for_config_v2 directly)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_start_scan_v2_retries_post_all_timeouts(
+    mocker, mock_state, mock_sleep, handler, mock_args
+):
+    """Retries POST up to _V2_POST_MAX_ATTEMPTS times on repeated poll timeouts, then raises."""
+    project_metadata, project_config = mock_args
+    mock_state.app_session.post.return_value = _make_response(
+        mocker, CREATE_SCAN_RESPONSE
+    )
+    mocker.patch.object(
+        handler, "_poll_for_config_v2", side_effect=_ConfigPollTimeout("timed out")
+    )
+
+    with pytest.raises(Exception, match="timed out after 3 POST attempts"):
+        handler.start_scan_v2(project_metadata, project_config)
+
+    assert mock_state.app_session.post.call_count == 3
+    assert handler._poll_for_config_v2.call_count == 3
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_start_scan_v2_success_on_second_post_attempt(
+    mocker, mock_state, mock_sleep, handler, mock_args
+):
+    """Returns successfully when the second POST attempt's poll resolves."""
+    project_metadata, project_config = mock_args
+    mock_state.app_session.post.return_value = _make_response(
+        mocker, CREATE_SCAN_RESPONSE
+    )
+    scan_response = mocker.MagicMock()
+    mocker.patch.object(
+        handler,
+        "_poll_for_config_v2",
+        side_effect=[_ConfigPollTimeout("timed out"), scan_response],
+    )
+
+    result = handler.start_scan_v2(project_metadata, project_config)
+
+    assert result is scan_response
+    assert mock_state.app_session.post.call_count == 2
+    assert handler._poll_for_config_v2.call_count == 2
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_start_scan_v2_failure_does_not_retry_post(
+    mocker, mock_state, mock_sleep, handler, mock_args
+):
+    """Does not retry the POST when the poll raises a hard failure (not _ConfigPollTimeout)."""
+    project_metadata, project_config = mock_args
+    mock_state.app_session.post.return_value = _make_response(
+        mocker, CREATE_SCAN_RESPONSE
+    )
+    mocker.patch.object(
+        handler,
+        "_poll_for_config_v2",
+        side_effect=Exception("Config generation failed"),
+    )
+
+    with pytest.raises(Exception, match="Config generation failed"):
+        handler.start_scan_v2(project_metadata, project_config)
+
+    assert mock_state.app_session.post.call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# _poll_for_config_v2 tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_poll_for_config_v2_raises_config_poll_timeout_when_expired(
+    mocker, mock_state, handler
+):
+    """Raises _ConfigPollTimeout immediately when timeout_seconds=0 (deadline already past)."""
+    scan_info = mocker.MagicMock()
+    mock_state.app_session.get.return_value = _make_response(
+        mocker, PENDING_CONFIG_RESPONSE
+    )
+
+    with pytest.raises(_ConfigPollTimeout):
+        handler._poll_for_config_v2(SCAN_REQUEST_ID, scan_info, timeout_seconds=0)
+
     mock_state.app_session.get.assert_not_called()

@@ -57,6 +57,23 @@ if TYPE_CHECKING:
     from rich.progress import Progress
 logger = getLogger(__name__)
 
+# How long to poll for config per POST attempt before giving up and retrying the POST.
+_V2_POLL_TIMEOUT_SECONDS = 45
+# Maximum number of POST attempts before propagating the timeout error.
+_V2_POST_MAX_ATTEMPTS = 3
+# Maximum total time spent in v2 across all attempts (matches original server deadline).
+_V2_OVERALL_TIMEOUT_MINUTES = 3
+
+
+class _ConfigPollTimeout(Exception):
+    """
+    Raised when v2 config polling times out for one POST attempt.
+    The backend may have silently dropped the scan job; the POST can be retried.
+
+    Hard backend failures (Failure status) are NOT wrapped in this exception —
+    they propagate as plain Exception and bypass the POST retry loop entirely.
+    """
+
 
 def prepare_matches_for_app(matches: list[RuleMatch]) -> list[RuleMatch]:
     # we want date stamps assigned by the app to be assigned such that the
@@ -455,66 +472,123 @@ class ScanHandler:
         Create a scan using the v2 endpoint with async config generation.
 
         1. POST to /api/cli/v2/scans to create scan (returns scan info immediately)
-        2. Poll GET /api/cli/v2/scans/{scan_request_id}/config for up to 3 minutes
-        3. Construct and return ScanResponse from the combined responses
+        2. Poll GET /api/cli/v2/scans/{scan_request_id}/config for up to
+           _V2_POLL_TIMEOUT_SECONDS per attempt
+        3. If polling times out (backend likely dropped the job), retry the POST up to
+           _V2_POST_MAX_ATTEMPTS times, subject to an overall _V2_OVERALL_TIMEOUT_MINUTES cap.
+        4. Construct and return ScanResponse from the combined responses.
 
-        Note: scan_request_id is the client-generated unique_id, not the server's scan.id
+        Note: scan_request_id is the client-generated unique_id, not the server's scan.id.
+        The same scan_request_id is reused across retries because the POST is idempotent.
         """
         state = get_state()
         span = telemetry.get_current_span()
 
-        # scan_request_id is the client-generated unique ID
+        # scan_request_id is the client-generated unique ID; stable across retries
         scan_request_id = self.scan_metadata.unique_id.value
         span.set_attribute("scan.v2.scan_request_id", scan_request_id)
 
-        # Step 1: Build and send create scan request
         request = out.CreateScanRequestV2(
             scan_metadata=self.scan_metadata,
             project_metadata=project_metadata,
             project_config=project_config.to_CiConfigFromRepo(),
         )
 
-        logger.debug(
-            f"Starting scan (v2) with request_id={scan_request_id}: {json.dumps(request.to_json(), indent=4)}"
+        overall_deadline = datetime.now().replace(tzinfo=None) + timedelta(
+            minutes=_V2_OVERALL_TIMEOUT_MINUTES
         )
 
-        create_response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/cli/v2/scans",
-            json=request.to_json(),
+        # saved so we can log the last exception after the final attempt times out
+        last_timeout_exc: Optional[_ConfigPollTimeout] = None
+        for post_attempt in range(1, _V2_POST_MAX_ATTEMPTS + 1):
+            span.set_attribute("scan.v2.post_attempt", post_attempt)
+
+            logger.debug(
+                f"Starting scan (v2) attempt {post_attempt}/{_V2_POST_MAX_ATTEMPTS} "
+                f"with request_id={scan_request_id}: {json.dumps(request.to_json(), indent=4)}"
+            )
+
+            create_response = state.app_session.post(
+                f"{state.env.semgrep_url}/api/cli/v2/scans",
+                json=request.to_json(),
+            )
+            self._raise_if_request_failed(create_response)
+
+            create_scan_response = out.CreateScanResponseV2.from_json(
+                create_response.json()
+            )
+            scan_info = create_scan_response.info
+
+            # Note: scan_info.id can be null for dry runs
+            if scan_info.id:
+                logger.debug(f"Scan created with ID: {scan_info.id}")
+                span.set_attribute("scan.v2.scan_id", scan_info.id)
+
+            remaining_seconds = (
+                overall_deadline - datetime.now().replace(tzinfo=None)
+            ).total_seconds()
+            if remaining_seconds <= 0:
+                break
+
+            poll_timeout = min(_V2_POLL_TIMEOUT_SECONDS, remaining_seconds)
+            try:
+                return self._poll_for_config_v2(
+                    scan_request_id, scan_info, poll_timeout
+                )
+            except _ConfigPollTimeout as e:
+                last_timeout_exc = e
+                remaining_seconds = (
+                    overall_deadline - datetime.now().replace(tzinfo=None)
+                ).total_seconds()
+                if post_attempt < _V2_POST_MAX_ATTEMPTS and remaining_seconds > 0:
+                    logger.warning(
+                        f"Config not ready after {poll_timeout:.0f}s "
+                        f"(attempt {post_attempt}/{_V2_POST_MAX_ATTEMPTS}), retrying POST"
+                    )
+                else:
+                    break  # deadline exceeded or final attempt — don't make another POST
+
+        cause = (
+            f": {last_timeout_exc}"
+            if last_timeout_exc
+            else " (deadline reached before polling started)"
+        )
+        raise Exception(
+            f"Config generation timed out after {post_attempt} POST attempts "
+            f"(scan_request_id={scan_request_id}){cause}"
         )
 
-        self._raise_if_request_failed(create_response)
+    def _poll_for_config_v2(
+        self,
+        scan_request_id: str,
+        scan_info: out.ScanInfo,
+        timeout_seconds: float,
+    ) -> out.ScanResponse:
+        """
+        Poll GET /api/cli/v2/scans/{scan_request_id}/config until Success, Failure,
+        or timeout_seconds elapses.
 
-        create_scan_response = out.CreateScanResponseV2.from_json(
-            create_response.json()
-        )
-        scan_info = create_scan_response.info
+        Raises:
+            _ConfigPollTimeout: config is still Pending after timeout (retryable via POST)
+            Exception: backend explicitly reported Failure (not retryable)
+        """
+        state = get_state()
+        span = telemetry.get_current_span()
 
-        # Note: scan_info.id can be null for dry runs
-        if scan_info.id:
-            logger.debug(f"Scan created with ID: {scan_info.id}")
-            span.set_attribute("scan.v2.scan_id", scan_info.id)
-
-        # Step 2: Poll for config using scan_request_id
         start_time = datetime.now().replace(tzinfo=None)
+        deadline = start_time + timedelta(seconds=timeout_seconds)
 
-        # Informed bounds overridable by the server
-        server_deadline = start_time + timedelta(minutes=3)
+        # Poll interval bounds; server can recommend a value within these
         server_poll_interval_seconds = 5
-
-        # Hard bounds for safety
-        maximum_deadline = start_time + timedelta(minutes=5)
         minimum_poll_interval_seconds = 1
         maximum_poll_interval_seconds = 60
 
         poll_attempt = 0
-        while datetime.now().replace(tzinfo=None) < min(
-            server_deadline, maximum_deadline
-        ):
+        while datetime.now().replace(tzinfo=None) < deadline:
             poll_attempt += 1
             span.set_attribute("scan.v2.poll_attempts", poll_attempt)
 
-            logger.debug(f"Polling for scan config")
+            logger.debug("Polling for scan config")
 
             config_response = state.app_session.get(
                 f"{state.env.semgrep_url}/api/cli/v2/scans/{scan_request_id}/config",
@@ -528,13 +602,9 @@ class ScanHandler:
             )
             status = get_config_response.status
 
-            # If server returns polling information, use that to override the
-            # defaults set above.
+            # Use server's recommended poll interval if provided
             if polling_info := get_config_response.polling:
                 server_poll_interval_seconds = polling_info.recommended_wait_seconds
-                server_deadline = datetime.now().replace(tzinfo=None) + timedelta(
-                    seconds=polling_info.seconds_until_timeout
-                )
 
             if isinstance(status.value, out.Success):
                 # Config is ready
@@ -575,8 +645,9 @@ class ScanHandler:
 
         # Timeout - config never became ready
         elapsed = (datetime.now().replace(tzinfo=None) - start_time).seconds
-        raise Exception(
-            f"Config generation timed out after {elapsed} seconds (scan_request_id={scan_request_id}, {poll_attempt} attempts)"
+        raise _ConfigPollTimeout(
+            f"Config still pending after {elapsed}s "
+            f"(scan_request_id={scan_request_id}, {poll_attempt} poll attempts)"
         )
 
     @telemetry.trace()
