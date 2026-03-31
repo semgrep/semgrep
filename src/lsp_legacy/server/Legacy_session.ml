@@ -201,17 +201,23 @@ let check_token session =
     Logs.debug (fun m -> m "Checking API token exists");
     let settings = Semgrep_settings.load () in
     match settings.api_token with
-    | Some token ->
+    | Some token -> (
         Logs.debug (fun m -> m "Checking API token validity");
-        (* "if not valid", basically *)
-        let%lwt token_valid = Semgrep_login.verify_token_async token in
-        if not token_valid then (
-          Logs.warn (fun m -> m "Invalid Semgrep token detected");
-          Semgrep_settings.save { settings with api_token = None } |> ignore;
-          Lwt.return_error
-            "Semgrep's API token is invalid. Please login to enable the \
-             Semgrep engine")
-        else Lwt.return_ok ()
+        let%lwt result = Semgrep_login.verify_token_async token in
+        match result with
+        | `Valid -> Lwt.return_ok ()
+        | `Unauthorized ->
+            Logs.warn (fun m -> m "Invalid Semgrep token detected");
+            Lwt.return_error
+              "Semgrep's API token is invalid. Please login again to enable \
+               the Semgrep engine"
+        | `Other msg ->
+            Logs.warn (fun m -> m "Could not verify Semgrep token: %s" msg);
+            Lwt.return_error
+              (Printf.sprintf
+                 "Semgrep could not verify your login status (%s). Please \
+                  check your network connection."
+                 msg))
     | None ->
         Logs.info (fun m -> m "No API token detected");
         (* Check if pro_intrafile requested *)

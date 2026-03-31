@@ -1,0 +1,1 @@
+Fixed IDE login issues where network errors during token verification were incorrectly clearing the saved token. The LSP now distinguishes 401 Unauthorized (invalid token) from other errors (e.g. network failures), surfacing appropriate messages instead.
