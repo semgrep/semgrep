@@ -91,6 +91,8 @@ class ScanHandler:
         dump_scan_id_path: Optional[Path] = None,
         enable_mal_deps: bool = False,
         use_scan_v2: bool = True,
+        dump_scan_config_path: Path | None = None,
+        load_saved_scan_config_path: Path | None = None,
     ) -> None:
         """
         When dry_run is True, semgrep ci would get the config from the app,
@@ -106,6 +108,11 @@ class ScanHandler:
         :param enable_mal_deps: Override to enable malicious dependency
         rules for this scan, even if disabled at the deployment level.
         :param use_scan_v2: Use v2 /scans endpoint (default). Falls back to v1 on error.
+        :param dump_scan_config_path: Path to save the scan config to for later use with
+            load_saved_scan_config_path.
+        :param load_saved_scan_config_path: Path to a scan config previously dumped with
+            dump_scan_config_path. If provided, loads scan config from
+            the path without reaching out to the app.
         """
         state = get_state()
         self.local_id = str(state.local_scan_id)
@@ -125,6 +132,9 @@ class ScanHandler:
         self.dump_scan_id_path = dump_scan_id_path
         self.enable_transitive_reachability = enable_transitive_reachability
         self.use_scan_v2 = use_scan_v2
+
+        self.dump_scan_config_path = dump_scan_config_path
+        self.load_saved_scan_config_path = load_saved_scan_config_path
 
     @property
     def scan_id(self) -> Optional[int]:
@@ -354,6 +364,11 @@ class ScanHandler:
             self.dump_scan_id_path.parent.mkdir(parents=True, exist_ok=True)
             self.dump_scan_id_path.write_text(str(self.scan_id))
 
+        if self.dump_scan_config_path:
+            self.dump_scan_config_path.parent.mkdir(parents=True, exist_ok=True)
+            self.dump_scan_config_path.write_text(self.scan_response.to_json_string())
+            logger.info(f"Scan config saved to {self.dump_scan_config_path}")
+
         get_state().telemetry.add_resource_attrs(
             scan_info_to_attrs(self.scan_response.info)
         )
@@ -399,6 +414,20 @@ class ScanHandler:
         If use_scan_v2 is enabled, attempts v2 endpoint first with fallback to v1.
         """
         span = telemetry.get_current_span()
+
+        if self.load_saved_scan_config_path:
+            if not self.load_saved_scan_config_path.exists():
+                raise ValueError(
+                    f"Saved scan config not found: {self.load_saved_scan_config_path}"
+                )
+            raw = self.load_saved_scan_config_path.read_text()
+            scan_response = out.ScanResponse.from_json_string(raw)
+            self._handle_scan_response(scan_response)
+            logger.info(
+                f"Scan config loaded from {self.load_saved_scan_config_path} (scan_id={self.scan_id})"
+            )
+            span.set_attribute("scan.loaded_saved_config", True)
+            return
 
         if self.use_scan_v2:
             span.set_attribute("scan.v2.attempted", True)

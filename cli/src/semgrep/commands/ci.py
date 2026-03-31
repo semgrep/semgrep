@@ -242,6 +242,20 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     hidden=True,
 )
 @click.option(
+    # for internal use, save the scan config (ScanResponse) to a file for reuse
+    "--x-dump-scan-config-path",
+    "x_dump_scan_config_path",
+    type=click.Path(allow_dash=True, path_type=Path),
+    hidden=True,
+)
+@click.option(
+    # for internal use, load a previously saved scan config instead of calling start_scan()
+    "--x-use-saved-scan-config-path",
+    "x_use_saved_scan_config_path",
+    type=click.Path(allow_dash=True, path_type=Path),
+    hidden=True,
+)
+@click.option(
     "--x-use-scan-v2/--x-no-scan-v2",
     "use_scan_v2",
     default=True,
@@ -336,7 +350,14 @@ def ci(
     x_mem_policy: Optional[MemoryPolicy],
     x_dump_subprojects_and_exit: Optional[Path],
     x_computed_dependencies_dir: Optional[Path],
+    x_dump_scan_config_path: Optional[Path],
+    x_use_saved_scan_config_path: Optional[Path],
 ) -> None:
+    if x_dump_scan_config_path and x_use_saved_scan_config_path:
+        raise click.UsageError(
+            "--x-dump-scan-config-path and --x-use-saved-scan-config-path are mutually exclusive"
+        )
+
     if x_simple_profiling:
         simple_profiling_module.enabled_simple_profiling = True
 
@@ -448,13 +469,6 @@ def ci(
             if partial_output:
                 dry_run = True
 
-            # If we are dumping subprojects, we aren't running a real scan. We'll restart
-            # the scan later for real, so the initial one is a dry run.
-            # TODO: store scan state and continue the scan after subproject resolution
-            # rather than restarting the scan
-            if x_dump_subprojects_and_exit:
-                dry_run = True
-
             scan_handler = ScanHandler(
                 enable_transitive_reachability=enable_transitive_reachability,
                 dry_run=dry_run,
@@ -462,6 +476,8 @@ def ci(
                 dump_scan_id_path=dump_scan_id_path,
                 enable_mal_deps=enable_mal_deps,
                 use_scan_v2=use_scan_v2,
+                dump_scan_config_path=x_dump_scan_config_path,
+                load_saved_scan_config_path=x_use_saved_scan_config_path,
             )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
