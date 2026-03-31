@@ -113,13 +113,29 @@ let on_request (type r) server (req_id : Id.t) (request : r CR.t) :
       in
       ({ server with session }, Option.value reply_opt ~default:Reply.empty)
   | CR.UnknownRequest { meth; params } ->
-      (* Could be handled better but :shrug: *)
-      if meth = Legacy_login_start.meth && Semgrep_login.is_logged_in_weak ()
-      then
+      if meth = Legacy_login_start.meth then
+        (* Login start handler doesn't modify session, so we can do the async token
+           check in Reply.later and skip the handler when already logged in. *)
         let reply =
-          Reply.now
-            (Legacy_lsp_.notify_show_message ~kind:MessageType.Info
-               "Already logged in to Semgrep Code")
+          Reply.later (fun send ->
+              let settings = Semgrep_settings.load () in
+              match settings.api_token with
+              | Some token -> (
+                  match%lwt Semgrep_login.verify_token_async token with
+                  | `Valid ->
+                      send
+                        (Legacy_lsp_.notify_show_message ~kind:MessageType.Info
+                           "Already logged in to Semgrep Code")
+                  | _ ->
+                      let _session, handler_reply =
+                        handle_custom_request server.session req_id meth params
+                      in
+                      Reply.apply send handler_reply)
+              | None ->
+                  let _session, handler_reply =
+                    handle_custom_request server.session req_id meth params
+                  in
+                  Reply.apply send handler_reply)
         in
         (server, reply)
       else
