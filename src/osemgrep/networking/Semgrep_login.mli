@@ -93,14 +93,25 @@ val fetch_token_eio :
   shared_secret ->
   (Auth.token * string, string) result
 
-val verify_token_async : Auth.token -> bool Lwt.t
-(** [verify_token_async] verifies that a token is valid with the Semgrep App. *)
+val verify_token_async :
+  Auth.token -> [ `Valid | `Unauthorized | `Other of string ] Lwt.t
+(** [verify_token_async] verifies that a token is valid with the Semgrep App.
+    Returns [`Valid] if valid, [`Unauthorized] if the server explicitly rejected
+    it with a 401, or [`Other msg] for transient errors (network failures, 5xx)
+    where [msg] contains the error details. *)
 
-val verify_token : Auth.token -> bool
-(** [verify_token] verifies that a token is valid with the Semgrep App. *)
+val verify_token : Auth.token -> [ `Valid | `Unauthorized | `Other of string ]
+(** [verify_token] verifies that a token is valid with the Semgrep App.
+    Returns [`Valid] if valid, [`Unauthorized] if the server explicitly rejected
+    it with a 401, or [`Other msg] for transient errors (network failures, 5xx)
+    where [msg] contains the error details. *)
 
-val verify_token_eio : Auth.token -> bool
-(** [verify_token_async] verifies that a token is valid with the Semgrep App. *)
+val verify_token_eio :
+  Auth.token -> [ `Valid | `Unauthorized | `Other of string ]
+(** [verify_token_eio] verifies that a token is valid with the Semgrep App.
+    Returns [`Valid] if valid, [`Unauthorized] if the server explicitly rejected
+    it with a 401, or [`Other msg] for transient errors (network failures, 5xx)
+    where [msg] contains the error details. *)
 
 val is_logged_in_weak : unit -> bool
 (** this does not really check whether the user is logged in; it just checks

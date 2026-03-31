@@ -85,6 +85,11 @@ val respond_json : Jsonrpc.Id.t -> Yojson.Safe.t -> Jsonrpc.Packet.t
     payload. This is useful for responding to requests that don't have a
     specific response type, such as an initialize error *)
 
+val respond_json_error :
+  Jsonrpc.Id.t -> Jsonrpc.Response.Error.t -> Jsonrpc.Packet.t
+(** [respond_json_error id error] creates a response packet with the given id and error payload.
+    This is useful for creating packets that contain error payloads. *)
+
 val respond : Jsonrpc.Id.t -> 'a Lsp.Client_request.t -> 'a -> Jsonrpc.Packet.t
 (** [respond id request response] creates a response packet with the given id,
     and the response payload. This is useful for responding to requests that

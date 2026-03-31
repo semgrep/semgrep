@@ -78,6 +78,25 @@ val deployment_config :
 val deployment_config_eio :
   Auth.token -> Semgrep_output_v1_t.deployment_config option
 
+val deployment_config_result_async :
+  Auth.token ->
+  ( Semgrep_output_v1_t.deployment_config,
+    [ `Unauthorized | `Other of string ] )
+  result
+  Lwt.t
+(** Like [deployment_config_async] but distinguishes a 401 Unauthorized
+    response from other errors. Use this when you need to act differently on
+    auth failures vs transient network errors. *)
+
+val deployment_config_result_eio :
+  Auth.token ->
+  ( Semgrep_output_v1_t.deployment_config,
+    [ `Unauthorized | `Other of string ] )
+  result
+(** Like [deployment_config_eio] but distinguishes a 401 Unauthorized
+    response from other errors. Use this when you need to act differently on
+    auth failures vs transient network errors. *)
+
 (* used by 'semgrep show identity' *)
 val get_identity_async : Auth.token -> string Lwt.t
 
