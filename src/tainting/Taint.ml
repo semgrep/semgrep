@@ -628,7 +628,7 @@ and labels_in_taints taints =
              | None -> maybe_labels := LabelSet.add label !maybe_labels));
   (!sure_labels, !maybe_labels, !has_poly_taint)
 
-let taints_satisfy_requires taints pre =
+let taints_satisfy_requires_for_finding taints pre =
   (* This is used when deciding whether to report a finding, so if we had:
    *
    *     def foo(y):
@@ -647,11 +647,25 @@ let taints_satisfy_requires taints pre =
    *   but if there are calls to `foo` such as `foo("safe")` then we could
    *   wait and not report any finding here.
    *)
+  let has_real_taint_source =
+    taints
+    |> List.exists (fun taint ->
+           match taint.orig with
+           | Src _ -> true
+           | Var _ -> false)
+  in
   match
     solve_precondition ~ignore_poly_taint:true
       ~taints:(Taint_set.of_list taints) pre
   with
-  | Some b -> b
+  | Some b ->
+      (* We want to be sure that any taint finding has *real* taint sources.
+        If 'taints' just contains taint variables, then we cannot truly
+        satisfy the precondition 'pre' for the purpose of generating a finding.
+        Note that otherwise, with `~ignore_poly_taint:true`, we would trivially
+        satisfy a `not L` precondition when 'taints' contains taint variables.
+       *)
+      b && has_real_taint_source
   | None ->
       (* If we set 'ignore_poly_taint' then we expect to be able to solve
        * the precondition! *)

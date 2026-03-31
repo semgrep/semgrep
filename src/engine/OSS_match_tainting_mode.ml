@@ -161,11 +161,14 @@ let trace_of_source source =
 
 let taints_satisfy_sink_requires taints requires =
   match requires with
-  | Effect.UniReq precond -> T.taints_satisfy_requires taints precond
+  | Effect.UniReq precond ->
+      T.taints_satisfy_requires_for_finding taints precond
   | Effect.MultiReq taints_w_preconds ->
       taints_w_preconds
       |> List.for_all (fun (taints, precond) ->
-             T.taints_satisfy_requires (T.Taint_set.elements taints) precond)
+             T.taints_satisfy_requires_for_finding
+               (T.Taint_set.elements taints)
+               precond)
 
 let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
   let match_on =

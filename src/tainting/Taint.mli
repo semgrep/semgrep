@@ -233,7 +233,8 @@ type taints = Taint_set.t
 val solve_precondition :
   ignore_poly_taint:bool -> taints:taints -> Rule.precondition -> bool option
 
-val taints_satisfy_requires : taint list -> Rule.precondition -> bool
+val taints_satisfy_requires_for_finding :
+  taint list -> Rule.precondition -> bool
 
 val taints_of_pms :
   incoming:taints -> (Core_match.t * Rule.taint_source) list -> taints
