@@ -170,7 +170,7 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
 
   // We also pin uv version in the Dockerfile. So, if you are updating
   // the version here, update it there too.
-  default_uv_version: '0.9.26',
+  default_uv_version: '0.10.9',
   setup_python_step: function(version='3.11', cache='auto') {
     uses: uses.astral_sh.setup_uv,
     with: {

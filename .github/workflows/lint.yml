@@ -39,7 +39,7 @@ jobs:
         with:
           enable-cache: false
           python-version: "3.11"
-          version: 0.9.26
+          version: 0.10.9
       - uses: semgrep/setup-ocaml@ce6a88f72f48e02a172c93eb93177b21659e7032
         with:
           cache-prefix: v5

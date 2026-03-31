@@ -42,7 +42,7 @@
 #
 # coupling: if you add a file here, you probably want to add it in
 # semgrep.nix and the pro dockerfile
-FROM ghcr.io/astral-sh/uv:0.9.26 as uv
+FROM ghcr.io/astral-sh/uv:0.10.9 as uv
 
 FROM scratch AS build-files
 WORKDIR /src

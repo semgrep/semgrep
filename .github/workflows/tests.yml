@@ -12,7 +12,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: "3.10"
-          version: 0.9.26
+          version: 0.10.9
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: semgrep-core-x86-artifact
@@ -59,7 +59,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: ${{ matrix.python }}
-          version: 0.9.26
+          version: 0.10.9
       - name: Install Python dependencies
         run: uv sync --locked
         working-directory: cli
@@ -167,7 +167,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           apk add --no-cache python3 py3-pip
-          pip install --no-cache-dir --ignore-installed --break-system-packages distlib uv==0.9.26
+          pip install --no-cache-dir --ignore-installed --break-system-packages distlib uv==0.10.9
           (cd cli; uv sync --locked)
       - name: Run pytest for osemgrep known passing tests
         run: |
@@ -187,7 +187,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: "3.12"
-          version: 0.9.26
+          version: 0.10.9
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: semgrep-core-x86-artifact

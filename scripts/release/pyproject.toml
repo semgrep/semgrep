@@ -22,3 +22,7 @@ dev = [
     "requests",
     "towncrier~=21.9.0",
 ]
+
+[tool.uv]
+exclude-newer = "1 week"
+required-version = ">=0.10.0"
