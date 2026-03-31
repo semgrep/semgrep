@@ -167,6 +167,25 @@ let test_concurrent_map_empty_list () =
   let res = Concurrent.map ~conf ~domain_count:2 (fun x -> x + 1) [] in
   Alcotest.(check int) "empty list returns empty result" 0 (List.length res)
 
+let test_concurrent_map_order () =
+  Eio_main.run @@ fun env ->
+  let conf = conf_or_die env in
+  let clock = Eio.Stdenv.clock env in
+  let jobs_1 = [ 0.3; 0.03; 0.03; 0.03 ] in
+  let jobs_2 = [ 0.03; 0.03; 0.03; 0.3 ] in
+  let f jobs =
+    Concurrent.map ~conf ~domain_count:2
+      (fun timeout ->
+        Eio.Time.sleep clock timeout;
+        timeout)
+      jobs
+    |> Result_.collect |> Result.get_ok
+  in
+  Alcotest.(check (list (float 0.001)))
+    "preserve order (slowest first)" jobs_1 (f jobs_1);
+  Alcotest.(check (list (float 0.001)))
+    "preserve order (slowest last)" jobs_2 (f jobs_2)
+
 let tests =
   Testo.categorize "Concurrent"
     [
@@ -176,4 +195,5 @@ let tests =
         test_concurrent_map_async_exception;
       t "Concurrent.map with zero domains" test_concurrent_map_zero_domains;
       t "Concurrent.map on empty list" test_concurrent_map_empty_list;
+      t "Concurrent.map preserves order" test_concurrent_map_order;
     ]
