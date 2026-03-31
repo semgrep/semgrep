@@ -56,6 +56,11 @@ val add : t -> rule:Rule_ID.t -> file_rule_stats -> unit
 (** [add tbl ~rule file_rule_stats] accumulates [file_rule_stats] into
     the stats for the rule identified by [rule]. *)
 
+val merge : src:t -> dst:t -> unit
+(** [merge ~src ~dst] folds all entries from [src] into [dst].
+    For rules present in both, source and sink match counts and file counts
+    are summed. *)
+
 val pretty : t -> string
 (** Pretty-print coverage stats.
 

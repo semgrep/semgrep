@@ -122,6 +122,42 @@ let add (stats : t) ~rule (file_rule_stats : file_rule_stats) =
   in
   add_file_stats_into rule_stats file_rule_stats
 
+let merge_rule_stats ~(src : rule_stats) ~(dst : rule_stats) =
+  src.source_stats
+  |> Hashtbl.iter (fun id ss ->
+         match Hashtbl.find_opt dst.source_stats id with
+         | None ->
+             Hashtbl.add dst.source_stats id
+               {
+                 spec = ss.spec;
+                 total_matches = ss.total_matches;
+                 num_files = ss.num_files;
+               }
+         | Some dst_ss ->
+             dst_ss.total_matches <- dst_ss.total_matches + ss.total_matches;
+             dst_ss.num_files <- dst_ss.num_files + ss.num_files);
+  src.sink_stats
+  |> Hashtbl.iter (fun id ss ->
+         match Hashtbl.find_opt dst.sink_stats id with
+         | None ->
+             Hashtbl.add dst.sink_stats id
+               {
+                 spec = ss.spec;
+                 total_matches = ss.total_matches;
+                 num_files = ss.num_files;
+               }
+         | Some dst_ss ->
+             dst_ss.total_matches <- dst_ss.total_matches + ss.total_matches;
+             dst_ss.num_files <- dst_ss.num_files + ss.num_files)
+
+let merge ~(src : t) ~(dst : t) =
+  src
+  |> Hashtbl.iter (fun rule_id src_rule_stats ->
+         match Hashtbl.find_opt dst rule_id with
+         | None -> Hashtbl.add dst rule_id src_rule_stats
+         | Some dst_rule_stats ->
+             merge_rule_stats ~src:src_rule_stats ~dst:dst_rule_stats)
+
 (*****************************************************************************)
 (* Rule applicability *)
 (*****************************************************************************)
