@@ -164,11 +164,11 @@ jobs:
         run: |
           eval $(opam env)
           make copy-core-for-cli
-      - name: Install Python dependencies
-        run: |
-          apk add --no-cache python3 py3-pip
-          pip install --no-cache-dir --ignore-installed --break-system-packages distlib uv==0.10.9
-          (cd cli; uv sync --locked)
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+        with:
+          enable-cache: auto
+          python-version: "3.11"
+          version: 0.10.9
       - name: Run pytest for osemgrep known passing tests
         run: |
           git config --global --add safe.directory "$(pwd)"
