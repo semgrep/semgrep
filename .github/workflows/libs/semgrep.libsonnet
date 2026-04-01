@@ -193,14 +193,7 @@ local osemgrep_test_steps_after_checkout = [
       make copy-core-for-cli
     |||,
   },
-  {
-    name: 'Install Python dependencies',
-    run: |||
-      apk add --no-cache python3 py3-pip
-      pip install --no-cache-dir --ignore-installed --break-system-packages distlib uv==%s
-      (cd cli; uv sync --locked)
-    ||| % actions.default_uv_version,
-  },
+  actions.setup_python_step(),
   {
     name: 'Run pytest for osemgrep known passing tests',
     'working-directory': 'cli',
