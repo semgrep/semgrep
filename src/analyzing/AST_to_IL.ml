@@ -1764,19 +1764,33 @@ and map_for_var_or_expr_list env xs : stmt list =
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
-and map_parameters _env params : param list =
-  params |> Tok.unbracket
-  |> List.map (function
-       | G.Param { pname = Some i; pinfo; pdefault; _ } ->
-           Param { pname = var_of_id_info i pinfo; pdefault }
-       | G.ParamPattern pat -> PatternParam pat
-       | G.Param { pname = None; _ }
-       | G.ParamRest (_, _)
-       | G.ParamHashSplat (_, _)
-       | G.ParamEllipsis _
-       | G.ParamReceiver _
-       | G.OtherParam (_, _) ->
-           FixmeParam (* TODO *))
+and map_param ~map_default : G.parameter -> param = function
+  | G.Param { pname = Some i; pinfo; pdefault; _ } ->
+      Param
+        {
+          pname = var_of_id_info i pinfo;
+          pdefault = Option.map map_default pdefault;
+        }
+  | G.ParamPattern pat -> PatternParam pat
+  | G.Param { pname = None; _ }
+  | G.ParamRest (_, _)
+  | G.ParamHashSplat (_, _)
+  | G.ParamEllipsis _
+  | G.ParamReceiver _
+  | G.OtherParam (_, _) ->
+      FixmeParam (* TODO *)
+
+(** Lowers parameters, including default value expressions. *)
+and map_parameters env params : param list =
+  (* HACK: TODO: For languages like Python where defaults are evaluated at
+     definition time rather than at each call site, re-running the default
+     initializer at each call site is semantically wrong. In practice this
+     doesn't matter for taint analysis since we only track final variables. *)
+  let map_default e =
+    let dinit, dexp = with_pre_stmts env (fun env' -> map_expr env' e) in
+    { dinit; dexp }
+  in
+  params |> Tok.unbracket |> List.map (map_param ~map_default)
 
 (*****************************************************************************)
 (* Type *)

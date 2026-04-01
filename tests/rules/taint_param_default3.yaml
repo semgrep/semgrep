@@ -1,0 +1,10 @@
+rules:
+  - id: test-js
+    message: Semgrep found a match
+    languages: [js]
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink(...)
