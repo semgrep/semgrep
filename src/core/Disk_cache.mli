@@ -62,11 +62,16 @@ module type S = sig
   val read : handle -> (value, error) result
   (** Unmarshal a value from disk. *)
 
-  val rm : handle -> unit
+  val rm : handle -> (unit, error) result
   (** Delete the cache file. *)
 
   val equal_handle : handle -> handle -> bool
   (** Structural equality on handles. *)
+
+  val record_stats_on_span : Opentelemetry.Scope.t -> unit
+  (** Snapshot I/O stats, reset counters, and record them as attributes
+      on the given OpenTelemetry span under keys like
+      ["disk_cache.{ext}.reads"], ["disk_cache.{ext}.cache_size_bytes"], etc. *)
 end
 
 module Make (V : DISK_CACHEABLE) : S with type value = V.t
