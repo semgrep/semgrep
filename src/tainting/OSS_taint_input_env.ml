@@ -20,32 +20,46 @@ module Effects = Shape_and_sig.Effects
 module Log = Log_tainting.Log
 module Lval_env = OSS_taint_lval_env
 
-let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
-  let name = AST_to_IL.var_of_id_info id ii in
-  let assign =
-    G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
-    |> G.e |> G.exprstmt
-  in
-  let xs = AST_to_IL.stmt taint_inst.file.lang assign in
-  let cfg, lambdas = CFG_build.cfg_of_stmts xs in
+(** Analyze [stmts] (which should assign to [name]) under [env] to determine
+    what taint flows into [name]. *)
+let check_var_def (taint_inst : Taint_rule_inst.t) env (name : IL.name)
+    (stmts : IL.stmt list) =
+  let lval : IL.lval = { base = Var name; rev_offset = [] } in
+  let cfg, lambdas = CFG_build.cfg_of_stmts stmts in
   Log.debug (fun m ->
       m
         "Taint_input_env:\n\
          --------------------\n\
          Checking var def %s\n\
          --------------------"
-        (fst id));
+        (fst name.ident));
   let effects, end_mapping =
-    (* There could be taint effects indeed, e.g. if 'expr' is `sink(taint)`. *)
+    (* There could be taint effects indeed, e.g. if the stmts amount to `sink(taint)`. *)
     OSS_dataflow_tainting.fixpoint taint_inst ~in_env:env
       Fun_CFG.{ params = []; fdef = None; cfg; lambdas }
   in
   let out_env = end_mapping.(cfg.exit).Dataflow_core.out_env in
-  let lval : IL.lval = { base = Var name; rev_offset = [] } in
   let xtaint = Lval_env.find_lval_xtaint out_env lval in
   (xtaint, effects)
 
-let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
+let mk_assign_stmt (name : IL.name) (exp : IL.exp) : IL.stmt =
+  let lval : IL.lval = { base = Var name; rev_offset = [] } in
+  { IL.s = IL.Instr { i = IL.Assign (lval, exp); iorig = IL.NoOrig } }
+
+let stmts_of_param_default (name : IL.name) (pd : IL.param_default) :
+    IL.stmt list =
+  pd.dinit @ [ mk_assign_stmt name pd.dexp ]
+
+let stmts_of_global_expr (taint_inst : Taint_rule_inst.t) id ii (expr : G.expr)
+    : IL.stmt list =
+  let assign =
+    G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
+    |> G.e |> G.exprstmt
+  in
+  AST_to_IL.stmt taint_inst.file.lang assign
+
+let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii
+    (opt_stmts : IL.stmt list option) =
   let var = AST_to_IL.var_of_id_info id ii in
   let var_type =
     Typing.resolved_type_of_id_info taint_inst.file.lang var.id_info
@@ -60,9 +74,9 @@ let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
     |> T.taints_of_pms ~incoming:T.Taint_set.empty
   in
   let expr_taints, expr_effects =
-    match opt_expr with
-    | Some e ->
-        let xtaint, effects = check_var_def taint_inst env id ii e in
+    match opt_stmts with
+    | Some stmts ->
+        let xtaint, effects = check_var_def taint_inst env var stmts in
         (Xtaint.to_taints xtaint, effects)
     | None -> (T.Taint_set.empty, Effects.empty)
   in
@@ -76,8 +90,17 @@ let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
   in
   (env, expr_effects)
 
-let add_to_env taint_inst (env, effects) id id_info opt_expr =
-  let env, new_effects = add_to_env_aux taint_inst env id id_info opt_expr in
+let add_to_env taint_inst (env, effects) id id_info opt_default =
+  let var = AST_to_IL.var_of_id_info id id_info in
+  let opt_stmts = Option.map (stmts_of_param_default var) opt_default in
+  let env, new_effects = add_to_env_aux taint_inst env id id_info opt_stmts in
+  (env, Effects.union new_effects effects)
+
+let add_global_to_env taint_inst (env, effects) id id_info opt_expr =
+  let opt_stmts =
+    Option.map (stmts_of_global_expr taint_inst id id_info) opt_expr
+  in
+  let env, new_effects = add_to_env_aux taint_inst env id id_info opt_stmts in
   (env, Effects.union new_effects effects)
 
 let mk_fun_input_env taint_inst ?(glob_env = Lval_env.empty)
@@ -102,7 +125,7 @@ let mk_file_env =
         | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; _ }
           when IdFlags.is_final !(id_info.id_flags)
                && is_global id_info =*= Some true ->
-            env := add_to_env taint_inst !env id id_info vinit
+            env := add_global_to_env taint_inst !env id id_info vinit
         | __else__ -> super#visit_definition venv (entity, def_kind)
 
       method! visit_Assign ((taint_inst, env) as venv) lhs tok expr =
@@ -118,7 +141,7 @@ let mk_file_env =
         }
           when IdFlags.is_final !(id_info.id_flags)
                && is_global id_info =*= Some true ->
-            env := add_to_env taint_inst !env id id_info (Some expr)
+            env := add_global_to_env taint_inst !env id id_info (Some expr)
         | __else__ -> super#visit_Assign venv lhs tok expr
     end
   in

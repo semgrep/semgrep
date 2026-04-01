@@ -20,7 +20,7 @@ val fold :
   ('acc ->
   AST_generic.ident ->
   AST_generic.id_info ->
-  AST_generic.expr option (** default value *) ->
+  IL.param_default option (** default value *) ->
   'acc) ->
   'acc ->
   IL.param list ->
