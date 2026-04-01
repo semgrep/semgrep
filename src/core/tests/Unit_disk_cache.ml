@@ -54,7 +54,7 @@ let test_round_trip () =
       let handle = write_ok cache "key1" 42 in
       let v = read_ok handle in
       Alcotest.(check int) "round-trip value" 42 v;
-      Int_cache.rm handle)
+      Int_cache.rm handle |> ignore)
 
 let test_closure_round_trip () =
   with_cache (fun cache ->
@@ -66,14 +66,14 @@ let test_closure_round_trip () =
           | Error _ -> Alcotest.fail "read closure failed"
           | Ok f' ->
               Alcotest.(check int) "closure result" 42 (f' 41);
-              Fn_cache.rm handle))
+              Fn_cache.rm handle |> ignore))
 
 let test_rm_deletes_file () =
   with_cache (fun cache ->
       let handle = write_ok cache "key_rm" 99 in
       (* verify we can read it *)
       let _ = read_ok handle in
-      Int_cache.rm handle;
+      Int_cache.rm handle |> ignore;
       (* reading after rm should fail *)
       match Int_cache.read handle with
       | Error _ -> ()
@@ -87,8 +87,8 @@ let test_different_keys_different_files () =
       let v2 = read_ok h2 in
       Alcotest.(check int) "first value" 1 v1;
       Alcotest.(check int) "second value" 2 v2;
-      Int_cache.rm h1;
-      Int_cache.rm h2)
+      Int_cache.rm h1 |> ignore;
+      Int_cache.rm h2 |> ignore)
 
 let test_same_key_overwrites () =
   with_cache (fun cache ->
@@ -96,7 +96,7 @@ let test_same_key_overwrites () =
       let h2 = write_ok cache "same_key" 2 in
       let v = read_ok h2 in
       Alcotest.(check int) "overwritten value" 2 v;
-      Int_cache.rm h2)
+      Int_cache.rm h2 |> ignore)
 
 (*****************************************************************************)
 (* Entry point *)
