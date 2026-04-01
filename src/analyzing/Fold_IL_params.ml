@@ -17,7 +17,7 @@ let fold :
     ('acc ->
     AST_generic.ident ->
     AST_generic.id_info ->
-    AST_generic.expr option ->
+    IL.param_default option ->
     'acc) ->
     'acc ->
     IL.param list ->

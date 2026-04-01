@@ -270,19 +270,6 @@ let pretty_call_special = function
   | IL.ForeachHasNext -> "foreach_has_next"
   | IL.Require -> "require"
 
-let pretty_param = function
-  | IL.Param { pname; pdefault } ->
-      let default_str =
-        match pdefault with
-        | Some e ->
-            let e_str = G.show_expr e |> truncate 30 in
-            spf " = %s" e_str
-        | None -> ""
-      in
-      spf "%s%s" (fst pname.IL.ident) default_str
-  | IL.PatternParam _ -> "<pattern>"
-  | IL.FixmeParam -> "<fixme>"
-
 let rec pretty_instr_kind ?indent:_ = function
   | IL.Assign (lv, e) -> spf "%s = %s" (pretty_lval lv) (pretty_exp e)
   | IL.AssignCall (lv_opt, { c = IL.Call (fn, args); _ }) ->
@@ -328,6 +315,25 @@ and pretty_instr ?(indent = 0) instr =
   let instr_str = pretty_instr_kind ~indent instr.IL.i in
   let orig_str = pretty_orig_annot instr.IL.iorig in
   instr_str ^ orig_str
+
+(*****************************************************************************)
+(* Params *)
+(*****************************************************************************)
+
+and pretty_param = function
+  | IL.Param { pname; pdefault } ->
+      let default_str =
+        match pdefault with
+        | Some { dinit = []; dexp } -> spf " = %s" (pretty_exp dexp)
+        | Some { dinit; dexp } ->
+            spf " = {\n%s\n  %s\n}"
+              (pretty_stmts ~indent:1 dinit)
+              (pretty_exp dexp)
+        | None -> ""
+      in
+      spf "%s%s" (fst pname.IL.ident) default_str
+  | IL.PatternParam _ -> "<pattern>"
+  | IL.FixmeParam -> "<fixme>"
 
 (*****************************************************************************)
 (* Statements *)

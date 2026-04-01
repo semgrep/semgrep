@@ -215,12 +215,6 @@ let any_of_orig = function
 (* Parameters and arguments *)
 (*****************************************************************************)
 
-type name_param = { pname : name; pdefault : G.expr option }
-[@@deriving show { with_path = false }]
-
-type param = Param of name_param | PatternParam of G.pattern | FixmeParam
-[@@deriving show { with_path = false }]
-
 type 'a argument = Unnamed of 'a | Named of ident * 'a
 [@@deriving show { with_path = false }]
 
@@ -250,13 +244,6 @@ class virtual ['self] iter_parent =
 
     method visit_orig _env _orig = ()
 
-    method visit_param env param =
-      match param with
-      | Param { pname; pdefault = _ } -> self#visit_name env pname
-      | PatternParam _
-      | FixmeParam ->
-          ()
-
     method visit_argument :
         'a. ('env -> 'a -> unit) -> 'env -> 'a argument -> unit =
       fun f env arg ->
@@ -266,6 +253,7 @@ class virtual ['self] iter_parent =
             self#visit_ident env ident;
             f env x
 
+    method visit_pattern _env (_pattern : G.pattern) = ()
     method visit_literal _env _literal = ()
     method visit_operator _env _operator = ()
     method visit_type_ _env _typ = ()
@@ -582,6 +570,17 @@ and node_kind =
   | NNestedDef of entity
   | NOther of other_stmt
   | NTodo of stmt
+
+and param_default = {
+  dinit : stmt list;
+      (** Stmts to evaluate at call time in the callee's scope, when the caller
+          does not provide an argument for this parameter. *)
+  dexp : exp;
+}
+
+and name_param = { pname : name; pdefault : param_default option }
+
+and param = Param of name_param | PatternParam of G.pattern | FixmeParam
 [@@deriving
   show { with_path = false },
   visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
