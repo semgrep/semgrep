@@ -1,0 +1,2 @@
+The musllinux PyPI wheel is now tagged as musllinux_1_2_<arch>, reflecting a requirement
+of musl libc version 1.2.
