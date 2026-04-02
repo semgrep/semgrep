@@ -12,6 +12,8 @@
 #
 from enum import auto
 from enum import Enum
+from typing import Any
+from typing import cast
 from typing import List
 from uuid import UUID
 
@@ -20,6 +22,7 @@ from attrs import Factory
 from attrs import frozen
 
 from semgrep.app.session import AppSession
+from semgrep.constants import MemoryPolicy
 from semgrep.env import Env
 from semgrep.error_handler import ErrorHandler
 from semgrep.metrics import Metrics
@@ -52,6 +55,19 @@ class SemgrepState:
     settings: Settings = Factory(Settings)
     terminal: Terminal = Factory(Terminal)
     telemetry: Telemetry = Factory(Telemetry)
+
+    @staticmethod
+    def cli_arg(param_name: str) -> Any:
+        """
+        Returns the argument set for the current CLI invocation, if set.
+
+        This is a bit hacky but we do this so we can easily pass, for instance,
+        the number of jobs to the rpc client without threading it through every
+        single function that needs it.
+        """
+        ctx = get_context()
+        params = ctx.params if hasattr(ctx, "params") else {}
+        return params.get(param_name, None)
 
     @staticmethod
     def get_cli_ux_flavor() -> DesignTreatment:
@@ -87,21 +103,21 @@ class SemgrepState:
         """
         Returns True iff the current CLI invocation is a pattern invocation via `semgrep -e` or `semgrep --pattern`.
         """
-        ctx = get_context()
-        params = ctx.params if hasattr(ctx, "params") else {}
-        return params.get("pattern") is not None
+        return SemgrepState.cli_arg("pattern") is not None
+
+    @staticmethod
+    def memory_policy() -> MemoryPolicy | None:
+        """
+        Returns, if set, the memory policy for the scan.
+        """
+        return cast(MemoryPolicy | None, SemgrepState.cli_arg("x_mem_policy"))
 
     @staticmethod
     def jobs() -> int | None:
         """
         Returns the number of jobs to use for the current CLI invocation.
-
-        This is a bit hacky but we do this so we can easily pass the # of jobs to the rpc
-        client without threading it through every single function that needs it.
         """
-        ctx = get_context()
-        params = ctx.params if hasattr(ctx, "params") else {}
-        jobs_str = params.get("jobs", None)
+        jobs_str = SemgrepState.cli_arg("jobs")
         jobs = int(jobs_str) if jobs_str is not None else None
         return jobs
 
