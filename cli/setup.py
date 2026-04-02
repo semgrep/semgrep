@@ -56,11 +56,13 @@ def linux_detect_libc():
 # tags. We build semgrep on glibc and musl, so we must make sure we tag
 # each build as either glibc (manylinux) or musl (musllinux) compatible
 #
-# NOTE: although semgrep-core is statically linked, that won't be the case
-# soon.
+# NOTE: semgrep-core is dynamically linked to the user's libc; the libc version
+# in these tags MUST match the libc version we use to build the binary, see:
+# musllinux: https://peps.python.org/pep-0656/
+# manylinux: https://peps.python.org/pep-0600/
 plat_libc_to_tag = {
-    ("linux_aarch64", "musl"): "musllinux_1_0_aarch64",
-    ("linux_x86_64", "musl"): "musllinux_1_0_x86_64",
+    ("linux_aarch64", "musl"): "musllinux_1_2_aarch64",
+    ("linux_x86_64", "musl"): "musllinux_1_2_x86_64",
     ("linux_aarch64", "glibc"): "manylinux2014_aarch64",
     ("linux_x86_64", "glibc"): "manylinux2014_x86_64",
 }
