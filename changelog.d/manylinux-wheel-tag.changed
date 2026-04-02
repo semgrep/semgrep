@@ -1,0 +1,2 @@
+The manylinux wheel is now tagged as manylinux_2_35_<arch>, reflecting a minimum
+requirement of glibc version 2.35.
