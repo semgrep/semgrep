@@ -1,0 +1,1 @@
+The --x-mem-policy flag now propagates to the RPC subprocess, fixing memory tuning for dependency resolution and other RPC-based operations.

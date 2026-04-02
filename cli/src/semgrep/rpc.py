@@ -168,8 +168,16 @@ def _cmd() -> List[str]:
     if state.terminal.log_level is logging.DEBUG:
         cmd.append("-debug")
 
-    if state.jobs() is not None:
-        cmd.extend(["-j", str(state.jobs())])
+    # Parallelism and memory profile flags need to be inherited.
+    # THINK: what else needs to be?  timeout? max_memory_mb?
+
+    num_jobs = state.jobs()
+    if num_jobs is not None:
+        cmd.extend(["-j", str(num_jobs)])
+
+    mem_policy = state.memory_policy()
+    if mem_policy is not None:
+        cmd.extend(["-x-mem-policy", mem_policy.cli_value])
 
     return cmd
 
