@@ -669,13 +669,17 @@ let isColonArgument in_ : bool =
             (* Case 2: LambdaStart on same line, then indent *)
             let is_arrow_then_indent () =
               match in_.token with
-              | ARROW _ ->
+              | ARROW _
+              | OP ("?=>", _) ->
                   nextToken in_;
                   Option.is_some (passedIndent in_)
               | __else__ -> false
             in
             match in_.token with
             | _ when TH.isIdentBool in_.token ->
+                nextToken in_;
+                is_arrow_then_indent ()
+            | USCORE _ ->
                 nextToken in_;
                 is_arrow_then_indent ()
             | LPAREN _
