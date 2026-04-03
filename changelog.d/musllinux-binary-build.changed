@@ -1,0 +1,1 @@
+semgrep-core musllinux binaries are now dynamically linked to the system's musl libc on musl systems.
