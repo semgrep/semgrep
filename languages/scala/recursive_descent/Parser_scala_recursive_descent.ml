@@ -4254,7 +4254,7 @@ let blockStatSeqInner in_ : top_stat option =
       let res = I x in
       acceptStatSepOptOrEndCase in_;
       Some res
-  | t when TH.isDefIntro t || TH.isLocalModifier t || TH.isAnnotation t ->
+  | t when TH.isDefIntro t || is_modifier in_ || TH.isAnnotation t ->
       let res =
         match in_.token with
         | Kimplicit ii ->
@@ -4263,7 +4263,7 @@ let blockStatSeqInner in_ : top_stat option =
               E (implicitClosure (Implicit, ii) InBlock in_)
               (* ast: Flags.IMPLICIT*)
             else D (localDef [ (Implicit, ii) ] in_)
-        | _ -> D (localDef [] in_)
+        | _ -> D (nonLocalDefOrDcl in_)
       in
       acceptStatSepOptOrEndCase in_;
       Some res
@@ -4274,7 +4274,6 @@ let blockStatSeqInner in_ : top_stat option =
   | t when TH.isStatSep t ->
       nextToken in_;
       None
-  | _ when is_modifier in_ -> error "no modifiers allowed here" in_
   | _ -> error "illegal start of statement" in_
 
 (* Also terminate the loop when a closing grouper or comma from an
