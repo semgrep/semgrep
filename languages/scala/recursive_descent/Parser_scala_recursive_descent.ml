@@ -495,6 +495,21 @@ let fetchToken in_ =
   in
   loop [ in_.token ]
 
+(** Peek at the next significant token without consuming anything.
+    Skips Space, Comment, and Nl tokens, matching fetchToken's behavior. *)
+let peekToken in_ : T.token option =
+  let rec loop = function
+    | [] -> None
+    | x :: xs -> (
+        match x with
+        | T.Space _
+        | T.Comment _
+        | T.Nl _ ->
+            loop xs
+        | _ -> Some x)
+  in
+  loop in_.rest
+
 (* ------------------------------------------------------------------------- *)
 (* nextToken *)
 (* ------------------------------------------------------------------------- *)
@@ -1029,7 +1044,15 @@ let rec selectors ~typeOK in_ : dotted_ident =
       [ ("type", ii) ]
   | _ ->
       let t1 = selector in_ in
-      if in_.token =~= DOT ab then (
+      (* Scala 3: don't consume DOT when followed by `match`. The expression
+       * parser handles `expr.match { ... }` via parseOther / simpleExprRest. *)
+      if
+        in_.token =~= DOT ab
+        && not
+             (match peekToken in_ with
+             | Some (Kmatch _) -> true
+             | _ -> false)
+      then (
         skipToken in_;
         t1 :: selectors ~typeOK in_)
       else [ t1 ]
@@ -1122,6 +1145,10 @@ let path ~thisOK ~typeOK in_ : path =
                      skipToken in_;
                      (t, selectors ~typeOK in_))
                    else (t, [])
+               (* Scala 3: `expr.match { ... }` — match is a valid postfix
+                * keyword after DOT, not an identifier. Return the path ending
+                * here; parseOther will see Kmatch and handle it. *)
+               | Kmatch _ -> (Id name, [])
                | _ -> (Id name, selectors ~typeOK in_))
              else (Id name, []))
 
@@ -2326,6 +2353,11 @@ and simpleExprRest ~canApply t in_ : expr =
              | Ellipsis ii ->
                  nextToken in_;
                  let x = stripParens (DotAccessEllipsis (t, ii)) in
+                 simpleExprRest ~canApply:true x in_
+             | Kmatch ii ->
+                 skipToken in_;
+                 let xs = inBracesOrIndented caseClauses in_ in
+                 let x = Match (stripParens t, ii, xs) in
                  simpleExprRest ~canApply:true x in_
              | _ ->
                  let id = selector (*t*) in_ in
