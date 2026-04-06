@@ -1,0 +1,400 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("Side", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
+       (ClassDef
+          { ckind = (Class, _); cextends = [];
+            cimplements =
+            [{ t =
+               (TyN
+                  (Id (("Eq", _),
+                     { id_resolved = ref (None);
+                       id_resolved_alternatives = ref ([]);
+                       id_type = ref (None); id_svalue = ref (None);
+                       id_flags = ref (0); id_info_id = _ }
+                     )));
+               t_attrs = [] }
+              ];
+            cmixins = []; cparams = (_, [], _);
+            cbody =
+            (_,
+             [(F
+                 { s =
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("KingSide", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         attrs = []; tparams = None },
+                       (EnumEntryDef { ee_args = None; ee_body = None })));
+                   s_range = None });
+               (F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("QueenSide", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef { ee_args = None; ee_body = None })));
+                    s_range = None })
+               ],
+             _)
+            })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("Color", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
+        (ClassDef
+           { ckind = (Class, _); cextends = [];
+             cimplements =
+             [{ t =
+                (TyN
+                   (Id (("Eq", _),
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (None);
+                        id_flags = ref (0); id_info_id = _ }
+                      )));
+                t_attrs = [] };
+               { t =
+                 (TyN
+                    (Id (("Ordering", _),
+                       { id_resolved = ref (None);
+                         id_resolved_alternatives = ref ([]);
+                         id_type = ref (None); id_svalue = ref (None);
+                         id_flags = ref (0); id_info_id = _ }
+                       )));
+                 t_attrs = [] }
+               ];
+             cmixins = []; cparams = (_, [], _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("Red", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef { ee_args = None; ee_body = None })));
+                    s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("Green", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs = []; tparams = None },
+                         (EnumEntryDef { ee_args = None; ee_body = None })));
+                     s_range = None });
+                (F
+                   { s =
+                     (DefStmt
+                        ({ name =
+                           (EN
+                              (Id (("Blue", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           attrs = []; tparams = None },
+                         (EnumEntryDef { ee_args = None; ee_body = None })));
+                     s_range = None })
+                ],
+              _)
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("Planet", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
+        (ClassDef
+           { ckind = (Class, _);
+             cextends =
+             [({ t =
+                 (TyApply (
+                    { t =
+                      (TyN
+                         (IdQualified
+                            { name_last = (("Enum", _), None);
+                              name_middle =
+                              (Some (QDots
+                                       [(("java", _), None);
+                                         (("lang", _), None)]));
+                              name_top = None;
+                              name_info =
+                              { id_resolved = ref (None);
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None); id_svalue = ref (None);
+                                id_flags = ref (0); id_info_id = _ }
+                              }));
+                      t_attrs = [] },
+                    (_,
+                     [(TA
+                         { t =
+                           (TyN
+                              (Id (("Planet", _),
+                                 { id_resolved = ref (None);
+                                   id_resolved_alternatives = ref ([]);
+                                   id_type = ref (None);
+                                   id_svalue = ref (None);
+                                   id_flags = ref (0); id_info_id = _ }
+                                 )));
+                           t_attrs = [] })
+                       ],
+                     _)
+                    ));
+                 t_attrs = [] },
+               None)];
+             cimplements =
+             [{ t =
+                (TyN
+                   (Id (("Eq", _),
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (None);
+                        id_flags = ref (0); id_info_id = _ }
+                      )));
+                t_attrs = [] }
+               ];
+             cmixins = [];
+             cparams =
+             (_,
+              [(Param
+                  { pname = (Some ("mass", _));
+                    ptype =
+                    (Some { t =
+                            (TyN
+                               (Id (("Double", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (None);
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )));
+                            t_attrs = [] });
+                    pdefault = None; pattrs = [];
+                    pinfo =
+                    { id_resolved = ref ((Some (Parameter, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type =
+                      ref ((Some { t =
+                                   (TyN
+                                      (Id (("Double", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [] }));
+                      id_svalue = ref (None); id_flags = ref (0);
+                      id_info_id = _ }
+                    });
+                (Param
+                   { pname = (Some ("radius", _));
+                     ptype =
+                     (Some { t =
+                             (TyN
+                                (Id (("Double", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   )));
+                             t_attrs = [] });
+                     pdefault = None; pattrs = [];
+                     pinfo =
+                     { id_resolved = ref ((Some (Parameter, _)));
+                       id_resolved_alternatives = ref ([]);
+                       id_type =
+                       ref ((Some { t =
+                                    (TyN
+                                       (Id (("Double", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    t_attrs = [] }));
+                       id_svalue = ref (None); id_flags = ref (0);
+                       id_info_id = _ }
+                     })
+                ],
+              _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("Mercury", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (None); id_flags = ref (0);
+                                  id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (EnumEntryDef { ee_args = None; ee_body = None })));
+                    s_range = None })
+                ],
+              _)
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("Point", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (ClassDef
+           { ckind = (Class, _); cextends = [];
+             cimplements =
+             [{ t =
+                (TyN
+                   (Id (("Eq", _),
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (None);
+                        id_flags = ref (0); id_info_id = _ }
+                      )));
+                t_attrs = [] };
+               { t =
+                 (TyN
+                    (Id (("Ordering", _),
+                       { id_resolved = ref (None);
+                         id_resolved_alternatives = ref ([]);
+                         id_type = ref (None); id_svalue = ref (None);
+                         id_flags = ref (0); id_info_id = _ }
+                       )));
+                 t_attrs = [] }
+               ];
+             cmixins = [];
+             cparams =
+             (_,
+              [(Param
+                  { pname = (Some ("x", _));
+                    ptype =
+                    (Some { t =
+                            (TyN
+                               (Id (("Int", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (None);
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )));
+                            t_attrs = [] });
+                    pdefault = None; pattrs = [];
+                    pinfo =
+                    { id_resolved = ref ((Some (Parameter, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type =
+                      ref ((Some { t =
+                                   (TyN
+                                      (Id (("Int", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (None);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [] }));
+                      id_svalue = ref (None); id_flags = ref (0);
+                      id_info_id = _ }
+                    });
+                (Param
+                   { pname = (Some ("y", _));
+                     ptype =
+                     (Some { t =
+                             (TyN
+                                (Id (("Int", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   )));
+                             t_attrs = [] });
+                     pdefault = None; pattrs = [];
+                     pinfo =
+                     { id_resolved = ref ((Some (Parameter, _)));
+                       id_resolved_alternatives = ref ([]);
+                       id_type =
+                       ref ((Some { t =
+                                    (TyN
+                                       (Id (("Int", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    t_attrs = [] }));
+                       id_svalue = ref (None); id_flags = ref (0);
+                       id_info_id = _ }
+                     })
+                ],
+              _);
+             cbody = (_, [], _) })));
+    s_range = None }
+  ]

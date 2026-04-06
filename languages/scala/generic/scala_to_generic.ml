@@ -1186,16 +1186,17 @@ and v_template_definition
   let ckind = v_wrap v_template_kind v_ckind in
   (* TODO? flatten? *)
   let cparams = fb (v_list v_bindings v_cparams |> List_.flatten) in
-  let cextends, cmixins = v_template_parents v_cparents in
+  let cextends, cmixins, cimplements = v_template_parents v_cparents in
   let body = v_option v_template_body v_cbody in
   let cbody =
     match body with
     | None -> G.empty_body
     | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.F st), rb)
   in
-  { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
+  { G.ckind; cextends; cmixins; cimplements; cparams; cbody }
 
-and v_template_parents { cextends = v_cextends; cwith = v_cwith } =
+and v_template_parents
+    { cextends = v_cextends; cwith = v_cwith; cderives = v_cderives } =
   let parents =
     match v_cextends with
     | None -> []
@@ -1211,7 +1212,8 @@ and v_template_parents { cextends = v_cextends; cwith = v_cwith } =
         [ parent ]
   in
   let v2 = v_list v_type_ v_cwith in
-  (parents, v2)
+  let v3 = v_list v_type_ v_cderives in
+  (parents, v2, v3)
 
 and v_template_body v =
   v_bracket

@@ -576,6 +576,7 @@ and template_definition = {
 and template_parents = {
   cextends : (type_ * arguments list) option;
   cwith : type_ list;
+  cderives : type_ list;
 }
 
 and template_body = (self_type option * block) bracket
@@ -639,7 +640,7 @@ type any =
 (* Helpers *)
 (*****************************************************************************)
 
-let empty_cparents = { cextends = None; cwith = [] }
+let empty_cparents = { cextends = None; cwith = []; cderives = [] }
 let attrs_of_mods xs = List.map (fun x -> M x) xs
 let attrs_of_annots xs = List.map (fun x -> A x) xs
 let mods_with_annots mods annots = attrs_of_annots annots @ attrs_of_mods mods

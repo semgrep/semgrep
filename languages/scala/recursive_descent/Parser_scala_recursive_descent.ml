@@ -4576,7 +4576,7 @@ let templateParents in_ : template_parents =
     if args <> [] then error "only the first parent type can have arguments" in_;
     cwith += parent
   done;
-  { cextends = Some (parent, args); cwith = List.rev !cwith }
+  { cextends = Some (parent, args); cwith = List.rev !cwith; cderives = [] }
 
 (** {{{
  *  ClassTemplate ::= [EarlyDefs with] ClassParents [TemplateBody]
@@ -4585,6 +4585,20 @@ let templateParents in_ : template_parents =
  *  EarlyDef      ::= Annotations Modifiers PatDef
  *  }}}
 *)
+
+(* Scala 3: InheritClauses ::= ['extends' ConstrApps] ['derives' QualId {',' QualId}] *)
+let parseDerives in_ : type_ list =
+  match in_.token with
+  | ID_LOWER ("derives", _) ->
+      nextToken in_;
+      let first = startAnnotType in_ in
+      let rest = ref [] in
+      while in_.token =~= COMMA ab do
+        nextToken in_;
+        rest := startAnnotType in_ :: !rest
+      done;
+      first :: List.rev !rest
+  | _ -> []
 
 let afterTemplate in_ body =
   match in_.token with
@@ -4596,6 +4610,8 @@ let afterTemplate in_ body =
       in
       nextToken in_;
       let parents = templateParents in_ in
+      let cderives = parseDerives in_ in
+      let parents = { parents with cderives } in
       let body1opt = templateBodyOpt ~parenMeansSyntaxError:false in_ in
       (* AST: earlyDefs @ *)
       (parents, body1opt)
@@ -4614,6 +4630,8 @@ let template in_ : template_parents * template_body option =
              afterTemplate in_ body
          | _ ->
              let parents = templateParents in_ in
+             let cderives = parseDerives in_ in
+             let parents = { parents with cderives } in
              let bodyopt = templateBodyOpt ~parenMeansSyntaxError:false in_ in
              (parents, bodyopt))
 
@@ -4633,13 +4651,14 @@ let templateOpt ckind vparams in_ : template_definition =
         nextToken in_;
         template in_
     | _ ->
+        let cderives = parseDerives in_ in
         newLineOptWhenFollowedBy (LBRACE ab) in_;
         let bodyopt =
           (* AST: mods.isTrait || name.isTermName *)
           let parenMeansSyntaxError = true in
           templateBodyOpt ~parenMeansSyntaxError in_
         in
-        (AST.empty_cparents, bodyopt)
+        ({ AST.empty_cparents with cderives }, bodyopt)
   in
   (* AST: Template(parents, self, anyvalConstructor()::body))
    * CHECK: "package object inheritance is deprecated"
@@ -4907,7 +4926,7 @@ let enumDef attrs in_ =
          let attrs = mods_with_annots access_mods constrAnnots @ attrs in
          let ent = { name; attrs; tparams } in
 
-         (* TODO: InheritClauses *)
+         (* InheritClauses: derives is handled inside templateOpt *)
          let tmpl = templateOpt kind vparamss in_ in
          (* AST: gen.mkClassDef(mods, name, tparams, template) *)
          (* CHECK: Context bounds generate implicit parameters (part of the template)
