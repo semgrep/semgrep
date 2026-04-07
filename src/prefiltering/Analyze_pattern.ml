@@ -75,7 +75,7 @@ let extract_strings_and_mvars_for_intrafile =
 
       method! visit_name env x =
         match x with
-        | Id (_id, { id_flags; _ }) when IdFlags.is_hidden !id_flags ->
+        | Id (_id, { id_flags; _ }) when IdFlags.is_fake !id_flags ->
             (* This identifier is not present in the pattern source.
                 We assume a match is possible without the identifier
                 being present in the target source, so we ignore it. *)
@@ -84,7 +84,7 @@ let extract_strings_and_mvars_for_intrafile =
 
       method! visit_parameter_classic env
           { pname; ptype; pdefault; pattrs; pinfo } =
-        if not (IdFlags.is_hidden !(pinfo.id_flags)) then
+        if not (IdFlags.is_fake !(pinfo.id_flags)) then
           self#visit_option self#visit_ident env pname;
         self#visit_option self#visit_type_ env ptype;
         self#visit_option self#visit_expr env pdefault;
@@ -185,7 +185,7 @@ let extract_strings_and_mvars_for_interfile =
               (_, _args, _) )
           when (not (Pattern.is_special_string_literal str))
                && (not (Pattern.is_special_identifier ?lang:env.lang str))
-               && not (IdFlags.is_hidden !(id_info.id_flags)) ->
+               && not (IdFlags.is_fake !(id_info.id_flags)) ->
             push_string env str
         | _ -> super#visit_expr env x
     end

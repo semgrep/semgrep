@@ -2297,7 +2297,7 @@ let p x = x
 let id_info_id = IdInfoId.mk
 let empty_var = { vinit = None; vtype = None; vtok = no_sc }
 
-let empty_id_info ?(hidden = false) ?(case_insensitive = false)
+let empty_id_info ?(fake = false) ?(case_insensitive = false)
     ?(id = id_info_id ()) () =
   {
     id_resolved = ref None;
@@ -2305,12 +2305,12 @@ let empty_id_info ?(hidden = false) ?(case_insensitive = false)
     id_type = ref None;
     id_svalue = ref None;
     id_flags =
-      ref (IdFlags.make ~hidden ~case_insensitive ~final:false ~static:false);
+      ref (IdFlags.make ~fake ~case_insensitive ~final:false ~static:false);
     id_info_id = id;
   }
 
-let basic_id_info ?(hidden = false) resolved =
-  let id_info = empty_id_info ~hidden () in
+let basic_id_info ?(fake = false) resolved =
+  let id_info = empty_id_info ~fake () in
   id_info.id_resolved := Some resolved;
   id_info
 
@@ -2326,8 +2326,8 @@ let canonical_to_dotted tid xs = xs |> List.map (fun s -> (s, tid))
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let basic_entity ?hidden ?case_insensitive ?(attrs = []) ?tparams id =
-  let idinfo = empty_id_info ?hidden ?case_insensitive () in
+let basic_entity ?fake ?case_insensitive ?(attrs = []) ?tparams id =
+  let idinfo = empty_id_info ?fake ?case_insensitive () in
   { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)
@@ -2405,13 +2405,13 @@ let raw_of_stmt (x : stmt) : any Raw_tree.t = Any (S x)
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let param_of_id ?hidden ?(pattrs = []) ?ptype ?pdefault id =
+let param_of_id ?fake ?(pattrs = []) ?ptype ?pdefault id =
   {
     pname = Some id;
     pdefault;
     ptype;
     pattrs;
-    pinfo = basic_id_info ?hidden (Parameter, SId.unsafe_default);
+    pinfo = basic_id_info ?fake (Parameter, SId.unsafe_default);
   }
 
 let param_of_type ?(pattrs = []) ?pdefault ?pname typ =

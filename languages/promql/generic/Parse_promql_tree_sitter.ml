@@ -164,9 +164,8 @@ let map_series_matcher (env : env) (x : CST.series_matcher) =
       ( G.Tuple,
         fb
           [
-            G.N (G.Id (("__name__", tok), G.empty_id_info ~hidden:true ()))
-            |> G.e;
-            G.N (G.Id (("=", tok), G.empty_id_info ~hidden:true ())) |> G.e;
+            G.N (G.Id (("__name__", tok), G.empty_id_info ~fake:true ())) |> G.e;
+            G.N (G.Id (("=", tok), G.empty_id_info ~fake:true ())) |> G.e;
             n;
           ] )
     |> G.e

@@ -495,7 +495,7 @@ let text_of_binding mvar mval =
    * In that case, it's better to pretty print the code rather than using
    * Visitor_AST.range_of_any_opt and Range.contents_at_range below.
    *
-   * The 'not is_hidden' guard is to avoid to pretty print
+   * The 'not is_fake' guard is to avoid to pretty print
    * artificial identifiers such as "builtin__include" in PHP that
    * we generate during parsing.
    * TODO: get rid of the ugly __builtin__ once we've fixed
@@ -505,7 +505,7 @@ let text_of_binding mvar mval =
    * Pretty_print/Ugly_print to factorize work.
    *)
   | MV.Id ((s, _tok), Some { id_flags; _ })
-    when (not (s =~ "^__builtin.*")) && not (IdFlags.is_hidden !id_flags) ->
+    when (not (s =~ "^__builtin.*")) && not (IdFlags.is_fake !id_flags) ->
       Some s
   | MV.Id ((s, _tok), None) when not (s =~ "^__builtin.*") -> Some s
   | _ -> (
