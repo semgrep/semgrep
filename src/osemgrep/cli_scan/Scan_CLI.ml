@@ -1120,6 +1120,20 @@ let o_x_mcp : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_x_run_taint_once : bool Term.t =
+  let docs = CLI_common.experimental_section_title in
+  let enable =
+    ( true,
+      Arg.info [ "x-run-taint-once" ] ~docs
+        ~doc:"[INTERNAL] Run taint analysis just once (default: true)" )
+  in
+  let disable =
+    ( false,
+      Arg.info [ "no-x-run-taint-once" ] ~docs
+        ~doc:"[INTERNAL] Disable running taint analysis just once" )
+  in
+  Arg.value (Arg.vflag true [ enable; disable ])
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -1473,12 +1487,13 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       _timeout_interfileTODO timeout_threshold use_git _use_semgrepignore_v2
       validate version version_check vim vim_outputs _x_dump_symbol_analysis
       x_ignore_semgrepignore_files x_ls x_ls_long x_mem_policy x_tr x_pro_naming
-      x_group_taint_rules x_mcp =
+      x_group_taint_rules x_mcp x_run_taint_once =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
       x_ignore_semgrepignore_files || x_ls || x_ls_long || x_mem_policy <> None
       || x_tr <> None || x_pro_naming || x_group_taint_rules || x_mcp
+      || not x_run_taint_once
     then
       Logs.warn (fun m ->
           m
@@ -1723,7 +1738,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
     $ o_vim_outputs $ o_x_dump_symbol_analysis $ o_x_ignore_semgrepignore_files
     $ o_x_ls $ o_x_ls_long $ o_x_mem_policy $ o_x_tr $ o_x_pro_naming
-    $ o_x_group_taint_rules $ o_x_mcp)
+    $ o_x_group_taint_rules $ o_x_mcp $ o_x_run_taint_once)
 
 let doc = "run semgrep rules on files"
 

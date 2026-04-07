@@ -1189,6 +1189,7 @@ def run_scan(
     enable_transitive_reachability: Optional[bool] = None,
     x_parmap: bool = False,
     x_pro_naming: bool = False,
+    x_run_taint_once: bool = True,
     x_no_python_schema_validation: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
@@ -1437,6 +1438,7 @@ def run_scan(
             path_sensitive=path_sensitive,
             fips_mode=fips_mode,
             use_pro_naming_for_intrafile=x_pro_naming,
+            run_taint_just_once=x_run_taint_once,
             group_taint_rules=x_group_taint_rules,
             mem_policy=x_mem_policy,
         )

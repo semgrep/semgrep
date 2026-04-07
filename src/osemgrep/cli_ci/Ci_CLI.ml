@@ -338,9 +338,10 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       scan_unknown_extensions secrets secrets_timeout semgrepignore_filename
       text text_outputs timeout _timeout_interfileTODO timeout_threshold use_git
       _use_semgrepignore_v2 version_check vim vim_outputs x_mem_policy x_tr
-      x_pro_naming x_mcp =
+      x_pro_naming x_mcp x_run_taint_once =
     (* this is just handled by psemgrep for now *)
     ignore x_pro_naming;
+    ignore x_run_taint_once;
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
         ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
@@ -496,7 +497,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
     $ SC.o_timeout_threshold $ SC.o_use_git $ SC.o_use_semgrepignore_v2
     $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_x_mem_policy
-    $ SC.o_x_tr $ SC.o_x_pro_naming $ SC.o_x_mcp)
+    $ SC.o_x_tr $ SC.o_x_pro_naming $ SC.o_x_mcp $ SC.o_x_run_taint_once)
 
 (*************************************************************************)
 (* Turn argv into conf *)
