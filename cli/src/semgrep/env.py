@@ -107,6 +107,9 @@ class Env:
 
     upload_findings_timeout: int = field()
 
+    claude_project_dir: Optional[str] = field(default=EnvFactory("CLAUDE_PROJECT_DIR"))
+    cursor_project_dir: Optional[str] = field(default=EnvFactory("CURSOR_PROJECT_DIR"))
+
     @version_check_timeout.default
     def version_check_timeout_default(self) -> int:
         value = os.getenv("SEMGREP_VERSION_CHECK_TIMEOUT", "2")
