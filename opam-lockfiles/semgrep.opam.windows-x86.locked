@@ -256,7 +256,7 @@ depends: [
   "uucp" {= "17.0.0"}
   "uuidm" {= "0.9.10"}
   "uutf" {= "1.0.4"}
-  "visitors" {= "20250212"}
+  "visitors-cleanroom" {= "dev"}
   "x509" {= "1.0.6"}
   "xmlm" {= "1.4.0"}
   "yaml" {= "3.2.0"}
@@ -347,6 +347,10 @@ pin-depends: [
   [
     "tree-sitter.dev"
     "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#abb14bfa9ce2bb983f425f091b0cffe44fdb6848"
+  ]
+  [
+    "visitors-cleanroom.dev"
+    "git+https://github.com/semgrep/semgrep-ocaml-visitors.git#772e36fb4899651856d38478bc796da2cd85968d"
   ]
 ]
 x-maintenance-intent: ["(latest)"]

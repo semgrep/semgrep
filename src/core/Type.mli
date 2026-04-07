@@ -211,8 +211,8 @@ class virtual ['c] map : object ('c)
     ('env -> 'a -> 'b) ->
     ('env -> 'e -> 'f) ->
     'env ->
-    ('a, 'e) Result.result ->
-    ('b, 'f) Result.result
+    ('a, 'e) result ->
+    ('b, 'f) result
 
   method private visit_string : 'env. 'env -> string -> string
   method visit_t : 'd -> 'g t -> 'h t
