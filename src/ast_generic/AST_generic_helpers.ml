@@ -174,8 +174,8 @@ let alias_opt_of_import_from_kind = function
   | Direct _ -> None
   | Aliased (_, alias) -> Some alias
 
-let name_of_id ?hidden ?(case_insensitive = false) id =
-  Id (id, empty_id_info ?hidden ~case_insensitive ())
+let name_of_id ?fake ?(case_insensitive = false) id =
+  Id (id, empty_id_info ?fake ~case_insensitive ())
 
 let name_of_dot_access e =
   let rec fetch_ids = function

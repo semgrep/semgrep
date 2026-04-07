@@ -47,7 +47,7 @@ let call_exprs (name : string wrap) (loc : Tok_range.t)
 
 let make_hidden_function loc name : G.expr =
   let id = "!dockerfile_" ^ name ^ "!" in
-  let id_info = G.empty_id_info ~hidden:true () in
+  let id_info = G.empty_id_info ~fake:true () in
   G.N (G.Id ((id, fst loc), id_info)) |> G.e
 
 (*****************************************************************************)

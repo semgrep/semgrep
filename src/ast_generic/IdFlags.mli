@@ -16,12 +16,11 @@ type t [@@deriving show, eq, ord, hash]
 val empty : t
 (** No flags set *)
 
-val make :
-  hidden:bool -> case_insensitive:bool -> final:bool -> static:bool -> t
+val make : fake:bool -> case_insensitive:bool -> final:bool -> static:bool -> t
 
-val is_hidden : t -> bool
+val is_fake : t -> bool
 (**
-     Flag 'hidden' must be set for any artificial identifier that never
+     Flag 'fake' must be set for any artificial identifier that never
      appears in source code but is introduced in the AST after parsing.
 
      Don't use this for syntax desugaring or transpilation because the
@@ -30,18 +29,18 @@ val is_hidden : t -> bool
 
        !foo -> foo.contents
                    ^^^^^^^^
-                 should not be marked as hidden because it could appear
+                 should not be marked as fake because it could appear
                  in target source code.
 
      However, an artificial identifier like "!sh_quoted_expand!" should
-     be marked as hidden in bash.
+     be marked as fake in bash.
 
      This allows not breaking the -fast/-filter_irrelevant_rules optimization
      that skips a target file if some identifier in the pattern AST doesn't
      exist in the source of the target.
  *)
 
-val set_hidden : t -> t
+val set_fake : t -> t
 
 val is_case_insensitive : t -> bool
 (**

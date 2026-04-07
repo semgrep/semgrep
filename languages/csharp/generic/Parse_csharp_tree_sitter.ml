@@ -160,10 +160,10 @@ let create_join_result_lambda lambda_params ident =
 let call_lambda base_expr funcname tok funcs =
   (* let funcs = exprs |> List.map (fun expr -> create_lambda lambda_params expr) in *)
   let args = funcs |> List.map (fun func -> Arg func) in
-  (* We use hidden:true because the funcname is a fake identifier
+  (* We use fake:true because the funcname is a fake identifier
    * that actually does not occur in the target code.
    *)
-  let idinfo = empty_id_info ~hidden:true () in
+  let idinfo = empty_id_info ~fake:true () in
   let method_ =
     DotAccess (base_expr, tok, FN (Id ((funcname, tok), idinfo))) |> G.e
   in

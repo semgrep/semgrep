@@ -199,11 +199,11 @@ and xml { xml_kind = xml_tag; xml_attrs; xml_body } =
 and xml_kind = function
   | XmlClassic (v0, v1, v2, v3) ->
       (* TODO Correctly parse Foo.Bar into IdQualified *)
-      let v1 = G.Id (ident v1, G.empty_id_info ~hidden:v1.fake ()) in
+      let v1 = G.Id (ident v1, G.empty_id_info ~fake:v1.fake ()) in
       G.XmlClassic (v0, v1, v2, v3)
   | XmlSingleton (v0, v1, v2) ->
       (* TODO Correctly parse Foo.Bar into IdQualified *)
-      let v1 = G.Id (ident v1, G.empty_id_info ~hidden:v1.fake ()) in
+      let v1 = G.Id (ident v1, G.empty_id_info ~fake:v1.fake ()) in
       XmlSingleton (v0, v1, v2)
   | XmlFragment (v1, v2) -> XmlFragment (v1, v2)
 
@@ -249,9 +249,9 @@ and expr (x : expr) =
       e
   | L x -> G.L (literal x) |> G.e
   | Id v1 ->
-      let hidden = v1.fake in
+      let fake = v1.fake in
       let v1 = name v1 in
-      G.N (G.Id (v1, G.empty_id_info ~hidden ())) |> G.e
+      G.N (G.Id (v1, G.empty_id_info ~fake ())) |> G.e
   | IdSpecial v1 ->
       (let x = special v1 in
        match x with
@@ -464,7 +464,7 @@ and for_header = function
         match v1 with
         (* TODO: v_init is not always _NONE! when we use multivardef!!! *)
         | Left ({ name = id; attrs = _TODO }, { v_init = _NONE; _ }) ->
-            G.PatId (ident id, G.empty_id_info ~hidden:id.fake ())
+            G.PatId (ident id, G.empty_id_info ~fake:id.fake ())
         | Right e ->
             let e = expr e in
             H.expr_to_pattern e
@@ -476,7 +476,7 @@ and for_header = function
         match v1 with
         (* TODO: v_init is not always _NONE! when we use multivardef!!! *)
         | Left ({ name = id; attrs = _TODO }, { v_init = _NONE; _ }) ->
-            G.PatId (ident id, G.empty_id_info ~hidden:id.fake ())
+            G.PatId (ident id, G.empty_id_info ~fake:id.fake ())
         | Right e ->
             let e = expr e in
             H.expr_to_pattern e
@@ -543,10 +543,10 @@ and tuple_type_member x =
   | TyTupRest (tok, x) -> G.TyRest (tok, type_ x) |> G.t
 
 and entity { name = n; attrs } =
-  let hidden = n.fake in
+  let fake = n.fake in
   let n = name n in
   let attrs = list attribute attrs in
-  G.basic_entity n ~hidden ~attrs
+  G.basic_entity n ~fake ~attrs
 
 and definition (ent, def) =
   let ent = entity ent in
@@ -569,11 +569,11 @@ and definition (ent, def) =
 
 and var_of_var
     ({ name = x_name; attrs }, { v_kind = x_kind; v_init = x_init; v_type }) =
-  let hidden = x_name.fake in
+  let fake = x_name.fake in
   let v1 = name x_name in
   let attrs = list attribute attrs in
   let v2 = var_kind x_kind in
-  let ent = G.basic_entity v1 ~hidden ~attrs:(v2 :: attrs) in
+  let ent = G.basic_entity v1 ~fake ~attrs:(v2 :: attrs) in
   let v3 = option expr x_init in
   let v_type = option type_ v_type in
   (ent, { G.vinit = v3; vtype = v_type; vtok = G.no_sc })
@@ -608,7 +608,7 @@ and pattern x =
 and parameter x =
   match x with
   | { p_name; p_default; p_dots; p_type; p_attrs } -> (
-      let hidden = p_name.fake in
+      let fake = p_name.fake in
       let v1 = name p_name in
       let pdefault = option expr p_default in
       let v3 = bool p_dots in
@@ -620,7 +620,7 @@ and parameter x =
           pdefault;
           ptype;
           pattrs;
-          pinfo = G.empty_id_info ~hidden ();
+          pinfo = G.empty_id_info ~fake ();
         }
       in
       match v3 with
@@ -744,9 +744,9 @@ and property x =
       G.F (G.OtherStmt (G.OS_Todo, [ G.TodoK v1; G.S v2 ]) |> G.s)
 
 and alias v1 =
-  let hidden = v1.fake in
+  let fake = v1.fake in
   let v1 = name v1 in
-  (v1, G.empty_id_info ~hidden ())
+  (v1, G.empty_id_info ~fake ())
 
 and module_directive x =
   match x with
