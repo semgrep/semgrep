@@ -147,6 +147,7 @@ val o_x_tr : bool option Cmdliner.Term.t
 val o_x_pro_naming : bool Cmdliner.Term.t
 val o_x_group_taint_rules : bool Cmdliner.Term.t
 val o_x_mcp : bool Cmdliner.Term.t
+val o_x_run_taint_once : bool Cmdliner.Term.t
 
 val engine_type_conf :
   oss:bool ->

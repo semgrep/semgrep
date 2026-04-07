@@ -333,6 +333,7 @@ def ci(
     x_parmap: bool,
     enable_transitive_reachability: Optional[bool],
     x_pro_naming: bool,
+    x_run_taint_once: bool,
     x_semgrepignore_filename: Optional[str],
     x_no_python_schema_validation: bool,
     x_simple_profiling: bool,
@@ -826,6 +827,7 @@ def ci(
                 else enable_transitive_reachability
             ),
             "x_pro_naming": x_pro_naming,
+            "x_run_taint_once": x_run_taint_once,
             "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
             "resolve_all_deps_in_diff_scan": (

@@ -494,6 +494,14 @@ _scan_options: List[Callable] = [
         default=False,
     ),
     optgroup.option(
+        "--x-run-taint-once/--no-x-run-taint-once",
+        "x_run_taint_once",
+        is_flag=True,
+        default=True,
+        help="Run taint analysis just once instead of twice (default: enabled). "
+        "Use --no-x-run-taint-once to disable.",
+    ),
+    optgroup.option(
         "--x-group-taint-rules",
         "x_group_taint_rules",
         is_flag=True,
@@ -770,6 +778,7 @@ def scan(
     x_eio: bool,
     x_parmap: bool,
     x_pro_naming: bool,
+    x_run_taint_once: bool,
     x_no_python_schema_validation: bool,
     x_semgrepignore_filename: Optional[str],
     x_simple_profiling: bool,
@@ -1122,6 +1131,7 @@ def scan(
                         enable_transitive_reachability=enable_transitive_reachability,
                         x_parmap=x_parmap,
                         x_pro_naming=x_pro_naming,
+                        x_run_taint_once=x_run_taint_once,
                         x_no_python_schema_validation=x_no_python_schema_validation,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,

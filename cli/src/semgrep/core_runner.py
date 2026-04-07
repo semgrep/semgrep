@@ -587,6 +587,7 @@ class CoreRunner:
         symbol_analysis: bool = False,
         fips_mode: bool = False,
         use_pro_naming_for_intrafile: bool = False,
+        run_taint_just_once: bool = True,
         group_taint_rules: bool = False,
         mem_policy: Optional[MemoryPolicy] = None,
     ):
@@ -609,6 +610,7 @@ class CoreRunner:
         self._symbol_analysis = symbol_analysis
         self._fips_mode = fips_mode
         self._use_pro_naming_for_intrafile = use_pro_naming_for_intrafile
+        self._run_taint_just_once = run_taint_just_once
         self._group_taint_rules = group_taint_rules
         self.mem_policy = mem_policy
 
@@ -1186,6 +1188,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 # TODO: warn if engine is not interfile?
                 if self._symbol_analysis and engine.is_interfile:
                     cmd.append("-symbol_analysis")
+
+                if not self._run_taint_just_once:
+                    cmd.append("-no_run_taint_just_once")
 
                 if self.mem_policy:
                     cmd.extend(["-x-mem-policy", self.mem_policy.cli_value])
