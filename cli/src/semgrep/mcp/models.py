@@ -158,3 +158,26 @@ class Finding(BaseModel):
     external_ticket: ExternalTicket | None = Field(
         default=None, validation_alias="externalTicket"
     )
+
+
+class SupplyChainPosition(BaseModel):
+    line: int
+    col: int
+    offset: int = 0
+
+
+class SupplyChainScaInfo(BaseModel):
+    reachable: bool
+
+
+class SupplyChainFindingExtra(BaseModel):
+    message: str
+    severity: str
+    sca_info: SupplyChainScaInfo | None = None
+
+
+class SupplyChainFinding(BaseModel):
+    check_id: str
+    path: str
+    start: SupplyChainPosition
+    extra: SupplyChainFindingExtra

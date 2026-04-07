@@ -25,6 +25,7 @@ from semgrep.mcp.hooks.inject_secure_defaults import run_inject_secure_defaults_
 from semgrep.mcp.hooks.post_tool import run_post_tool_scan_cli
 from semgrep.mcp.hooks.stop import run_after_file_edit_hook
 from semgrep.mcp.hooks.stop import run_stop_scan_cli
+from semgrep.mcp.hooks.supply_chain import run_supply_chain_scan_cli
 from semgrep.mcp.server import deregister_tools
 from semgrep.mcp.server import get_authorization_server_url
 from semgrep.mcp.server import get_semgrep_api_url
@@ -45,6 +46,7 @@ INJECT_SECURE_DEFAULTS_FLAG = "inject-secure-defaults"
 INJECT_SHORT_CONTEXT_FLAG = "inject-secure-defaults-short"
 STOP_CLI_SCAN_FLAG = "stop-cli-scan"
 RECORD_FILE_EDIT_HOOK_FLAG = "record-file-edit"
+SUPPLY_CHAIN_SCAN_FLAG = "supply-chain-scan"
 
 
 def setup_mcp_server(host: str, port: int) -> FastMCP:
@@ -122,6 +124,7 @@ def setup_mcp_server(host: str, port: int) -> FastMCP:
             RECORD_FILE_EDIT_HOOK_FLAG,
             INJECT_SECURE_DEFAULTS_FLAG,
             INJECT_SHORT_CONTEXT_FLAG,
+            SUPPLY_CHAIN_SCAN_FLAG,
         ]
     ),
     default=None,
@@ -130,6 +133,7 @@ def setup_mcp_server(host: str, port: int) -> FastMCP:
     1. Running a Semgrep CLI scan (via PostTool hook, flag: `{POST_TOOL_CLI_SCAN_FLAG}`).
     2. Running a Semgrep CLI scan (via Stop hook, flag: `{STOP_CLI_SCAN_FLAG}`), must be used in conjunction with an AfterFileEdit hook (flag: `{RECORD_FILE_EDIT_HOOK_FLAG}`).
     3. Injecting secure defaults context (via UserPromptSubmit hook or SessionStart hook, flag: `{INJECT_SECURE_DEFAULTS_FLAG}`).
+    4. Running a Semgrep supply chain scan when an install command is detected (via PostToolUse Bash hook, flag: `{SUPPLY_CHAIN_SCAN_FLAG}`).
     """,
 )
 @click.option(
@@ -169,6 +173,10 @@ def semgrep_mcp(transport: str, port: int, hook: str | None, agent: str) -> None
 
     if hook == INJECT_SHORT_CONTEXT_FLAG:
         run_inject_secure_defaults_hook(agent, inject_short_context=True)
+        return
+
+    if hook == SUPPLY_CHAIN_SCAN_FLAG:
+        run_supply_chain_scan_cli(agent)
         return
 
     # Log the start of the MCP server

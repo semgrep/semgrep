@@ -17,6 +17,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import Field
 
 from semgrep.env import Env
 from semgrep.verbose_logging import getLogger
@@ -45,7 +46,8 @@ def get_semgrep_settings_paths(cwd: str | None) -> list[Path]:
 
 class HookSettings(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    # TODO: add settings here
+
+    disable_supply_chain_scan: bool = Field(default=False)
 
 
 def _load_settings_file(path_str: str) -> dict[str, Any] | None:
