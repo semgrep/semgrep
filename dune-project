@@ -130,8 +130,8 @@ For more information see https://semgrep.dev
     (ppx_inline_test (>= v0.17.0))
     ; https://github.com/janestreet/ppx_sexp_conv/issues/43
     (ppx_sexp_conv ( = v0.17.0))
-    ; needs bumping once we move to ppxlib 0.36.0
-    (visitors (= 20250212))
+    ; clean-room visitors runtime + upstream PPX (replaces upstream visitors package)
+    visitors-cleanroom
     ; regexps
     (re ( >= 1.14.0))
     (conf-libpcre (= 2))
