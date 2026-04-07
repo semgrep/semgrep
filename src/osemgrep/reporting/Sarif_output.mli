@@ -18,3 +18,13 @@ val sarif_output :
   is_pro:bool ->
   show_dataflow_traces:bool ->
   Sarif.Sarif_v_2_1_0_t.sarif_json_schema
+
+(**/**)
+
+val call_trace_to_locations :
+  int ->
+  Semgrep_output_v1_t.match_call_trace ->
+  Sarif.Sarif_v_2_1_0_t.thread_flow_location list
+(** Exposed for testing. Recursively flattens a [match_call_trace] into a list
+    of SARIF thread flow locations, incrementing the nesting level at each
+    [CliCall] boundary. *)

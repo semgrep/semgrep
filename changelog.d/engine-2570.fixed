@@ -1,0 +1,1 @@
+Fixed SARIF taint trace output: step locations now use the correct file URI, and the full taint sink call trace is included in `codeFlows`.
