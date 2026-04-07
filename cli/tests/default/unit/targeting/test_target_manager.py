@@ -315,6 +315,32 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
 
 
 @pytest.mark.quick
+def test_git_failure_falls_back_to_filesystem_walk(tmp_path, monkeypatch):
+    """
+    When OCaml detects a Git_project but git commands fail, target discovery
+    should fall back to filesystem walking rather than crashing the RPC.
+
+    We trigger this by creating a .git directory that isn't a valid git
+    repository (missing HEAD, objects, refs, etc.), which causes
+    git ls-files to fail. This is just one example of a git failure;
+    the fallback should handle any Git_error.
+    """
+    (tmp_path / ".git").mkdir()
+    (tmp_path / "hello.py").touch()
+
+    monkeypatch.chdir(tmp_path)
+    language = Language("python")
+    targets = (
+        TargetManager(
+            scanning_root_strings=frozenset([Path(".")]),
+        )
+        .get_files_for_rule(language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .fpaths()
+    )
+    assert Path("hello.py") in targets
+
+
+@pytest.mark.quick
 def test_explicit_path(tmp_path, monkeypatch):
     foo = tmp_path / "foo"
     foo.mkdir()

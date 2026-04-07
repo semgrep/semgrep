@@ -499,12 +499,12 @@ let git_files_changed_since_commit ~baseline_commit ~cwd =
                compare the baseline commit");
         baseline_commit
   in
-  let status = Git_wrapper.status_exn ~cwd ~commit:merge_base () in
-  status.added @ status.modified
+  let/ status = Git_wrapper.status ~cwd ~commit:merge_base () in
+  Ok (status.added @ status.modified)
 
 let git_ls_files ~baseline_commit ~cwd ~untracked_exclude ~kinds =
   match baseline_commit with
-  | None -> Git_wrapper.ls_files_exn ~cwd ~untracked_exclude ~kinds []
+  | None -> Git_wrapper.ls_files ~cwd ~untracked_exclude ~kinds []
   | Some baseline_commit -> git_files_changed_since_commit ~baseline_commit ~cwd
 
 (*
@@ -529,37 +529,47 @@ let git_list_files ~(baseline_commit : string option) ~untracked_exclude
    * an option type but an Fppath_set.t instead.
    *)
   match project.kind with
-  | Git_project ->
-      Some
-        (project_roots.scanning_roots
-        |> List.concat_map (fun (sc_root_info : Project.scanning_root_info) ->
-               Log.info (fun m ->
-                   m "List git files for scanning root %s"
-                     (Project.show_scanning_root_info sc_root_info));
-               let sc_root = sc_root_info.path in
-               let sc_root_fppath =
-                 Project.fppath_of_scanning_root_info sc_root_info
-               in
-               if UFile.is_reg ~follow_symlinks:true sc_root.fpath then
-                 [ sc_root_fppath ]
-               else if UFile.is_dir ~follow_symlinks:true sc_root.fpath then
-                 (* We can cd into the scanning root to obtain paths
-                    relative to it because at this point, the scanning root
-                    is known to be a folder. *)
-                 git_ls_files ~baseline_commit
-                   ~cwd:(sc_root.rpath |> Rpath.to_fpath)
-                   ~untracked_exclude ~kinds:file_kinds
-                 |> List.map (fun rel_target_fpath ->
-                        Fppath.append_relative_fpath sc_root_fppath
-                          rel_target_fpath)
-               else (
-                 (* scanning root is neither a file nor a folder
-                    (shouldn't happen if the scanning roots were already
-                    sanitized) *)
-                 Log.warn (fun m ->
-                     m "invalid scanning root %s" !!(sc_root.fpath));
-                 []))
-        |> Fppath_set.of_list)
+  | Git_project -> (
+      let res =
+        Result_.list_map
+          (fun (sc_root_info : Project.scanning_root_info) ->
+            Log.info (fun m ->
+                m "List git files for scanning root %s"
+                  (Project.show_scanning_root_info sc_root_info));
+            let sc_root = sc_root_info.path in
+            let sc_root_fppath =
+              Project.fppath_of_scanning_root_info sc_root_info
+            in
+            if UFile.is_reg ~follow_symlinks:true sc_root.fpath then
+              Ok [ sc_root_fppath ]
+            else if UFile.is_dir ~follow_symlinks:true sc_root.fpath then
+              (* We can cd into the scanning root to obtain paths
+                 relative to it because at this point, the scanning root
+                 is known to be a folder. *)
+              let/ files =
+                git_ls_files ~baseline_commit
+                  ~cwd:(sc_root.rpath |> Rpath.to_fpath)
+                  ~untracked_exclude ~kinds:file_kinds
+              in
+              Ok
+                (List.map
+                   (fun rel_target_fpath ->
+                     Fppath.append_relative_fpath sc_root_fppath
+                       rel_target_fpath)
+                   files)
+            else (
+              (* scanning root is neither a file nor a folder
+                 (shouldn't happen if the scanning roots were already
+                 sanitized) *)
+              Log.warn (fun m -> m "invalid scanning root %s" !!(sc_root.fpath));
+              Ok []))
+          project_roots.scanning_roots
+      in
+      match res with
+      | Ok lists -> Some (List_.flatten lists |> Fppath_set.of_list)
+      | Error msg ->
+          Log.warn (fun m -> m "git_list_files: git command failed: %s" msg);
+          None)
   | _ -> None
 
 (*
