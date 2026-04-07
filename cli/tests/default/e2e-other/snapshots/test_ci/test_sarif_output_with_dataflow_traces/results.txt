@@ -420,7 +420,7 @@
                     {
                       "location": {
                         "message": {
-                          "text": "Sink: 'sink(d2)' @ 'foo.py:27'"
+                          "text": "Taint reaches: 'sink(d2)' @ 'foo.py:27'"
                         },
                         "physicalLocation": {
                           "artifactLocation": {
@@ -430,10 +430,10 @@
                             "endColumn": 13,
                             "endLine": 27,
                             "message": {
-                              "text": "Sink: 'sink(d2)' @ 'foo.py:27'"
+                              "text": "Taint reaches: 'sink(d2)' @ 'foo.py:27'"
                             },
                             "snippet": {
-                              "text": "    sink(d2)"
+                              "text": "sink(d2)"
                             },
                             "startColumn": 5,
                             "startLine": 27

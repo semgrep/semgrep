@@ -96,7 +96,7 @@
                     {
                       "location": {
                         "message": {
-                          "text": "Sink: 'sink1(b)' @ 'targets/taint/taint.py:9'"
+                          "text": "Taint reaches: 'sink1(b)' @ 'targets/taint/taint.py:9'"
                         },
                         "physicalLocation": {
                           "artifactLocation": {
@@ -106,10 +106,10 @@
                             "endColumn": 13,
                             "endLine": 9,
                             "message": {
-                              "text": "Sink: 'sink1(b)' @ 'targets/taint/taint.py:9'"
+                              "text": "Taint reaches: 'sink1(b)' @ 'targets/taint/taint.py:9'"
                             },
                             "snippet": {
-                              "text": "    sink1(b)"
+                              "text": "sink1(b)"
                             },
                             "startColumn": 5,
                             "startLine": 9

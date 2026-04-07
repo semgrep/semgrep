@@ -121,7 +121,7 @@
                     {
                       "location": {
                         "message": {
-                          "text": "Sink: 'SINK(res2);                               // (5) sink res2' @ 'targets/taint/taint_trace.cpp:17'"
+                          "text": "Taint reaches: 'res2' @ 'targets/taint/taint_trace.cpp:17'"
                         },
                         "physicalLocation": {
                           "artifactLocation": {
@@ -131,10 +131,10 @@
                             "endColumn": 14,
                             "endLine": 17,
                             "message": {
-                              "text": "Sink: 'SINK(res2);                               // (5) sink res2' @ 'targets/taint/taint_trace.cpp:17'"
+                              "text": "Taint reaches: 'res2' @ 'targets/taint/taint_trace.cpp:17'"
                             },
                             "snippet": {
-                              "text": "    SINK(res2);                               // (5) sink res2"
+                              "text": "res2"
                             },
                             "startColumn": 10,
                             "startLine": 17

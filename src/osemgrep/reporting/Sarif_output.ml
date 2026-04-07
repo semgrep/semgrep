@@ -264,9 +264,9 @@ let sarif_fixes (cli_match : Out.cli_match) : Sarif.fix list option =
   in
   Some [ fix ]
 
-let thread_flow_location (cli_match : Out.cli_match) message
-    (location : Out.location) content nesting_level =
-  let location =
+let thread_flow_location message (location : Out.location) content nesting_level
+    =
+  let loc =
     Sarif.create_location ~message
       ~physical_location:
         (Sarif.create_physical_location
@@ -274,16 +274,16 @@ let thread_flow_location (cli_match : Out.cli_match) message
              (region ~message ~snippet:content location.start location.end_)
            ~artifact_location:
              (Sarif.create_artifact_location
-                ~uri:(Fpath.to_string cli_match.path)
+                ~uri:(Fpath.to_string location.path)
                 ())
            ())
       ()
   in
   Sarif.create_thread_flow_location
     ~nesting_level:(Int64.of_int nesting_level)
-    ~location ()
+    ~location:loc ()
 
-let intermediate_var_locations cli_match intermediate_vars =
+let intermediate_var_locations nesting_level intermediate_vars =
   intermediate_vars
   |> List.map (fun ({ location; content } : Out.match_intermediate_var) ->
          let propagation_message_text =
@@ -292,13 +292,42 @@ let intermediate_var_locations cli_match intermediate_vars =
              location.start.line
            |> message
          in
-         thread_flow_location cli_match propagation_message_text location
-           content 0)
+         thread_flow_location propagation_message_text location content
+           nesting_level)
+
+(* Recursively flatten a [match_call_trace] into a list of thread flow
+ * locations. Used to emit the taint sink call trace in SARIF. *)
+let rec call_trace_to_locations nesting_level call_trace =
+  match call_trace with
+  | Out.CliLoc (location, content) ->
+      let msg =
+        spf "Taint reaches: '%s' @ '%s:%d'" content
+          (Fpath.to_string location.path)
+          location.start.line
+        |> message
+      in
+      [ thread_flow_location msg location content nesting_level ]
+  | Out.CliCall ((location, content), intermediate_vars, sub_trace) ->
+      let call_msg =
+        spf "Call: '%s' @ '%s:%d'" content
+          (Fpath.to_string location.path)
+          location.start.line
+        |> message
+      in
+      let call_location =
+        thread_flow_location call_msg location content nesting_level
+      in
+      let inter_locations =
+        intermediate_var_locations (nesting_level + 1) intermediate_vars
+      in
+      let sub_locations =
+        call_trace_to_locations (nesting_level + 1) sub_trace
+      in
+      (call_location :: inter_locations) @ sub_locations
 
 let thread_flows (cli_match : Out.cli_match)
     (dataflow_trace : Out.match_dataflow_trace) (location : Out.location)
     content =
-  (* TODO from sarif.py: deal with taint sink *)
   let intermediate_vars = dataflow_trace.intermediate_vars in
   let source_flow_location =
     let source_message_text =
@@ -307,53 +336,57 @@ let thread_flows (cli_match : Out.cli_match)
         location.start.line
       |> message
     in
-    thread_flow_location cli_match source_message_text location content 0
+    thread_flow_location source_message_text location content 0
   in
   let intermediate_var_locations =
     match intermediate_vars with
     | None -> []
-    | Some intermediate_vars ->
-        intermediate_var_locations cli_match intermediate_vars
+    | Some intermediate_vars -> intermediate_var_locations 0 intermediate_vars
   in
-  let sink_flow_location =
-    let sink_message_text =
-      spf "Sink: '%s' @ '%s:%d'"
-        (String.trim cli_match.extra.lines) (* rule_match.get_lines() ?! *)
-        (Fpath.to_string cli_match.path)
-        cli_match.start.line
-      |> message
-    in
-    thread_flow_location cli_match sink_message_text
-      {
-        Out.start = cli_match.start;
-        end_ = cli_match.end_;
-        path = cli_match.path;
-      }
-      cli_match.extra.lines 1
+  (* When a taint_sink call trace is present, emit its locations (call site,
+   * intermediate vars within the callee, and final sink). Otherwise fall back
+   * to emitting just the cli_match location as the sink. *)
+  let sink_locations =
+    match dataflow_trace.taint_sink with
+    | Some taint_sink -> call_trace_to_locations 1 taint_sink
+    | None ->
+        let sink_message_text =
+          spf "Sink: '%s' @ '%s:%d'"
+            (String.trim cli_match.extra.lines)
+            (Fpath.to_string cli_match.path)
+            cli_match.start.line
+          |> message
+        in
+        [
+          thread_flow_location sink_message_text
+            {
+              Out.start = cli_match.start;
+              end_ = cli_match.end_;
+              path = cli_match.path;
+            }
+            cli_match.extra.lines 1;
+        ]
   in
   [
     Sarif.create_thread_flow
       ~locations:
-        ((source_flow_location :: intermediate_var_locations)
-        @ [ sink_flow_location ])
+        ((source_flow_location :: intermediate_var_locations) @ sink_locations)
       ();
   ]
+
+(* Return the first (outermost) location from a call trace, used for the
+ * code flow summary message. *)
+let first_loc_of_call_trace = function
+  | Out.CliLoc (loc, content) -> (loc, content)
+  | Out.CliCall ((loc, content), _, _) -> (loc, content)
 
 let sarif_codeflow (cli_match : Out.cli_match) : Sarif.code_flow list option =
   match cli_match.extra.dataflow_trace with
   | None
   | Some { Out.taint_source = None; _ } ->
       None
-  | Some { Out.taint_source = Some (CliCall _); _ } ->
-      Logs.err (fun m ->
-          m
-            "Emitting SARIF output for unsupported dataflow trace (source is a \
-             call)");
-      None
-  | Some
-      ({ taint_source = Some (CliLoc (location, content)); _ } as dataflow_trace)
-    ->
-      (* TODO from sarif.py: handle taint_sink *)
+  | Some ({ taint_source = Some taint_source; _ } as dataflow_trace) ->
+      let location, content = first_loc_of_call_trace taint_source in
       let code_flow_message =
         spf "Untrusted dataflow from %s:%d to %s:%d"
           (Fpath.to_string location.path)

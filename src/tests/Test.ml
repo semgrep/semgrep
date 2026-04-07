@@ -169,6 +169,7 @@ let tests =
         Unit_app.tests;
         Unit_Fetching.tests;
         Unit_reporting.tests;
+        Unit_sarif_output.tests;
         Unit_ci.tests;
         Test_is_blocking_helpers.tests;
         (* osemgrep e2e subcommand tests *)
