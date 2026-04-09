@@ -1,0 +1,1 @@
+The LSP and MCP servers now use the v2 config download endpoint by default when fetching rules from Semgrep AppSec Platform. Set `SEMGREP_DISABLE_CONFIG_DOWNLOAD_V2=1` to fall back to the legacy endpoint.

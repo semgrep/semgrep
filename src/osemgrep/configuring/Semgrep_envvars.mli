@@ -65,6 +65,8 @@ type t = {
   min_fetch_depth : int;
   (* $MOCK_USING_REGISTRY *)
   mock_using_registry : bool;
+  (* $SEMGREP_DISABLE_CONFIG_DOWNLOAD_V2 *)
+  disable_config_download_v2 : bool;
 }
 
 val v : t ref
