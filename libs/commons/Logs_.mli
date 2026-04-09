@@ -209,3 +209,11 @@ val array : ('a -> string) -> 'a array -> string
 
 val if_in_debug : Logs.src -> (unit -> unit) -> unit
 (** [if_in_debug src f] executes [f ()] only if [src]'s level is [Logs.Debug]. *)
+
+val msg_with_detail :
+  src:Logs.src -> Logs.level -> string -> (unit -> string) -> unit
+(** [msg_with_detail ~src level desc detail] logs [desc] at [level] on [src].
+    If the src's level (or global level, if unset) is [Logs.Debug], the detail
+    is appended to the same log message (i.e. ["desc: detail()"]). Only [desc]
+    is logged when the effective level is not [Debug], and the [detail] thunk
+    is not evaluated unless debug is enabled. *)

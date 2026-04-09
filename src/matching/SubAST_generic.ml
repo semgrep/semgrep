@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open AST_generic
+open Common
 module Log = Log_matching.Log
 module H = AST_generic_helpers
 
@@ -191,7 +192,9 @@ let subexprs_of_expr with_symbolic_propagation e =
   | LetPattern _ ->
       []
   | DisjExpr _ ->
-      Log.err (fun m -> m "%s: impossible AST: %s" __FUNCTION__ (show_expr e));
+      Logs_.msg_with_detail ~src:Log_matching.src Logs.Error
+        (spf "%s: impossible AST: DisjExpr" __FUNCTION__) (fun () ->
+          show_expr e);
       []
 [@@profiling]
 
@@ -278,7 +281,9 @@ let subexprs_of_expr_implicit (with_symbolic_propagation : bool) (e : expr) :
   | DeepEllipsis _
   | DotAccessEllipsis _
   | DisjExpr _ ->
-      Log.err (fun m -> m "%s: impossible AST: %s" __FUNCTION__ (show_expr e));
+      Logs_.msg_with_detail ~src:Log_matching.src Logs.Error
+        (spf "%s: impossible AST: DisjExpr" __FUNCTION__) (fun () ->
+          show_expr e);
       []
 [@@profiling]
 
@@ -328,7 +333,9 @@ let substmts_of_stmt st =
       | None -> []
       | Some (_, st) -> [ st ])
   | DisjStmt _ ->
-      Log.err (fun m -> m "%s: impossible AST: %s" __FUNCTION__ (show_stmt st));
+      Logs_.msg_with_detail ~src:Log_matching.src Logs.Error
+        (spf "%s: impossible AST: DisjStmt" __FUNCTION__) (fun () ->
+          show_stmt st);
       []
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) -> (

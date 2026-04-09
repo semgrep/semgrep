@@ -480,3 +480,16 @@ let if_in_debug src f =
   | Some Logs.(App | Error | Warning | Info)
   | None ->
       ()
+
+let msg_with_detail ~src level desc detail =
+  let effective_level =
+    match Logs.Src.level src with
+    | Some _ as l -> l
+    | None -> Logs.level ()
+  in
+  let msg =
+    match effective_level with
+    | Some Logs.Debug -> desc ^ ": " ^ detail ()
+    | _ -> desc
+  in
+  Logs.msg ~src level (fun m -> m "%s" msg)

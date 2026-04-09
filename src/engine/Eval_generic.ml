@@ -513,9 +513,9 @@ let text_of_binding mvar mval =
       match AST_generic_helpers.range_of_any_opt any with
       | None ->
           (* TODO: Report a warning to the user? *)
-          Log.warn (fun m ->
-              m "We lack range info for metavariable %s: %s" mvar
-                (G.show_any any));
+          Logs_.msg_with_detail ~src:Log_engine.src Logs.Warning
+            (spf "We lack range info for metavariable %s" mvar) (fun () ->
+              G.show_any any);
           None
       | Some (min, max) ->
           let file = min.Loc.pos.file in
@@ -586,7 +586,8 @@ let test_eval file =
     print_result (Some res)
   with
   | NotHandled e ->
-      Log.warn (fun m -> m "expr not handled in test_eval: %s" (G.show_expr e));
+      Logs_.msg_with_detail ~src:Log_engine.src Logs.Warning
+        "expr not handled in test_eval" (fun () -> G.show_expr e);
       raise (NotHandled e)
 
 (* We need to swallow most exns in eval_bool(). This is because the
@@ -610,7 +611,8 @@ let eval_opt env e =
    *)
   | NotInEnv _ -> None
   | NotHandled e ->
-      Log.err (fun m -> m "NotHandled: %s" (G.show_expr e));
+      Logs_.msg_with_detail ~src:Log_engine.src Logs.Error
+        "NotHandled in eval_opt" (fun () -> G.show_expr e);
       None
 
 let eval_bool env e facts bindings =
@@ -618,7 +620,8 @@ let eval_bool env e facts bindings =
   match res with
   | Some (Bool b) -> b
   | Some res -> (
-      Log.err (fun m -> m "not a boolean: %s" (show_value res));
+      Logs_.msg_with_detail ~src:Log_engine.src Logs.Error
+        "eval_bool: result is not a boolean" (fun () -> show_value res);
       (* facts_satisfy_e is just a stub, but we intend to prioritize the results of
        * eval_bool, so if eval_opt returns a bool, that will be the source of truth.
        * otherwise (i.e. if eval_opt fails), we will resort to pattern when (if the

@@ -65,7 +65,8 @@ type env = { lang : Lang.t; (* indentation level *) level : int }
 (* Helpers *)
 (*****************************************************************************)
 let todo any =
-  Log.warn (fun m -> m "Pretty_print_AST TODO: %s" (show_any any));
+  Logs_.msg_with_detail ~src:Log_printing.src Logs.Warning
+    "Pretty_print_AST: unhandled AST node" (fun () -> show_any any);
   "*TODO*"
 
 let rec indent = function
