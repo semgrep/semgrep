@@ -56,6 +56,7 @@ val hook_mk_taint_spec_match_preds :
 val taint_config_of_rule :
   per_file_formula_cache:Formula_cache.t ->
   file:Taint_rule_inst.file ->
+  muts:Taint_rule_inst.mutable_state ->
   Match_env.xconfig ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
