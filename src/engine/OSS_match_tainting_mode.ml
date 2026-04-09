@@ -292,8 +292,8 @@ let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
   (fcfg, effects, mapping)
 
 let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
-    (rule : R.taint_rule) ~matches_hook (xconf : Match_env.xconfig)
-    (xtarget : Xtarget.t) =
+    (muts : Taint_rule_inst.mutable_state) (rule : R.taint_rule) ~matches_hook
+    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   Log.info (fun m ->
       m
         "Match_tainting_mode (OSS):\n\
@@ -318,7 +318,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
   let (taint_inst, _TODO_debug_taint, expls), match_time =
     Common.with_time (fun () ->
         Match_taint_spec.taint_config_of_rule ~per_file_formula_cache ~file
-          xconf (ast, []) rule)
+          ~muts xconf (ast, []) rule)
   in
   let tainting_stats = ref QProf.Tainting_stats.zero in
   let (matches, errors), all_taint_time =
@@ -485,9 +485,8 @@ let check_rules ~matches_hook
     | LRegex ->
         failwith "taint-mode and generic/regex matching are incompatible"
   in
-  let file_inst =
-    Taint_rule_inst.mk_file ~lang ~path:file ~handle_effects:None
-  in
+  let file_inst = Taint_rule_inst.mk_file ~lang ~path:file in
+  let muts = Taint_rule_inst.fresh_muts ~handle_effects:None in
 
   let res =
     rules
@@ -516,10 +515,10 @@ let check_rules ~matches_hook
                    ^ "\nruleid: "
                    ^ (rule.id |> fst |> Rule_ID.to_string))
                  (fun () ->
-                   check_rule per_file_formula_cache file_inst rule
+                   check_rule per_file_formula_cache file_inst muts rule
                      ~matches_hook xconf xtarget)))
   in
   let to_errors =
-    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst muts
   in
   (res, to_errors)

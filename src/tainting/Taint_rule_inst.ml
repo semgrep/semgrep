@@ -44,30 +44,41 @@ type file_timeout_var_stats = {
 
 type file_timeout_stats = (IL.name option, file_timeout_var_stats) Hashtbl.t
 
+(* components of a taint rule that are immutable and sharable. *)
 type file = {
   lang : Lang.t;
   path : Fpath.t;  (** File under analysis, for Deep Semgrep. *)
+}
+
+(* components of a taint rule that are mutable (and thus can't be passed
+   cross-thread during parallel taint signature inference. *)
+type mutable_state = {
   handle_effects : effects_handler;
       (** Use 'handle_effects' to e.g. apply hash-consing (see 'Deep_tainting'), or
-        to do some side-effect if needed.
+        * to do some side-effect if needed.
 
-        old: In the past one had to use 'handle_effects' to record taint effects
-          by side-effect (no pun intended), however this is not needed now because
-          'Dataflow_tainting.fixpoint' already returns the set of taint effects. *)
+        * old: In the past one had to use 'handle_effects' to record taint
+        * effects by side-effect (no pun intended), however this is not needed
+        * now because 'Dataflow_tainting.fixpoint' already returns the set of
+        * taint effects.
+
+        * SAFETY: Since [handle_effects] closes over a mutable effects cache,
+        * it has to be considered "mutable" itself. *)
   java_props_cache : java_props_cache;
       (** Pro should be autogenerating definitions for these getters/setters,
-     but that seems to hurt performance and it's still unclear why, so instead
-     we give taint access to Pro typing info through a hook
-     ('hook_find_attribute_in_class') and look for the property corresponding
-     to the getter/setter.
+        * but that seems to hurt performance and it's still unclear why, so
+        * instead we give taint access to Pro typing info through a hook
+        * ('hook_find_attribute_in_class') and look for the property
+        * corresponding to the getter/setter.
 
-     On very large files, allocating a new name every time could have a perf
-     impact, so we cache them. *)
+        * On very large files, allocating a new name every time could have a
+        * perf impact, so we cache them. *)
   timeouts : file_timeout_stats;
 }
 
 type t = {
   file : file;
+  muts : mutable_state;
   rule : Rule_ID.t;
   options : Rule_options.t;
   track_control : bool;
@@ -87,27 +98,26 @@ type t = {
   * unifiable. See 'Dataflow_tainting.unify_meta_envs'. *)
 
 let default_effect_handler _fun_name new_effects = new_effects
+let mk_file ~lang ~path = { lang; path }
 
-let mk_file ~lang ~path ~handle_effects =
+let fresh_muts ~handle_effects =
   {
-    lang;
-    path;
     handle_effects = handle_effects ||| default_effect_handler;
     java_props_cache = Hashtbl.create 30;
     timeouts = Hashtbl.create 2;
   }
 
 let record_timeout t opt_name =
-  match Hashtbl.find_opt t.file.timeouts opt_name with
+  match Hashtbl.find_opt t.muts.timeouts opt_name with
   | None ->
-      Hashtbl.add t.file.timeouts opt_name
+      Hashtbl.add t.muts.timeouts opt_name
         { first_rule = t.rule; num_rules = 1 };
       ()
   | Some stats ->
       stats.num_rules <- stats.num_rules + 1;
       ()
 
-let check_timeouts_and_warn ~interfile file : E.ErrorSet.t =
+let check_timeouts_and_warn ~interfile file caches : E.ErrorSet.t =
   Hashtbl.fold
     (fun opt_name stats errors_acc ->
       (* TODO: Hash 'opt_name' and show it *)
@@ -125,4 +135,4 @@ let check_timeouts_and_warn ~interfile file : E.ErrorSet.t =
       Logs.warn (fun m -> m "%s" msg);
       let err = E.mk_error ~msg ~loc Semgrep_output_v1_t.FixpointTimeout in
       errors_acc |> E.ErrorSet.add err)
-    file.timeouts E.ErrorSet.empty
+    caches.timeouts E.ErrorSet.empty
