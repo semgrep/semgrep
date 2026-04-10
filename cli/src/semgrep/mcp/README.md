@@ -40,7 +40,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is a standardized API for LLMs, Agents, and IDEs like Claude Code, Cursor, VS Code, Windsurf, or anything that supports MCP, to get specialized help, get context, and harness the power of tools. Semgrep is a fast, deterministic static analysis tool that semantically understands many [languages](https://semgrep.dev/docs/supported-languages) and comes with over [10,000 rules](https://semgrep.dev/registry). 🛠️
 
 > [!NOTE]
-> This project is under active development. We would love your feedback. Join the `#mcp` [community Slack](https://go.semgrep.dev/slack) channel! 
+> This project is under active development. We would love your feedback. Join the `#mcp` [community Slack](https://go.semgrep.dev/slack) channel!
 
 
 
@@ -51,7 +51,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
     - [Demo Video](#demo-video)
     - [Claude Code](#claude-code)
     - [Cursor](#cursor)
-  
+
   - [Usage](#usage)
     - [Standard Input/Output (stdio)](#standard-inputoutput-stdio)
       - [Python](#python)
@@ -77,7 +77,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
 
 <a href="https://www.loom.com/share/8535d72e4cfc4e1eb1e03ea223a702df"> <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/8535d72e4cfc4e1eb1e03ea223a702df-1047fabea7261abb-full-play.gif"> </a>
 
-### Claude Code 
+### Claude Code
 
 1. Start a new Claude Code instance in the terminal:
     ```bash
@@ -98,7 +98,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
 
 ### Cursor
 
-1. Open Cursor 
+1. Open Cursor
 
 2. Find Semgrep in the [Cursor Plugin Marketplace](https://cursor.com/marketplace/semgrep), or open `Cursor > ⌘⇧J > Plugins` and Search "Semgrep" and click **Add to Cursor**.
 
@@ -228,7 +228,7 @@ See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/tutorials#
 
 ### Cursor Integration
 
-1. Open Cursor 
+1. Open Cursor
 
 2. Find Semgrep in the [Cursor Plugin Marketplace](https://cursor.com/marketplace/semgrep), or open `Cursor > ⌘⇧J > Plugins` and Search "Semgrep" and click **Add to Cursor**.
 
