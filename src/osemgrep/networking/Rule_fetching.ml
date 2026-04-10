@@ -600,21 +600,64 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt kind :
                   token")
         | Some token -> token
       in
-      let uri =
-        Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) token
-      in
-      let timeout_secs =
-        match kind with
-        | C.A Hooks -> Some 30.0
-        | _ -> None
-      in
-      Metrics_.add_feature ~category:"config_download" ~name:"legacy_config_lwt";
-      let%lwt rules_and_errors =
-        load_rules_from_url_async ?token_opt ~ext:"policy" ~origin:Registry
-          ?timeout_secs uri
-      in
-      Metrics_.g.is_using_app <- true;
-      [ rules_and_errors ] |> Result_.partition Fun.id |> Lwt.return
+      if !Env.v.disable_config_download_v2 then (
+        Logs.app (fun m -> m "Fetching rules via legacy config download");
+        let uri =
+          Semgrep_App.url_for_policy ~from_hooks:(kind =*= C.A Hooks) token
+        in
+        let timeout_secs =
+          match kind with
+          | C.A Hooks -> Some 30.0
+          | _ -> None
+        in
+        Metrics_.add_feature ~category:"config_download"
+          ~name:"legacy_config_lwt";
+        let%lwt rules_and_errors =
+          load_rules_from_url_async ?token_opt ~ext:"policy" ~origin:Registry
+            ?timeout_secs uri
+        in
+        Metrics_.g.is_using_app <- true;
+        [ rules_and_errors ] |> Result_.partition Fun.id |> Lwt.return)
+      else (
+        Logs.app (fun m ->
+            m
+              "Fetching rules via config download v2 (set \
+               SEMGREP_DISABLE_CONFIG_DOWNLOAD_V2=1 to disable)");
+        (* TODO: deprecate the above call site or add a repo parameter at this
+         * call site when needed.
+         * The v2 endpoint can accept a repository field, but make_scan_request_v2
+         * always sets repository = "" here, so the server falls back to
+         * deployment-level config rather than repo-specific policy rules.
+         *
+         * The legacy path (url_for_policy) required SEMGREP_REPO_NAME and sent
+         * it as a query param to fetch repo-specific rules for C.A Policy. The
+         * Hooks case already used an empty repo in legacy, so that path is
+         * unaffected.
+         *
+         * With v2 as default, `semgrep --config policy` with SEMGREP_REPO_NAME
+         * set will silently receive deployment-level rules instead of
+         * repo-specific policy rules — no error is raised and rule counts may
+         * differ. If repo-specific rules are required here, fetch_scan_config_v2_async
+         * (and make_scan_request_v2) need to accept a repo parameter. *)
+        let%lwt result =
+          Semgrep_App.fetch_scan_config_v2_async ~secrets:false ~sca:false token
+        in
+        match result with
+        | Error e ->
+            Error.abort
+              (spf
+                 "Failed to fetch scan config (v2): %s. Set \
+                  SEMGREP_DISABLE_CONFIG_DOWNLOAD_V2=1 to fall back to legacy."
+                 e)
+        | Ok sc ->
+            let rules_json =
+              Yojson.Basic.to_string sc.Semgrep_output_v1_t.rules
+            in
+            Metrics_.g.is_using_app <- true;
+            UTmp.with_temp_file ~contents:rules_json ~suffix:".json"
+              (fun file ->
+                [ load_rules_from_file ~rewrite_rule_ids ~origin:App file ])
+            |> Result_.partition Fun.id |> Lwt.return)
   | C.A SupplyChain ->
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"

@@ -158,6 +158,14 @@ let with_mock_envvars f () =
   let new_settings = { old_settings with app_token } in
   Common.save_excursion Semgrep_envvars.v new_settings f
 
+let with_legacy_envvars f () =
+  let old_settings = !Semgrep_envvars.v in
+  let app_token = Some (Auth.unsafe_token_of_string "123456789") in
+  let new_settings =
+    { old_settings with app_token; disable_config_download_v2 = true }
+  in
+  Common.save_excursion Semgrep_envvars.v new_settings f
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
@@ -274,22 +282,40 @@ let processed_run () =
   in
   Testo.categorize "Processed Run" tests
 
+(*****************************************************************************)
+(* Shared V2 mock helpers *)
+(*****************************************************************************)
+
+let create_scan_resp_body =
+  {|{"info":{"enabled_products":[],"deployment_id":1,"deployment_name":"test"}}|}
+
+let is_v2_poll_path path = String.starts_with ~prefix:"/api/cli/v2/scans/" path
+
 let ci_tests () =
   let with_ci_client =
     let make_fn (req : Cohttp.Request.t) body =
       ignore body;
-      let uri = req |> Cohttp.Request.uri |> Uri.path in
-      Http_mock_client.check_method `GET req.meth;
+      let path = req |> Cohttp.Request.uri |> Uri.path in
       let body =
-        match uri with
+        match path with
+        | "/api/cli/v2/scans" ->
+            Http_mock_client.check_method `POST req.meth;
+            Cohttp_lwt.Body.of_string create_scan_resp_body
+        | p when is_v2_poll_path p ->
+            Http_mock_client.check_method `GET req.meth;
+            Http_mock_client.body_of_file
+              (Fpath.v "./tests/ls/ci/v2_config_resp.json")
         | "/api/agent/deployments/scans/config" ->
+            Http_mock_client.check_method `GET req.meth;
             Http_mock_client.body_of_file
               (Fpath.v "./tests/ls/ci/rule_conf_resp.json")
         | "/api/agent/deployments/current" ->
+            Http_mock_client.check_method `GET req.meth;
             Http_mock_client.body_of_file
               (Fpath.v "./tests/login/ok_response.json")
         | _ ->
-            failwith (Printf.sprintf "Unexpected request to %s in CI tests" uri)
+            failwith
+              (Printf.sprintf "Unexpected request to %s in CI tests" path)
       in
       Lwt.return Http_mock_client.(basic_response body)
     in
@@ -307,7 +333,9 @@ let ci_tests () =
   in
   let tests =
     [
-      t "Test session cache"
+      t "Test session cache (legacy endpoint)"
+        (with_legacy_envvars (with_ci_client test_cache_session));
+      t "Test session cache (v2 endpoint)"
         (with_mock_envvars (with_ci_client test_cache_session));
     ]
   in
@@ -316,11 +344,6 @@ let ci_tests () =
 (*****************************************************************************)
 (* V2 scan config async tests (mocked HTTP, no real network) *)
 (*****************************************************************************)
-
-let create_scan_resp_body =
-  {|{"info":{"enabled_products":[],"deployment_id":1,"deployment_name":"test"}}|}
-
-let is_v2_poll_path path = String.starts_with ~prefix:"/api/cli/v2/scans/" path
 
 let success_config_body =
   {|{"status":"success","config":{"rules":{"rules":[]}}}|}

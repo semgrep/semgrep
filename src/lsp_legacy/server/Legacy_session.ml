@@ -229,25 +229,45 @@ let check_token session =
              message."
         else Lwt.return_ok ())
 
+let scan_config_of_legacy_string sc_string : Out.scan_configuration =
+  let sc = !scan_config_parser_ref sc_string in
+  Out.
+    {
+      rules = Yojson.Basic.from_string sc.rule_config;
+      triage_ignored_syntactic_ids = sc.triage_ignored_syntactic_ids;
+      triage_ignored_match_based_ids = sc.triage_ignored_match_based_ids;
+      (* Not present in legacy response; callers don't use these. *)
+      project_merge_base = None;
+      fips_mode = false;
+    }
+
 let scan_config_of_token = function
-  | Some token -> (
+  | None -> Lwt.return_none
+  | Some token when !Env.v.disable_config_download_v2 -> (
+      (* Legacy LS doesn't get secrets :( *)
       let%lwt config_string =
-        (* Legacy LS doesn't get secrets :( *)
         Semgrep_App.fetch_scan_config_string_async token ~secrets:false
           ~sca:false ~dry_run:true ~full_scan:true ~repository:""
       in
+      (* TODO: Check config string hash, and update rules iff its different,
+       * and cache rules in file. See [scan_config_parser_ref] declaration
+       * for why we do this
+       *)
       match config_string with
       | Ok config_string ->
-          (* TODO: Check config string hash, and update rules iff its different,
-           * and cache rules in file. See [scan_config_parser_ref] declaration
-           * for why we do this
-           *)
-          let scan_config = !scan_config_parser_ref config_string in
-          Lwt.return_some scan_config
+          Lwt.return_some (scan_config_of_legacy_string config_string)
       | Error e ->
           Logs.warn (fun m -> m "Failed to fetch scan config: %s" e);
           Lwt.return_none)
-  | _ -> Lwt.return_none
+  | Some token -> (
+      let%lwt result =
+        Semgrep_App.fetch_scan_config_v2_async ~secrets:false ~sca:false token
+      in
+      match result with
+      | Ok sc -> Lwt.return_some sc
+      | Error e ->
+          Logs.warn (fun m -> m "Failed to fetch scan config (v2): %s" e);
+          Lwt.return_none)
 
 let fetch_ci_rules_and_origins () =
   let token = auth_token () in
@@ -257,7 +277,8 @@ let fetch_ci_rules_and_origins () =
     match scan_config_opt with
     | None -> Lwt.return None
     | Some scan_config ->
-        let%lwt res = decode_rules_detached scan_config.rule_config in
+        let rules_json = Yojson.Basic.to_string scan_config.Out.rules in
+        let%lwt res = decode_rules_detached rules_json in
         Lwt.return (Some res)
   in
   Lwt.return rules_opt
