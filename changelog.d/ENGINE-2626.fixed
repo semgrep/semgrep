@@ -1,0 +1,1 @@
+Semgrep now reports an error instead of silently returning zero findings when target file discovery fails (e.g., due to a git ls-files failure).
