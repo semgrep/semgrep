@@ -75,7 +75,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
 
 ### Demo Video
 
-<a href="https://www.loom.com/share/8535d72e4cfc4e1eb1e03ea223a702df"> <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/8535d72e4cfc4e1eb1e03ea223a702df-1047fabea7261abb-full-play.gif"> </a>
+<div style="position: relative; padding-bottom: 92.61168384879726%; height: 0;"><iframe src="https://www.loom.com/embed/8535d72e4cfc4e1eb1e03ea223a702df" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 ### Claude Code
 
@@ -313,8 +313,6 @@ See [VS Code docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) 
 5. Restart Windsurf to apply hook configuration.
 
 See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
-
-See [Anthropic docs](https://docs.anthropic.com/en/docs/agents-and-tools/mcp) for more info.
 
 
 ### Custom clients
