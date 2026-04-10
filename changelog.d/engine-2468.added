@@ -1,1 +1,0 @@
-Semgrep Pro interfile engine (--pro) taint analysis has been redesigned, significantly improving performance (estimated 20-40% improvement). This improvement introduces a slight change in how findings are generated, that may result in more true positives, or less false positives. To revert to previous behavior, pass `--no-x-run-taint-once` as a flag.

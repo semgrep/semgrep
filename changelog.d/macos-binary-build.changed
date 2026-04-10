@@ -1,1 +1,0 @@
-semgrep-core macOS binaries are now dynamically linked to the system's libraries.

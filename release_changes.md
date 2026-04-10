@@ -1,26 +1,24 @@
-## [1.157.0](https://github.com/semgrep/semgrep/releases/tag/v1.157.0) - 2026-03-31
+## [1.158.0](https://github.com/semgrep/semgrep/releases/tag/v1.158.0) - 2026-04-09
 
 ### ### Added
 
-- pro: Improved taint tracking through lambda calls. (LANG-268)
-- It is now possible to match a class name like in `$C.getInstance(...)`, and then
-  use  `metavariable-type` on `$C` to check its type. (LANG-271)
-- pro: Improve cross-file taint tracking for globals. (LANG-275)
+- Added support for a supply chain hook for the Semgrep Plugin (supply-chain-hook)
+- Computing taint configs, ~1/4-1/2 of the semgrep-core time in interfile scans, is now done in parallel according to the number of jobs (ENGINE-2649)
+- Semgrep Pro interfile engine (--pro) taint analysis has been redesigned, significantly improving performance (estimated 20-40% improvement). This improvement introduces a slight change in how findings are generated, that may result in more true positives, or less false positives. To revert to previous behavior, pass `--no-x-run-taint-once` as a flag. (engine-2468)
 
 ### ### Changed
 
-- Pro: Reduces redundant recomputation during inter-file taint analysis by serializing intermediate results to disk. (ENGINE-2582)
-- pro: Improved golang module resolution. (code-9225)
-- Supply Chain Analysis of npm package lock files now uses a proprietary OCaml-based parser, replacing the old Python version. The supply-chain functionality for these files is now available only to Semgrep Pro users. (gh-5658)
+- semgrep-core macOS binaries are now dynamically linked to the system's libraries. (macos-binary-build)
+- semgrep-core manylinux binaries are now dynamically linked to the system's glibc on glibc systems. This introduces a minimum glibc version requirement of >=2.35, which is satisfied in Ubuntu >=22.04, Debian >=12, RHEL >=10, and other glibc distributions with at least glibc 2.35. Linux systems running an older glibc will need to upgrade their OS. (manylinux-binary-build)
+- The manylinux wheel is now tagged as manylinux_2_35_<arch>, reflecting a minimum
+  requirement of glibc version 2.35. (manylinux-wheel-tag)
+- semgrep-core musllinux binaries are now dynamically linked to the system's musl libc on musl systems. (musllinux-binary-build)
+- The musllinux PyPI wheel is now tagged as musllinux_1_2_<arch>, reflecting a requirement
+  of musl libc version 1.2. (musllinux-wheel-tag)
+- The LSP and MCP servers now use the v2 config download endpoint by default when fetching rules from Semgrep AppSec Platform. Set `SEMGREP_DISABLE_CONFIG_DOWNLOAD_V2=1` to fall back to the legacy endpoint. (SMS-2284)
 
 ### ### Fixed
 
-- Fix Rust parsing of "&raw" where "raw" is an identifier. (rust-parser-updated)
-- Errors during target file discovery (e.g., permission errors, git failures) are now surfaced as warnings instead of being silently ignored. (ENGINE-2627)
-- kotlin: Fixed bug parsing FQNs in `metavariable-type`. (LANG-271)
-- Fixed requirements.txt parser silently dropping pinned dependencies that followed unpinned package names. (SC-3379)
-- Prevented certain deeply nested aliengrep matches from segfaulting semgrep-core. (engine-2628)
-- Fix Python parsing for files that contains empty strings (or quotes in docstrings) along with match statements. (gh-11287)
-- Fix rule paths.include/paths.exclude filtering when a single file is passed as a scan target. Previously, path patterns like '**/src/test/**/*.java' would not match because only the filename was used for filtering instead of the full project-relative path. (gh-11560)
-- Pro: Improved type resolution in Scala (lang-79)
-- Pro: Improved call resolution in Scala for parameterless methods (lang-80)
+- Fixed IDE login issues where network errors during token verification were incorrectly clearing the saved token. The LSP now distinguishes 401 Unauthorized (invalid token) from other errors (e.g. network failures), surfacing appropriate messages instead. (ide-login)
+- Fixed SARIF taint trace output: step locations now use the correct file URI, and the full taint sink call trace is included in `codeFlows`. (engine-2570)
+- The --x-mem-policy flag now propagates to the RPC subprocess, fixing memory tuning for dependency resolution and other RPC-based operations. (pylon-20772)

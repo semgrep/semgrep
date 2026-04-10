@@ -1,1 +1,0 @@
-semgrep-core manylinux binaries are now dynamically linked to the system's glibc on glibc systems. This introduces a minimum glibc version requirement of >=2.35, which is satisfied in Ubuntu >=22.04, Debian >=12, RHEL >=10, and other glibc distributions with at least glibc 2.35. Linux systems running an older glibc will need to upgrade their OS.
