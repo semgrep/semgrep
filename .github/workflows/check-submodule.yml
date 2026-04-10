@@ -13,7 +13,7 @@ jobs:
         with:
           submodules: true
       - name: Check that Semgrep interfaces submodule points to main
-        uses: jtmullen/submodule-branch-check-action@v1
+        uses: jtmullen/submodule-branch-check-action@ab0d3a69278e3fa0a2d4f3be3199d2514b676e13
         with:
           # See https://github.com/marketplace/actions/submodule-branch-check for
           # docs
