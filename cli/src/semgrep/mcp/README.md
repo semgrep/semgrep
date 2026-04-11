@@ -432,7 +432,7 @@ See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
 
 [![Add to Kiro (Remote)](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=semgrep&config=%7B%22url%22%3A%22https%3A%2F%2Fmcp.semgrep.ai%2Fmcp%22%7D)
 
-Follow the [Kiro MCP docs](https://kiro.dev/docs/ide/mcp/configuration/). Add to your `.kiro/settings/mcp.json`:
+Follow the [Kiro MCP docs](https://kiro.dev/docs/mcp/). Add to your `.kiro/settings/mcp.json`:
 
 ```json
 {
@@ -460,7 +460,7 @@ Or use the remote MCP server:
 }
 ```
 
-See [Kiro docs](https://kiro.dev/docs/ide/mcp/configuration/) for more info.
+See [Kiro docs](https://kiro.dev/docs/mcp/) for more info.
 
 ### Claude Desktop
 
