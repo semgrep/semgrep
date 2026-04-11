@@ -35,31 +35,23 @@
 [![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-uv-24bfa5?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=semgrep&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22semgrep-mcp%22%5D%7D&quality=insiders)
 [![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-docker-24bfa5?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=semgrep&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%20%22-i%22%2C%20%22--rm%22%2C%20%22ghcr.io%2Fsemgrep%2Fmcp%22%2C%20%22-t%22%2C%20%22stdio%22%5D%7D&quality=insiders) -->
 
-A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) to scan code for security vulnerabilities. Secure your [vibe coding](https://semgrep.dev/blog/2025/giving-appsec-a-seat-at-the-vibe-coding-table/)! 😅
+A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) to scan code for security vulnerabilities. Secure your vibe coding! 🔒
 
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is a standardized API for LLMs, Agents, and IDEs like Cursor, VS Code, Windsurf, or anything that supports MCP, to get specialized help, get context, and harness the power of tools. Semgrep is a fast, deterministic static analysis tool that semantically understands many [languages](https://semgrep.dev/docs/supported-languages) and comes with over [5,000 rules](https://semgrep.dev/registry). 🛠️
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is a standardized API for LLMs, Agents, and IDEs like Claude Code, Cursor, VS Code, Windsurf, or anything that supports MCP, to get specialized help, get context, and harness the power of tools. Semgrep is a fast, deterministic static analysis tool that semantically understands many [languages](https://semgrep.dev/docs/supported-languages) and comes with over [10,000 rules](https://semgrep.dev/registry). 🛠️
 
 > [!NOTE]
-> This beta project is under active development. We would love your feedback, bug reports, feature requests, and code. Join the `#mcp` [community Slack](https://go.semgrep.dev/slack) channel!
+> This project is under active development. We would love your feedback. Join the `#mcp` [community Slack](https://go.semgrep.dev/slack) channel!
+
+
 
 ## Contents
 
 - [Semgrep MCP Server](#semgrep-mcp-server)
-  - [Contents](#contents)
   - [Getting started](#getting-started)
+    - [Demo Video](#demo-video)
+    - [Claude Code](#claude-code)
     - [Cursor](#cursor)
-    - [ChatGPT](#chatgpt)
-    - [Hosted Server](#hosted-server)
-      - [Cursor](#cursor-1)
-  - [Demo](#demo)
-  - [API](#api)
-    - [Tools](#tools)
-      - [Scan Code](#scan-code)
-      - [Understand Code](#understand-code)
-      - [Cloud Platform (login and Semgrep token required)](#cloud-platform-login-and-semgrep-token-required)
-      - [Meta](#meta)
-    - [Prompts](#prompts)
-    - [Resources](#resources)
+
   - [Usage](#usage)
     - [Standard Input/Output (stdio)](#standard-inputoutput-stdio)
       - [Python](#python)
@@ -67,139 +59,58 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
     - [Streamable HTTP](#streamable-http)
       - [Python](#python-1)
       - [Docker](#docker-1)
-    - [Server-sent events (SSE) (deprecated)](#server-sent-events-sse-deprecated)
   - [Semgrep AppSec Platform](#semgrep-appsec-platform)
   - [Integrations](#integrations)
-    - [Cursor IDE](#cursor-ide)
+    - [Claude Code](#claude-code-integration)
+    - [Cursor](#cursor-integration)
     - [VS Code / Copilot](#vs-code--copilot)
-      - [Manual Configuration](#manual-configuration)
-      - [Using Docker](#using-docker)
     - [Windsurf](#windsurf)
-    - [Claude Desktop](#claude-desktop)
-    - [Claude Code](#claude-code)
-    - [OpenAI](#openai)
-      - [Agents SDK](#agents-sdk)
     - [Custom clients](#custom-clients)
       - [Example Python streamable HTTP client](#example-python-streamable-http-client)
   - [Contributing, community, and running from source](#contributing-community-and-running-from-source)
-    - [Similar tools 🔍](#similar-tools-)
     - [Community projects 🌟](#community-projects-)
     - [MCP server registries](#mcp-server-registries)
 
 ## Getting started
 
-Install the Semgrep binary as described [elsewhere in this repository](https://github.com/semgrep/semgrep?tab=readme-ov-file#option-2-getting-started-from-the-cli), and use it to run the MCP server:
+### Demo Video
 
-```bash
-semgrep mcp # see --help for more options
-```
+<video src="https://github.com/user-attachments/assets/4d034519-ad96-4c81-a024-0328979a2353" controls="controls">
+</video>
 
-Or, run as a [Docker container](https://ghcr.io/semgrep/mcp):
+### Claude Code
 
-```bash
-docker run -i --rm semgrep/semgrep semgrep mcp
-```
+1. Start a new Claude Code instance in the terminal:
+    ```bash
+    claude
+    ```
+
+2.  Open the plugin marketplace:
+    ```bash
+    /plugin
+    ```
+
+3.  Go to **Discover**, search for **Semgrep**, and click **Install**.
+
+4.  Set up the Semgrep plugin by running the following skill. This also installs the Semgrep CLI:
+    ```bash
+    /setup-semgrep-plugin
+    ```
 
 ### Cursor
 
-Example [`mcp.json`](https://docs.cursor.com/context/model-context-protocol)
+1. Open Cursor
 
-```json
-{
-  "mcpServers": {
-    "semgrep": {
-      "command": "semgrep",
-      "args": ["mcp"],
-      "env": {
-        "SEMGREP_APP_TOKEN": "<token>"
-      }
-    }
-  }
-}
+2. Find Semgrep in the [Cursor Plugin Marketplace](https://cursor.com/marketplace/semgrep), or open `Cursor > ⌘⇧J > Plugins` and Search "Semgrep" and click **Add to Cursor**.
 
-```
+3.  Set up the Semgrep plugin by running the following skill. This also installs the Semgrep CLI:
+    ```bash
+    /setup-semgrep-plugin
+    ```
 
-Add an instruction to your [`.cursor/rules`](https://docs.cursor.com/context/rules-for-ai) to use automatically:
-
-```text
-Always scan code generated using Semgrep for security vulnerabilities
-```
-
-### ChatGPT
-
-1. Go to the **Connector Settings** page ([direct link](https://chatgpt.com/admin/ca#settings/ConnectorSettings?create-connector=true))
-1. **Name** the connection `Semgrep`
-1. Set **MCP Server URL** to `https://mcp.semgrep.ai/mcp`
-1. Set **Authentication** to `No authentication`
-1. Check the **I trust this application** checkbox
-1. Click **Create**
-
-See more details at the [official docs](https://platform.openai.com/docs/mcp).
+4. Restart Cursor to apply configuration.
 
 
-### Hosted Server
-
-> [!WARNING]
-> [mcp.semgrep.ai](https://mcp.semgrep.ai) is an experimental server that may break unexpectedly. It will rapidly gain new functionality.🚀
-
-#### Cursor
-
-1. **Cmd + Shift + J** to open Cursor Settings
-1. Select **MCP Tools**
-1. Click **New MCP Server**.
-1.
-
-```json
-{
-  "mcpServers": {
-    "semgrep": {
-      "type": "streamable-http",
-      "url": "https://mcp.semgrep.ai/mcp"
-    }
-  }
-}
-```
-
-## Demo
-
-<a href="https://www.loom.com/share/8535d72e4cfc4e1eb1e03ea223a702df"> <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/8535d72e4cfc4e1eb1e03ea223a702df-1047fabea7261abb-full-play.gif"> </a>
-
-## API
-
-### Tools
-
-Enable LLMs to perform actions, make deterministic computations, and interact with external services.
-
-#### Scan Code
-
-- `security_check`: Scan code for security vulnerabilities
-- `semgrep_scan`: Scan code files for security vulnerabilities with a given config string
-- `semgrep_scan_with_custom_rule`: Scan code files using a custom Semgrep rule
-
-#### Understand Code
-
-- `get_abstract_syntax_tree`: Output the Abstract Syntax Tree (AST) of code
-
-#### Cloud Platform (login and Semgrep token required)
-- `semgrep_findings`: Fetch Semgrep findings from the Semgrep AppSec Platform API
-
-#### Meta
-
-- `supported_languages`: Return the list of languages Semgrep supports
-- `semgrep_rule_schema`: Fetches the latest semgrep rule JSON Schema
-
-### Prompts
-
-Reusable prompts to standardize common LLM interactions.
-
-- `write_custom_semgrep_rule`: Return a prompt to help write a Semgrep rule
-
-### Resources
-
-Expose data and content to LLMs
-
-- `semgrep://rule/schema`: Specification of the Semgrep rule YAML syntax using JSON schema
-- `semgrep://rule/{rule_id}/yaml`: Full Semgrep rule in YAML format from the Semgrep registry
 
 ## Usage
 
@@ -270,12 +181,6 @@ By default, the server will run in `stdio` mode, so you will have to include `-t
 docker run -p 8000:8000 semgrep/semgrep semgrep mcp
 ```
 
-
-### Server-Sent Events (SSE) (deprecated)
-
-> [!WARNING]
-> The MCP community considers this a legacy transport protocol. We have stopped supporting the SSE transport. Please use [Streamable HTTP](#streamable-http) instead.
-
 ## Semgrep AppSec Platform
 
 Optionally, to connect to Semgrep AppSec Platform:
@@ -300,59 +205,48 @@ Optionally, to connect to Semgrep AppSec Platform:
 
 ## Integrations
 
-### Cursor IDE
+### Claude Code Integration
 
-1. Install Semgrep:
-   ```bash
-   brew install semgrep
-   # or
-   python3 -m pip install semgrep
-   ```
+1. Start a new Claude Code instance in the terminal:
+    ```bash
+    claude
+    ```
 
-2. Authenticate and install Semgrep Pro:
-   ```bash
-   semgrep login && semgrep install-semgrep-pro
-   ```
+2.  Open the plugin marketplace:
+    ```bash
+    /plugin
+    ```
 
-3. Add the following JSON block to your `~/.cursor/mcp.json` global or `.cursor/mcp.json` project-specific configuration file:
+3.  Go to **Discover**, search for **Semgrep**, and click **Install**.
 
-   ```json
-   {
-     "mcpServers": {
-       "semgrep": {
-         "command": "semgrep mcp",
-         "env": {},
-         "args": []
-       }
-     }
-   }
-   ```
+4.  Set up the Semgrep plugin by running the following skill. This also installs the Semgrep CLI:
+    ```bash
+    /setup-semgrep-plugin
+    ```
 
-4. Create a `.cursor/hooks.json` file in your project to enable automatic scanning:
+See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/tutorials#set-up-model-context-protocol-mcp) for more info.
 
-   ```json
-   {
-     "version": 1,
-     "hooks": {
-       "stop": [{"command": "semgrep mcp -k stop-cli-scan -a cursor"}],
-       "afterFileEdit": [{"command": "semgrep mcp -k record-file-edit -a cursor"}]
-     }
-   }
-   ```
 
-![cursor MCP settings](/images/cursor.png)
+### Cursor Integration
+
+1. Open Cursor
+
+2. Find Semgrep in the [Cursor Plugin Marketplace](https://cursor.com/marketplace/semgrep), or open `Cursor > ⌘⇧J > Plugins` and Search "Semgrep" and click **Add to Cursor**.
+
+3.  Set up the Semgrep plugin by running the following skill. This also installs the Semgrep CLI:
+    ```bash
+    /setup-semgrep-plugin
+    ```
+
+4. Restart Cursor to apply configuration.
 
 See [cursor docs](https://docs.cursor.com/context/model-context-protocol) for more info.
 
 ### VS Code / Copilot
 
-Click the install buttons at the top of this README for the quickest installation.
-
 #### Manual Configuration
-
-Add the following JSON block to your User Settings (JSON) file in VS Code. You can do this by pressing `Ctrl + Shift + P` and typing `Preferences: Open User Settings (JSON)`.
-
-```json
+Add the following JSON block to your User Settings (JSON) file in VS Code. You can do this by pressing `Ctrl + Shift + P` and typing Preferences: Open User Settings (JSON).
+```
 {
   "mcp": {
     "servers": {
@@ -364,10 +258,8 @@ Add the following JSON block to your User Settings (JSON) file in VS Code. You c
   }
 }
 ```
-
-Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace:
-
-```json
+Optionally, you can add it to a file called .vscode/mcp.json in your workspace:
+```
 {
   "servers": {
     "semgrep": {
@@ -378,119 +270,50 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 }
 ```
 
-#### Using Docker
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "semgrep": {
-        "command": "docker",
-        "args": [
-          "run",
-          "-i",
-          "--rm",
-          "semgrep/semgrep",
-          "semgrep",
-          "mcp",
-          "-t",
-          "stdio"
-        ]
-      }
-    }
-  }
-}
-```
-
 See [VS Code docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) for more info.
 
 ### Windsurf
 
-Add the following JSON block to your `~/.codeium/windsurf/mcp_config.json` file:
+1. Install Semgrep:
+     ```bash
+    # install through homebrew
+    brew install semgrep
+    ```
 
-```json
-{
-  "mcpServers": {
-    "semgrep": {
-      "command": "semgrep",
-      "args": ["mcp"]
+     ```bash
+    # install through pip
+    python3 -m pip install semgrep
+    ```
+
+2. Verify that you've installed the [latest version](https://github.com/semgrep/semgrep/releases) of Semgrep by running the following:
+    ```bash
+    semgrep --version
+    ```
+
+3. Log in to Semgrep and install Semgrep Pro:
+
+    ```
+    semgrep login && semgrep install-semgrep-pro
+    ```
+
+4. Create a `hooks.json` file at `~/.codeium/windsurf/hooks.json` and paste the following configuration:
+
+    ```json
+    {
+      "hooks": {
+        "post_write_code": [
+          {
+            "command": "semgrep mcp -k post-tool-cli-scan -a windsurf",
+            "show_output": true
+          }
+        ]
+      }
     }
-  }
-}
-```
+    ```
+
+5. Restart Windsurf to apply hook configuration.
 
 See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
-
-### Claude Desktop
-
-Here is a [short video](https://www.loom.com/share/f4440cbbb5a24149ac17cc7ddcd95cfa) showing Claude Desktop using this server to write a custom rule.
-
-Add the following JSON block to your `claude_desktop_config.json` file:
-
-```json
-{
-  "mcpServers": {
-    "semgrep": {
-      "command": "semgrep",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-See [Anthropic docs](https://docs.anthropic.com/en/docs/agents-and-tools/mcp) for more info.
-
-### Claude Code
-
-1. Install Semgrep:
-   ```bash
-   brew install semgrep
-   # or
-   python3 -m pip install semgrep
-   ```
-
-2. Launch Claude Code in your terminal:
-   ```bash
-   claude
-   ```
-
-3. Add the marketplace source:
-   ```
-   /plugin marketplace add semgrep/mcp-marketplace
-   ```
-
-4. Install the plugin:
-   ```
-   /plugin install semgrep-plugin@semgrep
-   ```
-
-5. Configure the plugin:
-   ```
-   /semgrep-plugin:setup_semgrep_plugin
-   ```
-   (If that fails, try `/plugin enable semgrep-plugin@semgrep`)
-
-See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code/tutorials#set-up-model-context-protocol-mcp) for more info.
-
-### OpenAI
-
-See the official docs:
-- https://platform.openai.com/docs/mcp
-- https://platform.openai.com/docs/guides/tools-remote-mcp
-
-#### Agents SDK
-
-```python
-async with MCPServerStdio(
-    params={
-        "command": "semgrep",
-        "args": ["mcp"],
-    }
-) as server:
-    tools = await server.list_tools()
-```
-
-See [OpenAI Agents SDK docs](https://openai.github.io/openai-agents-python/mcp/) for more info.
 
 ### Custom clients
 
@@ -542,10 +365,6 @@ See [official SDK docs](https://modelcontextprotocol.io/clients#adding-mcp-suppo
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more info and details on how to run from the MCP server from source code.
 
-### Similar tools 🔍
-
-- [semgrep-vscode](https://github.com/semgrep/semgrep-vscode) - Official VS Code extension
-- [semgrep-intellij](https://github.com/semgrep/semgrep-intellij) - IntelliJ plugin
 
 ### Community projects 🌟
 
