@@ -424,7 +424,13 @@ See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
 
 ### Kiro
 
+**Local (stdio)** — runs Semgrep locally using the CLI:
+
 [![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=semgrep&config=%7B%22command%22%3A%22semgrep%22%2C%22args%22%3A%5B%22mcp%22%5D%2C%22env%22%3A%7B%22SEMGREP_APP_TOKEN%22%3A%22%24%7BSEMGREP_TOKEN%7D%22%7D%7D)
+
+**Remote (hosted)** — connects to the hosted server at `mcp.semgrep.ai`:
+
+[![Add to Kiro (Remote)](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=semgrep&config=%7B%22url%22%3A%22https%3A%2F%2Fmcp.semgrep.ai%2Fmcp%22%7D)
 
 Follow the [Kiro MCP docs](https://kiro.dev/docs/ide/mcp/configuration/). Add to your `.kiro/settings/mcp.json`:
 
