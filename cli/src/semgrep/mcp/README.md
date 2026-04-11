@@ -314,9 +314,6 @@ See [VS Code docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) 
 
 See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
 
-See [Anthropic docs](https://docs.anthropic.com/en/docs/agents-and-tools/mcp) for more info.
-
-
 ### Custom clients
 
 #### Example Python streamable HTTP client
