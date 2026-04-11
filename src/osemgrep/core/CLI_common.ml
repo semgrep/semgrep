@@ -180,10 +180,7 @@ let o_trace : bool Term.t =
     ~docs:Cmdliner.Manpage.s_common_options
     ~doc:
       {|Record traces from Semgrep scans to help debugging. This feature is
-meant for internal use and may be changed or removed without warning.
-
-Currently only used by `semgrep lsp`.
-|}
+meant for internal use and may be changed or removed without warning.|}
 
 let o_trace_endpoint : string option Term.t =
   let info =
@@ -192,10 +189,7 @@ let o_trace_endpoint : string option Term.t =
         {|Endpoint to send OpenTelemetry traces to, if `--trace` is present.
 The value may be `semgrep-prod` (default), `semgrep-dev`,
 `semgrep-local`, or any valid URL.  This feature is meant for
-internal use and may be changed or removed without warning.
-
-Currently only used by `semgrep lsp`.
-|}
+internal use and may be changed or removed without warning.|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
