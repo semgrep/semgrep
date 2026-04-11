@@ -75,7 +75,8 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
 
 ### Demo Video
 
-<a href="https://www.loom.com/share/8535d72e4cfc4e1eb1e03ea223a702df"> <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/8535d72e4cfc4e1eb1e03ea223a702df-1047fabea7261abb-full-play.gif"> </a>
+<video src="https://github.com/user-attachments/assets/4d034519-ad96-4c81-a024-0328979a2353" controls="controls">
+</video>
 
 ### Claude Code
 
