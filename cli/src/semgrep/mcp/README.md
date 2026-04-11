@@ -75,6 +75,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
       - [Manual Configuration](#manual-configuration)
       - [Using Docker](#using-docker)
     - [Windsurf](#windsurf)
+    - [Kiro](#kiro)
     - [Claude Desktop](#claude-desktop)
     - [Claude Code](#claude-code)
     - [OpenAI](#openai)
@@ -420,6 +421,40 @@ Add the following JSON block to your `~/.codeium/windsurf/mcp_config.json` file:
 ```
 
 See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
+
+### Kiro
+
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=semgrep&config=%7B%22command%22%3A%22semgrep%22%2C%22args%22%3A%5B%22mcp%22%5D%2C%22env%22%3A%7B%22SEMGREP_APP_TOKEN%22%3A%22%24%7BSEMGREP_TOKEN%7D%22%7D%7D)
+
+Follow the [Kiro MCP docs](https://kiro.dev/docs/ide/mcp/configuration/). Add to your `.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "semgrep": {
+      "command": "semgrep",
+      "args": ["mcp"],
+      "env": {
+        "SEMGREP_APP_TOKEN": "${SEMGREP_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+Or use the remote MCP server:
+
+```json
+{
+  "mcpServers": {
+    "semgrep": {
+      "url": "https://mcp.semgrep.ai/mcp"
+    }
+  }
+}
+```
+
+See [Kiro docs](https://kiro.dev/docs/ide/mcp/configuration/) for more info.
 
 ### Claude Desktop
 
