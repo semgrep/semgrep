@@ -73,6 +73,9 @@ _SEMGREP_TRACE_PARENT_TRACE_ID = "SEMGREP_TRACE_PARENT_TRACE_ID"
 _SEMGREP_TRACE_PARENT_SPAN_ID = "SEMGREP_TRACE_PARENT_SPAN_ID"
 
 _DEFAULT_OTEL_ENDPOINT = "https://telemetry.semgrep.dev"
+_DEFAULT_APP_URL = (
+    "https://semgrep.dev"  # used when SEMGREP_URL/SEMGREP_APP_URL are unset
+)
 _DEV_OTEL_ENDPOINT = "https://telemetry.dev2.semgrep.dev"
 _LOCAL_DEV_OTEL_ENDPOINT = "http://localhost:4318"
 
@@ -92,11 +95,29 @@ _PYROSCOPE_ENDPOINT_ALIASES = {
 }
 
 
-_ENV_ALIASES = {
-    "semgrep-prod": "prod",
-    "semgrep-dev": "dev2",
-    "semgrep-local": "local",
-}
+def _env_from_app_url(app_url: str) -> str:
+    """
+    Derive the deployment environment name from the Semgrep app URL.
+
+    Mapping rules (checked in order):
+    - dev2.semgrep.dev or *.dev2.semgrep.dev       -> "dev2"
+    - staging.semgrep.dev or *.staging.semgrep.dev -> "staging"
+    - semgrep.dev or *.semgrep.dev                 -> "prod"
+    - anything else                                -> "unknown"
+    """
+    try:
+        hostname = parse.urlparse(app_url).hostname or ""
+    except Exception:
+        return "unknown"
+
+    if hostname == "dev2.semgrep.dev" or hostname.endswith(".dev2.semgrep.dev"):
+        return "dev2"
+    if hostname == "staging.semgrep.dev" or hostname.endswith(".staging.semgrep.dev"):
+        return "staging"
+    if hostname == "semgrep.dev" or hostname.endswith(".semgrep.dev"):
+        return "prod"
+    return "unknown"
+
 
 # Filter out these attrs when injecting additional context
 INJECT_ATTR_FILTER = [
@@ -277,11 +298,13 @@ class Telemetry:
 
         self.trace_endpoint = trace_endpoint
 
-        env_name = _ENV_ALIASES.get(
-            _DEFAULT_OTEL_ENDPOINT
-            if self.trace_endpoint is None
-            else self.trace_endpoint
+        app_url = (
+            os.environ.get("SEMGREP_URL")
+            or os.environ.get("SEMGREP_APP_URL")
+            or _DEFAULT_APP_URL
         )
+        env_name = _env_from_app_url(app_url)
+        os.environ["SEMGREP_DEPLOYMENT_ENV"] = env_name
         # Note that resource here is immutable, so if we want to blanket attach
         # attributes to Otel info after tracing is setup, we can't do it here.
         # Instead we have to do it in the corresponding kind of processor

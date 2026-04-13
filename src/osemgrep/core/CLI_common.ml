@@ -195,24 +195,20 @@ internal use and may be changed or removed without warning.|}
 
 let o_telemetry : Telemetry.config option Term.t =
   let combine trace trace_endpoint =
+    let env = Sys.getenv_opt "SEMGREP_DEPLOYMENT_ENV" in
     match (trace, trace_endpoint) with
     | true, Some url ->
-        let endpoint, env =
+        let endpoint =
           match url with
-          (* coupling: cli/src/semgrep/tracing.py _ENV_ALIASES *)
-          | "semgrep-prod" -> (default_trace_endpoint, Some "prod")
-          | "semgrep-dev" -> (default_dev_endpoint, Some "dev2")
-          | "semgrep-local" -> (default_local_endpoint, Some "local")
-          | _ -> (Uri.of_string url, None)
+          (* coupling: cli/src/semgrep/telemetry.py _OTEL_ENDPOINT_ALIASES *)
+          | "semgrep-prod" -> default_trace_endpoint
+          | "semgrep-dev" -> default_dev_endpoint
+          | "semgrep-local" -> default_local_endpoint
+          | _ -> Uri.of_string url
         in
         Some { Telemetry.endpoint; top_level_scope = None; env }
     | true, None ->
-        Some
-          {
-            endpoint = default_trace_endpoint;
-            top_level_scope = None;
-            env = None;
-          }
+        Some { endpoint = default_trace_endpoint; top_level_scope = None; env }
     | false, Some _ ->
         Logs.warn (fun m ->
             m
