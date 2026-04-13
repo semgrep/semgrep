@@ -33,13 +33,13 @@ type rev_tainted_tokens = tainted_tokens [@@deriving show]
 (** Reversed to add new tokens with a simple O(1) cons. *)
 
 (** A call trace to a source or sink match.
-  * E.g. Call('foo()', PM('sink(x)')) tells us that by calling `foo(a)` we reach
-  * 'sink(x)' (here `a` is the actual argument passed to `foo`, and `x` could be
-  *  the formal argument of `foo`). *)
+  * E.g. Call('foo()', PM('sink(x)')) tells us that by calling [foo(a)] we reach
+  * 'sink(x)' (here [a] is the actual argument passed to [foo], and [x] could be
+  *  the formal argument of [foo]). *)
 type 'spec call_trace =
   | PM of Core_match.t * 'spec
-      (** A direct match. The `'spec` would typically contain the pattern that
-        * was used to produce the match, e.g. one of the `pattern-sources`.  *)
+      (** A direct match. The ['spec] would typically contain the pattern that
+        * was used to produce the match, e.g. one of the [pattern-sources].  *)
   | Call of AST_generic.expr * tainted_tokens * 'spec call_trace
       (** An indirect match through a function call. *)
 
@@ -60,10 +60,10 @@ val show_base : base -> string
 
 (** Offset of an 'lval'. *)
 type offset =
-  | Ofld of IL.name  (** A field, like `.a` *)
-  | Oint of int  (** A constant integer index, like `[42]` *)
-  | Ostr of string  (** A constant string index, like `['foo']` *)
-  | Oany  (** An arbitrary non-constant index, `[*]` *)
+  | Ofld of IL.name  (** A field, like [.a] *)
+  | Oint of int  (** A constant integer index, like {v [42] v} *)
+  | Ostr of string  (** A constant string index, like {v ['foo'] v} *)
+  | Oany  (** An arbitrary non-constant index, {v [*] v} *)
 
 val compare_offset : offset -> offset -> int
 val show_offset : offset -> string
@@ -82,7 +82,7 @@ val rev_IL_offset_of_offset : offset list -> IL.offset list option
 type lval = {
   base : base;
   offset : offset list;
-      (** An offset `.a.b.c` is encoded as `[.a; .b; .c]`, note the difference
+      (** An offset [.a.b.c] is encoded as {v [.a; .b; .c] v}, note the difference
           wrt 'IL.offset', this offset list is **not** reversed! *)
 }
 (** A restriction of 'IL.lval', the l-values that are in the scope of a
@@ -178,7 +178,7 @@ type source = {
 
 (** The origin of taint, where does taint comes from? *)
 and orig =
-  | Src of source  (** An actual taint source (a `pattern-sources` match). *)
+  | Src of source  (** An actual taint source (a [pattern-sources] match). *)
   | Var of var  (** Taint variable *)
 
 and taint = { orig : orig; rev_tokens : rev_tainted_tokens }

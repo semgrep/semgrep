@@ -209,7 +209,7 @@ val replace_first :
   template:string ->
   string ->
   string
-(** [replace_first] replaces the first match according to the substitution template `templ` *)
+(** [replace_first] replaces the first match according to the substitution template [templ] *)
 
 val replace :
   ?iflags:Pcre.irflag ->
@@ -220,7 +220,7 @@ val replace :
   template:string ->
   string ->
   string
-(** [replace] replaces all matches according to the substitution template `templ` *)
+(** [replace] replaces all matches according to the substitution template [templ] *)
 
 val extract_all :
   ?iflags:Pcre.irflag ->

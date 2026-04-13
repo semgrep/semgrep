@@ -28,9 +28,9 @@ module Parsing_stats : Summary_stats.S with type key = Fpath.t
 (** Parsing time per-file. *)
 
 module Scanning_stats : Summary_stats.S with type key = Fpath.t
-(** Scanning time per-file. For CE and `--pro-intrafile` this includes
+(** Scanning time per-file. For CE and [--pro-intrafile] this includes
   parsing time; it's just simpler that way given that the file is parsed
-  lazily by the 'target_handler'. For `--pro` this does not include
+  lazily by the 'target_handler'. For [--pro] this does not include
   parsing time. *)
 
 module Matching_stats : Summary_stats.S with type key = Fpath.t * Rule_ID.t

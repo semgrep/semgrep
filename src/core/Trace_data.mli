@@ -23,8 +23,8 @@ type analysis_flags = {
   deep_intra_file : bool;
       (** True when deep intrafile scans (aka interproc taint) is enabled *)
   deep_inter_file : bool;
-      (** True when interfile scans are enabled. Only one of `deep_inter_file`
-         and `deep_intra_file` should be true. *)
+      (** True when interfile scans are enabled. Only one of [deep_inter_file]
+         and [deep_intra_file] should be true. *)
 }
 [@@derving show]
 

@@ -19,7 +19,7 @@ type stat = {
   type_ : File_type.file_type;
 }
 [@@deriving yojson]
-(** [stat] is like Linux's `stat`, but more specific to Semgrep *)
+(** [stat] is like Linux's [stat], but more specific to Semgrep *)
 
 type annotated_target = {
   internal_path : string;
