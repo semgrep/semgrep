@@ -277,14 +277,13 @@ let ast_based_fix ~fix (start, end_) (pm : Core_match.t) : Textedit.t option =
   match result with
   | Ok x -> Some x
   | Error err ->
-      let msg =
-        spf "Failed to render AST-based fix `%s`:\n%s" fix_pattern err
-      in
+      let msg = spf "Failed to render AST-based fix:\n%s" err in
       (* Print line-by-line so that each line is preceded by the logging header.
          Looks nicer and makes it easier to mask in e2e test output.
          TODO: make the Logs_ library do this by default. *)
       String.split_on_char '\n' msg
       |> List.iter (fun s -> Log.warn (fun m -> m "%s" s));
+      Log.debug (fun m -> m "Failed fix pattern: `%s`" fix_pattern);
       None
 
 let basic_fix ~(fix : string) (start, end_) (pm : Core_match.t) : Textedit.t =
