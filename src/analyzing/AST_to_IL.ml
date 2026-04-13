@@ -1772,6 +1772,9 @@ and map_param ~map_default : G.parameter -> param = function
           pdefault = Option.map map_default pdefault;
         }
   | G.ParamPattern pat -> PatternParam pat
+  | G.ParamRest (_tok, { pname = Some i; pinfo; pdefault = None; _ }) ->
+      (* Not expecting default values for ParamRest/varargs. *)
+      ParamRest (var_of_id_info i pinfo)
   | G.Param { pname = None; _ }
   | G.ParamRest (_, _)
   | G.ParamHashSplat (_, _)
