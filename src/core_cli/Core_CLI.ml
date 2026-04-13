@@ -302,31 +302,28 @@ let mk_config ?rules () : Core_scan_config.t =
     filter_irrelevant_rules = !filter_irrelevant_rules;
     (* open telemetry *)
     telemetry =
-      (match (!trace, !trace_endpoint) with
-      | true, Some url ->
-          let endpoint, env =
-            match url with
-            (* coupling: cli/src/semgrep/tracing.py _ENV_ALIASES *)
-            | "semgrep-prod" -> (default_trace_endpoint, Some "prod")
-            | "semgrep-dev" -> (default_dev_endpoint, Some "dev2")
-            | "semgrep-local" -> (default_local_endpoint, Some "local")
-            | _ -> (Uri.of_string url, None)
-          in
-          Some { endpoint; top_level_scope = None; env }
-      | true, None ->
-          Some
-            {
-              endpoint = default_trace_endpoint;
-              top_level_scope = None;
-              env = None;
-            }
-      | false, Some _ ->
-          Logs.warn (fun m ->
-              m
-                "Tracing is disabled because -trace_endpoint is specified \
-                 without -trace.");
-          None
-      | false, None -> None);
+      (let env = Sys.getenv_opt "SEMGREP_DEPLOYMENT_ENV" in
+       match (!trace, !trace_endpoint) with
+       | true, Some url ->
+           let endpoint =
+             match url with
+             (* coupling: cli/src/semgrep/telemetry.py _OTEL_ENDPOINT_ALIASES *)
+             | "semgrep-prod" -> default_trace_endpoint
+             | "semgrep-dev" -> default_dev_endpoint
+             | "semgrep-local" -> default_local_endpoint
+             | _ -> Uri.of_string url
+           in
+           Some { endpoint; top_level_scope = None; env }
+       | true, None ->
+           Some
+             { endpoint = default_trace_endpoint; top_level_scope = None; env }
+       | false, Some _ ->
+           Logs.warn (fun m ->
+               m
+                 "Tracing is disabled because -trace_endpoint is specified \
+                  without -trace.");
+           None
+       | false, None -> None);
     (* Only settable through a response from the App *)
     fips_mode = false;
     (* only settable via the Pro binary *)
