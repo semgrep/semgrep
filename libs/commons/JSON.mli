@@ -53,9 +53,9 @@ type ezjsonm =
   | `O of (string * ezjsonm) list ]
 
 val member : string -> t -> t option
-(** [`member s j`] gives `Some v` where `v` is the value associated with the
-  * key `s` in the JSON Object `j` or `None` if no such value exists (either
-  * `j` is not an object or no such key is present). *)
+(** [member s j] gives [Some v] where [v] is the value associated with the
+  * key [s] in the JSON Object [j] or [None] if no such value exists (either
+  * [j] is not an object or no such key is present). *)
 
 (* converters *)
 val to_yojson : t -> yojson

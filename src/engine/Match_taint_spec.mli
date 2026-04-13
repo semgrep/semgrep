@@ -13,23 +13,23 @@
 type propagator_match = {
   id : Taint_spec_preds.var;
       (** An unique identifier for the propagator match. This is used as an
-   * auxiliary variable to store the taints flowing from `from` to `to`. *)
+   * auxiliary variable to store the taints flowing from [from] to [to]. *)
   rwm : Range_with_metavars.t;
-  from : Range.t;  (** The range matched by the `from` metavariable. *)
-  to_ : Range.t;  (** The range matched by the `to` metavariable. *)
+  from : Range.t;  (** The range matched by the [from] metavariable. *)
+  to_ : Range.t;  (** The range matched by the [to] metavariable. *)
   spec : Rule.taint_propagator;
 }
-(** Taint will flow from `from` to `to_` through the axiliary variable `id`. *)
+(** Taint will flow from [from] to [to_] through the axiliary variable [id]. *)
 
 type raw_spec_matches = {
   raw_sources : (Range_with_metavars.t * Rule.taint_source) list;
-      (** Ranges matched by `pattern-sources:` *)
+      (** Ranges matched by [pattern-sources:] *)
   raw_propagators : propagator_match list;
-      (** Ranges matched by `pattern-propagators:` *)
+      (** Ranges matched by [pattern-propagators:] *)
   raw_sanitizers : (Range_with_metavars.t * Rule.taint_sanitizer) list;
-      (** Ranges matched by `pattern-sanitizers:` *)
+      (** Ranges matched by [pattern-sanitizers:] *)
   raw_sinks : (Range_with_metavars.t * Rule.taint_sink) list;
-      (** Ranges matched by `pattern-sinks:` *)
+      (** Ranges matched by [pattern-sinks:] *)
 }
 (** The "raw" matches of each pattern formula that makes the taint rule. *)
 
