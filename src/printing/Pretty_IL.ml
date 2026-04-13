@@ -333,6 +333,7 @@ and pretty_param = function
       in
       spf "%s%s" (fst pname.IL.ident) default_str
   | IL.PatternParam _ -> "<pattern>"
+  | IL.ParamRest pname -> spf "...%s" (fst pname.IL.ident)
   | IL.FixmeParam -> "<fixme>"
 
 (*****************************************************************************)
