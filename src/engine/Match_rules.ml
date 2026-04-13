@@ -185,8 +185,9 @@ let group_rules xconf rules xtarget profiling =
         | `Taint _ as mode -> Left { r with mode }
         | (`Extract _ | `Search _) as mode -> Right { r with mode }
         | `Steps _ ->
-            Log.warn (fun m ->
-                m "Step rule not handled: %s" (Rule.show_rule (r :> Rule.t)));
+            Logs_.msg_with_detail ~src:Log_engine.src Logs.Warning
+              (spf "Step rule not handled: %s" (Rule_ID.to_string (fst r.R.id)))
+              (fun () -> Rule.show_rule (r :> Rule.t));
             raise Multistep_rules_not_available)
       relevant
   in
