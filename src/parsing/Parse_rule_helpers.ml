@@ -165,8 +165,8 @@ let generic_to_json rule_id (key : key) ast : (J.t, Rule_error.t) Result.t =
     | G.L (Int pi) -> (
         match Parsed_int.to_int_opt pi with
         | None ->
-            Log.err (fun m ->
-                m "no value for integer %s" (G.show_expr_kind x.G.e));
+            Logs_.msg_with_detail ~src:Log_parsing.src Logs.Error
+              "no value for integer" (fun () -> G.show_expr_kind x.G.e);
             let t = AST_generic_helpers.first_info_of_any (G.E x) in
             error rule_id t "no value for generic integer"
         | Some i -> Ok (J.Int i))
@@ -197,7 +197,8 @@ let generic_to_json rule_id (key : key) ast : (J.t, Rule_error.t) Result.t =
         Ok (J.Object xs)
     | G.Alias (_alias, e) -> aux e
     | _ ->
-        Log.err (fun m -> m "Unexpected yaml: %s" (G.show_expr_kind x.G.e));
+        Logs_.msg_with_detail ~src:Log_parsing.src Logs.Error "Unexpected yaml"
+          (fun () -> G.show_expr_kind x.G.e);
         let t = AST_generic_helpers.first_info_of_any (G.E x) in
         error rule_id t "Unexpected generic representation of yaml"
   in
@@ -515,11 +516,11 @@ let parse_regexp env (s, t) =
     Mvar.mvars_of_regexp_string s
     |> List.iter (fun mvar ->
            if not (Mvar.is_metavar_name mvar) then
-             Log.warn (fun m ->
-                 m
-                   "Found invalid metavariable capture group name `%s` for \
-                    regexp `%s` -- no binding produced"
-                   mvar s));
+             Logs_.msg_with_detail ~src:Log_parsing.src Logs.Warning
+               (spf
+                  "Found invalid metavariable capture group name `%s` -- no \
+                   binding produced"
+                  mvar) (fun () -> spf "regexp: %s" s));
     Ok s
   with
   | Pcre2.Error exn ->
