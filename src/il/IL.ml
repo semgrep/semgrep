@@ -580,7 +580,11 @@ and param_default = {
 
 and name_param = { pname : name; pdefault : param_default option }
 
-and param = Param of name_param | PatternParam of G.pattern | FixmeParam
+and param =
+  | Param of name_param
+  | PatternParam of G.pattern
+  | ParamRest of name  (** variadic, or "the rest of the remaining arguments" *)
+  | FixmeParam
 [@@deriving
   show { with_path = false },
   visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]

@@ -692,11 +692,12 @@ end
  * THINK: Could we have a "taint shape" for functions/methods ?
  *)
 and Signature : sig
-  (** A simplified version of 'AST_generic.parameter', we use 'Other' to represent
+  (** A simplified version of 'AST_generic.parameter', we use 'Pother' to represent
     * parameter kinds that we do not support yet. We don't want to just remove
     * those unsupported parameters because we rely on the position of a parameter
     * to represent taint variables, see 'Taint.arg'. *)
-  type param = P of IL.name | Other [@@deriving eq, ord]
+  type param = P of IL.name | Prest of IL.name  (** variadic *) | Pother
+  [@@deriving eq, ord]
 
   type params = param list [@@deriving eq, ord]
 
@@ -714,27 +715,35 @@ end = struct
   (*************************************)
 
   (* TODO: Now with HOFs we run the risk of shadowing... *)
-  type param = P of IL.name | Other
+  type param = P of IL.name | Prest of IL.name | Pother
   type params = param list
 
   let equal_param param1 param2 =
     match (param1, param2) with
-    | P n1, P n2 -> IL.equal_name n1 n2
-    | Other, Other -> true
-    | P _, Other
-    | Other, P _ ->
+    | P n1, P n2
+    | Prest n1, Prest n2 ->
+        IL.equal_name n1 n2
+    | Pother, Pother -> true
+    | P _, (Prest _ | Pother)
+    | Prest _, (P _ | Pother)
+    | Pother, (P _ | Prest _) ->
         false
 
   let compare_param param1 param2 =
     match (param1, param2) with
-    | P n1, P n2 -> IL.compare_name n1 n2
-    | Other, Other -> 0
-    | P _, Other -> -1
-    | Other, P _ -> 1
+    | P n1, P n2
+    | Prest n1, Prest n2 ->
+        IL.compare_name n1 n2
+    | Pother, Pother -> 0
+    | P _, (Prest _ | Pother) -> -1
+    | Prest _, Pother -> -1
+    | Prest _, P _ -> 1
+    | Pother, (P _ | Prest _) -> 1
 
   let show_param = function
     | P n -> IL.str_of_name n
-    | Other -> "_?"
+    | Prest n -> "..." ^ IL.str_of_name n
+    | Pother -> "_?"
 
   let equal_params params1 params2 = List.equal equal_param params1 params2
 
@@ -747,9 +756,10 @@ end = struct
     il_params
     |> List.map (function
          | IL.Param { pname; _ } -> P pname
+         | IL.ParamRest pname -> Prest pname
          | IL.PatternParam _
          | IL.FixmeParam ->
-             Other)
+             Pother)
 
   (*************************************)
   (* Signatures *)

@@ -31,6 +31,7 @@ let fold :
         match par with
         | Param { pname = name; pdefault } ->
             f acc name.ident name.id_info pdefault
+        | ParamRest name -> f acc name.ident name.id_info None
         (* JS: {arg} : type *)
         | PatternParam
             (G.OtherPat
