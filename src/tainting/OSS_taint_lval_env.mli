@@ -56,13 +56,13 @@ val add_lval : IL.lval -> Taint.taints -> env -> env
 (* THINK: Perhaps keep propagators outside of this environment? *)
 val check_if_can_propagate_to_dest :
   Dataflow_var_env.var -> Taint.taints -> env -> env * [ `Ready | `Recorded ]
-(** We encountered a `$FROM` and we want to propagate taint towards the `$TO` side.
+(** We encountered a [$FROM] and we want to propagate taint towards the [$TO] side.
 
-  If we already know what the target `$TO` is, then the propagation is '`Ready' to be
+  If we already know what the target [$TO] is, then the propagation is ['`Ready] to be
   performed---but the propagation is not performed in here.
 
-  If we have not yet identified the `$TO`, then the propagation is '`Recorded' (in
-  the 'env') until we find the `$TO`.
+  If we have not yet identified the [$TO], then the propagation is ['`Recorded] (in
+  the 'env') until we find the [$TO].
  *)
 
 val find_var : env -> IL.name -> cell option
@@ -114,8 +114,8 @@ val find_lval_xtaint : env -> IL.lval -> Xtaint.t
 
 val find_taint_to_be_propagated :
   Dataflow_var_env.var -> env -> Taint.taints * env
-(** We encountered a `$TO` and we check for taints waiting to be propagated. If
-  we have not visited the `$FROM` side yet, we introduce a propagation metavariable. *)
+(** We encountered a [$TO] and we check for taints waiting to be propagated. If
+  we have not visited the [$FROM] side yet, we introduce a propagation metavariable. *)
 
 val pending_propagation : Dataflow_var_env.var -> env -> env
 

@@ -129,7 +129,7 @@ val is_executable : Fpath.t -> bool
 val filesize : Fpath.t -> (int, Unix.error * string * string) result
 
 val filesize_exn : Fpath.t -> int
-(** [filesize_exn f] is the same as [filesize f] but raises a `Unix.Unix_error`
+(** [filesize_exn f] is the same as [filesize f] but raises a [Unix.Unix_error]
     exception if an error is encountered during the [stat] syscall. *)
 
 val filemtime : Fpath.t -> (float, Unix.error * string * string) result
