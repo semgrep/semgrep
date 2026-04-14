@@ -105,8 +105,70 @@
                           (Some (_,
                                  [(TP
                                      { tp_id = ("C", _); tp_attrs = [];
-                                       tp_bounds = []; tp_default = None;
-                                       tp_variance = None });
+                                       tp_bounds =
+                                       [{ t =
+                                          (OtherType (("StructuralType", _),
+                                             [(Fld
+                                                 (F
+                                                    { s =
+                                                      (DefStmt
+                                                         ({ name =
+                                                            (EN
+                                                               (Id (
+                                                                  ("close", _),
+                                                                  { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ }
+                                                                  )));
+                                                            attrs = [];
+                                                            tparams = None },
+                                                          (FuncDef
+                                                             { fkind =
+                                                               (Method, _);
+                                                               fparams =
+                                                               (_, [], _);
+                                                               frettype =
+                                                               (Some 
+                                                               { t =
+                                                                 (TyN
+                                                                    (
+                                                                    Id (
+                                                                    ("Unit",
+                                                                    _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                 t_attrs = []
+                                                                 });
+                                                               fbody =
+                                                               (FBDecl _) })));
+                                                      s_range = None }))
+                                               ]
+                                             ));
+                                          t_attrs = [] }
+                                         ];
+                                       tp_default = None; tp_variance = None
+                                       });
                                    (TP
                                       { tp_id = ("R", _); tp_attrs = [];
                                         tp_bounds = []; tp_default = None;

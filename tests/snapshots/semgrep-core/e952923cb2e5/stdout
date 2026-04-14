@@ -16,15 +16,7 @@
                          (For (_,
                             (MultiForEach
                                [(FE
-                                   ((PatId (("_", _),
-                                       { id_resolved =
-                                         ref ((Some (Global, _)));
-                                         id_resolved_alternatives = ref ([]);
-                                         id_type = ref (None);
-                                         id_svalue = ref (None);
-                                         id_flags = ref (0); id_info_id = _ }
-                                       )),
-                                    _,
+                                   ((PatWildcard _), _,
                                     { e = (L (Int ((Some 2L), _))); e_id = 0;
                                       e_range = None;
                                       is_implicit_return = false;
@@ -260,7 +252,17 @@
                                     _,
                                     { e =
                                       (Call (
-                                         { e = (Special ((Op And), _));
+                                         { e =
+                                           (N
+                                              (Id (("&&", _),
+                                                 { id_resolved = ref (None);
+                                                   id_resolved_alternatives =
+                                                   ref ([]);
+                                                   id_type = ref (None);
+                                                   id_svalue = ref (None);
+                                                   id_flags = ref (0);
+                                                   id_info_id = _ }
+                                                 )));
                                            e_id = 0; e_range = None;
                                            is_implicit_return = false;
                                            facts = <opaque> },
@@ -322,16 +324,7 @@
                           (For (_,
                              (MultiForEach
                                 [(FE
-                                    ((PatId (("_", _),
-                                        { id_resolved =
-                                          ref ((Some (Global, _)));
-                                          id_resolved_alternatives = ref ([]);
-                                          id_type = ref (None);
-                                          id_svalue = ref (None);
-                                          id_flags = ref (0); id_info_id = _
-                                          }
-                                        )),
-                                     _,
+                                    ((PatWildcard _), _,
                                      { e = (L (Int ((Some 2L), _)));
                                        e_id = 0; e_range = None;
                                        is_implicit_return = false;
@@ -376,16 +369,7 @@
                           (For (_,
                              (MultiForEach
                                 [(FE
-                                    ((PatId (("_", _),
-                                        { id_resolved =
-                                          ref ((Some (Global, _)));
-                                          id_resolved_alternatives = ref ([]);
-                                          id_type = ref (None);
-                                          id_svalue = ref (None);
-                                          id_flags = ref (0); id_info_id = _
-                                          }
-                                        )),
-                                     _,
+                                    ((PatWildcard _), _,
                                      { e = (L (Int ((Some 2L), _)));
                                        e_id = 0; e_range = None;
                                        is_implicit_return = false;

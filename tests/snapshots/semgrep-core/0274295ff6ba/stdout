@@ -81,8 +81,8 @@
                                   id_svalue = ref (None); id_flags = ref (0);
                                   id_info_id = _ }
                                 )));
-                          attrs = [(OtherAttribute (("inline", _), []))];
-                          tparams = None },
+                          attrs = [(KeywordAttr (Inline, _))]; tparams = None
+                          },
                         (FuncDef
                            { fkind = (Method, _); fparams = (_, [], _);
                              frettype = None;
@@ -122,7 +122,7 @@
                                  )));
                            attrs =
                            [(KeywordAttr (Const, _));
-                             (OtherAttribute (("inline", _), []))];
+                             (KeywordAttr (Inline, _))];
                            tparams = None },
                          (VarDef
                             { vinit =
@@ -144,7 +144,32 @@
                                    id_svalue = ref (None);
                                    id_flags = ref (0); id_info_id = _ }
                                  )));
-                           attrs = [(OtherAttribute (("open", _), []))];
+                           attrs =
+                           [(NamedAttr (_,
+                               (Id (("open", _),
+                                  { id_resolved = ref ((Some (Global, _)));
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type =
+                                    ref ((Some { t =
+                                                 (TyN
+                                                    (Id (("int", _),
+                                                       { id_resolved =
+                                                         ref (None);
+                                                         id_resolved_alternatives =
+                                                         ref ([]);
+                                                         id_type = ref (None);
+                                                         id_svalue =
+                                                         ref (None);
+                                                         id_flags = ref (0);
+                                                         id_info_id = _ }
+                                                       )));
+                                                 t_attrs = [] }));
+                                    id_svalue =
+                                    ref ((Some (Lit (Int ((Some 3L), _)))));
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )),
+                               (_, [], _)))
+                             ];
                            tparams = None },
                          (FuncDef
                             { fkind = (Method, _); fparams = (_, [], _);

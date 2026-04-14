@@ -142,3 +142,8 @@ url = https://github.com/semgrep/semgrep-circom.git
 path = languages/fga/tree-sitter/semgrep-fga
 url = https://github.com/semgrep/semgrep-fga.git
 
+[submodule "OSS/languages/scala/tree-sitter/semgrep-scala"]
+path = languages/scala/tree-sitter/semgrep-scala
+url = https://github.com/semgrep/semgrep-scala/
+branch = main
+

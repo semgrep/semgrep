@@ -15,180 +15,47 @@
             (_,
              [(F
                  { s =
-                   (ExprStmt (
-                      { e =
-                        (Call (
-                           { e =
-                             (N
-                                (Id (("self", _),
-                                   { id_resolved = ref (None);
-                                     id_resolved_alternatives = ref ([]);
-                                     id_type = ref (None);
-                                     id_svalue = ref (None);
-                                     id_flags = ref (0); id_info_id = _ }
-                                   )));
-                             e_id = 0; e_range = None;
-                             is_implicit_return = false; facts = <opaque> },
-                           (_,
-                            [(Arg
-                                { e =
-                                  (StmtExpr
-                                     { s =
-                                       (Block
-                                          (_,
-                                           [{ s =
-                                              (ExprStmt (
-                                                 { e =
-                                                   (Lambda
-                                                      { fkind = (Arrow, _);
-                                                        fparams =
-                                                        (_,
-                                                         [(Param
-                                                             { pname =
-                                                               (Some (
-                                                               "SqlIdiom", _));
-                                                               ptype = None;
-                                                               pdefault =
-                                                               None;
-                                                               pattrs = [];
-                                                               pinfo =
-                                                               { id_resolved =
-                                                                 ref ((Some (
-                                                                 Parameter, _)));
-                                                                 id_resolved_alternatives =
-                                                                 ref (
-                                                                 []);
-                                                                 id_type =
-                                                                 ref (None);
-                                                                 id_svalue =
-                                                                 ref (None);
-                                                                 id_flags =
-                                                                 ref (0);
-                                                                 id_info_id =
-                                                                 _ }
-                                                               })
-                                                           ],
-                                                         _);
-                                                        frettype = None;
-                                                        fbody =
-                                                        (FBExpr
-                                                           { e =
-                                                             (StmtExpr
-                                                                { s =
-                                                                  (Block
-                                                                    (_,
-                                                                    [{ s =
-                                                                    (DefStmt
-                                                                    ({ name =
-                                                                    (EN
-                                                                    (Id (
-                                                                    ("liftingPlaceholder",
-                                                                    _),
-                                                                    { id_resolved =
-                                                                    ref (None);
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref (None);
-                                                                    id_svalue =
-                                                                    ref (None);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    attrs =
-                                                                    [(KeywordAttr
-                                                                    (Override,
-                                                                    _))];
-                                                                    tparams =
-                                                                    None },
-                                                                    (FuncDef
-                                                                    { fkind =
-                                                                    (Method,
-                                                                    _);
-                                                                    fparams =
-                                                                    (
-                                                                    _, [], _);
-                                                                    frettype =
-                                                                    (Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("String",
-                                                                    _),
-                                                                    { id_resolved =
-                                                                    ref (None);
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref (None);
-                                                                    id_svalue =
-                                                                    ref (None);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] });
-                                                                    fbody =
-                                                                    (
-                                                                    FBExpr
-                                                                    { e =
-                                                                    (N
-                                                                    (Id (
-                                                                    ("s", _),
-                                                                    { id_resolved =
-                                                                    ref (None);
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref (None);
-                                                                    id_svalue =
-                                                                    ref (None);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    e_id = 0;
-                                                                    e_range =
-                                                                    None;
-                                                                    is_implicit_return =
-                                                                    true;
-                                                                    facts =
-                                                                    <opaque>
-                                                                    }) })));
-                                                                    s_range =
-                                                                    None }],
-                                                                    _));
-                                                                  s_range =
-                                                                  None });
-                                                             e_id = 0;
-                                                             e_range = None;
-                                                             is_implicit_return =
-                                                             false;
-                                                             facts = <opaque>
-                                                             })
-                                                        });
-                                                   e_id = 0; e_range = None;
-                                                   is_implicit_return = false;
-                                                   facts = <opaque> },
-                                                 _));
-                                              s_range = None }
-                                             ],
-                                           _));
-                                       s_range = None });
-                                  e_id = 0; e_range = None;
-                                  is_implicit_return = false;
-                                  facts = <opaque> })
-                              ],
-                            _)
-                           ));
-                        e_id = 0; e_range = None; is_implicit_return = false;
-                        facts = <opaque> },
-                      _));
+                   (DefStmt
+                      ({ name =
+                         (EN
+                            (Id (("liftingPlaceholder", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (None); id_flags = ref (0);
+                                 id_info_id = _ }
+                               )));
+                         attrs = [(KeywordAttr (Override, _))];
+                         tparams = None },
+                       (FuncDef
+                          { fkind = (Method, _); fparams = (_, [], _);
+                            frettype =
+                            (Some { t =
+                                    (TyN
+                                       (Id (("String", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (None);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    t_attrs = [] });
+                            fbody =
+                            (FBExpr
+                               { e =
+                                 (N
+                                    (Id (("s", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (None);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = true; facts = <opaque>
+                                 })
+                            })));
                    s_range = None })
                ],
              _)

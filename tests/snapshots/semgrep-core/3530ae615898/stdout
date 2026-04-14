@@ -10,7 +10,16 @@
          attrs = [(KeywordAttr (Const, _))]; tparams = None },
        (VarDef
           { vinit =
-            (Some { e = (OtherExpr (("QuotedBlock", _), [(Ss [])]));
+            (Some { e =
+                    (OtherExpr (("QuoteBlock", _),
+                       [(E
+                           { e =
+                             (StmtExpr
+                                { s = (Block (_, [], _)); s_range = None });
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> })
+                         ]
+                       ));
                     e_id = 0; e_range = None; is_implicit_return = false;
                     facts = <opaque> });
             vtype = None; vtok = None })));
@@ -29,26 +38,38 @@
         (VarDef
            { vinit =
              (Some { e =
-                     (OtherExpr (("QuotedBlock", _),
-                        [(Ss
-                            [{ s =
-                               (ExprStmt (
-                                  { e =
-                                    (Call (
-                                       { e =
-                                         (DotAccess (
-                                            { e = (L (Int ((Some 3L), _)));
-                                              e_id = 0; e_range = None;
-                                              is_implicit_return = false;
-                                              facts = <opaque> },
-                                            _,
-                                            (FN
-                                               (Id (("+", _),
-                                                  { id_resolved = ref (None);
-                                                    id_resolved_alternatives =
-                                                    ref ([]);
-                                                    id_type =
-                                                    ref ((Some { t =
+                     (OtherExpr (("QuoteBlock", _),
+                        [(E
+                            { e =
+                              (StmtExpr
+                                 { s =
+                                   (Block
+                                      (_,
+                                       [{ s =
+                                          (ExprStmt (
+                                             { e =
+                                               (Call (
+                                                  { e =
+                                                    (DotAccess (
+                                                       { e =
+                                                         (L
+                                                            (Int
+                                                               ((Some 3L), _)));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> },
+                                                       _,
+                                                       (FN
+                                                          (Id (("+", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref ((Some 
+                                                               { t =
                                                                  (TyFun (
                                                                     [(OtherParam (
                                                                     ("TODO",
@@ -62,29 +83,41 @@
                                                                     [] }));
                                                                  t_attrs = []
                                                                  }));
-                                                    id_svalue = ref (None);
-                                                    id_flags = ref (0);
-                                                    id_info_id = _ }
-                                                  )))
-                                            ));
-                                         e_id = 0; e_range = None;
-                                         is_implicit_return = false;
-                                         facts = <opaque> },
-                                       (_,
-                                        [(Arg
-                                            { e = (L (Int ((Some 4L), _)));
-                                              e_id = 0; e_range = None;
-                                              is_implicit_return = false;
-                                              facts = <opaque> })
-                                          ],
-                                        _)
-                                       ));
-                                    e_id = 0; e_range = None;
-                                    is_implicit_return = false;
-                                    facts = <opaque> },
-                                  _));
-                               s_range = None }
-                              ])
+                                                               id_svalue =
+                                                               ref (None);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )))
+                                                       ));
+                                                    e_id = 0; e_range = None;
+                                                    is_implicit_return =
+                                                    false; facts = <opaque> },
+                                                  (_,
+                                                   [(Arg
+                                                       { e =
+                                                         (L
+                                                            (Int
+                                                               ((Some 4L), _)));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> })
+                                                     ],
+                                                   _)
+                                                  ));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> },
+                                             _));
+                                          s_range = None }
+                                         ],
+                                       _));
+                                   s_range = None });
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> })
                           ]
                         ));
                      e_id = 0; e_range = None; is_implicit_return = false;
@@ -105,7 +138,7 @@
         (VarDef
            { vinit =
              (Some { e =
-                     (OtherExpr (("QuotedBlock", _),
+                     (OtherExpr (("QuoteType", _),
                         [(T
                             { t =
                               (TyN
@@ -137,7 +170,7 @@
         (VarDef
            { vinit =
              (Some { e =
-                     (OtherExpr (("QuotedBlock", _),
+                     (OtherExpr (("QuoteType", _),
                         [(T
                             { t =
                               (TyFun (
@@ -187,104 +220,162 @@
              vtype = None; vtok = None })));
     s_range = None };
   { s =
-    (DefStmt
-       ({ name = (EPattern (OtherPat (("QuotedBlock", _), [(Ss [])])));
-          attrs = [(KeywordAttr (Const, _))]; tparams = None },
-        (VarDef
-           { vinit =
-             (Some { e = (L (Int ((Some 4L), _))); e_id = 0; e_range = None;
-                     is_implicit_return = false; facts = <opaque> });
-             vtype = None; vtok = None })));
+    (ExprStmt (
+       { e =
+         (LetPattern (
+            (OtherPat (("QuotePat", _),
+               [(E
+                   { e =
+                     (OtherExpr (("QuoteBlock", _),
+                        [(E
+                            { e =
+                              (StmtExpr
+                                 { s = (Block (_, [], _)); s_range = None });
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> })
+                          ]
+                        ));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
+               )),
+            { e = (L (Int ((Some 4L), _))); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
     s_range = None };
   { s =
-    (DefStmt
-       ({ name =
-          (EPattern
-             (OtherPat (("QuotedBlock", _),
-                [(Ss
-                    [{ s =
-                       (ExprStmt (
-                          { e =
-                            (Call (
-                               { e =
-                                 (DotAccess (
-                                    { e = (L (Int ((Some 3L), _))); e_id = 0;
-                                      e_range = None;
-                                      is_implicit_return = false;
-                                      facts = <opaque> },
-                                    _,
-                                    (FN
-                                       (Id (("+", _),
-                                          { id_resolved = ref (None);
-                                            id_resolved_alternatives =
-                                            ref ([]);
-                                            id_type =
-                                            ref ((Some { t =
-                                                         (TyFun (
-                                                            [(OtherParam (
-                                                                ("TODO", _),
-                                                                []))
-                                                              ],
-                                                            { t =
-                                                              (OtherType (
-                                                                 ("TODO", _),
-                                                                 []));
-                                                              t_attrs = [] }
-                                                            ));
-                                                         t_attrs = [] }));
-                                            id_svalue = ref (None);
-                                            id_flags = ref (0);
-                                            id_info_id = _ }
-                                          )))
-                                    ));
-                                 e_id = 0; e_range = None;
-                                 is_implicit_return = false; facts = <opaque>
-                                 },
-                               (_,
-                                [(Arg
-                                    { e = (L (Int ((Some 5L), _))); e_id = 0;
-                                      e_range = None;
-                                      is_implicit_return = false;
-                                      facts = <opaque> })
-                                  ],
-                                _)
-                               ));
-                            e_id = 0; e_range = None;
-                            is_implicit_return = false; facts = <opaque> },
-                          _));
-                       s_range = None }
-                      ])
-                  ]
-                )));
-          attrs = [(KeywordAttr (Const, _))]; tparams = None },
-        (VarDef
-           { vinit =
-             (Some { e = (L (Int ((Some 4L), _))); e_id = 0; e_range = None;
-                     is_implicit_return = false; facts = <opaque> });
-             vtype = None; vtok = None })));
+    (ExprStmt (
+       { e =
+         (LetPattern (
+            (OtherPat (("QuotePat", _),
+               [(E
+                   { e =
+                     (OtherExpr (("QuoteBlock", _),
+                        [(E
+                            { e =
+                              (StmtExpr
+                                 { s =
+                                   (Block
+                                      (_,
+                                       [{ s =
+                                          (ExprStmt (
+                                             { e =
+                                               (Call (
+                                                  { e =
+                                                    (DotAccess (
+                                                       { e =
+                                                         (L
+                                                            (Int
+                                                               ((Some 3L), _)));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> },
+                                                       _,
+                                                       (FN
+                                                          (Id (("+", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref ((Some 
+                                                               { t =
+                                                                 (TyFun (
+                                                                    [(OtherParam (
+                                                                    ("TODO",
+                                                                    _), []))],
+                                                                    { t =
+                                                                    (OtherType (
+                                                                    ("TODO",
+                                                                    _), 
+                                                                    []));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                 t_attrs = []
+                                                                 }));
+                                                               id_svalue =
+                                                               ref (None);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )))
+                                                       ));
+                                                    e_id = 0; e_range = None;
+                                                    is_implicit_return =
+                                                    false; facts = <opaque> },
+                                                  (_,
+                                                   [(Arg
+                                                       { e =
+                                                         (L
+                                                            (Int
+                                                               ((Some 5L), _)));
+                                                         e_id = 0;
+                                                         e_range = None;
+                                                         is_implicit_return =
+                                                         false;
+                                                         facts = <opaque> })
+                                                     ],
+                                                   _)
+                                                  ));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> },
+                                             _));
+                                          s_range = None }
+                                         ],
+                                       _));
+                                   s_range = None });
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> })
+                          ]
+                        ));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
+               )),
+            { e = (L (Int ((Some 4L), _))); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
     s_range = None };
   { s =
-    (DefStmt
-       ({ name =
-          (EPattern
-             (OtherPat (("QuotedBlock", _),
-                [(T
-                    { t =
-                      (TyN
-                         (Id (("Int", _),
-                            { id_resolved = ref (None);
-                              id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
-                            )));
-                      t_attrs = [] })
-                  ]
-                )));
-          attrs = [(KeywordAttr (Const, _))]; tparams = None },
-        (VarDef
-           { vinit =
-             (Some { e = (L (Int ((Some 6L), _))); e_id = 0; e_range = None;
-                     is_implicit_return = false; facts = <opaque> });
-             vtype = None; vtok = None })));
+    (ExprStmt (
+       { e =
+         (LetPattern (
+            (OtherPat (("QuotePat", _),
+               [(E
+                   { e =
+                     (OtherExpr (("QuoteType", _),
+                        [(T
+                            { t =
+                              (TyN
+                                 (Id (("Int", _),
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (None);
+                                      id_flags = ref (0); id_info_id = _ }
+                                    )));
+                              t_attrs = [] })
+                          ]
+                        ));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
+               )),
+            { e = (L (Int ((Some 6L), _))); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
     s_range = None }
   ]
