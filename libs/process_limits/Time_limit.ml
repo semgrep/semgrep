@@ -171,7 +171,7 @@ let gc_alarm_timed_computation_and_clear_timer info max_duration f :
 
   question: can we have a signal and so exn when in a exn handler ?
 *)
-let set_timeout ~name ?(eio = false) max_duration f =
+let set_timeout ~name ?(sigalrm = false) max_duration f =
   let info = { Exception.name; max_duration } in
 
   (* Use the old SIGALRM-based timeout mechanism. *)
@@ -184,8 +184,9 @@ let set_timeout ~name ?(eio = false) max_duration f =
             timer for %S of %g seconds is still running."
            name max_duration running_name running_val));
   let timed_f, clear_timer =
+    let use_gc_alarm = not sigalrm in
     let res =
-      if eio || Sys.win32 then
+      if use_gc_alarm || Sys.win32 then
         gc_alarm_timed_computation_and_clear_timer info max_duration f
       else timed_computation_and_clear_timer info max_duration f
     in
@@ -213,7 +214,7 @@ let set_timeout ~name ?(eio = false) max_duration f =
       Log.err (fun m -> m "exn while in set_timeout");
       Exception.reraise e
 
-let set_timeout_opt ~name ?eio time_limit f =
+let set_timeout_opt ~name ?sigalrm time_limit f =
   match time_limit with
   | None -> Some (f ())
-  | Some x -> set_timeout ~name ?eio x f
+  | Some x -> set_timeout ~name ?sigalrm x f

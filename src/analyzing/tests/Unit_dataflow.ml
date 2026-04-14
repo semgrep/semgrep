@@ -37,7 +37,7 @@ let tests (parse_program : Fpath.t -> AST_generic.program) : Testo.t list =
                  let lang = Lang.lang_of_filename_exn file in
                  Naming_AST.resolve lang ast;
                  match
-                   Time_limit.set_timeout ~name:"cst_prop" ~eio:false
+                   Time_limit.set_timeout ~name:"cst_prop" ~sigalrm:true
                      timeout_secs (fun () ->
                        Constant_propagation.propagate_basic lang ast;
                        Constant_propagation.propagate_dataflow lang ast)
