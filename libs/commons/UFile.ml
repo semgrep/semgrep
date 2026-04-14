@@ -144,7 +144,7 @@ module Legacy = struct
   (* Directories *)
 
   (** [dir_contents] returns the paths of all regular files that are
- * contained in [dir]. Each file is a path starting with [dir].
+   contained in [dir]. Each file is a path starting with [dir].
   *)
   let dir_contents ?(strict = false) dir =
     let rec loop result = function

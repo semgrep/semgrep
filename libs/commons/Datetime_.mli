@@ -17,7 +17,7 @@ val now : unit -> float
 
 val time_n_days_ago : days:int -> time:float -> float
 (** [time_n_days_ago ~days ~time] evaluates to [time] shifted by the amount of
- * seconds in [days]
+   seconds in [days]
  *)
 
 val of_unix_int_time :

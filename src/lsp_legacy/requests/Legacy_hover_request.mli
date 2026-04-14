@@ -18,6 +18,6 @@ val on_request :
   Lsp.Types.HoverParams.t ->
   Legacy_rpc_server.t * Yojson.Safe.t option
 (** [on_request server params] is the response to a hover request.
-  *
-  * See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover
+
+    See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover
   *)

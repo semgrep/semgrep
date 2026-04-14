@@ -67,7 +67,7 @@ val pcre_compile : string -> t
 
 val anchored_match : ?on_error:bool -> t -> string -> bool
 (** Match the pattern at the beginning of the string (anchored match)
- * @param on_error is the value to return in case we encounter a PCRE error. *)
+   @param on_error is the value to return in case we encounter a PCRE error. *)
 (* NOTE just adds rflag anchored & runs pmatch_noerr *)
 
 val unanchored_match : ?on_error:bool -> t -> string -> bool

@@ -30,19 +30,19 @@ type xpattern_kind =
   | Aliengrep of Aliengrep.Pat_compile.t
   | Regexp of string
       (** NOTE "Regexp":
-      * We used to keep the compiled regexp of type `Regexp_engine.t', but
-      * that is not a pure OCaml data structure and it cannot be serialized.
-      *
-      * This had previously caused weird Semgrep crashes like
-      *
-      *     Invalid_argument "output_value: abstract value (Custom)"
-      *
-      * after PR #5725 (taint labels), see PA-1724.
-      *
-      * When we use -j 2 (or higher) and -json, then Parmap is used, and the result
-      * of `Match_rules.check' (of type `Report.match_result') will contain some
-      * unevaluated thunks. Then Parmap will try to marshal this value and it will
-      * crash if there is any "Custom" block involved.
+        We used to keep the compiled regexp of type `Regexp_engine.t', but
+        that is not a pure OCaml data structure and it cannot be serialized.
+
+        This had previously caused weird Semgrep crashes like
+
+            Invalid_argument "output_value: abstract value (Custom)"
+
+        after PR #5725 (taint labels), see PA-1724.
+
+        When we use -j 2 (or higher) and -json, then Parmap is used, and the result
+        of `Match_rules.check' (of type `Report.match_result') will contain some
+        unevaluated thunks. Then Parmap will try to marshal this value and it will
+        crash if there is any "Custom" block involved.
       *)
 [@@deriving show, eq]
 

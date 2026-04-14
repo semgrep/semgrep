@@ -16,7 +16,7 @@ open Shape_and_sig.Shape
 
 val taints_and_shape_are_relevant : Taint.taints -> shape -> bool
 (** [true] iff the union of [taints] and [gather_all_taints_in_shape shape]
- * is non-empty, or if [shape] contains a cleaned offset. *)
+   is non-empty, or if [shape] contains a cleaned offset. *)
 
 val fix_poly_taint_with_offset :
   Taint.offset list -> Taint.taints -> Taint.taints
@@ -27,7 +27,7 @@ val fix_poly_taint_with_offset :
 
 val tuple_like_obj : (Taint.taints * shape) list -> shape
 (** Constructs a 0-indexed tuple-like 'obj' from a list of pairs, taints and shape,
- * for each element in the tuple.  *)
+   for each element in the tuple.  *)
 
 (* THINK: Replace polymorphic variant with a parameterized IL.field_or_entry ? *)
 val record_or_dict_like_obj :
@@ -118,9 +118,9 @@ val update_offset_in_cell :
 val update_offset_and_unify :
   Taint.taints -> shape -> Taint.offset list -> cell option -> cell option
 (** Given a 'cell' and an 'offset', it finds the corresponding sub-'cell'
- * for that 'offset', and it updates its 'taints' and 'shape'. If no 'cell'
- * is given (i.e. 'None'), it creates a fresh one. If 'taints' are empty
- * and 'shape' is 'Bot', it just returns the given 'cell' (or 'None'). *)
+   for that 'offset', and it updates its 'taints' and 'shape'. If no 'cell'
+   is given (i.e. 'None'), it creates a fresh one. If 'taints' are empty
+   and 'shape' is 'Bot', it just returns the given 'cell' (or 'None'). *)
 
 val clean_cell : Taint.offset list -> cell -> cell
 (** [clean_cell offset cell] marks the 'offset' in 'cell' as clean.  *)
@@ -130,11 +130,11 @@ val add_tainted_token_to_shape : Taint.tainted_token -> shape -> shape
 
 val enum_in_cell : cell -> (Taint.offset list * Taint.taints) Seq.t
 (**
- * Enumerate all offsets in a cell and their taint.
- *
- * For example,
- *
- *     enum_in_cell (cell<0>( obj {| a: cell<{"tainted"}>(_|_) |} ))
- *
- * would return a sequence with the pair (.a, "tainted").
+   Enumerate all offsets in a cell and their taint.
+
+   For example,
+
+       enum_in_cell (cell<0>( obj {| a: cell<{"tainted"}>(_|_) |} ))
+
+   would return a sequence with the pair (.a, "tainted").
  *)

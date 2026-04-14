@@ -65,38 +65,38 @@ module Fields = struct
 end
 
 (** A shape approximates an object or data structure, and tracks the taint
- * associated with its fields and indexes.
- *
- * Taint shapes are a bit like types. Right now this is mainly to support
- * field- and index-sensitivity, but shapes also provide a good foundation to
- * later add alias analysis.  This is somewhat inspired by
- *
- *     "Polymorphic type, region and effect inference"
- *     by Jean-Pierre Talpin and Pierre Jouvelot
- *
- * History
- * -------
- * Previously, we had a flat environment from l-values to their taint, and we had
- * to "reconstruct" the shape of objects when needed. For example, to check if a
- * variable was a struct, we looked for l-values in the environment that were an
- * "extension" of that variable. By recording shapes explicitly, implementing
- * field-sensitivity becomes more natural.
- *
- * Example
- * -------
- * For example, a record expression `{ a: "taint", b: "safe" }` would have
- * the shape `Obj { .a -> Cell({"taint"}, _|_) }`, recording that the field `a`
- * is tainted by the string literal `"taint"`. A field like '.a' (the dot '.'
- * indicates that it's a field) or an index like '[0]' will always have a 'cell'
- * shape, because they denote l-values. The first argument of a 'Cell' is its
- * xtaint or "taint status" (see 'Xtaint.t'). For each field and index, we track
- * its xtaint individually (field- and index-sensitivity). Field '.a' in
- * `Obj { .a -> Cell({"taint"}, _|_) }` has the the taint set {"taint"} attached.
- * The second argument of 'Cell' is the shape of the objects stored in that cell.
- * The shape of field '.a' is '_|_' ("bottom") which is given to primitive types,
- * or whenever we "don't care" (or to act as "to-do" as well).
- *
- * TODO: Add 'Ptr' shapes and track aliasing.
+   associated with its fields and indexes.
+
+   Taint shapes are a bit like types. Right now this is mainly to support
+   field- and index-sensitivity, but shapes also provide a good foundation to
+   later add alias analysis.  This is somewhat inspired by
+
+       "Polymorphic type, region and effect inference"
+       by Jean-Pierre Talpin and Pierre Jouvelot
+
+   History
+   -------
+   Previously, we had a flat environment from l-values to their taint, and we had
+   to "reconstruct" the shape of objects when needed. For example, to check if a
+   variable was a struct, we looked for l-values in the environment that were an
+   "extension" of that variable. By recording shapes explicitly, implementing
+   field-sensitivity becomes more natural.
+
+   Example
+   -------
+   For example, a record expression `{ a: "taint", b: "safe" }` would have
+   the shape `Obj { .a -> Cell({"taint"}, _|_) }`, recording that the field `a`
+   is tainted by the string literal `"taint"`. A field like '.a' (the dot '.'
+   indicates that it's a field) or an index like '[0]' will always have a 'cell'
+   shape, because they denote l-values. The first argument of a 'Cell' is its
+   xtaint or "taint status" (see 'Xtaint.t'). For each field and index, we track
+   its xtaint individually (field- and index-sensitivity). Field '.a' in
+   `Obj { .a -> Cell({"taint"}, _|_) }` has the the taint set {"taint"} attached.
+   The second argument of 'Cell' is the shape of the objects stored in that cell.
+   The shape of field '.a' is '_|_' ("bottom") which is given to primitive types,
+   or whenever we "don't care" (or to act as "to-do" as well).
+
+   TODO: Add 'Ptr' shapes and track aliasing.
  *)
 module rec Shape : sig
   type shape =
@@ -161,27 +161,27 @@ module rec Shape : sig
 
   and obj = cell Fields.t
   (**
-      * This a mapping from a 'Taint.offset' to a shape 'cell'.
-      *
-      * If an 'Obj' shape tracks an 'Oany' offset (an arbitrary index,
-      * see 'Taint.offset'), then the taint and shape given to 'Oany' would
-      * also be the taint and shape given to any field that is not being
-      * explicitly tracked. If there is no 'Oany' in the 'Obj' shape, then a
-      * field that is not explicitly tracked would just have an arbitrary or
-      * "don't care" shape, and the taint that it inherits from its "parent"
-      * 'cell's.
-      *
-      * THINK: Instead of 'Oany' maybe have an explicit field ?
-      *
-      * For example, given the assignment `x = { a: "taint", b: "safe" }`,
-      * the shape of `x` would be `Cell(`None, Obj { .a -> Cell({"taint"}, _|_) })`.
-      * The field `b` is omitted in the shape, and if we ask for it's taint and
-      * shape we would get the empty taint set (because `x`'s outermost 'Cell'
-      * has no taint), and the shape '_|_' because, given that we are not
-      * tracking `b`, it means we don't care about it's shape. In a shape like
-      * `{ [*] -> Cell({"taint"}, _|_) }}` where `[*]` denotes 'Oany', the taint
-      * and shape  of any concrete index would be given by the taint and shape
-      * of '[*]'.
+        This a mapping from a 'Taint.offset' to a shape 'cell'.
+
+        If an 'Obj' shape tracks an 'Oany' offset (an arbitrary index,
+        see 'Taint.offset'), then the taint and shape given to 'Oany' would
+        also be the taint and shape given to any field that is not being
+        explicitly tracked. If there is no 'Oany' in the 'Obj' shape, then a
+        field that is not explicitly tracked would just have an arbitrary or
+        "don't care" shape, and the taint that it inherits from its "parent"
+        'cell's.
+
+        THINK: Instead of 'Oany' maybe have an explicit field ?
+
+        For example, given the assignment `x = { a: "taint", b: "safe" }`,
+        the shape of `x` would be `Cell(`None, Obj { .a -> Cell({"taint"}, _|_) })`.
+        The field `b` is omitted in the shape, and if we ask for it's taint and
+        shape we would get the empty taint set (because `x`'s outermost 'Cell'
+        has no taint), and the shape '_|_' because, given that we are not
+        tracking `b`, it means we don't care about it's shape. In a shape like
+        `{ [*] -> Cell({"taint"}, _|_) }}` where `[*]` denotes 'Oany', the taint
+        and shape  of any concrete index would be given by the taint and shape
+        of '[*]'.
       *)
 
   val equal_cell : cell -> cell -> bool
@@ -308,7 +308,7 @@ and Effect : sig
     data_shape : Shape.shape;  (** The shape of the data being returned. *)
     control_taints : Taint.taints;
         (** The taints propagated via the control flow (cf., `control: true` sources)
-   * used for reachability queries. *)
+     used for reachability queries. *)
     return_tok : AST_generic.tok;
   }
 
@@ -318,7 +318,7 @@ and Effect : sig
 
   type args_taints = (Taint.taints * Shape.shape) IL.argument list
   (** The taints and shapes associated with the actual arguments in a
-    * function call. *)
+      function call. *)
 
   type call = {
     callee : IL.exp;
@@ -330,70 +330,70 @@ and Effect : sig
   }
 
   (** Function-level result.
-  *
-  * 'ToSink' results where a taint source reaches a sink are candidates for
-  * actual Semgrep findings, although some may be dropped by deduplication.
-  *
-  * Results are computed for each function/method definition, and formulated
-  * using 'lval' taints to act as placeholders of the taint that may be passed
-  * by an arbitrary caller via the function arguments. Thus the results are
-  * polymorphic/context-sensitive, as the 'lval' taints can be instantiated
-  * accordingly at each call site.
+
+    'ToSink' results where a taint source reaches a sink are candidates for
+    actual Semgrep findings, although some may be dropped by deduplication.
+
+    Results are computed for each function/method definition, and formulated
+    using 'lval' taints to act as placeholders of the taint that may be passed
+    by an arbitrary caller via the function arguments. Thus the results are
+    polymorphic/context-sensitive, as the 'lval' taints can be instantiated
+    accordingly at each call site.
   *)
   type _ t =
     | ToSink : taints_to_sink -> 'a t
         (** Taints reach a sink.
-        *
-        * For example:
-        *
-        *     def foo(x):
-        *         y = x
-        *         sink(y)
-        *
-        * The parameter `x` could be tainted depending on the calling context,
-        * so we infer:
-        *
-        *     ToSink { taints_with_trace = ["taint"];
-        *              sink = "sink(y)";
-        *              ... }
+
+          For example:
+
+              def foo(x):
+                  y = x
+                  sink(y)
+
+          The parameter `x` could be tainted depending on the calling context,
+          so we infer:
+
+              ToSink { taints_with_trace = ["taint"];
+                       sink = "sink(y)";
+                       ... }
         *)
     | ToReturn : taints_to_return -> 'a t
         (** Taints reach a `return` statement.
-        *
-        * For example:
-        *
-        *     def foo():
-        *         x = "taint"
-        *         return x
-        *
-        * We infer:
-        *
-        *     ToReturn(["taint"], Bot, ...)
+
+          For example:
+
+              def foo():
+                  x = "taint"
+                  return x
+
+          We infer:
+
+              ToReturn(["taint"], Bot, ...)
         *)
     | ToLval : Taint.taints * 'a lval -> 'a t
         (** Taints reach an l-value in the scope of the function/method.
-        *
-        * For example:
-        *
-        *     x = ["ok"]
-        *
-        *     def foo():
-        *         global x
-        *         x[0] = "taint"
-        *
-        * We infer:
-        *
-        *     ToLval(["taint"], "x[0]")
-        *
-        * TODO: Record taint shapes.
+
+          For example:
+
+              x = ["ok"]
+
+              def foo():
+                  global x
+                  x[0] = "taint"
+
+          We infer:
+
+              ToLval(["taint"], "x[0]")
+
+          TODO: Record taint shapes.
         *)
     | ToSinkInCall : call -> 'a t
         (** Essentially a preliminary form of "effect variable". It represents
-          * the 'ToSink' effects of a function call where the function is not
-          * yet known (the function is an argument to be instantiated at call
-          * site).
-          *
-          * TODO: Handle 'ToReturn' (probably easy) and 'ToLval' (may be trickier).
+            the 'ToSink' effects of a function call where the function is not
+            yet known (the function is an argument to be instantiated at call
+            site).
+
+            TODO: Handle 'ToReturn' (probably easy) and 'ToLval' (may be trickier).
           *)
 
   type poly = [ `Poly ] t
@@ -663,39 +663,39 @@ end = struct
 end
 
 (** A (polymorphic) taint signature: simply a set of results for a function.
- *
- * Note that this signature is polymorphic/context-sensitive given that the
- * potential taints coming into the function via its arguments are represented
- * by 'lval' taints, that can be instantiated as needed.
- *
- * For example given:
- *
- *     def foo(x):
- *         sink(x.a)
- *
- * We infer the signature (simplified):
- *
- *     x => {ToSink {taints_with_trace = [(x#0).a]; sink = ... ; ...}}
- *
- * where '(x#0).a' is taint variable that denotes the taint of the offset `.a`
- * of the parameter `x` (where '#0' means it is the first argument) of `foo`.
- * The signature tells us that '(x#0).a' will reach a sink.
- *
- * Given a concrete call `foo(obj)`, Semgrep will instantiate this signature with
- * taint assigned to `obj.a` in that calling context. If it is tainted, then
- * Semgrep will report a finding.
- *
- * Also note that, within each function, if there are multiple paths through
- * which a taint source may reach a sink, we do not keep all of them but only
- * the shortest one.
- *
- * THINK: Could we have a "taint shape" for functions/methods ?
+
+   Note that this signature is polymorphic/context-sensitive given that the
+   potential taints coming into the function via its arguments are represented
+   by 'lval' taints, that can be instantiated as needed.
+
+   For example given:
+
+       def foo(x):
+           sink(x.a)
+
+   We infer the signature (simplified):
+
+       x => {ToSink {taints_with_trace = [(x#0).a]; sink = ... ; ...}}
+
+   where '(x#0).a' is taint variable that denotes the taint of the offset `.a`
+   of the parameter `x` (where '#0' means it is the first argument) of `foo`.
+   The signature tells us that '(x#0).a' will reach a sink.
+
+   Given a concrete call `foo(obj)`, Semgrep will instantiate this signature with
+   taint assigned to `obj.a` in that calling context. If it is tainted, then
+   Semgrep will report a finding.
+
+   Also note that, within each function, if there are multiple paths through
+   which a taint source may reach a sink, we do not keep all of them but only
+   the shortest one.
+
+   THINK: Could we have a "taint shape" for functions/methods ?
  *)
 and Signature : sig
   (** A simplified version of 'AST_generic.parameter', we use 'Pother' to represent
-    * parameter kinds that we do not support yet. We don't want to just remove
-    * those unsupported parameters because we rely on the position of a parameter
-    * to represent taint variables, see 'Taint.arg'. *)
+      parameter kinds that we do not support yet. We don't want to just remove
+      those unsupported parameters because we rely on the position of a parameter
+      to represent taint variables, see 'Taint.arg'. *)
   type param = P of IL.name | Prest of IL.name  (** variadic *) | Pother
   [@@deriving eq, ord]
 
@@ -703,8 +703,8 @@ and Signature : sig
 
   type t = { params : params; effects : Effects.t } [@@deriving eq, ord]
   (**
-   * The 'params' act like an universal quantifier, we need them to later
-   * instantiate the accompanying signature. *)
+     The 'params' act like an universal quantifier, we need them to later
+     instantiate the accompanying signature. *)
 
   val of_IL_params : IL.param list -> params
   val show_params : params -> string

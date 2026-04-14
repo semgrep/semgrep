@@ -16,9 +16,9 @@
 (* THINK: Can/should this be merged with Core_quick_profiling stats ?? *)
 
 (** Run-time taint coverage stats.
- *
- * For each taint source/sink in a rule, tracks how many times it matched
- * and across how many distinct files. *)
+
+   For each taint source/sink in a rule, tracks how many times it matched
+   and across how many distinct files. *)
 
 (*****************************************************************************)
 (* Per-file per-rule stats *)

@@ -55,24 +55,24 @@ type file = {
 type mutable_state = {
   handle_effects : effects_handler;
       (** Use 'handle_effects' to e.g. apply hash-consing (see 'Deep_tainting'), or
-        * to do some side-effect if needed.
+          to do some side-effect if needed.
 
-        * old: In the past one had to use 'handle_effects' to record taint
-        * effects by side-effect (no pun intended), however this is not needed
-        * now because 'Dataflow_tainting.fixpoint' already returns the set of
-        * taint effects.
+          old: In the past one had to use 'handle_effects' to record taint
+          effects by side-effect (no pun intended), however this is not needed
+          now because 'Dataflow_tainting.fixpoint' already returns the set of
+          taint effects.
 
-        * SAFETY: Since [handle_effects] closes over a mutable effects cache,
-        * it has to be considered "mutable" itself. *)
+          SAFETY: Since [handle_effects] closes over a mutable effects cache,
+          it has to be considered "mutable" itself. *)
   java_props_cache : java_props_cache;
       (** Pro should be autogenerating definitions for these getters/setters,
-        * but that seems to hurt performance and it's still unclear why, so
-        * instead we give taint access to Pro typing info through a hook
-        * ('hook_find_attribute_in_class') and look for the property
-        * corresponding to the getter/setter.
+          but that seems to hurt performance and it's still unclear why, so
+          instead we give taint access to Pro typing info through a hook
+          ('hook_find_attribute_in_class') and look for the property
+          corresponding to the getter/setter.
 
-        * On very large files, allocating a new name every time could have a
-        * perf impact, so we cache them. *)
+          On very large files, allocating a new name every time could have a
+          perf impact, so we cache them. *)
   timeouts : file_timeout_stats;
 }
 
@@ -83,7 +83,7 @@ type t = {
   options : Rule_options.t;
   track_control : bool;
       (** Whether the rule requires tracking "control taint". If it does not,
-       * then we avoid adding control taint-variables to environment. *)
+         then we avoid adding control taint-variables to environment. *)
   preds : Taint_spec_preds.t;
   stats : Taint_coverage_stats.file_rule_stats;
       (** Per-file per-rule coverage stats, what sources and what sinks have matched?
@@ -93,9 +93,9 @@ type t = {
         *)
 }
 (** Taint rule instantiated for a given file.
-  *
-  * For a source to taint a sink, the bindings of both source and sink must be
-  * unifiable. See 'Dataflow_tainting.unify_meta_envs'. *)
+
+    For a source to taint a sink, the bindings of both source and sink must be
+    unifiable. See 'Dataflow_tainting.unify_meta_envs'. *)
 
 let default_effect_handler _fun_name new_effects = new_effects
 let mk_file ~lang ~path = { lang; path }

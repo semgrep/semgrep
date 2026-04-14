@@ -19,7 +19,7 @@ val partition :
 
 val collect : ('a, 'e) result list -> ('a list, 'e) result
 (** Distributes out the successful results if zero errors inhabit the supplied
-  * list.  If multiple errors inhabit the list, all but one is discarded. *)
+    list.  If multiple errors inhabit the list, all but one is discarded. *)
 
 val list_map : ('a -> ('b, 'err) result) -> 'a list -> ('b list, 'err) result
 (** Map the list from left to right until an error occurs.

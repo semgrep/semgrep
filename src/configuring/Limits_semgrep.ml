@@ -63,17 +63,17 @@ let taint_FIXPOINT_TIMEOUT = 0.2
 let taint_MAX_TAINTED_VARS = 50
 
 (** Bounds the number of fields we can track per l-value, that is, the number of
- * fields in an 'Obj' shape, see 'Taint_sig.shape'. *)
+   fields in an 'Obj' shape, see 'Taint_sig.shape'. *)
 let taint_MAX_OBJ_FIELDS = 10
 
 (** Bounds the number of taints we can track per l-value.
- *
- * The size of the taint sets has a significant impact on performance and most
- * "reasonable" taint rules only require small taint sets to work. When the sets
- * grow large is often due to some bug or "inefficiency". The limit could be
- * insufficient for some pathological cases (e.g. rules that have very liberal
- * source specs that match essentially everything), but those we will not be
- * able to run inter-file, and they should be discouraged anyways.
+
+   The size of the taint sets has a significant impact on performance and most
+   "reasonable" taint rules only require small taint sets to work. When the sets
+   grow large is often due to some bug or "inefficiency". The limit could be
+   insufficient for some pathological cases (e.g. rules that have very liberal
+   source specs that match essentially everything), but those we will not be
+   able to run inter-file, and they should be discouraged anyways.
  *)
 let taint_MAX_TAINT_SET_SIZE = 25
 

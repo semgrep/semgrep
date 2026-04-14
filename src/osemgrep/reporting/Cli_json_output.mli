@@ -46,6 +46,6 @@ val cli_match_of_core_match :
 
 val index_match_based_ids : Out.cli_match list -> Out.cli_match list
 (** [index_match_based_ids matches] will append an index to the match based id
-  * where the index is what # finding of the same rule kind in the same file
-  * it is. This is needed for the App to do deduplication
+    where the index is what # finding of the same rule kind in the same file
+    it is. This is needed for the App to do deduplication
   *)
