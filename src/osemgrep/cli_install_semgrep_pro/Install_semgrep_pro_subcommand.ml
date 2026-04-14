@@ -118,7 +118,7 @@ let run_conf (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
   let version =
     let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
     let opt =
-      Time_limit.set_timeout ~name:"check pro version" 10.0 ~eio:false
+      Time_limit.set_timeout ~name:"check pro version" 10.0 ~sigalrm:true
         (fun () ->
           (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
           let result = UCmd.string_of_run ~trim:true cmd in

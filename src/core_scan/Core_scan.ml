@@ -886,12 +886,17 @@ let match_rules ~matches_hook (config : Core_scan_config.t)
     }
   in
   let timeout : Match_rules.timeout_config option =
-    let eio =
+    let sigalrm_timeout =
       match config.par_conf with
-      | Parallelism_config.Process -> false
-      | Parallelism_config.Eio_executor _ -> true
+      | Parallelism_config.Process -> true
+      | Parallelism_config.Eio_executor _ -> false
     in
-    Some { timeout = config.timeout; threshold = config.timeout_threshold; eio }
+    Some
+      {
+        timeout = config.timeout;
+        threshold = config.timeout_threshold;
+        sigalrm_timeout;
+      }
   in
   (* !!Calling Match_rules!! Calling the matching engine!! *)
   Match_rules.check ~matches_hook ~timeout xconf rules xtarget

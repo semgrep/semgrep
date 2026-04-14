@@ -404,7 +404,7 @@ let parsing_common ?(verbose = true) (lang : Lang.t) (root : Fpath.t) =
                match
                  Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
                      Time_limit.set_timeout ~name:"Test_parsing.parsing_common"
-                       ~eio:false timeout_seconds (fun () ->
+                       ~sigalrm:true timeout_seconds (fun () ->
                          Parse_target.parse_and_resolve_name lang file))
                with
                | Some res ->

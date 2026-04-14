@@ -13,7 +13,11 @@
 (* this can be raised when timeout_threshold is set *)
 exception File_timeout of Rule_ID.t list
 
-type timeout_config = { timeout : float; threshold : int; eio : bool }
+type timeout_config = {
+  timeout : float;
+  threshold : int;
+  sigalrm_timeout : bool;
+}
 
 (* Matches many rules against one target. This function is called from
  * Test_engine.ml, Test_subcommand.ml, and of course Core_scan.ml
