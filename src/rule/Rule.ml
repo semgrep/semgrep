@@ -249,9 +249,9 @@ and taint_source = {
   source_formula : formula;
   source_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `source(...)`, then the
-      * `ok` inside `source(sink(ok))` is considered tainted, and `sink(ok)` is
-      * reported. If 'true', only the entire `source(sink(ok))` expression will be
-      * considered tainted, and `sink(ok)` is fine. *)
+        `ok` inside `source(sink(ok))` is considered tainted, and `sink(ok)` is
+        reported. If 'true', only the entire `source(sink(ok))` expression will be
+        considered tainted, and `sink(ok)` is fine. *)
   source_by_side_effect : by_side_effect;
   source_control : bool;
   label : string;
@@ -284,10 +284,10 @@ and taint_sanitizer = {
   sanitizer_formula : formula;
   sanitizer_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `sanitize(...)`, then
-      * the `tainted` inside `sanitize(sink(tainted))` is considered sanitized,
-      * and `sink(tainted)` is fine. If 'true', only the entire expression
-      * `sanitize(sink(tainted))` will be considered sanitized, and `sink(tainted)`
-      * will be reported. *)
+        the `tainted` inside `sanitize(sink(tainted))` is considered sanitized,
+        and `sink(tainted)` is fine. If 'true', only the entire expression
+        `sanitize(sink(tainted))` will be considered sanitized, and `sink(tainted)`
+        will be reported. *)
   sanitizer_by_side_effect : bool;
   not_conflicting : bool;
       (* If [not_conflicting] is enabled, the sanitizer cannot conflict with
@@ -310,10 +310,10 @@ and taint_sink = {
   sink_formula : formula;
   sink_exact : bool;
       (** If 'true' (the default), if the formula were e.g. `sink(...)`, then the
-      * `tainted` inside `sink(if tainted then ok1 else ok2)` is not considered a
-      * sink, and nothing is reported. If 'false', then every subexpression in
-      * `sink(if tainted then ok1 else ok2)` is considered a sink, and we report
-      * a finding due to `tainted`. *)
+        `tainted` inside `sink(if tainted then ok1 else ok2)` is not considered a
+        sink, and nothing is reported. If 'false', then every subexpression in
+        `sink(if tainted then ok1 else ok2)` is considered a sink, and we report
+        a finding due to `tainted`. *)
   sink_requires : sink_requires option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it

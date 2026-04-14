@@ -18,7 +18,7 @@
 (*****************************************************************************)
 
 (** Similar to Commons.memoized, but also consumes a mutex in order to ensure
- * safe current access to the memoized state. *)
+   safe current access to the memoized state. *)
 
 (*****************************************************************************)
 (* API *)

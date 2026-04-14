@@ -12,20 +12,20 @@
 *)
 open Telemetry
 (** Tracing library for Semgrep
- *
- * Provide a simple interface to send contextualized performance metrics
- * for Semgrep code using Opentelemetry traces. By default, they send to
- * our Datadog endpoint, but the collector can be customized using the
- * SEMGREP_OTEL_ENDPOINT environment variable.
- *
- * To trace a program, start by calling `configure_otel`. Then, wrap
- * the entry point of the program (e.g. `Core_command.semgrep_core_dispatch`)
- * with `with_tracing`. Traces will now be sent for the duration of that
- * function.
- *
- * Running `with_tracing` always sends a trace for the wrapped function.
- * To trace other functions called within it, run those using `with_span`.
- * You can attach data to the traces by running `add_data_to_span`.
+
+   Provide a simple interface to send contextualized performance metrics
+   for Semgrep code using Opentelemetry traces. By default, they send to
+   our Datadog endpoint, but the collector can be customized using the
+   SEMGREP_OTEL_ENDPOINT environment variable.
+
+   To trace a program, start by calling `configure_otel`. Then, wrap
+   the entry point of the program (e.g. `Core_command.semgrep_core_dispatch`)
+   with `with_tracing`. Traces will now be sent for the duration of that
+   function.
+
+   Running `with_tracing` always sends a trace for the wrapped function.
+   To trace other functions called within it, run those using `with_span`.
+   You can attach data to the traces by running `add_data_to_span`.
  *)
 (*****************************************************************************)
 (* Levels *)

@@ -18,7 +18,7 @@ val is_symbolic_expr : AST_generic.expr -> bool
 
 val fixpoint : Lang.t -> Fun_CFG.t -> mapping
 (** Flow-sensitive constant-propagation.
- * !Note that this assumes Naming_AST.resolve has been called before!
+   !Note that this assumes Naming_AST.resolve has been called before!
 *)
 
 val set_svalue_ref : AST_generic.id_info -> AST_generic.svalue -> unit
@@ -31,12 +31,12 @@ val update_env_with :
 
 val update_svalue : IL.cfg -> mapping -> unit
 (**
- * Updates the [IL.lval.svalue] refs according to the mapping.
- * Note that the svalue refs in IL are shared with the Generic AST, so
- * running this analysis also updates svalue info in the Generic AST.
- * The update respects previous constant propagation passes, updating
- * svalue info when we have deduced more specific facts, but leaving it
- * untouched otherwise.
+   Updates the [IL.lval.svalue] refs according to the mapping.
+   Note that the svalue refs in IL are shared with the Generic AST, so
+   running this analysis also updates svalue info in the Generic AST.
+   The update respects previous constant propagation passes, updating
+   svalue info when we have deduced more specific facts, but leaving it
+   untouched otherwise.
 *)
 
 (* deep-scan hook *)

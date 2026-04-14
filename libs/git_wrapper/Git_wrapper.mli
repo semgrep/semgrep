@@ -181,8 +181,8 @@ val dirty_lines_of_file :
   Fpath.t ->
   ((int * int) array option, string) result
 (** [dirty_lines_of_file path] will return an optional array of line ranges that indicate what
-  * lines have been changed. An optional [git_ref] can be passed that will be used
-  * to diff against. The default [git_ref] is ["HEAD"]
+    lines have been changed. An optional [git_ref] can be passed that will be used
+    to diff against. The default [git_ref] is ["HEAD"]
   *)
 
 val dirty_lines_of_file_exn :

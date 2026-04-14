@@ -13,7 +13,7 @@
 type propagator_match = {
   id : Taint_spec_preds.var;
       (** An unique identifier for the propagator match. This is used as an
-   * auxiliary variable to store the taints flowing from [from] to [to]. *)
+     auxiliary variable to store the taints flowing from [from] to [to]. *)
   rwm : Range_with_metavars.t;
   from : Range.t;  (** The range matched by the [from] metavariable. *)
   to_ : Range.t;  (** The range matched by the [to] metavariable. *)

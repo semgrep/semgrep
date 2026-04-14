@@ -11,7 +11,7 @@
    LICENSE for more details.
 *)
 (** Fetch file content from a URL. Returns None if the request fails for any
- * reason. *)
+   reason. *)
 let fetch_file_async (source_url : Uri.t) : string option Lwt.t =
   let content =
     match%lwt Http_helpers.get ~headers:[] source_url with

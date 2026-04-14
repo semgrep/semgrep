@@ -60,19 +60,19 @@ and analysis_flavor =
 and secrets_config = {
   allow_all_origins : bool;
       (** Controls if we restrict the origins for secret rules. Normally this is
-   * restricted for security purposes so that only (pro) rules from the
-   * registry can have postprocessors, but sometimes we want to allow
-   * postprocessors to run regardless of origin (e.g., for testing purposes).
-   * Typically secrets will only run validators from semgrep.dev. The
-   * allow_all_origins flag bypasses this security check.
+     restricted for security purposes so that only (pro) rules from the
+     registry can have postprocessors, but sometimes we want to allow
+     postprocessors to run regardless of origin (e.g., for testing purposes).
+     Typically secrets will only run validators from semgrep.dev. The
+     allow_all_origins flag bypasses this security check.
    *)
   only_validated : bool;
       (** This is used by Historical scans to keep only the `Confirmed_valid
-   * matches in the postprocess secrets phase.
+     matches in the postprocess secrets phase.
    *)
   timeout : float;
       (** Timeout in seconds for each secrets validation HTTP request.
-   * Defaults to 30.0 seconds.
+     Defaults to 30.0 seconds.
    *)
 }
 

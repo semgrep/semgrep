@@ -12,9 +12,9 @@
 *)
 val cfg_of_stmts : ?tok:Tok.t -> IL.stmt list -> IL.cfg * Fun_CFG.lambdas_cfgs
 (** Compute the control flow graph of a sequence of statements.
- *
- * This is useful in cases such as handling top-level instructions that
- * do not constitute actual function definitions.
+
+   This is useful in cases such as handling top-level instructions that
+   do not constitute actual function definitions.
  *)
 
 val cfg_of_fdef : IL.function_definition -> Fun_CFG.t
