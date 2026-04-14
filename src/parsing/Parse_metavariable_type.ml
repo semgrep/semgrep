@@ -46,6 +46,8 @@ let unwrap_type_expr lang expr =
   | Lang.Go, G.S { s = G.DefStmt (_, VarDef { vtype = Some t; _ }); _ } ->
       Some t
   | Lang.Kotlin, G.E { e = G.Cast (t, _, _); _ } -> Some t
+  | Lang.Scala, G.E { e = G.Cast (t, _, _); _ } -> Some t
+  (* pfff fallback produces OtherExpr for asInstanceOf *)
   | Lang.Scala, G.E { e = OtherExpr (_, _ :: T t :: _); _ } -> Some t
   | ( Lang.Php,
       G.S

@@ -4,9 +4,10 @@
  (wrapped false)
  (libraries
    commons
-   lib_parsing
+   lib_parsing lib_parsing_tree_sitter
    parser_scala.ast
    ast_generic
+   tree-sitter-lang.scala
  )
  (preprocess (pps ppx_deriving.show))
 )

@@ -516,21 +516,7 @@
                                                      _));
                                                  s_range = None }));
                                            (CasesAndBody
-                                              ([(Case (_,
-                                                   (PatId (("_", _),
-                                                      { id_resolved =
-                                                        ref ((Some (LocalVar,
-                                                                    _)));
-                                                        id_resolved_alternatives =
-                                                        ref ([]);
-                                                        id_type = ref (None);
-                                                        id_svalue =
-                                                        ref (None);
-                                                        id_flags = ref (0);
-                                                        id_info_id = _ }
-                                                      ))
-                                                   ))
-                                                 ],
+                                              ([(Case (_, (PatWildcard _)))],
                                                { s =
                                                  (Block
                                                     (_,

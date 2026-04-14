@@ -135,23 +135,8 @@
                                                                     }));
                                                                     (FE
                                                                     ((
-                                                                    PatId (
-                                                                    ("_", _),
-                                                                    { id_resolved =
-                                                                    ref ((Some (
-                                                                    LocalVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref (None);
-                                                                    id_svalue =
-                                                                    ref (None);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })), _,
+                                                                    PatWildcard
+                                                                    _), _,
                                                                     { e =
                                                                     (L
                                                                     (Int
@@ -172,10 +157,8 @@
                                                                     _,
                                                                     (Some 
                                                                     { e =
-                                                                    (Container (
-                                                                    Tuple,
-                                                                    (_, [], _)
-                                                                    ));
+                                                                    (L
+                                                                    (Unit _));
                                                                     e_id = 0;
                                                                     e_range =
                                                                     None;

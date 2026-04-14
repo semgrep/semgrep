@@ -72,9 +72,48 @@
                                                                (_,
                                                                 [(TA
                                                                     { t =
-                                                                    (OtherType (
+                                                                    (TyApply (
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    (">:", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] },
+                                                                    (_,
+                                                                    [(TA
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
                                                                     ("?", _),
-                                                                    [(T
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] });
+                                                                    (TA
                                                                     { t =
                                                                     (TyN
                                                                     (Id (
@@ -93,7 +132,8 @@
                                                                     id_info_id =
                                                                     _ })));
                                                                     t_attrs =
-                                                                    [] })]));
+                                                                    [] })], _)
+                                                                    ));
                                                                     t_attrs =
                                                                     [] })
                                                                   ],
@@ -165,9 +205,48 @@
                                                                     (_,
                                                                     [(TA
                                                                     { t =
-                                                                    (OtherType (
+                                                                    (TyApply (
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    (">:", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] },
+                                                                    (_,
+                                                                    [(TA
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
                                                                     ("?", _),
-                                                                    [(T
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] });
+                                                                    (TA
                                                                     { t =
                                                                     (TyN
                                                                     (Id (
@@ -186,7 +265,8 @@
                                                                     id_info_id =
                                                                     _ })));
                                                                     t_attrs =
-                                                                    [] })]));
+                                                                    [] })], _)
+                                                                    ));
                                                                     t_attrs =
                                                                     [] })], _)
                                                                     ));
@@ -278,9 +358,49 @@
                                                         (_,
                                                          [(TA
                                                              { t =
-                                                               (OtherType (
-                                                                  ("?", _),
-                                                                  [(T
+                                                               (TyApply (
+                                                                  { t =
+                                                                    (
+                                                                    TyN
+                                                                    (Id (
+                                                                    (">:", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] },
+                                                                  (_,
+                                                                   [(TA
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("?", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] });
+                                                                    (TA
                                                                     { t =
                                                                     (TyN
                                                                     (Id (
@@ -299,7 +419,8 @@
                                                                     id_info_id =
                                                                     _ })));
                                                                     t_attrs =
-                                                                    [] })]
+                                                                    [] })],
+                                                                   _)
                                                                   ));
                                                                t_attrs = [] })
                                                            ],
@@ -338,9 +459,48 @@
                                                                (_,
                                                                 [(TA
                                                                     { t =
-                                                                    (OtherType (
+                                                                    (TyApply (
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    (">:", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] },
+                                                                    (_,
+                                                                    [(TA
+                                                                    { t =
+                                                                    (TyN
+                                                                    (Id (
                                                                     ("?", _),
-                                                                    [(T
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] });
+                                                                    (TA
                                                                     { t =
                                                                     (TyN
                                                                     (Id (
@@ -359,7 +519,8 @@
                                                                     id_info_id =
                                                                     _ })));
                                                                     t_attrs =
-                                                                    [] })]));
+                                                                    [] })], _)
+                                                                    ));
                                                                     t_attrs =
                                                                     [] })
                                                                   ],
@@ -376,22 +537,12 @@
                                       fbody =
                                       (FBStmt
                                          { s =
-                                           (Block
-                                              (_,
-                                               [{ s =
-                                                  (ExprStmt (
-                                                     { e =
-                                                       (L
-                                                          (Int ((Some 3L), _)));
-                                                       e_id = 0;
-                                                       e_range = None;
-                                                       is_implicit_return =
-                                                       true; facts = <opaque>
-                                                       },
-                                                     _));
-                                                  s_range = None }
-                                                 ],
-                                               _));
+                                           (ExprStmt (
+                                              { e = (L (Int ((Some 3L), _)));
+                                                e_id = 0; e_range = None;
+                                                is_implicit_return = true;
+                                                facts = <opaque> },
+                                              _));
                                            s_range = None })
                                       });
                                  e_id = 0; e_range = None;

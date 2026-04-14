@@ -62,11 +62,16 @@ let just_parse_with_lang lang file : Parsing_result2.t =
   end;
 
   match lang with
-  (* Neither Menhir nor tree-sitter *)
   | Lang.Scala ->
       run file
-        [ Pfff (throw_tokens Parse_scala.parse) ]
-        Scala_to_generic.program
+        [
+          TreeSitter Parse_scala_tree_sitter.parse;
+          Pfff
+            (fun x ->
+              x |> throw_tokens Parse_scala.parse |> fun (x, y) ->
+              (Scala_to_generic.program x, y));
+        ]
+        Fun.id
   | Lang.Yaml ->
       {
         ast = Yaml_to_generic.program file;
