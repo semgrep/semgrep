@@ -913,7 +913,13 @@ def parse_config_string_as_rules(
                 run_rpc_validate_exn(rules_tmp_path=rules_tmp_path)
                 logger.debug("RPC validation succeeded")
             except (RpcValidationError, NotImplementedError) as e:
-                logger.debug(f"run_rpc_validate failed: {e}")
+                error_type = (
+                    e.core_error.error_type.kind
+                    if isinstance(e, RpcValidationError)
+                    else type(e).__name__
+                )
+                logger.warning(f"semgrep-core rule validation failed ({error_type})")
+                logger.debug(f"semgrep-core validation error detail: {e}")
                 validate_string_json_schema(loaded_rules)
         return (rules, errors)
 

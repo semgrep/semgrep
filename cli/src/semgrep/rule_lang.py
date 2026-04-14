@@ -504,7 +504,9 @@ def version_error(
 
 
 class RpcValidationError(Exception):
-    pass
+    def __init__(self, core_error: out.CoreError):
+        self.core_error = core_error
+        super().__init__(core_error.message)
 
 
 # This is tightly coupled to remove_incompatible_version_rules in config_resolver.py
@@ -602,7 +604,13 @@ def validate_rules(
             run_rpc_validate_exn(rules_tmp_path=rules_tmp_path)
             logger.debug("RPC validation succeeded")
         except (RpcValidationError, NotImplementedError) as e:
-            logger.debug(f"run_rpc_validate failed: {e}")
+            error_type = (
+                e.core_error.error_type.kind
+                if isinstance(e, RpcValidationError)
+                else type(e).__name__
+            )
+            logger.warning(f"semgrep-core rule validation failed ({error_type})")
+            logger.debug(f"semgrep-core validation error detail: {e}")
             validate_yaml_json_schema(data)
 
 
@@ -671,7 +679,7 @@ def run_rpc_validate_exn(rules_tmp_path: str) -> None:
         if error is None:
             logger.debug("semgrep-core validation succeeded")
             return
-        raise RpcValidationError("semgrep-core validation failed")
+        raise RpcValidationError(error)
     except Exception as e:
         raise e
 

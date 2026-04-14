@@ -303,7 +303,16 @@ def test_parse_config_string_as_rules_jsonschema_fallback(mocker):
     # Mock RPC validation to fail
     mocker.patch(
         "semgrep.config_resolver.run_rpc_validate_exn",
-        side_effect=RpcValidationError("semgrep-core validation failed"),
+        side_effect=RpcValidationError(
+            out.CoreError(
+                error_type=out.ErrorType(value=out.InvalidYaml()),
+                severity=out.ErrorSeverity(value=out.Warning_()),
+                message="mock validation failure",
+                details=None,
+                location=None,
+                rule_id=None,
+            )
+        ),
     )
 
     rule_config = """{
