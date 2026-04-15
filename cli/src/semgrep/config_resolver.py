@@ -889,9 +889,15 @@ def parse_config_string_as_rules(
         errors.extend(version_errors)
 
         # Only use semgrep-core to validate the rules that are going to run on semgrep-core
-        contents_to_validate = json.dumps({RULES_KEY: rules_to_validate})
+        # ensure_ascii=False so that characters above U+FFFF (e.g. emoji) are
+        # written as raw UTF-8 rather than JSON surrogate pairs (\ud83d\udeab).
+        # semgrep-core parses this file as YAML, which forbids surrogate code
+        # points (YAML 1.2.2 §5.1), so surrogate pair escapes cause parse errors.
+        contents_to_validate = json.dumps(
+            {RULES_KEY: rules_to_validate}, ensure_ascii=False
+        )
         tmp_fd, rules_tmp_path = mkstemp(suffix=".rules", prefix="semgrep-", text=True)
-        with os.fdopen(tmp_fd, "w") as fp:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as fp:
             fp.write(contents_to_validate)
         logger.debug(f"Saved rules to {rules_tmp_path}")
 

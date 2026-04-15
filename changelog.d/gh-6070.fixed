@@ -1,0 +1,2 @@
+Fixed performance issues during parsing Semgrep rules containing emoji or
+other non-BMP Unicode characters.

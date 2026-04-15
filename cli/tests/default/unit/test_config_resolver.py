@@ -332,3 +332,42 @@ def test_parse_config_string_as_rules_jsonschema_fallback(mocker):
     assert len(rules) == 1
     assert rules[0].id == "test-rule"
     assert len(errors) == 0
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_parse_config_string_as_rules_no_surrogate_pairs_in_rules_file(mocker):
+    """
+    Rules containing characters above U+FFFF (e.g. emoji) must be serialized
+    as raw UTF-8 in the .rules temp file, not as JSON surrogate pairs.
+    json.dumps(ensure_ascii=True) encodes U+1F6AB as \\ud83d\\udeab, which is
+    valid JSON but invalid YAML (YAML 1.2.2 §5.1 forbids surrogate code
+    points). semgrep-core parses this file as YAML, so surrogate pairs cause
+    parse errors.
+    """
+    import semgrep.config_resolver
+
+    spy = mocker.spy(semgrep.config_resolver, "run_rpc_validate_exn")
+
+    # Input contains a surrogate pair (valid JSON for U+1F6AB 🚫)
+    rule_config = """{
+        "rules": [
+            {
+                "id": "emoji-rule",
+                "message": "Test rule with non-BMP character",
+                "languages": ["generic"],
+                "severity": "WARNING",
+                "pattern-regex": "(?:\\u274c|\\ud83d\\udeab|foo)"
+            }
+        ]
+    }"""
+
+    rules, errors = parse_config_string_as_rules(rule_config)
+
+    assert len(rules) == 1
+    assert rules[0].id == "emoji-rule"
+    assert len(errors) == 0
+    # Verify semgrep-core's YAML parser accepted the rules file directly,
+    # rather than falling back to Python JSON schema validation.
+    spy.assert_called_once()
+    assert spy.spy_exception is None
