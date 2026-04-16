@@ -1,2 +1,0 @@
-Emit a warning when semgrep-core rule validation fails and falls back to JSON
-schema validation, alongside details of the failure.
