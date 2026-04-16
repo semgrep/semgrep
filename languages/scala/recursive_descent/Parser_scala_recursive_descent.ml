@@ -4750,7 +4750,7 @@ let constructorAnnotations in_ : annotation list =
 (** {{{
  *  ClassDef ::= Id [TypeParamClause] ConstrAnnotations
  *               [AccessModifier] ClassParamClauses RequiresTypeOpt ClassTemplateOpt
- *  TraitDef ::= Id [TypeParamClause] RequiresTypeOpt TraitTemplateOpt
+ *  TraitDef ::= Id [TypeParamClause] [ClassParamClauses] RequiresTypeOpt TraitTemplateOpt
  *  }}}
 *)
 
@@ -4774,7 +4774,12 @@ let classDef ?(isTrait = false) ?isCase attrs in_ : definition =
          in
 
          let constrMods, vparamss =
-           if isTrait then ([], [] (* AST: (Modifiers(Flags.TRAIT), List()) *))
+           if isTrait then
+             (* Scala 3.4+: traits can have parameters *)
+             let vparamss =
+               paramClauses ~ofCaseClass:false name classContextBounds in_
+             in
+             ([], vparamss)
            else
              let constrMods = accessModifierOpt in_ in
              let vparamss =
