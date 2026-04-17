@@ -1046,7 +1046,7 @@ def scan(
                                 path_sensitive=path_sensitive,
                                 group_taint_rules=x_group_taint_rules,
                             ).validate_configs(
-                                config,
+                                resolved_configs,
                                 no_python_schema_validation=x_no_python_schema_validation,
                             )
                         except SemgrepError as e:
