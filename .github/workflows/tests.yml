@@ -47,7 +47,7 @@ jobs:
     needs:
       - build-test-core-x86
     permissions:
-      contents: write
+      contents: read
       id-token: write
       pull-requests: write
     runs-on: ubuntu-22.04

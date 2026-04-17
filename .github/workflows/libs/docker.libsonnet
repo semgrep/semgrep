@@ -453,7 +453,6 @@ local build_and_run_gha_job(
   output_dir=null,
   platforms=default_platforms,
   env='',
-  write_permission=true,
       ) = job(
   name=name,
   target=target,
@@ -473,9 +472,7 @@ local build_and_run_gha_job(
     env=env,
   ),
   load=true
-) + (if write_permission then {
-       permissions: gha.pull_request_permissions,
-     } else {});
+);
 
 local inputs = {
   ref: gha.ref_input,
