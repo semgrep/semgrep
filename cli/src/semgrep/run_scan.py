@@ -1186,6 +1186,7 @@ def run_scan(
     baseline_commit_is_mergebase: bool = False,
     x_ls: bool = False,
     x_ls_long: bool = False,
+    list_rules: bool = False,
     enable_transitive_reachability: Optional[bool] = None,
     x_parmap: bool = False,
     x_pro_naming: bool = False,
@@ -1307,6 +1308,30 @@ def run_scan(
             rule for rule in all_rules if rule.severity in shown_severities
         ]
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
+
+    if list_rules:
+        output_format = output_handler.settings.output_format
+        if output_format == OutputFormat.JSON:
+            print(
+                json.dumps(
+                    [
+                        {
+                            "id": rule.id,
+                            "severity": rule.severity.to_json(),
+                            "languages": [str(l) for l in rule.languages],
+                            "message": rule.message,
+                        }
+                        for rule in sorted(filtered_rules, key=lambda r: r.id)
+                    ],
+                    indent=2,
+                )
+            )
+        else:
+            for rule in sorted(filtered_rules, key=lambda r: r.id):
+                langs = ", ".join(str(l) for l in rule.languages)
+                print(f"{rule.id}  ({rule.severity.to_json()}, [{langs}])")
+            print(f"\n{len(filtered_rules)} rules")
+        exit(0)
 
     if dump_rule_partitions_params:
         dump_partitions_and_exit(filtered_rules, dump_rule_partitions_params)
