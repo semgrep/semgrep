@@ -104,17 +104,6 @@ local semgrep_rules = [
     |||,
   },
   {
-    id: 'no-hashtbl-find-all',
-    match: 'Hashtbl.find_all',
-    languages: ['ocaml'],
-    severity: 'ERROR',
-    message: |||
-      `Hashtbl.find_all` is not stack-safe in OCaml < 5. Use `Hashtbl_.push`
-      instead of `Hashtbl.add` and `Hashtbl_.get_stack` instead of
-      `Hashtbl.find_all`.
-    |||,
-  },
-  {
     id: 'mask-all-temp-paths',
     pattern: 'Testo.mask_temp_paths',
     fix: 'Testutil.mask_temp_paths',
