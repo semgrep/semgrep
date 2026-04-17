@@ -2902,7 +2902,7 @@ and m_stmt a b =
   (* When code has a label but pattern doesn't, try matching the inner
      statement. This allows patterns like "z(); ... y();" to match across
      goto label sections in C/C++. *)
-  | _, B.Label (_b1, b2) -> m_stmt a b2
+  | _, B.Label (_label_ident, b2) -> m_stmt a b2
   | G.ExprStmt _, _
   | G.DefStmt _, _
   | G.DirectiveStmt _, _
