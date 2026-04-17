@@ -29,6 +29,7 @@ public class Exceptions
 
     public static void test()
     {
+        // no match: pattern has no 'new' keyword, and code has no anonymous class body
         throw new IllegalArgumentException("simple");
 
         //ERROR: match
