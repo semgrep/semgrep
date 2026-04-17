@@ -1100,9 +1100,28 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       m_call_op aop toka aargs bop tokb bargs
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
-      m_expr a1 b1 >>= fun () -> m_arguments a2 b2
+      (m_expr a1 b1 >>= fun () -> m_arguments a2 b2)
+      (* equivalence: X(...) should also match new X(...) { ... }
+       * (anonymous class). In Java, `new X(args) { body }` is represented as
+       * Call(AnonClass { cextends = [(X, _)]; ... }, args). When the pattern
+       * is a simple call like X(...), we also try matching the callee name
+       * against the parent type in the anonymous class definition.
+       *)
+      >||> (match (a1.e, b1.e) with
+           | G.N a_name, B.AnonClass { B.cextends = [ ({ t = B.TyN b_name; _ }, _) ]; _ } ->
+               m_name a_name b_name >>= fun () -> m_arguments a2 b2
+           | _ -> fail ())
   | G.New (_a0, a1, _a2, a3), B.New (_b0, b1, _b2, b3) ->
       m_type_ a1 b1 >>= fun () -> m_arguments a3 b3
+  (* equivalence: new X(...) should also match new X(...) { ... }
+   * (anonymous class). In Java, `new X(args) { body }` is represented as
+   * Call(AnonClass { cextends = [(X, _)]; ... }, args), so we allow
+   * a New pattern to match that form by checking the parent type.
+   *)
+  | ( G.New (_a0, a1, _a2, a3),
+      B.Call ({ e = B.AnonClass { B.cextends = [ (b_type, _) ]; _ }; _ }, b3) )
+    ->
+      m_type_ a1 b_type >>= fun () -> m_arguments a3 b3
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
       m_expr a1 b1
       >>= (fun () -> m_tok at bt >>= fun () -> m_expr a2 b2)
