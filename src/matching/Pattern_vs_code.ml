@@ -2899,6 +2899,10 @@ and m_stmt a b =
   | G.WithUsingResource (a1, a2, a3), B.WithUsingResource (b1, b2, b3) ->
       m_tok a1 b1 >>= fun () ->
       m_list m_stmt a2 b2 >>= fun () -> m_stmt a3 b3
+  (* When code has a label but pattern doesn't, try matching the inner
+     statement. This allows patterns like "z(); ... y();" to match across
+     goto label sections in C/C++. *)
+  | _, B.Label (_b1, b2) -> m_stmt a b2
   | G.ExprStmt _, _
   | G.DefStmt _, _
   | G.DirectiveStmt _, _
