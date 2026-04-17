@@ -10,7 +10,6 @@ local build_job = docker.build_and_run_gha_job(
   name='build-test-docker',
   description='Build Core',
   target='semgrep-cli',
-  write_permission=false,
 );
 
 // ----------------------------------------------------------------------------

@@ -9,6 +9,46 @@ local on_pull_request_config = {
   'branches-ignore': ['**/graphite-base/**'],
 };
 
+local write_permissions = {
+  // Needed when we want to upload data to s3 or more generally
+  // when connecting to cloud services that use Open ID Connect.
+  // More details at
+  // https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect
+  'id-token': 'write',
+  // Needed when the job modifies the repository such as performing
+  // gh release commands.
+  contents: 'write',
+};
+
+// More restrictive permissions for jobs that only need to read the repository contents and not modify it.
+local read_permissions = write_permissions {
+  contents: 'read',
+};
+
+// needed when we want to modify the pull-request (e.g., for snapshot update)
+local pull_request_permissions = read_permissions {
+  'pull-requests': 'write',
+};
+
+local pull_request_write_permissions = pull_request_permissions {
+  contents: 'write',
+};
+
+// needed to check workflow runs
+local check_run_permissions = read_permissions {
+  actions: 'read',
+};
+
+// needed to check workflow runs and comment on PRs with results
+local check_and_comment_permissions = pull_request_permissions {
+  actions: 'read',
+};
+
+// Most permissive permissions, for jobs that call other jobs and comment on PRs with results
+local check_comment_and_write_permissions = check_and_comment_permissions {
+  contents: 'write',
+};
+
 {
   // Workflow helpers
   on_classic: {
@@ -39,26 +79,14 @@ local on_pull_request_config = {
       cron: cron,
     }],
   },
-  write_permissions: {
-    // Needed when we want to upload data to s3 or more generally
-    // when connecting to cloud services that use Open ID Connect.
-    // More details at
-    // https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect
-    'id-token': 'write',
-    // Needed when the job modifies the repository such as performing
-    // gh release commands.
-    contents: 'write',
-  },
-  read_permissions: {
-    'id-token': 'write',
-    contents: 'read',
-  },
-  pull_request_permissions: {
-    'id-token': 'write',
-    contents: 'write',
-    // needed when we want to modify the pull-request (e.g., for snapshot update)
-    'pull-requests': 'write',
-  },
+  read_permissions: read_permissions,
+  write_permissions: write_permissions,
+  pull_request_permissions: pull_request_permissions,
+  pull_request_write_permissions: pull_request_write_permissions,
+  check_run_permissions: check_run_permissions,
+  check_and_comment_permissions: check_and_comment_permissions,
+  check_comment_and_write_permissions: check_comment_and_write_permissions,
+
 
   // For making matrix jobs, i.e. one job running on multiple OSes.
   os_matrix(oss=['ubuntu-latest', 'macos-latest', 'windows-2025'], steps): {
