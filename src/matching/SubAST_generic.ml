@@ -72,21 +72,21 @@ let subexprs_of_stmt_kind = function
   | For (_, MultiForEach es, _) ->
       es
       |> List.filter_map (function
-           | FE (_, _, e) -> Some [ e ]
-           | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
-           | FEllipsis _ -> None)
+        | FE (_, _, e) -> Some [ e ]
+        | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
+        | FEllipsis _ -> None)
       |> List_.flatten
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
       |> List.filter_map (function
-           | ForInitExpr e -> Some e
-           | ForInitVar (_, vdef) -> vdef.vinit))
+        | ForInitExpr e -> Some e
+        | ForInitVar (_, vdef) -> vdef.vinit))
       @ Option.to_list eopt1 @ Option.to_list eopt2
   | Assert (_, (_, args, _), _) ->
       args
       |> List.filter_map (function
-           | Arg e -> Some e
-           | _ -> None)
+        | Arg e -> Some e
+        | _ -> None)
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
   | OtherStmtWithStmt (_, xs, _) -> subexprs_of_any_list xs
   | RawStmt x -> Raw_tree.anys x |> subexprs_of_any_list
@@ -109,13 +109,13 @@ let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 let subexprs_of_args args =
   args |> Tok.unbracket
   |> List.filter_map (function
-       | Arg e
-       | ArgKwd (_, e)
-       | ArgKwdOptional (_, e) ->
-           Some e
-       | ArgType _
-       | OtherArg _ ->
-           None)
+    | Arg e
+    | ArgKwd (_, e)
+    | ArgKwdOptional (_, e) ->
+        Some e
+    | ArgType _
+    | OtherArg _ ->
+        None)
 
 (* used for deep expression matching *)
 let subexprs_of_expr with_symbolic_propagation e =
@@ -153,8 +153,8 @@ let subexprs_of_expr with_symbolic_propagation e =
       e
       :: (xs
          |> List.map (function
-              | CompFor (_, _pat, _, e) -> e
-              | CompIf (_, e) -> e))
+           | CompFor (_, _pat, _, e) -> e
+           | CompIf (_, e) -> e))
   | New (_, _t, _ii, args) -> subexprs_of_args args
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
@@ -320,8 +320,8 @@ let substmts_of_stmt st =
   | Switch (_, _, xs) ->
       xs
       |> List.concat_map (function
-           | CasesAndBody (_, st) -> [ st ]
-           | CaseEllipsis _ -> [])
+        | CasesAndBody (_, st) -> [ st ]
+        | CaseEllipsis _ -> [])
   | Try (_, st, xs, opt1, opt2) -> (
       [ st ]
       @ (xs |> List.map Common2.thd3)

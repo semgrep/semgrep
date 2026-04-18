@@ -188,8 +188,8 @@ and v_export (v1, v2) : G.directive list =
   let v2 = v_list (v_import_expr v1) v2 in
   List_.flatten v2
   |> List.map (fun x ->
-         G.OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
-         |> G.d)
+      G.OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
+      |> G.d)
 
 and v_package (v1, v2) =
   let v1 = v_tok v1 and v2 = v_qualified_ident v2 in
@@ -221,12 +221,10 @@ and v_literal = function
       let args =
         v2
         |> List.map (function
-             | Either.Left lit -> G.Arg (G.L lit |> G.e)
-             | Either.Right e ->
-                 let special =
-                   G.Special (G.InterpolatedElement, fake "") |> G.e
-                 in
-                 G.Arg (G.Call (special, fb [ G.Arg e ]) |> G.e))
+          | Either.Left lit -> G.Arg (G.L lit |> G.e)
+          | Either.Right e ->
+              let special = G.Special (G.InterpolatedElement, fake "") |> G.e in
+              G.Arg (G.Call (special, fb [ G.Arg e ]) |> G.e))
       in
       Either.Right (G.Call (special, (snd v1, args, v3)) |> G.e)
 
@@ -331,8 +329,8 @@ and v_type_kind = function
       let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
       todo_type "TyRefined"
         ((match v1 with
-         | None -> []
-         | Some t -> [ G.T t ])
+           | None -> []
+           | Some t -> [ G.T t ])
         @ (defs |> List.map (fun def -> G.Def def)))
   | TyMatch (ty, tok, cases) ->
       let cases = v_type_case_clauses cases in
@@ -789,13 +787,13 @@ and v_catch_clause (v1, v2) : G.catch list =
   | CatchCases (_lb, xs, _rb) ->
       xs
       |> List.map (function
-           | CC x ->
-               let icase, pat, st = v_case_clause_classic x in
-               (icase, G.CatchPattern pat, st)
-           | CaseEllipsis ii ->
-               (* TODO: refactor G.catch to allow CatchEllipsis? *)
-               let st = G.Ellipsis ii |> G.e |> G.exprstmt in
-               (ii, G.CatchPattern (G.PatEllipsis ii), st))
+        | CC x ->
+            let icase, pat, st = v_case_clause_classic x in
+            (icase, G.CatchPattern pat, st)
+        | CaseEllipsis ii ->
+            (* TODO: refactor G.catch to allow CatchEllipsis? *)
+            let st = G.Ellipsis ii |> G.e |> G.exprstmt in
+            (ii, G.CatchPattern (G.PatEllipsis ii), st))
   | CatchExpr e ->
       let e = v_expr e in
       let pat = G.PatWildcard v1 in
@@ -951,11 +949,10 @@ and v_given_definition { gsig; gkind } =
         let v1 =
           v_list v_constr_app constr_apps
           |> List.map (fun (ty, argss) ->
-                 let flat_args =
-                   List.concat_map (fun (_, args, _) -> args) argss
-                 in
-                 G.Anys
-                   [ G.T ty; G.Anys (List.map (fun x -> G.Ar x) flat_args) ])
+              let flat_args =
+                List.concat_map (fun (_, args, _) -> args) argss
+              in
+              G.Anys [ G.T ty; G.Anys (List.map (fun x -> G.Ar x) flat_args) ])
         in
         let v2 =
           match body with
@@ -1014,8 +1011,7 @@ and v_enum_case_definition attrs v1 =
       let ids = v_list v_ident ids in
       ids
       |> List.map (fun id ->
-             ( G.basic_entity id,
-               G.EnumEntryDef { ee_args = None; ee_body = None } ))
+          (G.basic_entity id, G.EnumEntryDef { ee_args = None; ee_body = None }))
   | EnumConstr { eid; etyparams; eparams; eattrs; eextends } ->
       let id = v_ident eid in
       let tparams = v_type_parameters etyparams in
@@ -1055,19 +1051,19 @@ and v_variable_definitions
   let eopt = v_option v_expr v_vbody in
   v_vpatterns
   |> List.filter_map (fun pat ->
-         match pat with
-         | PatVarid id
-         | PatName (Id id, []) ->
-             let ent = G.basic_entity id ~attrs in
-             let vdef = { G.vinit = eopt; vtype = topt; vtok = G.no_sc } in
-             Some (ent, G.VarDef vdef)
-         | _ ->
-             (* TODO: some patterns may have tparams? *)
-             let ent =
-               { G.name = EPattern (v_pattern pat); attrs; tparams = None }
-             in
-             let vdef = { G.vinit = eopt; vtype = topt; vtok = G.no_sc } in
-             Some (ent, G.VarDef vdef))
+      match pat with
+      | PatVarid id
+      | PatName (Id id, []) ->
+          let ent = G.basic_entity id ~attrs in
+          let vdef = { G.vinit = eopt; vtype = topt; vtok = G.no_sc } in
+          Some (ent, G.VarDef vdef)
+      | _ ->
+          (* TODO: some patterns may have tparams? *)
+          let ent =
+            { G.name = EPattern (v_pattern pat); attrs; tparams = None }
+          in
+          let vdef = { G.vinit = eopt; vtype = topt; vtok = G.no_sc } in
+          Some (ent, G.VarDef vdef))
 
 and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v1 = v_ident v_name in

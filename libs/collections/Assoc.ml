@@ -64,7 +64,7 @@ let group_by_multi get_keys xs =
   let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun x ->
-         get_keys x |> List.iter (fun key -> Hashtbl_.push h key x));
+      get_keys x |> List.iter (fun key -> Hashtbl_.push h key x));
   Hashtbl.fold (fun k stack acc -> (k, List.rev !stack) :: acc) h []
 
 (* you should really use group_assoc_bykey_eff *)

@@ -94,12 +94,12 @@ let translate_frag conf buf pos (frag : Pattern.segment_fragment) =
       if complement then add buf "[^" else addc buf '[';
       ranges
       |> List.iter (fun range ->
-             match range with
-             | Class_char c -> quote_char buf c
-             | Range (a, b) ->
-                 quote_char buf a;
-                 addc buf '-';
-                 quote_char buf b);
+          match range with
+          | Class_char c -> quote_char buf c
+          | Range (a, b) ->
+              quote_char buf a;
+              addc buf '-';
+              quote_char buf b);
       addc buf ']'
   | Question ->
       if pos = 0 && not conf.glob_period then

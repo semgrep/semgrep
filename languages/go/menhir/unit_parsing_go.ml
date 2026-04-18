@@ -29,6 +29,6 @@ let tests =
           let files = Common2.glob (dir / "*.go") in
           files
           |> List.iter (fun file ->
-                 Testutil.run (Fpath.to_string file) (fun () ->
-                     Parse_go.parse_program file |> ignore)));
+              Testutil.run (Fpath.to_string file) (fun () ->
+                  Parse_go.parse_program file |> ignore)));
     ]

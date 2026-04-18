@@ -162,80 +162,80 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let per_files =
     matches
     |> List.map (fun ({ pm; _ } : Core_result.processed_match) ->
-           (pm.path.internal_path_to_content, pm))
+        (pm.path.internal_path_to_content, pm))
     |> Assoc.group_assoc_bykey_eff
   in
 
   let offending_file_list =
     per_files
     |> List.filter_map (fun (file, xs) ->
-           if List.length xs > max_match_per_file then Some file else None)
+        if List.length xs > max_match_per_file then Some file else None)
   in
   let offending_files = Hashtbl_.hashset_of_list offending_file_list in
   let new_matches =
     matches
     |> List_.exclude (fun ({ pm; _ } : Core_result.processed_match) ->
-           Hashtbl.mem offending_files pm.path.internal_path_to_content)
+        Hashtbl.mem offending_files pm.path.internal_path_to_content)
   in
   let new_errors, new_skipped =
     offending_file_list
     |> List.map (fun (file : Fpath.t) ->
-           (* logging useful info for rule writers *)
-           Logs.warn (fun m ->
-               m "too many matches on %s, generating exn for it" !!file);
-           let sorted_offending_rules =
-             let matches = List.assoc file per_files in
-             matches
-             |> List.map (fun (m : Core_match.t) ->
-                    let rule_id = m.rule_id in
-                    ((rule_id.id, rule_id.pattern_string), m))
-             |> Assoc.group_assoc_bykey_eff
-             |> List.map (fun (k, xs) -> (k, List.length xs))
-             |> Assoc.sort_by_val_highfirst
-             (* nosemgrep *)
-           in
-           let offending_rules = List.length sorted_offending_rules in
-           let biggest_offending_rule =
-             match sorted_offending_rules with
-             | x :: _ -> x
-             | _ -> assert false
-           in
-           let (id, pat), cnt = biggest_offending_rule in
-           Logs.warn (fun m ->
-               m "most offending rule: id = %s, matches = %d, pattern = %s"
-                 (Rule_ID.to_string id) cnt pat);
+        (* logging useful info for rule writers *)
+        Logs.warn (fun m ->
+            m "too many matches on %s, generating exn for it" !!file);
+        let sorted_offending_rules =
+          let matches = List.assoc file per_files in
+          matches
+          |> List.map (fun (m : Core_match.t) ->
+              let rule_id = m.rule_id in
+              ((rule_id.id, rule_id.pattern_string), m))
+          |> Assoc.group_assoc_bykey_eff
+          |> List.map (fun (k, xs) -> (k, List.length xs))
+          |> Assoc.sort_by_val_highfirst
+          (* nosemgrep *)
+        in
+        let offending_rules = List.length sorted_offending_rules in
+        let biggest_offending_rule =
+          match sorted_offending_rules with
+          | x :: _ -> x
+          | _ -> assert false
+        in
+        let (id, pat), cnt = biggest_offending_rule in
+        Logs.warn (fun m ->
+            m "most offending rule: id = %s, matches = %d, pattern = %s"
+              (Rule_ID.to_string id) cnt pat);
 
-           (* todo: we should maybe use a new error: TooManyMatches of int * string*)
-           let loc = Loc.first_loc_of_file file in
-           let error =
-             E.mk_error ~rule_id:id
-               ~msg:
-                 (spf
-                    "%d rules result in too many matches, most offending rule \
-                     has %d: %s"
-                    offending_rules cnt pat)
-               ~loc Out.TooManyMatches
-           in
-           let skipped =
-             sorted_offending_rules
-             |> List.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
-                    let details =
-                      Some
-                        (spf
-                           "found %i matches for rule %s, which exceeds the \
-                            maximum of %i matches."
-                           n
-                           (Rule_ID.to_string rule_id)
-                           max_match_per_file)
-                    in
-                    {
-                      Semgrep_output_v1_t.path = file;
-                      reason = Too_many_matches;
-                      details;
-                      rule_id = Some rule_id;
-                    })
-           in
-           (error, skipped))
+        (* todo: we should maybe use a new error: TooManyMatches of int * string*)
+        let loc = Loc.first_loc_of_file file in
+        let error =
+          E.mk_error ~rule_id:id
+            ~msg:
+              (spf
+                 "%d rules result in too many matches, most offending rule has \
+                  %d: %s"
+                 offending_rules cnt pat)
+            ~loc Out.TooManyMatches
+        in
+        let skipped =
+          sorted_offending_rules
+          |> List.map (fun (((rule_id : Rule_ID.t), _pat), n) ->
+              let details =
+                Some
+                  (spf
+                     "found %i matches for rule %s, which exceeds the maximum \
+                      of %i matches."
+                     n
+                     (Rule_ID.to_string rule_id)
+                     max_match_per_file)
+              in
+              {
+                Semgrep_output_v1_t.path = file;
+                reason = Too_many_matches;
+                details;
+                rule_id = Some rule_id;
+              })
+        in
+        (error, skipped))
     |> List_.split
   in
   (new_matches, new_errors, List_.flatten new_skipped)
@@ -256,31 +256,31 @@ let filter_existing_targets (targets : Target.t list) :
     Target.t list * Out.skipped_target list =
   targets
   |> Either_.partition (fun (target : Target.t) ->
-         let internal_path = Target.internal_path target in
-         if Sys_.Fpath.exists internal_path then Left target
-         else
-           match Target.origin target with
-           | Unfilterable_target_file path
-           | Target_file { fpath = path; _ } ->
-               Logs.warn (fun m -> m "skipping %s which does not exist" !!path);
-               Right
-                 {
-                   Semgrep_output_v1_t.path;
-                   reason = Nonexistent_file;
-                   details = Some "File does not exist";
-                   rule_id = None;
-                 }
-           | Git_blob { sha; _ } ->
-               Right
-                 {
-                   Semgrep_output_v1_t.path = Target.internal_path target;
-                   reason = Nonexistent_file;
-                   details =
-                     Some
-                       (spf "Issue creating a target from git blob %s"
-                          (Digestif.SHA1.to_hex sha));
-                   rule_id = None;
-                 })
+      let internal_path = Target.internal_path target in
+      if Sys_.Fpath.exists internal_path then Left target
+      else
+        match Target.origin target with
+        | Unfilterable_target_file path
+        | Target_file { fpath = path; _ } ->
+            Logs.warn (fun m -> m "skipping %s which does not exist" !!path);
+            Right
+              {
+                Semgrep_output_v1_t.path;
+                reason = Nonexistent_file;
+                details = Some "File does not exist";
+                rule_id = None;
+              }
+        | Git_blob { sha; _ } ->
+            Right
+              {
+                Semgrep_output_v1_t.path = Target.internal_path target;
+                reason = Nonexistent_file;
+                details =
+                  Some
+                    (spf "Issue creating a target from git blob %s"
+                       (Digestif.SHA1.to_hex sha));
+                rule_id = None;
+              })
 
 let translate_targeting_conf_from_pysemgrep (par_conf : Parallelism_config.t)
     (num_jobs : int) (conf : Out.targeting_conf) : Find_targets.conf =
@@ -300,11 +300,11 @@ let translate_targeting_conf_from_pysemgrep (par_conf : Parallelism_config.t)
     force_project_root =
       conf.force_project_root
       |> Option.map (fun (x : Out.project_root) ->
-             match x with
-             | `Filesystem str ->
-                 Find_targets.Filesystem (Rfpath.of_string_exn str)
-             | `Git_remote str ->
-                 Find_targets.Git_remote { url = Uri.of_string str });
+          match x with
+          | `Filesystem str ->
+              Find_targets.Filesystem (Rfpath.of_string_exn str)
+          | `Git_remote str ->
+              Find_targets.Git_remote { url = Uri.of_string str });
     force_novcs_project = conf.force_novcs_project;
     exclude_minified_files = conf.exclude_minified_files;
     baseline_commit = conf.baseline_commit;
@@ -588,7 +588,7 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
       *)
       rule_ids
       |> List.map (fun error_rule_id ->
-             E.mk_error ~rule_id:error_rule_id ~loc Out.Timeout)
+          E.mk_error ~rule_id:error_rule_id ~loc Out.Timeout)
       |> ESet.of_list
   | Out_of_memory ->
       Logs.warn (fun m -> m "OutOfMemory on %s" (Origin.to_string origin));
@@ -662,10 +662,10 @@ let parmap_map ~num_jobs f xs =
   |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
        ~num_jobs f
   |> List.map (fun x ->
-         match x with
-         | Ok res -> res
-         | Error (target, core_error) ->
-             core_error_to_match_result target core_error)
+      match x with
+      | Ok res -> res
+      | Error (target, core_error) ->
+          core_error_to_match_result target core_error)
 
 (* Returns a list of match results and a separate list of scanned targets *)
 let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
@@ -793,16 +793,15 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 let rules_for_analyzer ~combine_js_with_ts analyzer rules =
   rules
   |> List.filter (fun (r : Rule.t) ->
-         (* Don't run a Python rule on a JavaScript target *)
-         Analyzer.is_compatible ~require:analyzer ~provide:r.target_analyzer
-         ||
-         (* See NOTE "Combined JS/TS analysis" *)
-         match (analyzer, r.target_analyzer) with
-         | Analyzer.L (lang1, _), Analyzer.L (lang2, langs2)
-           when combine_js_with_ts ->
-             Lang.is_js lang1
-             && (Lang.is_js lang2 || List.exists Lang.is_js langs2)
-         | _ -> false)
+      (* Don't run a Python rule on a JavaScript target *)
+      Analyzer.is_compatible ~require:analyzer ~provide:r.target_analyzer
+      ||
+      (* See NOTE "Combined JS/TS analysis" *)
+      match (analyzer, r.target_analyzer) with
+      | Analyzer.L (lang1, _), Analyzer.L (lang2, langs2)
+        when combine_js_with_ts ->
+          Lang.is_js lang1 && (Lang.is_js lang2 || List.exists Lang.is_js langs2)
+      | _ -> false)
 
 (*
    Path filtering applies on a ppath i.e. the path of the file from the
@@ -841,7 +840,7 @@ let origin_satisfy_paths_filter (origin : Origin.t)
   | Git_blob { paths = target_paths; _ } ->
       target_paths
       |> List.exists (fun (_, (path_at_commit : Fppath.t)) ->
-             Filter_target.filter_paths path_filter path_at_commit)
+          Filter_target.filter_paths path_filter path_at_commit)
 
 (* This is also used by semgrep-proprietary. *)
 (* TODO: reduce memory allocation by using only one call to List.filter?
@@ -854,20 +853,20 @@ let rules_for_target ~combine_js_with_ts ~respect_rule_paths (target : Target.t)
   let rules =
     rules
     |> List.filter (fun r ->
-           target.products |> List.exists (Out.equal_product r.Rule.product))
+        target.products |> List.exists (Out.equal_product r.Rule.product))
   in
   if respect_rule_paths then
     rules
     |> List.filter (fun (r : R.rule) ->
-           (* Honor per-rule include/exclude.
-            * Note that this also done in pysemgrep, but we need to do it
-            * again here for osemgrep which use a different file targeting
-            * strategy.
-            *)
-           match r.paths with
-           | None -> true
-           | Some path_filter ->
-               origin_satisfy_paths_filter target.path.origin path_filter)
+        (* Honor per-rule include/exclude.
+         * Note that this also done in pysemgrep, but we need to do it
+         * again here for osemgrep which use a different file targeting
+         * strategy.
+         *)
+        match r.paths with
+        | None -> true
+        | Some path_filter ->
+            origin_satisfy_paths_filter target.path.origin path_filter)
   else rules
 
 (*****************************************************************************)
@@ -1010,32 +1009,32 @@ let post_process_matches (f : post_processor) (res : Core_result.t) :
   let processed_matches =
     res.processed_matches
     |> List.map (fun pm ->
-           let pm, errs =
-             (* We don't want a bug in [f] (e.g., a nosemgrep parsing error)
-              * to crash the whole scan hence the error management below.
-              *)
-             try f pm with
-             (* The timeout should not happen because post_process_matches is
-              * run outside a time_limit but we do it for consistency.
-              *)
-             | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
-                 Exception.catch_and_reraise e
-             | exn ->
-                 let e = Exception.catch exn in
-                 Logs.warn (fun m ->
-                     m "exn in post_process_matches: %s" (Exception.to_string e));
-                 let file =
-                   match pm.pm.path.origin with
-                   | Unfilterable_target_file fpath
-                   | Target_file { fpath; _ } ->
-                       Some fpath
-                   | Git_blob _ -> None
-                 in
-                 let error = Core_error.exn_to_error ?file e in
-                 (pm, [ error ])
-           in
-           Stack_.push errs errors;
-           pm)
+        let pm, errs =
+          (* We don't want a bug in [f] (e.g., a nosemgrep parsing error)
+           * to crash the whole scan hence the error management below.
+           *)
+          try f pm with
+          (* The timeout should not happen because post_process_matches is
+           * run outside a time_limit but we do it for consistency.
+           *)
+          | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
+              Exception.catch_and_reraise e
+          | exn ->
+              let e = Exception.catch exn in
+              Logs.warn (fun m ->
+                  m "exn in post_process_matches: %s" (Exception.to_string e));
+              let file =
+                match pm.pm.path.origin with
+                | Unfilterable_target_file fpath
+                | Target_file { fpath; _ } ->
+                    Some fpath
+                | Git_blob _ -> None
+              in
+              let error = Core_error.exn_to_error ?file e in
+              (pm, [ error ])
+        in
+        Stack_.push errs errors;
+        pm)
   in
   {
     res with

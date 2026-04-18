@@ -29,14 +29,14 @@ let visit_formula f (formula : formula) : unit =
         xs |> List.iter aux);
     formula.conditions
     |> List.iter (fun (_, cond) ->
-           match cond with
-           | CondNestedFormula (_, _, formula) -> aux formula
-           | CondEval _
-           | CondName _
-           | CondType _
-           | CondRegexp _
-           | CondAnalysis _ ->
-               ())
+        match cond with
+        | CondNestedFormula (_, _, formula) -> aux formula
+        | CondEval _
+        | CondName _
+        | CondType _
+        | CondRegexp _
+        | CondAnalysis _ ->
+            ())
   in
   aux formula
 

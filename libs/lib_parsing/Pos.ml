@@ -159,17 +159,17 @@ let converters_of_arrays line_arr col_arr : bytepos_linecol_converters =
              let res =
                line_arr
                |> Ord.binary_search_bigarr1 ~f:(fun bytepos line' ->
-                      let col' = col_arr.{bytepos} in
-                      (* We want the relationship of the varying line' with
+                   let col' = col_arr.{bytepos} in
+                   (* We want the relationship of the varying line' with
                          respect to the line we are trying to search for.
                          For instance, if we want to find line 5, but are given
                          line 3, we should want to say Greater, because we want
                          to go greater.
                       *)
-                      match cmp line line' with
-                      | Ord.Equal -> cmp col col'
-                      | Ord.Less -> Ord.Less
-                      | Ord.Greater -> Ord.Greater)
+                   match cmp line line' with
+                   | Ord.Equal -> cmp col col'
+                   | Ord.Less -> Ord.Less
+                   | Ord.Greater -> Ord.Greater)
              in
              match res with
              | Error _idx -> raise Not_found

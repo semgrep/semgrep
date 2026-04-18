@@ -217,7 +217,7 @@ let ast_based_fix ~fix (start, end_) (pm : Core_match.t) : Textedit.t option =
       let/ fix_pattern_ast =
         parse_pattern lang fix_pattern
         |> Result.map_error (fun e ->
-               spf "Failed to parse fix pattern:\n%s" (Exception.to_string e))
+            spf "Failed to parse fix pattern:\n%s" (Exception.to_string e))
         |> Result.join
       in
 
@@ -422,8 +422,8 @@ let apply_fixes_of_core_matches ?dryrun (matches : OutJ.core_match list) : unit
     =
   matches
   |> List.filter_map (fun (m : OutJ.core_match) ->
-         let* replacement_text = m.extra.fix in
-         let start = m.start.offset in
-         let end_ = m.end_.offset in
-         Some Textedit.{ path = m.path; start; end_; replacement_text })
+      let* replacement_text = m.extra.fix in
+      let start = m.start.offset in
+      let end_ = m.end_.offset in
+      Some Textedit.{ path = m.path; start; end_; replacement_text })
   |> apply_fixes ?dryrun

@@ -121,9 +121,9 @@ let lval_of_var var = { IL.base = Var var; rev_offset = [] }
 let is_dots_offset offset =
   offset
   |> List.for_all (fun o ->
-         match o.o with
-         | Dot _ -> true
-         | Index _ -> false)
+      match o.o with
+      | Dot _ -> true
+      | Index _ -> false)
 
 let lval_of_instr_opt x =
   match x.i with

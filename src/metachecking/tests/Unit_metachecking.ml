@@ -47,17 +47,16 @@ let metachecker_checks_tests () =
      let files = Common2.glob (dir / "*.yaml") in
      files
      |> List.map (fun file ->
-            t (Fpath.basename file) (fun () ->
-                let actual =
-                  match Parse_rule.parse file with
-                  | Error e -> [ Core_error.error_of_rule_error e ]
-                  | Ok rules ->
-                      rules
-                      |> List.concat_map (fun rule -> Check_rule.check rule)
-                in
-                let expected = TCM.expected_error_lines_of_files [ file ] in
-                TCM.compare_actual_to_expected_for_alcotest
-                  ~to_location:TCM.location_of_core_error actual expected)))
+         t (Fpath.basename file) (fun () ->
+             let actual =
+               match Parse_rule.parse file with
+               | Error e -> [ Core_error.error_of_rule_error e ]
+               | Ok rules ->
+                   rules |> List.concat_map (fun rule -> Check_rule.check rule)
+             in
+             let expected = TCM.expected_error_lines_of_files [ file ] in
+             TCM.compare_actual_to_expected_for_alcotest
+               ~to_location:TCM.location_of_core_error actual expected)))
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests =

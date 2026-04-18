@@ -35,12 +35,12 @@ let test_rules ?(unit_testing = false) xs =
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
-         | FT.Config FT.Yaml -> true
-         | _ -> false)
+      | FT.Config FT.Yaml -> true
+      | _ -> false)
     |> List_.exclude (fun filepath ->
-           (* .test.yaml files are YAML target files rather than config files! *)
-           Fpath.has_ext ".test.yaml" filepath
-           || Fpath.has_ext ".rule.yaml" filepath)
+        (* .test.yaml files are YAML target files rather than config files! *)
+        Fpath.has_ext ".test.yaml" filepath
+        || Fpath.has_ext ".rule.yaml" filepath)
   in
 
   let newscore = Common2.empty_score () in
@@ -49,66 +49,64 @@ let test_rules ?(unit_testing = false) xs =
 
   fullxs
   |> List.iter (fun file ->
-         Logs.info (fun m -> m "test_rules: processing rule file %s" !!file);
+      Logs.info (fun m -> m "test_rules: processing rule file %s" !!file);
 
-         (* just a sanity check *)
-         (* rules |> List.iter Check_rule.check; *)
-         let target =
-           try
-             let d, b, ext = Filename_.dbe_of_filename !!file in
-             let entries = CapFS.read_dir_entries (Fpath.v d) in
-             entries
-             |> List_.find_some (fun file2 ->
-                    let path2 = Filename.concat d !!file2 |> Fpath.v in
-                    (* Config files have a single .yaml extension (assumption),
-                     * but test files may have multiple extensions, e.g.
-                     * ".test.yaml" (YAML test files), ".sites-available.conf",
-                     * ... *)
-                    match Filename_.dbe_of_filename_many_ext_opt !!file2 with
-                    | None -> None
-                    | Some (_, b2, ext2) ->
-                        if
-                          b = b2 && ext <> ext2
-                          (* .yaml.j2 files are Jinja2 templates to generate Semgrep config files *)
-                          && ext2 <> "yaml.j2"
-                          (* ugly: jsonnet exclusion below because of some .jsonnet and .yaml
-                           * ambiguities in tests/rules *)
-                          && ext2 <> "jsonnet"
-                        then Some path2
-                        else None)
-           with
-           | Not_found -> failwith (spf "could not find a target for %s" !!file)
-         in
-         Logs.info (fun m -> m "test_rules: processing target %s" !!target);
-         (* expected *)
-         (* not tororuleid! not ok:! *)
-         let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
-         let expected_error_lines =
-           TCM.expected_error_lines_of_files ~regexp [ target ]
-         in
+      (* just a sanity check *)
+      (* rules |> List.iter Check_rule.check; *)
+      let target =
+        try
+          let d, b, ext = Filename_.dbe_of_filename !!file in
+          let entries = CapFS.read_dir_entries (Fpath.v d) in
+          entries
+          |> List_.find_some (fun file2 ->
+              let path2 = Filename.concat d !!file2 |> Fpath.v in
+              (* Config files have a single .yaml extension (assumption),
+               * but test files may have multiple extensions, e.g.
+               * ".test.yaml" (YAML test files), ".sites-available.conf",
+               * ... *)
+              match Filename_.dbe_of_filename_many_ext_opt !!file2 with
+              | None -> None
+              | Some (_, b2, ext2) ->
+                  if
+                    b = b2 && ext <> ext2
+                    (* .yaml.j2 files are Jinja2 templates to generate Semgrep config files *)
+                    && ext2 <> "yaml.j2"
+                    (* ugly: jsonnet exclusion below because of some .jsonnet and .yaml
+                     * ambiguities in tests/rules *)
+                    && ext2 <> "jsonnet"
+                  then Some path2
+                  else None)
+        with
+        | Not_found -> failwith (spf "could not find a target for %s" !!file)
+      in
+      Logs.info (fun m -> m "test_rules: processing target %s" !!target);
+      (* expected *)
+      (* not tororuleid! not ok:! *)
+      let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
+      let expected_error_lines =
+        TCM.expected_error_lines_of_files ~regexp [ target ]
+      in
 
-         (* actual *)
-         let actual_errors =
-           try Check_rule.run_checks file [ target ] with
-           | exn ->
-               failwith
-                 (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
-         in
-         actual_errors
-         |> List.iter (fun e ->
-                Logs.err (fun m ->
-                    m "test_rules: found error: %s" (E.string_of_error e)));
-         match
-           TCM.compare_actual_to_expected
-             ~to_location:TCM.location_of_core_error actual_errors
-             expected_error_lines
-         with
-         | Ok () -> Hashtbl.add newscore !!file Common2.Ok
-         | Error (num_errors, msg) ->
-             Logs.err (fun m -> m "%s" msg);
-             Hashtbl.add newscore !!file (Common2.Pb msg);
-             total_mismatch := !total_mismatch + num_errors;
-             if unit_testing then Alcotest.fail msg);
+      (* actual *)
+      let actual_errors =
+        try Check_rule.run_checks file [ target ] with
+        | exn ->
+            failwith (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))
+      in
+      actual_errors
+      |> List.iter (fun e ->
+          Logs.err (fun m ->
+              m "test_rules: found error: %s" (E.string_of_error e)));
+      match
+        TCM.compare_actual_to_expected ~to_location:TCM.location_of_core_error
+          actual_errors expected_error_lines
+      with
+      | Ok () -> Hashtbl.add newscore !!file Common2.Ok
+      | Error (num_errors, msg) ->
+          Logs.err (fun m -> m "%s" msg);
+          Hashtbl.add newscore !!file (Common2.Pb msg);
+          total_mismatch := !total_mismatch + num_errors;
+          if unit_testing then Alcotest.fail msg);
   if not unit_testing then
     Logs.info (fun m ->
         m "%s" (Parsing_stat.regression_information ~ext xs newscore));

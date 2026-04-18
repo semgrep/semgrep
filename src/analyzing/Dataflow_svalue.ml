@@ -58,10 +58,10 @@ let eval_format env args =
   if
     cs
     |> List.for_all (function
-         | G.Lit _
-         | G.Cst _ ->
-             true
-         | _ -> false)
+      | G.Lit _
+      | G.Cst _ ->
+          true
+      | _ -> false)
   then G.Cst G.Cstr
   else G.NotCst
 
@@ -505,19 +505,17 @@ and (fixpoint : Lang.t -> Fun_CFG.t -> mapping) =
 and update_svalue (flow : F.cfg) mapping =
   flow.graph#nodes
   |> Int_map.iter (fun ni _ ->
-         let ni_info = mapping.(ni) in
+      let ni_info = mapping.(ni) in
 
-         let node = Int_map.find ni flow.graph#nodes in
+      let node = Int_map.find ni flow.graph#nodes in
 
-         (* Update RHS svalue according to the input env. *)
-         LV.rlvals_of_node node.n
-         |> List.iter (function
-              | { base = Var var; _ } -> (
-                  match
-                    VarMap.find_opt (IL.str_of_name var) ni_info.D.in_env
-                  with
-                  | None -> ()
-                  | Some c -> set_svalue_ref var.id_info c)
-              | ___else___ -> ())
-         (* Should not update the LHS svalue since in x = E, x is a "ref",
-          * and it should not be substituted for the value it holds. *))
+      (* Update RHS svalue according to the input env. *)
+      LV.rlvals_of_node node.n
+      |> List.iter (function
+        | { base = Var var; _ } -> (
+            match VarMap.find_opt (IL.str_of_name var) ni_info.D.in_env with
+            | None -> ()
+            | Some c -> set_svalue_ref var.id_info c)
+        | ___else___ -> ())
+      (* Should not update the LHS svalue since in x = E, x is a "ref",
+       * and it should not be substituted for the value it holds. *))

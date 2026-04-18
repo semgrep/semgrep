@@ -664,11 +664,11 @@ and map_expr env x : G.expr =
 
 and map_special_wrap _env (spec, tk) =
   (match spec with
-  | This -> N (IdSpecial ((G.This, tk), G.empty_id_info ()))
-  | Defined -> Special (G.Defined, tk)
-  | SizeOf -> Special (G.Sizeof, tk)
-  | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ()))
-  | OffsetOf -> N (Id (("offsetof", tk), G.empty_id_info ())))
+    | This -> N (IdSpecial ((G.This, tk), G.empty_id_info ()))
+    | Defined -> Special (G.Defined, tk)
+    | SizeOf -> Special (G.Sizeof, tk)
+    | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ()))
+    | OffsetOf -> N (Id (("offsetof", tk), G.empty_id_info ())))
   |> G.e
 
 and map_argument env x : G.argument =
@@ -1047,8 +1047,8 @@ and map_cases env tk st : G.case_and_body list =
                 let before_next_case, rest =
                   xs
                   |> List_.span (function
-                       | X (S (Case _ | CaseRange _ | Default _)) -> false
-                       | _ -> true)
+                    | X (S (Case _ | CaseRange _ | Default _)) -> false
+                    | _ -> true)
                 in
                 let case_repack =
                   repack_case_with_following_stmts env case1 before_next_case
@@ -1118,9 +1118,9 @@ and repack_case_with_following_stmts _env (st_case_only : stmt) sts : stmt =
   let sts =
     sts
     |> List.filter_map (function
-         | X x -> Some x
-         (* TODO? skipped directive code? *)
-         | _ -> None)
+      | X x -> Some x
+      (* TODO? skipped directive code? *)
+      | _ -> None)
   in
   match st_case_only with
   | Case (v1, v2, v3, v4) ->
@@ -1244,15 +1244,14 @@ and map_a_expr_or_vars (env : env) (v : a_expr_or_vars) : G.for_var_or_expr list
       let xs, _sc = map_vars_decl env xs in
       xs
       |> List.map (fun (ent, def) ->
-             match def with
-             | G.VarDef vdef -> G.ForInitVar (ent, vdef)
-             | _ ->
-                 let e =
-                   G.OtherExpr
-                     (("ForInitNotVar", G.fake ""), [ G.Def (ent, def) ])
-                   |> G.e
-                 in
-                 G.ForInitExpr e)
+          match def with
+          | G.VarDef vdef -> G.ForInitVar (ent, vdef)
+          | _ ->
+              let e =
+                G.OtherExpr (("ForInitNotVar", G.fake ""), [ G.Def (ent, def) ])
+                |> G.e
+              in
+              G.ForInitExpr e)
 
 and map_a_label env v = map_wrap env map_of_string v
 

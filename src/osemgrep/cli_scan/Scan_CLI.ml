@@ -1153,33 +1153,33 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
   let target_roots =
     target_roots
     |> List.map (fun str ->
-           match str with
-           | "-" ->
-               imply_always_select_explicit_targets := true;
-               if experimental then
-                 (* consumes stdin, preventing command-line forwarding to
+        match str with
+        | "-" ->
+            imply_always_select_explicit_targets := true;
+            if experimental then
+              (* consumes stdin, preventing command-line forwarding to
                     pysemgrep or another osemgrep! *)
-                 UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
-               else
-                 (* remove this hack when no longer forward the command line
+              UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
+            else
+              (* remove this hack when no longer forward the command line
                     to another program *)
-                 Fpath.v "/dev/stdin"
-           | str ->
-               let orig_path = Fpath.v str in
-               if
-                 experimental
-                 && Skip_target.filter_file_access_permissions orig_path
-                    |> Result.is_ok
-               then (
-                 match
-                   UTmp.replace_named_pipe_by_regular_file_if_needed
-                     ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
-                 with
-                 | None -> orig_path
-                 | Some new_path ->
-                     imply_always_select_explicit_targets := true;
-                     new_path)
-               else orig_path)
+              Fpath.v "/dev/stdin"
+        | str ->
+            let orig_path = Fpath.v str in
+            if
+              experimental
+              && Skip_target.filter_file_access_permissions orig_path
+                 |> Result.is_ok
+            then (
+              match
+                UTmp.replace_named_pipe_by_regular_file_if_needed
+                  ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
+              with
+              | None -> orig_path
+              | Some new_path ->
+                  imply_always_select_explicit_targets := true;
+                  new_path)
+            else orig_path)
     |> List.map Scanning_root.of_fpath
   in
   if !imply_always_select_explicit_targets then
@@ -1317,8 +1317,8 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
   if
     oss
     && ((match x_tr with
-        | Some true -> true
-        | _ -> false)
+          | Some true -> true
+          | _ -> false)
        || allow_local_builds)
   then Error.abort "Cannot run SCA scan with OSS engine (--oss specified).";
   if

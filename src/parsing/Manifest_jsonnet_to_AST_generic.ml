@@ -54,15 +54,15 @@ let rec value_to_expr (v : V.t) : G.expr =
       let xs =
         arr |> Array.to_list
         |> List.map (fun (entry : V.lazy_value) ->
-               value_to_expr
-                 (match entry.lv with
-                 | Closure (env, e) ->
-                     let finalv = E.eval_program_with_env env e in
-                     entry.lv <- Val finalv;
-                     finalv
-                 (* impossible too? *)
-                 | Val v -> v
-                 | Unevaluated _ -> raise Impossible))
+            value_to_expr
+              (match entry.lv with
+              | Closure (env, e) ->
+                  let finalv = E.eval_program_with_env env e in
+                  entry.lv <- Val finalv;
+                  finalv
+              (* impossible too? *)
+              | Val v -> v
+              | Unevaluated _ -> raise Impossible))
       in
       G.Container (G.Array, (l, xs, r)) |> G.e
   | Object (l, (_assertsTODO, fields), r) ->
@@ -70,23 +70,23 @@ let rec value_to_expr (v : V.t) : G.expr =
       let xs =
         fields
         |> List.filter_map (fun { V.fld_name; fld_hidden; fld_value } ->
-               match fst fld_hidden with
-               | A.Hidden -> None
-               | A.Visible
-               | A.ForcedVisible ->
-                   let v =
-                     match fld_value.lv with
-                     | Closure (env, e) ->
-                         let finalv = E.eval_program_with_env env e in
-                         fld_value.lv <- Val finalv;
-                         finalv
-                     | Val v -> v
-                     (* impossible? *)
-                     | Unevaluated _ -> raise Impossible
-                   in
-                   let e = value_to_expr v in
-                   let k = G.L (G.String (fb fld_name)) |> G.e in
-                   Some (G.keyval k (snd fld_name) e))
+            match fst fld_hidden with
+            | A.Hidden -> None
+            | A.Visible
+            | A.ForcedVisible ->
+                let v =
+                  match fld_value.lv with
+                  | Closure (env, e) ->
+                      let finalv = E.eval_program_with_env env e in
+                      fld_value.lv <- Val finalv;
+                      finalv
+                  | Val v -> v
+                  (* impossible? *)
+                  | Unevaluated _ -> raise Impossible
+                in
+                let e = value_to_expr v in
+                let k = G.L (G.String (fb fld_name)) |> G.e in
+                Some (G.keyval k (snd fld_name) e))
       in
       G.Container (G.Dict, (l, xs, r)) |> G.e
 

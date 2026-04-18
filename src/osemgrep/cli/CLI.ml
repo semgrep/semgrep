@@ -74,7 +74,7 @@ let metrics_init () : unit =
   Metrics_.init ~anonymous_user_id ~ci:!Env.v.is_ci;
   api_token
   |> Option.iter (fun (_token : Auth.token) ->
-         Metrics_.g.payload.environment.isAuthenticated <- true);
+      Metrics_.g.payload.environment.isAuthenticated <- true);
   !Env.v.user_agent_append |> Option.iter Metrics_.add_user_agent_tag;
   Metrics_.g.payload.environment.integrationName <- !Env.v.integration_name;
   ()

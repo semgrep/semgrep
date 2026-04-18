@@ -90,8 +90,8 @@ let map (f : 'k -> 'v -> 'w) (h : ('k, 'v) Hashtbl.t) : ('k, 'w) Hashtbl.t =
   let res : ('k, 'w) Hashtbl.t = Hashtbl.create 101 in
   h
   |> Hashtbl.iter (fun k v ->
-         let w = f k v in
-         Hashtbl.replace res k w);
+      let w = f k v in
+      Hashtbl.replace res k w);
   res
 
 let sorted_iter ~cmp f h =

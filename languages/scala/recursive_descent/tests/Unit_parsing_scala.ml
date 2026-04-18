@@ -29,25 +29,25 @@ let tests =
           let files = Common2.glob (dir / "*.scala") in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ = Parse_scala.parse file in
-                   ()
-                 with
-                 | exn ->
-                     Alcotest.failf "it should correctly parse %a (exn = %s)"
-                       Fpath.pp file (Common.exn_to_s exn)));
+              try
+                let _ = Parse_scala.parse file in
+                ()
+              with
+              | exn ->
+                  Alcotest.failf "it should correctly parse %a (exn = %s)"
+                    Fpath.pp file (Common.exn_to_s exn)));
       t "rejecting bad code" (fun () ->
           let dir = tests_path / "scala" / "parsing_errors" in
           let files = Common2.glob (dir / "*.scala") in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ast = Parse_scala.parse file in
-                   Alcotest.failf "it should have thrown a Parse_error %a"
-                     Fpath.pp file
-                 with
-                 | Parsing_error.Syntax_error _ -> ()
-                 | exn ->
-                     Alcotest.failf "throwing wrong exn %s on %a"
-                       (Common.exn_to_s exn) Fpath.pp file));
+              try
+                let _ast = Parse_scala.parse file in
+                Alcotest.failf "it should have thrown a Parse_error %a" Fpath.pp
+                  file
+              with
+              | Parsing_error.Syntax_error _ -> ()
+              | exn ->
+                  Alcotest.failf "throwing wrong exn %s on %a"
+                    (Common.exn_to_s exn) Fpath.pp file));
     ]

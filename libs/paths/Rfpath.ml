@@ -43,16 +43,16 @@ let of_string s = s |> Fpath.v |> of_fpath
 let of_strings paths =
   paths
   |> List.partition_map (fun path ->
-         match of_string path with
-         | Ok rpath -> Left rpath
-         | Error msg -> Right (path, msg))
+      match of_string path with
+      | Ok rpath -> Left rpath
+      | Error msg -> Right (path, msg))
 
 let of_fpaths paths =
   paths
   |> List.partition_map (fun fpath ->
-         match of_fpath fpath with
-         | Ok rpath -> Left rpath
-         | Error msg -> Right (fpath, msg))
+      match of_fpath fpath with
+      | Ok rpath -> Left rpath
+      | Error msg -> Right (fpath, msg))
 
 let log_missing_path path msg =
   Log.warn (fun m -> m "Cannot obtain realpath for %S: %s" path msg)
@@ -66,7 +66,7 @@ let of_fpaths_with_warnings fpaths =
   let res, missing = of_fpaths fpaths in
   missing
   |> List.iter (fun (fpath, msg) ->
-         log_missing_path (Fpath.to_string fpath) msg);
+      log_missing_path (Fpath.to_string fpath) msg);
   res
 
 let to_fpath x = x.fpath

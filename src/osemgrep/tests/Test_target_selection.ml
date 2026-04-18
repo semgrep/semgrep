@@ -128,15 +128,14 @@ let normalize =
 let tests () : Testo.t list =
   repos_with_tests
   |> List.map (fun { repo_name; repo_files; tests } ->
-         tests
-         |> List.map (fun (test_name, test_func) ->
-                Testo.create ?skipped:Testutil.skip_on_windows
-                  ~category:[ "target selection on real git repos"; repo_name ]
-                  ~checked_output:(Testo.stdout ()) ~normalize test_name
-                  (fun () ->
-                    (* Create a temporary git repo and force-add all the
+      tests
+      |> List.map (fun (test_name, test_func) ->
+          Testo.create ?skipped:Testutil.skip_on_windows
+            ~category:[ "target selection on real git repos"; repo_name ]
+            ~checked_output:(Testo.stdout ()) ~normalize test_name (fun () ->
+              (* Create a temporary git repo and force-add all the
                        files even if they're gitignored *)
-                    Testutil_git.with_git_repo ~verbose:true
-                      ~force_add_gitignored_files:true repo_files (fun _cwd ->
-                        test_func ()))))
+              Testutil_git.with_git_repo ~verbose:true
+                ~force_add_gitignored_files:true repo_files (fun _cwd ->
+                  test_func ()))))
   |> List_.flatten

@@ -82,9 +82,9 @@ let included_in config rv1 rv2 =
   (Range.( $<=$ ) rv1.r rv2.r || rv2.kind = Anywhere)
   && rv1.mvars
      |> List.for_all (fun (mvar, mval1) ->
-            match List.assoc_opt mvar rv2.mvars with
-            | None -> true
-            (* Numeric capture group metavariables (of the form $1, $2, etc) may
+         match List.assoc_opt mvar rv2.mvars with
+         | None -> true
+         (* Numeric capture group metavariables (of the form $1, $2, etc) may
                be introduced implicitly via regular expressions that have
                capture groups in them. The unification of these metavariables
                can be dangerous, as it will prevent matches, when users may not
@@ -94,9 +94,9 @@ let included_in config rv1 rv2 =
                note: this does not affect named capture group metavariables
                from <?xxx>, which will still be unified as normal
             *)
-            | _ when Mvar.is_metavar_for_capture_group mvar -> true
-            | Some mval2 ->
-                Matching_generic.equal_ast_bound_code config mval1 mval2)
+         | _ when Mvar.is_metavar_for_capture_group mvar -> true
+         | Some mval2 ->
+             Matching_generic.equal_ast_bound_code config mval1 mval2)
 
 (* when we know x <= y, are the ranges also in the good Inside direction *)
 let inside_compatible x y =
@@ -153,22 +153,22 @@ let difference_ranges config pos neg =
   let surviving_pos =
     pos
     |> List.filter (fun x ->
-           not
-             (neg
-             |> List.exists (fun y ->
-                    (* pattern-not vs pattern-not-inside vs pattern-not-regex,
-                     * the difference matters!
-                     * This fixed 10 mismatches in semgrep-rules and some e2e tests.
-                     *)
-                    match y.kind with
-                    (* pattern-not-inside: x cannot occur inside y *)
-                    | Inside -> included_in config x y
-                    (* pattern-not-regex: x and y exclude each other *)
-                    | Regexp -> included_in config x y || included_in config y x
-                    (* pattern-not: we require the ranges to be equal *)
-                    | Plain -> included_in config x y && included_in config y x
-                    (* not: { anywhere: y } -- y cannot occur *)
-                    | Anywhere -> true)))
+        not
+          (neg
+          |> List.exists (fun y ->
+              (* pattern-not vs pattern-not-inside vs pattern-not-regex,
+               * the difference matters!
+               * This fixed 10 mismatches in semgrep-rules and some e2e tests.
+               *)
+              match y.kind with
+              (* pattern-not-inside: x cannot occur inside y *)
+              | Inside -> included_in config x y
+              (* pattern-not-regex: x and y exclude each other *)
+              | Regexp -> included_in config x y || included_in config y x
+              (* pattern-not: we require the ranges to be equal *)
+              | Plain -> included_in config x y && included_in config y x
+              (* not: { anywhere: y } -- y cannot occur *)
+              | Anywhere -> true)))
   in
   surviving_pos
 [@@profiling]

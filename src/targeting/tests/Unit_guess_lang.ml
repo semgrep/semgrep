@@ -41,7 +41,7 @@ let name_tests : (string * Lang.t * Fpath.t * success) list =
     ("spaces", Ruby, " a b  c.rb", OK);
   ]
   |> List.map (fun (name, (lang : Lang.t), path, expect) ->
-         (name, lang, Fpath.v path, expect))
+      (name, lang, Fpath.v path, expect))
 
 let contents_tests : (string * Lang.t * string * string * exec * success) list =
   [

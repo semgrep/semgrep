@@ -364,24 +364,24 @@ let filter_paths (par_conf : Parallelism_config.t) (num_jobs : int option)
   target_files
   |> map_filter_path (fun x -> (x, filter_path ign include_filter x))
   |> List.iter (fun (res : (Fppath.t * filter_result, Fppath.t * exn) result) ->
-         match res with
-         | Ok (fppath, Keep) -> (
-             (* This section is similar to what we have in
+      match res with
+      | Ok (fppath, Keep) -> (
+          (* This section is similar to what we have in
                 'walk_skip_and_collect' but the rest is sufficiently different
                 that sharing code makes things complicated
                 (e.g. no dir access filtering for git targets) *)
-             match Skip_target.filter_file_access_permissions fppath.fpath with
-             | Ok _path -> add fppath
-             | Error skipped -> skip skipped)
-         (* shouldn't happen if we work on the output of 'git ls-files *)
-         | Ok (_, Dir) -> ()
-         | Ok (_, Skip x) -> skip x
-         | Ok (fppath, Ignore_silently) ->
-             Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath))
-         | Error (fppath, e) ->
-             Log.debug (fun m ->
-                 m "Exception while filtering path %s:%s" !!(fppath.fpath)
-                   (Printexc.to_string e)));
+          match Skip_target.filter_file_access_permissions fppath.fpath with
+          | Ok _path -> add fppath
+          | Error skipped -> skip skipped)
+      (* shouldn't happen if we work on the output of 'git ls-files *)
+      | Ok (_, Dir) -> ()
+      | Ok (_, Skip x) -> skip x
+      | Ok (fppath, Ignore_silently) ->
+          Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath))
+      | Error (fppath, e) ->
+          Log.debug (fun m ->
+              m "Exception while filtering path %s:%s" !!(fppath.fpath)
+                (Printexc.to_string e)));
 
   Tracing.add_data_to_span sp
     [
@@ -458,23 +458,23 @@ let walk_skip_and_collect (ign : Gitignore.filter)
         (* TODO: factorize code with filter_paths? *)
         entries
         |> List.iter (fun name ->
-               let fpath =
-                 (* if scan_root was "." we want to display paths as "foo/bar"
-                  * and not "./foo/bar"
-                  *)
-                 if Fpath.is_current_dir dir.fpath then name
-                 else Fpath.(dir.fpath / !!name)
-               in
-               let ppath = Ppath.add_seg dir.ppath !!name in
-               let fppath : Fppath.t = { fpath; ppath } in
-               match filter_path ign include_filter fppath with
-               | Keep -> (
-                   match Skip_target.filter_file_access_permissions fpath with
-                   | Ok _path -> add fppath
-                   | Error skipped -> skip skipped)
-               | Skip skipped -> skip skipped
-               | Dir -> aux fppath
-               | Ignore_silently -> ())
+            let fpath =
+              (* if scan_root was "." we want to display paths as "foo/bar"
+               * and not "./foo/bar"
+               *)
+              if Fpath.is_current_dir dir.fpath then name
+              else Fpath.(dir.fpath / !!name)
+            in
+            let ppath = Ppath.add_seg dir.ppath !!name in
+            let fppath : Fppath.t = { fpath; ppath } in
+            match filter_path ign include_filter fppath with
+            | Keep -> (
+                match Skip_target.filter_file_access_permissions fpath with
+                | Ok _path -> add fppath
+                | Error skipped -> skip skipped)
+            | Skip skipped -> skip skipped
+            | Dir -> aux fppath
+            | Ignore_silently -> ())
   in
   aux scan_root;
   (* Let's not worry about file order here until we have to.
@@ -657,40 +657,40 @@ let group_scanning_roots_by_project (conf : conf)
   let groups =
     scanning_roots
     |> List.filter (fun sc_root ->
-           let fpath = Scanning_root.to_fpath sc_root in
-           if UFile.is_dir_or_reg ~follow_symlinks:true fpath then true
-           else (
-             (* nosemgrep: no-logs-in-library *)
-             Logs.err (fun m -> m "Invalid scanning root: %s" !!fpath);
-             Stack_.push
-               ({
-                  (* TODO: introduce a more specific error type? *)
-                  typ = SemgrepError;
-                  msg = spf "Invalid scanning root: %s" !!fpath;
-                  loc = None;
-                  rule_id = None;
-                  details = None;
-                }
-                 : Core_error.t)
-               errors;
-             false))
+        let fpath = Scanning_root.to_fpath sc_root in
+        if UFile.is_dir_or_reg ~follow_symlinks:true fpath then true
+        else (
+          (* nosemgrep: no-logs-in-library *)
+          Logs.err (fun m -> m "Invalid scanning root: %s" !!fpath);
+          Stack_.push
+            ({
+               (* TODO: introduce a more specific error type? *)
+               typ = SemgrepError;
+               msg = spf "Invalid scanning root: %s" !!fpath;
+               loc = None;
+               rule_id = None;
+               details = None;
+             }
+              : Core_error.t)
+            errors;
+          false))
     |> List.filter_map (fun (sc_root : Scanning_root.t) ->
-           match
-             Project.find_any_project_root ~fallback_root:None
-               ~force_novcs:conf.force_novcs_project ~force_root
-               (Scanning_root.to_fpath sc_root)
-           with
-           | Ok x -> Some x
-           | Error msg ->
-               (* nosemgrep: no-logs-in-library *)
-               Logs.warn (fun m -> m "%s" msg);
-               None)
+        match
+          Project.find_any_project_root ~fallback_root:None
+            ~force_novcs:conf.force_novcs_project ~force_root
+            (Scanning_root.to_fpath sc_root)
+        with
+        | Ok x -> Some x
+        | Error msg ->
+            (* nosemgrep: no-logs-in-library *)
+            Logs.warn (fun m -> m "%s" msg);
+            None)
     (* Using a realpath (physical path) in Project.t ensures we group
        correctly even if the scanning_roots went through different symlink
        paths. *)
     |> Assoc.group_assoc_bykey_eff
     |> List.map (fun (project, scanning_roots) ->
-           Project.{ project; scanning_roots })
+        Project.{ project; scanning_roots })
   in
   (groups, List.rev !errors)
 
@@ -811,7 +811,7 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
     project_roots.scanning_roots
     |> List.map Project.fppath_of_scanning_root_info
     |> List.filter (fun (sc_root : Fppath.t) ->
-           UFile.is_reg ~follow_symlinks:true sc_root.fpath)
+        UFile.is_reg ~follow_symlinks:true sc_root.fpath)
   in
   let skipped_targets =
     let regular_files_to_add =
@@ -821,7 +821,7 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
     in
     skipped_targets
     |> List.filter (fun (skipped : Out.skipped_target) ->
-           not (Fpath_.Fpath_set.mem skipped.path regular_files_to_add))
+        not (Fpath_.Fpath_set.mem skipped.path regular_files_to_add))
   in
   let selected_targets =
     Fppath_set.union selected_targets (Fppath_set.of_list regular_files_to_add)
@@ -949,7 +949,7 @@ let get_targets (conf : conf) (scanning_roots : Scanning_root.t list) :
     in
     skipped_paths_list
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
-           Fpath.compare a.path b.path)
+        Fpath.compare a.path b.path)
   in
   (paths, errors, sorted_skipped_targets)
 [@@profiling]

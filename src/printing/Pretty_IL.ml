@@ -367,8 +367,8 @@ and pretty_stmt ?(indent = 0) stmt =
       let catches_str =
         catches
         |> List.map (fun (name, catch_stmts) ->
-               let catch_body = pretty_stmts ~indent:(indent + 1) catch_stmts in
-               spf "%s} catch (%s) {\n%s" ind (fst name.IL.ident) catch_body)
+            let catch_body = pretty_stmts ~indent:(indent + 1) catch_stmts in
+            spf "%s} catch (%s) {\n%s" ind (fst name.IL.ident) catch_body)
         |> String.concat "\n"
       in
       let else_str =
@@ -391,21 +391,21 @@ and pretty_stmt ?(indent = 0) stmt =
       let branches_str =
         branches
         |> List.map (fun { IL.pattern; body } ->
-               let pat_str =
-                 match pattern with
-                 | IL.PatLiteral lit -> G.show_literal lit
-                 | IL.PatWildcard -> "_"
-                 | IL.PatVariable name -> fst name.IL.ident
-                 | IL.PatConstructor (name, args) ->
-                     let args_str =
-                       args
-                       |> List.map (fun n -> fst n.IL.ident)
-                       |> String.concat ", "
-                     in
-                     spf "%s(%s)" (fst name.IL.ident) args_str
-               in
-               let body_str = pretty_stmts ~indent:(indent + 2) body in
-               spf "%scase %s:\n%s" ind1 pat_str body_str)
+            let pat_str =
+              match pattern with
+              | IL.PatLiteral lit -> G.show_literal lit
+              | IL.PatWildcard -> "_"
+              | IL.PatVariable name -> fst name.IL.ident
+              | IL.PatConstructor (name, args) ->
+                  let args_str =
+                    args
+                    |> List.map (fun n -> fst n.IL.ident)
+                    |> String.concat ", "
+                  in
+                  spf "%s(%s)" (fst name.IL.ident) args_str
+            in
+            let body_str = pretty_stmts ~indent:(indent + 2) body in
+            spf "%scase %s:\n%s" ind1 pat_str body_str)
         |> String.concat "\n"
       in
       spf "%smatch (%s) {\n%s\n%s}" ind scrutinee_str branches_str ind
@@ -484,26 +484,25 @@ and pretty_class_definition ?(name = "Class") ?(indent = 0) ?(inline = false)
   let fields_str =
     cdef.IL.cfields
     |> List.map (fun (ent, vdef) ->
-           let field_name = pretty_entity_name ent.IL.name in
-           let ty_str =
-             match vdef.IL.vtype with
-             | Some ty -> spf ": %s" (Pretty_print_AST.type_ ty)
-             | None -> ""
-           in
-           let init_str =
-             match vdef.IL.vinit with
-             | Some e -> spf " = %s" (pretty_exp e)
-             | None -> ""
-           in
-           spf "%s%s%s%s;" ind1 field_name ty_str init_str)
+        let field_name = pretty_entity_name ent.IL.name in
+        let ty_str =
+          match vdef.IL.vtype with
+          | Some ty -> spf ": %s" (Pretty_print_AST.type_ ty)
+          | None -> ""
+        in
+        let init_str =
+          match vdef.IL.vinit with
+          | Some e -> spf " = %s" (pretty_exp e)
+          | None -> ""
+        in
+        spf "%s%s%s%s;" ind1 field_name ty_str init_str)
     |> String.concat "\n"
   in
   let methods_str =
     cdef.IL.cmethods
     |> List.map (fun (ent, fdef) ->
-           let method_name = pretty_entity_name ent.IL.name in
-           pretty_function_definition ~name:method_name ~indent:(indent + 1)
-             fdef)
+        let method_name = pretty_entity_name ent.IL.name in
+        pretty_function_definition ~name:method_name ~indent:(indent + 1) fdef)
     |> String.concat "\n\n"
   in
   let fixmes_str =

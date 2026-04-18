@@ -217,12 +217,12 @@ let quick_add_taint_stats tainting_stats (match_result : _ match_result) :
     _ match_result =
   match_result
   |> map_quick_profiling (fun (quick_profiling : Core_quick_profiling.t) ->
-         {
-           quick_profiling with
-           tainting_stats =
-             Core_quick_profiling.Tainting_stats.combine
-               quick_profiling.tainting_stats tainting_stats;
-         })
+      {
+        quick_profiling with
+        tainting_stats =
+          Core_quick_profiling.Tainting_stats.combine
+            quick_profiling.tainting_stats tainting_stats;
+      })
 
 let map_profiling (f : 'a -> 'b) (x : 'a match_result) : 'b match_result =
   { x with profiling = Option.map f x.profiling }
@@ -232,11 +232,11 @@ let add_run_time file (run_time : float option)
   let match_result =
     match_result
     |> map_profiling (fun { Core_profiling.p_file; p_rule_times } ->
-           {
-             Core_profiling.file = p_file;
-             rule_times = Core_profiling.profiling_opt p_rule_times;
-             run_time = run_time ||| 0.0;
-           })
+        {
+          Core_profiling.file = p_file;
+          rule_times = Core_profiling.profiling_opt p_rule_times;
+          run_time = run_time ||| 0.0;
+        })
   in
   match run_time with
   | None -> match_result
@@ -250,11 +250,11 @@ let add_rule (rule : Rule.rule)
     Core_profiling.rule_profiling match_result =
   match_result
   |> map_profiling (fun { Core_profiling.parse_time; match_time } ->
-         {
-           Core_profiling.rule_id = fst rule.Rule.id;
-           rule_parse_time = parse_time;
-           rule_match_time = match_time;
-         })
+      {
+        Core_profiling.rule_id = fst rule.Rule.id;
+        rule_parse_time = parse_time;
+        rule_match_time = match_time;
+      })
 
 (*****************************************************************************)
 (* Aggregate *)
@@ -382,7 +382,7 @@ let mk_result (results : matches_single_file_with_time list)
       Core_profiling.if_profiling ~default:[] (fun () ->
           results
           |> List.filter_map (fun (result : matches_single_file_with_time) ->
-                 result.profiling))
+              result.profiling))
     in
     {
       rules =

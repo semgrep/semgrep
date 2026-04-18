@@ -191,7 +191,7 @@ let find_metavar_qualifier e =
     | G.IdQualified { name_middle = Some (QDots qs); _ } ->
         qs
         |> List.filter_map (fun ((id, _), _) ->
-               if Mvar.is_metavar_name id then Some id else None)
+            if Mvar.is_metavar_name id then Some id else None)
     | G.IdQualified _
     | G.Id _
     | G.IdSpecial _ ->
@@ -270,16 +270,16 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
     match (a, b) with
     | MV.Id ((s1, _), i1), MV.Id ((s2, _), i2) -> (
         (match (i1, i2) with
-        (* Since this is a newer feature and we are not sure how much
-         * support for this is actually needed. Only allow matching in
-         * a case insensitive fashion if both ids are expected to be
-         * case insensitive. This covers all the use cases in the test
-         * suite so far.
-         *)
-        | Some i1, Some i2
-          when G.is_case_insensitive i1 && G.is_case_insensitive i2 ->
-            String.(lowercase_ascii s1 = lowercase_ascii s2)
-        | _, _ -> s1 = s2)
+          (* Since this is a newer feature and we are not sure how much
+           * support for this is actually needed. Only allow matching in
+           * a case insensitive fashion if both ids are expected to be
+           * case insensitive. This covers all the use cases in the test
+           * suite so far.
+           *)
+          | Some i1, Some i2
+            when G.is_case_insensitive i1 && G.is_case_insensitive i2 ->
+              String.(lowercase_ascii s1 = lowercase_ascii s2)
+          | _, _ -> s1 = s2)
         &&
         match (i1, i2) with
         (* if one of the two IDs is not resolved, then we allow
@@ -718,17 +718,17 @@ let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
  fun tin ->
   bs |> all_elem_and_rest_of_list
   |> List.filter_map (fun (b, other_bs) ->
-         match m a b tin with
-         | [] -> None
-         | tout -> Some (Lazy_safe.force other_bs, tout))
+      match m a b tin with
+      | [] -> None
+      | tout -> Some (Lazy_safe.force other_bs, tout))
 
 let m_comb_1toN m_1toN a bs : _ comb_result =
  fun tin ->
   bs |> all_splits
   |> List.filter_map (fun (l, r) ->
-         match m_1toN a l tin with
-         | [] -> None
-         | tout -> Some (r, tout))
+      match m_1toN a l tin with
+      | [] -> None
+      | tout -> Some (r, tout))
 
 (* ---------------------------------------------------------------------- *)
 (* stdlib: bool/int/string/... *)

@@ -304,12 +304,11 @@ let trim_front s =
 let parse_headers headers =
   headers
   |> List.map (fun header ->
-         let i = String.index header ':' in
-         let before, after =
-           ( Str.first_chars header i,
-             Str.string_after header (i + 1) |> trim_front )
-         in
-         (before, after))
+      let i = String.index header ':' in
+      let before, after =
+        (Str.first_chars header i, Str.string_after header (i + 1) |> trim_front)
+      in
+      (before, after))
   |> Cohttp.Header.of_list
 
 let take_while p xs =

@@ -103,7 +103,7 @@ module Make (Key : Key) : S with type key = Key.t = struct
     vslow1
     |> List.rev_append (List.rev vslow2)
     |> List.sort_uniq (fun (x : key time) (y : key time) ->
-           Float.compare x.time y.time)
+        Float.compare x.time y.time)
     |> List.rev
     (* Reverse to descending order to take the slowest ones. *)
     |> List_.take_safe Key.very_slow_top_size

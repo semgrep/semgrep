@@ -207,30 +207,27 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   let rflds' =
     rflds
     |> List.map (fun ({ V.fld_value; _ } as fld) ->
-           (* TODO: here we bind super to objl, and this works for simple
-            * examples (e.g., basic_super1.jsonnet) but failed for
-            * more complex examples where the accessed field uses self, as in
-            *   { x: 1, w: 1, y: self.x } +
-            *   { x: 2, w: 2, y: super.y, z : super.w }
-            * which should return { x: 2, w: 2, y : 2, z : 1 }
-            * but currently return { x : 2, w : 2, y : 1, z : 1 }
-            * because super is bounded just to the left object
-            * ({ x: 1, w: 1, y: self.x), and in that context
-            * self.x is evaluated to 1 not 2
-            * (see also eval_fail/basic_super2.jsonnet)
-            *)
-           match fld_value.lv with
-           | Closure (env, e) ->
-               let locals =
-                 env.locals
-                 |> Local_id_map.add V.LSuper V.{ lv = Val (Object objl) }
-               in
-               {
-                 fld with
-                 fld_value = V.{ lv = Closure ({ env with locals }, e) };
-               }
-           | Val _v -> fld
-           | Unevaluated _ -> raise Impossible)
+        (* TODO: here we bind super to objl, and this works for simple
+         * examples (e.g., basic_super1.jsonnet) but failed for
+         * more complex examples where the accessed field uses self, as in
+         *   { x: 1, w: 1, y: self.x } +
+         *   { x: 2, w: 2, y: super.y, z : super.w }
+         * which should return { x: 2, w: 2, y : 2, z : 1 }
+         * but currently return { x : 2, w : 2, y : 1, z : 1 }
+         * because super is bounded just to the left object
+         * ({ x: 1, w: 1, y: self.x), and in that context
+         * self.x is evaluated to 1 not 2
+         * (see also eval_fail/basic_super2.jsonnet)
+         *)
+        match fld_value.lv with
+        | Closure (env, e) ->
+            let locals =
+              env.locals
+              |> Local_id_map.add V.LSuper V.{ lv = Val (Object objl) }
+            in
+            { fld with fld_value = V.{ lv = Closure ({ env with locals }, e) } }
+        | Val _v -> fld
+        | Unevaluated _ -> raise Impossible)
   in
   let flds' = lflds' @ rflds' in
   (l, (asserts, flds'), r)
@@ -310,34 +307,34 @@ and manifest_value (v : V.t) : JSON.t =
       J.Array
         (Array.to_list arr
         |> List.map (fun (entry : V.lazy_value) ->
-               manifest_value (to_value entry)))
+            manifest_value (to_value entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) as obj ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
         |> List.filter_map (fun { V.fld_name; fld_hidden; fld_value } ->
-               match fst fld_hidden with
-               | A.Hidden -> None
-               | A.Visible
-               | A.ForcedVisible ->
-                   let v =
-                     match fld_value.lv with
-                     | Closure (env, e) ->
-                         (* similar to what we do in eval_expr on fld access *)
-                         let locals =
-                           if !Conf_ojsonnet.implement_self then
-                             env.locals
-                             |> Local_id_map.add V.LSelf V.{ lv = Val obj }
-                           else env.locals
-                         in
-                         let finalv = eval_expr { env with locals } e in
-                         fld_value.lv <- Val finalv;
-                         finalv
-                     | Val v -> v
-                     | Unevaluated _ -> raise Impossible
-                   in
-                   let j = manifest_value v in
-                   Some (fst fld_name, j))
+            match fst fld_hidden with
+            | A.Hidden -> None
+            | A.Visible
+            | A.ForcedVisible ->
+                let v =
+                  match fld_value.lv with
+                  | Closure (env, e) ->
+                      (* similar to what we do in eval_expr on fld access *)
+                      let locals =
+                        if !Conf_ojsonnet.implement_self then
+                          env.locals
+                          |> Local_id_map.add V.LSelf V.{ lv = Val obj }
+                        else env.locals
+                      in
+                      let finalv = eval_expr { env with locals } e in
+                      fld_value.lv <- Val finalv;
+                      finalv
+                  | Val v -> v
+                  | Unevaluated _ -> raise Impossible
+                in
+                let j = manifest_value v in
+                Some (fst fld_name, j))
       in
       J.Object xs
 

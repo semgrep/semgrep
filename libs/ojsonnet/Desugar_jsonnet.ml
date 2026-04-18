@@ -381,11 +381,11 @@ and desugar_obj_inside env (l, v, r) : C.expr =
       let binds, asserts, fields =
         v
         |> Either_.partition_either3 (function
-             | OLocal (_tlocal, x) -> Left3 x
-             | OEllipsis tk ->
-                 error tk "OEllipsis can appear only in semgrep patterns"
-             | OAssert x -> Middle3 x
-             | OField x -> Right3 x)
+          | OLocal (_tlocal, x) -> Left3 x
+          | OEllipsis tk ->
+              error tk "OEllipsis can appear only in semgrep patterns"
+          | OAssert x -> Middle3 x
+          | OField x -> Right3 x)
       in
       let binds =
         if env.within_an_object || not !Conf_ojsonnet.implement_dollar then

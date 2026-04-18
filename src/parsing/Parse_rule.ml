@@ -490,7 +490,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
               (* If not a string, then we assume it must be a "multi-requires". *)
               parse_taint_sink_mvar_requires env key value
               |> Result.map (fun mvars_w_preconds ->
-                     Some (Rule.MultiReq mvars_w_preconds)))
+                  Some (Rule.MultiReq mvars_w_preconds)))
     in
     let/ sink_at_exit =
       take_opt dict env parse_bool "at-exit"
@@ -1272,16 +1272,15 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
     let/ xs =
       rules
       |> List.mapi (fun i rule ->
-             match parse_one_rule ~rewrite_rule_ids i rule with
-             | Ok rule -> Ok (Either.Left rule)
-             | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
-               when error_recovery || Rule_error.is_skippable_error kind ->
-                 let s = Rule_error.string_of_invalid_rule_kind kind in
-                 Log.warn (fun m ->
-                     m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid)
-                       s);
-                 Ok (Either.Right err)
-             | Error err -> Error err)
+          match parse_one_rule ~rewrite_rule_ids i rule with
+          | Ok rule -> Ok (Either.Left rule)
+          | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
+            when error_recovery || Rule_error.is_skippable_error kind ->
+              let s = Rule_error.string_of_invalid_rule_kind kind in
+              Log.warn (fun m ->
+                  m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
+              Ok (Either.Right err)
+          | Error err -> Error err)
       |> Base.Result.all
     in
     Ok (Either_.partition (fun x -> x) xs)

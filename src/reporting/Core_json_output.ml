@@ -174,12 +174,11 @@ let dedup_and_sort (xs : Out.core_match list) : Out.core_match list =
      keep undesirable matches, such as those with less metavariables.
   *)
   |> List.iter (fun x ->
-         let key = core_unique_key x in
-         match Hashtbl.find_opt seen key with
-         | None -> Hashtbl.add seen key x
-         | Some y when should_report_instead (x, y) ->
-             Hashtbl.replace seen key x
-         | _ -> ());
+      let key = core_unique_key x in
+      match Hashtbl.find_opt seen key with
+      | None -> Hashtbl.add seen key x
+      | Some y when should_report_instead (x, y) -> Hashtbl.replace seen key x
+      | _ -> ());
   (* Here, we must sort again, though.
      This is because we yet again need to enforce that when Pysemgrep receives these
      matches, that they are sorted via sort_core_matches.
@@ -545,7 +544,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     matches =
       matches
       |> List.map (fun pm ->
-             unsafe_match_to_match (Core_result.mk_processed_match pm));
+          unsafe_match_to_match (Core_result.mk_processed_match pm));
     loc = OutUtils.location_of_token_location tloc;
     extra = Option.map extra_to_extra extra;
   }
@@ -621,55 +620,55 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
     targets =
       profiling_data.file_times
       |> List.map (fun { Core_profiling.file = target; rule_times; run_time } ->
-             let (rule_id_to_rule_prof
-                   : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
-               rule_times ||| []
-               |> List.map (fun (rp : Core_profiling.rule_profiling) ->
-                      (rp.rule_id, rp))
-               |> Hashtbl_.hash_of_list
-             in
+          let (rule_id_to_rule_prof
+                : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
+            rule_times ||| []
+            |> List.map (fun (rp : Core_profiling.rule_profiling) ->
+                (rp.rule_id, rp))
+            |> Hashtbl_.hash_of_list
+          in
 
-             Out.
-               {
-                 path = target;
-                 match_times =
-                   rule_ids
-                   |> List.map (fun rule_id ->
-                          try
-                            let rprof : Core_profiling.rule_profiling =
-                              Hashtbl.find rule_id_to_rule_prof rule_id
-                            in
-                            rprof.rule_match_time
-                          with
-                          | Not_found -> 0.);
-                 (* TODO: we could probably just aggregate in a single
-                  * float instead of returning those list of parse_time
-                  * which don't really make sense; we just parse once a file.
-                  *)
-                 parse_times =
-                   rule_ids
-                   |> List.map (fun rule_id ->
-                          try
-                            let rprof : Core_profiling.rule_profiling =
-                              Hashtbl.find rule_id_to_rule_prof rule_id
-                            in
-                            rprof.rule_parse_time
-                          with
-                          | Not_found -> 0.);
-                 (* We really have to give back a number here. It's likely to be
+          Out.
+            {
+              path = target;
+              match_times =
+                rule_ids
+                |> List.map (fun rule_id ->
+                    try
+                      let rprof : Core_profiling.rule_profiling =
+                        Hashtbl.find rule_id_to_rule_prof rule_id
+                      in
+                      rprof.rule_match_time
+                    with
+                    | Not_found -> 0.);
+              (* TODO: we could probably just aggregate in a single
+               * float instead of returning those list of parse_time
+               * which don't really make sense; we just parse once a file.
+               *)
+              parse_times =
+                rule_ids
+                |> List.map (fun rule_id ->
+                    try
+                      let rprof : Core_profiling.rule_profiling =
+                        Hashtbl.find rule_id_to_rule_prof rule_id
+                      in
+                      rprof.rule_parse_time
+                    with
+                    | Not_found -> 0.);
+              (* We really have to give back a number here. It's likely to be
                     quite rare that a filesize call fails at this point in time. *)
-                 num_bytes =
-                   (match UFile.filesize target with
-                   | Ok n -> n
-                   | Error (code, _func, info) ->
-                       Log.warn (fun m ->
-                           m
-                             "profiling_to_profiling: unexpected error when \
-                              reading %s: %s (code %s)"
-                             !!target info (Unix.error_message code));
-                       -1);
-                 run_time;
-               });
+              num_bytes =
+                (match UFile.filesize target with
+                | Ok n -> n
+                | Error (code, _func, info) ->
+                    Log.warn (fun m ->
+                        m
+                          "profiling_to_profiling: unexpected error when \
+                           reading %s: %s (code %s)"
+                          !!target info (Unix.error_message code));
+                    -1);
+              run_time;
+            });
     rules = rule_ids;
     rules_parse_time = profiling_data.rules_parse_time;
     max_memory_bytes = Some profiling_data.max_memory_bytes;
@@ -679,15 +678,15 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
     total_bytes =
       profiling_data.file_times
       |> List.filter_map (fun { Core_profiling.file = target; _ } ->
-             match UFile.filesize target with
-             | Ok n -> Some n
-             | Error (code, _func, info) ->
-                 Log.warn (fun m ->
-                     m
-                       "profiling_to_profiling: unexpected error when reading \
-                        %s: %s (code %s)"
-                       !!target info (Unix.error_message code));
-                 None)
+          match UFile.filesize target with
+          | Ok n -> Some n
+          | Error (code, _func, info) ->
+              Log.warn (fun m ->
+                  m
+                    "profiling_to_profiling: unexpected error when reading %s: \
+                     %s (code %s)"
+                    !!target info (Unix.error_message code));
+              None)
       |> Common2.sum_int;
     (* those are filled later in pysemgrep from the Profiler class *)
     profiling_times = [];
@@ -758,13 +757,13 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     skipped_rules =
       res.skipped_rules
       |> List.map (fun ((kind, rule_id, tk) : Rule_error.invalid_rule) ->
-             let loc = Tok.unsafe_loc_of_tok tk in
-             Out.
-               {
-                 rule_id;
-                 details = Rule_error.string_of_invalid_rule_kind kind;
-                 position = OutUtils.position_of_token_location loc;
-               });
+          let loc = Tok.unsafe_loc_of_tok tk in
+          Out.
+            {
+              rule_id;
+              details = Rule_error.string_of_invalid_rule_kind kind;
+              position = OutUtils.position_of_token_location loc;
+            });
     time =
       res.profiling
       |> Option.map

@@ -128,32 +128,32 @@ let test_string_of_formulas () =
   Testo.categorize "string_of_formulas"
     (string_of_formulas_expectations
     |> List.map (fun (title, rule, mvars, expected) ->
-           t title (fun () ->
-               UTmp.with_temp_file ~contents:rule (fun file ->
-                   match Parse_rule.parse file with
-                   | Ok [ rule ] ->
-                       let mvars =
-                         mvars
-                         |> List.map (fun (mvar, mvalue_str) ->
-                                ( mvar,
-                                  Out.
-                                    {
-                                      abstract_content = mvalue_str;
-                                      propagated_value = None;
-                                      (* not used by Metavar_replacement *)
-                                      start = { line = 0; col = 0; offset = 0 };
-                                      end_ = { line = 0; col = 0; offset = 0 };
-                                    } ))
-                       in
-                       let res =
-                         Semgrep_hashing_functions
-                         .match_formula_interpolated_str rule (Some mvars)
-                       in
-                       Alcotest.(check string) __LOC__ expected res
-                   | _ ->
-                       failwith
-                         (spf "could not parse or more than one rule for %s"
-                            title)))))
+        t title (fun () ->
+            UTmp.with_temp_file ~contents:rule (fun file ->
+                match Parse_rule.parse file with
+                | Ok [ rule ] ->
+                    let mvars =
+                      mvars
+                      |> List.map (fun (mvar, mvalue_str) ->
+                          ( mvar,
+                            Out.
+                              {
+                                abstract_content = mvalue_str;
+                                propagated_value = None;
+                                (* not used by Metavar_replacement *)
+                                start = { line = 0; col = 0; offset = 0 };
+                                end_ = { line = 0; col = 0; offset = 0 };
+                              } ))
+                    in
+                    let res =
+                      Semgrep_hashing_functions.match_formula_interpolated_str
+                        rule (Some mvars)
+                    in
+                    Alcotest.(check string) __LOC__ expected res
+                | _ ->
+                    failwith
+                      (spf "could not parse or more than one rule for %s" title))))
+    )
 
 (*****************************************************************************)
 (* Entry point *)

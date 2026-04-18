@@ -107,10 +107,10 @@ let get_dir_entries path =
       | End_of_file ->
           List.rev !acc
           |> List.filter (function
-               | ".."
-               | "." ->
-                   false
-               | _ -> true))
+            | ".."
+            | "." ->
+                false
+            | _ -> true))
 
 let remove path =
   let rec remove path =

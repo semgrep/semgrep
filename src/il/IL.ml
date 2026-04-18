@@ -157,13 +157,13 @@ module NameMap = struct
     let m' =
       m
       |> filter_map (fun _k x ->
-             let res = f x in
-             (match f x with
-             | Some y when Eq.phys_equal x y -> ()
-             | None
-             | Some _ (* x != y *) ->
-                 changed := true);
-             res)
+          let res = f x in
+          (match f x with
+          | Some y when Eq.phys_equal x y -> ()
+          | None
+          | Some _ (* x != y *) ->
+              changed := true);
+          res)
     in
     if !changed then m' else m
 end

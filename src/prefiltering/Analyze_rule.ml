@@ -101,13 +101,13 @@ let id_mvars_of_formula ~interfile f =
   let id_mvars = ref Analyze_pattern.MvarSet.empty in
   f
   |> Visit_rule.visit_xpatterns (fun xp ~inside:_ ->
-         match xp with
-         | { pat = Sem (pat, lang); _ } ->
-             id_mvars :=
-               Analyze_pattern.(
-                 extract_mvars_in_id_position ~lang ~interfile pat
-                 |> MvarSet.union !id_mvars)
-         | __else__ -> ());
+      match xp with
+      | { pat = Sem (pat, lang); _ } ->
+          id_mvars :=
+            Analyze_pattern.(
+              extract_mvars_in_id_position ~lang ~interfile pat
+              |> MvarSet.union !id_mvars)
+      | __else__ -> ());
   !id_mvars
 
 let metavariables_and_strings_of_pattern (env : env) (pat : Xpattern.t) :

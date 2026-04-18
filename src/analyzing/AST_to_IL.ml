@@ -403,8 +403,8 @@ let is_constructor env ret_ty id_info : bool =
       env.lang =*= Lang.Python
       && List.length ls >= 3 (* Module + Class + __init__ *)
       && (match List_.last_opt ls with
-         | Some "__init__" -> true
-         | _ -> false)
+        | Some "__init__" -> true
+        | _ -> false)
       &&
       match ret_ty with
       (* It would be nice if we can check that this type actually
@@ -544,15 +544,15 @@ and map_pattern env pat : lval * stmt list =
       let ss =
         pats
         |> List.mapi (fun i pat_i ->
-               let eorig = Related (G.P pat_i) in
-               let index_i = Literal (G.Int (Parsed_int.of_int i)) in
-               let offset_i =
-                 { o = Index { e = index_i; eorig }; oorig = NoOrig }
-               in
-               let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
-               map_pattern_assign_statements env
-                 (mk_e (Fetch lval_i) eorig)
-                 ~eorig pat_i)
+            let eorig = Related (G.P pat_i) in
+            let index_i = Literal (G.Int (Parsed_int.of_int i)) in
+            let offset_i =
+              { o = Index { e = index_i; eorig }; oorig = NoOrig }
+            in
+            let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
+            map_pattern_assign_statements env
+              (mk_e (Fetch lval_i) eorig)
+              ~eorig pat_i)
         |> List_.flatten
       in
       (tmp_lval, ss)
@@ -666,16 +666,16 @@ and map_assign env ~g_expr lhs tok rhs : exp =
       let tup_elems =
         lhss
         |> List.mapi (fun i lhs_i ->
-               let index_i = Literal (G.Int (Parsed_int.of_int i)) in
-               let offset_i =
-                 {
-                   o = Index { e = index_i; eorig = related_exp lhs_i };
-                   oorig = NoOrig;
-                 }
-               in
-               let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
-               map_assign env ~g_expr lhs_i tok1
-                 (`IL { e = Fetch lval_i; eorig = related_exp lhs_i }))
+            let index_i = Literal (G.Int (Parsed_int.of_int i)) in
+            let offset_i =
+              {
+                o = Index { e = index_i; eorig = related_exp lhs_i };
+                oorig = NoOrig;
+              }
+            in
+            let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
+            map_assign env ~g_expr lhs_i tok1
+              (`IL { e = Fetch lval_i; eorig = related_exp lhs_i }))
       in
       (* (E1, ..., En) *)
       mk_e
@@ -1043,8 +1043,8 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
           let xs = List.rev xs in
           xs
           |> List.iter (fun e ->
-                 let _eIGNORE = map_expr env e in
-                 ());
+              let _eIGNORE = map_expr env e in
+              ());
           map_expr env last)
   | G.Record fields -> map_record env fields
   | G.Container (G.Dict, xs) -> map_dict env xs g_expr
@@ -1197,9 +1197,9 @@ and map_expr_aux env ?(ret = `Tmp) g_expr : exp =
       let es =
         xs
         |> List.map (fun x ->
-               match x with
-               | G.E e1orig -> map_expr env e1orig
-               | __else__ -> fixme_exp ToDo x (related_tok tok))
+            match x with
+            | G.E e1orig -> map_expr env e1orig
+            | __else__ -> fixme_exp ToDo x (related_tok tok))
       in
       let other_expr = mk_e (Composite (CTuple, (tok, es, tok))) eorig in
       let _, tmp = mk_aux_var ~str env tok other_expr in
@@ -1338,65 +1338,64 @@ and map_record env ((_tok, origfields, _) as record_def) : exp =
   let fields =
     origfields
     |> List.filter_map (function
-         | G.F
-             {
-               s =
-                 G.DefStmt
-                   ( { G.name = G.EN (G.Id (id, id_info)); tparams = None; _ },
-                     def_kind );
-               _;
-             } as forig ->
-             let field_name = var_of_id_info id id_info in
-             let field_def =
-               match def_kind with
-               (* TODO: Consider what to do with vtype. *)
-               | G.VarDef { G.vinit = Some fdeforig; _ }
-               | G.FieldDefColon { G.vinit = Some fdeforig; _ } ->
-                   map_expr env fdeforig
-               (* Some languages such as javascript allow function
+      | G.F
+          {
+            s =
+              G.DefStmt
+                ( { G.name = G.EN (G.Id (id, id_info)); tparams = None; _ },
+                  def_kind );
+            _;
+          } as forig ->
+          let field_name = var_of_id_info id id_info in
+          let field_def =
+            match def_kind with
+            (* TODO: Consider what to do with vtype. *)
+            | G.VarDef { G.vinit = Some fdeforig; _ }
+            | G.FieldDefColon { G.vinit = Some fdeforig; _ } ->
+                map_expr env fdeforig
+            (* Some languages such as javascript allow function
                   definitions in object literal syntax. *)
-               | G.FuncDef fdef ->
-                   let tok = snd fdef.fkind in
-                   let lval = fresh_lval env tok in
-                   (* See NOTE(config.stmts)! *)
-                   let fdef =
-                     map_function_definition { env with stmts = ref [] } fdef
-                   in
-                   let forig = Related (G.Fld forig) in
-                   add_nested_def env tok lval (FuncDef fdef) forig;
-                   mk_e (Fetch lval) forig
-               | ___else___ -> todo (G.E e_gen)
-             in
-             Some (Field (field_name, field_def))
-         | G.F
-             {
-               s =
-                 G.ExprStmt
-                   ( {
-                       e =
-                         Call ({ e = Special (Spread, _); _ }, (_, [ Arg e ], _));
-                       _;
-                     },
-                     _ );
-               _;
-             } ->
-             Some (Spread (map_expr env e))
-         | G.F
-             {
-               s =
-                 G.ExprStmt
-                   ( ({
-                        e =
-                          Call
-                            ( { e = N (Id (id, id_info)); _ },
-                              (_, [ Arg { e = Record fields; _ } ], _) );
-                        _;
-                      } as prior_expr),
-                     _ );
-               _;
-             }
-           when is_hcl env.lang ->
-             (* This is an inner block of the form
+            | G.FuncDef fdef ->
+                let tok = snd fdef.fkind in
+                let lval = fresh_lval env tok in
+                (* See NOTE(config.stmts)! *)
+                let fdef =
+                  map_function_definition { env with stmts = ref [] } fdef
+                in
+                let forig = Related (G.Fld forig) in
+                add_nested_def env tok lval (FuncDef fdef) forig;
+                mk_e (Fetch lval) forig
+            | ___else___ -> todo (G.E e_gen)
+          in
+          Some (Field (field_name, field_def))
+      | G.F
+          {
+            s =
+              G.ExprStmt
+                ( {
+                    e = Call ({ e = Special (Spread, _); _ }, (_, [ Arg e ], _));
+                    _;
+                  },
+                  _ );
+            _;
+          } ->
+          Some (Spread (map_expr env e))
+      | G.F
+          {
+            s =
+              G.ExprStmt
+                ( ({
+                     e =
+                       Call
+                         ( { e = N (Id (id, id_info)); _ },
+                           (_, [ Arg { e = Record fields; _ } ], _) );
+                     _;
+                   } as prior_expr),
+                  _ );
+            _;
+          }
+        when is_hcl env.lang ->
+          (* This is an inner block of the form
                 someblockhere {
                   s {
                     <args>
@@ -1411,21 +1410,21 @@ and map_record env ((_tok, origfields, _) as record_def) : exp =
                 We don't actually really care for it to be specifically defining the name `s`.
                 we just want it in there at all so that we can use it as a sink.
              *)
-             let field_name = var_of_id_info id id_info in
-             let field_expr = map_record env fields in
-             (* We need to use the entire `prior_expr` here, or the range won't be quite
+          let field_name = var_of_id_info id id_info in
+          let field_expr = map_record env fields in
+          (* We need to use the entire `prior_expr` here, or the range won't be quite
                 right (we'll leave out the identifier)
              *)
-             Some
-               (Field (field_name, { field_expr with eorig = SameAs prior_expr }))
-         | _ when is_hcl env.lang ->
-             (* For HCL constructs such as `lifecycle` blocks within a module call, the
+          Some
+            (Field (field_name, { field_expr with eorig = SameAs prior_expr }))
+      | _ when is_hcl env.lang ->
+          (* For HCL constructs such as `lifecycle` blocks within a module call, the
                 IL translation engine will brick the whole record if it is encountered.
                 To avoid this, we will just ignore any unrecognized fields for HCL specifically.
              *)
-             log_warning "Skipping HCL record field during IL translation";
-             None
-         | G.F _ -> todo (G.E e_gen))
+          log_warning "Skipping HCL record field during IL translation";
+          None
+      | G.F _ -> todo (G.E e_gen))
   in
   mk_e (RecordOrDict fields) (SameAs e_gen)
 
@@ -1433,12 +1432,12 @@ and map_dict env (_, orig_entries, _) orig : exp =
   let entries =
     orig_entries
     |> List.map (fun orig_entry ->
-           match orig_entry.G.e with
-           | G.Container (G.Tuple, (_, [ korig; vorig ], _)) ->
-               let ke = map_expr env korig in
-               let ve = map_expr env vorig in
-               Entry (ke, ve)
-           | __else__ -> todo (G.E orig))
+        match orig_entry.G.e with
+        | G.Container (G.Tuple, (_, [ korig; vorig ], _)) ->
+            let ke = map_expr env korig in
+            let ve = map_expr env vorig in
+            Entry (ke, ve)
+        | __else__ -> todo (G.E orig))
   in
   mk_e (RecordOrDict entries) (SameAs orig)
 
@@ -1453,16 +1452,16 @@ and map_xml_expr env ~ret eorig xml : exp =
   let body =
     xml.G.xml_body
     |> List.filter_map (function
-         | G.XmlExpr (tok, Some eorig, _) ->
-             let exp = map_expr env eorig in
-             let _, lval = mk_aux_var env tok exp in
-             Some (mk_e (Fetch lval) (SameAs eorig))
-         | G.XmlXml xml' ->
-             let eorig' = SameAs (G.Xml xml' |> G.e) in
-             Some (map_xml_expr env ~ret:`Tmp eorig' xml')
-         | G.XmlExpr (_, None, _)
-         | G.XmlText _ ->
-             None)
+      | G.XmlExpr (tok, Some eorig, _) ->
+          let exp = map_expr env eorig in
+          let _, lval = mk_aux_var env tok exp in
+          Some (mk_e (Fetch lval) (SameAs eorig))
+      | G.XmlXml xml' ->
+          let eorig' = SameAs (G.Xml xml' |> G.e) in
+          Some (map_xml_expr env ~ret:`Tmp eorig' xml')
+      | G.XmlExpr (_, None, _)
+      | G.XmlText _ ->
+          None)
   in
   match jsx_name with
   | Some jsx_name when Lang.is_js env.lang ->
@@ -1482,25 +1481,25 @@ and map_xml_expr env ~ret eorig xml : exp =
       let fields =
         xml.G.xml_attrs
         |> List.filter_map (function
-             | G.XmlAttr (id, tok, eorig) ->
-                 (* e.g. <Foo x={y}/> *)
-                 let attr_name =
-                   {
-                     ident = id;
-                     sid = G.SId.unsafe_default;
-                     id_info = G.empty_id_info ();
-                   }
-                 in
-                 let e = map_expr env eorig in
-                 let _, lval = mk_aux_var env tok e in
-                 let e = mk_e (Fetch lval) (SameAs eorig) in
-                 Some (Field (attr_name, e))
-             | G.XmlAttrExpr (_l, eorig, _r) ->
-                 let e = map_expr env eorig in
-                 Some (Spread e)
-             | G.XmlEllipsis _ ->
-                 (* Should never encounter this in a target *)
-                 None)
+          | G.XmlAttr (id, tok, eorig) ->
+              (* e.g. <Foo x={y}/> *)
+              let attr_name =
+                {
+                  ident = id;
+                  sid = G.SId.unsafe_default;
+                  id_info = G.empty_id_info ();
+                }
+              in
+              let e = map_expr env eorig in
+              let _, lval = mk_aux_var env tok e in
+              let e = mk_e (Fetch lval) (SameAs eorig) in
+              Some (Field (attr_name, e))
+          | G.XmlAttrExpr (_l, eorig, _r) ->
+              let e = map_expr env eorig in
+              Some (Spread e)
+          | G.XmlEllipsis _ ->
+              (* Should never encounter this in a target *)
+              None)
       in
       let body_exp =
         mk_e
@@ -1528,12 +1527,12 @@ and map_xml_expr env ~ret eorig xml : exp =
       let attrs =
         xml.G.xml_attrs
         |> List.filter_map (function
-             | G.XmlAttr (_, tok, eorig)
-             | G.XmlAttrExpr (tok, eorig, _) ->
-                 let exp = map_expr env eorig in
-                 let _, lval = mk_aux_var env tok exp in
-                 Some (mk_e (Fetch lval) (SameAs eorig))
-             | _ -> None)
+          | G.XmlAttr (_, tok, eorig)
+          | G.XmlAttrExpr (tok, eorig, _) ->
+              let exp = map_expr env eorig in
+              let _, lval = mk_aux_var env tok exp in
+              Some (mk_e (Fetch lval) (SameAs eorig))
+          | _ -> None)
       in
       mk_e
         (Composite (CTuple, (tok, List.rev_append attrs body, tok)))
@@ -1747,19 +1746,19 @@ and map_expr_with_pre_stmts_opt env tok eopt : stmt list * exp =
 and map_for_var_or_expr_list env xs : stmt list =
   xs
   |> List.concat_map (function
-       | G.ForInitExpr e ->
-           let ss, _eIGNORE = map_expr_with_pre_stmts env e in
-           ss
-       | G.ForInitVar (ent, vardef) -> (
-           (* copy paste of VarDef case in stmt *)
-           match vardef with
-           | { G.vinit = Some e; vtype = opt_ty; vtok = _ } ->
-               let ss1, e' = map_expr_with_pre_stmts env e in
-               let ss2 = map_type_opt_with_pre_stmts env opt_ty in
-               let lv = map_lval_of_ent env ent in
-               ss1 @ ss2
-               @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
-           | _ -> []))
+    | G.ForInitExpr e ->
+        let ss, _eIGNORE = map_expr_with_pre_stmts env e in
+        ss
+    | G.ForInitVar (ent, vardef) -> (
+        (* copy paste of VarDef case in stmt *)
+        match vardef with
+        | { G.vinit = Some e; vtype = opt_ty; vtok = _ } ->
+            let ss1, e' = map_expr_with_pre_stmts env e in
+            let ss2 = map_type_opt_with_pre_stmts env opt_ty in
+            let lv = map_lval_of_ent env ent in
+            ss1 @ ss2
+            @ [ mk_s (Instr (mk_i (Assign (lv, e')) (Related (G.En ent)))) ]
+        | _ -> []))
 
 (*****************************************************************************)
 (* Parameters *)
@@ -1817,9 +1816,9 @@ and map_type_ env (ty : G.type_) : G.type_ =
   let tok = G.fake "type" in
   exps
   |> List.iter (fun e ->
-         (* We add a fake assignment for dataflow analysis to reach these
-          * expressions occurring inside types. *)
-         mk_aux_var ~force:true ~str:"_type" env tok e |> ignore);
+      (* We add a fake assignment for dataflow analysis to reach these
+       * expressions occurring inside types. *)
+      mk_aux_var ~force:true ~str:"_type" env tok e |> ignore);
   ty
 
 and map_type_with_pre_stmts env ty : stmt list * G.type_ =
@@ -2518,21 +2517,21 @@ and map_class_params env (cparams : G.parameters) :
   (* Class parameters, like those in Scala, become class fields. *)
   cparams |> Tok.unbracket
   |> List.partition_map (function
-       | G.Param { pname = Some id; pinfo; ptype; pattrs; pdefault } ->
-           let entity =
-             {
-               IL.name = EN (var_of_id_info id pinfo);
-               attrs = pattrs;
-               tparams = None;
-             }
-           in
-           let vinit = Option.map (map_expr env) pdefault in
-           let vdef = { IL.vtype = ptype; vinit } in
-           Left (entity, vdef)
-       | ( G.Param { pname = None; _ }
-         | G.ParamPattern _ | G.ParamRest _ | G.ParamHashSplat _
-         | G.ParamEllipsis _ | G.ParamReceiver _ | G.OtherParam _ ) as param ->
-           Right (G.Pa param))
+    | G.Param { pname = Some id; pinfo; ptype; pattrs; pdefault } ->
+        let entity =
+          {
+            IL.name = EN (var_of_id_info id pinfo);
+            attrs = pattrs;
+            tparams = None;
+          }
+        in
+        let vinit = Option.map (map_expr env) pdefault in
+        let vdef = { IL.vtype = ptype; vinit } in
+        Left (entity, vdef)
+    | ( G.Param { pname = None; _ }
+      | G.ParamPattern _ | G.ParamRest _ | G.ParamHashSplat _
+      | G.ParamEllipsis _ | G.ParamReceiver _ | G.OtherParam _ ) as param ->
+        Right (G.Pa param))
 
 and map_class_body env (cbody : G.field list G.bracket) :
     class_field list * class_method list * fixme_field list =

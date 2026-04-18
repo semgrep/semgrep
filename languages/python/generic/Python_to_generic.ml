@@ -171,8 +171,8 @@ let rec expr env (x : expr) =
           ( v1,
             xs
             |> List.map (fun x ->
-                   let x = expr env x in
-                   G.Arg x),
+                let x = expr env x in
+                G.Arg x),
             v3 ) )
       |> G.e
   | ConcatenatedString xs ->
@@ -182,8 +182,8 @@ let rec expr env (x : expr) =
           fb
             (xs
             |> List.map (fun x ->
-                   let x = expr env x in
-                   G.Arg x)) )
+                let x = expr env x in
+                G.Arg x)) )
       |> G.e
   | TypedMetavar (v1, v2, v3) ->
       let v1 = name env v1 in
@@ -243,11 +243,11 @@ let rec expr env (x : expr) =
         if
           v
           |> List.for_all (function
-               | KeyVal _
-               (* semgrep-ext: ... should not count *)
-               | Key (Ellipsis _) ->
-                   true
-               | _ -> false)
+            | KeyVal _
+            (* semgrep-ext: ... should not count *)
+            | Key (Ellipsis _) ->
+                true
+            | _ -> false)
           || v =*= []
         then G.Dict
         else G.Set
@@ -277,7 +277,7 @@ let rec expr env (x : expr) =
           let anyops =
             v2
             |> List.map (function arith, tok ->
-                   G.E (G.Special (G.Op arith, tok) |> G.e))
+                G.E (G.Special (G.Op arith, tok) |> G.e))
           in
           let anys = anyops @ (v3 |> List.map (fun e -> G.E e)) in
           G.OtherExpr (("CmpOps", unsafe_fake ""), anys) |> G.e)
@@ -448,14 +448,14 @@ and subscript env e1 (t1, e2, t2) : G.expr_kind =
   if
     e2
     |> List.for_all (function
-         | Index _ -> true
-         | _ -> false)
+      | Index _ -> true
+      | _ -> false)
   then
     let indices =
       e2
       |> List.filter_map (function
-           | Index v1 -> Some v1
-           | Slice _ -> None)
+        | Index v1 -> Some v1
+        | Slice _ -> None)
     in
     let v = bracket (list (expr env)) (t1, indices, t2) in
     let container = G.Container (G.Tuple, v) |> G.e in
@@ -487,24 +487,24 @@ and parameters env xs : G.parameter list =
   in
   xs
   |> List.map (function
-       | ParamDefault ((param_pat, topt), e) ->
-           let topt = option (type_ env) topt in
-           let e = expr env e in
-           param_of_param_pattern ~topt ~eopt:(Some e) param_pat
-       | ParamPattern (param_pat, topt) ->
-           let topt = option (type_ env) topt in
-           param_of_param_pattern ~topt ~eopt:None param_pat
-       | ParamStar (t, (n, topt)) ->
-           let n = name env n in
-           let topt = option (type_ env) topt in
-           G.ParamRest (t, { (G.param_of_id n) with G.ptype = topt })
-       | ParamPow (t, (n, topt)) ->
-           let n = name env n in
-           let topt = option (type_ env) topt in
-           G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
-       | ParamEllipsis tok -> G.ParamEllipsis tok
-       | ParamSingleStar tok -> G.OtherParam (("SingleStar", tok), [])
-       | ParamSlash tok -> G.OtherParam (("SlashParam", tok), []))
+    | ParamDefault ((param_pat, topt), e) ->
+        let topt = option (type_ env) topt in
+        let e = expr env e in
+        param_of_param_pattern ~topt ~eopt:(Some e) param_pat
+    | ParamPattern (param_pat, topt) ->
+        let topt = option (type_ env) topt in
+        param_of_param_pattern ~topt ~eopt:None param_pat
+    | ParamStar (t, (n, topt)) ->
+        let n = name env n in
+        let topt = option (type_ env) topt in
+        G.ParamRest (t, { (G.param_of_id n) with G.ptype = topt })
+    | ParamPow (t, (n, topt)) ->
+        let n = name env n in
+        let topt = option (type_ env) topt in
+        G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
+    | ParamEllipsis tok -> G.ParamEllipsis tok
+    | ParamSingleStar tok -> G.OtherParam (("SingleStar", tok), [])
+    | ParamSlash tok -> G.OtherParam (("SlashParam", tok), []))
 
 and type_ env v =
   match v with
@@ -897,8 +897,8 @@ and stmt_aux env x =
       let v1 = list (name env) v1 in
       v1
       |> List.map (fun x ->
-             let ent = G.basic_entity x in
-             G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
+          let ent = G.basic_entity x in
+          G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
   | ExprStmt v1 ->
       let v1 = expr env v1 in
       [ G.exprstmt v1 ]

@@ -54,11 +54,10 @@ let errors_from_skipped_tokens xs =
 (*****************************************************************************)
 
 let just_parse_with_lang lang file : Parsing_result2.t =
-  begin
-    match lang with
-    | Lang.C when Sys_.Fpath.exists !Flag_parsing_cpp.macros_h ->
-        Parse_cpp.init_defs !Flag_parsing_cpp.macros_h
-    | _ -> ()
+  begin match lang with
+  | Lang.C when Sys_.Fpath.exists !Flag_parsing_cpp.macros_h ->
+      Parse_cpp.init_defs !Flag_parsing_cpp.macros_h
+  | _ -> ()
   end;
 
   match lang with

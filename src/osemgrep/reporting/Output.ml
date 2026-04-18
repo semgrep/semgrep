@@ -113,68 +113,61 @@ let format (kind : Output_format.t) (ctx : Out.format_context)
   | Vim ->
       cli_output.results
       |> List.map (fun (m : Out.cli_match) ->
-             match m with
-             | { check_id; path; start; extra = { message; severity; _ }; _ } ->
-                 let parts =
-                   [
-                     !!path;
-                     spf "%d" start.line;
-                     spf "%d" start.col;
-                     (* TOPORT? restrict to just I|E|W ? *)
-                     spf "%c" (string_of_severity severity).[0];
-                     Rule_ID.to_string check_id;
-                     message;
-                   ]
-                 in
-                 String.concat ":" parts)
+          match m with
+          | { check_id; path; start; extra = { message; severity; _ }; _ } ->
+              let parts =
+                [
+                  !!path;
+                  spf "%d" start.line;
+                  spf "%d" start.col;
+                  (* TOPORT? restrict to just I|E|W ? *)
+                  spf "%c" (string_of_severity severity).[0];
+                  Rule_ID.to_string check_id;
+                  message;
+                ]
+              in
+              String.concat ":" parts)
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
       |> List.map (fun (m : Out.cli_match) ->
-             match m with
-             | {
-              check_id;
-              path;
-              start;
-              end_;
-              extra = { message; severity; _ };
-              _;
-             } ->
-                 let severity =
-                   String.lowercase_ascii (string_of_severity severity)
-                 in
-                 let severity_and_ruleid =
-                   if check_id =*= Rule_ID.dash_e then severity
-                   else
-                     match Rule_ID.last_elt_opt check_id with
-                     | None -> severity
-                     | Some x -> spf "%s(%s)" severity x
-                 in
-                 let line =
-                   (* ugly: redoing the work done in cli_match_of_core_match.
-                    * we can't use m.extra.lines because this field actually
-                    * contains a string, not a string list.
-                    *)
-                   match
-                     Semgrep_output_utils.lines_of_file_at_range (start, end_)
-                       path
-                   with
-                   | Ok [] -> ""
-                   | Ok (x :: _) -> x (* TOPORT rstrip? *)
-                   | Error s -> failwith s
-                 in
-                 let parts =
-                   [
-                     !!path;
-                     spf "%d" start.line;
-                     spf "%d" start.col;
-                     (* TOPORT? restrict to just I|E|W ? *)
-                     severity_and_ruleid;
-                     line;
-                     message;
-                   ]
-                 in
-                 String.concat ":" parts)
+          match m with
+          | { check_id; path; start; end_; extra = { message; severity; _ }; _ }
+            ->
+              let severity =
+                String.lowercase_ascii (string_of_severity severity)
+              in
+              let severity_and_ruleid =
+                if check_id =*= Rule_ID.dash_e then severity
+                else
+                  match Rule_ID.last_elt_opt check_id with
+                  | None -> severity
+                  | Some x -> spf "%s(%s)" severity x
+              in
+              let line =
+                (* ugly: redoing the work done in cli_match_of_core_match.
+                 * we can't use m.extra.lines because this field actually
+                 * contains a string, not a string list.
+                 *)
+                match
+                  Semgrep_output_utils.lines_of_file_at_range (start, end_) path
+                with
+                | Ok [] -> ""
+                | Ok (x :: _) -> x (* TOPORT rstrip? *)
+                | Error s -> failwith s
+              in
+              let parts =
+                [
+                  !!path;
+                  spf "%d" start.line;
+                  spf "%d" start.col;
+                  (* TOPORT? restrict to just I|E|W ? *)
+                  severity_and_ruleid;
+                  line;
+                  message;
+                ]
+              in
+              String.concat ":" parts)
 
 let dispatch_output_format (conf : conf) (ctx : Out.format_context)
     (cli_output : Out.cli_output) (hrules : Rule.hrules) : unit =
@@ -261,9 +254,9 @@ let output_result (conf : conf) (runtime_params : Out.format_context)
       let total_bytes_scanned =
         res.scanned |> Fpath_.Fpath_set.elements
         |> List.map (fun path ->
-               match UFile.filesize path with
-               | Ok n -> n
-               | Error _ -> 0)
+            match UFile.filesize path with
+            | Ok n -> n
+            | Error _ -> 0)
         |> Common2.sum_int
       in
       {

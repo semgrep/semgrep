@@ -51,31 +51,29 @@ let test_filter ?excludes:cli_patterns (files : F.t list) selection () =
       let error = ref false in
       selection
       |> List.iter (fun (path, should_be_selected) ->
-             let path = Ppath.of_string_for_tests path in
-             let status, selection_events =
-               Gitignore_filter.select filter path
-             in
-             printf "Selection events for ppath %s:\n"
-               (Ppath.to_string_for_tests path);
-             print_string (Gitignore.show_selection_events selection_events);
-             if should_be_selected then (
-               match status with
-               | Not_ignored ->
-                   printf "[OK] ppath %s: not ignored\n"
-                     (Ppath.to_string_for_tests path)
-               | Ignored ->
-                   printf "[FAIL] ppath %s: ignored\n"
-                     (Ppath.to_string_for_tests path);
-                   error := true)
-             else
-               match status with
-               | Not_ignored ->
-                   printf "[FAIL] ppath %s: not ignored\n"
-                     (Ppath.to_string_for_tests path);
-                   error := true
-               | Ignored ->
-                   printf "[OK] ppath %s: ignored\n"
-                     (Ppath.to_string_for_tests path));
+          let path = Ppath.of_string_for_tests path in
+          let status, selection_events = Gitignore_filter.select filter path in
+          printf "Selection events for ppath %s:\n"
+            (Ppath.to_string_for_tests path);
+          print_string (Gitignore.show_selection_events selection_events);
+          if should_be_selected then (
+            match status with
+            | Not_ignored ->
+                printf "[OK] ppath %s: not ignored\n"
+                  (Ppath.to_string_for_tests path)
+            | Ignored ->
+                printf "[FAIL] ppath %s: ignored\n"
+                  (Ppath.to_string_for_tests path);
+                error := true)
+          else
+            match status with
+            | Not_ignored ->
+                printf "[FAIL] ppath %s: not ignored\n"
+                  (Ppath.to_string_for_tests path);
+                error := true
+            | Ignored ->
+                printf "[OK] ppath %s: ignored\n"
+                  (Ppath.to_string_for_tests path));
       if !error then Alcotest.fail "there were some unexpected results")
 
 (*****************************************************************************)

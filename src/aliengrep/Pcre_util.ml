@@ -56,11 +56,11 @@ let char_class_of_list ?(contents_only = false) chars =
   if not contents_only then Buffer.add_char buf '[';
   identify_char_ranges chars
   |> List.iter (function
-       | Single c -> escape_char buf c
-       | Range (first, last) ->
-           escape_char buf first;
-           Buffer.add_char buf '-';
-           escape_char buf last);
+    | Single c -> escape_char buf c
+    | Range (first, last) ->
+        escape_char buf first;
+        Buffer.add_char buf '-';
+        escape_char buf last);
   if not contents_only then Buffer.add_char buf ']';
   Buffer.contents buf
 

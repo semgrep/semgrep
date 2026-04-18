@@ -146,9 +146,9 @@ let fix_poly_taint_with_offset offset taints =
              let taints' =
                taints
                |> Taints.map (fun taint ->
-                      match taint.orig with
-                      | Var var -> { taint with orig = Var (fix_var o var) }
-                      | Src _ -> taint)
+                   match taint.orig with
+                   | Var var -> { taint with orig = Var (fix_var o var) }
+                   | Src _ -> taint)
              in
              taints')
        taints
@@ -485,8 +485,8 @@ and update_offset_in_obj ~f offset obj =
         | Ostr _ ->
             obj
             |> Fields.update o (fun opt_cell ->
-                   let* cell = opt_cell in
-                   update_offset_in_cell ~f offset cell))
+                let* cell = opt_cell in
+                update_offset_in_cell ~f offset cell))
   in
   if Fields.is_empty obj' then None else Some obj'
 
@@ -605,17 +605,16 @@ and internal_UNSAFE_map_xtaint_obj f obj =
 let add_tainted_token_to_shape tok shape =
   shape
   |> internal_UNSAFE_map_xtaint_shape (fun xtaint ->
-         match xtaint with
-         | `None
-         | `Clean ->
-             xtaint
-         | `Tainted taints ->
-             let taints =
-               taints
-               |> Taints.map (fun t ->
-                      { t with rev_tokens = tok :: t.rev_tokens })
-             in
-             `Tainted taints)
+      match xtaint with
+      | `None
+      | `Clean ->
+          xtaint
+      | `Tainted taints ->
+          let taints =
+            taints
+            |> Taints.map (fun t -> { t with rev_tokens = tok :: t.rev_tokens })
+          in
+          `Tainted taints)
 
 (*********************************************************)
 (* Enumerate tainted offsets *)
@@ -643,6 +642,6 @@ and enum_in_shape = function
 and enum_in_obj obj =
   obj |> Fields.to_seq
   |> Seq.map (fun (o, cell) ->
-         enum_in_cell cell
-         |> Seq.map (fun (offset, taints) -> (o :: offset, taints)))
+      enum_in_cell cell
+      |> Seq.map (fun (offset, taints) -> (o :: offset, taints)))
   |> Seq.concat

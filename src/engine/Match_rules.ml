@@ -76,19 +76,19 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
   let non_sca_rules, sca_rules =
     rules
     |> List.partition_map (fun (r : Rule.t) ->
-           match r.mode with
-           | (`Extract _ | `Search _ | `Steps _ | `Taint _) as mode ->
-               Left { r with mode }
-           | `Join _ as mode ->
-               Log.warn (fun m ->
-                   m "Note: Join rule %a not avaliable via core" Rule_ID.pp
-                     (fst r.id));
-               Right { r with mode }
-           | `SCA _ as mode ->
-               Log.warn (fun m ->
-                   m "Note: SCA rule %a not avaliable via core" Rule_ID.pp
-                     (fst r.id));
-               Right { r with mode })
+        match r.mode with
+        | (`Extract _ | `Search _ | `Steps _ | `Taint _) as mode ->
+            Left { r with mode }
+        | `Join _ as mode ->
+            Log.warn (fun m ->
+                m "Note: Join rule %a not avaliable via core" Rule_ID.pp
+                  (fst r.id));
+            Right { r with mode }
+        | `SCA _ as mode ->
+            Log.warn (fun m ->
+                m "Note: SCA rule %a not avaliable via core" Rule_ID.pp
+                  (fst r.id));
+            Right { r with mode })
   in
   let relevant, irrelevant, profiling =
     (* NOTE: Previously we updated xconf here based on the rule. I don't think
@@ -303,27 +303,27 @@ let check ~matches_hook ~(timeout : timeout_config option)
   let res_nontaint_rules =
     nontaint_rules
     |> List.map (fun r ->
-           let xconf =
-             Match_env.adjust_xconfig_with_rule_options xconf r.R.options
-           in
-           per_rule_boilerplate_fn
-             (r :> R.rule)
-             (fun () ->
-               Logs_.with_debug_trace ~__FUNCTION__
-                 ~pp_input:(fun _ ->
-                   "target: " ^ !!file ^ "\nruleid: "
-                   ^ (r.id |> fst |> Rule_ID.to_string))
-                 (fun () ->
-                   (* dispatching *)
-                   match r.R.mode with
-                   | `Search _ as mode ->
-                       Match_search_mode.check_rule { r with mode }
-                         ~matches_hook xconf xtarget
-                   | `Extract extract_spec ->
-                       Match_search_mode.check_rule
-                         { r with mode = `Search extract_spec.R.formula }
-                         ~matches_hook xconf xtarget
-                   | `Steps _ -> raise Multistep_rules_not_available)))
+        let xconf =
+          Match_env.adjust_xconfig_with_rule_options xconf r.R.options
+        in
+        per_rule_boilerplate_fn
+          (r :> R.rule)
+          (fun () ->
+            Logs_.with_debug_trace ~__FUNCTION__
+              ~pp_input:(fun _ ->
+                "target: " ^ !!file ^ "\nruleid: "
+                ^ (r.id |> fst |> Rule_ID.to_string))
+              (fun () ->
+                (* dispatching *)
+                match r.R.mode with
+                | `Search _ as mode ->
+                    Match_search_mode.check_rule { r with mode } ~matches_hook
+                      xconf xtarget
+                | `Extract extract_spec ->
+                    Match_search_mode.check_rule
+                      { r with mode = `Search extract_spec.R.formula }
+                      ~matches_hook xconf xtarget
+                | `Steps _ -> raise Multistep_rules_not_available)))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   (* TODO: detect if a target was fully skipped because no rule

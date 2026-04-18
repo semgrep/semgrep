@@ -64,91 +64,89 @@ let regexp_matcher ?(base_offset = 0) regex_functions big_str (file : Fpath.t)
   let subs = regex_functions.exec_all_noerr regexp big_str in
   subs |> Array.to_list
   |> List.map (fun sub ->
-         (* Below, we add `base_offset` to any instance of `bytepos`, because
+      (* Below, we add `base_offset` to any instance of `bytepos`, because
             the `bytepos` we obtain is only within the range of the string
             being searched, which may itself be offset from a larger file.
 
             By maintaining this base offset, we can accurately recreate the
             original line/col, at minimum cost.
          *)
-         let matched_str = regex_functions.get_substring sub 0 in
-         let bytepos, _ = regex_functions.get_substring_ofs sub 0 in
-         let bytepos = bytepos + base_offset in
-         let str = matched_str in
-         let line, column = line_col_of_charpos file bytepos in
-         let pos = Pos.make file ~line ~column bytepos in
-         let loc1 = { Loc.str; pos } in
+      let matched_str = regex_functions.get_substring sub 0 in
+      let bytepos, _ = regex_functions.get_substring_ofs sub 0 in
+      let bytepos = bytepos + base_offset in
+      let str = matched_str in
+      let line, column = line_col_of_charpos file bytepos in
+      let pos = Pos.make file ~line ~column bytepos in
+      let loc1 = { Loc.str; pos } in
 
-         let bytepos = bytepos + String.length str in
-         let str = "" in
-         let line, column = line_col_of_charpos file bytepos in
-         let pos = Pos.make file ~line ~column bytepos in
-         let loc2 = { Loc.str; pos } in
+      let bytepos = bytepos + String.length str in
+      let str = "" in
+      let line, column = line_col_of_charpos file bytepos in
+      let pos = Pos.make file ~line ~column bytepos in
+      let loc2 = { Loc.str; pos } in
 
-         (* the names of all capture groups within the regexp *)
-         let names =
-           regex_functions.names (regex_functions.get_regex regexp)
-           |> Array.to_list
-         in
-         (* return regexp bound group $1 $2 etc *)
-         let n = regex_functions.num_of_subs sub in
-         (* TODO: remove when we kill numeric capture groups *)
-         let numbers_env =
-           match n with
-           | 1 -> []
-           | _ when n <= 0 -> raise Impossible
-           | n ->
-               List_.enum 1 (n - 1)
-               |> List.filter_map (fun n ->
-                      try
-                        let bytepos, _ =
-                          regex_functions.get_substring_ofs sub n
-                        in
-                        let str = regex_functions.get_substring sub n in
-                        let line, column = line_col_of_charpos file bytepos in
-                        let pos = Pos.make file ~line ~column bytepos in
-                        let loc = { Loc.str; pos } in
-                        let t = Tok.tok_of_loc loc in
-                        Some (spf "$%d" n, MV.Text (str, t, t))
-                      with
-                      | Not_found ->
-                          Log.debug (fun m ->
-                              m "not found %d substring of %s in %s" n
-                                (regex_functions.get_pattern regexp)
-                                matched_str);
-                          None)
-         in
-         let names_env =
-           names
-           |> List.filter_map (fun name ->
-                  try
-                    (* TODO: make exception-free versions of the missing
+      (* the names of all capture groups within the regexp *)
+      let names =
+        regex_functions.names (regex_functions.get_regex regexp)
+        |> Array.to_list
+      in
+      (* return regexp bound group $1 $2 etc *)
+      let n = regex_functions.num_of_subs sub in
+      (* TODO: remove when we kill numeric capture groups *)
+      let numbers_env =
+        match n with
+        | 1 -> []
+        | _ when n <= 0 -> raise Impossible
+        | n ->
+            List_.enum 1 (n - 1)
+            |> List.filter_map (fun n ->
+                try
+                  let bytepos, _ = regex_functions.get_substring_ofs sub n in
+                  let str = regex_functions.get_substring sub n in
+                  let line, column = line_col_of_charpos file bytepos in
+                  let pos = Pos.make file ~line ~column bytepos in
+                  let loc = { Loc.str; pos } in
+                  let t = Tok.tok_of_loc loc in
+                  Some (spf "$%d" n, MV.Text (str, t, t))
+                with
+                | Not_found ->
+                    Log.debug (fun m ->
+                        m "not found %d substring of %s in %s" n
+                          (regex_functions.get_pattern regexp)
+                          matched_str);
+                    None)
+      in
+      let names_env =
+        names
+        |> List.filter_map (fun name ->
+            try
+              (* TODO: make exception-free versions of the missing
                        functions in SPcre. *)
-                    let bytepos, _ =
-                      regex_functions.get_named_substring_ofs
-                        (regex_functions.get_regex regexp)
-                        name sub
-                    in
-                    let bytepos = bytepos + base_offset in
-                    let str =
-                      regex_functions.get_named_substring
-                        (regex_functions.get_regex regexp)
-                        name sub
-                    in
-                    let line, column = line_col_of_charpos file bytepos in
-                    let pos = Pos.make file ~line ~column bytepos in
-                    let loc = { Loc.str; pos } in
-                    let t = Tok.tok_of_loc loc in
-                    Some (spf "$%s" name, MV.Text (str, t, t))
-                  with
-                  | Not_found ->
-                      Log.debug (fun m ->
-                          m "not found %s substring of %s in %s" name
-                            (regex_functions.get_pattern regexp)
-                            matched_str);
-                      None)
-         in
-         ((loc1, loc2), names_env @ numbers_env))
+              let bytepos, _ =
+                regex_functions.get_named_substring_ofs
+                  (regex_functions.get_regex regexp)
+                  name sub
+              in
+              let bytepos = bytepos + base_offset in
+              let str =
+                regex_functions.get_named_substring
+                  (regex_functions.get_regex regexp)
+                  name sub
+              in
+              let line, column = line_col_of_charpos file bytepos in
+              let pos = Pos.make file ~line ~column bytepos in
+              let loc = { Loc.str; pos } in
+              let t = Tok.tok_of_loc loc in
+              Some (spf "$%s" name, MV.Text (str, t, t))
+            with
+            | Not_found ->
+                Log.debug (fun m ->
+                    m "not found %s substring of %s in %s" name
+                      (regex_functions.get_pattern regexp)
+                      matched_str);
+                None)
+      in
+      ((loc1, loc2), names_env @ numbers_env))
 
 let matches_of_regexs regexps lazy_content (file : Fpath.t) origin =
   matches_of_matcher regexps

@@ -286,14 +286,14 @@ let thread_flow_location message (location : Out.location) content nesting_level
 let intermediate_var_locations nesting_level intermediate_vars =
   intermediate_vars
   |> List.map (fun ({ location; content } : Out.match_intermediate_var) ->
-         let propagation_message_text =
-           spf "Propagator : '%s' @ '%s:%d'" content
-             (Fpath.to_string location.path)
-             location.start.line
-           |> message
-         in
-         thread_flow_location propagation_message_text location content
-           nesting_level)
+      let propagation_message_text =
+        spf "Propagator : '%s' @ '%s:%d'" content
+          (Fpath.to_string location.path)
+          location.start.line
+        |> message
+      in
+      thread_flow_location propagation_message_text location content
+        nesting_level)
 
 (* Recursively flatten a [match_call_trace] into a list of thread flow
  * locations. Used to emit the taint sink call trace in SARIF. *)
@@ -496,10 +496,10 @@ let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
       let tool_execution_notifications =
         cli_output.errors
         |> List.sort (fun (a : Out.cli_error) (b : Out.cli_error) ->
-               match (a.path, b.path) with
-               (* less: could sort more *)
-               | Some a1, Some b1 -> Fpath.compare a1 b1
-               | _else_ -> Stdlib.compare a b)
+            match (a.path, b.path) with
+            (* less: could sort more *)
+            | Some a1, Some b1 -> Fpath.compare a1 b1
+            | _else_ -> Stdlib.compare a b)
         |> List.map error_to_sarif_notification
       in
       Sarif.create_invocation ~execution_successful:true

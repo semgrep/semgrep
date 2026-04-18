@@ -73,13 +73,13 @@ let mk_var_or_func tlet params tret body =
 let defs_of_bindings tlet attrs xs =
   xs
   |> list (function
-       | Either.Left (ent, params, tret, body, lattrs) ->
-           let ent = add_attrs ent (attrs @ lattrs) in
-           G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
-       | Either.Right (pat, e) ->
-           (* TODO no attrs *)
-           let exp = G.LetPattern (pat, e) |> G.e in
-           G.exprstmt exp)
+    | Either.Left (ent, params, tret, body, lattrs) ->
+        let ent = add_attrs ent (attrs @ lattrs) in
+        G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
+    | Either.Right (pat, e) ->
+        (* TODO no attrs *)
+        let exp = G.LetPattern (pat, e) |> G.e in
+        G.exprstmt exp)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -167,7 +167,7 @@ and stmt e : G.stmt =
       let catches =
         v2
         |> list (fun (pat, e) ->
-               (fake "catch", G.CatchPattern pat, G.exprstmt e))
+            (fake "catch", G.CatchPattern pat, G.exprstmt e))
       in
       G.Try (t, v1, catches, None, None) |> G.s
   | While (t, v1, v2) ->
@@ -672,10 +672,10 @@ and attribute x =
       let args =
         xs
         |> List.filter_map (function
-             | { i = TopExpr e; iattrs = [] } ->
-                 let e = expr e in
-                 Some (G.Arg e)
-             | _ -> None)
+          | { i = TopExpr e; iattrs = [] } ->
+              let e = expr e in
+              Some (G.Arg e)
+          | _ -> None)
       in
       let name = H.name_of_ids dotted in
       G.NamedAttr (t1, name, (t2, args, t2))
@@ -717,8 +717,8 @@ and item { i; iattrs } =
   | Class (c_tok, xs) ->
       xs
       |> list (fun x ->
-             let def = class_binding c_tok x in
-             G.DefStmt def |> G.s)
+          let def = class_binding c_tok x in
+          G.DefStmt def |> G.s)
   | TopExpr e ->
       let e = expr e in
       [ G.exprstmt e ]
@@ -726,12 +726,12 @@ and item { i; iattrs } =
       let xs = list type_declaration v1 in
       xs
       |> List.map (function
-           | Either.Left (ent, def) ->
-               (* add attrs to all mutual type decls *)
-               let ent = add_attrs ent attrs in
-               G.DefStmt (ent, G.TypeDef def) |> G.s
-           | Either.Right categ ->
-               G.OtherStmt (G.OS_Todo, [ G.TodoK categ ]) |> G.s)
+        | Either.Left (ent, def) ->
+            (* add attrs to all mutual type decls *)
+            let ent = add_attrs ent attrs in
+            G.DefStmt (ent, G.TypeDef def) |> G.s
+        | Either.Right categ ->
+            G.OtherStmt (G.OS_Todo, [ G.TodoK categ ]) |> G.s)
   | Exception (_t, v1, v2) ->
       let v1 = ident v1 and v2 = list type_ v2 in
       let ent = G.basic_entity v1 ~attrs in

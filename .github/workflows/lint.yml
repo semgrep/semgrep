@@ -46,7 +46,7 @@ jobs:
           ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda
           opam-pin: false
           save-opam-post-run: true
-      - run: opam install -y ocamlformat.0.27.0
+      - run: opam install -y ocamlformat.0.29.0
       - env:
           SKIP: check-opam-conflicts
         uses: pre-commit/action@646c83fcd040023954eafda54b4db0192ce70507

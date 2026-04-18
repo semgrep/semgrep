@@ -261,17 +261,17 @@ let fixOldCDecl ii (ty : type_) : type_ =
       | params ->
           params
           |> List.iter (fun param ->
-                 match param with
-                 | P { p_name = None; p_type = _ty2; _ } ->
-                     (* see above
+              match param with
+              | P { p_name = None; p_type = _ty2; _ } ->
+                  (* see above
                         let info = Lib_parsing_cpp.ii_of_any (Type ty2) +> Common.hd_exn "unexpected empty list" in
                         (* if majuscule, then certainly macro-parameter *)
                         pr2 (spf "SEMANTIC: parameter name omitted (but I continue) at %s"
                             (Parse_info.string_of_info info)
                         );
                      *)
-                     ()
-                 | _ -> ());
+                  ()
+              | _ -> ());
           ty)
   (* todo? can we declare prototype in the decl or structdef,
    *  ... => length <> but good kan meme
@@ -298,9 +298,9 @@ let fixFunc ((name, ty, _stoTODO), cp) : func_definition =
         | params ->
             params
             |> List.iter (function
-                 | P { p_name = Some _s; _ } -> ()
-                 (* failwith "internal errror: fixOldCDecl not good" *)
-                 | _ -> ()));
+              | P { p_name = Some _s; _ } -> ()
+              (* failwith "internal errror: fixOldCDecl not good" *)
+              | _ -> ()));
         ftyp
     | _ ->
         Log.warn (fun m ->

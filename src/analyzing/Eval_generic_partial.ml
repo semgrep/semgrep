@@ -86,11 +86,11 @@ first literal or constant in the list. If none exists, it returns [None]. *)
 let find_type_args args =
   args
   |> List.find_map (function
-       | Some (Lit (Bool _)) -> Some Cbool
-       | Some (Lit (Int _)) -> Some Cint
-       | Some (Lit (String _)) -> Some Cstr
-       | Some (Cst ctype) -> Some ctype
-       | _arg -> None)
+    | Some (Lit (Bool _)) -> Some Cbool
+    | Some (Lit (Int _)) -> Some Cint
+    | Some (Lit (String _)) -> Some Cstr
+    | Some (Cst ctype) -> Some ctype
+    | _arg -> None)
 
 let sign i = Int64.shift_right i (Sys.int_size - 1)
 
@@ -221,8 +221,8 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
 and eval_args env args =
   args |> Tok.unbracket
   |> List.map (function
-       | Arg e -> eval env e
-       | _ -> None)
+    | Arg e -> eval env e
+    | _ -> None)
 
 and eval_special env (special, _) args =
   match (special, eval_args env args) with
@@ -272,8 +272,8 @@ and eval_call env name args =
       if
         args
         |> List.for_all (function
-             | Some (Lit _ | Cst _) -> true
-             | _ -> false)
+          | Some (Lit _ | Cst _) -> true
+          | _ -> false)
       then Some (Cst Cstr)
       else None
   | _lang, _name, _args -> None
@@ -292,8 +292,8 @@ and eval_python_fstring env args =
   | _ ->
       args
       |> List.map (function
-           | Some (Lit (String _) | Cst Cstr) as x -> x
-           | Some (Lit (Int (Some n, _))) -> helper (Int64.to_string n)
-           | Some (Lit (Float (Some f, _))) -> helper (string_of_float f)
-           | _ -> None)
+        | Some (Lit (String _) | Cst Cstr) as x -> x
+        | Some (Lit (Int (Some n, _))) -> helper (Int64.to_string n)
+        | Some (Lit (Float (Some f, _))) -> helper (string_of_float f)
+        | _ -> None)
       |> fold_args1 (concat_string_cst env)

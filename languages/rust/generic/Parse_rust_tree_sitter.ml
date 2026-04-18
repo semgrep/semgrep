@@ -95,8 +95,8 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
   let xs =
     xs
     |> List.concat_map (function
-         | MacAny (G.Anys anys) -> anys |> List.map (fun any -> MacAny any)
-         | other -> [ other ])
+      | MacAny (G.Anys anys) -> anys |> List.map (fun any -> MacAny any)
+      | other -> [ other ])
   in
   (* Note that the commas are considered like any other tokens in a Rust macro;
      * they are not separators between rust_macro_items.
@@ -1766,292 +1766,292 @@ and map_expression (env : env) (x : CST.expression) =
 
 and map_expression_except_range (env : env) (x : CST.expression_except_range) =
   (match x with
-  | `Un_exp (v1, v2) -> (
-      let expr = map_expression env v2 in
-      match v1 with
-      | `DASH tok ->
-          let tok = token env tok in
-          (* "-" *)
-          G.Call (G.Special (G.Op G.Minus, tok) |> G.e, fb [ G.Arg expr ])
-      | `STAR tok ->
-          let tok = token env tok in
-          (* "*" *)
-          G.DeRef (tok, expr)
-      | `BANG tok ->
-          let tok = token env tok in
-          (* "!" *)
-          G.Call (G.Special (G.Op G.Not, tok) |> G.e, fb [ G.Arg expr ]))
-  | `Ref_exp (v1, v2, v3) ->
-      let ref_ =
-        token env v1
-        (* "&" *)
-      in
-      let _mutabilityTODO =
-        match v2 with
-        | `Raw_choice_const (v1, v2) -> (
-            let _raw_TODO = (* "raw" *) token env v1 in
-            match v2 with
-            | `Const tok ->
-                (* "const" *)
-                Some (G.KeywordAttr (G.Const, token env tok))
-            | `Muta_spec tok ->
-                (* "mut" *)
-                Some (G.KeywordAttr (G.Mutable, token env tok)))
-        | `Opt_muta_spec opt -> (
-            match opt with
-            | Some tok -> Some (G.KeywordAttr (G.Mutable, token env tok))
-            | None -> None)
-      in
-      let expr = map_expression env v3 in
-      G.Ref (ref_, expr)
-  | `Try_exp (v1, v2) ->
-      let expr = map_expression env v1 in
-      let question =
-        token env v2
-        (* "?" *)
-      in
-      (* TODO: This is actually unary postfix try; should repr differently *)
-      G.Call (G.Special (G.Op G.Elvis, question) |> G.e, fb [ G.Arg expr ])
-  | `Bin_exp x -> map_binary_expression env x
-  | `Assign_exp (v1, v2, v3) ->
-      let lhs = map_expression env v1 in
-      let equals =
-        token env v2
-        (* "=" *)
-      in
-      let rhs = map_expression env v3 in
-      G.Assign (lhs, equals, rhs)
-  | `Comp_assign_expr (v1, v2, v3) ->
-      let lhs = map_expression env v1 in
-      let op, tok =
-        match v2 with
-        | `PLUSEQ tok -> (G.Plus, token env tok) (* "+=" *)
-        | `DASHEQ tok -> (G.Minus, token env tok) (* "-=" *)
-        | `STAREQ tok -> (G.Mult, token env tok) (* "*=" *)
-        | `SLASHEQ tok -> (G.Div, token env tok) (* "/=" *)
-        | `PERCEQ tok -> (G.Mod, token env tok) (* "%=" *)
-        | `AMPEQ tok -> (G.BitAnd, token env tok) (* "&=" *)
-        | `BAREQ tok -> (G.BitOr, token env tok) (* "|=" *)
-        | `HATEQ tok -> (G.BitXor, token env tok) (* "^=" *)
-        | `LTLTEQ tok -> (G.LSL, token env tok) (* "<<=" *)
-        (* According to https://doc.rust-lang.org/reference/expressions/operator-expr.html#arithmetic-and-logical-binary-operators: *)
-        (* "Arithmetic right shift on signed integer types, logical right shift on unsigned integer types." *)
-        | `GTGTEQ tok -> (G.LSR, token env tok)
-        (* ">>=" *)
-      in
-      let rhs = map_expression env v3 in
-      G.AssignOp (lhs, (op, tok), rhs)
-  | `Type_cast_exp (v1, v2, v3) ->
-      let expr = map_expression env v1 in
-      let as_ =
-        token env v2
-        (* "as" *)
-      in
-      let type_ = map_type_ env v3 in
-      G.Cast (type_, as_, expr)
-  | `Call_exp (v1, v2) ->
-      let expr = map_expression_except_range env v1 in
-      let args = map_arguments env v2 in
-      G.Call (expr, args)
-  | `Ret_exp x ->
-      let x = map_return_expression env x in
-      x.G.e
-  | `Yield_exp x -> map_yield_expression env x
-  | `Lit x -> G.L (map_literal env x)
-  | `Id tok -> G.N (H2.name_of_id (ident env tok))
-  (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  | `Choice_u8 x ->
-      let tok = map_primitive_type_token env x in
-      G.N (H2.name_of_id (ident env tok))
-  | `Choice_defa x ->
-      let ident = map_reserved_identifier env x in
-      G.N (H2.name_of_id ident)
-  | `Self tok ->
-      G.N
-        (G.IdSpecial ((G.Self, token env tok) (* "self" *), G.empty_id_info ()))
-  | `Scoped_id x ->
-      let x = map_scoped_identifier_name env x in
-      G.N x
-  | `Gene_func (v1, v2, v3) -> (
-      (* TODO: QTop *)
-      let _colons =
-        token env v2
-        (* "::" *)
-      in
-      let typeargs = map_type_arguments env v3 in
-      match v1 with
-      | `Id tok ->
-          let ident = ident env tok in
-          (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-          G.N (H2.add_type_args_to_name (H2.name_of_id ident) typeargs)
-      | `Scoped_id x ->
-          let n = map_scoped_identifier_name env x in
-          G.N (H2.add_type_args_to_name n typeargs)
-      | `Field_exp x ->
-          let x = map_field_expression env x (Some typeargs) in
-          x.G.e)
-  | `Await_exp (v1, v2, v3) ->
-      let expr = map_expression env v1 in
-      let _dot =
-        token env v2
-        (* "." *)
-      in
-      let await =
-        token env v3
-        (* "await" *)
-      in
-      G.Await (await, expr)
-  | `Field_exp x ->
-      let x = map_field_expression env x None in
-      x.G.e
-  | `Array_exp (v1, v2, v3, v4) ->
-      let lbracket =
-        token env v1
-        (* "[" *)
-      in
-      let _outer_attrs = List.map (map_outer_attribute_item env) v2 in
-      let exprs =
-        match v3 with
-        | `Exp_SEMI_exp (v1, v2, v3) ->
-            let ty = map_expression env v1 in
-            let _semicolon =
-              token env v2
-              (* ";" *)
-            in
-            let init = map_expression env v3 in
-            [ ty; init ]
-        | `Opt_rep_attr_item_exp_rep_COMMA_rep_attr_item_exp_opt_COMMA (v1, v2)
-          ->
-            let exprs_with_attrs = map_expressions_with_attributes env v1 in
-            (* TODO attrs *)
-            let exprs = List.map snd exprs_with_attrs in
-            let _comma = Option.map (fun tok -> token env tok (* "," *)) v2 in
-            exprs
-      in
-      let rbracket =
-        token env v4
-        (* "]" *)
-      in
-      G.Container (G.Array, (lbracket, exprs, rbracket))
-  | `Tuple_exp (v1, v2, v3, v4, v5, v6, v7) ->
-      let lparen =
-        token env v1
-        (* "(" *)
-      in
-      let _outer_attrs = List.map (map_outer_attribute_item env) v2 in
-      let expr_first = map_expression env v3 in
-      let _comma =
-        token env v4
-        (* "," *)
-      in
-      let expr_rest =
-        List.map
-          (fun (v1, v2) ->
-            let expr = map_expression env v1 in
-            let _comma =
-              token env v2
-              (* "," *)
-            in
-            expr)
-          v5
-      in
-      let expr_last =
-        match v6 with
-        | Some x -> [ map_expression env x ]
-        | None -> []
-      in
-      let rparen =
-        token env v7
-        (* ")" *)
-      in
-      let exprs = List_.flatten [ [ expr_first ]; expr_rest; expr_last ] in
-      G.Container (G.Tuple, (lparen, exprs, rparen))
-  | `Macro_invo x ->
-      let x = map_macro_invocation env x in
-      x.G.e
-  | `Unit_exp (v1, v2) ->
-      let lparen =
-        token env v1
-        (* "(" *)
-      in
-      let _rparen =
-        token env v2
-        (* ")" *)
-      in
-      G.L (G.Unit lparen)
-  | `Choice_unsafe_blk x ->
-      let x = map_expression_ending_with_block env x in
-      x.G.e
-  | `Brk_exp (v1, v2, v3) ->
-      let break =
-        token env v1
-        (* "break" *)
-      in
-      let label =
-        match v2 with
-        | Some x -> G.LId (map_label env x)
-        | None -> G.LNone
-      in
-      let _exprTODO = Option.map (fun x -> map_expression env x) v3 in
-      let break_stmt = G.Break (break, label, sc) |> G.s in
-      (* TODO expr *)
-      let x = G.stmt_to_expr break_stmt in
-      x.G.e
-  | `Cont_exp (v1, v2) ->
-      let continue =
-        token env v1
-        (* "continue" *)
-      in
-      let label =
-        match v2 with
-        | Some x -> G.LId (map_label env x)
-        | None -> G.LNone
-      in
-      let continue_stmt = G.Continue (continue, label, sc) |> G.s in
-      let x = G.stmt_to_expr continue_stmt in
-      x.G.e
-  | `Index_exp (v1, v2, v3, v4) ->
-      let expr = map_expression env v1 in
-      let lbracket =
-        token env v2
-        (* "[" *)
-      in
-      let index = map_expression env v3 in
-      let rbracket =
-        token env v4
-        (* "]" *)
-      in
-      G.ArrayAccess (expr, (lbracket, index, rbracket))
-  | `Meta tok ->
-      let meta = ident env tok in
-      (* pattern \$[a-zA-Z_]\w* *)
-      G.N (G.Id (meta, G.empty_id_info ()))
-  | `Clos_exp x -> map_closure_expression env x
-  | `Paren_exp (_v1, v2, _v3) -> (
-      match v2 with
-      | `Exp e ->
-          let x = map_expression env e in
-          x.G.e
-      | `Semg_typed_meta (v, c, t) ->
-          let metavar = ident env v in
-          if AST_generic.is_metavar_name (fst metavar) && in_pattern env then
-            let colon = token env c in
-            let type_ = map_type_ env t in
-            G.TypedMetavar (metavar, colon, type_)
-          else raise Impossible)
-  | `Struct_exp (v1, v2) ->
-      let name : G.name =
+    | `Un_exp (v1, v2) -> (
+        let expr = map_expression env v2 in
+        match v1 with
+        | `DASH tok ->
+            let tok = token env tok in
+            (* "-" *)
+            G.Call (G.Special (G.Op G.Minus, tok) |> G.e, fb [ G.Arg expr ])
+        | `STAR tok ->
+            let tok = token env tok in
+            (* "*" *)
+            G.DeRef (tok, expr)
+        | `BANG tok ->
+            let tok = token env tok in
+            (* "!" *)
+            G.Call (G.Special (G.Op G.Not, tok) |> G.e, fb [ G.Arg expr ]))
+    | `Ref_exp (v1, v2, v3) ->
+        let ref_ =
+          token env v1
+          (* "&" *)
+        in
+        let _mutabilityTODO =
+          match v2 with
+          | `Raw_choice_const (v1, v2) -> (
+              let _raw_TODO = (* "raw" *) token env v1 in
+              match v2 with
+              | `Const tok ->
+                  (* "const" *)
+                  Some (G.KeywordAttr (G.Const, token env tok))
+              | `Muta_spec tok ->
+                  (* "mut" *)
+                  Some (G.KeywordAttr (G.Mutable, token env tok)))
+          | `Opt_muta_spec opt -> (
+              match opt with
+              | Some tok -> Some (G.KeywordAttr (G.Mutable, token env tok))
+              | None -> None)
+        in
+        let expr = map_expression env v3 in
+        G.Ref (ref_, expr)
+    | `Try_exp (v1, v2) ->
+        let expr = map_expression env v1 in
+        let question =
+          token env v2
+          (* "?" *)
+        in
+        (* TODO: This is actually unary postfix try; should repr differently *)
+        G.Call (G.Special (G.Op G.Elvis, question) |> G.e, fb [ G.Arg expr ])
+    | `Bin_exp x -> map_binary_expression env x
+    | `Assign_exp (v1, v2, v3) ->
+        let lhs = map_expression env v1 in
+        let equals =
+          token env v2
+          (* "=" *)
+        in
+        let rhs = map_expression env v3 in
+        G.Assign (lhs, equals, rhs)
+    | `Comp_assign_expr (v1, v2, v3) ->
+        let lhs = map_expression env v1 in
+        let op, tok =
+          match v2 with
+          | `PLUSEQ tok -> (G.Plus, token env tok) (* "+=" *)
+          | `DASHEQ tok -> (G.Minus, token env tok) (* "-=" *)
+          | `STAREQ tok -> (G.Mult, token env tok) (* "*=" *)
+          | `SLASHEQ tok -> (G.Div, token env tok) (* "/=" *)
+          | `PERCEQ tok -> (G.Mod, token env tok) (* "%=" *)
+          | `AMPEQ tok -> (G.BitAnd, token env tok) (* "&=" *)
+          | `BAREQ tok -> (G.BitOr, token env tok) (* "|=" *)
+          | `HATEQ tok -> (G.BitXor, token env tok) (* "^=" *)
+          | `LTLTEQ tok -> (G.LSL, token env tok) (* "<<=" *)
+          (* According to https://doc.rust-lang.org/reference/expressions/operator-expr.html#arithmetic-and-logical-binary-operators: *)
+          (* "Arithmetic right shift on signed integer types, logical right shift on unsigned integer types." *)
+          | `GTGTEQ tok -> (G.LSR, token env tok)
+          (* ">>=" *)
+        in
+        let rhs = map_expression env v3 in
+        G.AssignOp (lhs, (op, tok), rhs)
+    | `Type_cast_exp (v1, v2, v3) ->
+        let expr = map_expression env v1 in
+        let as_ =
+          token env v2
+          (* "as" *)
+        in
+        let type_ = map_type_ env v3 in
+        G.Cast (type_, as_, expr)
+    | `Call_exp (v1, v2) ->
+        let expr = map_expression_except_range env v1 in
+        let args = map_arguments env v2 in
+        G.Call (expr, args)
+    | `Ret_exp x ->
+        let x = map_return_expression env x in
+        x.G.e
+    | `Yield_exp x -> map_yield_expression env x
+    | `Lit x -> G.L (map_literal env x)
+    | `Id tok -> G.N (H2.name_of_id (ident env tok))
+    (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+    | `Choice_u8 x ->
+        let tok = map_primitive_type_token env x in
+        G.N (H2.name_of_id (ident env tok))
+    | `Choice_defa x ->
+        let ident = map_reserved_identifier env x in
+        G.N (H2.name_of_id ident)
+    | `Self tok ->
+        G.N
+          (G.IdSpecial ((G.Self, token env tok) (* "self" *), G.empty_id_info ()))
+    | `Scoped_id x ->
+        let x = map_scoped_identifier_name env x in
+        G.N x
+    | `Gene_func (v1, v2, v3) -> (
+        (* TODO: QTop *)
+        let _colons =
+          token env v2
+          (* "::" *)
+        in
+        let typeargs = map_type_arguments env v3 in
         match v1 with
         | `Id tok ->
             let ident = ident env tok in
             (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            H2.name_of_id ident
-        | `Scoped_type_id_in_exp_posi x ->
-            map_scoped_type_identifier_in_expression_position env x
-        | `Gene_type_with_turb x -> map_generic_type_with_turbofish env x
-      in
-      let l, fields, r = map_field_initializer_list env v2 in
-      G.Constructor (name, (l, fields, r)))
+            G.N (H2.add_type_args_to_name (H2.name_of_id ident) typeargs)
+        | `Scoped_id x ->
+            let n = map_scoped_identifier_name env x in
+            G.N (H2.add_type_args_to_name n typeargs)
+        | `Field_exp x ->
+            let x = map_field_expression env x (Some typeargs) in
+            x.G.e)
+    | `Await_exp (v1, v2, v3) ->
+        let expr = map_expression env v1 in
+        let _dot =
+          token env v2
+          (* "." *)
+        in
+        let await =
+          token env v3
+          (* "await" *)
+        in
+        G.Await (await, expr)
+    | `Field_exp x ->
+        let x = map_field_expression env x None in
+        x.G.e
+    | `Array_exp (v1, v2, v3, v4) ->
+        let lbracket =
+          token env v1
+          (* "[" *)
+        in
+        let _outer_attrs = List.map (map_outer_attribute_item env) v2 in
+        let exprs =
+          match v3 with
+          | `Exp_SEMI_exp (v1, v2, v3) ->
+              let ty = map_expression env v1 in
+              let _semicolon =
+                token env v2
+                (* ";" *)
+              in
+              let init = map_expression env v3 in
+              [ ty; init ]
+          | `Opt_rep_attr_item_exp_rep_COMMA_rep_attr_item_exp_opt_COMMA (v1, v2)
+            ->
+              let exprs_with_attrs = map_expressions_with_attributes env v1 in
+              (* TODO attrs *)
+              let exprs = List.map snd exprs_with_attrs in
+              let _comma = Option.map (fun tok -> token env tok (* "," *)) v2 in
+              exprs
+        in
+        let rbracket =
+          token env v4
+          (* "]" *)
+        in
+        G.Container (G.Array, (lbracket, exprs, rbracket))
+    | `Tuple_exp (v1, v2, v3, v4, v5, v6, v7) ->
+        let lparen =
+          token env v1
+          (* "(" *)
+        in
+        let _outer_attrs = List.map (map_outer_attribute_item env) v2 in
+        let expr_first = map_expression env v3 in
+        let _comma =
+          token env v4
+          (* "," *)
+        in
+        let expr_rest =
+          List.map
+            (fun (v1, v2) ->
+              let expr = map_expression env v1 in
+              let _comma =
+                token env v2
+                (* "," *)
+              in
+              expr)
+            v5
+        in
+        let expr_last =
+          match v6 with
+          | Some x -> [ map_expression env x ]
+          | None -> []
+        in
+        let rparen =
+          token env v7
+          (* ")" *)
+        in
+        let exprs = List_.flatten [ [ expr_first ]; expr_rest; expr_last ] in
+        G.Container (G.Tuple, (lparen, exprs, rparen))
+    | `Macro_invo x ->
+        let x = map_macro_invocation env x in
+        x.G.e
+    | `Unit_exp (v1, v2) ->
+        let lparen =
+          token env v1
+          (* "(" *)
+        in
+        let _rparen =
+          token env v2
+          (* ")" *)
+        in
+        G.L (G.Unit lparen)
+    | `Choice_unsafe_blk x ->
+        let x = map_expression_ending_with_block env x in
+        x.G.e
+    | `Brk_exp (v1, v2, v3) ->
+        let break =
+          token env v1
+          (* "break" *)
+        in
+        let label =
+          match v2 with
+          | Some x -> G.LId (map_label env x)
+          | None -> G.LNone
+        in
+        let _exprTODO = Option.map (fun x -> map_expression env x) v3 in
+        let break_stmt = G.Break (break, label, sc) |> G.s in
+        (* TODO expr *)
+        let x = G.stmt_to_expr break_stmt in
+        x.G.e
+    | `Cont_exp (v1, v2) ->
+        let continue =
+          token env v1
+          (* "continue" *)
+        in
+        let label =
+          match v2 with
+          | Some x -> G.LId (map_label env x)
+          | None -> G.LNone
+        in
+        let continue_stmt = G.Continue (continue, label, sc) |> G.s in
+        let x = G.stmt_to_expr continue_stmt in
+        x.G.e
+    | `Index_exp (v1, v2, v3, v4) ->
+        let expr = map_expression env v1 in
+        let lbracket =
+          token env v2
+          (* "[" *)
+        in
+        let index = map_expression env v3 in
+        let rbracket =
+          token env v4
+          (* "]" *)
+        in
+        G.ArrayAccess (expr, (lbracket, index, rbracket))
+    | `Meta tok ->
+        let meta = ident env tok in
+        (* pattern \$[a-zA-Z_]\w* *)
+        G.N (G.Id (meta, G.empty_id_info ()))
+    | `Clos_exp x -> map_closure_expression env x
+    | `Paren_exp (_v1, v2, _v3) -> (
+        match v2 with
+        | `Exp e ->
+            let x = map_expression env e in
+            x.G.e
+        | `Semg_typed_meta (v, c, t) ->
+            let metavar = ident env v in
+            if AST_generic.is_metavar_name (fst metavar) && in_pattern env then
+              let colon = token env c in
+              let type_ = map_type_ env t in
+              G.TypedMetavar (metavar, colon, type_)
+            else raise Impossible)
+    | `Struct_exp (v1, v2) ->
+        let name : G.name =
+          match v1 with
+          | `Id tok ->
+              let ident = ident env tok in
+              (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+              H2.name_of_id ident
+          | `Scoped_type_id_in_exp_posi x ->
+              map_scoped_type_identifier_in_expression_position env x
+          | `Gene_type_with_turb x -> map_generic_type_with_turbofish env x
+        in
+        let l, fields, r = map_field_initializer_list env v2 in
+        G.Constructor (name, (l, fields, r)))
   |> G.e
 
 and map_expressions_with_attributes (env : env)

@@ -46,12 +46,12 @@ let (count_open_close_stuff_ifdef_clause : ifdef_grouped list -> int * int) =
   let cnt_paren, cnt_brace = (ref 0, ref 0) in
   xs
   |> iter_token_ifdef (fun x ->
-         match x.t with
-         | x when TH.is_opar x -> incr cnt_paren
-         | x when TH.is_obrace x -> incr cnt_brace
-         | x when TH.is_cpar x -> decr cnt_paren
-         | x when TH.is_obrace x -> decr cnt_brace
-         | _ -> ());
+      match x.t with
+      | x when TH.is_opar x -> incr cnt_paren
+      | x when TH.is_obrace x -> incr cnt_brace
+      | x when TH.is_cpar x -> decr cnt_paren
+      | x when TH.is_obrace x -> decr cnt_brace
+      | _ -> ());
   (!cnt_paren, !cnt_brace)
 
 (* look if there is a '{' just after the closing ')', and handling the
@@ -113,33 +113,32 @@ let filter_pp_or_comment_stuff xs =
 let rec find_ifdef_bool xs =
   xs
   |> List.iter (function
-       | NotIfdefLine _ -> ()
-       | Ifdefbool (is_ifdef_positif, xxs, info_ifdef_stmt) -> (
-           if is_ifdef_positif then
-             pr2_pp "commenting parts of a #if 1 or #if LINUX_VERSION"
-           else pr2_pp "commenting a #if 0 or #if LINUX_VERSION or __cplusplus";
+    | NotIfdefLine _ -> ()
+    | Ifdefbool (is_ifdef_positif, xxs, info_ifdef_stmt) -> (
+        if is_ifdef_positif then
+          pr2_pp "commenting parts of a #if 1 or #if LINUX_VERSION"
+        else pr2_pp "commenting a #if 0 or #if LINUX_VERSION or __cplusplus";
 
-           match xxs with
-           | [] -> raise Impossible
-           | firstclause :: xxs ->
-               info_ifdef_stmt
-               |> List.iter (set_as_comment Token_cpp.CppDirective);
+        match xxs with
+        | [] -> raise Impossible
+        | firstclause :: xxs ->
+            info_ifdef_stmt |> List.iter (set_as_comment Token_cpp.CppDirective);
 
-               if is_ifdef_positif then
-                 xxs
-                 |> List.iter
-                      (iter_token_ifdef (set_as_comment Token_cpp.CppOther))
-               else (
-                 firstclause
-                 |> iter_token_ifdef (set_as_comment Token_cpp.CppOther);
-                 match List.rev xxs with
-                 (* keep only last *)
-                 | _last :: startxs ->
-                     startxs
-                     |> List.iter
-                          (iter_token_ifdef (set_as_comment Token_cpp.CppOther))
-                 | [] -> (* not #else *) ()))
-       | Ifdef (xxs, _info_ifdef_stmt) -> xxs |> List.iter find_ifdef_bool)
+            if is_ifdef_positif then
+              xxs
+              |> List.iter
+                   (iter_token_ifdef (set_as_comment Token_cpp.CppOther))
+            else (
+              firstclause
+              |> iter_token_ifdef (set_as_comment Token_cpp.CppOther);
+              match List.rev xxs with
+              (* keep only last *)
+              | _last :: startxs ->
+                  startxs
+                  |> List.iter
+                       (iter_token_ifdef (set_as_comment Token_cpp.CppOther))
+              | [] -> (* not #else *) ()))
+    | Ifdef (xxs, _info_ifdef_stmt) -> xxs |> List.iter find_ifdef_bool)
 
 let thresholdIfdefSizeMid = 6
 
@@ -147,52 +146,52 @@ let thresholdIfdefSizeMid = 6
 let rec find_ifdef_mid xs =
   xs
   |> List.iter (function
-       | NotIfdefLine _ -> ()
-       | Ifdef (xxs, info_ifdef_stmt) ->
-           (match xxs with
-           | [] -> raise Impossible
-           | [ _first ] -> ()
-           | _first :: second :: rest ->
-               (* don't analyse big ifdef *)
-               if
-                 xxs
-                 |> List.for_all (fun xs ->
-                        List.length xs <= thresholdIfdefSizeMid)
-                 &&
-                 (* don't want nested ifdef *)
-                 xxs
-                 |> List.for_all (fun xs ->
-                        xs
-                        |> List.for_all (function
-                             | NotIfdefLine _ -> true
-                             | _ -> false))
-               then
-                 let counts =
-                   xxs |> List.map count_open_close_stuff_ifdef_clause
-                 in
-                 let cnt1, cnt2 =
-                   match counts with
-                   | x :: _ -> x
-                   | [] -> assert false
-                 in
-                 if cnt1 <> 0 || cnt2 <> 0
-                 (*???? && counts +> List.for_all (fun x -> x = (cnt1, cnt2)) *)
-                 (*
+    | NotIfdefLine _ -> ()
+    | Ifdef (xxs, info_ifdef_stmt) ->
+        (match xxs with
+        | [] -> raise Impossible
+        | [ _first ] -> ()
+        | _first :: second :: rest ->
+            (* don't analyse big ifdef *)
+            if
+              xxs
+              |> List.for_all (fun xs ->
+                  List.length xs <= thresholdIfdefSizeMid)
+              &&
+              (* don't want nested ifdef *)
+              xxs
+              |> List.for_all (fun xs ->
+                  xs
+                  |> List.for_all (function
+                    | NotIfdefLine _ -> true
+                    | _ -> false))
+            then
+              let counts =
+                xxs |> List.map count_open_close_stuff_ifdef_clause
+              in
+              let cnt1, cnt2 =
+                match counts with
+                | x :: _ -> x
+                | [] -> assert false
+              in
+              if cnt1 <> 0 || cnt2 <> 0
+              (*???? && counts +> List.for_all (fun x -> x = (cnt1, cnt2)) *)
+              (*
                 if counts +> List.exists (fun (cnt1, cnt2) ->
                 cnt1 <> 0 || cnt2 <> 0
                 )
               *)
-                 then (
-                   pr2_pp "found ifdef-mid-something";
-                   (* keep only first, treat the rest as comment *)
-                   info_ifdef_stmt
-                   |> List.iter (set_as_comment Token_cpp.CppDirective);
-                   second :: rest
-                   |> List.iter
-                        (iter_token_ifdef (set_as_comment Token_cpp.CppOther))));
-           List.iter find_ifdef_mid xxs
-       (* no need complex analysis for ifdefbool *)
-       | Ifdefbool (_, xxs, _info_ifdef_stmt) -> List.iter find_ifdef_mid xxs)
+              then (
+                pr2_pp "found ifdef-mid-something";
+                (* keep only first, treat the rest as comment *)
+                info_ifdef_stmt
+                |> List.iter (set_as_comment Token_cpp.CppDirective);
+                second :: rest
+                |> List.iter
+                     (iter_token_ifdef (set_as_comment Token_cpp.CppOther))));
+        List.iter find_ifdef_mid xxs
+    (* no need complex analysis for ifdefbool *)
+    | Ifdefbool (_, xxs, _info_ifdef_stmt) -> List.iter find_ifdef_mid xxs)
 
 let thresholdFunheaderLimit = 4
 
@@ -286,26 +285,25 @@ let rec find_string_macro_paren xs =
   | Parenthised (xxs, _) :: xs ->
       xxs
       |> List.iter (fun xs ->
-             if
-               xs
-               |> List.exists (function
-                    | PToken { t = TString _ } -> true
-                    | _ -> false)
-               && xs
-                  |> List.for_all (function
-                       | PToken { t = TString _ }
-                       | PToken { t = TIdent _ } ->
-                           true
-                       | _ -> false)
-             then
-               xs
-               |> List.iter (fun tok ->
-                      match tok with
-                      | PToken ({ t = TIdent (_s, _) } as id) ->
-                          change_tok id
-                            (TIdent_MacroString (TH.info_of_tok id.t))
-                      | _ -> ())
-             else find_string_macro_paren xs);
+          if
+            xs
+            |> List.exists (function
+              | PToken { t = TString _ } -> true
+              | _ -> false)
+            && xs
+               |> List.for_all (function
+                 | PToken { t = TString _ }
+                 | PToken { t = TIdent _ } ->
+                     true
+                 | _ -> false)
+          then
+            xs
+            |> List.iter (fun tok ->
+                match tok with
+                | PToken ({ t = TIdent (_s, _) } as id) ->
+                    change_tok id (TIdent_MacroString (TH.info_of_tok id.t))
+                | _ -> ())
+          else find_string_macro_paren xs);
       find_string_macro_paren xs
   | PToken _ :: xs -> find_string_macro_paren xs
 

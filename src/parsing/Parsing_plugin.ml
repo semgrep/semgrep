@@ -73,9 +73,9 @@ let check_if_missing_analyzer (analyzer : Analyzer.t) =
       | Ok () -> (
           other_langs
           |> List.find_map (fun lang ->
-                 match check_if_missing lang with
-                 | Ok () -> None
-                 | Error msg -> Some msg)
+              match check_if_missing lang with
+              | Ok () -> None
+              | Error msg -> Some msg)
           |> function
           | None -> Ok ()
           | Some msg -> Error msg)

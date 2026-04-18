@@ -126,12 +126,12 @@ let sources_of_taints ?preferred_label taints =
     | Some label ->
         taint_sources
         |> List.stable_sort (fun (src1, _, _) (src2, _, _) ->
-               match (src1.T.label = label, src2.T.label = label) with
-               | true, false -> -1
-               | false, true -> 1
-               | false, false
-               | true, true ->
-                   0)
+            match (src1.T.label = label, src2.T.label = label) with
+            | true, false -> -1
+            | false, true -> 1
+            | false, false
+            | true, true ->
+                0)
   in
   (* We prioritize taint sources without preconditions,
      selecting their traces first, and then consider sources
@@ -139,9 +139,9 @@ let sources_of_taints ?preferred_label taints =
   let with_req, without_req =
     taint_sources
     |> Either_.partition (fun (src, tokens, sink_trace) ->
-           match get_source_requires src with
-           | Some _ -> Left (src, tokens, sink_trace)
-           | None -> Right (src, tokens, sink_trace))
+        match get_source_requires src with
+        | Some _ -> Left (src, tokens, sink_trace)
+        | None -> Right (src, tokens, sink_trace))
   in
   if without_req <> [] then without_req
   else (
@@ -166,9 +166,9 @@ let taints_satisfy_sink_requires taints requires =
   | Effect.MultiReq taints_w_preconds ->
       taints_w_preconds
       |> List.for_all (fun (taints, precond) ->
-             T.taints_satisfy_requires_for_finding
-               (T.Taint_set.elements taints)
-               precond)
+          T.taints_satisfy_requires_for_finding
+            (T.Taint_set.elements taints)
+            precond)
 
 let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
   let match_on =
@@ -242,21 +242,21 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
         | `Source ->
             taint_sources
             |> List.map (fun source ->
-                   let src, tokens, sink_trace = source in
-                   let src_pm, _ = T.pm_of_trace src.T.call_trace in
-                   let trace =
-                     {
-                       Taint_trace.source_trace =
-                         convert_taint_call_trace src.T.call_trace;
-                       tokens;
-                       sink_trace = convert_taint_call_trace sink_trace;
-                     }
-                   in
-                   {
-                     src_pm with
-                     env = merged_env;
-                     taint_trace = Some (lazy_safe [ trace ]);
-                   }))
+                let src, tokens, sink_trace = source in
+                let src_pm, _ = T.pm_of_trace src.T.call_trace in
+                let trace =
+                  {
+                    Taint_trace.source_trace =
+                      convert_taint_call_trace src.T.call_trace;
+                    tokens;
+                    sink_trace = convert_taint_call_trace sink_trace;
+                  }
+                in
+                {
+                  src_pm with
+                  env = merged_env;
+                  taint_trace = Some (lazy_safe [ trace ]);
+                }))
 
 let matches_of_effects options effects =
   Effects.fold
@@ -491,32 +491,32 @@ let check_rules ~matches_hook
   let res =
     rules
     |> List.map (fun rule ->
-           let%trace_trace sp = "OSS_match_tainting_mode.check_rules.rule" in
-           Tracing.add_data_to_span sp
-             [
-               ("rule_id", `String (fst rule.R.id |> Rule_ID.to_string));
-               ("taint", `Bool true);
-             ];
+        let%trace_trace sp = "OSS_match_tainting_mode.check_rules.rule" in
+        Tracing.add_data_to_span sp
+          [
+            ("rule_id", `String (fst rule.R.id |> Rule_ID.to_string));
+            ("taint", `Bool true);
+          ];
 
-           let xconf =
-             Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
-           in
-           (* This boilerplate function will take care of things like
+        let xconf =
+          Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
+        in
+        (* This boilerplate function will take care of things like
                timing out if this rule takes too long, and returning a dummy
                result for the timed-out rule.
            *)
-           per_rule_boilerplate_fn
-             (rule :> R.rule)
-             (fun () ->
-               Logs_.with_debug_trace ~__FUNCTION__
-                 ~pp_input:(fun _ ->
-                   "target: "
-                   ^ !!(xtarget.path.internal_path_to_content)
-                   ^ "\nruleid: "
-                   ^ (rule.id |> fst |> Rule_ID.to_string))
-                 (fun () ->
-                   check_rule per_file_formula_cache file_inst muts rule
-                     ~matches_hook xconf xtarget)))
+        per_rule_boilerplate_fn
+          (rule :> R.rule)
+          (fun () ->
+            Logs_.with_debug_trace ~__FUNCTION__
+              ~pp_input:(fun _ ->
+                "target: "
+                ^ !!(xtarget.path.internal_path_to_content)
+                ^ "\nruleid: "
+                ^ (rule.id |> fst |> Rule_ID.to_string))
+              (fun () ->
+                check_rule per_file_formula_cache file_inst muts rule
+                  ~matches_hook xconf xtarget)))
   in
   let to_errors =
     Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst muts
