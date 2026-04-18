@@ -107,14 +107,14 @@ let long_usage usage_msg ~short_opt ~long_opt =
   let all_options_with_title = ("main options", "", short_opt) :: long_opt in
   all_options_with_title
   |> List.iter (fun (title, explanations, xs) ->
-         UCommon.pr title;
-         pr_xxxxxxxxxxxxxxxxx ();
-         if explanations <> "" then (
-           UCommon.pr explanations;
-           UCommon.pr "");
-         arg_align2 xs
-         |> List.iter (fun (key, _action, s) -> UCommon.pr ("  " ^ key ^ s));
-         UCommon.pr "");
+      UCommon.pr title;
+      pr_xxxxxxxxxxxxxxxxx ();
+      if explanations <> "" then (
+        UCommon.pr explanations;
+        UCommon.pr "");
+      arg_align2 xs
+      |> List.iter (fun (key, _action, s) -> UCommon.pr ("  " ^ key ^ s));
+      UCommon.pr "");
   ()
 
 (* copy paste of Arg.parse. Don't want the default -help msg *)
@@ -153,7 +153,7 @@ exception WrongNumberOfArguments
 let options_of_actions action_ref actions =
   actions
   |> List.map (fun (key, doc, _func) ->
-         (key, Arg.Unit (fun () -> action_ref := key), doc))
+      (key, Arg.Unit (fun () -> action_ref := key), doc))
 
 let (action_list : cmdline_actions -> Arg.key list) =
  fun xs -> List.map (fun (a, _b, _c) -> a) xs

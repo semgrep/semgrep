@@ -94,7 +94,7 @@ let has_tag tag_name =
   let tbl = Hashtbl.create 50 in
   Language.list
   |> List.iter (fun (x : Language.info) ->
-         if List.mem tag_name x.tags then Hashtbl.add tbl x.id ());
+      if List.mem tag_name x.tags then Hashtbl.add tbl x.id ());
   fun lang -> Hashtbl.mem tbl lang
 
 let is_js = has_tag "is_js"

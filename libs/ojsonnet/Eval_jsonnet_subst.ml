@@ -83,16 +83,16 @@ let vobj_to_obj l asserts fields r =
   let new_fields =
     fields
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value.lv with
-           | Val _
-           | Closure _ ->
-               error (Tok.unsafe_fake_tok "") "shouldn't be a value"
-           | Unevaluated e ->
-               {
-                 fld_name = vfld_name_to_fld_name fld_name;
-                 fld_hidden;
-                 fld_value = e;
-               })
+        match fld_value.lv with
+        | Val _
+        | Closure _ ->
+            error (Tok.unsafe_fake_tok "") "shouldn't be a value"
+        | Unevaluated e ->
+            {
+              fld_name = vfld_name_to_fld_name fld_name;
+              fld_hidden;
+              fld_value = e;
+            })
   in
   O (l, Object (asserts, new_fields), r)
 
@@ -425,7 +425,7 @@ and eval_array_access env v1 v2 =
       match
         fields
         |> List.find_opt (fun (field : V.value_field) ->
-               fst field.fld_name = fld)
+            fst field.fld_name = fld)
       with
       | None -> error tk (spf "field '%s' not present in %s" fld (sv e))
       | Some fld -> (
@@ -527,7 +527,7 @@ and eval_plus_object env _tk objl objr =
   let lflds_no_overlap =
     lflds
     |> List.filter (fun { V.fld_name = s, _; _ } ->
-           not (Hashtbl.mem hash_of_right_field_names s))
+        not (Hashtbl.mem hash_of_right_field_names s))
   in
 
   let lflds_overlap_hidden =
@@ -542,31 +542,27 @@ and eval_plus_object env _tk objl objr =
   let new_rh_asserts =
     lassert
     |> List.map (fun ((tk, e), _) ->
-           ( tk,
-             e
-             |> substitute_kw fake_super (Id super)
-             |> substitute_kw fake_self (Id self) ))
+        ( tk,
+          e
+          |> substitute_kw fake_super (Id super)
+          |> substitute_kw fake_self (Id self) ))
   in
   let new_rh_fields =
     lflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value.lv with
-           | Val _
-           | Closure _ ->
-               error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
-           | Unevaluated e ->
-               let new_field_name = vfld_name_to_fld_name fld_name in
+        match fld_value.lv with
+        | Val _
+        | Closure _ ->
+            error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
+        | Unevaluated e ->
+            let new_field_name = vfld_name_to_fld_name fld_name in
 
-               let new_fld_value =
-                 e
-                 |> substitute_kw fake_super (Id super)
-                 |> substitute_kw fake_self (Id self)
-               in
-               {
-                 fld_name = new_field_name;
-                 fld_hidden;
-                 fld_value = new_fld_value;
-               })
+            let new_fld_value =
+              e
+              |> substitute_kw fake_super (Id super)
+              |> substitute_kw fake_self (Id self)
+            in
+            { fld_name = new_field_name; fld_hidden; fld_value = new_fld_value })
   in
 
   let rh_obj =
@@ -586,34 +582,34 @@ and eval_plus_object env _tk objl objr =
   let new_ers =
     rflds
     |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
-           match fld_value.lv with
-           | Val _
-           | Closure _ ->
-               error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
-           | Unevaluated e ->
-               let new_fld_value =
-                 Local
-                   ( Tok.unsafe_fake_tok "local",
-                     new_binds,
-                     Tok.unsafe_sc,
-                     substitute_kw fake_super e_s e )
-               in
-               let name, _ = fld_name in
-               (* implements hidden inheritance as defined in spec *)
-               let hidden, _ = fld_hidden in
-               let new_hidden =
-                 if Hashtbl.mem lflds_overlap_hidden name then
-                   match hidden with
-                   | Visible -> Hashtbl.find lflds_overlap_hidden name
-                   | _ -> fld_hidden
-                 else fld_hidden
-               in
+        match fld_value.lv with
+        | Val _
+        | Closure _ ->
+            error (Tok.unsafe_fake_tok "") "shouldn't have been evaluated"
+        | Unevaluated e ->
+            let new_fld_value =
+              Local
+                ( Tok.unsafe_fake_tok "local",
+                  new_binds,
+                  Tok.unsafe_sc,
+                  substitute_kw fake_super e_s e )
+            in
+            let name, _ = fld_name in
+            (* implements hidden inheritance as defined in spec *)
+            let hidden, _ = fld_hidden in
+            let new_hidden =
+              if Hashtbl.mem lflds_overlap_hidden name then
+                match hidden with
+                | Visible -> Hashtbl.find lflds_overlap_hidden name
+                | _ -> fld_hidden
+              else fld_hidden
+            in
 
-               {
-                 V.fld_name;
-                 fld_hidden = new_hidden;
-                 fld_value = to_lazy_value env new_fld_value;
-               })
+            {
+              V.fld_name;
+              fld_hidden = new_hidden;
+              fld_value = to_lazy_value env new_fld_value;
+            })
   in
 
   let all_fields = new_ers @ lflds_no_overlap in
@@ -639,41 +635,40 @@ and manifest_value (v : V.t) : JSON.t =
       J.Array
         (arr |> Array.to_list
         |> List.map (fun (entry : V.lazy_value) ->
-               manifest_value (to_value env entry)))
+            manifest_value (to_value env entry)))
   | V.Object (_l, (_assertsTODO, fields), _r) ->
       (* TODO: evaluate asserts *)
       let xs =
         fields
         |> List.filter_map (fun { V.fld_name; fld_hidden; fld_value } ->
-               match fst fld_hidden with
-               | A.Hidden -> None
-               | A.Visible
-               | A.ForcedVisible ->
-                   (* similar to what we do in eval_expr on field access *)
-                   let _new_assertsTODO =
-                     _assertsTODO
-                     |> List.map (fun ((tk, prog), _) -> (tk, prog))
-                   in
-                   let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
-                   let v =
-                     match fld_value.lv with
-                     | Closure _ -> raise Impossible
-                     | Val v -> v
-                     | Unevaluated e ->
-                         let new_e =
-                           e
-                           |> substitute_kw fake_self _new_self
-                           |> substitute_kw fake_super
-                                (O
-                                   ( Tok.unsafe_fake_tok "{",
-                                     Object ([], []),
-                                     Tok.unsafe_fake_tok "}" ))
-                         in
-                         eval_expr env new_e
-                   in
+            match fst fld_hidden with
+            | A.Hidden -> None
+            | A.Visible
+            | A.ForcedVisible ->
+                (* similar to what we do in eval_expr on field access *)
+                let _new_assertsTODO =
+                  _assertsTODO |> List.map (fun ((tk, prog), _) -> (tk, prog))
+                in
+                let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
+                let v =
+                  match fld_value.lv with
+                  | Closure _ -> raise Impossible
+                  | Val v -> v
+                  | Unevaluated e ->
+                      let new_e =
+                        e
+                        |> substitute_kw fake_self _new_self
+                        |> substitute_kw fake_super
+                             (O
+                                ( Tok.unsafe_fake_tok "{",
+                                  Object ([], []),
+                                  Tok.unsafe_fake_tok "}" ))
+                      in
+                      eval_expr env new_e
+                in
 
-                   let j = manifest_value v in
-                   Some (fst fld_name, j))
+                let j = manifest_value v in
+                Some (fst fld_name, j))
       in
       J.Object xs
 

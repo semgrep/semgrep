@@ -43,10 +43,10 @@ let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
 let pr2_prop_matches (file : Fpath.t) prop_matches : unit =
   prop_matches
   |> List.iter (fun (prop_match : Match_taint_spec.propagator_match) ->
-         let prop_str = show_rwm file prop_match.rwm in
-         let from_str = show_range file prop_match.from in
-         let to_str = show_range file prop_match.to_ in
-         UCommon.pr2 (spf "%s : %s -> %s" prop_str from_str to_str))
+      let prop_str = show_rwm file prop_match.rwm in
+      let from_str = show_range file prop_match.from in
+      let to_str = show_range file prop_match.to_ in
+      UCommon.pr2 (spf "%s : %s -> %s" prop_str from_str to_str))
 
 let test_tainting taint_inst def =
   UCommon.pr2 "\nDataflow";
@@ -77,9 +77,9 @@ let test_dfg_tainting rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.target_analyzer with
-           | Analyzer.L (x, xs) -> List.mem lang (x :: xs)
-           | _ -> false)
+        match r.Rule.target_analyzer with
+        | Analyzer.L (x, xs) -> List.mem lang (x :: xs)
+        | _ -> false)
   in
   let _search_rules, taint_rules, _extract_rules, _join_rules =
     Rule.partition_rules rules

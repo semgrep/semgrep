@@ -34,8 +34,8 @@ let look_like_argument _tok_before xs =
   let xs =
     xs
     |> List.map (function
-         | Tok ({ t = TAnd ii } as record) -> Tok { record with t = TMul ii }
-         | x -> x)
+      | Tok ({ t = TAnd ii } as record) -> Tok { record with t = TMul ii }
+      | x -> x)
   in
   (* split by comma so can easily check if have stuff like '*xx'
    * that takes the full argument
@@ -109,8 +109,8 @@ let look_like_parameter_bis tok_before xs =
   let xs =
     xs
     |> List.map (function
-         | Tok ({ t = TAnd ii } as record) -> Tok { record with t = TMul ii }
-         | x -> x)
+      | Tok ({ t = TAnd ii } as record) -> Tok { record with t = TMul ii }
+      | x -> x)
   in
   let xxs = split_comma xs in
 
@@ -201,20 +201,20 @@ let set_context_tag_multi groups =
       :: xs ->
         [ braces ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InClassStruct s :: tok.TV.where);
+            tok.TV.where <- TV.InClassStruct s :: tok.TV.where);
         aux (braces :: xs)
     | Tok { t = Tstruct _ | Tunion _ }
       :: (Braces (_t1, _body, _t2) as braces)
       :: xs ->
         [ braces ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InClassStruct "__anon__" :: tok.TV.where);
+            tok.TV.where <- TV.InClassStruct "__anon__" :: tok.TV.where);
         aux (braces :: xs)
     (* = { } *)
     | Tok { t = TEq _; _ } :: (Braces (_t1, _body, _t2) as braces) :: xs ->
         [ braces ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- InInitializer :: tok.TV.where);
+            tok.TV.where <- InInitializer :: tok.TV.where);
         aux (braces :: xs)
     (* enum xxx { InEnum *)
     | Tok { t = Tenum _ }
@@ -224,7 +224,7 @@ let set_context_tag_multi groups =
     | Tok { t = Tenum _ } :: (Braces (_t1, _body, _t2) as braces) :: xs ->
         [ braces ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InEnum :: tok.TV.where);
+            tok.TV.where <- TV.InEnum :: tok.TV.where);
         aux (braces :: xs)
     (* C++: class Foo : ... { *)
     | Tok { t = Tclass _ | Tstruct _ }
@@ -235,8 +235,8 @@ let set_context_tag_multi groups =
           try
             xs
             |> Common2.split_when (function
-                 | Braces _ -> true
-                 | _ -> false)
+              | Braces _ -> true
+              | _ -> false)
           with
           | Not_found ->
               raise
@@ -246,7 +246,7 @@ let set_context_tag_multi groups =
         aux before;
         [ braces ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InClassStruct s :: tok.TV.where);
+            tok.TV.where <- TV.InClassStruct s :: tok.TV.where);
         aux [ braces ];
         aux after
     (* need to look what was before to help the look_like_xxx heuristics
@@ -259,7 +259,7 @@ let set_context_tag_multi groups =
         (*msg_context t1.t (TV.InArgument); *)
         [ parens ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InArgument :: tok.TV.where);
+            tok.TV.where <- TV.InArgument :: tok.TV.where);
         (* todo? recurse on body? *)
         aux [ x ];
         aux (parens :: xs)
@@ -272,7 +272,7 @@ let set_context_tag_multi groups =
         (* msg_context t1.t (TV.InParameter); *)
         [ parens ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InParameter :: tok.TV.where);
+            tok.TV.where <- TV.InParameter :: tok.TV.where);
         (* recurse on body? hmm if InParameter should not have nested
          * stuff except when pass function pointer
          *)
@@ -283,7 +283,7 @@ let set_context_tag_multi groups =
         (* msg_context t1.t (TV.InParameter); *)
         [ parens ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InParameter :: tok.TV.where);
+            tok.TV.where <- TV.InParameter :: tok.TV.where);
         (* recurse on body? hmm if InParameter should not have nested
          * stuff except when pass function pointer
          *)
@@ -298,7 +298,7 @@ let set_context_tag_multi groups =
         (* msg_context t1.t (TV.InParameter); *)
         [ parens ]
         |> TV.iter_token_multi (fun tok ->
-               tok.TV.where <- TV.InParameter :: tok.TV.where);
+            tok.TV.where <- TV.InParameter :: tok.TV.where);
         aux (parens :: xs)
     | x :: xs ->
         (match x with

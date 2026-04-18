@@ -138,42 +138,42 @@ let matches_not_everywhere (x : AST.t) =
   let match_constraints =
     x
     |> find_all (function
-         | Empty _ -> false
-         | Char _ -> true
-         | Special (_loc, x) -> (
-             match x with
-             | Beginning_of_line
-             (* ^ *)
-             | End_of_line
-             (* $ *)
-             | Beginning_of_input
-             (* \A *)
-             | End_of_last_line
-             (* \Z *)
-             | End_of_input
-             (* \z *)
-             | Beginning_of_match
-             (* \G *)
-             | Numeric_back_reference _
-             | Named_back_reference _
-             | Word_boundary
-             (* \b *)
-             | Not_word_boundary (* \B *) ->
-                 (* possibly *) true
-             | Match_point_reset (* \K *) -> false
-             | Set_option _ -> false
-             | Clear_option _ -> false
-             | Callout _ -> (* presumably *) true
-             | Recurse_pattern _ -> (* hopefully *) true
-             | Call_subpattern_by_abs_number _
-             | Call_subpattern_by_rel_number _
-             | Call_subpattern_by_name _ ->
-                 (* presumably *) true)
-         | Seq _ -> false
-         | Alt _ -> false
-         | Repeat _ -> false
-         | Group _ -> false
-         | Conditional _ -> false)
+      | Empty _ -> false
+      | Char _ -> true
+      | Special (_loc, x) -> (
+          match x with
+          | Beginning_of_line
+          (* ^ *)
+          | End_of_line
+          (* $ *)
+          | Beginning_of_input
+          (* \A *)
+          | End_of_last_line
+          (* \Z *)
+          | End_of_input
+          (* \z *)
+          | Beginning_of_match
+          (* \G *)
+          | Numeric_back_reference _
+          | Named_back_reference _
+          | Word_boundary
+          (* \b *)
+          | Not_word_boundary (* \B *) ->
+              (* possibly *) true
+          | Match_point_reset (* \K *) -> false
+          | Set_option _ -> false
+          | Clear_option _ -> false
+          | Callout _ -> (* presumably *) true
+          | Recurse_pattern _ -> (* hopefully *) true
+          | Call_subpattern_by_abs_number _
+          | Call_subpattern_by_rel_number _
+          | Call_subpattern_by_name _ ->
+              (* presumably *) true)
+      | Seq _ -> false
+      | Alt _ -> false
+      | Repeat _ -> false
+      | Group _ -> false
+      | Conditional _ -> false)
   in
   match_constraints <> []
 

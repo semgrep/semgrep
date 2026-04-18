@@ -131,7 +131,7 @@ let scan_baseline_and_remove_duplicates (profiler : Profiler.t)
     let rules_in_match =
       r.processed_matches
       |> List.map (fun ({ pm; _ } : Core_result.processed_match) ->
-             pm.rule_id.id |> Rule_ID.to_string)
+          pm.rule_id.id |> Rule_ID.to_string)
       |> String_set.of_list
     in
     (* only use the rules that have been identified within the existing
@@ -139,9 +139,7 @@ let scan_baseline_and_remove_duplicates (profiler : Profiler.t)
     let baseline_rules =
       rules
       |> List.filter (fun x ->
-             String_set.mem
-               (x.Rule.id |> fst |> Rule_ID.to_string)
-               rules_in_match)
+          String_set.mem (x.Rule.id |> fst |> Rule_ID.to_string) rules_in_match)
     in
     let baseline_result =
       Profiler.record profiler ~name:"baseline_core_time" (fun () ->
@@ -154,29 +152,29 @@ let scan_baseline_and_remove_duplicates (profiler : Profiler.t)
                 paths |> Fpaths.of_list |> add_renamed |> remove_added
                 |> Fpaths.to_seq
                 |> Seq.filter_map (fun path ->
-                       if
-                         Sys_.file_exists !!path
-                         &&
-                         match UUnix.lstat path with
-                         | Ok { st_kind = S_LNK; _ } -> false
-                         | Ok _ -> true
-                         (* TODO: I have no idea if this is correct. *)
-                         | Error _ -> false
-                       then
-                         (* We assume we don't want these targets to go
+                    if
+                      Sys_.file_exists !!path
+                      &&
+                      match UUnix.lstat path with
+                      | Ok { st_kind = S_LNK; _ } -> false
+                      | Ok _ -> true
+                      (* TODO: I have no idea if this is correct. *)
+                      | Error _ -> false
+                    then
+                      (* We assume we don't want these targets to go
                             any path-based filtering. This prevents the
                             filtering of rules according to
                             paths.exclude/include which may be incorrect.
                          *)
-                         Some (Fppath.unfilterable_DEPRECATED path)
-                       else None)
+                      Some (Fppath.unfilterable_DEPRECATED path)
+                    else None)
                 |> List.of_seq
               in
               (* How come does a match result become a target? *)
               let paths_in_match =
                 r.processed_matches
                 |> List.map (fun ({ pm; _ } : Core_result.processed_match) ->
-                       pm.path.internal_path_to_content)
+                    pm.path.internal_path_to_content)
                 |> prepare_targets
               in
               let baseline_targets = paths_in_match in

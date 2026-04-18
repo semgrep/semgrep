@@ -106,7 +106,7 @@ let check_mvars_of_condition env bound_mvs (t, condition) =
 let check_mvars_of_focus r bound_mvs (t, mv_list) =
   mv_list
   |> List.concat_map (fun mv ->
-         if not (mvar_is_ok mv bound_mvs) then [ mv_error r mv t ] else [])
+      if not (mvar_is_ok mv bound_mvs) then [ mv_error r mv t ] else [])
 
 let unknown_metavar_in_comparison r f =
   let rec collect_metavars parent_mvs { f; conditions; focus; fix = _; as_ } :
@@ -125,16 +125,16 @@ let unknown_metavar_in_comparison r f =
     let cond_mvs, cond_errors =
       conditions
       |> List.map (fun (_, condition) ->
-             match condition with
-             | CondEval _
-             | CondType _
-             | CondAnalysis _
-             | CondName _ ->
-                 (Mvar_set.empty, [])
-             | CondRegexp (_, regex, _) ->
-                 (Mvar.mvars_of_regexp_string regex |> Mvar_set.of_list, [])
-             | CondNestedFormula (_, _, formula) ->
-                 collect_metavars bound_mvs_for_conds formula)
+          match condition with
+          | CondEval _
+          | CondType _
+          | CondAnalysis _
+          | CondName _ ->
+              (Mvar_set.empty, [])
+          | CondRegexp (_, regex, _) ->
+              (Mvar.mvars_of_regexp_string regex |> Mvar_set.of_list, [])
+          | CondNestedFormula (_, _, formula) ->
+              collect_metavars bound_mvs_for_conds formula)
       |> List.fold_left
            (fun (mvars_acc, errors_acc) (mvars, errors) ->
              (Mvar_set.union mvars_acc mvars, errors @ errors_acc))
@@ -270,7 +270,7 @@ let semgrep_check (metachecks : Fpath.t) (rules : Fpath.t list) :
   let targets : Target.t list =
     rules
     |> List.map (fun file ->
-           Target.mk_unfilterable_target (Analyzer.of_lang lang) file)
+        Target.mk_unfilterable_target (Analyzer.of_lang lang) file)
   in
 
   Eio_main.run @@ fun env ->
@@ -297,8 +297,8 @@ let run_checks (metachecks : Fpath.t) (xs : Fpath.t list) : Core_error.t list =
   let yaml_xs =
     xs
     |> File_type.files_of_dirs_or_files (function
-         | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
-         | _ -> false)
+      | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
+      | _ -> false)
   in
   let rules, _skipped_paths =
     List.partition (fun file -> not (!!file =~ ".*\\.test\\.yaml")) yaml_xs
@@ -313,17 +313,16 @@ let run_checks (metachecks : Fpath.t) (xs : Fpath.t list) : Core_error.t list =
       let ocaml_found_errs =
         rules
         |> List.concat_map (fun file ->
-               Logs.info (fun m ->
-                   m "run_checks: processing rule file %s" !!file);
-               match Parse_rule.parse file with
-               | Ok rs -> rs |> List.concat_map (fun file -> check file)
-               (* TODO this error is special cased because YAML files that
+            Logs.info (fun m -> m "run_checks: processing rule file %s" !!file);
+            match Parse_rule.parse file with
+            | Ok rs -> rs |> List.concat_map (fun file -> check file)
+            (* TODO this error is special cased because YAML files that
                   aren't semgrep rules are getting scanned *)
-               | Error ({ kind = InvalidYaml _; _ } : Rule_error.t) -> []
-               | Error e -> [ Core_error.error_of_rule_error e ]
-               | exception exn ->
-                   let e = Exception.catch exn in
-                   [ E.exn_to_error ~file e ])
+            | Error ({ kind = InvalidYaml _; _ } : Rule_error.t) -> []
+            | Error e -> [ Core_error.error_of_rule_error e ]
+            | exception exn ->
+                let e = Exception.catch exn in
+                [ E.exn_to_error ~file e ])
       in
       semgrep_found_errs @ ocaml_found_errs
 
@@ -345,7 +344,7 @@ let check_files (output_format : Core_scan_config.output_format)
   | Text ->
       errors
       |> List.iter (fun err ->
-             Logs.err (fun m -> m "%s" (E.string_of_error err)))
+          Logs.err (fun m -> m "%s" (E.string_of_error err)))
   | Json _ ->
       let (res : Core_result.t) =
         Core_result.mk_result_with_just_errors errors
@@ -359,33 +358,33 @@ let stat_files xs =
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
-         | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
-         | _ -> false)
+      | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
+      | _ -> false)
   in
   let good = ref 0 in
   let bad = ref 0 in
   fullxs
   |> List.iter (fun file ->
-         Logs.info (fun m -> m "stat_files: processing rule file %s" !!file);
-         match Parse_rule.parse file with
-         | Ok rs ->
-             rs
-             |> List.iter (fun r ->
-                    match generate_prefilter r with
-                    | None ->
-                        incr bad;
-                        Logs.warn (fun m ->
-                            m "no regexp prefilter for rule %s:%s" !!file
-                              (Rule_ID.to_string (fst r.id)))
-                    | Some prefilter ->
-                        incr good;
-                        let s =
-                          Prefiltering.Semgrep_prefilter_j.string_of_formula
-                            (Prefiltering.File.to_semgrep_formula prefilter)
-                        in
-                        Logs.debug (fun m -> m "regexp: %s" s))
-         | Error e ->
-             Logs.warn (fun m ->
-                 m "stat_files: error in %a: %s" Fpath.pp file
-                   (Rule_error.string_of_error e)));
+      Logs.info (fun m -> m "stat_files: processing rule file %s" !!file);
+      match Parse_rule.parse file with
+      | Ok rs ->
+          rs
+          |> List.iter (fun r ->
+              match generate_prefilter r with
+              | None ->
+                  incr bad;
+                  Logs.warn (fun m ->
+                      m "no regexp prefilter for rule %s:%s" !!file
+                        (Rule_ID.to_string (fst r.id)))
+              | Some prefilter ->
+                  incr good;
+                  let s =
+                    Prefiltering.Semgrep_prefilter_j.string_of_formula
+                      (Prefiltering.File.to_semgrep_formula prefilter)
+                  in
+                  Logs.debug (fun m -> m "regexp: %s" s))
+      | Error e ->
+          Logs.warn (fun m ->
+              m "stat_files: error in %a: %s" Fpath.pp file
+                (Rule_error.string_of_error e)));
   UConsole.print (spf "good = %d, no regexp found = %d" !good !bad)

@@ -97,15 +97,15 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
         printf "--- Errors ---\n";
         errors
         |> List.iter (fun err ->
-               (* showing some ugly JSON is better than nothing *)
-               printf "%s\n" (Core_error.show err));
+            (* showing some ugly JSON is better than nothing *)
+            printf "%s\n" (Core_error.show err));
         printf "--- Selected targets ---\n";
         targets |> List.iter (fun path -> printf "selected %s\n" !!path);
         printf "--- Skipped targets ---\n";
         skipped_targets
         |> List.iter (fun (x : Out.skipped_target) ->
-               printf "ignored %s [%s]\n" !!(x.path)
-                 (Out.show_skip_reason x.reason)))
+            printf "ignored %s [%s]\n" !!(x.path)
+              (Out.show_skip_reason x.reason)))
   in
   Testo.create ?skipped:Testutil.skip_on_windows name test_func
     ~category:[ category ] ?expected_outcome ~checked_output:(Testo.stdout ())

@@ -335,7 +335,7 @@ let mock_files root : Fpath.t list =
   let files =
     [ existing_file; modified_file; new_file ]
     |> List.sort (fun x y ->
-           String.compare (Fpath.to_string x) (Fpath.to_string y))
+        String.compare (Fpath.to_string x) (Fpath.to_string y))
   in
   files
 
@@ -375,7 +375,7 @@ let mock_workspaces root =
       (fun file -> Fpath.(v workspace2_root / filename file))
       workspace1_files
     |> List.sort (fun x y ->
-           String.compare (Fpath.to_string x) (Fpath.to_string y))
+        String.compare (Fpath.to_string x) (Fpath.to_string y))
   in
 
   ( (Fpath.v workspace1_root, workspace1_files),
@@ -414,8 +414,8 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
       Some
         (workspaceFolders
         |> List.map (fun f ->
-               let f = Fpath.to_string f in
-               { Types.WorkspaceFolder.uri = Uri.of_path f; name = f }))
+            let f = Fpath.to_string f in
+            { Types.WorkspaceFolder.uri = Uri.of_path f; name = f }))
     in
     let initializationOptions =
       `Assoc
@@ -498,12 +498,12 @@ let send_did_change_folder ?(added = []) ?(removed = []) info =
   let added =
     added |> List.map Fpath.to_string
     |> List.map (fun file ->
-           WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
+        WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let removed =
     removed |> List.map Fpath.to_string
     |> List.map (fun file ->
-           WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
+        WorkspaceFolder.create ~name:file ~uri:(Uri.of_path file))
   in
   let notif =
     CN.ChangeWorkspaceFolders
@@ -588,7 +588,7 @@ let check_diagnostics (file : Fpath.t) expected_ids
   let ids =
     diagnostics.diagnostics
     |> List.map (fun (d : Diagnostic.t) ->
-           d.code |> Option.get |> Id.yojson_of_t)
+        d.code |> Option.get |> Id.yojson_of_t)
   in
   Alcotest.(check string)
     "diagnostics are cohesive"

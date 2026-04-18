@@ -59,9 +59,9 @@ let rec lambdas_used_in_cfg ?(lambdas = Fun_CFG.empty_lambdas)
     ILH.rlvals_of_node node.IL.n
     |> List.to_seq
     |> Seq.filter_map (fun lval ->
-           (* We only consider a lambda ref as an use if we can uniquely
+        (* We only consider a lambda ref as an use if we can uniquely
               identify its corresponding lambda declaration. *)
-           Fun_CFG.is_lambda lambdas lval |> Result.to_option)
+        Fun_CFG.is_lambda lambdas lval |> Result.to_option)
     |> Seq.map (fun (lname, _) -> lname)
     |> IL.NameSet.of_seq
   in
@@ -73,12 +73,12 @@ let rec lambdas_used_in_cfg ?(lambdas = Fun_CFG.empty_lambdas)
   let used_in_lambdas =
     fun_cfg.lambdas |> Fun_CFG.seq_of_lambdas
     |> Seq.map (fun (lname, _pos, lcfg) ->
-           (* Take into account recursive definitions:
+        (* Take into account recursive definitions:
 
                   foo = (...) => ... foo(...) ...
 
             *)
-           lambdas_used_in_cfg ~lambdas lcfg |> IL.NameSet.remove lname)
+        lambdas_used_in_cfg ~lambdas lcfg |> IL.NameSet.remove lname)
     |> union_all
   in
   used_in_main |> IL.NameSet.union used_in_lambdas
@@ -118,14 +118,14 @@ let find_vars_used_in_multiple_lambdas (fun_cfg : Fun_CFG.t) =
         | Ok fcfg ->
             fcfg.fdef
             |> Option.iter (fun fdef ->
-                   visitor_to_find_used_vars#visit_function_definition used_acc
-                     fdef)
+                visitor_to_find_used_vars#visit_function_definition used_acc
+                  fdef)
         | Error _ -> ())
     | __else__ -> ());
     !used_acc
     |> IL.NameSet.iter (fun var ->
-           let n = IL.NameMap.find_opt var !count_acc ||| 0 in
-           count_acc := IL.NameMap.add var (n + 1) !count_acc)
+        let n = IL.NameMap.find_opt var !count_acc ||| 0 in
+        count_acc := IL.NameMap.add var (n + 1) !count_acc)
   in
   fun_cfg.cfg |> CFG.reachable_nodes |> Seq.iter visit_node;
   !count_acc |> IL.NameMap.to_seq

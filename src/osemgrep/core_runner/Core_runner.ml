@@ -154,7 +154,7 @@ let report_status_and_add_metrics_languages ~respect_gitignore
            ~num_targets:(List.length targets) ~respect_gitignore lang_jobs));
   lang_jobs
   |> List.iter (fun { Lang_job.analyzer; _ } ->
-         Metrics_.add_feature "language" (Analyzer.to_string analyzer));
+      Metrics_.add_feature "language" (Analyzer.to_string analyzer));
   ()
 
 (*************************************************************************)
@@ -260,7 +260,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     let valid_rules =
       valid_rules
       |> List_.deduplicate_gen ~get_key:(fun r ->
-             Rule_ID.to_string (fst r.Rule.id))
+          Rule_ID.to_string (fst r.Rule.id))
     in
     let rule_errors : Core_error.t list =
       invalid_rules |> List.map Core_error.error_of_invalid_rule

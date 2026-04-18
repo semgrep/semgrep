@@ -192,21 +192,21 @@ let rec stmt_aux = function
   | StaticVars (t, v1) ->
       v1
       |> list (fun (v1, v2) ->
-             let v1 = var v1 and v2 = option expr v2 in
-             let attrs = [ G.KeywordAttr (G.Static, t) ] in
-             let ent = G.basic_entity v1 ~case_insensitive:false ~attrs in
-             let def = { G.vinit = v2; vtype = None; vtok = G.no_sc } in
-             G.DefStmt (ent, G.VarDef def) |> G.s)
+          let v1 = var v1 and v2 = option expr v2 in
+          let attrs = [ G.KeywordAttr (G.Static, t) ] in
+          let ent = G.basic_entity v1 ~case_insensitive:false ~attrs in
+          let def = { G.vinit = v2; vtype = None; vtok = G.no_sc } in
+          G.DefStmt (ent, G.VarDef def) |> G.s)
   | Global (t, v1) ->
       v1
       |> List.map (fun e ->
-             match e with
-             | Id [ id ] ->
-                 let ent = G.basic_entity ~case_insensitive:false id in
-                 G.DefStmt (ent, G.UseOuterDecl t) |> G.s
-             | _ ->
-                 let e = expr e in
-                 G.OtherStmt (G.OS_GlobalComplex, [ G.E e ]) |> G.s)
+          match e with
+          | Id [ id ] ->
+              let ent = G.basic_entity ~case_insensitive:false id in
+              G.DefStmt (ent, G.UseOuterDecl t) |> G.s
+          | _ ->
+              let e = expr e in
+              G.OtherStmt (G.OS_GlobalComplex, [ G.E e ]) |> G.s)
 
 and alias x =
   let x = ident x in

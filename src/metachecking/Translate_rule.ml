@@ -173,7 +173,7 @@ and translate_taint_sink
             `A
               (mvars_w_preconds
               |> List.map (fun ((mvar, _tok), { range; _ }) ->
-                     `O [ (mvar, `String (range_to_string range)) ])) );
+                  `O [ (mvar, `String (range_to_string range)) ])) );
         ]
   in
   `O (List_.flatten [ sink_f; exact_obj; requires_obj; at_exit_obj ])
@@ -362,34 +362,27 @@ let translate_files fparser xs =
   let formulas_by_file =
     xs
     |> List.map (fun file ->
-           Logs.info (fun m -> m "translate_files: processing %s" !!file);
-           let formulas =
-             match fparser file with
-             | Ok rules ->
-                 rules
-                 |> List.map (fun rule ->
-                        match rule.mode with
-                        | `Search formula
-                        | `Extract { formula; _ } ->
-                            [
-                              ( "match",
-                                (formula |> translate_formula :> Yaml.value) );
-                            ]
-                        | `Taint spec ->
-                            [
-                              ( "taint",
-                                (translate_taint_spec spec :> Yaml.value) );
-                            ]
-                        | `SCA _ ->
-                            failwith "sca rules not currently translated"
-                        | `Join _ ->
-                            failwith "join rules not currently translated"
-                        | `Steps _ ->
-                            failwith "step rules not currently handled")
-             | Error e ->
-                 failwith ("parsing failure: " ^ Rule_error.string_of_error e)
-           in
-           (file, formulas))
+        Logs.info (fun m -> m "translate_files: processing %s" !!file);
+        let formulas =
+          match fparser file with
+          | Ok rules ->
+              rules
+              |> List.map (fun rule ->
+                  match rule.mode with
+                  | `Search formula
+                  | `Extract { formula; _ } ->
+                      [
+                        ("match", (formula |> translate_formula :> Yaml.value));
+                      ]
+                  | `Taint spec ->
+                      [ ("taint", (translate_taint_spec spec :> Yaml.value)) ]
+                  | `SCA _ -> failwith "sca rules not currently translated"
+                  | `Join _ -> failwith "join rules not currently translated"
+                  | `Steps _ -> failwith "step rules not currently handled")
+          | Error e ->
+              failwith ("parsing failure: " ^ Rule_error.string_of_error e)
+        in
+        (file, formulas))
   in
   List.iter
     (fun (file, formulas) ->

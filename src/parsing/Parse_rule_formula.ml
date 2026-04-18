@@ -62,11 +62,11 @@ let parse_focus_mvs env (key : key) (x : G.expr) =
 let word_chars_of_strings env xs =
   xs
   |> List.map (function
-       | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
-       | x when String.length x =|= 1 (* = *) -> Ok x.[0]
-       | long ->
-           error_at_opt_key env.id env.options_key
-             (spf "Multibyte word characters aren't supported: %S" long))
+    | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
+    | x when String.length x =|= 1 (* = *) -> Ok x.[0]
+    | long ->
+        error_at_opt_key env.id env.options_key
+          (spf "Multibyte word characters aren't supported: %S" long))
   |> Base.Result.all
 
 (* Aliengrep brace pairs are specified as strings because ATD doesn't have
@@ -75,23 +75,23 @@ let word_chars_of_strings env xs =
 let brace_pairs_of_string_pairs env xs =
   xs
   |> List.map (fun (open_, close) ->
-         let/ opening_char =
-           match open_ with
-           | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
-           | x -> Ok x.[0]
-         in
-         let/ closing_char =
-           match close with
-           | "" -> error_at_opt_key env.id env.options_key "Empty closing brace"
-           | x -> Ok x.[0]
-         in
-         if String.length open_ > 1 then
-           error_at_opt_key env.id env.options_key
-             (spf "Multibyte opening braces aren't supported: %S" open_)
-         else if String.length close > 1 then
-           error_at_opt_key env.id env.options_key
-             (spf "Multibyte closing braces aren't supported: %S" close)
-         else Ok (opening_char, closing_char))
+      let/ opening_char =
+        match open_ with
+        | "" -> error_at_opt_key env.id env.options_key "Empty opening brace"
+        | x -> Ok x.[0]
+      in
+      let/ closing_char =
+        match close with
+        | "" -> error_at_opt_key env.id env.options_key "Empty closing brace"
+        | x -> Ok x.[0]
+      in
+      if String.length open_ > 1 then
+        error_at_opt_key env.id env.options_key
+          (spf "Multibyte opening braces aren't supported: %S" open_)
+      else if String.length close > 1 then
+        error_at_opt_key env.id env.options_key
+          (spf "Multibyte closing braces aren't supported: %S" close)
+      else Ok (opening_char, closing_char))
   |> Base.Result.all
 
 let aliengrep_conf_of_options (env : env) :

@@ -169,10 +169,10 @@ module Legacy = struct
   let files_of_dirs_or_files_no_vcs_nofilter ?strict xs =
     xs
     |> List.map (fun x ->
-           if Sys_.is_directory x then
-             let files = dir_contents ?strict x in
-             List.filter (fun x -> not (Re.execp vcs_re x)) files
-           else [ x ])
+        if Sys_.is_directory x then
+          let files = dir_contents ?strict x in
+          List.filter (fun x -> not (Re.execp vcs_re x)) files
+        else [ x ])
     |> List_.flatten
 end
 
@@ -375,9 +375,9 @@ let lines_of_file (start_line, end_line) (file : Fpath.t) :
           Ok
             (line_idx
             |> List.map (fun i ->
-                   try arr.(i) with
-                   | Invalid_argument s ->
-                       raise (Invalid_argument (spf "%s on index %d" s i))))
+                try arr.(i) with
+                | Invalid_argument s ->
+                    raise (Invalid_argument (spf "%s on index %d" s i))))
         with
         | Invalid_argument s -> Error (spf "lines_of_file: %s" s))
 

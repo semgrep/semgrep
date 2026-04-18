@@ -105,19 +105,18 @@ let find_targets_rules ~(strict : bool) ~token_opt
   (* ex: missing toplevel 'rules:' (probably not a semgrep rule file) *)
   fatal_errors
   |> List.iter (fun (err : Rule_error.t) ->
-         (* alt: Error.abort *)
-         Logs.warn (fun m -> m "%s" (Rule_error.string_of_error err)));
+      (* alt: Error.abort *)
+      Logs.warn (fun m -> m "%s" (Rule_error.string_of_error err)));
   let rules, invalid_rules =
     Rule_fetching.partition_rules_and_invalid rules_and_origin
   in
   invalid_rules
   |> List.iter (fun (err : Rule_error.invalid_rule) ->
-         match err with
-         (* to get the "Missing semgrep extension ... install --pro" error *)
-         (* alt: just warn *)
-         | MissingPlugin s, _, _ -> Error.abort s
-         | _ ->
-             Logs.warn (fun m -> m "%s" (Rule_error.string_of_invalid_rule err)));
+      match err with
+      (* to get the "Missing semgrep extension ... install --pro" error *)
+      (* alt: just warn *)
+      | MissingPlugin s, _, _ -> Error.abort s
+      | _ -> Logs.warn (fun m -> m "%s" (Rule_error.string_of_invalid_rule err)));
   (* In a validate context, rules are actually targets of metarules.
    * alt: could also process Configs to compute the targets.
    *)
@@ -131,22 +130,22 @@ let find_targets_rules ~(strict : bool) ~token_opt
   let targets =
     rules_and_origin
     |> List.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
-           match x.origin with
-           | Local_file path ->
-               (* For the sake of honoring include/exclude paths filters
+        match x.origin with
+        | Local_file path ->
+            (* For the sake of honoring include/exclude paths filters
                   found in rules, we need to provide a path that's relative
                   to the project root (a ppath). Here, we assume the project
                   root is the folder containing the file. *)
-               Some (Fppath.of_file_basename path)
-           | CLI_argument
-           | Registry
-           | App
-           | Untrusted_remote _ ->
-               (* TODO: stricter: warn if we didn't validate since it
-                * wasn't in a local file already (e.g., registry or other
-                * remote URI)
-                *)
-               None)
+            Some (Fppath.of_file_basename path)
+        | CLI_argument
+        | Registry
+        | App
+        | Untrusted_remote _ ->
+            (* TODO: stricter: warn if we didn't validate since it
+             * wasn't in a local file already (e.g., registry or other
+             * remote URI)
+             *)
+            None)
   in
   ( targets,
     List.length rules,
@@ -235,9 +234,9 @@ let report_errors ~metacheck_errors ~num_errors ~num_fatal_errors ~num_rules =
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors
   |> List.iter (fun (x : Out.cli_match) ->
-         Logs.err (fun m ->
-             m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
-               x.extra.message));
+      Logs.err (fun m ->
+          m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
+            x.extra.message));
   ()
 
 (*****************************************************************************)

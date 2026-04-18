@@ -593,9 +593,9 @@ and map_scoped_identifier_closed (env : env) (x : CST.scoped_identifier) =
       (* xn x(n-1) ... x2 *)
       acc
       |> List.map (fun (_, x) ->
-             match x with
-             | Left x -> Some x
-             | __else__ -> None)
+          match x with
+          | Left x -> Some x
+          | __else__ -> None)
       |> option_all
       (* xn x(n-1) ... x2 but now it's only idents*)
       >>| List.rev
@@ -635,9 +635,9 @@ and map_anon_choice_id_f1f5a37_closed (env : env)
       (* xn x(n-1) ... x2 *)
       acc
       |> List.map (fun (_, x) ->
-             match x with
-             | Left x -> Some x
-             | __else__ -> None)
+          match x with
+          | Left x -> Some x
+          | __else__ -> None)
       |> option_all
       (* xn x(n-1) ... x2 but now it's only idents*)
       >>| List.rev
@@ -1002,7 +1002,7 @@ and map_closed_macrocall_expression (env : env)
         let _, v2, _ = map_type_parameter_list env v2 in
         v2
         |> List.map (fun arg ->
-               OtherArg (("TyParam", G.fake "TyParam"), [ G.Tp arg ]))
+            OtherArg (("TyParam", G.fake "TyParam"), [ G.Tp arg ]))
         |> fb
     | `Imme_brac_array (v1, v2) ->
         let _v1 = (* immediate_bracket *) token env v1 in
@@ -2158,29 +2158,28 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
             (* Filter map here, as unrelated imports need not interfere with each other. *)
             |> List.filter_map Fun.id
             |> List.map (fun (dotted, idopt) ->
-                   if is_using then
-                     let dk = ImportAll (tk, DottedName dotted, tk) |> G.d in
-                     match idopt with
-                     | None -> dk
-                     | Some id ->
-                         (* It doesn't really make sense to me how you would use an `as`
+                if is_using then
+                  let dk = ImportAll (tk, DottedName dotted, tk) |> G.d in
+                  match idopt with
+                  | None -> dk
+                  | Some id ->
+                      (* It doesn't really make sense to me how you would use an `as`
                              in conjunction with something which is like a wildcard import.
                              In fact, the Julia documentation says you're not supposed to do
                              that:
                              https://docs.julialang.org/en/v1/manual/modules/#Renaming-with-as
                              but it might have some benefit to match, so let's Other out.
                          *)
-                         OtherDirective
-                           ( ("using_as", G.fake "using_as"),
-                             [ G.Dir dk; G.I id ] )
-                         |> G.d
-                   else
-                     let aliasopt =
-                       match idopt with
-                       | None -> None
-                       | Some id -> Some (id, G.empty_id_info ())
-                     in
-                     ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
+                      OtherDirective
+                        (("using_as", G.fake "using_as"), [ G.Dir dk; G.I id ])
+                      |> G.d
+                else
+                  let aliasopt =
+                    match idopt with
+                    | None -> None
+                    | Some id -> Some (id, G.empty_id_info ())
+                  in
+                  ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
         | `Sele_import x -> (
             match map_selected_import ~import_tok:tk env x with
             | None -> []

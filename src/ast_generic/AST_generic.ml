@@ -2378,13 +2378,13 @@ let interpolated (lquote, xs, rquote) =
           ( lquote,
             xs_with_fused_literals
             |> List.map (function
-                 | Either_.Left3 x ->
-                     Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
-                 | Either_.Right3 (lbrace, eopt, rbrace) ->
-                     let special = Special (InterpolatedElement, lbrace) |> e in
-                     let args = eopt |> Option.to_list |> List.map arg in
-                     Arg (Call (special, (lbrace, args, rbrace)) |> e)
-                 | Either_.Middle3 e -> Arg e),
+              | Either_.Left3 x ->
+                  Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
+              | Either_.Right3 (lbrace, eopt, rbrace) ->
+                  let special = Special (InterpolatedElement, lbrace) |> e in
+                  let args = eopt |> Option.to_list |> List.map arg in
+                  Arg (Call (special, (lbrace, args, rbrace)) |> e)
+              | Either_.Middle3 e -> Arg e),
             rquote ) )
       |> e
 

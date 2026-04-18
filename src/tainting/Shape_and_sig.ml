@@ -53,13 +53,13 @@ module Fields = struct
     let fields' =
       fields
       |> filter_map (fun o cell ->
-             let opt_cell' = f o cell in
-             (match opt_cell' with
-             | Some cell' when phys_equal cell' cell -> ()
-             | None
-             | Some _ ->
-                 changed := true);
-             opt_cell')
+          let opt_cell' = f o cell in
+          (match opt_cell' with
+          | Some cell' when phys_equal cell' cell -> ()
+          | None
+          | Some _ ->
+              changed := true);
+          opt_cell')
     in
     if !changed then fields' else fields
 end
@@ -263,7 +263,7 @@ end = struct
   and show_obj obj =
     obj |> Fields.to_seq
     |> Seq.map (fun (o, o_cell) ->
-           spf "%s: %s" (T.show_offset o) (show_cell o_cell))
+        spf "%s: %s" (T.show_offset o) (show_cell o_cell))
     |> List.of_seq |> String.concat "; "
 end
 
@@ -573,7 +573,7 @@ end = struct
     | MultiReq taints_w_preconds ->
         taints_w_preconds
         |> List.map (fun (taints, pre) ->
-               spf "%s|%s" (T.show_taints taints) (R.show_precondition pre))
+            spf "%s|%s" (T.show_taints taints) (R.show_precondition pre))
         |> String.concat "; "
 
   let show_sink { rule_sink; requires; pm } =
@@ -755,11 +755,11 @@ end = struct
   let of_IL_params il_params =
     il_params
     |> List.map (function
-         | IL.Param { pname; _ } -> P pname
-         | IL.ParamRest pname -> Prest pname
-         | IL.PatternParam _
-         | IL.FixmeParam ->
-             Pother)
+      | IL.Param { pname; _ } -> P pname
+      | IL.ParamRest pname -> Prest pname
+      | IL.PatternParam _
+      | IL.FixmeParam ->
+          Pother)
 
   (*************************************)
   (* Signatures *)

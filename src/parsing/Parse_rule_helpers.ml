@@ -118,13 +118,12 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t)
 let parse_pattern_with_rule_error env (str, t) ?rule_options lang s =
   Parse_pattern.parse_pattern ?rule_options lang s
   |> Result.map_error (fun s ->
-         (* NOTE: copied from try_and_raise_invalid_pattern_if_error while we
+      (* NOTE: copied from try_and_raise_invalid_pattern_if_error while we
             migrate. Intended to do the same. *)
-         let error_kind : Rule_error.invalid_rule_kind =
-           InvalidPattern (str, env.target_analyzer, s, env.path)
-         in
-         Rule_error.mk_error ~rule_id:env.id
-           (InvalidRule (error_kind, env.id, t)))
+      let error_kind : Rule_error.invalid_rule_kind =
+        InvalidPattern (str, env.target_analyzer, s, env.path)
+      in
+      Rule_error.mk_error ~rule_id:env.id (InvalidRule (error_kind, env.id, t)))
 
 let check_that_dict_is_empty (dict : dict) : (unit, Rule_error.t) Result.t =
   if Hashtbl.length dict.h > 0 then
@@ -143,9 +142,9 @@ let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
    *)
   rd.h |> Hashtbl_.hash_to_list
   |> List.iter (fun (k, _) ->
-         (* nosemgrep: no-logs-in-library *)
-         Logs.warn (fun m ->
-             m "Skipping unknown field '%s' in rule %a" k Rule_ID.pp rule_id))
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m ->
+          m "Skipping unknown field '%s' in rule %a" k Rule_ID.pp rule_id))
 
 (*****************************************************************************)
 (* Helpers *)
@@ -515,12 +514,12 @@ let parse_regexp env (s, t) =
     (* calls `pcre.compile` *)
     Mvar.mvars_of_regexp_string s
     |> List.iter (fun mvar ->
-           if not (Mvar.is_metavar_name mvar) then
-             Logs_.msg_with_detail ~src:Log_parsing.src Logs.Warning
-               (spf
-                  "Found invalid metavariable capture group name `%s` -- no \
-                   binding produced"
-                  mvar) (fun () -> spf "regexp: %s" s));
+        if not (Mvar.is_metavar_name mvar) then
+          Logs_.msg_with_detail ~src:Log_parsing.src Logs.Warning
+            (spf
+               "Found invalid metavariable capture group name `%s` -- no \
+                binding produced"
+               mvar) (fun () -> spf "regexp: %s" s));
     Ok s
   with
   | Pcre2.Error exn ->

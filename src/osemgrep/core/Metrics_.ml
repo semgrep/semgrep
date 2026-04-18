@@ -465,10 +465,9 @@ let add_rules_hashes_and_findings_count (filtered_matches : (Rule.t * int) list)
   let ruleHashesWithFindings_value =
     filtered_matches
     |> List.filter_map (fun (rule, rule_matches) ->
-           if rule_matches > 0 then
-             Some
-               (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches)
-           else None)
+        if rule_matches > 0 then
+          Some (Digestif.SHA256.to_hex (Rule.sha256_of_rule rule), rule_matches)
+        else None)
   in
   g.payload.value.ruleHashesWithFindings <- Some ruleHashesWithFindings_value
 
@@ -481,52 +480,49 @@ let add_targets_stats (targets : Fpath.t Set_.t)
     | Some (prof : Core_profiling.t) ->
         prof.file_times
         |> List.map (fun ({ Core_profiling.file; _ } as file_prof) ->
-               (file, file_prof))
+            (file, file_prof))
         |> Hashtbl_.hash_of_list
   in
 
   let file_stats =
     targets
     |> List.filter_map (fun path ->
-           let runTime, parseTime, matchTime =
-             match Hashtbl.find_opt hprof path with
-             | Some (fprof : Core_profiling.file_profiling) ->
-                 ( Some fprof.run_time,
-                   fprof.rule_times
-                   |> Option.map (fun rule_times ->
-                          rule_times
-                          |> List.map (fun rt ->
-                                 rt.Core_profiling.rule_parse_time)
-                          |> Common2.sum_float),
-                   fprof.rule_times
-                   |> Option.map (fun rule_times ->
-                          rule_times
-                          |> List.map (fun rt ->
-                                 rt.Core_profiling.rule_match_time)
-                          |> Common2.sum_float) )
-             | None -> (None, None, None)
-           in
-           match UFile.filesize path with
-           | Ok size ->
-               Some
-                 {
-                   Semgrep_metrics_t.size;
-                   numTimesScanned =
-                     (match Hashtbl.find_opt hprof path with
-                     | None -> 0
-                     | Some fprof ->
-                         Option.map List.length fprof.rule_times ||| 0);
-                   parseTime;
-                   matchTime;
-                   runTime;
-                 }
-           | Error (code, _func, info) ->
-               Logs.warn (fun m ->
-                   m
-                     "add_targets_stats: unexpected error when reading %s: %s \
-                      (code %s)"
-                     !!path info (Unix.error_message code));
-               None)
+        let runTime, parseTime, matchTime =
+          match Hashtbl.find_opt hprof path with
+          | Some (fprof : Core_profiling.file_profiling) ->
+              ( Some fprof.run_time,
+                fprof.rule_times
+                |> Option.map (fun rule_times ->
+                    rule_times
+                    |> List.map (fun rt -> rt.Core_profiling.rule_parse_time)
+                    |> Common2.sum_float),
+                fprof.rule_times
+                |> Option.map (fun rule_times ->
+                    rule_times
+                    |> List.map (fun rt -> rt.Core_profiling.rule_match_time)
+                    |> Common2.sum_float) )
+          | None -> (None, None, None)
+        in
+        match UFile.filesize path with
+        | Ok size ->
+            Some
+              {
+                Semgrep_metrics_t.size;
+                numTimesScanned =
+                  (match Hashtbl.find_opt hprof path with
+                  | None -> 0
+                  | Some fprof -> Option.map List.length fprof.rule_times ||| 0);
+                parseTime;
+                matchTime;
+                runTime;
+              }
+        | Error (code, _func, info) ->
+            Logs.warn (fun m ->
+                m
+                  "add_targets_stats: unexpected error when reading %s: %s \
+                   (code %s)"
+                  !!path info (Unix.error_message code));
+            None)
   in
   g.payload.performance.fileStats <- Some file_stats;
   g.payload.performance.totalBytesScanned <-
@@ -565,15 +561,15 @@ let add_findings (findings : Out.cli_match list) =
   let findings =
     findings
     |> List.map (fun (finding : Out.cli_match) ->
-           ( Rule_ID.to_string finding.check_id,
-             ({
-                path = Fpath.to_string finding.path;
-                line = finding.start.line;
-                col = finding.start.col;
-                offset = finding.start.offset;
-                severity = Out.string_of_match_severity finding.extra.severity;
-              }
-               : Semgrep_metrics_t.finding) ))
+        ( Rule_ID.to_string finding.check_id,
+          ({
+             path = Fpath.to_string finding.path;
+             line = finding.start.line;
+             col = finding.start.col;
+             offset = finding.start.offset;
+             severity = Out.string_of_match_severity finding.extra.severity;
+           }
+            : Semgrep_metrics_t.finding) ))
   in
   g.payload.mcp.findings <- Some findings
 

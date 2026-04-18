@@ -116,21 +116,21 @@ let debug_call (env : V.env) (e0 : expr) (l, args, _r) : unit =
     let args =
       args
       |> List.map (fun arg ->
-             try
-               match arg with
-               | Arg e ->
-                   let v = env.eval_expr env e in
-                   short_string_of_value v
-               | NamedArg (id, _tk, e) ->
-                   let v = env.eval_expr env e in
-                   spf "%s=%s" (fst id) (short_string_of_value v)
-               (* in theory arguments are evaluated lazily, see
-                * pass/short_circuit_func.jsonnet, so turning debug
-                * on which forces the evaluation of all arguments can
-                * trigger more Error
-                *)
-             with
-             | Error _ -> "<error>")
+          try
+            match arg with
+            | Arg e ->
+                let v = env.eval_expr env e in
+                short_string_of_value v
+            | NamedArg (id, _tk, e) ->
+                let v = env.eval_expr env e in
+                spf "%s=%s" (fst id) (short_string_of_value v)
+            (* in theory arguments are evaluated lazily, see
+             * pass/short_circuit_func.jsonnet, so turning debug
+             * on which forces the evaluation of all arguments can
+             * trigger more Error
+             *)
+          with
+          | Error _ -> "<error>")
       |> String.concat ", "
     in
     let pos = Tok.stringpos_of_tok l in
@@ -157,8 +157,8 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
       let basic_args, named_args =
         args
         |> Either_.partition (function
-             | Arg ei -> Left ei
-             | NamedArg (id, _tk, ei) -> Right (fst id, ei))
+          | Arg ei -> Left ei
+          | NamedArg (id, _tk, ei) -> Right (fst id, ei))
       in
       (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
       let hnamed_args = Hashtbl_.hash_of_list named_args in
@@ -167,14 +167,14 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
       let binds =
         params
         |> List.mapi (fun i (P (id, teq, ei')) ->
-               let ei'' =
-                 match i with
-                 | _ when i < m -> basic_args.(i) (* ei *)
-                 | _ when Hashtbl.mem hnamed_args (fst id) ->
-                     Hashtbl.find hnamed_args (fst id)
-                 | _else_ -> ei'
-               in
-               B (id, teq, ei''))
+            let ei'' =
+              match i with
+              | _ when i < m -> basic_args.(i) (* ei *)
+              | _ when Hashtbl.mem hnamed_args (fst id) ->
+                  Hashtbl.find hnamed_args (fst id)
+              | _else_ -> ei'
+            in
+            B (id, teq, ei''))
       in
       let start = env.locals in
       let locals =
@@ -336,15 +336,15 @@ let eval_std_method_ (env : V.env) (e0 : expr) (method_str, tk) (l, args, r) =
             (* TODO? use Array.to_seqi instead? *)
             eis |> Array.to_list |> List_.index_list
             |> List.filter_map (fun (ei, ji) ->
-                   match
-                     env.eval_std_filter_element { env with locals } tk f ei
-                   with
-                   | Primitive (Bool (false, _)), _ -> None
-                   | Primitive (Bool (true, _)), _ -> Some ji
-                   | v ->
-                       error tk
-                         (spf "filter function must return boolean, got: %s"
-                            (sv (fst v))))
+                match
+                  env.eval_std_filter_element { env with locals } tk f ei
+                with
+                | Primitive (Bool (false, _)), _ -> None
+                | Primitive (Bool (true, _)), _ -> Some ji
+                | v ->
+                    error tk
+                      (spf "filter function must return boolean, got: %s"
+                         (sv (fst v))))
             |> Array.of_list
             |> Array.map (fun idx -> eis.(idx))
           in

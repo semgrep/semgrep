@@ -131,12 +131,12 @@ let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
   let base_no_ext = Fpath.rem_ext base in
   dir |> CapFS.read_dir_entries
   |> List_.exclude (fun p ->
-         Fpath.equal p base || List.mem "fixed" (Fpath_.exts p))
+      Fpath.equal p base || List.mem "fixed" (Fpath_.exts p))
   |> List.filter_map (fun p ->
-         (* the ~multi:true should then handle the foo.test.yaml *)
-         if Fpath.equal (Fpath.rem_ext ~multi:true p) base_no_ext then
-           Some (dir // p)
-         else None)
+      (* the ~multi:true should then handle the foo.test.yaml *)
+      if Fpath.equal (Fpath.rem_ext ~multi:true p) base_no_ext then
+        Some (dir // p)
+      else None)
 
 let rules_and_targets (kind : Test_CLI.target_kind) : (test, error) result list
     =
@@ -149,17 +149,16 @@ let rules_and_targets (kind : Test_CLI.target_kind) : (test, error) result list
       in
       rule_files
       |> List.map (fun (rule_file : Fpath.t) ->
-             match find_targets_for_rule rule_file with
-             | [] ->
-                 (* stricter: (but reported via config_missing_tests in JSON)*)
-                 Logs.warn (fun m ->
-                     m "could not find target for %s" !!rule_file);
-                 Error (MissingTest rule_file)
-             | xs ->
-                 Logs.debug (fun m ->
-                     m "found targets for %s: %s" !!rule_file
-                       (xs |> List.map Fpath.to_string |> String.concat ", "));
-                 Ok (rule_file, xs))
+          match find_targets_for_rule rule_file with
+          | [] ->
+              (* stricter: (but reported via config_missing_tests in JSON)*)
+              Logs.warn (fun m -> m "could not find target for %s" !!rule_file);
+              Error (MissingTest rule_file)
+          | xs ->
+              Logs.debug (fun m ->
+                  m "found targets for %s: %s" !!rule_file
+                    (xs |> List.map Fpath.to_string |> String.concat ", "));
+              Ok (rule_file, xs))
   | Test_CLI.File (target, config_str) -> (
       match Rules_config.parse_config_string ~in_docker:false config_str with
       | File rule_file -> [ Ok (rule_file, [ target ]) ]
@@ -266,18 +265,18 @@ let report_diagnosis print (res : Out.tests_result) : unit =
   let diagnoses =
     res.results
     |> List.concat_map (fun (rule_file, (checks : Out.checks)) ->
-           checks.checks
-           |> List.concat_map (fun (_rule_id, (rule_res : Out.rule_result)) ->
-                  match rule_res.diagnosis with
-                  | Some d -> [ (rule_file, d) ]
-                  | None -> []))
+        checks.checks
+        |> List.concat_map (fun (_rule_id, (rule_res : Out.rule_result)) ->
+            match rule_res.diagnosis with
+            | Some d -> [ (rule_file, d) ]
+            | None -> []))
   in
   if List.length diagnoses <> 0 then (
     print break_line;
     print "Matching diagnosis:";
     diagnoses
     |> List.iter (fun (rule_file, d) ->
-           print (Diagnosis.report ~rule_file:(Fpath.v rule_file) d)))
+        print (Diagnosis.report ~rule_file:(Fpath.v rule_file) d)))
 
 (*****************************************************************************)
 (* Reporting *)
@@ -290,30 +289,29 @@ let tests_result_of_tests_result (results : t_res list) (errors : error list) :
     Out.results =
       results
       |> List.map (fun (rule_file, checks, _fix) ->
-             ( !!rule_file,
-               {
-                 Out.checks =
-                   checks
-                   |> List.map (fun (id, xs) -> (Rule_ID.to_string id, xs));
-               } ));
+          ( !!rule_file,
+            {
+              Out.checks =
+                checks |> List.map (fun (id, xs) -> (Rule_ID.to_string id, xs));
+            } ));
     fixtest_results =
       results
       |> List.concat_map (fun (_rule_file, _checks, fixtest_results) ->
-             fixtest_results
-             |> List.map (fun ((target_file, passed) : fixtest_result) ->
-                    (!!(target_file.fpath), passed)));
+          fixtest_results
+          |> List.map (fun ((target_file, passed) : fixtest_result) ->
+              (!!(target_file.fpath), passed)));
     (* TODO: change the schema and use an enum instead of those fields *)
     config_missing_tests =
       errors
       |> List.filter_map (function
-           | MissingTest rule_file -> Some rule_file
-           | _else_ -> None)
+        | MissingTest rule_file -> Some rule_file
+        | _else_ -> None)
       |> List.sort Fpath.compare;
     config_missing_fixtests =
       errors
       |> List.filter_map (function
-           | MissingFixtest rule_file -> Some rule_file
-           | _else_ -> None)
+        | MissingFixtest rule_file -> Some rule_file
+        | _else_ -> None)
       |> List.sort Fpath.compare;
     (* TODO: rename to just 'errors' and put the missing_tests and missing
      * fixtests here as a kind of error.
@@ -334,14 +332,14 @@ let report_tests_result ~matching_diagnosis ~json (res : Out.tests_result) :
     let fixtest_total = ref 0 in
     res.results
     |> List.iter (fun (_rule_file, (checks : Out.checks)) ->
-           checks.checks
-           |> List.iter (fun (_rule_id, (rule_res : Out.rule_result)) ->
-                  incr total;
-                  if rule_res.passed then incr passed));
+        checks.checks
+        |> List.iter (fun (_rule_id, (rule_res : Out.rule_result)) ->
+            incr total;
+            if rule_res.passed then incr passed));
     res.fixtest_results
     |> List.iter (fun (_target_file, (fixtest_result : Out.fixtest_result)) ->
-           incr fixtest_total;
-           if fixtest_result.passed then incr fixtest_passed);
+        incr fixtest_total;
+        if fixtest_result.passed then incr fixtest_passed);
 
     (* "unit" tests *)
     (match () with
@@ -489,20 +487,20 @@ let filter_annots_for_engine (running_engine : A.engine)
     (annots : A.annotations) : A.annotations =
   annots
   |> List.filter (fun (A.{ kind; engine; others; _ }, _) ->
-         match (running_engine, kind, engine) with
-         | Pro, _, _ when List.mem (A.Ok, A.Pro) others -> false
-         | Pro, _, _ when List.mem (A.Todoruleid, A.Pro) others -> false
-         | Deep, _, _ when List.mem (A.Ok, A.Deep) others -> false
-         | Deep, _, _ when List.mem (A.Todoruleid, A.Deep) others -> false
-         (* prook => deepok (TODO? protodoruleid => deeptodoruleid? *)
-         | Deep, _, _ when List.mem (A.Ok, A.Pro) others -> false
-         (* ruleid => proruleid => deepruleid
-          * (and todok => protodok => deeptodook)
-          *)
-         | OSS, (Ruleid | Todook), OSS -> true
-         | Pro, (Ruleid | Todook), (OSS | Pro) -> true
-         | Deep, (Ruleid | Todook), (OSS | Pro | Deep) -> true
-         | _ -> false)
+      match (running_engine, kind, engine) with
+      | Pro, _, _ when List.mem (A.Ok, A.Pro) others -> false
+      | Pro, _, _ when List.mem (A.Todoruleid, A.Pro) others -> false
+      | Deep, _, _ when List.mem (A.Ok, A.Deep) others -> false
+      | Deep, _, _ when List.mem (A.Todoruleid, A.Deep) others -> false
+      (* prook => deepok (TODO? protodoruleid => deeptodoruleid? *)
+      | Deep, _, _ when List.mem (A.Ok, A.Pro) others -> false
+      (* ruleid => proruleid => deepruleid
+       * (and todok => protodok => deeptodook)
+       *)
+      | OSS, (Ruleid | Todook), OSS -> true
+      | Pro, (Ruleid | Todook), (OSS | Pro) -> true
+      | Deep, (Ruleid | Todook), (OSS | Pro | Deep) -> true
+      | _ -> false)
 
 (*****************************************************************************)
 (* Comparing *)
@@ -544,10 +542,10 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
     matches
     |> Assoc.group_by (fun (pm : Core_match.t) -> pm.rule_id.id)
     |> List.map (fun (rule_id, pms) ->
-           ( rule_id,
-             pms
-             |> Assoc.group_by (fun (pm : Core_match.t) ->
-                    pm.path.internal_path_to_content) ))
+        ( rule_id,
+          pms
+          |> Assoc.group_by (fun (pm : Core_match.t) ->
+              pm.path.internal_path_to_content) ))
   in
   (* expected matches *)
   let expected_by_ruleid_and_file :
@@ -555,12 +553,12 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
     let h = Hashtbl.create 101 in
     annots
     |> List.iter (fun (file, annotations) ->
-           let expected_by_rule_id : (Rule_ID.t, A.linenb list) Assoc.t =
-             A.group_by_rule_id annotations
-           in
-           expected_by_rule_id
-           |> List.iter (fun (rule_id, lines) ->
-                  Hashtbl_.push h rule_id (file, lines)));
+        let expected_by_rule_id : (Rule_ID.t, A.linenb list) Assoc.t =
+          A.group_by_rule_id annotations
+        in
+        expected_by_rule_id
+        |> List.iter (fun (rule_id, lines) ->
+            Hashtbl_.push h rule_id (file, lines)));
     h |> Hashtbl_.map (fun _k vref -> !vref) |> Hashtbl_.hash_to_list
   in
 
@@ -571,88 +569,87 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
   let checks : (Rule_ID.t * Out.rule_result) list =
     all_rule_ids
     |> List.map (fun (id : Rule_ID.t) ->
-           let actual : (Fpath.t, Core_match.t list) Assoc.t =
-             matches_by_ruleid_and_file |> Assoc.find_opt id
-             |> List_.optlist_to_list
-           in
-           let expected : (Fpath.t, A.linenb list) Assoc.t =
-             expected_by_ruleid_and_file |> Assoc.find_opt id
-             |> List_.optlist_to_list
-           in
-           let all_files : Fpath.t list = Assoc.join_keys actual expected in
-           let res : (bool * (Fpath.t * Out.expected_reported)) list =
-             all_files
-             |> List.map (fun (target : Fpath.t) ->
-                    let matches : Core_match.t list =
-                      actual |> Assoc.find_opt target |> List_.optlist_to_list
-                    in
-                    let (reported_lines : A.linenb list) =
-                      matches
-                      |> List.map (fun (pm : Core_match.t) ->
-                             pm.range_loc |> fst |> fun (loc : Loc.t) ->
-                             loc.pos.line)
-                      |> List.sort_uniq Int.compare
-                    in
-                    let expected_lines : A.linenb list =
-                      expected |> Assoc.find_opt target |> List_.optlist_to_list
-                      |> List.sort_uniq Int.compare
-                    in
-                    let passed = reported_lines =*= expected_lines in
-                    if not passed then
-                      Logs.err (fun m ->
-                          m "test failed for rule id %s on target %s%s (%s)"
-                            (Rule_ID.to_string id) !!target xtra
-                            (diff_findings reported_lines expected_lines));
-                    (* TODO: not sure why pysemgrep does not report the real
-                     * reported_lines (and expected_lines) and filter those
-                     * 'todook:'. It's actually very confusing because sometimes
-                     * a test will be marked as 'passed: false' even though
-                     * in the --json the reported and expected match, but because
-                     * there are some hidden differences with the matching of
-                     * todook:.
+        let actual : (Fpath.t, Core_match.t list) Assoc.t =
+          matches_by_ruleid_and_file |> Assoc.find_opt id
+          |> List_.optlist_to_list
+        in
+        let expected : (Fpath.t, A.linenb list) Assoc.t =
+          expected_by_ruleid_and_file |> Assoc.find_opt id
+          |> List_.optlist_to_list
+        in
+        let all_files : Fpath.t list = Assoc.join_keys actual expected in
+        let res : (bool * (Fpath.t * Out.expected_reported)) list =
+          all_files
+          |> List.map (fun (target : Fpath.t) ->
+              let matches : Core_match.t list =
+                actual |> Assoc.find_opt target |> List_.optlist_to_list
+              in
+              let (reported_lines : A.linenb list) =
+                matches
+                |> List.map (fun (pm : Core_match.t) ->
+                    pm.range_loc |> fst |> fun (loc : Loc.t) -> loc.pos.line)
+                |> List.sort_uniq Int.compare
+              in
+              let expected_lines : A.linenb list =
+                expected |> Assoc.find_opt target |> List_.optlist_to_list
+                |> List.sort_uniq Int.compare
+              in
+              let passed = reported_lines =*= expected_lines in
+              if not passed then
+                Logs.err (fun m ->
+                    m "test failed for rule id %s on target %s%s (%s)"
+                      (Rule_ID.to_string id) !!target xtra
+                      (diff_findings reported_lines expected_lines));
+              (* TODO: not sure why pysemgrep does not report the real
+               * reported_lines (and expected_lines) and filter those
+               * 'todook:'. It's actually very confusing because sometimes
+               * a test will be marked as 'passed: false' even though
+               * in the --json the reported and expected match, but because
+               * there are some hidden differences with the matching of
+               * todook:.
+               *)
+              let file_annots =
+                Assoc.find_opt target annots |> List_.optlist_to_list
+              in
+              let expected_reported =
+                let reported_lines =
+                  A.filter_todook file_annots reported_lines
+                in
+                let expected_lines =
+                  A.filter_todook file_annots expected_lines
+                in
+                { Out.reported_lines; expected_lines }
+              in
+              (passed, (target, expected_reported)))
+        in
+        let diagnosis =
+          let* explanations = explanations in
+          match res with
+          | [ (_passed, (target, expected_reported)) ] ->
+              Some
+                (Diagnosis.diagnose ~target ~rule_file:env.rule_file
+                   expected_reported explanations)
+          | _ -> failwith "diagnosis for multiple targets not supported"
+        in
+        let (rule_result : Out.rule_result) =
+          Out.
+            {
+              passed = res |> List.map fst |> List.for_all Fun.id;
+              matches =
+                res
+                |> List.map (fun (_passed, (target, expected_reported)) ->
+                    (* TODO: not sure why but pysemgrep uses realpaths
+                     * here, which is a bit annoying because it forces
+                     * us to use masks in test snapshots
                      *)
-                    let file_annots =
-                      Assoc.find_opt target annots |> List_.optlist_to_list
-                    in
-                    let expected_reported =
-                      let reported_lines =
-                        A.filter_todook file_annots reported_lines
-                      in
-                      let expected_lines =
-                        A.filter_todook file_annots expected_lines
-                      in
-                      { Out.reported_lines; expected_lines }
-                    in
-                    (passed, (target, expected_reported)))
-           in
-           let diagnosis =
-             let* explanations = explanations in
-             match res with
-             | [ (_passed, (target, expected_reported)) ] ->
-                 Some
-                   (Diagnosis.diagnose ~target ~rule_file:env.rule_file
-                      expected_reported explanations)
-             | _ -> failwith "diagnosis for multiple targets not supported"
-           in
-           let (rule_result : Out.rule_result) =
-             Out.
-               {
-                 passed = res |> List.map fst |> List.for_all Fun.id;
-                 matches =
-                   res
-                   |> List.map (fun (_passed, (target, expected_reported)) ->
-                          (* TODO: not sure why but pysemgrep uses realpaths
-                           * here, which is a bit annoying because it forces
-                           * us to use masks in test snapshots
-                           *)
-                          let filename = Unix.realpath !!target in
-                          (filename, expected_reported));
-                 (* TODO: error from the engine ? *)
-                 errors = [];
-                 diagnosis;
-               }
-           in
-           (id, rule_result))
+                    let filename = Unix.realpath !!target in
+                    (filename, expected_reported));
+              (* TODO: error from the engine ? *)
+              errors = [];
+              diagnosis;
+            }
+        in
+        (id, rule_result))
   in
   checks
 
@@ -660,34 +657,34 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
     (matches : Core_match.t list) : (fixtest_result, error) result list =
   env.target_files
   |> List.filter_map (fun (target : Fppath.t) ->
-         match
-           ( fixtest_of_target_opt target,
-             rules |> List.exists rule_contain_fix_or_fix_regex )
-         with
-         | None, true ->
-             (* stricter: (reported in JSON at least via config_missing_fixtests) *)
-             Logs.warn (fun m ->
-                 m "no fixtest for test %s but the rule file %s uses autofix"
-                   !!(target.fpath) !!(env.rule_file));
-             Some (Result.error (MissingFixtest env.rule_file))
-         | Some fixtest, false ->
-             (* stricter? *)
-             Logs.err (fun m ->
-                 m
-                   "found the fixtest %s but the rule file %s does not contain \
-                    autofix"
-                   !!(fixtest.fpath) !!(env.rule_file));
-             None
-         | None, false -> None
-         | Some fixtest_target, true ->
-             let matches =
-               matches
-               |> List.filter (fun (pm : Core_match.t) ->
-                      Fpath.equal pm.path.internal_path_to_content target.fpath)
-             in
-             Some
-               (Result.ok
-                  (fixtest_result_for_target env target fixtest_target matches)))
+      match
+        ( fixtest_of_target_opt target,
+          rules |> List.exists rule_contain_fix_or_fix_regex )
+      with
+      | None, true ->
+          (* stricter: (reported in JSON at least via config_missing_fixtests) *)
+          Logs.warn (fun m ->
+              m "no fixtest for test %s but the rule file %s uses autofix"
+                !!(target.fpath) !!(env.rule_file));
+          Some (Result.error (MissingFixtest env.rule_file))
+      | Some fixtest, false ->
+          (* stricter? *)
+          Logs.err (fun m ->
+              m
+                "found the fixtest %s but the rule file %s does not contain \
+                 autofix"
+                !!(fixtest.fpath) !!(env.rule_file));
+          None
+      | None, false -> None
+      | Some fixtest_target, true ->
+          let matches =
+            matches
+            |> List.filter (fun (pm : Core_match.t) ->
+                Fpath.equal pm.path.internal_path_to_content target.fpath)
+          in
+          Some
+            (Result.ok
+               (fixtest_result_for_target env target fixtest_target matches)))
 
 (*****************************************************************************)
 (* Run the tests *)
@@ -703,8 +700,8 @@ let run_engine (env : env) (rules : Rule.t list) (targets : Target.t list)
   let expected : (Fpath.t * A.annotations) list =
     files_and_annots
     |> List.map (fun (file, annots) ->
-           let annots = filter_annots_for_engine env.engine annots in
-           (file, annots))
+        let annots = filter_annots_for_engine env.engine annots in
+        (file, annots))
   in
   let matches =
     res.processed_matches
@@ -751,8 +748,8 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
   let files_and_annots : (Fpath.t * A.annotations) list =
     target_files
     |> List.map (fun (file : Fppath.t) ->
-           let fpath = file.fpath in
-           (fpath, A.annotations fpath))
+        let fpath = file.fpath in
+        (fpath, A.annotations fpath))
   in
 
   let env = { rule_file; target_files; engine = A.OSS; conf } in
@@ -783,9 +780,9 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
     let checks_pro =
       checks_pro
       |> List.map (fun (id, rule_result) ->
-             let s = Rule_ID.to_string id in
-             let id = Rule_ID.of_string_exn (s ^ "--PRO") in
-             (id, rule_result))
+          let s = Rule_ID.to_string id in
+          let id = Rule_ID.of_string_exn (s ^ "--PRO") in
+          (id, rule_result))
     in
     (* same for deep *)
     let checks_deep, _, errors_deep =
@@ -795,9 +792,9 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
     let checks_deep =
       checks_deep
       |> List.map (fun (id, rule_result) ->
-             let s = Rule_ID.to_string id in
-             let id = Rule_ID.of_string_exn (s ^ "--DEEP") in
-             (id, rule_result))
+          let s = Rule_ID.to_string id in
+          let id = Rule_ID.of_string_exn (s ^ "--DEEP") in
+          (id, rule_result))
     in
     let checks = checks_oss @ checks_pro @ checks_deep in
     let errors = errors_oss @ errors_pro @ errors_deep in
@@ -812,40 +809,40 @@ let run_tests (conf : Test_CLI.conf) (tests : test list) :
    *)
   tests
   |> List.concat_map (fun (rule_file, target_files) ->
-         Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-         (* TODO? sanity check? call metachecker Check_rule.check()? *)
-         match Parse_rule.parse_and_filter_invalid_rules rule_file with
-         | Ok (rules, []) ->
-             Logs.info (fun m ->
-                 m "processing target(s) %s"
-                   (target_files |> Fpath_.to_strings |> String.concat ", "));
-             let checks, fixtest, errors =
-               run_test conf rule_file rules target_files
-             in
-             let successes = (rule_file, checks, fixtest) in
-             let errors = List.map Result.error errors in
-             [ Ok successes ] @ errors
-         (* capture 's' and return it in the error so the user will see something
-          * like "Missing semgrep extenstion needed for parsing X. Try --pro"
-          *)
-         | Ok (_, (MissingPlugin s, _, _) :: _)
-         | Error { kind = InvalidRule (MissingPlugin s, _, _); _ } ->
-             (* alt: Error (MissingPlugin rule_file) errors *)
-             raise
-               (Error.Semgrep_error (s, Some (Exit_code.missing_config ~__LOC__)))
-         | Ok (_, _ :: _)
-         | Error _ ->
-             (* alt: use List.filter_map above and be more fault tolerant
-              * with a Stack_.push (UnparsableRule rule_file) errors;
-              * but simpler to raise errors early for now
-              *)
-             raise
-               (Error.Semgrep_error
-                  ( spf "invalid configuration found in %s" !!rule_file,
-                    Some (Exit_code.missing_config ~__LOC__) ))
-         | (exception Parsing_error.Syntax_error _)
-         | (exception Parsing_error.Other_error _) ->
-             failwith "impossible: Parse_rule should not raise exns anymore")
+      Logs.info (fun m -> m "processing rule file %s" !!rule_file);
+      (* TODO? sanity check? call metachecker Check_rule.check()? *)
+      match Parse_rule.parse_and_filter_invalid_rules rule_file with
+      | Ok (rules, []) ->
+          Logs.info (fun m ->
+              m "processing target(s) %s"
+                (target_files |> Fpath_.to_strings |> String.concat ", "));
+          let checks, fixtest, errors =
+            run_test conf rule_file rules target_files
+          in
+          let successes = (rule_file, checks, fixtest) in
+          let errors = List.map Result.error errors in
+          [ Ok successes ] @ errors
+      (* capture 's' and return it in the error so the user will see something
+       * like "Missing semgrep extenstion needed for parsing X. Try --pro"
+       *)
+      | Ok (_, (MissingPlugin s, _, _) :: _)
+      | Error { kind = InvalidRule (MissingPlugin s, _, _); _ } ->
+          (* alt: Error (MissingPlugin rule_file) errors *)
+          raise
+            (Error.Semgrep_error (s, Some (Exit_code.missing_config ~__LOC__)))
+      | Ok (_, _ :: _)
+      | Error _ ->
+          (* alt: use List.filter_map above and be more fault tolerant
+           * with a Stack_.push (UnparsableRule rule_file) errors;
+           * but simpler to raise errors early for now
+           *)
+          raise
+            (Error.Semgrep_error
+               ( spf "invalid configuration found in %s" !!rule_file,
+                 Some (Exit_code.missing_config ~__LOC__) ))
+      | (exception Parsing_error.Syntax_error _)
+      | (exception Parsing_error.Other_error _) ->
+          failwith "impossible: Parse_rule should not raise exns anymore")
 
 (*****************************************************************************)
 (* Run the conf *)
@@ -892,14 +889,14 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
   let any_failures =
     res.results
     |> List.exists (fun (_rule_file, (checks : Out.checks)) ->
-           checks.checks
-           |> List.exists (fun (_rule_id, (res : Out.rule_result)) ->
-                  not res.passed))
+        checks.checks
+        |> List.exists (fun (_rule_id, (res : Out.rule_result)) ->
+            not res.passed))
   in
   let any_fixtest_failures =
     res.fixtest_results
     |> List.exists (fun (_target_file, (res : Out.fixtest_result)) ->
-           not res.passed)
+        not res.passed)
   in
   if strict_error || any_failures || any_fixtest_failures then
     Exit_code.findings ~__LOC__

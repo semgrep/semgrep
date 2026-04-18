@@ -133,11 +133,11 @@ and toplevels env xs =
           let xs, rest =
             xs
             |> List_.span (function
-                 (* less: actually I'm not sure you can mix NamespaceDef and BracketDef*)
-                 | NamespaceDef _
-                 | NamespaceBracketDef _ ->
-                     false
-                 | _ -> true)
+              (* less: actually I'm not sure you can mix NamespaceDef and BracketDef*)
+              | NamespaceDef _
+              | NamespaceBracketDef _ ->
+                  false
+              | _ -> true)
           in
           let body = toplevels env xs in
           let rest = toplevels env rest in
@@ -166,13 +166,13 @@ and toplevel env st =
   | NamespaceUse (tok, _kwdopt, xs, _) ->
       xs |> uncomma
       |> List.map (fun (qu, alias_opt) ->
-             let qu = qualified_ident env qu in
-             let alias_opt =
-               match alias_opt with
-               | None -> None
-               | Some (_t, id) -> Some (ident env id)
-             in
-             A.NamespaceUse (tok, qu, alias_opt))
+          let qu = qualified_ident env qu in
+          let alias_opt =
+            match alias_opt with
+            | None -> None
+            | Some (_t, id) -> Some (ident env id)
+          in
+          A.NamespaceUse (tok, qu, alias_opt))
 
 (* ------------------------------------------------------------------------- *)
 (* Names *)
@@ -206,8 +206,8 @@ and qualified_ident env xs =
   leading
   @ (rest
     |> List.filter_map (function
-         | QITok _ -> None
-         | QI id -> Some (ident env id)))
+      | QITok _ -> None
+      | QI id -> Some (ident env id)))
 
 and dname = function
   | DName (s, tok) ->
@@ -676,7 +676,7 @@ and lambda_def env (l_use, ld) =
       | Some (_, (_lp, xs, _rp)) ->
           comma_list xs
           |> List.map (function LexicalVar (is_ref, name) ->
-                 (is_ref <> None, dname name)));
+              (is_ref <> None, dname name)));
   }
 
 and short_lambda_def env def =
@@ -999,12 +999,12 @@ and attributes env = function
       let xs = comma_list xs in
       xs
       |> List.map (function
-           | Attribute (s, tok) -> A.Id [ (s, wrap tok) ]
-           | AttributeWithArgs ((s, tok), (lp, xs, rp)) ->
-               A.Call
-                 ( A.Id [ (s, wrap tok) ],
-                   ( lp,
-                     List.map
-                       (fun e -> A.Arg (static_scalar env e))
-                       (comma_list xs),
-                     rp ) ))
+        | Attribute (s, tok) -> A.Id [ (s, wrap tok) ]
+        | AttributeWithArgs ((s, tok), (lp, xs, rp)) ->
+            A.Call
+              ( A.Id [ (s, wrap tok) ],
+                ( lp,
+                  List.map
+                    (fun e -> A.Arg (static_scalar env e))
+                    (comma_list xs),
+                  rp ) ))

@@ -48,22 +48,21 @@ let test_filter (files : F.t list) () =
       let filter = Gitignore_filter.create ~project_root:root () in
       files |> F.flatten
       |> List.iter (fun path ->
-             assert (Fpath.is_rel path);
-             let path = Ppath.of_relative_fpath_exn path in
-             let status, selection_events =
-               (* Glob.Match.run is supposed to print detailed logs on which
+          assert (Fpath.is_rel path);
+          let path = Ppath.of_relative_fpath_exn path in
+          let status, selection_events =
+            (* Glob.Match.run is supposed to print detailed logs on which
                   path is matched against which pattern. Requires Debug
                   log level. *)
-               Gitignore_filter.select filter path
-             in
-             printf "Selection events for path %s:\n"
-               (Ppath.to_string_for_tests path);
-             print_string (Gitignore.show_selection_events selection_events);
-             match status with
-             | Not_ignored ->
-                 printf "SEL ppath %s\n" (Ppath.to_string_for_tests path)
-             | Ignored ->
-                 printf "IGN ppath %s\n" (Ppath.to_string_for_tests path)))
+            Gitignore_filter.select filter path
+          in
+          printf "Selection events for path %s:\n"
+            (Ppath.to_string_for_tests path);
+          print_string (Gitignore.show_selection_events selection_events);
+          match status with
+          | Not_ignored ->
+              printf "SEL ppath %s\n" (Ppath.to_string_for_tests path)
+          | Ignored -> printf "IGN ppath %s\n" (Ppath.to_string_for_tests path)))
 
 (*****************************************************************************)
 (* The tests *)

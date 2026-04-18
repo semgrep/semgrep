@@ -142,8 +142,8 @@ let fix_tokens_lbody toks =
           aux Normal xs1;
           xs2
           |> List.iter (function
-               | Either.Left xs -> aux Normal xs
-               | Either.Right _ -> ());
+            | Either.Left xs -> aux Normal xs
+            | Either.Right _ -> ());
           aux Normal xs3;
           aux Normal ys (* for a := struct {...} { ... } { ... } *)
       | F.Tok (("struct" | "interface"), _)
@@ -192,8 +192,8 @@ let fix_tokens_lbody toks =
           | F.Parens (_, xs, _) ->
               xs
               |> List.iter (function
-                   | Either.Left trees -> aux Normal trees
-                   | Either.Right _comma -> ())
+                | Either.Left trees -> aux Normal trees
+                | Either.Right _comma -> ())
           | _ -> ());
           aux env xs
     in
@@ -202,15 +202,15 @@ let fix_tokens_lbody toks =
     (* use the tagged information and transform tokens *)
     toks
     |> List.map (function
-         | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
-         | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
-         | T.LBRACE info when Hashtbl.mem retag_lbrace_semgrep info ->
-             T.LBRACE_SEMGREP info
-         | T.LCOLON info when Hashtbl.mem retag_lcolon_semgrep info ->
-             T.LCOLON_SEMGREP info
-         | T.LPAREN info when Hashtbl.mem retag_lparen_semgrep info ->
-             T.LPAREN_SEMGREP info
-         | x -> x)
+      | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
+      | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
+      | T.LBRACE info when Hashtbl.mem retag_lbrace_semgrep info ->
+          T.LBRACE_SEMGREP info
+      | T.LCOLON info when Hashtbl.mem retag_lcolon_semgrep info ->
+          T.LCOLON_SEMGREP info
+      | T.LPAREN info when Hashtbl.mem retag_lparen_semgrep info ->
+          T.LPAREN_SEMGREP info
+      | x -> x)
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if Hook.get Flag.error_recovery then toks

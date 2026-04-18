@@ -74,12 +74,12 @@ let tests =
           let files = Common2.glob (dir / "*.php") in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ = Parse_php.parse_program file in
-                   ()
-                 with
-                 | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
+              try
+                let _ = Parse_php.parse_program file in
+                ()
+              with
+              | Parsing_error.Syntax_error _ ->
+                  Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       (*-----------------------------------------------------------------------*)
       (* Types *)
       (*-----------------------------------------------------------------------*)

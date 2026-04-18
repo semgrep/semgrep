@@ -227,22 +227,22 @@ let env_decl pairs =
   let decls =
     pairs
     |> List.map (function
-         | Env_semgrep_ellipsis tok ->
-             G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s
-         | Env_pair (_loc, key, _eq, value) -> (
-             match key with
-             | Ident v
-             | Semgrep_metavar v ->
-                 let entity = G.basic_entity v in
-                 let vardef =
-                   G.VarDef
-                     {
-                       vinit = Some (docker_string_expr value);
-                       vtype = None;
-                       vtok = G.no_sc;
-                     }
-                 in
-                 G.DefStmt (entity, vardef) |> G.s))
+      | Env_semgrep_ellipsis tok ->
+          G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s
+      | Env_pair (_loc, key, _eq, value) -> (
+          match key with
+          | Ident v
+          | Semgrep_metavar v ->
+              let entity = G.basic_entity v in
+              let vardef =
+                G.VarDef
+                  {
+                    vinit = Some (docker_string_expr value);
+                    vtype = None;
+                    vtok = G.no_sc;
+                  }
+              in
+              G.DefStmt (entity, vardef) |> G.s))
   in
   G.StmtExpr (G.Block (Tok.unsafe_fake_bracket decls) |> G.s) |> G.e
 
@@ -261,21 +261,21 @@ let label_pair_exprs (instr_name : string wrap) (kv_pairs : label_pair list) :
   in
   kv_pairs
   |> List.filter_map (function
-       | Label_semgrep_ellipsis tok ->
-           if is_one_element then
-             (* LABEL ... *)
-             let loc = (tok, tok) in
-             Some (call instr_name loc [ G.Arg (G.Ellipsis tok |> G.e) ])
-           else
-             (* LABEL a=b ... c=d *)
-             (* This can no longer be translated into something that makes
+    | Label_semgrep_ellipsis tok ->
+        if is_one_element then
+          (* LABEL ... *)
+          let loc = (tok, tok) in
+          Some (call instr_name loc [ G.Arg (G.Ellipsis tok |> G.e) ])
+        else
+          (* LABEL a=b ... c=d *)
+          (* This can no longer be translated into something that makes
                 sense since each key=value pair gets its own ENV call.
                 Such an ellipsis is ignored. *)
-             None
-       | Label_pair (loc, key, _eq, value) ->
-           let key_expr = key_or_metavar_expr key in
-           let value_expr = docker_string_expr value in
-           Some (call instr_name loc [ G.Arg key_expr; G.Arg value_expr ]))
+          None
+    | Label_pair (loc, key, _eq, value) ->
+        let key_expr = key_or_metavar_expr key in
+        let value_expr = docker_string_expr value in
+        Some (call instr_name loc [ G.Arg key_expr; G.Arg value_expr ]))
 
 let add_or_copy (params : param list) (src : path_or_ellipsis list)
     (dst : docker_string) =
@@ -319,8 +319,8 @@ let healthcheck_cmd_args env (params : param_or_ellipsis list) (cmd : cmd_instr)
   let opt_args =
     params
     |> List.map (function
-         | ParamParam x -> param_arg x
-         | ParamEllipsis tok -> G.Arg (G.Ellipsis tok |> G.e))
+      | ParamParam x -> param_arg x
+      | ParamEllipsis tok -> G.Arg (G.Ellipsis tok |> G.e))
   in
   let cmd_arg =
     let loc, name, params, cmd = cmd in
@@ -411,9 +411,9 @@ let rec instruction_exprs env (x : instruction) : G.expr list =
 let instruction env (x : instruction) : G.stmt list =
   instruction_exprs env x
   |> List.map (fun (expr : G.expr) ->
-         match expr.e with
-         | StmtExpr stmt -> stmt
-         | _ -> stmt_of_expr (Loc.instruction_loc x) expr)
+      match expr.e with
+      | StmtExpr stmt -> stmt
+      | _ -> stmt_of_expr (Loc.instruction_loc x) expr)
 
 let program_with_env (env : env) (x : program) : G.stmt list =
   List.map (instruction env) x |> List_.flatten

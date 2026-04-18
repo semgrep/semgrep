@@ -71,25 +71,25 @@ let propagated_value_string_of_mval mval =
 let of_bindings bindings =
   bindings
   |> List.filter_map (fun (mvar, mval) ->
-         match MV.range_of_mvalue mval with
-         | None -> None
-         | Some (file, mval_range) ->
-             let mval_content =
-               lazy_safe (Range.content_at_range file mval_range)
-             in
-             let propagated_content = propagated_value_string_of_mval mval in
-             Some (mvar, { mval_content; propagated_content }))
+      match MV.range_of_mvalue mval with
+      | None -> None
+      | Some (file, mval_range) ->
+          let mval_content =
+            lazy_safe (Range.content_at_range file mval_range)
+          in
+          let propagated_content = propagated_value_string_of_mval mval in
+          Some (mvar, { mval_content; propagated_content }))
 
 let of_out (metavars : OutJ.metavars) =
   metavars
   |> List.map (fun (mvar, metavar_value) ->
-         let mval_content = lazy_safe metavar_value.OutJ.abstract_content in
-         let propagated_content =
-           Option.map
-             (fun svalue -> svalue.OutJ.svalue_abstract_content)
-             metavar_value.propagated_value
-         in
-         (mvar, { mval_content; propagated_content }))
+      let mval_content = lazy_safe metavar_value.OutJ.abstract_content in
+      let propagated_content =
+        Option.map
+          (fun svalue -> svalue.OutJ.svalue_abstract_content)
+          metavar_value.propagated_value
+      in
+      (mvar, { mval_content; propagated_content }))
 
 let interpolate_metavars ?fmt (text : string) (ctx : replacement_ctx) : string =
   (* sort by metavariable length to avoid name collisions
@@ -98,7 +98,7 @@ let interpolate_metavars ?fmt (text : string) (ctx : replacement_ctx) : string =
   let ctx =
     ctx
     |> List.sort (fun (a, _) (b, _) ->
-           compare (String.length b) (String.length a))
+        compare (String.length b) (String.length a))
   in
   ctx
   |> List.fold_left
@@ -116,8 +116,8 @@ let interpolate_metavars ?fmt (text : string) (ctx : replacement_ctx) : string =
                 | Some s -> s (* default to the matched value *)
                 | None -> Lazy_safe.force mval_content)
          |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
-                let mval_content = Lazy_safe.force mval_content in
-                Option.fold ~none:mval_content
-                  ~some:(fun fmt -> fmt mval_content)
-                  fmt))
+             let mval_content = Lazy_safe.force mval_content in
+             Option.fold ~none:mval_content
+               ~some:(fun fmt -> fmt mval_content)
+               fmt))
        text

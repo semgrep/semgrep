@@ -82,26 +82,26 @@ let string_of_severity = function
 let junit_test_cases out (results : OutT.cli_match list) =
   results
   |> List.iter (fun (result : OutT.cli_match) ->
-         let open Xmlm in
-         output out
-           (`El_start
-              ( ("", "testcase"),
-                [
-                  (("", "name"), Rule_ID.to_string result.check_id);
-                  (("", "classname"), Fpath.to_string result.path);
-                  (("", "file"), Fpath.to_string result.path);
-                  (("", "line"), string_of_int result.start.line);
-                ] ));
-         output out
-           (`El_start
-              ( ("", "failure"),
-                [
-                  (("", "type"), string_of_severity result.extra.severity);
-                  (("", "message"), result.extra.message);
-                ] ));
-         output out (`Data result.extra.lines);
-         output out `El_end;
-         output out `El_end)
+      let open Xmlm in
+      output out
+        (`El_start
+           ( ("", "testcase"),
+             [
+               (("", "name"), Rule_ID.to_string result.check_id);
+               (("", "classname"), Fpath.to_string result.path);
+               (("", "file"), Fpath.to_string result.path);
+               (("", "line"), string_of_int result.start.line);
+             ] ));
+      output out
+        (`El_start
+           ( ("", "failure"),
+             [
+               (("", "type"), string_of_severity result.extra.severity);
+               (("", "message"), result.extra.message);
+             ] ));
+      output out (`Data result.extra.lines);
+      output out `El_end;
+      output out `El_end)
 
 (*****************************************************************************)
 (* Entry point *)

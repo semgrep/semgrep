@@ -362,7 +362,7 @@ let scan_metadata () : Out.scan_metadata =
   in
   res.sms_scan_id
   |> Option.iter (fun scan_id ->
-         Logs.debug (fun m -> m "SMS scan id: %s" scan_id));
+      Logs.debug (fun m -> m "SMS scan id: %s" scan_id));
   res
 
 (*****************************************************************************)
@@ -524,15 +524,15 @@ let partition_rules (filtered_rules : Rule.t list) =
   let cai_rules, rest =
     filtered_rules
     |> List.partition (fun r ->
-           Common2.string_match_substring
-             (Str.regexp "r2c-internal-cai")
-             (Rule_ID.to_string (fst r.Rule.id)))
+        Common2.string_match_substring
+          (Str.regexp "r2c-internal-cai")
+          (Rule_ID.to_string (fst r.Rule.id)))
   in
   let blocking_rules, non_blocking_rules =
     rest
     |> List.partition (fun r ->
-           Option.value ~default:false
-             (Option.map rule_is_blocking r.Rule.metadata))
+        Option.value ~default:false
+          (Option.map rule_is_blocking r.Rule.metadata))
   in
   (cai_rules, blocking_rules, non_blocking_rules)
 
@@ -540,17 +540,17 @@ let partition_findings ~keep_ignored (results : Out.cli_match list) =
   let groups =
     results
     |> List.filter (fun (m : Out.cli_match) ->
-           Option.value ~default:false m.extra.is_ignored && not keep_ignored)
+        Option.value ~default:false m.extra.is_ignored && not keep_ignored)
     |> Assoc.group_by (fun (m : Out.cli_match) ->
-           if
-             Common2.string_match_substring
-               (Str.regexp "r2c-internal-cai")
-               (Rule_ID.to_string m.check_id)
-           then `Cai
-           else if finding_is_blocking m then
-             (* and "sca_info" not in match.extra *)
-             `Blocking
-           else `Non_blocking)
+        if
+          Common2.string_match_substring
+            (Str.regexp "r2c-internal-cai")
+            (Rule_ID.to_string m.check_id)
+        then `Cai
+        else if finding_is_blocking m then
+          (* and "sca_info" not in match.extra *)
+          `Blocking
+        else `Non_blocking)
   in
   ( (try List.assoc `Cai groups with
     | Not_found -> []),
@@ -705,12 +705,12 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
     in
     all_matches
     |> List.sort (fun (m1 : Out.cli_match) (m2 : Out.cli_match) ->
-           sort_severity m1.extra.severity m2.extra.severity)
+        sort_severity m1.extra.severity m2.extra.severity)
   in
   let new_ignored, new_matches =
     all_matches
     |> List.partition (fun (m : Out.cli_match) ->
-           Option.value ~default:false m.extra.is_ignored)
+        Option.value ~default:false m.extra.is_ignored)
   in
   let findings = List.mapi (finding_of_cli_match commit_date) new_matches in
   let ignores = List.mapi (finding_of_cli_match commit_date) new_ignored in
@@ -728,7 +728,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let skipped_paths =
     cli_output.errors
     |> List.filter_map (fun (err : Out.cli_error) ->
-           if is_scan_failure_error err.type_ then err.path else None)
+        if is_scan_failure_error err.type_ then err.path else None)
     |> List.sort_uniq Fpath.compare
   in
   (* POST to /api/agent/scans/<scan_id>/results *)
@@ -758,7 +758,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   let ignored_ext_freqs =
     Option.value ~default:[] skipped
     |> Assoc.group_by (fun (skipped_target : Out.skipped_target) ->
-           Fpath.get_ext skipped_target.path)
+        Fpath.get_ext skipped_target.path)
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
     |> List.map (fun (ext, xs) -> (ext, List.length xs))
@@ -848,8 +848,8 @@ let upload_findings app token (deployment_name : string)
   if
     filtered_rules
     |> List.exists (fun r ->
-           String.equal "r2c-internal-project-depends-on"
-             (Rule_ID.to_string (fst r.Rule.id)))
+        String.equal "r2c-internal-project-depends-on"
+          (Rule_ID.to_string (fst r.Rule.id)))
   then
     Logs.app (fun m ->
         m "    %s/orgs/%s/supply-chain"

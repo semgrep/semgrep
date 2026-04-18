@@ -88,9 +88,9 @@ let has_ellipsis_and_filter_ellipsis_gen f xs =
   let ys =
     xs
     |> List_.exclude (fun x ->
-           let res = f x in
-           if res then has_ellipsis := true;
-           res)
+        let res = f x in
+        if res then has_ellipsis := true;
+        res)
   in
   (!has_ellipsis, ys)
 
@@ -982,8 +982,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
        * (e.g., in Python it is always a DotAccess *except* when it occurs
        * in an attribute). *)
       (match H.name_of_dot_access a with
-      | None -> fail ()
-      | Some a1 -> m_name a1 b1)
+        | None -> fail ()
+        | Some a1 -> m_name a1 b1)
       >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   (* $X should not match an Special in a call context,
    * otherwise $X(...) would match a+b because this is transformed in a
@@ -1629,22 +1629,23 @@ and m_compatible_type lang typed_mvar t e =
       >>= fun () -> envf typed_mvar (MV.E e)
   | _ta, _eb -> (
       (match (t.G.t, e.G.e) with
-      (* for matching ids *)
-      (* this is covered by the basic type propagation done in Naming_AST.ml *)
-      (* TODO Remove this case in favor of the newer type inference below. *)
-      (* NOTE: Name values must be represented with MV.Id! *)
-      | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob)))
-        when Option.is_some !tb ->
-          m_type_option (Some t) !tb >>= fun () ->
-          envf typed_mvar (MV.Id (idb, Some id_infob))
-      | TyN na, B.N (B.Id (idb, ({ B.id_resolved = rb; _ } as id_infob)) as nb)
-        when Option.is_some !rb ->
-          (* If both are names we try to match them, `e` could be a class name.
+        (* for matching ids *)
+        (* this is covered by the basic type propagation done in Naming_AST.ml *)
+        (* TODO Remove this case in favor of the newer type inference below. *)
+        (* NOTE: Name values must be represented with MV.Id! *)
+        | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob)))
+          when Option.is_some !tb ->
+            m_type_option (Some t) !tb >>= fun () ->
+            envf typed_mvar (MV.Id (idb, Some id_infob))
+        | ( TyN na,
+            B.N (B.Id (idb, ({ B.id_resolved = rb; _ } as id_infob)) as nb) )
+          when Option.is_some !rb ->
+            (* If both are names we try to match them, `e` could be a class name.
             This allows `metavariable-type:` to also work on class names, e.g.
             matching `new $C(...)` and checking `$C`'s type. *)
-          m_name na nb >>= fun () ->
-          envf typed_mvar (MV.Id (idb, Some id_infob))
-      | _else_ -> fail ())
+            m_name na nb >>= fun () ->
+            envf typed_mvar (MV.Id (idb, Some id_infob))
+        | _else_ -> fail ())
       >||>
       let with_bound_metavar =
         match e.G.e with
@@ -1852,11 +1853,11 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
           let before, there, after =
             xsb
             |> Common2.split_when (function
-                 | G.ArgKwd ((s2, _), _)
-                 | G.ArgKwdOptional ((s2, _), _)
-                   when s = s2 ->
-                     true
-                 | _ -> false)
+              | G.ArgKwd ((s2, _), _)
+              | G.ArgKwdOptional ((s2, _), _)
+                when s = s2 ->
+                  true
+              | _ -> false)
           in
           match there with
           | G.ArgKwd (idb, eb)
@@ -2105,10 +2106,10 @@ and m_ac_op tok op aargs_ac bargs_ac =
   let avars, aapps =
     aargs_ac
     |> List.partition (fun e ->
-           match e.G.e with
-           | G.Ellipsis _ -> true
-           | G.N (G.Id ((str, _tok), _id_info)) -> Mvar.is_metavar_name str
-           | ___else___ -> false)
+        match e.G.e with
+        | G.Ellipsis _ -> true
+        | G.N (G.Id ((str, _tok), _id_info)) -> Mvar.is_metavar_name str
+        | ___else___ -> false)
   in
   (* Try to match each aapp with a different barg, this is a 1-to-1 matching.
    * Here we don't expect perf issues on real code, because each aapp will
@@ -3464,10 +3465,10 @@ and m_fields (xsa : G.field list) (xsb : G.field list) =
     (* TODO: Similar to has_ellipsis_and_filter_ellipsis, refactor? *)
     xsa
     |> List_.exclude (function
-         | G.F { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } ->
-             has_ellipsis := true;
-             true
-         | _ -> false)
+      | G.F { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } ->
+          has_ellipsis := true;
+          true
+      | _ -> false)
   in
   if_config
     (fun x -> x.implicit_ellipsis)
@@ -3512,15 +3513,14 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
         let before, there, after =
           xsb
           |> Common2.split_when (function
-               | G.F
-                   {
-                     s =
-                       G.DefStmt ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
-                     _;
-                   }
-                 when s2 = s1 ->
-                   true
-               | _ -> false)
+            | G.F
+                {
+                  s = G.DefStmt ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
+                  _;
+                }
+              when s2 = s1 ->
+                true
+            | _ -> false)
         in
         match there with
         | G.F { s = G.DefStmt bdef; _ } ->

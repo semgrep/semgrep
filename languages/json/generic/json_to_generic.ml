@@ -59,34 +59,34 @@ let expr ?(unescape_strings = false) x =
             let ys =
               xs
               |> List.map (function
-                   | G.F
-                       {
-                         s =
-                           G.DefStmt
-                             ( { G.name = G.EN (G.Id (id, _)); _ },
-                               FieldDefColon { vinit = Some e; _ } );
-                         _;
-                       } ->
-                       Either.Left (id, e)
-                   | G.F { s = ExprStmt ({ e = Ellipsis t; _ }, _); _ } ->
-                       Either.Right t
-                   | x -> failwith (spf "not a JSON field: %s" (G.show_field x)))
+                | G.F
+                    {
+                      s =
+                        G.DefStmt
+                          ( { G.name = G.EN (G.Id (id, _)); _ },
+                            FieldDefColon { vinit = Some e; _ } );
+                      _;
+                    } ->
+                    Either.Left (id, e)
+                | G.F { s = ExprStmt ({ e = Ellipsis t; _ }, _); _ } ->
+                    Either.Right t
+                | x -> failwith (spf "not a JSON field: %s" (G.show_field x)))
             in
             let zs =
               ys
               |> List.map (function
-                   | Either.Left (id, e) ->
-                       let key =
-                         (* we don't want $FLD: 1 to be transformed
-                          * in "$FLD" : 1, which currently would not match
-                          * anything in Semgrep (this may change though) *)
-                         if AST_generic.is_metavar_name (fst id) then
-                           G.N (G.Id (id, G.empty_id_info ())) |> G.e
-                         else G.L (G.String (fb id)) |> G.e
-                       in
-                       G.Container (G.Tuple, Tok.unsafe_fake_bracket [ key; e ])
-                       |> G.e
-                   | Either.Right t -> G.Ellipsis t |> G.e)
+                | Either.Left (id, e) ->
+                    let key =
+                      (* we don't want $FLD: 1 to be transformed
+                       * in "$FLD" : 1, which currently would not match
+                       * anything in Semgrep (this may change though) *)
+                      if AST_generic.is_metavar_name (fst id) then
+                        G.N (G.Id (id, G.empty_id_info ())) |> G.e
+                      else G.L (G.String (fb id)) |> G.e
+                    in
+                    G.Container (G.Tuple, Tok.unsafe_fake_bracket [ key; e ])
+                    |> G.e
+                | Either.Right t -> G.Ellipsis t |> G.e)
             in
             G.Container (G.Dict, (lp, zs, rp)) |> G.e
         | G.L (G.String (_, (escaped, t), _)) when unescape_strings ->

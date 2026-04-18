@@ -21,8 +21,8 @@ let autofix (dryrun : bool) (edits : Out.edit list) :
   let edits =
     edits
     |> List.map (fun Out.{ path; start_offset; end_offset; replacement_text } ->
-           Textedit.
-             { path; start = start_offset; end_ = end_offset; replacement_text })
+        Textedit.
+          { path; start = start_offset; end_ = end_offset; replacement_text })
   in
   (* For a dry run, all we do is construct the fixed lines for each edit. This
    * makes it into the final JSON output. Otherwise, we write the edits to disk

@@ -122,16 +122,16 @@ let on_notification (server : Legacy_rpc_server.t) notification =
         let paths =
           paths
           |> List.map (fun { FileDelete.uri } ->
-                 Str.string_after uri (String.length "file://") |> Fpath.v)
+              Str.string_after uri (String.length "file://") |> Fpath.v)
           (* Be careful! Because each file that DidDeleteFiles sends us might actually
              be a folder, we cannot just delete findings from those paths.
              We must check all files for which we have results, and check if they may be
              contained in the reported folder.
           *)
           |> List.concat_map (fun path ->
-                 List.filter
-                   (fun scanned_file -> Fpath.is_prefix path scanned_file)
-                   (Legacy_session.scanned_files session))
+              List.filter
+                (fun scanned_file -> Fpath.is_prefix path scanned_file)
+                (Legacy_session.scanned_files session))
         in
         let diagnostics =
           Legacy_diagnostics.diagnostics_of_results

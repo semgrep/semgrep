@@ -116,10 +116,10 @@ let dump_exts_of_lang () =
   let lang_to_exts =
     Lang.keys
     |> List.map (fun lang_str ->
-           match Lang.of_string_opt lang_str with
-           | Some lang ->
-               lang_str ^ "->" ^ String.concat ", " (Lang.exts_of_lang lang)
-           | None -> "")
+        match Lang.of_string_opt lang_str with
+        | Some lang ->
+            lang_str ^ "->" ^ String.concat ", " (Lang.exts_of_lang lang)
+        | None -> "")
   in
   UConsole.print
     (spf "Language to supported file extension mappings:\n %s"
@@ -142,15 +142,15 @@ let prefilter_of_rules ~interfile file =
       let xs =
         rules
         |> List.map (fun r ->
-               let pre_opt = Prefiltering.File.of_rule ~interfile r in
-               let pre_atd_opt =
-                 Option.map Prefiltering.File.to_semgrep_formula pre_opt
-               in
-               let id = r.Rule.id |> fst in
-               {
-                 Prefiltering.Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
-                 filter = pre_atd_opt;
-               })
+            let pre_opt = Prefiltering.File.of_rule ~interfile r in
+            let pre_atd_opt =
+              Option.map Prefiltering.File.to_semgrep_formula pre_opt
+            in
+            let id = r.Rule.id |> fst in
+            {
+              Prefiltering.Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
+              filter = pre_atd_opt;
+            })
       in
       let s = Prefiltering.Semgrep_prefilter_j.string_of_prefilters xs in
       UCommon.pr s
@@ -171,54 +171,54 @@ let sarif_sort (file : Fpath.t) =
       runs =
         x.runs
         |> List.map (fun (r : S.run) ->
-               {
-                 r with
-                 invocations =
-                   r.invocations
-                   |> Option.map
-                        (List.map (fun (i : S.invocation) ->
-                             {
-                               i with
-                               tool_execution_notifications =
-                                 i.tool_execution_notifications
-                                 |> Option.map
-                                      (List.sort
-                                         (fun
-                                           (a : S.notification)
-                                           (b : S.notification)
-                                         ->
-                                           match
-                                             (a.message.text, b.message.text)
-                                           with
-                                           | Some a1, Some b1 -> compare a1 b1
-                                           | _else_ -> failwith "wrong format"));
-                             }));
-                 results =
-                   r.results
-                   |> Option.map
-                        (List.sort (fun (a : S.result) (b : S.result) ->
-                             match (a.fingerprints, b.fingerprints) with
-                             | ( Some [ ("matchBasedId/v1", a1) ],
-                                 Some [ ("matchBasedId/v1", b1) ] ) ->
-                                 compare a1 b1
-                             | _else_ -> failwith "wrong format"));
-                 tool =
-                   {
-                     r.tool with
-                     driver =
-                       {
-                         r.tool.driver with
-                         rules =
-                           r.tool.driver.rules
-                           |> Option.map
-                                (List.sort
-                                   (fun
-                                     (a : S.reporting_descriptor)
-                                     (b : S.reporting_descriptor)
-                                   -> compare a.id b.id));
-                       };
-                   };
-               });
+            {
+              r with
+              invocations =
+                r.invocations
+                |> Option.map
+                     (List.map (fun (i : S.invocation) ->
+                          {
+                            i with
+                            tool_execution_notifications =
+                              i.tool_execution_notifications
+                              |> Option.map
+                                   (List.sort
+                                      (fun
+                                        (a : S.notification)
+                                        (b : S.notification)
+                                      ->
+                                        match
+                                          (a.message.text, b.message.text)
+                                        with
+                                        | Some a1, Some b1 -> compare a1 b1
+                                        | _else_ -> failwith "wrong format"));
+                          }));
+              results =
+                r.results
+                |> Option.map
+                     (List.sort (fun (a : S.result) (b : S.result) ->
+                          match (a.fingerprints, b.fingerprints) with
+                          | ( Some [ ("matchBasedId/v1", a1) ],
+                              Some [ ("matchBasedId/v1", b1) ] ) ->
+                              compare a1 b1
+                          | _else_ -> failwith "wrong format"));
+              tool =
+                {
+                  r.tool with
+                  driver =
+                    {
+                      r.tool.driver with
+                      rules =
+                        r.tool.driver.rules
+                        |> Option.map
+                             (List.sort
+                                (fun
+                                  (a : S.reporting_descriptor)
+                                  (b : S.reporting_descriptor)
+                                -> compare a.id b.id));
+                    };
+                };
+            });
     }
   in
   let str = Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema x in

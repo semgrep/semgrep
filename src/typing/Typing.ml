@@ -276,17 +276,17 @@ and type_of_ast_generic_type lang t : G.name Type.t =
       let args =
         args
         |> List.map (function
-             | G.TA t -> Type.TA (type_of_ast_generic_type lang t)
-             | G.TAWildcard (_, None) -> Type.TAWildcard None
-             | G.TAWildcard (_, Some ((kind, _), t)) ->
-                 let t = type_of_ast_generic_type lang t in
-                 let kind =
-                   match kind with
-                   | false -> Type.TAUpper t
-                   | true -> Type.TALower t
-                 in
-                 Type.TAWildcard (Some kind)
-             | _else_ -> Type.OtherTypeArg None)
+          | G.TA t -> Type.TA (type_of_ast_generic_type lang t)
+          | G.TAWildcard (_, None) -> Type.TAWildcard None
+          | G.TAWildcard (_, Some ((kind, _), t)) ->
+              let t = type_of_ast_generic_type lang t in
+              let kind =
+                match kind with
+                | false -> Type.TAUpper t
+                | true -> Type.TALower t
+              in
+              Type.TAWildcard (Some kind)
+          | _else_ -> Type.OtherTypeArg None)
       in
       Type.N ((name, args), [])
   | G.TyApply _ ->
@@ -304,14 +304,13 @@ and type_of_ast_generic_type lang t : G.name Type.t =
       let params =
         params
         |> List.map (function
-             | G.Param { G.pname; ptype; _ } ->
-                 let pident = Option.map fst pname in
-                 let ptype =
-                   Option.map (type_of_ast_generic_type lang) ptype
-                   |> Type.of_opt
-                 in
-                 Type.Param { Type.pident; ptype }
-             | _else_ -> OtherParam None)
+          | G.Param { G.pname; ptype; _ } ->
+              let pident = Option.map fst pname in
+              let ptype =
+                Option.map (type_of_ast_generic_type lang) ptype |> Type.of_opt
+              in
+              Type.Param { Type.pident; ptype }
+          | _else_ -> OtherParam None)
       in
       let tret = type_of_ast_generic_type lang tret in
       Type.Function (params, tret)

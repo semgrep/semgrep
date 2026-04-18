@@ -54,26 +54,25 @@ let tests =
           in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ast = parse file in
-                   ()
-                 with
-                 | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" !!file));
+              try
+                let _ast = parse file in
+                ()
+              with
+              | Parsing_error.Syntax_error _ ->
+                  Alcotest.failf "it should correctly parse %s" !!file));
       t "rejecting bad code" (fun () ->
           let dir = tests_path / "cpp" / "parsing_errors" in
           let files = Common2.glob (dir / "*.cpp") in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ast = parse file in
-                   Alcotest.failf "it should have thrown a Parse_error %s"
-                     !!file
-                 with
-                 | Parsing_error.Syntax_error _ -> ()
-                 | exn ->
-                     Alcotest.failf "throwing wrong exn %s on %s"
-                       (Common.exn_to_s exn) !!file));
+              try
+                let _ast = parse file in
+                Alcotest.failf "it should have thrown a Parse_error %s" !!file
+              with
+              | Parsing_error.Syntax_error _ -> ()
+              | exn ->
+                  Alcotest.failf "throwing wrong exn %s on %s"
+                    (Common.exn_to_s exn) !!file));
       (* parsing C files (and not C++ files) possibly containing C++ keywords *)
       t "C regression files" (fun () ->
           let dir = tests_path / "c" / "parsing" in
@@ -83,12 +82,12 @@ let tests =
           in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ast = parse file in
-                   ()
-                 with
-                 | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" !!file))
+              try
+                let _ast = parse file in
+                ()
+              with
+              | Parsing_error.Syntax_error _ ->
+                  Alcotest.failf "it should correctly parse %s" !!file))
       (*-----------------------------------------------------------------------*)
       (* Misc *)
       (*-----------------------------------------------------------------------*);

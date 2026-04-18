@@ -215,11 +215,11 @@ let run config =
   let patterns_or_errors =
     let pattern_files = Find_files.list config.pattern_files in
     (match config.pattern with
-    | None -> []
-    | Some pat_str -> [ Src_file.of_string pat_str ])
+      | None -> []
+      | Some pat_str -> [ Src_file.of_string pat_str ])
     @ List.map Src_file.of_file pattern_files
     |> List.map (fun pat_src ->
-           (pat_src, parse_pattern config.comment_style pat_src))
+        (pat_src, parse_pattern config.comment_style pat_src))
   in
   let patterns, errors =
     let rev_patterns, rev_errors =

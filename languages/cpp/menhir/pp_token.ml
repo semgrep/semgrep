@@ -103,9 +103,9 @@ let (cpp_engine :
  fun env xs ->
   xs
   |> List.map (fun tok ->
-         match tok with
-         | TIdent (s, _i1) when List.mem_assoc s env -> List.assoc s env
-         | x -> [ x ])
+      match tok with
+      | TIdent (s, _i1) when List.mem_assoc s env -> List.assoc s env
+      | x -> [ x ])
   |> List_.flatten
 
 (*
@@ -137,9 +137,9 @@ let apply_macro_defs defs xs =
               let xxs' =
                 xxs
                 |> List.map (fun x ->
-                       tokens_of_paren_ordered x
-                       |> List.map (fun x ->
-                              TH.visitor_info_of_tok Ast.make_expanded x.t))
+                    tokens_of_paren_ordered x
+                    |> List.map (fun x ->
+                        TH.visitor_info_of_tok Ast.make_expanded x.t))
               in
               id.new_tokens_before <-
                 cpp_engine (Common2.zip params xxs') bodymacro
@@ -193,21 +193,21 @@ let rec define_parse xs =
       let tokparams, _, xs =
         xs
         |> Common2.split_when (function
-             | TCPar _ -> true
-             | _ -> false)
+          | TCPar _ -> true
+          | _ -> false)
       in
       let body, _, xs =
         xs
         |> Common2.split_when (function
-             | TCommentNewline_DefineEndOfMacro _ -> true
-             | _ -> false)
+          | TCommentNewline_DefineEndOfMacro _ -> true
+          | _ -> false)
       in
       let params =
         tokparams
         |> List.filter_map (function
-             | TComma _ -> None
-             | TIdent (s, _) -> Some s
-             | x -> Common2.error_cant_have x)
+          | TComma _ -> None
+          | TIdent (s, _) -> Some s
+          | x -> Common2.error_cant_have x)
       in
       let body = body |> List.map (TH.visitor_info_of_tok Ast.make_expanded) in
       let def = (s, (Either.Right params, body)) in
@@ -216,8 +216,8 @@ let rec define_parse xs =
       let body, _, xs =
         xs
         |> Common2.split_when (function
-             | TCommentNewline_DefineEndOfMacro _ -> true
-             | _ -> false)
+          | TCommentNewline_DefineEndOfMacro _ -> true
+          | _ -> false)
       in
       let body = body |> List.map (TH.visitor_info_of_tok Ast.make_expanded) in
       let def = (s, (Either.Left (), body)) in

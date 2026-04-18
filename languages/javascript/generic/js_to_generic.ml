@@ -298,8 +298,8 @@ and expr (x : expr) =
       in
       let v2 = property_name v2 in
       (match v2 with
-      | Left n -> G.DotAccess (v1, t, G.FN (G.Id (n, G.empty_id_info ())))
-      | Right e -> G.DotAccess (v1, t, G.FDynamic e))
+        | Left n -> G.DotAccess (v1, t, G.FN (G.Id (n, G.empty_id_info ())))
+        | Right e -> G.DotAccess (v1, t, G.FDynamic e))
       |> G.e
   | Fun (v1, _v2TODO) ->
       let def, more_attrs = fun_ v1 in
@@ -324,18 +324,19 @@ and expr (x : expr) =
       let _v2_TODO = bracket (list type_) v2 in
       let v3 = bracket (list expr) v3 in
       (match x with
-      | SR_Special v -> G.Call (G.Special v |> G.e, bracket (List.map G.arg) v3)
-      | SR_Literal l ->
-          Log.warn (fun m -> m "Weird: literal in call position");
-          (* apparently there's code like (null)("fs"), no idea what that is *)
-          G.Call (G.L l |> G.e, bracket (List.map G.arg) v3)
-      | SR_NeedArgs f -> f (Tok.unbracket v3)
-      | SR_Other categ ->
-          (* ex: NewTarget *)
-          G.Call
-            ( G.OtherExpr (categ, []) |> G.e,
-              bracket (List.map (fun e -> G.Arg e)) v3 )
-      | SR_Expr e -> G.Call (e |> G.e, bracket (List.map G.arg) v3))
+        | SR_Special v ->
+            G.Call (G.Special v |> G.e, bracket (List.map G.arg) v3)
+        | SR_Literal l ->
+            Log.warn (fun m -> m "Weird: literal in call position");
+            (* apparently there's code like (null)("fs"), no idea what that is *)
+            G.Call (G.L l |> G.e, bracket (List.map G.arg) v3)
+        | SR_NeedArgs f -> f (Tok.unbracket v3)
+        | SR_Other categ ->
+            (* ex: NewTarget *)
+            G.Call
+              ( G.OtherExpr (categ, []) |> G.e,
+                bracket (List.map (fun e -> G.Arg e)) v3 )
+        | SR_Expr e -> G.Call (e |> G.e, bracket (List.map G.arg) v3))
       |> G.e
   | Apply (v1, v2, v3) ->
       let v1 = expr v1
@@ -451,8 +452,8 @@ and for_header = function
           let vars =
             vars
             |> List.map (fun x ->
-                   let a, b = var_of_var x in
-                   G.ForInitVar (a, b))
+                let a, b = var_of_var x in
+                G.ForInitVar (a, b))
           in
           G.ForClassic (vars, v2, v3)
       | Right e ->

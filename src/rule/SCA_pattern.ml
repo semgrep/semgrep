@@ -48,13 +48,13 @@ and version_constraints = SCA_And of version_constraint list
 let version_constraints_to_string (SCA_And xs) =
   xs
   |> List.map (fun { op; version } ->
-         let op_str =
-           match op with
-           | Eq -> "==" (* or = ? *)
-           | Gte -> ">="
-           | Lte -> "<="
-           | Gt -> ">"
-           | Lt -> "<"
-         in
-         spf "%s %s" op_str (SCA_version.to_string version))
+      let op_str =
+        match op with
+        | Eq -> "==" (* or = ? *)
+        | Gte -> ">="
+        | Lte -> "<="
+        | Gt -> ">"
+        | Lt -> "<"
+      in
+      spf "%s %s" op_str (SCA_version.to_string version))
   |> String.concat ", "

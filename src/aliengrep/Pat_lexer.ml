@@ -107,35 +107,35 @@ let read_string ?(source_name = "<pattern>") conf str =
   | Ok res ->
       res
       |> List.filter_map (function
-           | Pcre.Delim _
-           | Pcre.NoGroup ->
-               None
-           | Pcre.Text txt ->
-               pattern_error source_name
-                 (sprintf
-                    "Internal error while parsing aliengrep pattern: Text node \
-                     %S; pattern: %s"
-                    txt conf.pcre.pattern)
-           | Pcre.Group (_, "") ->
-               (* no capture *)
-               None
-           | Pcre.Group (num, capture) ->
-               Some
-                 (match num with
-                 | 1 -> LONG_ELLIPSIS
-                 | 2 -> ELLIPSIS
-                 | 3 -> METAVAR capture
-                 | 4 -> METAVAR_ELLIPSIS capture
-                 | 5 -> LONG_METAVAR_ELLIPSIS capture
-                 | 6 -> WORD capture
-                 | 7 ->
-                     let opening_brace = char_of_string capture in
-                     let expected_closing_brace =
-                       try List.assoc opening_brace conf.conf.brackets with
-                       | Not_found -> assert false
-                     in
-                     OPEN (opening_brace, expected_closing_brace)
-                 | 8 -> CLOSE (char_of_string capture)
-                 | 9 -> NEWLINE
-                 | 10 -> OTHER capture
-                 | _ -> assert false))
+        | Pcre.Delim _
+        | Pcre.NoGroup ->
+            None
+        | Pcre.Text txt ->
+            pattern_error source_name
+              (sprintf
+                 "Internal error while parsing aliengrep pattern: Text node \
+                  %S; pattern: %s"
+                 txt conf.pcre.pattern)
+        | Pcre.Group (_, "") ->
+            (* no capture *)
+            None
+        | Pcre.Group (num, capture) ->
+            Some
+              (match num with
+              | 1 -> LONG_ELLIPSIS
+              | 2 -> ELLIPSIS
+              | 3 -> METAVAR capture
+              | 4 -> METAVAR_ELLIPSIS capture
+              | 5 -> LONG_METAVAR_ELLIPSIS capture
+              | 6 -> WORD capture
+              | 7 ->
+                  let opening_brace = char_of_string capture in
+                  let expected_closing_brace =
+                    try List.assoc opening_brace conf.conf.brackets with
+                    | Not_found -> assert false
+                  in
+                  OPEN (opening_brace, expected_closing_brace)
+              | 8 -> CLOSE (char_of_string capture)
+              | 9 -> NEWLINE
+              | 10 -> OTHER capture
+              | _ -> assert false))

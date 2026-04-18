@@ -258,11 +258,11 @@ and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
 let blobs_by_commit objects commits =
   commits
   |> List.map (fun commit ->
-         let tree = tree_of_commit objects commit in
-         (commit, tree))
+      let tree = tree_of_commit objects commit in
+      (commit, tree))
   |> List.map (fun (commit, tree) ->
-         let blobs = blobs_of_tree objects tree in
-         (commit, blobs))
+      let blobs = blobs_of_tree objects tree in
+      (commit, blobs))
 
 (*****************************************************************************)
 (* Entry points *)
@@ -299,9 +299,9 @@ let commit_blobs_by_date objects =
   let commits =
     objects |> ROHashtbl.to_seq |> List.of_seq
     |> List.filter_map (fun (_, value) ->
-           match value with
-           | Git.Value.Commit commit -> Some commit
-           | _ -> None)
+        match value with
+        | Git.Value.Commit commit -> Some commit
+        | _ -> None)
   in
   Log.debug (fun m -> m "got commits");
   Log.debug (fun m -> m "sorting commits");

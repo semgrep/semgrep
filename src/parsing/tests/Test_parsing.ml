@@ -104,8 +104,7 @@ let dump_and_print_errors dump_cst dump_extras
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         UCommon.pr2
-           (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
+      UCommon.pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err))
 
 let fail_on_error (parsing_res : ('a, 'extras) Tree_sitter_run.Parsing_result.t)
     =
@@ -259,60 +258,58 @@ let test_parse_tree_sitter lang root =
   let stat_list = ref [] in
   paths
   |> List.iter (fun file ->
-         Logs.info (fun m -> m "processing %s" !!file);
-         let stat =
-           try
-             (match lang with
-             (* less: factorize with dump_tree_sitter_cst_lang *)
-             | Lang.Ruby ->
-                 Tree_sitter_ruby.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Java ->
-                 Tree_sitter_java.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Go ->
-                 Tree_sitter_go.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Csharp ->
-                 Tree_sitter_c_sharp.Parse.file !!file
-                 |> fail_on_error |> ignore
-             | Lang.Kotlin ->
-                 Tree_sitter_kotlin.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Js ->
-                 Tree_sitter_tsx.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Jsonnet ->
-                 Tree_sitter_jsonnet.Parse.file !!file
-                 |> fail_on_error |> ignore
-             | Lang.Ts ->
-                 Tree_sitter_tsx.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Rust ->
-                 Tree_sitter_rust.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Ocaml ->
-                 Tree_sitter_ocaml.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.C
-             | Lang.Cpp ->
-                 Tree_sitter_cpp.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Html ->
-                 Tree_sitter_html.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Php ->
-                 Tree_sitter_php.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Terraform ->
-                 Tree_sitter_hcl.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Dart ->
-                 Tree_sitter_dart.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Fga ->
-                 Tree_sitter_fga.Parse.file !!file |> fail_on_error |> ignore
-             | Lang.Move_on_sui ->
-                 Tree_sitter_move_on_sui.Parse.file !!file
-                 |> fail_on_error |> ignore
-             | _ ->
-                 failwith
-                   (spf "lang %s not supported with tree-sitter"
-                      (Lang.to_string lang)));
-             Parsing_stat.correct_stat file
-           with
-           | exn ->
-               print_exn file exn;
-               Parsing_stat.bad_stat file
-         in
-         Stack_.push stat stat_list);
+      Logs.info (fun m -> m "processing %s" !!file);
+      let stat =
+        try
+          (match lang with
+          (* less: factorize with dump_tree_sitter_cst_lang *)
+          | Lang.Ruby ->
+              Tree_sitter_ruby.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Java ->
+              Tree_sitter_java.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Go ->
+              Tree_sitter_go.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Csharp ->
+              Tree_sitter_c_sharp.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Kotlin ->
+              Tree_sitter_kotlin.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Js ->
+              Tree_sitter_tsx.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Jsonnet ->
+              Tree_sitter_jsonnet.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Ts ->
+              Tree_sitter_tsx.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Rust ->
+              Tree_sitter_rust.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Ocaml ->
+              Tree_sitter_ocaml.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.C
+          | Lang.Cpp ->
+              Tree_sitter_cpp.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Html ->
+              Tree_sitter_html.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Php ->
+              Tree_sitter_php.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Terraform ->
+              Tree_sitter_hcl.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Dart ->
+              Tree_sitter_dart.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Fga ->
+              Tree_sitter_fga.Parse.file !!file |> fail_on_error |> ignore
+          | Lang.Move_on_sui ->
+              Tree_sitter_move_on_sui.Parse.file !!file
+              |> fail_on_error |> ignore
+          | _ ->
+              failwith
+                (spf "lang %s not supported with tree-sitter"
+                   (Lang.to_string lang)));
+          Parsing_stat.correct_stat file
+        with
+        | exn ->
+            print_exn file exn;
+            Parsing_stat.bad_stat file
+      in
+      Stack_.push stat stat_list);
   Logs.info (fun m -> m "%s" (Parsing_stat.string_of_stats !stat_list));
   ()
 
@@ -395,36 +392,35 @@ let parsing_common ?(verbose = true) (lang : Lang.t) (root : Fpath.t) =
   let stats =
     paths
     |> List.rev_map (fun file ->
-           UCommon.pr2
-             (spf "%05.1fs: [%s] processing %s" (Sys.time ())
-                (Lang.to_capitalized_alnum lang)
-                !!file);
-           let stat =
-             try
-               match
-                 Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
-                     Time_limit.set_timeout ~name:"Test_parsing.parsing_common"
-                       ~sigalrm:true timeout_seconds (fun () ->
-                         Parse_target.parse_and_resolve_name lang file))
-               with
-               | Some res ->
-                   let ast_stat = AST_stat.stat res.ast in
-                   { res.Parsing_result2.stat with ast_stat = Some ast_stat }
-               | None ->
-                   { (Parsing_stat.bad_stat file) with have_timeout = true }
-             with
-             | Time_limit.Timeout _ -> assert false
-             | exn ->
-                 if verbose then print_exn file exn;
-                 (* bugfix: bad_stat() could actually triggering some
+        UCommon.pr2
+          (spf "%05.1fs: [%s] processing %s" (Sys.time ())
+             (Lang.to_capitalized_alnum lang)
+             !!file);
+        let stat =
+          try
+            match
+              Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
+                  Time_limit.set_timeout ~name:"Test_parsing.parsing_common"
+                    ~sigalrm:true timeout_seconds (fun () ->
+                      Parse_target.parse_and_resolve_name lang file))
+            with
+            | Some res ->
+                let ast_stat = AST_stat.stat res.ast in
+                { res.Parsing_result2.stat with ast_stat = Some ast_stat }
+            | None -> { (Parsing_stat.bad_stat file) with have_timeout = true }
+          with
+          | Time_limit.Timeout _ -> assert false
+          | exn ->
+              if verbose then print_exn file exn;
+              (* bugfix: bad_stat() could actually triggering some
                     Sys_error "Out of memory" when implemented naively,
                     and this exn in the exn handler was stopping the whole job.
                  *)
-                 Parsing_stat.bad_stat file
-           in
-           if verbose && stat.PS.error_line_count > 0 then
-             UCommon.pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);
-           stat)
+              Parsing_stat.bad_stat file
+        in
+        if verbose && stat.PS.error_line_count > 0 then
+          UCommon.pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);
+        stat)
   in
   (stats, skipped)
 
@@ -564,8 +560,8 @@ let print_json lang results =
 let parse_projects ~verbose lang project_dirs =
   project_dirs
   |> List.map (fun dir ->
-         let name = dir in
-         parse_project ~verbose lang name (Fpath.v dir))
+      let name = dir in
+      parse_project ~verbose lang name (Fpath.v dir))
 
 let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
   let stat_list = parse_projects ~verbose lang project_dirs in
@@ -579,20 +575,20 @@ let diff_pfff_tree_sitter xs =
   UCommon.pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
   xs
   |> List.iter (fun file ->
-         let ast1 =
-           Hook.with_hook_set Flag_semgrep.pfff_only true (fun () ->
-               Parse_target.parse_program file)
-         in
-         let ast2 =
-           Hook.with_hook_set Flag_semgrep.tree_sitter_only true (fun () ->
-               Parse_target.parse_program file)
-         in
-         let s1 = AST_generic.show_program ast1 in
-         let s2 = AST_generic.show_program ast2 in
-         UTmp.with_temp_file ~contents:s1 ~suffix:".x" (fun file1 ->
-             UTmp.with_temp_file ~contents:s2 ~suffix:".x" (fun file2 ->
-                 let xs = Common2.unix_diff !!file1 !!file2 in
-                 xs |> List.iter UCommon.pr2)))
+      let ast1 =
+        Hook.with_hook_set Flag_semgrep.pfff_only true (fun () ->
+            Parse_target.parse_program file)
+      in
+      let ast2 =
+        Hook.with_hook_set Flag_semgrep.tree_sitter_only true (fun () ->
+            Parse_target.parse_program file)
+      in
+      let s1 = AST_generic.show_program ast1 in
+      let s2 = AST_generic.show_program ast2 in
+      UTmp.with_temp_file ~contents:s1 ~suffix:".x" (fun file1 ->
+          UTmp.with_temp_file ~contents:s2 ~suffix:".x" (fun file2 ->
+              let xs = Common2.unix_diff !!file1 !!file2 in
+              xs |> List.iter UCommon.pr2)))
 
 (*****************************************************************************)
 (* Rule parsing *)
@@ -602,7 +598,7 @@ let test_parse_rules root =
   let targets = Find_targets_lang.get_target_fpaths root Lang.Yaml in
   targets
   |> List.iter (fun file ->
-         Logs.info (fun m -> m "processing %s" !!file);
-         let _r = Parse_rule.parse file in
-         ());
+      Logs.info (fun m -> m "processing %s" !!file);
+      let _r = Parse_rule.parse file in
+      ());
   Logs.info (fun m -> m "done test_parse_rules")

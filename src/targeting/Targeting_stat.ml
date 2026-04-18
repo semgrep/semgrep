@@ -96,7 +96,6 @@ let annotate_targets (targets : Target.t list) : annotated_target_list =
   let targets_by_path = Assoc.group_by Target.internal_path targets in
   targets_by_path
   |> List.filter_map (fun (path, targets) ->
-         match stat_file path with
-         | Ok stat ->
-             Some { internal_path = Fpath.to_string path; stat; targets }
-         | Error _ -> None)
+      match stat_file path with
+      | Ok stat -> Some { internal_path = Fpath.to_string path; stat; targets }
+      | Error _ -> None)

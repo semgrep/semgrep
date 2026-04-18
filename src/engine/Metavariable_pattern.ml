@@ -69,7 +69,7 @@ let adjust_content_for_language (analyzer : Analyzer.t) (content : string) :
 let filter_new_mvars_by_range range mvars =
   mvars
   |> List.filter (fun (mvar, _) ->
-         not (Option.is_some (List.assoc_opt mvar range.RM.mvars)))
+      not (Option.is_some (List.assoc_opt mvar range.RM.mvars)))
 
 (* We take the bindings from the nested matches, and produce a new match where we add
    the enclosed metavariables to the original range.
@@ -84,19 +84,18 @@ let get_persistent_bindings revert_loc r nested_matches =
   in
   nested_matches
   |> List.map (fun nested_match ->
-         (* The bindings in this match were produced from a target whose location
+      (* The bindings in this match were produced from a target whose location
              data was all adjusted, to avoid re-parsing.
          *)
-         let readjusted_mvars =
-           nested_match.RM.mvars
-           |> List.map (fun (mvar, mval) ->
-                  let mval =
-                    mval |> MV.mvalue_to_any |> reverting_visitor
-                    |> MV.mvalue_of_any
-                  in
-                  (mvar, mval))
-         in
-         { nested_match with RM.mvars = readjusted_mvars })
+      let readjusted_mvars =
+        nested_match.RM.mvars
+        |> List.map (fun (mvar, mval) ->
+            let mval =
+              mval |> MV.mvalue_to_any |> reverting_visitor |> MV.mvalue_of_any
+            in
+            (mvar, mval))
+      in
+      { nested_match with RM.mvars = readjusted_mvars })
   |> List.map (fun r' -> filter_new_mvars_by_range r r'.RM.mvars)
 
 (*****************************************************************************)

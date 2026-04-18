@@ -1129,9 +1129,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
             let concatenated =
               xs
               |> List.map (fun x ->
-                     match x with
-                     | Literal (Str (s, _)) -> s
-                     | _ -> raise Common.Impossible)
+                  match x with
+                  | Literal (Str (s, _)) -> s
+                  | _ -> raise Common.Impossible)
               |> String.concat ""
             in
             Literal (Str (concatenated, t1)))

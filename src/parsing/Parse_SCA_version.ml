@@ -107,21 +107,21 @@ let parse_constraints (s : string) : SCA_pattern.version_constraints =
   SCA_pattern.SCA_And
     (xs
     |> List.map (fun s ->
-           (* "> 1.0.2" *)
-           let s = String.trim s in
-           if s =~ "^\\([=<>]+\\)[ \t]*\\([^ ]+\\)$" then
-             let op, ver = Common.matched2 s in
-             let op : SCA_pattern.sca_operator =
-               match op with
-               | "="
-               | "==" ->
-                   Eq
-               | ">=" -> Gte
-               | "<=" -> Lte
-               | ">" -> Gt
-               | "<" -> Lt
-               | _ -> error ()
-             in
-             let version : SCA_version.t = parse ver in
-             SCA_pattern.{ op; version }
-           else error ()))
+        (* "> 1.0.2" *)
+        let s = String.trim s in
+        if s =~ "^\\([=<>]+\\)[ \t]*\\([^ ]+\\)$" then
+          let op, ver = Common.matched2 s in
+          let op : SCA_pattern.sca_operator =
+            match op with
+            | "="
+            | "==" ->
+                Eq
+            | ">=" -> Gte
+            | "<=" -> Lte
+            | ">" -> Gt
+            | "<" -> Lt
+            | _ -> error ()
+          in
+          let version : SCA_version.t = parse ver in
+          SCA_pattern.{ op; version }
+        else error ()))
