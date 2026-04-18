@@ -3188,8 +3188,8 @@ and map_declaration_specifiers (env : env)
     let tqs, other =
       specs1 @ specs2
       |> Either_.partition (function
-           | TQ x -> Left x
-           | (A _ | M _ | ST _) as x -> Right x)
+        | TQ x -> Left x
+        | (A _ | M _ | ST _) as x -> Right x)
     in
     let tqs2, tc = t in
     ((tqs @ tqs2, tc), other)
@@ -3639,7 +3639,7 @@ and map_field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration)
   let xs =
     v2
     |> List.map (fun ({ dn; dt }, v_init) ->
-           make_onedecl ~v_name:dn ~v_init ~v_type:(dt t) ~v_specs:specs)
+        make_onedecl ~v_name:dn ~v_init ~v_type:(dt t) ~v_specs:specs)
   in
   F (DeclList (xs, v4))
 
@@ -5656,8 +5656,8 @@ and map_type_definition (env : env)
   let xs =
     v4
     |> List.map (fun { dn; dt } ->
-           let id = HPfff.id_of_dname_for_typedef dn in
-           TypedefDecl (v2, dt v3, id))
+        let id = HPfff.id_of_dname_for_typedef dn in
+        TypedefDecl (v2, dt v3, id))
   in
   (xs, v6)
 

@@ -109,52 +109,52 @@ let filter_for_typedef multi_groups =
   let rec aux xs =
     xs
     |> List.filter_map (function
-         | TV.Angle (_, _, _) ->
-             (* todo: analayze xs!! add in _template_args
-              * todo: add the t1,t2 around xs to have
-              *  some sentinel for the typedef heuristics patterns
-              *  who often look for the token just before the typedef.
-              *)
-             None
-         | TV.Braces (t1, xs, t2) -> Some (TV.Braces (t1, aux xs, t2))
-         | TV.Parens (t1, xs, t2) -> Some (TV.Parens (t1, aux xs, t2))
-         (* remove other noise for the typedef inference *)
-         | TV.Tok t1 -> (
-             match t1.TV.t with
-             (* const is a strong signal for having a typedef, so why skip it?
-              * because it forces to duplicate rules. We need to infer
-              * the type anyway even when there is no const around.
-              * todo? maybe could do a special pass first that infer typedef
-              * using only const rules, and then remove those const so
-              * have best of both worlds.
-              *)
-             | Tconst _
-             | Tvolatile _
-             | Trestrict _ ->
-                 None
-             | Tregister _
-             | Tstatic _
-             | Tauto _
-             | Textern _
-             | Ttypedef _ ->
-                 None
-             | Tvirtual _
-             | Tfriend _
-             | Tinline _
-             | Tmutable _ ->
-                 None
-             (* let's transform all '&' into '*'
-              * todo: need propagate also the where?
-              *)
-             | TAnd ii -> Some (TV.Tok (mk_token_extended (TMul ii)))
-             | TAndLog ii -> Some (TV.Tok (mk_token_extended (TMul ii)))
-             (* and operator into TIdent
-              * TODO: skip the token just after the operator keyword?
-              * could help some heuristics too
-              *)
-             | Toperator ii ->
-                 Some (TV.Tok (mk_token_extended (TIdent ("operator", ii))))
-             | _ -> Some (TV.Tok t1)))
+      | TV.Angle (_, _, _) ->
+          (* todo: analayze xs!! add in _template_args
+           * todo: add the t1,t2 around xs to have
+           *  some sentinel for the typedef heuristics patterns
+           *  who often look for the token just before the typedef.
+           *)
+          None
+      | TV.Braces (t1, xs, t2) -> Some (TV.Braces (t1, aux xs, t2))
+      | TV.Parens (t1, xs, t2) -> Some (TV.Parens (t1, aux xs, t2))
+      (* remove other noise for the typedef inference *)
+      | TV.Tok t1 -> (
+          match t1.TV.t with
+          (* const is a strong signal for having a typedef, so why skip it?
+           * because it forces to duplicate rules. We need to infer
+           * the type anyway even when there is no const around.
+           * todo? maybe could do a special pass first that infer typedef
+           * using only const rules, and then remove those const so
+           * have best of both worlds.
+           *)
+          | Tconst _
+          | Tvolatile _
+          | Trestrict _ ->
+              None
+          | Tregister _
+          | Tstatic _
+          | Tauto _
+          | Textern _
+          | Ttypedef _ ->
+              None
+          | Tvirtual _
+          | Tfriend _
+          | Tinline _
+          | Tmutable _ ->
+              None
+          (* let's transform all '&' into '*'
+           * todo: need propagate also the where?
+           *)
+          | TAnd ii -> Some (TV.Tok (mk_token_extended (TMul ii)))
+          | TAndLog ii -> Some (TV.Tok (mk_token_extended (TMul ii)))
+          (* and operator into TIdent
+           * TODO: skip the token just after the operator keyword?
+           * could help some heuristics too
+           *)
+          | Toperator ii ->
+              Some (TV.Tok (mk_token_extended (TIdent ("operator", ii))))
+          | _ -> Some (TV.Tok t1)))
   in
   let xs = aux multi_groups in
   (* todo: look also for _template_args *)

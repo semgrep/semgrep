@@ -219,10 +219,10 @@ let run_conf (conf : Show_CLI.conf) : Exit_code.t =
       | None ->
           target_paths
           |> List.iter (fun ({ fpath; _ } : Fppath.t) ->
-                 print (spf "target = %s" !!fpath));
+              print (spf "target = %s" !!fpath));
           skipped
           |> List.iter (fun (skip : Out.skipped_target) ->
-                 print (spf "skipped = %s" (Out.show_skipped_target skip)));
+              print (spf "skipped = %s" (Out.show_skipped_target skip)));
           Exit_code.ok ~__LOC__
       | Some config_str ->
           (* copy-paste of parts of DumpConfig above to get the rules
@@ -246,7 +246,7 @@ let run_conf (conf : Show_CLI.conf) : Exit_code.t =
           in
           targets
           |> List.iter (fun (tgt : Target.t) ->
-                 print (spf "Target = %s" (Target.show tgt)));
+              print (spf "Target = %s" (Target.show tgt)));
           Exit_code.ok ~__LOC__)
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | FilePrefilterOfRules file -> (
@@ -255,16 +255,16 @@ let run_conf (conf : Show_CLI.conf) : Exit_code.t =
           let xs =
             rules
             |> List.map (fun r ->
-                   let filter = Prefiltering.File.of_rule ~interfile:false r in
-                   let filter_atd =
-                     Option.map Prefiltering.File.to_semgrep_formula filter
-                   in
-                   let id = r.Rule.id |> fst in
-                   {
-                     Prefiltering.Semgrep_prefilter_t.rule_id =
-                       Rule_ID.to_string id;
-                     filter = filter_atd;
-                   })
+                let filter = Prefiltering.File.of_rule ~interfile:false r in
+                let filter_atd =
+                  Option.map Prefiltering.File.to_semgrep_formula filter
+                in
+                let id = r.Rule.id |> fst in
+                {
+                  Prefiltering.Semgrep_prefilter_t.rule_id =
+                    Rule_ID.to_string id;
+                  filter = filter_atd;
+                })
           in
           let json = Prefiltering.Semgrep_prefilter_j.string_of_prefilters xs in
           print json;

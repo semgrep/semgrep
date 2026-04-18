@@ -372,7 +372,7 @@ let split_fixpoint_timeouts errors =
   let errors, fixpoint_timeouts =
     errors
     |> List.partition (function
-         | { typ = FixpointTimeout; _ } -> false
-         | __else__ -> true)
+      | { typ = FixpointTimeout; _ } -> false
+      | __else__ -> true)
   in
   (errors, `Fixpoint_timeouts fixpoint_timeouts)

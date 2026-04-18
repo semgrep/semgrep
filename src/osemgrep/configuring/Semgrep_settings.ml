@@ -83,8 +83,8 @@ let of_yaml = function
 let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
   `O
     ((match has_shown_metrics_notification with
-     | None -> []
-     | Some v -> [ ("has_shown_metrics_notification", `Bool v) ])
+       | None -> []
+       | Some v -> [ ("has_shown_metrics_notification", `Bool v) ])
     @ (match api_token with
       | None -> []
       | Some v -> [ ("api_token", `String (Auth.string_of_token v)) ])

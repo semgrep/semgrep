@@ -255,13 +255,13 @@ let map_try_operator (env : env) (x : CST.try_operator) =
 
 let map_special_literal (env : env) (x : CST.special_literal) =
   (match x with
-  | `HASH_36725ee tok -> (* "#file" *) G.OtherExpr (str env tok, [])
-  | `HASH_ee0b998 tok -> (* "#fileID" *) G.OtherExpr (str env tok, [])
-  | `HASH_bd759bd tok -> (* "#filePath" *) G.OtherExpr (str env tok, [])
-  | `HASH_709af6a tok -> (* "#line" *) G.OtherExpr (str env tok, [])
-  | `HASH_be35129 tok -> (* "#column" *) G.OtherExpr (str env tok, [])
-  | `HASH_96a7ced tok -> (* "#function" *) G.OtherExpr (str env tok, [])
-  | `HASH_4d47dbe tok -> (* "#dsohandle" *) G.OtherExpr (str env tok, []))
+    | `HASH_36725ee tok -> (* "#file" *) G.OtherExpr (str env tok, [])
+    | `HASH_ee0b998 tok -> (* "#fileID" *) G.OtherExpr (str env tok, [])
+    | `HASH_bd759bd tok -> (* "#filePath" *) G.OtherExpr (str env tok, [])
+    | `HASH_709af6a tok -> (* "#line" *) G.OtherExpr (str env tok, [])
+    | `HASH_be35129 tok -> (* "#column" *) G.OtherExpr (str env tok, [])
+    | `HASH_96a7ced tok -> (* "#function" *) G.OtherExpr (str env tok, [])
+    | `HASH_4d47dbe tok -> (* "#dsohandle" *) G.OtherExpr (str env tok, []))
   |> G.e
 
 let map_integer_literal (env : env) (tok : CST.integer_literal) : G.literal =
@@ -2156,15 +2156,15 @@ and map_single_modifierless_property_declaration (env : env)
   let init =
     init
     |> Option.map (fun x ->
-           let x =
-             match x with
-             | `Equal_sign_exp (v1, v2) ->
-                 let _v1TODO = (* eq_custom *) token env v1 in
-                 let v2 = map_expression env v2 in
-                 v2
-             | `Comp_prop x -> G.StmtExpr (map_computed_property env x) |> G.e
-           in
-           x)
+        let x =
+          match x with
+          | `Equal_sign_exp (v1, v2) ->
+              let _v1TODO = (* eq_custom *) token env v1 in
+              let v2 = map_expression env v2 in
+              v2
+          | `Comp_prop x -> G.StmtExpr (map_computed_property env x) |> G.e
+        in
+        x)
   in
   G.DefStmt (entity, G.VarDef { vinit = init; vtype = tannot; vtok = G.no_sc })
   |> G.s
@@ -3138,12 +3138,12 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
         match v3 with
         | Some x ->
             (match x with
-            | `Gett tok ->
-                (* "getter:" *)
-                G.OtherExpr (str env tok, [ G.E expr ])
-            | `Sett tok ->
-                (* "setter:" *)
-                G.OtherExpr (str env tok, [ G.E expr ]))
+              | `Gett tok ->
+                  (* "getter:" *)
+                  G.OtherExpr (str env tok, [ G.E expr ])
+              | `Sett tok ->
+                  (* "setter:" *)
+                  G.OtherExpr (str env tok, [ G.E expr ]))
             |> G.e
         | None -> expr
       in

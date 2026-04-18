@@ -236,9 +236,9 @@ let uniq (pms : t list) : t list =
   (* NOTE: Must use `List.filter` to preserve order. *)
   pms
   |> List.filter (fun match_ ->
-         let is_dup = Tbl.mem matches_tbl match_ in
-         if not is_dup then Tbl.add matches_tbl match_ ();
-         not is_dup)
+      let is_dup = Tbl.mem matches_tbl match_ in
+      if not is_dup then Tbl.add matches_tbl match_ ();
+      not is_dup)
 [@@profiling]
 
 let range pm =
@@ -261,21 +261,21 @@ let no_submatches pms =
   let removed_set = Tbl.create num_pms in
   pms
   |> List.iter (fun pm ->
-         (* This is mainly for removing taint-tracking duplicates and
-          * there should not be too many matches per file; but if perf
-          * is a problem, consider using a specialized data structure. *)
-         let k = (pm.rule_id, pm.path.internal_path_to_content) in
-         match Hashtbl.find_opt matches_tbl k with
-         | None -> Hashtbl.add matches_tbl k [ pm ]
-         | Some ys -> (
-             match List.find_opt (fun y -> submatch pm y) ys with
-             | Some _ -> Tbl.add removed_set pm ()
-             | None ->
-                 let ys', removed =
-                   List.partition (fun y -> not (submatch y pm)) ys
-                 in
-                 removed |> List.iter (fun rm -> Tbl.add removed_set rm ());
-                 Hashtbl.replace matches_tbl k (pm :: ys')));
+      (* This is mainly for removing taint-tracking duplicates and
+       * there should not be too many matches per file; but if perf
+       * is a problem, consider using a specialized data structure. *)
+      let k = (pm.rule_id, pm.path.internal_path_to_content) in
+      match Hashtbl.find_opt matches_tbl k with
+      | None -> Hashtbl.add matches_tbl k [ pm ]
+      | Some ys -> (
+          match List.find_opt (fun y -> submatch pm y) ys with
+          | Some _ -> Tbl.add removed_set pm ()
+          | None ->
+              let ys', removed =
+                List.partition (fun y -> not (submatch y pm)) ys
+              in
+              removed |> List.iter (fun rm -> Tbl.add removed_set rm ());
+              Hashtbl.replace matches_tbl k (pm :: ys')));
   (* NOTE: Must use `List.filter` to preserve order. *)
   pms |> List.filter (fun pm -> not (Tbl.mem removed_set pm))
 [@@profiling]

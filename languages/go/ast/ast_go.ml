@@ -405,8 +405,8 @@ let package_and_imports_of_program xs =
   let imports =
     xs
     |> List.filter_map (function
-         | Import x -> Some x
-         | _ -> None)
+      | Import x -> Some x
+      | _ -> None)
   in
   (package, imports)
 

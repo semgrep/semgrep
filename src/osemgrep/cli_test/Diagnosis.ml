@@ -107,7 +107,7 @@ let pattern_text_of_pos (line : int) (file : Fpath.t) : string =
         let lines, skipped =
           rest_lines
           |> List_.span (fun line ->
-                 (* this is also technically wrong, we should consider
+              (* this is also technically wrong, we should consider
                       a: foo
                       b: bar
                     as one entity, but
@@ -116,15 +116,15 @@ let pattern_text_of_pos (line : int) (file : Fpath.t) : string =
                     as two entities
                     they have the same indentation though
                  *)
-                 (* bad bad bad bad
+              (* bad bad bad bad
                     we do this because if the pattern starts on a hyphen,
                     we don't want to take the rest of the stuff in the list,
                     as they are not part of the pattern we're concerned with
                  *)
-                 (not
-                    (String.contains (List.nth relevant_lines 0) '-'
-                    && String.contains line '-'))
-                 && indentation_at_line line >= indentation_at_pos_line)
+              (not
+                 (String.contains (List.nth relevant_lines 0) '-'
+                 && String.contains line '-'))
+              && indentation_at_line line >= indentation_at_pos_line)
         in
         (line :: lines, skipped)
   in
@@ -388,9 +388,9 @@ let get_unexpected_matching_diagnosis ~target_file ~rule_file ~matched_line
       explanations
     |> Option.get |> List.rev
     |> List.filter_map (fun (node : ME.t) ->
-           match is_killing_node node with
-           | None -> None
-           | Some kind -> Some (node, kind))
+        match is_killing_node node with
+        | None -> None
+        | Some kind -> Some (node, kind))
   in
   let killing_parents =
     List.filter_map
@@ -454,8 +454,8 @@ let diagnose_unexpected_match ~target_file ~rule_file ~(matched_line : int)
       m "Explanation is %s" (Common2.string_of_list ME.show explanations));
   get_introducing_nodes ~matched_line explanations
   |> List.map (fun (node, kind) ->
-         get_unexpected_matching_diagnosis ~target_file ~rule_file ~matched_line
-           ~kind node explanations)
+      get_unexpected_matching_diagnosis ~target_file ~rule_file ~matched_line
+        ~kind node explanations)
 
 (*****************************************************************************)
 (* Unexpected no matches *)

@@ -78,25 +78,25 @@ let trace_attr (attr : Parsetree.attribute) =
   in
   attr_info
   |> Option.map (fun (level, with_span_fn) ->
-         let payload =
-           match attr.attr_payload with
-           | PStr
-               [
-                 {
-                   pstr_desc =
-                     Pstr_eval
-                       ( {
-                           pexp_desc = Pexp_constant (Pconst_string (str, _, _));
-                           _;
-                         },
-                         _ );
-                   _;
-                 };
-               ] ->
-               Some str
-           | _ -> None
-         in
-         (payload, level, with_span_fn))
+      let payload =
+        match attr.attr_payload with
+        | PStr
+            [
+              {
+                pstr_desc =
+                  Pstr_eval
+                    ( {
+                        pexp_desc = Pexp_constant (Pconst_string (str, _, _));
+                        _;
+                      },
+                      _ );
+                _;
+              };
+            ] ->
+            Some str
+        | _ -> None
+      in
+      (payload, level, with_span_fn))
 
 (* borrowed from module_ml.ml *)
 let module_name_of_loc loc =

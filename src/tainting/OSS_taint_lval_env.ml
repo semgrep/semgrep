@@ -173,8 +173,8 @@ let remove_some_lval_from_tainted_set tainted =
   match
     tainted
     |> NameMap.find_first_opt (fun var ->
-           (* auxiliary _tmp variables get fake tokens *)
-           Tok.is_fake (snd var.ident))
+        (* auxiliary _tmp variables get fake tokens *)
+        Tok.is_fake (snd var.ident))
   with
   | None -> None
   | Some (var, _) -> Some (var, NameMap.remove var tainted)
@@ -221,7 +221,7 @@ let add_shape var offset new_taints new_shape
             let new_taints =
               new_taints
               |> Taints.map (fun t ->
-                     { t with rev_tokens = var_loc :: t.rev_tokens })
+                  { t with rev_tokens = var_loc :: t.rev_tokens })
             in
             let new_shape =
               Shape.add_tainted_token_to_shape var_loc new_shape

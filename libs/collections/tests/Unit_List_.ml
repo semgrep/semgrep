@@ -31,10 +31,10 @@ let test_iter_with_view_into_neighbor_elements name list =
       printf "input list: %s\n" (string_of_int_list list);
       list
       |> List_.iter_with_view_into_neighbor_elements (fun ~prev ~cur ~next ->
-             printf "prev=%s, cur=%i, next=%s\n"
-               (string_of_int_option prev)
-               cur
-               (string_of_int_option next)))
+          printf "prev=%s, cur=%i, next=%s\n"
+            (string_of_int_option prev)
+            cur
+            (string_of_int_option next)))
 
 let test_flatten () =
   let list = [ [ 1; 2; 3 ]; []; [ 4 ]; [ 5; 6 ] ] in

@@ -547,8 +547,8 @@ let map_enum_declaration (env : env)
         let xs =
           v2
           |> List.map (fun (v1, v2) ->
-                 let _comma = token env v1 in
-                 map_enum_member env v2)
+              let _comma = token env v1 in
+              map_enum_member env v2)
         in
         let _ = map_trailing_comma env v3 in
         x :: xs
@@ -701,9 +701,8 @@ let map_import_clause (env : env) (x : CST.import_clause) =
       fun timport modname ->
         xs
         |> List.map (fun (id, aliasopt) ->
-               ImportFrom
-                 (timport, modname, [ H2.mk_import_from_kind id aliasopt ])
-               |> G.d)
+            ImportFrom (timport, modname, [ H2.mk_import_from_kind id aliasopt ])
+            |> G.d)
 
 let map_mapping_key (env : env) (x : CST.mapping_key) : type_ =
   match x with
@@ -970,19 +969,19 @@ let map_solidity_pragma_token (env : env) ((v1, v2) : CST.solidity_pragma_token)
   let anys =
     v2
     |> List.map (fun (v1, v2) ->
-           let e = map_pragma_version_constraint env v1 in
-           (* TODO: maybe we should generate a big boolean expression
-            * with 'solidity' id instead of an any list
-            *)
-           let v2 =
-             match v2 with
-             | Some x -> (
-                 match x with
-                 | `BARBAR tok -> (* "||" *) [ Tk (token env tok) ]
-                 | `DASH tok -> (* "-" *) [ Tk (token env tok) ])
-             | None -> []
-           in
-           [ G.E e ] @ v2)
+        let e = map_pragma_version_constraint env v1 in
+        (* TODO: maybe we should generate a big boolean expression
+         * with 'solidity' id instead of an any list
+         *)
+        let v2 =
+          match v2 with
+          | Some x -> (
+              match x with
+              | `BARBAR tok -> (* "||" *) [ Tk (token env tok) ]
+              | `DASH tok -> (* "-" *) [ Tk (token env tok) ])
+          | None -> []
+        in
+        [ G.E e ] @ v2)
   in
   (idsol, List_.flatten anys)
 
@@ -1907,7 +1906,7 @@ let map_variable_declaration_tuple (env : env)
             (* TODO: should generate hole pattern when using (x,,y) *)
             |> List.filter_map (fun x -> x)
             |> List.map (fun (ty, _attrsTODO, id) ->
-                   PatTyped (PatId (id, G.empty_id_info ()) |> G.p, ty) |> G.p)
+                PatTyped (PatId (id, G.empty_id_info ()) |> G.p, ty) |> G.p)
         | None -> []
       in
       let rp = (* ")" *) token env v3 in

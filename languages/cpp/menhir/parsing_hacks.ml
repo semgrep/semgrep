@@ -123,10 +123,10 @@ let insert_virtual_positions l =
 let fix_tokens_for_language lang xs =
   xs
   |> List.map (fun tok ->
-         if lang =*= Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
-           let ii = TH.info_of_tok tok in
-           T.TIdent (Tok.content_of_tok ii, ii)
-         else tok)
+      if lang =*= Flag_parsing_cpp.C && TH.is_cpp_keyword tok then
+        let ii = TH.info_of_tok tok in
+        T.TIdent (Tok.content_of_tok ii, ii)
+      else tok)
 
 (*****************************************************************************)
 (* Fuzzy build *)
@@ -163,17 +163,16 @@ let fix_tokens_fuzzy toks =
     and iter_parens env xs =
       xs
       |> List.iter (function
-           | Either.Left trees -> aux env trees
-           | Either.Right _comma -> ())
+        | Either.Left trees -> aux env trees
+        | Either.Right _comma -> ())
     in
     aux () trees;
 
     (* use the tagged information and transform tokens *)
     toks
     |> List.map (function
-         | T.TOCro info when Hashtbl.mem retag_lambda info ->
-             T.TOCro_Lambda info
-         | x -> x)
+      | T.TOCro info when Hashtbl.mem retag_lambda info -> T.TOCro_Lambda info
+      | x -> x)
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
       if Hook.get Flag.error_recovery then toks

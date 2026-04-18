@@ -145,16 +145,16 @@ let rec map_args (env : env) (x : CST.args) : argument list =
       let v2 =
         v2
         |> List.map (fun (v1, v2) ->
-               let _v1 = (* "," *) token env v1 in
-               let v2 = map_document env v2 in
-               Arg v2)
+            let _v1 = (* "," *) token env v1 in
+            let v2 = map_document env v2 in
+            Arg v2)
       in
       let v3 =
         v3
         |> List.map (fun (v1, v2) ->
-               let _v1 = (* "," *) token env v1 in
-               let v2 = map_named_argument env v2 in
-               v2)
+            let _v1 = (* "," *) token env v1 in
+            let v2 = map_named_argument env v2 in
+            v2)
       in
       let _v4 = trailing_comma env v4 in
       Arg v1 :: (v2 @ v3)
@@ -163,9 +163,9 @@ let rec map_args (env : env) (x : CST.args) : argument list =
       let v2 =
         v2
         |> List.map (fun (v1, v2) ->
-               let _v1 = (* "," *) token env v1 in
-               let v2 = map_named_argument env v2 in
-               v2)
+            let _v1 = (* "," *) token env v1 in
+            let v2 = map_named_argument env v2 in
+            v2)
       in
       let _v3 = trailing_comma env v3 in
       v1 :: v2

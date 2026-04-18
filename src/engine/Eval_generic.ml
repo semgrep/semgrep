@@ -285,8 +285,8 @@ let rec eval env code =
       let values =
         args
         |> List.map (function
-             | G.Arg e -> eval env e
-             | _ -> raise (NotHandled code))
+          | G.Arg e -> eval env e
+          | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
@@ -531,35 +531,34 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
   let mvars =
     bindings
     |> List.filter_map (fun (mvar, mval) ->
-           let try_bind_to_exp e =
-             try
-               Some
-                 ( mvar,
-                   eval
-                     { mvars = Hashtbl.create 0; constant_propagation; file }
-                     e )
-             with
-             | NotHandled _
-             | NotInEnv _ ->
-                 (* These are expressions like `x` or `os.getenv("FOO")` that cannot
-                  * be evaluated. Previously we just filtered out all these cases, but
-                  * in some cases it's interesting to make comparisons based on the
-                  * string representation of these expressions. For example, given
-                  * $X and $Y binding to two code variables we may want to check
-                  * whether both code variables have the same name (even if they are
-                  *  in fact different variables). So, if we can obtain such a
-                  * string representation, we add it to the environment here. *)
-                 string_of_binding mvar mval
-           in
-           match mval with
-           (* this way we can leverage the constant propagation analysis
-            * in metavariable-comparison: too! This simplifies some rules.
-            *)
-           | MV.Id (i, Some id_info) ->
-               try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
-           | MV.E e -> try_bind_to_exp e
-           | MV.Text (s, _, _) -> Some (mvar, String s)
-           | x -> string_of_binding mvar x)
+        let try_bind_to_exp e =
+          try
+            Some
+              ( mvar,
+                eval { mvars = Hashtbl.create 0; constant_propagation; file } e
+              )
+          with
+          | NotHandled _
+          | NotInEnv _ ->
+              (* These are expressions like `x` or `os.getenv("FOO")` that cannot
+               * be evaluated. Previously we just filtered out all these cases, but
+               * in some cases it's interesting to make comparisons based on the
+               * string representation of these expressions. For example, given
+               * $X and $Y binding to two code variables we may want to check
+               * whether both code variables have the same name (even if they are
+               *  in fact different variables). So, if we can obtain such a
+               * string representation, we add it to the environment here. *)
+              string_of_binding mvar mval
+        in
+        match mval with
+        (* this way we can leverage the constant propagation analysis
+         * in metavariable-comparison: too! This simplifies some rules.
+         *)
+        | MV.Id (i, Some id_info) ->
+            try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
+        | MV.E e -> try_bind_to_exp e
+        | MV.Text (s, _, _) -> Some (mvar, String s)
+        | x -> string_of_binding mvar x)
     |> Hashtbl_.hash_of_list
   in
 

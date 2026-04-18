@@ -88,9 +88,8 @@ let dump_and_print_errors dumper
   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         Log.err (fun m ->
-             m "%s"
-               (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err)))
+      Log.err (fun m ->
+          m "%s" (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err)))
 
 (*
    Serious error = any parsing error that causes us to resort to an
@@ -126,10 +125,9 @@ let extract_pattern_from_tree_sitter_result
       if has_serious_error res then (
         res.errors
         |> List.iter (fun err ->
-               Log.err (fun m ->
-                   m "%s"
-                     (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto
-                        err)));
+            Log.err (fun m ->
+                m "%s"
+                  (Tree_sitter_run.Tree_sitter_error.to_string ~style:Auto err)));
         (* to be backward compatible with what we do in PfffPat *)
         raise Parsing.Parse_error)
       else pat
@@ -248,13 +246,13 @@ let (run :
     | () when Hook.get Flag.tree_sitter_only ->
         xs
         |> List_.exclude (function
-             | Pfff _ -> true
-             | TreeSitter _ -> false)
+          | Pfff _ -> true
+          | TreeSitter _ -> false)
     | () when Hook.get Flag.pfff_only ->
         xs
         |> List_.exclude (function
-             | TreeSitter _ -> true
-             | Pfff _ -> false)
+          | TreeSitter _ -> true
+          | Pfff _ -> false)
     | () -> xs
   in
   match run_either file xs with

@@ -283,12 +283,12 @@ let stats_of_prog prog : stats =
                 (* TODO: What if there is an asignment inside the `lhs` ? *)
                 lvars_in_lhs lhs
                 |> List.iter (fun (id, sid) ->
-                       let var = (H.str_of_ident id, sid) in
-                       let stat = get_stat_or_create var env.var_stats in
-                       incr stat.lvalue;
-                       match x.e with
-                       | AssignOp _ -> incr stat.rvalue
-                       | _ -> ())
+                    let var = (H.str_of_ident id, sid) in
+                    let stat = get_stat_or_create var env.var_stats in
+                    incr stat.lvalue;
+                    match x.e with
+                    | AssignOp _ -> incr stat.rvalue
+                    | _ -> ())
             | Call
                 ( { e = Special (IncrDecr _, _); _ },
                   ( _,
@@ -358,20 +358,20 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         _ ) ->
       xs
       |> List.filter_map (function
-           | F
-               {
-                 s =
-                   DefStmt
-                     ( {
-                         name = EN (Id ((str, tk), _idinfo));
-                         attrs = [];
-                         tparams = None;
-                       },
-                       VarDef { vinit = Some v; vtype = None; vtok = _ } );
-                 _;
-               } ->
-               Some (("local." ^ str, tk), v)
-           | _ -> None)
+        | F
+            {
+              s =
+                DefStmt
+                  ( {
+                      name = EN (Id ((str, tk), _idinfo));
+                      attrs = [];
+                      tparams = None;
+                    },
+                    VarDef { vinit = Some v; vtype = None; vtok = _ } );
+              _;
+            } ->
+            Some (("local." ^ str, tk), v)
+        | _ -> None)
   (* ex: variable "foo" { ... default = 1 } *)
   | ExprStmt
       ( {
@@ -389,21 +389,21 @@ let (terraform_stmt_to_vardefs : item -> (ident * expr) list) =
         _ ) ->
       xs
       |> List.filter_map (function
-           | F
-               {
-                 s =
-                   DefStmt
-                     ( {
-                         name = EN (Id (("default", _tk), _idinfo));
-                         attrs = [];
-                         tparams = None;
-                       },
-                       VarDef { vinit = Some v; vtype = None; vtok = _ } );
-                 _;
-               } ->
-               let str, tk = id in
-               Some (("var." ^ str, tk), v)
-           | _ -> None)
+        | F
+            {
+              s =
+                DefStmt
+                  ( {
+                      name = EN (Id (("default", _tk), _idinfo));
+                      attrs = [];
+                      tparams = None;
+                    },
+                    VarDef { vinit = Some v; vtype = None; vtok = _ } );
+              _;
+            } ->
+            let str, tk = id in
+            Some (("var." ^ str, tk), v)
+        | _ -> None)
   | _ -> []
 
 (* the sid does not matter here, there is no nested scope in terraform,
@@ -417,12 +417,12 @@ let add_special_constants env lang prog =
     let vars = prog |> List.concat_map terraform_stmt_to_vardefs in
     vars
     |> List.iter (fun (id, v) ->
-           match v.e with
-           | L literal ->
-               Log.debug (fun m ->
-                   m ~tags "adding special terraform constant for %s" (fst id));
-               add_constant_env id (terraform_sid, Lit literal) env
-           | _ -> ())
+        match v.e with
+        | L literal ->
+            Log.debug (fun m ->
+                m ~tags "adding special terraform constant for %s" (fst id));
+            add_constant_env id (terraform_sid, Lit literal) env
+        | _ -> ())
 
 (*****************************************************************************)
 (* Entry point *)
@@ -658,17 +658,17 @@ let propagate_dataflow lang ast =
   | _ ->
       ast
       |> Visit_function_defs.visit (fun _ent fdef ->
-             let fun_cfg = CFG_build.cfg_of_gfdef lang fdef in
-             (* when/ pattern when is not constant propagation but is related in the sense
-              * that it also finds extra info by analyzing the cfg. we are reusing the cfg
-              * created here to annotate facts for the pattern when feature.
-              *
-              * TODO: refactor this code if we don't incorporate when into svalue analysis.
-              *)
-             (match Hook.get Dataflow_when.hook_annotate_facts with
-             | None -> ()
-             | Some annotate_facts -> annotate_facts fun_cfg.cfg);
-             propagate_dataflow_one_function lang fun_cfg);
+          let fun_cfg = CFG_build.cfg_of_gfdef lang fdef in
+          (* when/ pattern when is not constant propagation but is related in the sense
+           * that it also finds extra info by analyzing the cfg. we are reusing the cfg
+           * created here to annotate facts for the pattern when feature.
+           *
+           * TODO: refactor this code if we don't incorporate when into svalue analysis.
+           *)
+          (match Hook.get Dataflow_when.hook_annotate_facts with
+          | None -> ()
+          | Some annotate_facts -> annotate_facts fun_cfg.cfg);
+          propagate_dataflow_one_function lang fun_cfg);
 
       (* We consider the top-level function the interior of a degenerate function,
          and simply run constant propagation on that.

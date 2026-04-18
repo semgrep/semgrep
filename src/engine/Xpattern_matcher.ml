@@ -72,33 +72,28 @@ let (matches_of_matcher :
           Common.with_time (fun () ->
               xpatterns
               |> List.concat_map (fun (xpat, id, pstr) ->
-                     let xs =
-                       matcher.matcher target_content internal_path xpat
-                     in
-                     xs
-                     |> List.map (fun ((loc1, loc2), env) ->
-                            (* this will be adjusted later *)
-                            let rule_id = Match_env.fake_rule_id (id, pstr) in
-                            {
-                              PM.rule_id;
-                              path =
-                                {
-                                  internal_path_to_content = internal_path;
-                                  origin;
-                                };
-                              range_loc = (loc1, loc2);
-                              env;
-                              taint_trace = None;
-                              ast_node = None;
-                              tokens = lazy_safe [ info_of_token_location loc1 ];
-                              engine_of_match = `OSS;
-                              validation_state = `No_validator;
-                              severity_override = None;
-                              metadata_override = None;
-                              sca_match = None;
-                              fix_text = None;
-                              facts = [];
-                            })))
+                  let xs = matcher.matcher target_content internal_path xpat in
+                  xs
+                  |> List.map (fun ((loc1, loc2), env) ->
+                      (* this will be adjusted later *)
+                      let rule_id = Match_env.fake_rule_id (id, pstr) in
+                      {
+                        PM.rule_id;
+                        path =
+                          { internal_path_to_content = internal_path; origin };
+                        range_loc = (loc1, loc2);
+                        env;
+                        taint_trace = None;
+                        ast_node = None;
+                        tokens = lazy_safe [ info_of_token_location loc1 ];
+                        engine_of_match = `OSS;
+                        validation_state = `No_validator;
+                        severity_override = None;
+                        metadata_override = None;
+                        sca_match = None;
+                        fix_text = None;
+                        facts = [];
+                      })))
         in
         RP.mk_match_result res Core_error.ErrorSet.empty
           { Core_profiling.parse_time = parse_time ||| 0.0; match_time }

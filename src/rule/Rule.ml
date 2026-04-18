@@ -901,16 +901,16 @@ let selector_and_analyzer_of_analyzer (analyzer : Analyzer.t) :
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
   |> Either_.partition (fun e ->
-         match e.f with
-         (* positives *)
-         | P _
-         | And _
-         | Inside _
-         | Anywhere _
-         | Or _ ->
-             Left e
-         (* negatives *)
-         | Not (tok, f) -> Right (tok, f))
+      match e.f with
+      (* positives *)
+      | P _
+      | And _
+      | Inside _
+      | Anywhere _
+      | Or _ ->
+          Left e
+      (* negatives *)
+      | Not (tok, f) -> Right (tok, f))
 
 (* create a fake rule when we only have a pattern and language.
  * This is used when someone calls `semgrep -e print -l python`

@@ -29,10 +29,10 @@ let tests =
           let files = Common2.glob (dir / "*.json") in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ = Parse_json.parse_program file in
-                   ()
-                 with
-                 | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
+              try
+                let _ = Parse_json.parse_program file in
+                ()
+              with
+              | Parsing_error.Syntax_error _ ->
+                  Alcotest.failf "it should correctly parse %a" Fpath.pp file));
     ]

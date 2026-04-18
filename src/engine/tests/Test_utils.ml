@@ -65,7 +65,7 @@ let compare_fixes ?polyglot_pattern_path ~file matches =
       let fixed_text =
         processed_matches
         |> List.filter_map (fun (m : Core_result.processed_match) ->
-               m.autofix_edit)
+            m.autofix_edit)
         |> Autofix.apply_fixes_to_file_exn file
       in
       Alcotest.(check string) "applied autofixes" expected_fixed_text fixed_text

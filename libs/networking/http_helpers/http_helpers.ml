@@ -327,7 +327,7 @@ let post_eio ~body ?(headers = [ ("content-type", "application/json") ])
   in
   response
   |> Result.map (fun (response, body) ->
-         server_response_of_response (response, body) `POST)
+      server_response_of_response (response, body) `POST)
 [@@profiling]
 
 let put ~body ?(headers = [ ("content-type", "application/json") ])

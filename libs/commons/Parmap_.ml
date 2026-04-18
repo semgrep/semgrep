@@ -60,7 +60,7 @@ let () =
           let tuples =
             status_and_codes
             |> List.map (fun (status_str, code) ->
-                   Printf.sprintf "(%s,%d)" status_str code)
+                Printf.sprintf "(%s,%d)" status_str code)
             |> String.concat ","
           in
           Some (Printf.sprintf "Parmap_unhandled_children([%s])" tuples)

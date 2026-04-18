@@ -407,10 +407,10 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * docker_string =
         let fragments =
           fragments
           |> List.map (fun x ->
-                 match x with
-                 | `Imm_tok_pat_bcfc287 tok ->
-                     Unquoted (str env tok (* pattern [^@\s\$]+ *))
-                 | `Imme_expa x -> expansion env x)
+              match x with
+              | `Imm_tok_pat_bcfc287 tok ->
+                  Unquoted (str env tok (* pattern [^@\s\$]+ *))
+              | `Imme_expa x -> expansion env x)
           |> collapse_unquoted_fragments
         in
         let loc = Tok_range.of_list docker_string_fragment_loc fragments in
@@ -433,10 +433,10 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * docker_string
         let fragments =
           fragments
           |> List.map (fun x ->
-                 match x with
-                 | `Imm_tok_pat_d2727a0 tok ->
-                     Unquoted (str env tok (* pattern [a-zA-Z0-9:]+ *))
-                 | `Imme_expa x -> expansion env x)
+              match x with
+              | `Imm_tok_pat_d2727a0 tok ->
+                  Unquoted (str env tok (* pattern [a-zA-Z0-9:]+ *))
+              | `Imme_expa x -> expansion env x)
           |> collapse_unquoted_fragments
         in
         let loc = Tok_range.of_list docker_string_fragment_loc fragments in
@@ -453,10 +453,10 @@ let image_name (env : env) ((x, xs) : CST.image_name) =
   let fragments =
     xs
     |> List.map (fun x ->
-           match x with
-           | `Imm_tok_pat_2b37705 tok ->
-               Unquoted (str env tok (* pattern [^@:\s\$]+ *))
-           | `Imme_expa x -> expansion env x)
+        match x with
+        | `Imm_tok_pat_2b37705 tok ->
+            Unquoted (str env tok (* pattern [^@:\s\$]+ *))
+        | `Imme_expa x -> expansion env x)
   in
   let fragments = first_fragment :: fragments |> collapse_unquoted_fragments in
   let loc = Tok_range.of_list docker_string_fragment_loc fragments in
@@ -471,10 +471,10 @@ let image_alias (env : env) ((x, xs) : CST.image_alias) : docker_string =
   let other_fragments =
     xs
     |> List.map (fun x ->
-           match x with
-           | `Imm_tok_pat_9a14b5c tok ->
-               Unquoted (str env tok (* pattern [-a-zA-Z0-9_]+ *))
-           | `Imme_expa x -> expansion env x)
+        match x with
+        | `Imm_tok_pat_9a14b5c tok ->
+            Unquoted (str env tok (* pattern [-a-zA-Z0-9_]+ *))
+        | `Imme_expa x -> expansion env x)
   in
   let fragments =
     first_fragment :: other_fragments |> collapse_unquoted_fragments
@@ -584,9 +584,9 @@ let assemble_heredoc_template (env : env) (opening : Token.t)
   let fragments =
     v2
     |> List.map (fun (v1, v2) ->
-           let v1 = (* heredoc_line *) token env v1 in
-           let v2 = (* "\n" *) token env v2 in
-           Tok.combine_toks v1 [ v2 ])
+        let v1 = (* heredoc_line *) token env v1 in
+        let v2 = (* "\n" *) token env v2 in
+        Tok.combine_toks v1 [ v2 ])
   in
   let body : string wrap =
     match fragments with
@@ -629,7 +629,7 @@ let reattach_heredoc_bodies env
   (* Assume that 'List.filter_map' proceeds from left-to-right *)
   src_paths
   |> List.filter_map (fun ((v1 : CST.path_with_heredoc), _blank) ->
-         path_with_heredoc_or_ellipsis env v1 take_heredoc_body)
+      path_with_heredoc_or_ellipsis env v1 take_heredoc_body)
 
 let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) :
     docker_string =
@@ -903,7 +903,7 @@ let shell_command (env : env) (x : CST.shell_command) =
       let more_frags =
         v2
         |> List.map (fun (v1, v2) ->
-               (* Keep the line continuation so as to preserve the original
+            (* Keep the line continuation so as to preserve the original
                   locations when parsing the shell command.
 
                   Warning: dockerfile line continuation character may be different
@@ -911,17 +911,17 @@ let shell_command (env : env) (x : CST.shell_command) =
                   the shell code to preserve locations, we must ensure that
                   we inject a backslash, not whatever dockerfile is using.
                *)
-               let dockerfile_line_cont =
-                 (* dockerfile's line continuation character without \n *)
-                 token env v1
-               in
-               let shell_line_cont =
-                 (* we would omit this if it weren't for preserving
+            let dockerfile_line_cont =
+              (* dockerfile's line continuation character without \n *)
+              token env v1
+            in
+            let shell_line_cont =
+              (* we would omit this if it weren't for preserving
                     line numbers *)
-                 Tok.rewrap_str "\\\n" dockerfile_line_cont
-               in
-               let shell_frag = shell_fragment env v2 in
-               [ shell_line_cont; shell_frag ])
+              Tok.rewrap_str "\\\n" dockerfile_line_cont
+            in
+            let shell_frag = shell_fragment env v2 in
+            [ shell_line_cont; shell_frag ])
         |> List_.flatten
       in
       let raw_shell_code = concat_shell_fragments first_frag more_frags in

@@ -82,12 +82,12 @@ let mk_trees h xs =
   let xs =
     xs
     |> List_.exclude (fun t ->
-           let kind = h.kind t in
-           match kind with
-           | Esthet _
-           | Eof ->
-               true
-           | _ -> false)
+        let kind = h.kind t in
+        match kind with
+        | Esthet _
+        | Eof ->
+            true
+        | _ -> false)
   in
 
   let rec consume x xs =

@@ -48,8 +48,8 @@ let erase_temp_files () =
     Mutex.protect created_lock (fun () ->
         temp_files_created
         |> Hashtbl.iter (fun path () ->
-               Log.info (fun m -> m "deleting: %s" !!path);
-               Sys.remove !!path);
+            Log.info (fun m -> m "deleting: %s" !!path);
+            Sys.remove !!path);
         Hashtbl.clear temp_files_created)
 
 (* hooks for with_temp_file() *)

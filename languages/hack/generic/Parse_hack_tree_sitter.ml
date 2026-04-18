@@ -96,13 +96,14 @@ let visibility_modifier (env : env) (x : CST.visibility_modifier) =
 
 let scope_identifier (env : env) (x : CST.scope_identifier) =
   (match x with
-  | `Self tok ->
-      (* "self" *) G.N (G.IdSpecial ((Self, token env tok), G.empty_id_info ()))
-  | `Parent tok ->
-      (* "parent" *)
-      G.N (G.IdSpecial ((Parent, token env tok), G.empty_id_info ()))
-  (* Q: Add IdSpecial? *)
-  | `Static tok -> (* "static" *) G.N (G.Id (str env tok, G.empty_id_info ())))
+    | `Self tok ->
+        (* "self" *)
+        G.N (G.IdSpecial ((Self, token env tok), G.empty_id_info ()))
+    | `Parent tok ->
+        (* "parent" *)
+        G.N (G.IdSpecial ((Parent, token env tok), G.empty_id_info ()))
+    (* Q: Add IdSpecial? *)
+    | `Static tok -> (* "static" *) G.N (G.Id (str env tok, G.empty_id_info ())))
   |> G.e
 
 let null (env : env) (x : CST.null) =

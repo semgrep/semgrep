@@ -257,14 +257,14 @@ exception NotAnExpr
 (* sgrep: this is to treat pattern metavars as expr metavars *)
 let rec pattern_to_expr p =
   (match p with
-  | PatId (id, info) -> N (Id (id, info))
-  | PatTuple (t1, xs, t2) ->
-      Container (Tuple, (t1, xs |> List.map pattern_to_expr, t2))
-  | PatLiteral l -> L l
-  | PatList (t1, xs, t2) ->
-      Container (List, (t1, xs |> List.map pattern_to_expr, t2))
-  | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
-  | _ -> raise NotAnExpr)
+    | PatId (id, info) -> N (Id (id, info))
+    | PatTuple (t1, xs, t2) ->
+        Container (Tuple, (t1, xs |> List.map pattern_to_expr, t2))
+    | PatLiteral l -> L l
+    | PatList (t1, xs, t2) ->
+        Container (List, (t1, xs |> List.map pattern_to_expr, t2))
+    | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
+    | _ -> raise NotAnExpr)
   |> G.e
 
 (* Primarily for usage in converting an Assign into a DefStmt. We fail to
@@ -400,8 +400,8 @@ let funcbody_to_stmt = function
 let has_keyword_attr kwd attrs =
   attrs
   |> List.exists (function
-       | KeywordAttr (kwd2, _) -> kwd =*= kwd2
-       | _ -> false)
+    | KeywordAttr (kwd2, _) -> kwd =*= kwd2
+    | _ -> false)
 
 let id_of_name = function
   | G.Id (id, id_info) -> (id, id_info)
@@ -486,12 +486,12 @@ let ac_matching_nf op args =
   let rec nf args1 =
     args1
     |> List.map (function
-         | Arg e -> e
-         | ArgKwd _
-         | ArgKwdOptional _
-         | ArgType _
-         | OtherArg _ ->
-             raise_notrace Exit)
+      | Arg e -> e
+      | ArgKwd _
+      | ArgKwdOptional _
+      | ArgType _
+      | OtherArg _ ->
+          raise_notrace Exit)
     |> List.map nf_one |> List_.flatten
   and nf_one e =
     match e.e with

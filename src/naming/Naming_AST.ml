@@ -462,12 +462,12 @@ let resolved_name_kind env lang =
 let params_of_parameters env params : scope =
   params |> Tok.unbracket
   |> List.filter_map (function
-       | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
-           let sid = SId.mk () in
-           let resolved = { entname = (Parameter, sid); enttype = typ } in
-           set_resolved env id_info resolved;
-           Some (H.str_of_ident id, resolved)
-       | _ -> None)
+    | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
+        let sid = SId.mk () in
+        let resolved = { entname = (Parameter, sid); enttype = typ } in
+        set_resolved env id_info resolved;
+        Some (H.str_of_ident id, resolved)
+    | _ -> None)
 
 let js_get_angular_constructor_args env attrs defs =
   let is_injectable =
@@ -480,16 +480,16 @@ let js_get_angular_constructor_args env attrs defs =
   in
   defs
   |> List.filter_map (function
-       | {
-           s =
-             DefStmt
-               ( { name = EN (Id (("constructor", _), _)); _ },
-                 FuncDef { fparams; _ } );
-           _;
-         }
-         when is_injectable ->
-           Some (params_of_parameters env fparams)
-       | _ -> None)
+    | {
+        s =
+          DefStmt
+            ( { name = EN (Id (("constructor", _), _)); _ },
+              FuncDef { fparams; _ } );
+        _;
+      }
+      when is_injectable ->
+        Some (params_of_parameters env fparams)
+    | _ -> None)
   |> List_.flatten
 
 let declare_var env lang id id_info ~explicit vinit vtype =

@@ -50,22 +50,22 @@ let (expected_error_lines_of_files :
  fun ?(regexp = default_error_regexp) ?ok_regexp test_files ->
   test_files
   |> List.concat_map (fun path ->
-         UFile.cat path |> List_.index_list_1
-         |> List.filter_map (fun (s, idx) ->
-                (* Right now we don't care about the actual error messages. We
-                 * don't check if they match. We are just happy to check for
-                 * correct lines error reporting.
-                 *)
-                if
-                  s =~ regexp
-                  (* This is so that we can mark a line differently for OSS/Pro,
+      UFile.cat path |> List_.index_list_1
+      |> List.filter_map (fun (s, idx) ->
+          (* Right now we don't care about the actual error messages. We
+           * don't check if they match. We are just happy to check for
+           * correct lines error reporting.
+           *)
+          if
+            s =~ regexp
+            (* This is so that we can mark a line differently for OSS/Pro,
                      e.g. `ruleid: deepok: example_rule_id` *)
-                  && Option.fold ~none:true
-                       ~some:(fun ok_regexp -> not (s =~ ok_regexp))
-                       ok_regexp
-                  (* + 1 because the comment is one line before *)
-                then Some (path, idx + 1)
-                else None))
+            && Option.fold ~none:true
+                 ~some:(fun ok_regexp -> not (s =~ ok_regexp))
+                 ok_regexp
+            (* + 1 because the comment is one line before *)
+          then Some (path, idx + 1)
+          else None))
 
 (*****************************************************************************)
 (* Entry points *)
@@ -85,10 +85,10 @@ let compare_actual_to_expected ~to_location actual_findings
 
   only_in_expected
   |> List.iter (fun (src, l) ->
-         UCommon.pr2 (spf "this one finding is missing: %s:%d" !!src l));
+      UCommon.pr2 (spf "this one finding is missing: %s:%d" !!src l));
   only_in_actual
   |> List.iter (fun (src, l) ->
-         UCommon.pr2 (spf "this one finding was not expected: %s:%d" !!src l));
+      UCommon.pr2 (spf "this one finding was not expected: %s:%d" !!src l));
   let false_negatives = List.length only_in_expected in
   let false_positives = List.length only_in_actual in
   let num_errors = false_negatives + false_positives in

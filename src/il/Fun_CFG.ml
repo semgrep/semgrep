@@ -107,11 +107,11 @@ let record_lambda (lambdas : lambdas_cfgs) name fcfg =
 let seq_of_lambdas (lambdas : lambdas_cfgs) =
   lambdas |> IL.NameMap.to_seq
   |> Seq.concat_map (fun (name, lcfg) ->
-         match lcfg with
-         | Uniq (pos, cfg) -> Seq.return (name, pos, cfg)
-         | Multi pos2cfg ->
-             pos2cfg |> PosMap.to_seq
-             |> Seq.map (fun (pos, cfg) -> (name, pos, cfg)))
+      match lcfg with
+      | Uniq (pos, cfg) -> Seq.return (name, pos, cfg)
+      | Multi pos2cfg ->
+          pos2cfg |> PosMap.to_seq
+          |> Seq.map (fun (pos, cfg) -> (name, pos, cfg)))
 
 let rec reachable_nodes fcfg =
   let main_nodes = CFG.reachable_nodes fcfg.cfg in

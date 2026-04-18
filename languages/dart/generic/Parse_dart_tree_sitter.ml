@@ -1457,8 +1457,8 @@ and map_function_type_tail ~ret_ty (env : env)
           (fun (_, xs, _) ->
             xs
             |> List.map (fun tp ->
-                   OtherTypeParam
-                     (("OptionalTP", (* "?" *) token env tok), [ G.Tp tp ])))
+                OtherTypeParam
+                  (("OptionalTP", (* "?" *) token env tok), [ G.Tp tp ])))
           v2
     | None -> None
   in
@@ -2851,23 +2851,21 @@ and map_string_literal (env : env) (xs : CST.string_literal) : G.expr =
       fb
         (xs
         |> List.map (fun x ->
-               match x with
-               | `Str_lit_double_quotes x ->
-                   map_string_literal_double_quotes env x
-               | `Str_lit_single_quotes x ->
-                   map_string_literal_single_quotes env x
-               | `Str_lit_double_quotes_mult x ->
-                   map_string_literal_double_quotes_multiple env x
-               | `Str_lit_single_quotes_mult x ->
-                   map_string_literal_single_quotes_multiple env x
-               | `Raw_str_lit_double_quotes x ->
-                   map_raw_string_literal_double_quotes env x
-               | `Raw_str_lit_single_quotes x ->
-                   map_raw_string_literal_single_quotes env x
-               | `Raw_str_lit_double_quotes_mult x ->
-                   map_raw_string_literal_double_quotes_multiple env x
-               | `Raw_str_lit_single_quotes_mult x ->
-                   map_raw_string_literal_single_quotes_multiple env x)
+            match x with
+            | `Str_lit_double_quotes x -> map_string_literal_double_quotes env x
+            | `Str_lit_single_quotes x -> map_string_literal_single_quotes env x
+            | `Str_lit_double_quotes_mult x ->
+                map_string_literal_double_quotes_multiple env x
+            | `Str_lit_single_quotes_mult x ->
+                map_string_literal_single_quotes_multiple env x
+            | `Raw_str_lit_double_quotes x ->
+                map_raw_string_literal_double_quotes env x
+            | `Raw_str_lit_single_quotes x ->
+                map_raw_string_literal_single_quotes env x
+            | `Raw_str_lit_double_quotes_mult x ->
+                map_raw_string_literal_double_quotes_multiple env x
+            | `Raw_str_lit_single_quotes_mult x ->
+                map_raw_string_literal_single_quotes_multiple env x)
         |> List.map (fun x -> Arg x)) )
   |> G.e
 
@@ -2875,21 +2873,21 @@ and map_string_literal_to_strings (env : env) (xs : CST.string_literal) :
     G.expr list =
   xs
   |> List.map (fun x ->
-         match x with
-         | `Str_lit_double_quotes x -> map_string_literal_double_quotes env x
-         | `Str_lit_single_quotes x -> map_string_literal_single_quotes env x
-         | `Str_lit_double_quotes_mult x ->
-             map_string_literal_double_quotes_multiple env x
-         | `Str_lit_single_quotes_mult x ->
-             map_string_literal_single_quotes_multiple env x
-         | `Raw_str_lit_double_quotes x ->
-             map_raw_string_literal_double_quotes env x
-         | `Raw_str_lit_single_quotes x ->
-             map_raw_string_literal_single_quotes env x
-         | `Raw_str_lit_double_quotes_mult x ->
-             map_raw_string_literal_double_quotes_multiple env x
-         | `Raw_str_lit_single_quotes_mult x ->
-             map_raw_string_literal_single_quotes_multiple env x)
+      match x with
+      | `Str_lit_double_quotes x -> map_string_literal_double_quotes env x
+      | `Str_lit_single_quotes x -> map_string_literal_single_quotes env x
+      | `Str_lit_double_quotes_mult x ->
+          map_string_literal_double_quotes_multiple env x
+      | `Str_lit_single_quotes_mult x ->
+          map_string_literal_single_quotes_multiple env x
+      | `Raw_str_lit_double_quotes x ->
+          map_raw_string_literal_double_quotes env x
+      | `Raw_str_lit_single_quotes x ->
+          map_raw_string_literal_single_quotes env x
+      | `Raw_str_lit_double_quotes_mult x ->
+          map_raw_string_literal_double_quotes_multiple env x
+      | `Raw_str_lit_single_quotes_mult x ->
+          map_raw_string_literal_single_quotes_multiple env x)
 
 (* boilerplate boilerplate na na na na *)
 
@@ -4776,10 +4774,10 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
           let _sc = map_semicolon env v5 in
           v3
           |> List.map (fun (id, expr) ->
-                 G.DefStmt
-                   ( basic_entity ~attrs id,
-                     VarDef { vinit = Some expr; vtype; vtok = G.no_sc } )
-                 |> G.s)
+              G.DefStmt
+                ( basic_entity ~attrs id,
+                  VarDef { vinit = Some expr; vtype; vtok = G.no_sc } )
+              |> G.s)
       | `Opt_meta_late_buil_final_buil_opt_type_init_id_list_semi
           (v1, v2, v3, v4, v5, v6) ->
           let attrs =
@@ -4801,7 +4799,7 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
           let sc = map_semicolon env v6 in
           inits
           |> List.map (fun (id, vinit) ->
-                 (basic_entity ~attrs id, { vinit; vtype; vtok = G.no_sc }))
+              (basic_entity ~attrs id, { vinit; vtype; vtok = G.no_sc }))
           |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc
       | `Opt_meta_opt_late_buil_choice_type_init_id_list_semi
           (v1, v2, v3, v4, v5) ->
@@ -4821,8 +4819,8 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
           let sc = map_semicolon env v5 in
           inits
           |> List.map (fun (id, vinit) ->
-                 ( basic_entity ~attrs id,
-                   { vinit; vtype = Some vtype; vtok = G.no_sc } ))
+              ( basic_entity ~attrs id,
+                { vinit; vtype = Some vtype; vtok = G.no_sc } ))
           |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc)
   | `Semg_ellips tok ->
       [

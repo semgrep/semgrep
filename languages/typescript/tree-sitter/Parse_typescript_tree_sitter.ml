@@ -2415,9 +2415,9 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
       let xs =
         xs
         |> List.filter_map (function
-             (* TODO *)
-             | Left prop -> Some prop
-             | Right _sts -> None)
+          (* TODO *)
+          | Left prop -> Some prop
+          | Right _sts -> None)
       in
       TyRecordAnon (t1, xs, t2)
   | `Array_type (v1, v2, v3) ->
@@ -3277,31 +3277,28 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 let tok2, path = from_clause env v2 in
                 v1
                 |> List.concat_map (fun (n1, n2opt) ->
-                       let tmpname = fake_id ("!tmp_" ^ n1.str) n1.tok in
-                       let import =
-                         Import (tok2, [ (n1, Some tmpname) ], path)
-                       in
-                       let e = idexp tmpname in
-                       match n2opt with
-                       | None ->
-                           let v = Ast_js.mk_const_var n1 e in
-                           [ M import; DefStmt v; M (Export (export_tok, n1)) ]
-                       | Some n2 ->
-                           let v = Ast_js.mk_const_var n2 e in
-                           [ M import; DefStmt v; M (Export (export_tok, n2)) ])
+                    let tmpname = fake_id ("!tmp_" ^ n1.str) n1.tok in
+                    let import = Import (tok2, [ (n1, Some tmpname) ], path) in
+                    let e = idexp tmpname in
+                    match n2opt with
+                    | None ->
+                        let v = Ast_js.mk_const_var n1 e in
+                        [ M import; DefStmt v; M (Export (export_tok, n1)) ]
+                    | Some n2 ->
+                        let v = Ast_js.mk_const_var n2 e in
+                        [ M import; DefStmt v; M (Export (export_tok, n2)) ])
             | `Export_clause x ->
                 (* export { import1 as name1, import2 as name2, nameN } from 'foo'; *)
                 let v1 = export_clause env x in
                 v1
                 |> List.concat_map (fun (n1, n2opt) ->
-                       match n2opt with
-                       | None -> [ M (Export (export_tok, n1)) ]
-                       | Some n2 ->
-                           let v =
-                             Ast_js.mk_const_var { n2 with fake = true }
-                               (idexp n1)
-                           in
-                           [ DefStmt v; M (Export (export_tok, n2)) ])
+                    match n2opt with
+                    | None -> [ M (Export (export_tok, n1)) ]
+                    | Some n2 ->
+                        let v =
+                          Ast_js.mk_const_var { n2 with fake = true } (idexp n1)
+                        in
+                        [ DefStmt v; M (Export (export_tok, n2)) ])
           in
           let _v3 = semicolon env v3 in
           v2
@@ -3317,10 +3314,10 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 let defs = declaration env x in
                 defs
                 |> List.concat_map (fun def ->
-                       let ent, defkind = def in
-                       let n = ent.name in
-                       let ent = { ent with attrs = ent.attrs @ decorators } in
-                       [ DefStmt (ent, defkind); M (Export (export_tok, n)) ])
+                    let ent, defkind = def in
+                    let n = ent.name in
+                    let ent = { ent with attrs = ent.attrs @ decorators } in
+                    [ DefStmt (ent, defkind); M (Export (export_tok, n)) ])
             | `Defa_choice_decl (v1, v2) -> (
                 let tok_default (* TODO *) =
                   token env v1
@@ -3331,18 +3328,16 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                     let defs = declaration env x in
                     defs
                     |> List.concat_map (fun def ->
-                           let ent, defkind = def in
-                           let ent =
-                             { ent with attrs = ent.attrs @ decorators }
-                           in
-                           let def = (ent, defkind) in
+                        let ent, defkind = def in
+                        let ent = { ent with attrs = ent.attrs @ decorators } in
+                        let def = (ent, defkind) in
 
-                           let default_decl, default_name =
-                             let expr = idexp ent.name in
-                             Ast_js.mk_default_entity_def tok_default expr
-                           in
+                        let default_decl, default_name =
+                          let expr = idexp ent.name in
+                          Ast_js.mk_default_entity_def tok_default expr
+                        in
 
-                           (*
+                        (*
                          We translate into 3 statements:
 
                            export default const foo = bar
@@ -3353,11 +3348,11 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                            const default = foo
                            export default
                       *)
-                           [
-                             DefStmt def;
-                             DefStmt default_decl;
-                             M (Export (export_tok, default_name));
-                           ])
+                        [
+                          DefStmt def;
+                          DefStmt default_decl;
+                          M (Export (export_tok, default_name));
+                        ])
                 | `Exp_choice_auto_semi (v1, v2) ->
                     let e = expression env v1 in
                     let _semi = semicolon env v2 in
@@ -3989,7 +3984,7 @@ and parameter_name (env : env) ((v1, v2, v2bis, v3, v4) : CST.parameter_name) :
   in
   id_or_pat
   |> Either.map_left (fun id ->
-         (id, decorators @ accessibility @ override @ readonly))
+      (id, decorators @ accessibility @ override @ readonly))
 
 and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
@@ -4266,9 +4261,9 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let xs =
         xs
         |> List.filter_map (function
-             (* TODO *)
-             | Left _fld -> None
-             | Right _sts -> None)
+          (* TODO *)
+          | Left _fld -> None
+          | Right _sts -> None)
       in
       let c =
         {

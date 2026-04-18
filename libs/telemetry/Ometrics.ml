@@ -190,19 +190,17 @@ let create_histogram_data (explicit_bounds : float list option) =
   let bounds_and_buckets =
     explicit_bounds
     |> Option.map (fun bounds ->
-           let bounds_and_buckets =
-             List.map (fun bound -> (bound, 0L)) bounds
-           in
-           (* We add infinity so there's an upper bound, which makes insertion a
+        let bounds_and_buckets = List.map (fun bound -> (bound, 0L)) bounds in
+        (* We add infinity so there's an upper bound, which makes insertion a
               bit easier *)
-           let bounds_and_buckets_with_inf =
-             bounds_and_buckets @ [ (Float.infinity, 0L) ]
-           in
-           (* Sort bounds/buckets so it's easy to insert *)
-           List.sort
-             (fun (bound_a, _count_a) (bound_b, _count_b) ->
-               Float.compare bound_a bound_b)
-             bounds_and_buckets_with_inf)
+        let bounds_and_buckets_with_inf =
+          bounds_and_buckets @ [ (Float.infinity, 0L) ]
+        in
+        (* Sort bounds/buckets so it's easy to insert *)
+        List.sort
+          (fun (bound_a, _count_a) (bound_b, _count_b) ->
+            Float.compare bound_a bound_b)
+          bounds_and_buckets_with_inf)
   in
   { bounds_and_buckets; count = 0L; sum = None; min_max = None }
 

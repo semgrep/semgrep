@@ -107,12 +107,12 @@ let mark_implicit_return_fdef lang ~tok fdef =
 let mark_implicit_return lang ast =
   ast
   |> Visit_function_defs.visit (fun _ent fdef ->
-         let fkind, tok = fdef.fkind in
-         match fkind with
-         | __any__ when lang_supports_implicit_return lang ->
-             mark_implicit_return_fdef lang ~tok fdef
-         | LambdaKind ->
-             (* Lambdas expressions tend to always support implicit returns,
-              * even in languages that require explicit returns like Java. *)
-             mark_implicit_return_fdef lang ~tok fdef
-         | __else__ -> ())
+      let fkind, tok = fdef.fkind in
+      match fkind with
+      | __any__ when lang_supports_implicit_return lang ->
+          mark_implicit_return_fdef lang ~tok fdef
+      | LambdaKind ->
+          (* Lambdas expressions tend to always support implicit returns,
+           * even in languages that require explicit returns like Java. *)
+          mark_implicit_return_fdef lang ~tok fdef
+      | __else__ -> ())

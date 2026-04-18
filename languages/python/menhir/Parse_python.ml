@@ -133,14 +133,14 @@ let rec parse ?(parsing_mode = Python) (filename : Fpath.t) =
         parsing_mode =*= Python
         && tr.Parsing_helpers.passed |> List_.take_safe 10
            |> List.exists (function
-                | T.NAME (("print" | "exec"), _)
-                | T.ASYNC _
-                | T.AWAIT _
-                | T.NONLOCAL _
-                | T.TRUE _
-                | T.FALSE _ ->
-                    true
-                | _ -> false)
+             | T.NAME (("print" | "exec"), _)
+             | T.ASYNC _
+             | T.AWAIT _
+             | T.NONLOCAL _
+             | T.TRUE _
+             | T.FALSE _ ->
+                 true
+             | _ -> false)
       then
         (* note that we cant use tokens as the tokens are actually different
          * in Python2 mode, but we could optimize things a bit and just

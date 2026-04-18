@@ -131,7 +131,7 @@ let report () : string =
       prf "%s\n" (String.make 78 '-');
       entries
       |> List.iter (fun x ->
-             prf "%-50s : %10.3f s / %10d\n" x.name x.total_time x.count))
+          prf "%-50s : %10.3f s / %10d\n" x.name x.total_time x.count))
 
 (*****************************************************************************)
 (* Init *)

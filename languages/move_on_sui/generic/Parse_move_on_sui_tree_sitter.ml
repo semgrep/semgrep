@@ -245,24 +245,24 @@ let map_member_to_directive member_list : G.directive_kind list =
     | Member_list_addr (address, mod_name, mems) ->
         mems
         |> List.map (fun (name, label) ->
-               map_inner_directive (address, mod_name, name, label))
+            map_inner_directive (address, mod_name, name, label))
     | Member_list_addr_members (address, mems) ->
         let out_list =
           mems
           |> List.map (fun x ->
-                 match x with
-                 | Member_mod_only (mod_name, label) ->
-                     [ map_inner_directive_mod (address, mod_name, label) ]
-                 | Member_list_no_addr_mod (mod_name, mems) ->
-                     mems
-                     |> List.map (fun (name, label) ->
-                            map_inner_directive (address, mod_name, name, label))
-                 | Member_list_mem_only mems ->
-                     failwith "We should have converted members to modules"
-                 | Member_list_addr (address, mod_name, mems) ->
-                     failwith "Shouldn't have address in address"
-                 | Member_list_addr_members (address, mems) ->
-                     failwith "Shouldn't have address in address")
+              match x with
+              | Member_mod_only (mod_name, label) ->
+                  [ map_inner_directive_mod (address, mod_name, label) ]
+              | Member_list_no_addr_mod (mod_name, mems) ->
+                  mems
+                  |> List.map (fun (name, label) ->
+                      map_inner_directive (address, mod_name, name, label))
+              | Member_list_mem_only mems ->
+                  failwith "We should have converted members to modules"
+              | Member_list_addr (address, mod_name, mems) ->
+                  failwith "Shouldn't have address in address"
+              | Member_list_addr_members (address, mems) ->
+                  failwith "Shouldn't have address in address")
         in
         out_list |> List_.flatten
     | Member_list_no_addr_mod (mod_name, mems) -> failwith "Should have address"
@@ -306,11 +306,11 @@ let rec map_use_member (env : env) (x : CST.use_member) : member_list =
           let use_mems =
             v5
             |> List.map (fun (v1, v2) ->
-                   (*TODO*)
-                   let v1 = (* "," *) token env v1 in
-                   let mem_list_in = map_use_member env v2 in
-                   let use_mem_in = get_members_from_member_list mem_list_in in
-                   use_mem_in)
+                (*TODO*)
+                let v1 = (* "," *) token env v1 in
+                let mem_list_in = map_use_member env v2 in
+                let use_mem_in = get_members_from_member_list mem_list_in in
+                use_mem_in)
             |> List_.flatten
           in
           let _comma =
@@ -323,8 +323,8 @@ let rec map_use_member (env : env) (x : CST.use_member) : member_list =
           let all_mem_idents =
             all_mems
             |> List.map (fun (v1, v2) ->
-                   let v2 : G.ident = v1 in
-                   (v2, None))
+                let v2 : G.ident = v1 in
+                (v2, None))
           in
 
           Member_list_no_addr_mod (mod_name_ident, all_mem_idents)
@@ -436,11 +436,11 @@ let map_identifier_or_metavariable (env : env)
         Option.map ((* "phatom" *) str env) v1
         |> Option.to_list
         |> List.map (fun x ->
-               G.NamedAttr
-                 ( (match x with
-                   | _, tok -> tok),
-                   H2.name_of_id x,
-                   (sc, [], sc) ))
+            G.NamedAttr
+              ( (match x with
+                | _, tok -> tok),
+                H2.name_of_id x,
+                (sc, [], sc) ))
       in
       let ident = (* pattern (`)?[a-zA-Z_][0-9a-zA-Z_]*(`)? *) str env v2 in
       (ident, phatom)
@@ -520,9 +520,9 @@ let map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
   let params =
     v3
     |> List.map (fun (v1, v2) ->
-           let v1 = (* "," *) token env v1 in
-           let v2 = map_type_parameter env [] v2 in
-           v2)
+        let v1 = (* "," *) token env v1 in
+        let v2 = map_type_parameter env [] v2 in
+        v2)
   in
   let v4 =
     match v4 with
@@ -661,20 +661,20 @@ let map_use_module_members (env : env) (x : CST.use_module_members) =
       let clean_memes =
         all_mems
         |> List.map (fun x ->
-               match x with
-               | Member_list_mem_only mems ->
-                   let mods =
-                     mems |> List.map (fun (v1, v2) -> Member_mod_only (v1, v2))
-                   in
-                   mods
-               | Member_list_no_addr_mod (mod_name, mems) ->
-                   [ Member_list_no_addr_mod (mod_name, mems) ]
-               | Member_list_addr (address, mod_name, mems) ->
-                   failwith "Shouldn't have an address"
-               | Member_mod_only (mod_name, alias) ->
-                   failwith "Can't exctract a member from single module name"
-               | Member_list_addr_members (address, mems) ->
-                   failwith "Should not already be a address list")
+            match x with
+            | Member_list_mem_only mems ->
+                let mods =
+                  mems |> List.map (fun (v1, v2) -> Member_mod_only (v1, v2))
+                in
+                mods
+            | Member_list_no_addr_mod (mod_name, mems) ->
+                [ Member_list_no_addr_mod (mod_name, mems) ]
+            | Member_list_addr (address, mod_name, mems) ->
+                failwith "Shouldn't have an address"
+            | Member_mod_only (mod_name, alias) ->
+                failwith "Can't exctract a member from single module name"
+            | Member_list_addr_members (address, mems) ->
+                failwith "Should not already be a address list")
       in
       let flat_members = clean_memes |> List_.flatten in
       Member_list_addr_members (address, flat_members)
@@ -696,8 +696,8 @@ let map_use_module_members (env : env) (x : CST.use_module_members) =
       let member_list_sing =
         member_list_list
         |> List.map (fun v1 ->
-               let mems = get_members_from_member_list v1 in
-               mems)
+            let mems = get_members_from_member_list v1 in
+            mems)
         |> List_.flatten
       in
       let v6 =
@@ -788,9 +788,9 @@ let map_spec_apply_pattern (env : env) ((v1, v2, v3) : CST.spec_apply_pattern) =
   let pub_int =
     v1
     |> Option.map (fun x ->
-           match x with
-           | `Public tok -> (* "public" *) str env tok
-           | `Inte tok -> (* "internal" *) str env tok)
+        match x with
+        | `Public tok -> (* "public" *) str env tok
+        | `Inte tok -> (* "internal" *) str env tok)
     |> Option.to_list
     |> List.map (fun x -> G.I x)
   in
@@ -801,8 +801,8 @@ let map_spec_apply_pattern (env : env) ((v1, v2, v3) : CST.spec_apply_pattern) =
   let type_params =
     Option.map (map_type_parameters env) v3
     |> Option.map (fun x ->
-           let _, types, _ = x in
-           types)
+        let _, types, _ = x in
+        types)
     |> Option.value ~default:[]
     |> List.map (fun x -> G.Tp x)
   in
@@ -970,18 +970,17 @@ and map_datatype_fields (env : env) (x : CST.datatype_fields) =
       let all_fileds =
         all_types
         |> List.mapi (fun idx field_type ->
-               let var_def =
-                 { G.vinit = None; G.vtype = Some field_type; vtok = G.no_sc }
-               in
-               let ent =
-                 {
-                   G.name =
-                     G.EDynamic (G.L (G.Int (Parsed_int.of_int idx)) |> G.e);
-                   G.attrs = [];
-                   G.tparams = None;
-                 }
-               in
-               G.fld (ent, G.FieldDefColon var_def))
+            let var_def =
+              { G.vinit = None; G.vtype = Some field_type; vtok = G.no_sc }
+            in
+            let ent =
+              {
+                G.name = G.EDynamic (G.L (G.Int (Parsed_int.of_int idx)) |> G.e);
+                G.attrs = [];
+                G.tparams = None;
+              }
+            in
+            G.fld (ent, G.FieldDefColon var_def))
       in
       (lp, all_fileds, rp)
   | `Named_fields (v1, v2, v3, v4) ->
@@ -1226,27 +1225,24 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
       let fields =
         fields
         |> List.map (fun (field, pat) ->
-               match pat with
-               | PatEllipsis tok ->
-                   [ G.F (G.Ellipsis tok |> G.e |> G.exprstmt) ]
-               | PatId (var, _) ->
-                   let ident = List.nth field 0 in
-                   let field_name = G.FN (H2.name_of_id ident) in
-                   let vinit =
-                     Some (G.DotAccess (right, sc, field_name) |> G.e)
-                   in
-                   [ G.basic_field var vinit None ]
-               | PatWildcard _ -> []
-               | _ -> transpile_let_bind env pat right)
+            match pat with
+            | PatEllipsis tok -> [ G.F (G.Ellipsis tok |> G.e |> G.exprstmt) ]
+            | PatId (var, _) ->
+                let ident = List.nth field 0 in
+                let field_name = G.FN (H2.name_of_id ident) in
+                let vinit = Some (G.DotAccess (right, sc, field_name) |> G.e) in
+                [ G.basic_field var vinit None ]
+            | PatWildcard _ -> []
+            | _ -> transpile_let_bind env pat right)
       in
       let inner = List_.flatten fields in
       [ G.F (G.Record (sc, inner, sc) |> G.e |> G.exprstmt) ]
   | G.PatTuple (_, elements, _) ->
       elements
       |> List.mapi (fun idx pat ->
-             let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
-             let element = G.ArrayAccess (right, (sc, idx, sc)) |> G.e in
-             transpile_let_bind env pat element)
+          let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
+          let element = G.ArrayAccess (right, (sc, idx, sc)) |> G.e in
+          transpile_let_bind env pat element)
       |> List_.flatten
   | G.OtherPat (("ExprToPattern", _), [ E e ]) -> (
       match e.e with
@@ -2561,9 +2557,9 @@ and map_spec_condition (env : env) (x : CST.spec_condition) =
       let with_value =
         v4
         |> Option.map (fun (v1, v2) ->
-               let v1 = (* "with" *) G.Tk (token env v1) in
-               let v2 = G.E (map_expression env v2) in
-               G.Anys [ v1; v2 ])
+            let v1 = (* "with" *) G.Tk (token env v1) in
+            let v2 = G.E (map_expression env v2) in
+            G.Anys [ v1; v2 ])
         |> Option.to_list
       in
       G.OtherStmt (G.OS_Todo, (cond :: props) @ (expr :: with_value)) |> G.s
@@ -2804,16 +2800,16 @@ and map_let_expr (env : env) ((v1, v2, v3, v4) : CST.let_statement) : G.expr =
   let type_hint =
     v3
     |> Option.map (fun (v1, v2) ->
-           let v1 = (* ":" *) token env v1 in
-           let v2 = map_type_ env v2 in
-           v2)
+        let v1 = (* ":" *) token env v1 in
+        let v2 = map_type_ env v2 in
+        v2)
   in
   let value =
     v4
     |> Option.map (fun (v1, v2) ->
-           let v1 = (* "=" *) token env v1 in
-           let v2 = map_expression env v2 in
-           v2)
+        let v1 = (* "=" *) token env v1 in
+        let v2 = map_expression env v2 in
+        v2)
   in
   match bind with
   | G.PatId (var, _) ->
@@ -2912,23 +2908,23 @@ let map_semgrep_statement (env : env) (xs : CST.semgrep_statement) =
   let stmt_list_list =
     xs
     |> List.map (fun x ->
-           match x with
-           | `Blk_item x -> [ map_block_item env x ]
-           | `Use_decl x ->
-               map_use_declaration env x
-               |> List.map (fun x -> G.DirectiveStmt x |> G.s)
-           | `Friend_decl x ->
-               [
-                 map_friend_declaration env x
-                 |> (fun x -> G.DirectiveStmt x)
-                 |> G.s;
-               ]
-           | `Cst x -> [ map_constant env x ]
-           | `Func_item x -> [ map_function_item env x ]
-           | `Struct_item x -> [ map_struct_item env x ]
-           | `Enum_item x -> [ map_enum_item env x ]
-           | `Spec_blk x -> [ map_spec_block env x ]
-           | `Module_body x -> map_module_body env x)
+        match x with
+        | `Blk_item x -> [ map_block_item env x ]
+        | `Use_decl x ->
+            map_use_declaration env x
+            |> List.map (fun x -> G.DirectiveStmt x |> G.s)
+        | `Friend_decl x ->
+            [
+              map_friend_declaration env x
+              |> (fun x -> G.DirectiveStmt x)
+              |> G.s;
+            ]
+        | `Cst x -> [ map_constant env x ]
+        | `Func_item x -> [ map_function_item env x ]
+        | `Struct_item x -> [ map_struct_item env x ]
+        | `Enum_item x -> [ map_enum_item env x ]
+        | `Spec_blk x -> [ map_spec_block env x ]
+        | `Module_body x -> map_module_body env x)
   in
   let stmt_list = stmt_list_list |> List_.flatten in
   G.Ss stmt_list

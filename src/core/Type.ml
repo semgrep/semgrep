@@ -277,48 +277,47 @@ let rec to_ast_generic_type_ ?tok lang
       let fields =
         fields
         |> List.map (fun (fld_label, fld_type) ->
-               let entity : G.entity =
-                 {
-                   name =
-                     EN (Id ((fld_label, G.fake fld_label), G.empty_id_info ()));
-                   attrs = [];
-                   tparams = None;
-                 }
-               in
-               let var_def : G.variable_definition =
-                 {
-                   vinit = None;
-                   vtype = to_ast_generic_type_ lang f fld_type;
-                   vtok = None;
-                 }
-               in
-               G.F (DefStmt (entity, VarDef var_def) |> G.s))
+            let entity : G.entity =
+              {
+                name =
+                  EN (Id ((fld_label, G.fake fld_label), G.empty_id_info ()));
+                attrs = [];
+                tparams = None;
+              }
+            in
+            let var_def : G.variable_definition =
+              {
+                vinit = None;
+                vtype = to_ast_generic_type_ lang f fld_type;
+                vtok = None;
+              }
+            in
+            G.F (DefStmt (entity, VarDef var_def) |> G.s))
       in
       Some (G.TyRecordAnon (kind, fields |> Tok.unsafe_fake_bracket) |> G.t)
   | Function (params, tret) ->
       let params =
         params
         |> List.map (function
-             | Param { pident; ptype } -> (
-                 let topt = to_ast_generic_type_ lang f ptype in
-                 match topt with
-                 | Some t ->
-                     let classic =
-                       {
-                         G.pname =
-                           pident |> Option.map (fun s -> (s, make_tok s));
-                         ptype = Some t;
-                         pattrs = [];
-                         pinfo = G.empty_id_info ();
-                         pdefault = None;
-                       }
-                     in
-                     G.Param classic
-                 | _else_ ->
-                     G.OtherParam
-                       (("to_ast_generic_type for param", make_tok ""), []))
-             | OtherParam x ->
-                 G.OtherParam (todo_kind_to_ast_generic_todo_kind x, []))
+          | Param { pident; ptype } -> (
+              let topt = to_ast_generic_type_ lang f ptype in
+              match topt with
+              | Some t ->
+                  let classic =
+                    {
+                      G.pname = pident |> Option.map (fun s -> (s, make_tok s));
+                      ptype = Some t;
+                      pattrs = [];
+                      pinfo = G.empty_id_info ();
+                      pdefault = None;
+                    }
+                  in
+                  G.Param classic
+              | _else_ ->
+                  G.OtherParam
+                    (("to_ast_generic_type for param", make_tok ""), []))
+          | OtherParam x ->
+              G.OtherParam (todo_kind_to_ast_generic_todo_kind x, []))
       in
       let* tret = to_ast_generic_type_ lang f tret in
       Some (G.TyFun (params, tret) |> G.t)

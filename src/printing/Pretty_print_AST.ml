@@ -523,29 +523,27 @@ and type_ t =
         let params_str =
           params
           |> List.map (function
-               | Param p -> (
-                   match (p.pname, p.ptype) with
-                   | Some id, Some ty ->
-                       F.sprintf "%s: %s" (ident id) (type_ ty)
-                   | Some id, None -> ident id
-                   | None, Some ty -> type_ ty
-                   | None, None -> "_")
-               | ParamPattern _ -> "<pattern>"
-               | ParamRest (_, p) -> (
-                   match (p.pname, p.ptype) with
-                   | Some id, Some ty ->
-                       F.sprintf "...%s: %s" (ident id) (type_ ty)
-                   | Some id, None -> F.sprintf "...%s" (ident id)
-                   | None, Some ty -> F.sprintf "...%s" (type_ ty)
-                   | None, None -> "...")
-               | ParamHashSplat (_, p) -> (
-                   match (p.pname, p.ptype) with
-                   | Some id, Some ty ->
-                       F.sprintf "**%s: %s" (ident id) (type_ ty)
-                   | Some id, None -> F.sprintf "**%s" (ident id)
-                   | None, Some ty -> F.sprintf "**%s" (type_ ty)
-                   | None, None -> "**_")
-               | _ -> "_")
+            | Param p -> (
+                match (p.pname, p.ptype) with
+                | Some id, Some ty -> F.sprintf "%s: %s" (ident id) (type_ ty)
+                | Some id, None -> ident id
+                | None, Some ty -> type_ ty
+                | None, None -> "_")
+            | ParamPattern _ -> "<pattern>"
+            | ParamRest (_, p) -> (
+                match (p.pname, p.ptype) with
+                | Some id, Some ty ->
+                    F.sprintf "...%s: %s" (ident id) (type_ ty)
+                | Some id, None -> F.sprintf "...%s" (ident id)
+                | None, Some ty -> F.sprintf "...%s" (type_ ty)
+                | None, None -> "...")
+            | ParamHashSplat (_, p) -> (
+                match (p.pname, p.ptype) with
+                | Some id, Some ty -> F.sprintf "**%s: %s" (ident id) (type_ ty)
+                | Some id, None -> F.sprintf "**%s" (ident id)
+                | None, Some ty -> F.sprintf "**%s" (type_ ty)
+                | None, None -> "**_")
+            | _ -> "_")
           |> String.concat ", "
         in
         F.sprintf "(%s) -> %s" params_str (type_ ret)
@@ -579,13 +577,13 @@ and type_ t =
             let field_strs =
               fields
               |> List.map (function
-                   | F { s = DefStmt (ent, FieldDefColon fld); _ } -> (
-                       match (ent.name, fld.vtype) with
-                       | EN (Id (id, _)), Some ty ->
-                           F.sprintf "%s: %s" (ident id) (type_ ty)
-                       | EN (Id (id, _)), None -> ident id
-                       | _ -> "_")
-                   | _ -> "_")
+                | F { s = DefStmt (ent, FieldDefColon fld); _ } -> (
+                    match (ent.name, fld.vtype) with
+                    | EN (Id (id, _)), Some ty ->
+                        F.sprintf "%s: %s" (ident id) (type_ ty)
+                    | EN (Id (id, _)), None -> ident id
+                    | _ -> "_")
+                | _ -> "_")
               |> String.concat "; "
             in
             F.sprintf "{ %s }" field_strs
@@ -772,8 +770,8 @@ and canonical_name env = function
 (* TODO: look at name_top too *)
 and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   (match name_top with
-  | None -> ""
-  | Some _t -> "::")
+    | None -> ""
+    | Some _t -> "::")
   ^
   match name_middle with
   | Some (QDots dot_ids) ->

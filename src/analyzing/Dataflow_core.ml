@@ -197,14 +197,14 @@ module Make (F : Flow) = struct
 
     f.graph#nodes
     |> Int_map.iter (fun ni _nod ->
-           (* actually there are some del_node done in cfg_build, for
-            * switch, so sometimes ni is >= len
-            *
-            * old:
-            * if ni >= nb_nodes
-            * then pr2 "the CFG nodei is bigger than the number of nodes"
-            *)
-           if ni > !max_nodei then max_nodei := ni);
+        (* actually there are some del_node done in cfg_build, for
+         * switch, so sometimes ni is >= len
+         *
+         * old:
+         * if ni >= nb_nodes
+         * then pr2 "the CFG nodei is bigger than the number of nodes"
+         *)
+        if ni > !max_nodei then max_nodei := ni);
     assert (!max_nodei + 1 >= nb_nodes);
     Array.make (!max_nodei + 1) v
 end

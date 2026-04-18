@@ -129,25 +129,25 @@ let kind_of_string (str : string) : kind =
 let remove_enclosing_comment_opt (str : string) : string option =
   comment_syntaxes
   |> List.find_map (fun (prefix, suffixopt) ->
-         (* stricter: pysemgrep allows code before the comment, but this
-          * was used only once in semgrep-rules/ and it can be ambiguous as
-          * <some code> # ruleid: xxx might make you think the finding is
-          * on this line instead of the line after. Forcing the annotation
-          * to be alone on its line before the finding is clearer.
-          *)
-         if String.starts_with ~prefix str then
-           let str = Str.string_after str (String.length prefix) in
-           match suffixopt with
-           | None -> Some str
-           | Some suffix ->
-               if String.ends_with ~suffix str then
-                 let before = String.length str - String.length suffix in
-                 Some (Str.string_before str before)
-               else (
-                 Logs.warn (fun m ->
-                     m "could not find end comment %s in %s" suffix str);
-                 Some str)
-         else None)
+      (* stricter: pysemgrep allows code before the comment, but this
+       * was used only once in semgrep-rules/ and it can be ambiguous as
+       * <some code> # ruleid: xxx might make you think the finding is
+       * on this line instead of the line after. Forcing the annotation
+       * to be alone on its line before the finding is clearer.
+       *)
+      if String.starts_with ~prefix str then
+        let str = Str.string_after str (String.length prefix) in
+        match suffixopt with
+        | None -> Some str
+        | Some suffix ->
+            if String.ends_with ~suffix str then
+              let before = String.length str - String.length suffix in
+              Some (Str.string_before str before)
+            else (
+              Logs.warn (fun m ->
+                  m "could not find end comment %s in %s" suffix str);
+              Some str)
+      else None)
 
 let () =
   Testo.test "Test_subcommand.remove_enclosing_comment_opt" (fun () ->
@@ -237,15 +237,13 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
             in
             xs
             |> List.filter_map (fun id_str ->
-                   match Rule_ID.of_string_opt id_str with
-                   | Some id -> Some ({ kind; engine; others; id }, idx)
-                   | None ->
-                       Logs.warn (fun m ->
-                           m
-                             "malformed rule ID '%s' (%s) skipping this \
-                              annotation"
-                             id_str error_context);
-                       None)
+                match Rule_ID.of_string_opt id_str with
+                | Some id -> Some ({ kind; engine; others; id }, idx)
+                | None ->
+                    Logs.warn (fun m ->
+                        m "malformed rule ID '%s' (%s) skipping this annotation"
+                          id_str error_context);
+                    None)
         | None ->
             Logs.warn (fun m ->
                 m "could not parse annotation: %s (%s)" orig_str error_context);
@@ -309,23 +307,23 @@ let group_by_rule_id (annots : annotations) : (Rule_ID.t, linenb list) Assoc.t =
   annots
   |> Assoc.group_by (fun ({ id; _ }, _) -> id)
   |> List.map (fun (id, xs) ->
-         ( id,
-           xs
-           |> List.map (fun (_, line) -> line + 1)
-           (* should not be needed given how annotations work but safer *)
-           |> List.sort_uniq Int.compare ))
+      ( id,
+        xs
+        |> List.map (fun (_, line) -> line + 1)
+        (* should not be needed given how annotations work but safer *)
+        |> List.sort_uniq Int.compare ))
 
 let filter_todook (annots : annotations) (xs : linenb list) : linenb list =
   let (todooks : linenb Set_.t) =
     annots
     |> List.filter_map (fun ({ kind; _ }, line) ->
-           match kind with
-           (* + 1 because the expected/reported is the line after the annotation *)
-           | Todook -> Some (line + 1)
-           | Ruleid
-           | Ok
-           | Todoruleid ->
-               None)
+        match kind with
+        (* + 1 because the expected/reported is the line after the annotation *)
+        | Todook -> Some (line + 1)
+        | Ruleid
+        | Ok
+        | Todoruleid ->
+            None)
     |> Set_.of_list
   in
   xs |> List_.exclude (fun line -> Set_.mem line todooks)

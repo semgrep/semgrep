@@ -148,7 +148,7 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     Metrics_.init ~anonymous_user_id ~ci:false;
     api_token
     |> Option.iter (fun (_token : Auth.token) ->
-           Metrics_.g.payload.environment.isAuthenticated <- true);
+        Metrics_.g.payload.environment.isAuthenticated <- true);
     Git_wrapper.project_url () |> Option.iter Metrics_.add_project_url_hash;
     cli_output
     |> Option.iter (fun (o : OutJ.cli_output) -> Metrics_.add_errors o.errors);
@@ -337,12 +337,12 @@ let fetch_rules session =
   let rules_source =
     session.user_settings.configuration
     |> List.map (fun config_path ->
-           if Uri_.is_url config_path then config_path
-           else
-             let f = Fpath.v config_path |> Fpath.normalize in
-             let p = Fpath.rem_prefix (Fpath.v "~/") f in
-             Option.value ~default:f (Option.map (fun f -> home // f) p)
-             |> Fpath.to_string)
+        if Uri_.is_url config_path then config_path
+        else
+          let f = Fpath.v config_path |> Fpath.normalize in
+          let p = Fpath.rem_prefix (Fpath.v "~/") f in
+          Option.value ~default:f (Option.map (fun f -> home // f) p)
+          |> Fpath.to_string)
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (

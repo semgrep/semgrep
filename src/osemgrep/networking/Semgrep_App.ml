@@ -207,7 +207,7 @@ let upload_findings_async token ~scan_id ~results ~complete :
         let errors = extract_errors body in
         errors
         |> List.iter (fun s ->
-               Logs.warn (fun m -> m "Server returned following warning: %s" s));
+            Logs.warn (fun m -> m "Server returned following warning: %s" s));
         Lwt.return_unit
     | Ok { body = Error msg; code; _ } ->
         Logs.warn (fun m -> m "API server returned %u, this error: %s" code msg);

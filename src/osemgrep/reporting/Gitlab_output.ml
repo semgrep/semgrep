@@ -185,18 +185,18 @@ let secrets_format_cli_match (cli_match : Out.cli_match) =
   ("category", `String "secret_detection")
   :: (r
      |> List.map (function
-          | "location", `Assoc locs ->
-              let commit =
-                ( "commit",
-                  `Assoc
-                    [
-                      (* Even the native Gitleaks based Gitlab secret detection
+       | "location", `Assoc locs ->
+           let commit =
+             ( "commit",
+               `Assoc
+                 [
+                   (* Even the native Gitleaks based Gitlab secret detection
                          only provides a dummy value for now on relevant hash. *)
-                      ("sha", `String "0000000");
-                    ] )
-              in
-              ("location", `Assoc (commit :: locs))
-          | __else__ -> __else__))
+                   ("sha", `String "0000000");
+                 ] )
+           in
+           ("location", `Assoc (commit :: locs))
+       | __else__ -> __else__))
 
 (*****************************************************************************)
 (* Entry points *)

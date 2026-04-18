@@ -36,21 +36,21 @@ let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) (file : Fpath.t)
   let matches = Spacegrep.Match.search search_param src pat doc in
   matches
   |> List.map (fun m ->
-         let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
-         let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
-         let env =
-           m.Spacegrep.Match.named_captures
-           |> List.map (fun (s, capture) ->
-                  let mvar = "$" ^ s in
-                  let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
-                  let loc = lexing_pos_to_loc file pos str in
-                  let t = info_of_token_location loc in
-                  let mval = mval_of_string str t in
-                  (mvar, mval))
-         in
-         let loc1 = lexing_pos_to_loc file pos1 str in
-         let loc2 = lexing_pos_to_loc file pos2 "" in
-         ((loc1, loc2), env))
+      let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
+      let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
+      let env =
+        m.Spacegrep.Match.named_captures
+        |> List.map (fun (s, capture) ->
+            let mvar = "$" ^ s in
+            let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
+            let loc = lexing_pos_to_loc file pos str in
+            let t = info_of_token_location loc in
+            let mval = mval_of_string str t in
+            (mvar, mval))
+      in
+      let loc1 = lexing_pos_to_loc file pos1 str in
+      let loc2 = lexing_pos_to_loc file pos2 "" in
+      ((loc1, loc2), env))
 
 (* Preprocess spacegrep pattern or target to remove comments *)
 let preprocess_spacegrep (xconfig : Match_env.xconfig) src =

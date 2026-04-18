@@ -131,81 +131,81 @@ let test_information_density () =
 let get_entropies strings =
   strings
   |> List.map (fun s ->
-         print_info s;
-         (s, Entropy.entropy s))
+      print_info s;
+      (s, Entropy.entropy s))
 
 let test_low_entropy () =
   get_entropies low_entropy_strings
   |> List.iter (fun (s, e) ->
-         if not (e < entropy_threshold) then
-           Alcotest.fail
-             (sprintf
-                "string %S has an entropy of %g but it was expected to be less \
-                 than %g."
-                s e entropy_threshold))
+      if not (e < entropy_threshold) then
+        Alcotest.fail
+          (sprintf
+             "string %S has an entropy of %g but it was expected to be less \
+              than %g."
+             s e entropy_threshold))
 
 let test_high_entropy () =
   get_entropies high_entropy_strings
   |> List.iter (fun (s, e) ->
-         if not (e > entropy_threshold) then
-           Alcotest.fail
-             (sprintf
-                "string %S has an entropy of %g but it was expected to be less \
-                 than %g."
-                s e entropy_threshold))
+      if not (e > entropy_threshold) then
+        Alcotest.fail
+          (sprintf
+             "string %S has an entropy of %g but it was expected to be less \
+              than %g."
+             s e entropy_threshold))
 
 let get_densities strings =
   strings
   |> List.map (fun s ->
-         print_info s;
-         (s, Entropy.information_density s))
+      print_info s;
+      (s, Entropy.information_density s))
 
 let test_low_density () =
   get_densities low_density_strings
   |> List.iter (fun (s, e) ->
-         assert (e > 0.);
-         if not (e < 1.) then
-           Alcotest.fail
-             (sprintf
-                "string %S has an information density of %g but it was \
-                 expected to be less than %g."
-                s e density_threshold))
+      assert (e > 0.);
+      if not (e < 1.) then
+        Alcotest.fail
+          (sprintf
+             "string %S has an information density of %g but it was expected \
+              to be less than %g."
+             s e density_threshold))
 
 let test_high_density () =
   get_densities high_density_strings
   |> List.iter (fun (s, e) ->
-         if not (e > 1.) then
-           Alcotest.fail
-             (sprintf
-                "string %S has an information density of %g but it was \
-                 expected to be less than %g."
-                s e density_threshold))
+      if not (e > 1.) then
+        Alcotest.fail
+          (sprintf
+             "string %S has an information density of %g but it was expected \
+              to be less than %g."
+             s e density_threshold))
 
 let get_scores strings =
   strings
   |> List.map (fun s ->
-         print_info s;
-         (s, Entropy.score s))
+      print_info s;
+      (s, Entropy.score s))
 
 let test_low_score () =
   get_scores low_score_strings
   |> List.iter (fun (s, x) ->
-         assert (x >= 0);
-         if not (x < 2) then
-           Alcotest.fail
-             (sprintf
-                "string %S has a score of %i but it was expected to be less \
-                 than 2."
-                s x))
+      assert (x >= 0);
+      if not (x < 2) then
+        Alcotest.fail
+          (sprintf
+             "string %S has a score of %i but it was expected to be less than \
+              2."
+             s x))
 
 let test_high_score () =
   get_scores high_score_strings
   |> List.iter (fun (s, x) ->
-         assert (x >= 0);
-         if not (x = 2) then
-           Alcotest.fail
-             (sprintf "string %S has a score of %i but it was expected to be 2."
-                s x))
+      assert (x >= 0);
+      if not (x = 2) then
+        Alcotest.fail
+          (sprintf "string %S has a score of %i but it was expected to be 2." s
+             x))
 
 let tests =
   [

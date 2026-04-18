@@ -96,9 +96,8 @@ module Best_matches = struct
   let _debug xs =
     xs |> S.elements
     |> List.map (fun (Any m) ->
-           m.spec_id ^ ":"
-           ^ Range.content_at_range m.spec_pm.path.internal_path_to_content
-               m.range)
+        m.spec_id ^ ":"
+        ^ Range.content_at_range m.spec_pm.path.internal_path_to_content m.range)
     |> String.concat " ; "
 
   let rec add (Any m' as x') best_matches =
@@ -193,10 +192,10 @@ let best_matches_in_nodes ~sub_matches_of_orig fun_cfg =
    *)
   fun_cfg |> Fun_CFG.reachable_nodes
   |> Seq.concat_map (fun node ->
-         let all_origs : IL.orig Seq.t =
-           let origs = ref Seq.empty in
-           find_origs_visitor#visit_node origs node;
-           !origs
-         in
-         all_origs |> Seq.concat_map sub_matches_of_orig)
+      let all_origs : IL.orig Seq.t =
+        let origs = ref Seq.empty in
+        find_origs_visitor#visit_node origs node;
+        !origs
+      in
+      all_origs |> Seq.concat_map sub_matches_of_orig)
   |> Seq.fold_left (fun s x -> Best_matches.add x s) Best_matches.empty

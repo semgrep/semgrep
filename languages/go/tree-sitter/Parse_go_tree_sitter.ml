@@ -579,7 +579,7 @@ and parameter_declaration env (v1, v2) =
   | Some x ->
       field_name_list env x
       |> List.map (fun id ->
-             ParamClassic { pname = Some id; ptype = v2; pdots = None })
+          ParamClassic { pname = Some id; ptype = v2; pdots = None })
   | None -> [ ParamClassic { pname = None; ptype = v2; pdots = None } ]
 
 and anon_choice_param_decl_18823e5 (env : env)

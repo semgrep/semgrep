@@ -1141,39 +1141,39 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let push_attr tok attr = Stack_.push (attr, tok) attrs2 in
       v2
       |> List.iter (fun x ->
-             match x with
-             | `Choice_conc x -> (
-                 match literal env x with
-                 | Word (s, tok) as expr ->
-                     (match s with
-                     | "-a" -> push_attr tok (Array : declaration_attribute)
-                     | "-A" -> push_attr tok Associative_array
-                     | "-f" -> push_attr tok Function
-                     | "-F" -> push_attr tok Function_short
-                     | "-g" -> push_attr tok Global
-                     | "-i" -> push_attr tok Integer
-                     | "-l" -> push_attr tok Lowercase
-                     | "-n" -> push_attr tok Nameref
-                     | "-p" -> push_attr tok Print
-                     | "-r" -> push_attr tok Readonly
-                     | "-t" -> push_attr tok Trace
-                     | "-u" -> push_attr tok Uppercase
-                     | "-x" -> push_attr tok Export
-                     | _ -> Stack_.push expr unknowns);
-                     last_tok := tok
-                 | e ->
-                     Stack_.push e unknowns;
-                     last_tok := snd (AST_bash_loc.expression_loc e))
-             | `Choice_semg_meta x ->
-                 (* x, $X *)
-                 let var = simple_variable_name env x in
-                 last_tok := AST_bash_loc.variable_name_loc var |> snd;
-                 Stack_.push var decls
-             | `Var_assign x ->
-                 (* x=42, $X=42 *)
-                 let assign = variable_assignment env x in
-                 last_tok := AST_bash_loc.assignment_loc assign |> snd;
-                 Stack_.push assign assigns);
+          match x with
+          | `Choice_conc x -> (
+              match literal env x with
+              | Word (s, tok) as expr ->
+                  (match s with
+                  | "-a" -> push_attr tok (Array : declaration_attribute)
+                  | "-A" -> push_attr tok Associative_array
+                  | "-f" -> push_attr tok Function
+                  | "-F" -> push_attr tok Function_short
+                  | "-g" -> push_attr tok Global
+                  | "-i" -> push_attr tok Integer
+                  | "-l" -> push_attr tok Lowercase
+                  | "-n" -> push_attr tok Nameref
+                  | "-p" -> push_attr tok Print
+                  | "-r" -> push_attr tok Readonly
+                  | "-t" -> push_attr tok Trace
+                  | "-u" -> push_attr tok Uppercase
+                  | "-x" -> push_attr tok Export
+                  | _ -> Stack_.push expr unknowns);
+                  last_tok := tok
+              | e ->
+                  Stack_.push e unknowns;
+                  last_tok := snd (AST_bash_loc.expression_loc e))
+          | `Choice_semg_meta x ->
+              (* x, $X *)
+              let var = simple_variable_name env x in
+              last_tok := AST_bash_loc.variable_name_loc var |> snd;
+              Stack_.push var decls
+          | `Var_assign x ->
+              (* x=42, $X=42 *)
+              let assign = variable_assignment env x in
+              last_tok := AST_bash_loc.assignment_loc assign |> snd;
+              Stack_.push assign assigns);
       let decls = List.rev !decls in
       let assigns = List.rev !assigns in
       let attrs = attrs1 @ List.rev !attrs2 in
@@ -1205,15 +1205,15 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let last_tok = ref first_tok in
       v2
       |> List.iter (fun x ->
-             match x with
-             | `Choice_conc x ->
-                 let e = literal env x in
-                 Stack_.push e unknowns;
-                 last_tok := AST_bash_loc.expression_loc e |> snd
-             | `Choice_semg_meta tok ->
-                 let var = simple_variable_name env tok in
-                 Stack_.push var decls;
-                 last_tok := variable_name_tok var);
+          match x with
+          | `Choice_conc x ->
+              let e = literal env x in
+              Stack_.push e unknowns;
+              last_tok := AST_bash_loc.expression_loc e |> snd
+          | `Choice_semg_meta tok ->
+              let var = simple_variable_name env tok in
+              Stack_.push var decls;
+              last_tok := variable_name_tok var);
       let loc =
         (first_tok, !last_tok)
         (* TODO *)

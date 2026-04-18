@@ -243,11 +243,11 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
           let matches =
             res.processed_matches
             |> List.filter_map (fun processed_match ->
-                   match Core_json_output.match_to_match processed_match with
-                   | Error (e : Core_error.t) ->
-                       UConsole.eprint (Core_error.string_of_error e);
-                       None
-                   | Ok (match_ : Out.core_match) -> Some match_)
+                match Core_json_output.match_to_match processed_match with
+                | Error (e : Core_error.t) ->
+                    UConsole.eprint (Core_error.string_of_error e);
+                    None
+                | Ok (match_ : Out.core_match) -> Some match_)
           in
           let matches = Core_json_output.dedup_and_sort matches in
           matches |> List.iter Core_text_output.print_match;
@@ -259,7 +259,7 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
                 m "some files were skipped or only partially analyzed");
             res.errors
             |> List.iter (fun err ->
-                   Logs.warn (fun m -> m "%s" (E.string_of_error err))))
+                Logs.warn (fun m -> m "%s" (E.string_of_error err))))
       | Error exn -> Exception.reraise exn)
   | NoOutput -> ()
 

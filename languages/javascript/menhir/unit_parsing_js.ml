@@ -33,13 +33,13 @@ let tests =
           in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ = Parse_js.parse_program file in
-                   ()
-                 with
-                 | Parsing_error.Syntax_error _
-                 | Common.Todo ->
-                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
+              try
+                let _ = Parse_js.parse_program file in
+                ()
+              with
+              | Parsing_error.Syntax_error _
+              | Common.Todo ->
+                  Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       t "regression files typescript" (fun () ->
           let dir = tests_path / "typescript" / "parsing" in
           let files =
@@ -47,13 +47,13 @@ let tests =
           in
           files
           |> List.iter (fun file ->
-                 try
-                   let _ = Parse_js.parse_program file in
-                   ()
-                 with
-                 | Parsing_error.Syntax_error _
-                 | Common.Todo ->
-                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
+              try
+                let _ = Parse_js.parse_program file in
+                ()
+              with
+              | Parsing_error.Syntax_error _
+              | Common.Todo ->
+                  Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       t "rejecting bad code" (fun () ->
           try
             Hook.with_hook_set Flag_parsing.show_parsing_error false (fun () ->

@@ -41,10 +41,10 @@ let escaped_strings =
 let test_unescape () =
   escaped_strings
   |> List.iter (fun (input, expected_output) ->
-         let output = String_literal.approximate_unescape input in
-         Alcotest.(check string)
-           ("String_literal.approximate_unescape " ^ input)
-           expected_output output)
+      let output = String_literal.approximate_unescape input in
+      Alcotest.(check string)
+        ("String_literal.approximate_unescape " ^ input)
+        expected_output output)
 
 type result = Succeeds | Blows_up
 
@@ -136,17 +136,17 @@ let print_expectations () =
   let tn = ref 0 in
   pattern_expectations
   |> List.iter (fun (pat, _input, pcre_res, js_res, prediction) ->
-         let actual = worse_of pcre_res js_res in
-         let count =
-           match (actual, prediction) with
-           | Blows_up, Blows_up -> tp
-           | Succeeds, Blows_up -> fp
-           | Blows_up, Succeeds -> fn
-           | Succeeds, Succeeds -> tn
-         in
-         incr count;
-         printf "%s : %s, prediction %s\n" pat (string_of_result actual)
-           (if actual = prediction then "agrees" else "disagrees"));
+      let actual = worse_of pcre_res js_res in
+      let count =
+        match (actual, prediction) with
+        | Blows_up, Blows_up -> tp
+        | Succeeds, Blows_up -> fp
+        | Blows_up, Succeeds -> fn
+        | Succeeds, Succeeds -> tn
+      in
+      incr count;
+      printf "%s : %s, prediction %s\n" pat (string_of_result actual)
+        (if actual = prediction then "agrees" else "disagrees"));
   printf "Confusion matrix:\n  TP: %i\n  FP: %i\n  FN: %i\n  TN: %i\n%!" !tp !fp
     !fn !tn
 
@@ -183,7 +183,7 @@ let test_vulnerability_prediction () =
         | Ok subpatterns ->
             subpatterns
             |> List.iter (fun pat ->
-                   printf "found vulnerable subpattern: %s\n" pat);
+                printf "found vulnerable subpattern: %s\n" pat);
             Blows_up
       in
       printf "pattern: %s\n  expected prediction: %s\n  prediction: %s\n%!" pat

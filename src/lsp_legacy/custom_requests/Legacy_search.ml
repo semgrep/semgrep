@@ -60,10 +60,10 @@ let ongoing_meth = "semgrep/searchOngoing"
 let parse_globs ~kind (strs : Yojson.Safe.t list) =
   strs
   |> List.filter_map (function
-       | `String s -> (
-           try
-             let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
-             (* We do this because including/excluding does not need to
+    | `String s -> (
+        try
+          let loc = Glob.Match.string_loc ~source_kind:(Some kind) s in
+          (* We do this because including/excluding does not need to
                 specify a precise path.
                 For instance, the default behavior of VS Code's search panel
                 is if you include something like `a`, then this will
@@ -71,14 +71,14 @@ let parse_globs ~kind (strs : Yojson.Safe.t list) =
                 something like `/a`, or even `/b/a`. Essentially, there
                 is allowed to be stuff before and after it.
              *)
-             let s =
-               if Fpath.exists_ext (Fpath.v s) then "**/" ^ s
-               else "**/" ^ s ^ "/**"
-             in
-             Some (Glob.Match.compile ~source:loc (Glob.Parse.parse_string s))
-           with
-           | Glob.Lexer.Syntax_error _ -> None)
-       | _ -> None)
+          let s =
+            if Fpath.exists_ext (Fpath.v s) then "**/" ^ s
+            else "**/" ^ s ^ "/**"
+          in
+          Some (Glob.Match.compile ~source:loc (Glob.Parse.parse_string s))
+        with
+        | Glob.Lexer.Syntax_error _ -> None)
+    | _ -> None)
 
 (* coupling: you must change this if you change the `Request_params.t` type! *)
 let mk_params ~lang ~fix ~includes ~excludes pattern =
@@ -281,8 +281,8 @@ let mk_env (session : Legacy_session.t) (params : Request_params.t) =
   let filtered_by_includes_excludes =
     files
     |> List.filter (fun file ->
-           filter_by_includes_excludes ~project_root file params.includes
-             params.excludes)
+        filter_by_includes_excludes ~project_root file params.includes
+          params.excludes)
   in
   { initial_files = filtered_by_includes_excludes; params }
 
@@ -442,30 +442,30 @@ let json_of_matches
         let matches =
           matches
           |> List.map (fun (m : Core_result.processed_match) ->
-                 let range = Conv.range_of_toks m.pm.range_loc in
-                 let range_json = Range.yojson_of_t range in
-                 let line = List.nth (UFile.cat path) range.start.line in
-                 let before, inside, after =
-                   if Int.equal range.start.line range.end_.line then
-                     preview_of_line line
-                       ~col_range:(range.start.character, range.end_.character)
-                   else
-                     preview_of_line line
-                       ~col_range:(range.start.character, String.length line)
-                 in
-                 let fix_json =
-                   match m.autofix_edit with
-                   | None -> `Null
-                   | Some e -> `String e.replacement_text
-                 in
-                 `Assoc
-                   [
-                     ("range", range_json);
-                     ("fix", fix_json);
-                     ("before", `String before);
-                     ("inside", `String inside);
-                     ("after", `String after);
-                   ])
+              let range = Conv.range_of_toks m.pm.range_loc in
+              let range_json = Range.yojson_of_t range in
+              let line = List.nth (UFile.cat path) range.start.line in
+              let before, inside, after =
+                if Int.equal range.start.line range.end_.line then
+                  preview_of_line line
+                    ~col_range:(range.start.character, range.end_.character)
+                else
+                  preview_of_line line
+                    ~col_range:(range.start.character, String.length line)
+              in
+              let fix_json =
+                match m.autofix_edit with
+                | None -> `Null
+                | Some e -> `String e.replacement_text
+              in
+              `Assoc
+                [
+                  ("range", range_json);
+                  ("fix", fix_json);
+                  ("before", `String before);
+                  ("inside", `String inside);
+                  ("after", `String after);
+                ])
         in
         `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
       matches_by_file
