@@ -1372,14 +1372,16 @@ def deregister_tools(mcp: FastMCP, transport: str) -> None:
         if is_disabled:
             # for the time being, while there is no way to API-level remove tools,
             # we'll just mutate the internal `_tools`, because this language does
-            # not stop us from doing so
-            del mcp._tool_manager._tools[tool_name]
+            # not stop us from doing so. `pop(..., None)` keeps this idempotent
+            # against tools that were never registered (e.g. because another
+            # gate in this function already removed them on an earlier pass).
+            mcp._tool_manager._tools.pop(tool_name, None)
 
     if is_hosted():
-        del mcp._tool_manager._tools["semgrep_scan"]
-        del mcp._tool_manager._tools["semgrep_scan_supply_chain"]
+        mcp._tool_manager._tools.pop("semgrep_scan", None)
+        mcp._tool_manager._tools.pop("semgrep_scan_supply_chain", None)
     else:
-        del mcp._tool_manager._tools["semgrep_scan_remote"]
+        mcp._tool_manager._tools.pop("semgrep_scan_remote", None)
 
     if transport == "stdio":
         # The whoami tool doesn't work via stdio since it requires a JWT token,
@@ -1388,4 +1390,4 @@ def deregister_tools(mcp: FastMCP, transport: str) -> None:
         #
         # TODO?: if we implement OAuth for connecting to the MCP server locally,
         # we could enable it via stdio
-        del mcp._tool_manager._tools["semgrep_whoami"]
+        mcp._tool_manager._tools.pop("semgrep_whoami", None)
