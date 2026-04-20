@@ -50,7 +50,7 @@ let (count_open_close_stuff_ifdef_clause : ifdef_grouped list -> int * int) =
       | x when TH.is_opar x -> incr cnt_paren
       | x when TH.is_obrace x -> incr cnt_brace
       | x when TH.is_cpar x -> decr cnt_paren
-      | x when TH.is_obrace x -> decr cnt_brace
+      | x when TH.is_cbrace x -> decr cnt_brace
       | _ -> ());
   (!cnt_paren, !cnt_brace)
 
