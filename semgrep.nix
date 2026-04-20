@@ -74,6 +74,16 @@ let
           resolveArgs = {
             # speeds up so we don't get a solver timeout
             criteria = null;
+            # opam-nix's buildOpamProject defaults `dev = true`, which causes
+            # the solver to treat every `:dev`-filtered dep of every package
+            # in the graph as required. Outside nix, the opam `:dev` filter
+            # only activates when the *installed* package was sourced from
+            # a git pin, and `opam install --locked` evaluates it to false
+            # for all our transitive deps — so setting this to false here
+            # matches the non-nix behavior. Notably, this prevents opam-nix
+            # from pulling in timedesc's `bisect_ppx {dev & >= 2.5.0}` dep,
+            # which would otherwise cap cmdliner < 2.0.0.
+            dev = false;
           };
           repos = [ "${opam-repository}" ];
           # repos = opamRepos to force newest version of opam
