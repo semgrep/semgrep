@@ -116,7 +116,7 @@ let units_conversion =
 let number_of_bytes_converter : int Cmdliner.Arg.conv =
   let parser s =
     let fail =
-      `Error (spf "Invalid representation for a number of bytes: %s" s)
+      Error (`Msg (spf "Invalid representation for a number of bytes: %s" s))
     in
     let s = String.uppercase_ascii s in
     if s =~ "^\\([^ BKMGT]*\\)[ ]*\\([BKMGT][A-Z]*\\)$" then
@@ -124,12 +124,12 @@ let number_of_bytes_converter : int Cmdliner.Arg.conv =
       match
         (float_of_string_opt number, List.assoc_opt unit units_conversion)
       with
-      | Some n, Some unit -> `Ok (int_of_float (n *. unit))
+      | Some n, Some unit -> Ok (int_of_float (n *. unit))
       | _else_ -> fail
     else
       match int_of_string_opt s with
-      | Some i -> `Ok i
+      | Some i -> Ok i
       | None -> fail
   in
   let printer ppf x = Format.pp_print_int ppf x in
-  (parser, printer)
+  Arg.conv ~docv:"BYTES" (parser, printer)

@@ -14,7 +14,4 @@
    ; via a parameter in tests().
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
-; restore once can compile semgrep with working ppxlib and
-; bisect_ppx together
-; (instrumentation (backend bisect_ppx))
 )

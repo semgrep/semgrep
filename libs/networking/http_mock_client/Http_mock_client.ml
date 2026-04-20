@@ -42,6 +42,12 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
   type 'a io = 'a Lwt.t
   type body = Cohttp_lwt.Body.t
 
+  (* Cohttp_lwt.S.Client requires an IO module (since cohttp 6.2.0). The mock
+     [call] short-circuits before any real IO happens, but the module type
+     still requires [IO] to be present; reuse the real Lwt/Unix implementation
+     so the mock behaves correctly if anything reaches into it. *)
+  module IO = Cohttp_lwt_unix.Private.IO
+
   let map_context (x : 'a with_context) (f : 'a -> 'b) ?ctx = x ?ctx |> f
 
   let mock_response_of_request (req : Cohttp.Request.t) (body : Body.t) =
