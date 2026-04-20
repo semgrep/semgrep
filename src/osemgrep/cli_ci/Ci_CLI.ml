@@ -259,13 +259,6 @@ let o_enable_mal_deps : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let o_x_use_scan_v2 : bool Term.t =
-  H.negatable_flag_with_env [ "x-use-scan-v2" ] ~neg_options:[ "x-no-scan-v2" ]
-    ~default:true
-    ~env:(Cmd.Env.info "SEMGREP_USE_SCAN_V2")
-    ~doc:
-      {|Use v2 /scans endpoint (default true). Negate with --x-no-scan-v2 to fall back to v1.|}
-
 let o_x_upload_partial_results_scan_id : int option Term.t =
   let info =
     Arg.info
@@ -512,8 +505,8 @@ let cmdline_term : conf Term.t =
       x_merge_partial_results_dir x_merge_partial_results_output
       _x_partial_config _x_partial_output x_upload_partial_results
       x_upload_partial_results_scan_id _x_use_saved_scan_config_path
-      _x_use_scan_v2 x_validate_partial_results_actual
-      x_validate_partial_results_expected _enable_mal_deps =
+      x_validate_partial_results_actual x_validate_partial_results_expected
+      _enable_mal_deps =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -560,7 +553,7 @@ let cmdline_term : conf Term.t =
     $ o_x_merge_partial_results_dir $ o_x_merge_partial_results_output
     $ o_x_partial_config $ o_x_partial_output $ o_x_upload_partial_results
     $ o_x_upload_partial_results_scan_id $ o_x_use_saved_scan_config_path
-    $ o_x_use_scan_v2 $ o_x_validate_partial_results_actual
+    $ o_x_validate_partial_results_actual
     $ o_x_validate_partial_results_expected $ o_enable_mal_deps)
 
 let doc = "the recommended way to run semgrep in CI"

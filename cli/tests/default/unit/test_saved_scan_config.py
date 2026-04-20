@@ -53,7 +53,6 @@ def test_dump_and_load_scan_config_roundtrip(mocker, mock_state, tmp_path):
     # Create a handler that will dump the config when handling a scan response
     handler = ScanHandler(
         enable_transitive_reachability=None,
-        use_scan_v2=True,
         dump_scan_config_path=config_path,
     )
     scan_response = out.ScanResponse.from_json(V1_SCAN_RESPONSE)
@@ -64,7 +63,6 @@ def test_dump_and_load_scan_config_roundtrip(mocker, mock_state, tmp_path):
     mocker.patch("semgrep.app.scans.telemetry")
     handler2 = ScanHandler(
         enable_transitive_reachability=None,
-        use_scan_v2=True,
         load_saved_scan_config_path=config_path,
     )
     project_metadata = mocker.MagicMock()
@@ -87,7 +85,6 @@ def test_load_scan_config_missing_file_fails(mocker, mock_state, tmp_path):
     mocker.patch("semgrep.app.scans.telemetry")
     handler = ScanHandler(
         enable_transitive_reachability=None,
-        use_scan_v2=False,
         load_saved_scan_config_path=tmp_path / "nonexistent.json",
     )
     project_metadata = mocker.MagicMock()
@@ -105,7 +102,6 @@ def test_no_dump_when_path_not_set(mock_state, tmp_path):
     """No config file is written when dump_scan_config_path is not provided."""
     handler = ScanHandler(
         enable_transitive_reachability=None,
-        use_scan_v2=True,
     )
     scan_response = out.ScanResponse.from_json(V1_SCAN_RESPONSE)
     handler._handle_scan_response(scan_response)
