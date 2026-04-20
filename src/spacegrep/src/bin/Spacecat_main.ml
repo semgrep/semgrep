@@ -83,15 +83,13 @@ let man =
     `P "spacegrep(1)";
   ]
 
-let info name = Term.info ~doc ~man name
+let info name = Cmd.info ~doc ~man name
 
 let parse_command_line name =
-  match Term.eval (cmdline_term, info name) with
-  | `Error _ -> exit 1
-  | `Version
-  | `Help ->
-      exit 0
-  | `Ok config -> config
+  match Cmd.eval_value (Cmd.v (info name) cmdline_term) with
+  | Ok (`Ok config) -> config
+  | Ok (`Version | `Help) -> exit 0
+  | Error _ -> exit 1
 
 let run_one config input =
   let src =

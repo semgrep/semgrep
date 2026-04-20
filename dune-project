@@ -117,7 +117,7 @@ For more information see https://semgrep.dev
     (xmlm (>= 1.4.0))
     (sarif (>= 0.3.1 ))
     ; CLI
-    (cmdliner (>= 1.3.0))
+    (cmdliner (>= 2.0.0))
     ; PPX
     ; some ppx libs below don't support 0.36.0 yet
     (ppxlib (= 0.35.0))
@@ -263,7 +263,7 @@ a few other projects developed at r2c.
     (ocaml (>= "4.13.0"))
     (ANSITerminal (>= "0.8.4"))
     (alcotest (>= "1.5.0"))
-    (cmdliner (>= "1.1.1" ))
+    (cmdliner (>= "2.0.0"))
     (logs (>= "0.7.0" ))
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))

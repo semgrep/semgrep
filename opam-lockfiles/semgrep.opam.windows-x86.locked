@@ -53,7 +53,7 @@ depends: [
   "carton-git" {= "0.7.2"}
   "carton-lwt" {= "0.7.2"}
   "checkseum" {= "0.5.2"}
-  "cmdliner" {= "1.3.0"}
+  "cmdliner" {= "2.1.0"}
   "cohttp" {= "6.1.1"}
   "cohttp-eio" {= "6.1.1"}
   "cohttp-lwt" {= "6.1.1"}
@@ -346,7 +346,7 @@ pin-depends: [
   ]
   [
     "tree-sitter.dev"
-    "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#abb14bfa9ce2bb983f425f091b0cffe44fdb6848"
+    "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#c4baff8d83b2e1f83f247acb11d0c9dafa5e48f7"
   ]
   [
     "visitors-cleanroom.dev"

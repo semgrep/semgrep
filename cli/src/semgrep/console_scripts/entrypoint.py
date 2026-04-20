@@ -166,6 +166,19 @@ def exec_pysemgrep():
 # they'll get the old behavior.
 def exec_osemgrep():
     argv = sys.argv
+    # cmdliner 2.x emits ANSI-styled error/help output whenever TERM is set,
+    # with no isatty check (a regression from 1.x, which was always plain).
+    # When our own stderr isn't a TTY (piped to a log file, captured by a
+    # test harness, etc.), set NO_COLOR so cmdliner reverts to plain output.
+    # Skip when the caller has an explicit color preference so force-color
+    # tests and users who opt in/out stay in control.
+    if (
+        not sys.stderr.isatty()
+        and not os.environ.get("NO_COLOR")
+        and not os.environ.get("FORCE_COLOR")
+        and not os.environ.get("SEMGREP_FORCE_COLOR")
+    ):
+        os.environ["NO_COLOR"] = "1"
     if any(pro_flag in argv for pro_flag in PRO_FLAGS):
         try:
             path = find_semgrep_core_path(
