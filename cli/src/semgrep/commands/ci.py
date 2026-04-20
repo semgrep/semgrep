@@ -255,14 +255,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     type=click.Path(allow_dash=True, path_type=Path),
     hidden=True,
 )
-@click.option(
-    "--x-use-scan-v2/--x-no-scan-v2",
-    "use_scan_v2",
-    default=True,
-    envvar="SEMGREP_USE_SCAN_V2",
-    hidden=True,
-    help="Use v2 /scans endpoint (default). Pass --x-no-scan-v2 to fall back to v1.",
-)
 @handle_command_errors
 def ci(
     # coupling: we use the names/values of some of these args in telemetry.py for tagging traces
@@ -347,7 +339,6 @@ def ci(
     x_group_taint_rules: bool,
     x_dump_symbol_analysis: bool,
     enable_mal_deps: bool,
-    use_scan_v2: bool,
     x_mem_policy: Optional[MemoryPolicy],
     x_dump_subprojects_and_exit: Optional[Path],
     x_computed_dependencies_dir: Optional[Path],
@@ -476,7 +467,6 @@ def ci(
                 partial_output=partial_output,
                 dump_scan_id_path=dump_scan_id_path,
                 enable_mal_deps=enable_mal_deps,
-                use_scan_v2=use_scan_v2,
                 dump_scan_config_path=x_dump_scan_config_path,
                 load_saved_scan_config_path=x_use_saved_scan_config_path,
             )

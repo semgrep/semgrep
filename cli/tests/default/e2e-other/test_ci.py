@@ -1776,7 +1776,21 @@ def test_generic_secrets_output(
 @pytest.mark.osemfail
 def test_semgrep_managed_scan_id(run_semgrep: RunSemgrep, requests_mock):
     MANAGED_SCAN_ID = "12321"
-    scan_create = requests_mock.post("https://semgrep.dev/api/cli/scans")
+    scan_create = requests_mock.post(
+        "https://semgrep.dev/api/cli/v2/scans",
+        json={
+            "info": {
+                "id": 12345,
+                "enabled_products": [],
+                "deployment_id": 1,
+                "deployment_name": "test",
+            }
+        },
+    )
+    requests_mock.get(
+        re.compile(r"/api/cli/v2/scans/[^/]+/config"),
+        json={"status": "success", "config": {"rules": []}, "engine_params": {}},
+    )
     run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", "--oss-only"],
@@ -1842,7 +1856,7 @@ def test_fail_auth_invalid_key(
     """
     Test that an invalid api key returns exit code 13, even when errors are supressed
     """
-    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=401)
+    requests_mock.post("https://semgrep.dev/api/cli/v2/scans", status_code=401)
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
         subcommand="ci",
@@ -1864,7 +1878,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
     Test that an invalid api key returns exit code 13, even when errors are supressed
     """
     scan_create = requests_mock.post(
-        "https://semgrep.dev/api/cli/scans", status_code=401
+        "https://semgrep.dev/api/cli/v2/scans", status_code=401
     )
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
@@ -1878,7 +1892,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
 
     assert fail_open.called
     assert fail_open.last_request.json() == {
-        "url": "https://semgrep.dev/api/cli/scans",
+        "url": "https://semgrep.dev/api/cli/v2/scans",
         "method": "POST",
         "status_code": 401,
         "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
@@ -1894,7 +1908,7 @@ def test_fail_auth_invalid_response(
     """
     Test that and invalid api key returns exit code 13
     """
-    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
+    requests_mock.post("https://semgrep.dev/api/cli/v2/scans", status_code=500)
     run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", "--oss-only"],
@@ -1913,7 +1927,7 @@ def test_fail_auth_invalid_response_can_be_supressed(
     """
     Test that failure to authenticate with --suppres-errors returns exit code 0
     """
-    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
+    requests_mock.post("https://semgrep.dev/api/cli/v2/scans", status_code=500)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
         subcommand="ci",
@@ -1973,7 +1987,7 @@ def test_fail_open_works_when_backend_is_down(
     Test that an invalid api key returns exit code 13, even when errors are supressed
     """
     scan_create = requests_mock.post(
-        "https://semgrep.dev/api/cli/scans", exc=ConnectionError
+        "https://semgrep.dev/api/cli/v2/scans", exc=ConnectionError
     )
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
@@ -1987,7 +2001,7 @@ def test_fail_open_works_when_backend_is_down(
 
     assert fail_open.called
     assert fail_open.last_request.json() == {
-        "url": "https://semgrep.dev/api/cli/scans",
+        "url": "https://semgrep.dev/api/cli/v2/scans",
         "method": "POST",
         "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
         "error": str_containing("requests.exceptions.ConnectionError"),

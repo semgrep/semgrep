@@ -107,7 +107,6 @@ class ScanHandler:
         partial_output: Optional[Path] = None,
         dump_scan_id_path: Optional[Path] = None,
         enable_mal_deps: bool = False,
-        use_scan_v2: bool = True,
         dump_scan_config_path: Path | None = None,
         load_saved_scan_config_path: Path | None = None,
     ) -> None:
@@ -124,7 +123,6 @@ class ScanHandler:
         and enable or disable transitive reachability accordingly.
         :param enable_mal_deps: Override to enable malicious dependency
         rules for this scan, even if disabled at the deployment level.
-        :param use_scan_v2: Use v2 /scans endpoint (default). Falls back to v1 on error.
         :param dump_scan_config_path: Path to save the scan config to for later use with
             load_saved_scan_config_path.
         :param load_saved_scan_config_path: Path to a scan config previously dumped with
@@ -148,7 +146,6 @@ class ScanHandler:
         self.partial_output = partial_output
         self.dump_scan_id_path = dump_scan_id_path
         self.enable_transitive_reachability = enable_transitive_reachability
-        self.use_scan_v2 = use_scan_v2
 
         self.dump_scan_config_path = dump_scan_config_path
         self.load_saved_scan_config_path = load_saved_scan_config_path
@@ -425,11 +422,7 @@ class ScanHandler:
     def start_scan(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
     ) -> None:
-        """
-        Start a scan and get configuration from the server.
-
-        If use_scan_v2 is enabled, attempts v2 endpoint first with fallback to v1.
-        """
+        """Start a scan and get configuration from the server."""
         span = telemetry.get_current_span()
 
         if self.load_saved_scan_config_path:
@@ -446,21 +439,7 @@ class ScanHandler:
             span.set_attribute("scan.loaded_saved_config", True)
             return
 
-        if self.use_scan_v2:
-            span.set_attribute("scan.v2.attempted", True)
-            try:
-                response = self.start_scan_v2(project_metadata, project_config)
-                span.set_attribute("scan.v2.succeeded", True)
-                self._handle_scan_response(response)
-                return
-            except Exception as e:
-                span.set_attribute("scan.v2.succeeded", False)
-                logger.info(f"V2 scan endpoint failed, falling back to v1: {e}")
-                # Fall through to v1
-        else:
-            span.set_attribute("scan.v2.attempted", False)
-
-        response = self.start_scan_v1(project_metadata, project_config)
+        response = self.start_scan_v2(project_metadata, project_config)
         self._handle_scan_response(response)
 
     # coupling(backend): if you change this you must change poll_scan_config_v2 in Semgrep_App.ml
@@ -649,33 +628,6 @@ class ScanHandler:
             f"Config still pending after {elapsed}s "
             f"(scan_request_id={scan_request_id}, {poll_attempt} poll attempts)"
         )
-
-    @telemetry.trace()
-    def start_scan_v1(
-        self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
-    ) -> out.ScanResponse:
-        """
-        Create a scan and get configuration.
-
-        Posts to /api/cli/scans, which generates the config synchronously
-        and returns it with the scan response.
-        """
-        state = get_state()
-        request = out.ScanRequest(
-            scan_metadata=self.scan_metadata,
-            project_metadata=project_metadata,
-            project_config=project_config.to_CiConfigFromRepo(),
-        ).to_json()
-
-        logger.debug(f"Starting scan: {json.dumps(request, indent=4)}")
-        response = state.app_session.post(
-            f"{state.env.semgrep_url}/api/cli/scans",
-            json=request,
-        )
-
-        self._raise_if_request_failed(response)
-
-        return out.ScanResponse.from_json(response.json())
 
     @telemetry.trace()
     def report_failure(self, exit_code: int) -> None:
