@@ -97,6 +97,11 @@ let with_hook_eio_call_fn_set v f =
 
 let string_of_meth = Cohttp.Code.string_of_method
 
+(* Render a URI safely for logs: just the host component, with no userinfo,
+   path, query, or fragment — the parts where secrets typically end up after
+   metavariable substitution or client-side request construction. *)
+let scrub_uri = Uri.host_with_default ~default:"<no-host>"
+
 let server_response_of_response (response, body) meth =
   let code = response |> Response.status |> Code.code_of_status in
   let meth_str = string_of_meth meth in
@@ -262,7 +267,7 @@ let call_eio_client ?(body = Cohttp.Body.empty) ?(headers = [])
 (* coupling(eio-port): if you change this you must change the eio version *)
 let rec get ?(headers = []) ?timeout_secs url =
   Logs_.msg_with_detail ~src Logs.Info
-    (spf "GET %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (spf "GET %s" (scrub_uri url))
     (fun () -> Uri.to_string url);
   (* This checks to make sure a client has been set instead of defaulting to a
      client, as that can cause hard to debug build and runtime issues *)
@@ -299,7 +304,7 @@ let rec get ?(headers = []) ?timeout_secs url =
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let rec get_eio ?(headers = []) url =
   Logs_.msg_with_detail ~src Logs.Info
-    (spf "GET %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (spf "GET %s" (scrub_uri url))
     (fun () -> Uri.to_string url);
   (* This checks to make sure a client has been set *)
   (* Instead of defaulting to a client, as that can cause *)
@@ -336,7 +341,7 @@ let rec get_eio ?(headers = []) url =
 let post ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
   Logs_.msg_with_detail ~src Logs.Info
-    (spf "POST %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (spf "POST %s" (scrub_uri url))
     (fun () -> Uri.to_string url);
   let response =
     call_client
@@ -351,7 +356,7 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
 let post_eio ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
   Logs_.msg_with_detail ~src Logs.Info
-    (spf "POST %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (spf "POST %s" (scrub_uri url))
     (fun () -> Uri.to_string url);
   let response =
     call_eio_client
@@ -366,7 +371,7 @@ let post_eio ~body ?(headers = [ ("content-type", "application/json") ])
 let put ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
   Logs_.msg_with_detail ~src Logs.Info
-    (spf "PUT %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (spf "PUT %s" (scrub_uri url))
     (fun () -> Uri.to_string url);
   let response =
     call_client
