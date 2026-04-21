@@ -57,6 +57,74 @@ let test_ok_bias () =
     (let _ = Lwt_unix.sleep 0.1 in
      successful_req ())
 
+(* ENGINE-2712: guard against URL leakage from http_helpers's error paths.
+   We plant a sentinel in the request URI's query string and assert that it
+   never appears in any error string returned to callers or in any body
+   argument the mock sees. The sentinel represents, e.g., an API key. *)
+let sentinel = "SHOULDNOTAPPEAR"
+
+let secret_uri =
+  Uri.of_string
+    (Printf.sprintf "https://example.com/search?api_key=%s" sentinel)
+
+let contains_sentinel s =
+  try
+    ignore (Str.search_forward (Str.regexp_string sentinel) s 0);
+    true
+  with
+  | Not_found -> false
+
+let assert_no_leak_in_error = function
+  | Ok _ -> Alcotest.fail "Expected an error from the HTTP mock, got Ok"
+  | Error msg ->
+      Alcotest.(check bool)
+        ("returned error must not contain the URL; got: " ^ msg)
+        false (contains_sentinel msg);
+      Lwt.return_unit
+
+let test_error_string_omits_url_on_exception () =
+  let run =
+    Http_mock_client.with_mocked_http
+      (fun _req _body -> failwith "simulated network failure")
+      (fun () ->
+        let%lwt result = Http_helpers.call_client `GET secret_uri in
+        assert_no_leak_in_error result)
+  in
+  Lwt_platform.run (run ())
+
+let test_error_string_omits_url_on_retry () =
+  let run =
+    Http_mock_client.with_mocked_http
+      (fun _req _body -> Lwt.fail Cohttp_lwt.Connection.Retry)
+      (fun () ->
+        let%lwt result = Http_helpers.call_client `GET secret_uri in
+        assert_no_leak_in_error result)
+  in
+  Lwt_platform.run (run ())
+
+let test_error_string_omits_url_on_timeout () =
+  let run =
+    Http_mock_client.with_mocked_http
+      (fun _req _body ->
+        let%lwt () = Lwt_unix.sleep 1.0 in
+        Lwt.return Http_mock_client.(basic_response Cohttp_lwt.Body.empty))
+      (fun () ->
+        let%lwt result =
+          Http_helpers.call_client ~timeout_secs:0.05 `GET secret_uri
+        in
+        assert_no_leak_in_error result)
+  in
+  Lwt_platform.run (run ())
+
 let tests =
   Testo.categorize "Http_helpers"
-    [ t "test_http_timeout" test_http_timeout; t "test_ok_bias" test_ok_bias ]
+    [
+      t "test_http_timeout" test_http_timeout;
+      t "test_ok_bias" test_ok_bias;
+      t "test_error_string_omits_url_on_exception"
+        test_error_string_omits_url_on_exception;
+      t "test_error_string_omits_url_on_retry"
+        test_error_string_omits_url_on_retry;
+      t "test_error_string_omits_url_on_timeout"
+        test_error_string_omits_url_on_timeout;
+    ]

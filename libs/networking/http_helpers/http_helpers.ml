@@ -165,22 +165,34 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
       (function
         | Cohttp_lwt.Connection.Retry ->
             Lwt.return_error
-              (spf
-                 "HTTP %s to '%s' failed: maybe the server hung up prematurely?"
-                 (string_of_meth meth) (Uri.to_string url))
+              (spf "HTTP %s failed: connection reset or timed out"
+                 (string_of_meth meth))
         | exn ->
             let err = Printexc.to_string exn in
-            Log.err (fun m ->
-                m "HTTP %s to '%s' failed: %s" (string_of_meth meth)
-                  (Uri.to_string url) err);
-            Lwt.return_error err)
+            (* Include the exception constructor (e.g. [Unix_error],
+               [Failure], [Tls_alert]) so the Err log and the caller-
+               visible error both tell you what kind of failure it was.
+               [exn_slot_name] yields a stable identifier without any of
+               the free-form payload that [Printexc.to_string] may embed
+               (which can include the URL via cohttp/TLS messages). *)
+            let stable_msg =
+              spf "HTTP %s failed: %s" (string_of_meth meth)
+                (Printexc.exn_slot_name exn)
+            in
+            Logs_.msg_with_detail ~src Logs.Error stable_msg (fun () ->
+                spf "url=%s exn=%s" (Uri.to_string url) err);
+            Lwt.return_error stable_msg)
   in
   let timeout_secs = Option.value timeout_secs ~default:10.0 in
   let timeout =
     Lwt_unix.sleep timeout_secs >>= fun () ->
+    (* URL is Debug-only; the returned error carries only method + seconds. *)
+    Log.debug (fun m ->
+        m "HTTP %s to '%s' timed out after %.1f seconds" (string_of_meth meth)
+          (Uri.to_string url) timeout_secs);
     Lwt.return_error
-      (spf "HTTP %s to %s timed out after %.1f seconds" (string_of_meth meth)
-         (Uri.to_string url) timeout_secs)
+      (spf "HTTP %s timed out after %.1f seconds" (string_of_meth meth)
+         timeout_secs)
   in
   Lwt.pick [ resp; timeout ]
 
@@ -227,23 +239,31 @@ let call_eio_client ?(body = Cohttp.Body.empty) ?(headers = [])
        reliable metrics delivery. *)
         call_fn ~sw ~headers ~body ~chunked meth url |> resp_handler
       with
-      (* From the source of `Cohttp_eio.Client.call`, it seems that there are simple
-     `failwith`s in the exceptional casses, so let's handle `Failure` here.
-   *)
-      | Failure s -> Error (Format.asprintf "Error in request: %s" s)
+      (* Note: `Cohttp_eio.Client.call` raises plain [Failure] for several
+         conditions, and the message typically embeds the request URI (e.g.,
+         "no host specified (in <uri>)", "HTTPS not enabled (for <uri>)",
+         "Proxy could not form tunnel to <uri>"). We therefore fall [Failure]
+         through to the general handler below, which keeps the detail at
+         Debug and returns a URL-free error to the caller. *)
       | exn ->
           let err = Printexc.to_string exn in
-          Log.err (fun m ->
-              m "HTTP %s to '%s' failed: %s" (string_of_meth meth)
-                (Uri.to_string url) err);
-          Error err)
+          (* See the Lwt variant above. *)
+          let stable_msg =
+            spf "HTTP %s failed: %s" (string_of_meth meth)
+              (Printexc.exn_slot_name exn)
+          in
+          Logs_.msg_with_detail ~src Logs.Error stable_msg (fun () ->
+              spf "url=%s exn=%s" (Uri.to_string url) err);
+          Error stable_msg)
 
 (*****************************************************************************)
 (* Async *)
 (*****************************************************************************)
 (* coupling(eio-port): if you change this you must change the eio version *)
 let rec get ?(headers = []) ?timeout_secs url =
-  Log.info (fun m -> m "GET on %s" (Uri.to_string url));
+  Logs_.msg_with_detail ~src Logs.Info
+    (spf "GET %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (fun () -> Uri.to_string url);
   (* This checks to make sure a client has been set instead of defaulting to a
      client, as that can cause hard to debug build and runtime issues *)
   let response_result = call_client ~headers ?timeout_secs `GET url in
@@ -261,8 +281,13 @@ let rec get ?(headers = []) ?timeout_secs url =
         match location with
         | None ->
             let code_str = Code.string_of_status response.status in
-            let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
-            Log.err (fun m -> m "%s" err);
+            (* Response body is server-controlled content that may include
+               tokens, identifiers, or URLs the server put in its error
+               payload. Keep it at Debug only; log and return a URL- and
+               body-free error. *)
+            let err = spf "HTTP GET failed: %s" code_str in
+            Logs_.msg_with_detail ~src Logs.Error err (fun () ->
+                spf "%s body=%s" err body);
             let server_response = { server_response with body = Error err } in
             Lwt.return_ok server_response
         | Some url -> get ?timeout_secs (Uri.of_string url))
@@ -273,7 +298,9 @@ let rec get ?(headers = []) ?timeout_secs url =
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let rec get_eio ?(headers = []) url =
-  Log.info (fun m -> m "GET on %s" (Uri.to_string url));
+  Logs_.msg_with_detail ~src Logs.Info
+    (spf "GET %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (fun () -> Uri.to_string url);
   (* This checks to make sure a client has been set *)
   (* Instead of defaulting to a client, as that can cause *)
   (* Hard to debug build and runtime issues *)
@@ -293,8 +320,10 @@ let rec get_eio ?(headers = []) url =
         match location with
         | None ->
             let code_str = Code.string_of_status response.status in
-            let err = "HTTP GET failed: " ^ code_str ^ ":\n" ^ body in
-            Log.err (fun m -> m "%s" err);
+            (* See the Lwt variant above. *)
+            let err = spf "HTTP GET failed: %s" code_str in
+            Logs_.msg_with_detail ~src Logs.Error err (fun () ->
+                spf "%s body=%s" err body);
             let server_response = { server_response with body = Error err } in
             Ok server_response
         | Some url -> get_eio (Uri.of_string url))
@@ -306,7 +335,9 @@ let rec get_eio ?(headers = []) url =
 (* coupling(eio-port): if you change this you must change the eio version *)
 let post ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
-  Log.info (fun m -> m "POST on %s" (Uri.to_string url));
+  Logs_.msg_with_detail ~src Logs.Info
+    (spf "POST %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (fun () -> Uri.to_string url);
   let response =
     call_client
       ~body:(Cohttp_lwt.Body.of_string body)
@@ -319,7 +350,9 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let post_eio ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
-  Log.info (fun m -> m "POST on %s" (Uri.to_string url));
+  Logs_.msg_with_detail ~src Logs.Info
+    (spf "POST %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (fun () -> Uri.to_string url);
   let response =
     call_eio_client
       ~body:(Cohttp.Body.of_string body)
@@ -332,7 +365,9 @@ let post_eio ~body ?(headers = [ ("content-type", "application/json") ])
 
 let put ~body ?(headers = [ ("content-type", "application/json") ])
     ?(chunked = false) url =
-  Log.info (fun m -> m "PUT on %s" (Uri.to_string url));
+  Logs_.msg_with_detail ~src Logs.Info
+    (spf "PUT %s" (Uri.host_with_default ~default:"<no-host>" url))
+    (fun () -> Uri.to_string url);
   let response =
     call_client
       ~body:(Cohttp_lwt.Body.of_string body)
