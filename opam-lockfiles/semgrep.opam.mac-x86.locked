@@ -53,10 +53,10 @@ depends: [
   "carton-lwt" {= "0.7.2"}
   "checkseum" {= "0.5.2"}
   "cmdliner" {= "2.1.0"}
-  "cohttp" {= "6.1.1"}
-  "cohttp-eio" {= "6.1.1"}
-  "cohttp-lwt" {= "6.1.1"}
-  "cohttp-lwt-unix" {= "6.1.1"}
+  "cohttp" {= "6.2.1"}
+  "cohttp-eio" {= "6.2.1"}
+  "cohttp-lwt" {= "6.2.1"}
+  "cohttp-lwt-unix" {= "6.2.1"}
   "conduit" {= "8.0.0"}
   "conduit-lwt" {= "8.0.0"}
   "conduit-lwt-unix" {= "8.0.0"}
@@ -116,7 +116,7 @@ depends: [
   "host-arch-x86_64" {= "1"}
   "host-system-other" {= "1"}
   "hpack" {= "0.13.0"}
-  "http" {= "6.1.1"}
+  "http" {= "6.2.1"}
   "httpun-types" {= "0.2.0"}
   "hxd" {= "0.4.0"}
   "integers" {= "0.7.0"}

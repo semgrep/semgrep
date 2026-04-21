@@ -77,9 +77,9 @@ depends: [
   "conf-libcurl" {= "2"}
   "uri" {>= "4.4.0"}
   "uuidm" {>= "0.9.10"}
-  "cohttp" {>= "6.1.1"}
-  "cohttp-lwt-unix" {>= "6.1.1"}
-  "cohttp-eio" {>= "6.1.1"}
+  "cohttp" {>= "6.2.1"}
+  "cohttp-lwt-unix" {>= "6.2.1"}
+  "cohttp-eio" {>= "6.2.1"}
   "tls-lwt" {>= "2.0.3"}
   "emile" {>= "1.1"}
   "digestif" {>= "1.3.0"}
