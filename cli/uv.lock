@@ -10,7 +10,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-09T15:50:54.881986745Z"
+exclude-newer = "2026-04-15T18:22:18.435643798Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -1536,7 +1536,7 @@ wheels = [
 
 [[package]]
 name = "semgrep"
-version = "1.160.0"
+version = "1.161.0"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },

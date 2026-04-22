@@ -15,7 +15,7 @@ authors = [
   { name = "Semgrep Inc.", email = "support@semgrep.com" }
 ]
 name = "semgrep"
-version = "1.160.0"
+version = "1.161.0"
 description = "Lightweight static analysis for many languages. Find bug variants with patterns that look like source code."
 # Since our readme lives outside of the project root (i.e in ../), and we do
 # some dynamic logic in `setup.py`, we need to declare the field as dynamic

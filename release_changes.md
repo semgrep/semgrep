@@ -1,13 +1,10 @@
-## [1.160.0](https://github.com/semgrep/semgrep/releases/tag/v1.160.0) - 2026-04-16
+## [1.161.0](https://github.com/semgrep/semgrep/releases/tag/v1.161.0) - 2026-04-22
 
 ### ### Added
 
-- Scala: Added tree-sitter parser for improved parsing accuracy with pfff fallback. (LANG-255)
-- pro: taint: Improved support for variadic functions (LANG-375)
+- Scala 3.4+ trait parameters are now parsed correctly. (lang-73)
 
 ### ### Fixed
 
-- Fixed performance issues during parsing Semgrep rules containing emoji or
-  other non-BMP Unicode characters. (gh-6070)
-- Emit a warning when semgrep-core rule validation fails and falls back to JSON
-  schema validation, alongside details of the failure. (gh-6071)
+- Semgrep's HTTP requests no longer log URLs above the debug level; full request
+  details remain available when running with `SEMGREP_LOG_SRCS=cohttp.client`. (ENGINE-2712)

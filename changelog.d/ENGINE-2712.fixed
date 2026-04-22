@@ -1,2 +1,0 @@
-Semgrep's HTTP requests no longer log URLs above the debug level; full request
-details remain available when running with `SEMGREP_LOG_SRCS=cohttp.client`.
