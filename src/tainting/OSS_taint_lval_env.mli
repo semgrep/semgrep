@@ -11,22 +11,22 @@
    LICENSE for more details.
 *)
 (** Lval-to-taints environments used by taint-mode.
- *
- * This environment is field-sensitive, but only for l-values of the form
- * x.a_1. ... . a_N (i.e. a variable followed by field accesses). The main
- * purpose of tracking fields is to remove FPs.
- *
- * L-values of the form this.x.a_1. ... . a_N are normalized as
- * x.a_1. ... . a_N. The `this` base is not important as different variables
- * `x` should have different 'sid's. Same applies to `self`, `super`, etc.
- * We rely on Naming_AST to resolve the variables correctly.
- *
- * L-values of the form x.a_1. ... . a_N [i] o_1...o_M are normalized as
- * x.a_1. ... . a_N. That is, we obtain the longest prefix of dot-offsets
- * possible. See docs of `add` and `clean` below for more details.
- *
- * We track taints per variable, but not per object in memory. There is
- * no alias analysis involved!
+
+   This environment is field-sensitive, but only for l-values of the form
+   x.a_1. ... . a_N (i.e. a variable followed by field accesses). The main
+   purpose of tracking fields is to remove FPs.
+
+   L-values of the form this.x.a_1. ... . a_N are normalized as
+   x.a_1. ... . a_N. The `this` base is not important as different variables
+   `x` should have different 'sid's. Same applies to `self`, `super`, etc.
+   We rely on Naming_AST to resolve the variables correctly.
+
+   L-values of the form x.a_1. ... . a_N [i] o_1...o_M are normalized as
+   x.a_1. ... . a_N. That is, we obtain the longest prefix of dot-offsets
+   possible. See docs of `add` and `clean` below for more details.
+
+   We track taints per variable, but not per object in memory. There is
+   no alias analysis involved!
  *)
 
 open Shape_and_sig.Shape
@@ -56,13 +56,13 @@ val add_lval : IL.lval -> Taint.taints -> env -> env
 (* THINK: Perhaps keep propagators outside of this environment? *)
 val check_if_can_propagate_to_dest :
   Dataflow_var_env.var -> Taint.taints -> env -> env * [ `Ready | `Recorded ]
-(** We encountered a `$FROM` and we want to propagate taint towards the `$TO` side.
+(** We encountered a [$FROM] and we want to propagate taint towards the [$TO] side.
 
-  If we already know what the target `$TO` is, then the propagation is '`Ready' to be
+  If we already know what the target [$TO] is, then the propagation is ['`Ready] to be
   performed---but the propagation is not performed in here.
 
-  If we have not yet identified the `$TO`, then the propagation is '`Recorded' (in
-  the 'env') until we find the `$TO`.
+  If we have not yet identified the [$TO], then the propagation is ['`Recorded] (in
+  the 'env') until we find the [$TO].
  *)
 
 val find_var : env -> IL.name -> cell option
@@ -114,8 +114,8 @@ val find_lval_xtaint : env -> IL.lval -> Xtaint.t
 
 val find_taint_to_be_propagated :
   Dataflow_var_env.var -> env -> Taint.taints * env
-(** We encountered a `$TO` and we check for taints waiting to be propagated. If
-  we have not visited the `$FROM` side yet, we introduce a propagation metavariable. *)
+(** We encountered a [$TO] and we check for taints waiting to be propagated. If
+  we have not visited the [$FROM] side yet, we introduce a propagation metavariable. *)
 
 val pending_propagation : Dataflow_var_env.var -> env -> env
 

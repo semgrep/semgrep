@@ -40,7 +40,7 @@ jobs:
           enable-cache: false
           python-version: "3.11"
           version: 0.10.9
-      - uses: semgrep/setup-ocaml@ce6a88f72f48e02a172c93eb93177b21659e7032
+      - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
           cache-prefix: v5
           ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda

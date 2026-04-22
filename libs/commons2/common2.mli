@@ -16,9 +16,9 @@
 
 val glob : Fpath.t -> Fpath.t list
 (** [glob glob_path] is a list of paths of the files matching a path containing wildcards
-  * i.e. [glob (Fpath.v "dir/**/*.extension")] is the list of files in the [dir] directory
-  * or its subdirectories ending in .extension. This function is analogous
-  * to the "ls pattern" in the shell.
+    i.e. [glob (Fpath.v "dir/**/*.extension")] is the list of files in the [dir] directory
+    or its subdirectories ending in .extension. This function is analogous
+    to the "ls pattern" in the shell.
   *)
 
 val unix_diff : string -> string -> string list

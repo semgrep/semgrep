@@ -1,3 +1,4 @@
+semgrep-core rule validation failed (RuleParseError)
 
 
 ┌─────────────┐

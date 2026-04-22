@@ -29,8 +29,8 @@ val support_url : string
 
 val make_login_url : unit -> login_session
 (** [make_login_url ()] will generate a request token and the url to request.
-  * The token is just a UUID token, while the url changes based on the run
-  * environment (gha, cli etc.)
+    The token is just a UUID token, while the url changes based on the run
+    environment (gha, cli etc.)
   *)
 
 (* need the network to first check whether the token is valid *)
@@ -49,9 +49,9 @@ val save_token :
   Auth.token ->
   (Semgrep_output_v1_t.deployment_config, string) result
 (** [save_token ?ident token] will save the token to the user's settings file.
-  * If it fails, it will return an error message.
-  * [ident] is the login identifier that can be used as an opaque UUID once
-  * hashed [token] (auth token) is the token to save for future API calls
+    If it fails, it will return an error message.
+    [ident] is the login identifier that can be used as an opaque UUID once
+    hashed [token] (auth token) is the token to save for future API calls
   *)
 
 val fetch_token :
@@ -62,11 +62,11 @@ val fetch_token :
   shared_secret ->
   (Auth.token * string, string) result
 (** [fetch_token ?min_wait_ms ?next_wait_ms ?max_retries wait_hook shared_secret] will
-  * fetch the token using the request token and url the login session. It will retry up to [max_retries]
-  * times, waiting [min_wait_ms] ms between each retry, and increasing the
-  * wait time by [next_wait_ms] ms each time. If it fails, it will return an
-  * error message. These will give users ~2 minutes to login
-  * [wait_hook] is a function that will be called before each retry
+    fetch the token using the request token and url the login session. It will retry up to [max_retries]
+    times, waiting [min_wait_ms] ms between each retry, and increasing the
+    wait time by [next_wait_ms] ms each time. If it fails, it will return an
+    error message. These will give users ~2 minutes to login
+    [wait_hook] is a function that will be called before each retry
   *)
 
 val fetch_token_async :
@@ -77,12 +77,12 @@ val fetch_token_async :
   shared_secret ->
   (Auth.token * string, string) result Lwt.t
 (** [fetch_token_async ?min_wait_ms ?next_wait_ms ?max_retries wait_hook
-  * shared_secret] will fetch the token using the request token and url the
-  * login session. It will retry up to [max_retries] times, waiting
-  * [min_wait_ms] ms between each retry, and increasing the wait time
-  * by [next_wait_ms] ms each time, returning a promise if successful. If it
-  * fails, it will return an error message. These will give users ~2 minutes
-  * to login [wait_hook] is a function that will be called before each retry
+    shared_secret] will fetch the token using the request token and url the
+    login session. It will retry up to [max_retries] times, waiting
+    [min_wait_ms] ms between each retry, and increasing the wait time
+    by [next_wait_ms] ms each time, returning a promise if successful. If it
+    fails, it will return an error message. These will give users ~2 minutes
+    to login [wait_hook] is a function that will be called before each retry
   *)
 
 val fetch_token_eio :
@@ -115,6 +115,6 @@ val verify_token_eio :
 
 val is_logged_in_weak : unit -> bool
 (** this does not really check whether the user is logged in; it just checks
- * whether a token is defined in ~/.semgrep/settings.yml (or in
- * SEMGREP_APP_TOKEN.
+   whether a token is defined in ~/.semgrep/settings.yml (or in
+   SEMGREP_APP_TOKEN.
  *)

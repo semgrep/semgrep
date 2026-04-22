@@ -38,9 +38,7 @@ exception Multistep_rules_not_available
 type timeout_config = {
   timeout : float;
   threshold : int;
-  (* if eio is true, we are using a gc alarm based timeout mechanism. If
-   * it's a None, we fall back to the signal-based one. *)
-  eio : bool;
+  sigalrm_timeout : bool;
 }
 
 (*****************************************************************************)
@@ -49,15 +47,15 @@ type timeout_config = {
 
 let timeout_function (rule : Rule.t) (file : Fpath.t)
     (timeout : timeout_config option) f =
-  let timeout, eio =
+  let timeout, sigalrm =
     match timeout with
     | None -> (None, false)
-    | Some { eio; timeout; threshold = _ } ->
-        if timeout <= 0. then (None, eio) else (Some timeout, eio)
+    | Some { sigalrm_timeout; timeout; threshold = _ } ->
+        ((if timeout <= 0. then None else Some timeout), sigalrm_timeout)
   in
   match
-    Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" ~eio timeout
-      f
+    Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" ~sigalrm
+      timeout f
   with
   | Some res -> Some res
   | None ->
@@ -185,8 +183,9 @@ let group_rules xconf rules xtarget profiling =
         | `Taint _ as mode -> Left { r with mode }
         | (`Extract _ | `Search _) as mode -> Right { r with mode }
         | `Steps _ ->
-            Log.warn (fun m ->
-                m "Step rule not handled: %s" (Rule.show_rule (r :> Rule.t)));
+            Logs_.msg_with_detail ~src:Log_engine.src Logs.Warning
+              (spf "Step rule not handled: %s" (Rule_ID.to_string (fst r.R.id)))
+              (fun () -> Rule.show_rule (r :> Rule.t));
             raise Multistep_rules_not_available)
       relevant
   in

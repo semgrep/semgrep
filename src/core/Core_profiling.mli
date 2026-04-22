@@ -10,7 +10,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(** Detailed profiling data used for `-json_time` (`--time` from the CLI)
+(** Detailed profiling data used for [-json_time] ([--time] from the CLI)
 
   This should probably be deprecated at some point, it is probably better to
   rely on OpenTelemetry to gather this kind of data.

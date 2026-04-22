@@ -54,12 +54,18 @@
                                   e_range = None; is_implicit_return = false;
                                   facts = <opaque> }),
                              { s =
-                               (ExprStmt (
-                                  { e = (L (Int ((Some 5L), _))); e_id = 0;
-                                    e_range = None;
-                                    is_implicit_return = false;
-                                    facts = <opaque> },
-                                  _));
+                               (Block
+                                  (_,
+                                   [{ s =
+                                      (ExprStmt (
+                                         { e = (L (Int ((Some 5L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> },
+                                         _));
+                                      s_range = None }
+                                     ],
+                                   _));
                                s_range = None }
                              ));
                           s_range = None });

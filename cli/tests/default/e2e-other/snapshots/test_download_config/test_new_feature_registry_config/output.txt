@@ -1,3 +1,4 @@
+semgrep-core rule validation failed (RuleParseError)
 
 Rules downloaded from https://semgrep.dev/c/p/ci failed to parse.
 This is likely because rules have been added that use functionality introduced in later versions of semgrep.

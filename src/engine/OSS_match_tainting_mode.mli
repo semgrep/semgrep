@@ -18,10 +18,10 @@ val check_fundef :
   AST_generic.function_definition ->
   Fun_CFG.t * Shape_and_sig.Effects.t * OSS_dataflow_tainting.mapping
 (** Check a function definition using a [Dataflow_tainting.config] (which can
-  * be obtained with [taint_config_of_rule]). Findings are passed on-the-fly
-  * to the [handle_findings] callback in the dataflow config.
-  *
-  * This is a low-level function exposed for debugging purposes (-dfg_tainting).
+    be obtained with [taint_config_of_rule]). Findings are passed on-the-fly
+    to the [handle_findings] callback in the dataflow config.
+
+    This is a low-level function exposed for debugging purposes (-dfg_tainting).
   *)
 
 val check_rules :
@@ -37,6 +37,6 @@ val check_rules :
   Core_profiling.rule_profiling Core_result.match_result list
   * Core_error.ErrorSet.t
 (** Runs the engine on a group of taint rules, which should be for the
-  * same language. Running on multiple rules at once enables inter-rule
-  * optimizations.
+    same language. Running on multiple rules at once enables inter-rule
+    optimizations.
   *)

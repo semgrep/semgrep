@@ -233,11 +233,11 @@ val fix_location : (location -> location) -> t -> t
 
 val adjust_tok_wrt_base : location -> t -> t
 (** [adjust_tok_wrt_base base_loc tok], where [tok] represents a location
-  * relative to [base_loc], returns the same [tok] but with an absolute
-  * {! location}. This is useful for fixing tokens after
-  * {! Common2.with_tmp_file}. E.g. if [base_loc] points to line 3, and
-  * [tok] points to line 2 (interpreted line 2 starting in line 3), then
-  * the adjusted token will point to line 4. *)
+    relative to [base_loc], returns the same [tok] but with an absolute
+    {! location}. This is useful for fixing tokens after
+    {! Common2.with_tmp_file}. E.g. if [base_loc] points to line 3, and
+    [tok] points to line 2 (interpreted line 2 starting in line 3), then
+    the adjusted token will point to line 4. *)
 
 (*****************************************************************************)
 (* Adjust line x col in a location *)

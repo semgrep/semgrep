@@ -294,14 +294,14 @@ and offset = {
   o : offset_kind;
   oorig : orig;
       (** `oorig' should be a DotAccess expression and gives us the corresponding
-      * Generic expression for a sub-lvalue. Now that we represent `x.a.b.c` as
-      * { base = "x"; rev_offsets = ["c"; "b"; "a"]}, it makes it very easy to
-      * check whether a sub-lvalue is a source/santizer/sink by just checking
-      * the range of the `oorig'.
-      *
-      * alt: We could compute the range of the sub-lvalue from the ranges of all
-      *      the offsets in the sub-lvalue, but this is probably less efficent
-      *      unless we cache the range here. So it seems better to have `oorig'.
+        Generic expression for a sub-lvalue. Now that we represent `x.a.b.c` as
+        { base = "x"; rev_offsets = ["c"; "b"; "a"]}, it makes it very easy to
+        check whether a sub-lvalue is a source/santizer/sink by just checking
+        the range of the `oorig'.
+
+        alt: We could compute the range of the sub-lvalue from the ranges of all
+             the offsets in the sub-lvalue, but this is probably less efficent
+             unless we cache the range here. So it seems better to have `oorig'.
       *)
 }
 
@@ -580,7 +580,11 @@ and param_default = {
 
 and name_param = { pname : name; pdefault : param_default option }
 
-and param = Param of name_param | PatternParam of G.pattern | FixmeParam
+and param =
+  | Param of name_param
+  | PatternParam of G.pattern
+  | ParamRest of name  (** variadic, or "the rest of the remaining arguments" *)
+  | FixmeParam
 [@@deriving
   show { with_path = false },
   visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]

@@ -889,9 +889,15 @@ def parse_config_string_as_rules(
         errors.extend(version_errors)
 
         # Only use semgrep-core to validate the rules that are going to run on semgrep-core
-        contents_to_validate = json.dumps({RULES_KEY: rules_to_validate})
+        # ensure_ascii=False so that characters above U+FFFF (e.g. emoji) are
+        # written as raw UTF-8 rather than JSON surrogate pairs (\ud83d\udeab).
+        # semgrep-core parses this file as YAML, which forbids surrogate code
+        # points (YAML 1.2.2 §5.1), so surrogate pair escapes cause parse errors.
+        contents_to_validate = json.dumps(
+            {RULES_KEY: rules_to_validate}, ensure_ascii=False
+        )
         tmp_fd, rules_tmp_path = mkstemp(suffix=".rules", prefix="semgrep-", text=True)
-        with os.fdopen(tmp_fd, "w") as fp:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as fp:
             fp.write(contents_to_validate)
         logger.debug(f"Saved rules to {rules_tmp_path}")
 
@@ -913,7 +919,13 @@ def parse_config_string_as_rules(
                 run_rpc_validate_exn(rules_tmp_path=rules_tmp_path)
                 logger.debug("RPC validation succeeded")
             except (RpcValidationError, NotImplementedError) as e:
-                logger.debug(f"run_rpc_validate failed: {e}")
+                error_type = (
+                    e.core_error.error_type.kind
+                    if isinstance(e, RpcValidationError)
+                    else type(e).__name__
+                )
+                logger.warning(f"semgrep-core rule validation failed ({error_type})")
+                logger.debug(f"semgrep-core validation error detail: {e}")
                 validate_string_json_schema(loaded_rules)
         return (rules, errors)
 

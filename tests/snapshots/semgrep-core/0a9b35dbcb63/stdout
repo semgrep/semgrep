@@ -34,29 +34,39 @@
                                  { pname = (Some ("x", _));
                                    ptype =
                                    (Some { t =
-                                           (OtherType (("TyRepeated", _),
+                                           (OtherType (
+                                              ("RepeatedParamType", _),
                                               [(T
                                                   { t =
-                                                    (TyN
-                                                       (Id (("T", _),
-                                                          { id_resolved =
-                                                            ref (None);
-                                                            id_resolved_alternatives =
-                                                            ref ([]);
-                                                            id_type =
-                                                            ref (None);
-                                                            id_svalue =
-                                                            ref (None);
-                                                            id_flags =
-                                                            ref (0);
-                                                            id_info_id = _ }
-                                                          )));
-                                                    t_attrs = [] });
-                                                (Tk _)]
+                                                    (OtherType (
+                                                       ("LazyParamType", _),
+                                                       [(T
+                                                           { t =
+                                                             (TyN
+                                                                (Id (
+                                                                   ("T", _),
+                                                                   { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ }
+                                                                   )));
+                                                             t_attrs = [] })
+                                                         ]
+                                                       ));
+                                                    t_attrs = [] })
+                                                ]
                                               ));
                                            t_attrs = [] });
-                                   pdefault = None;
-                                   pattrs = [(KeywordAttr (Lazy, _))];
+                                   pdefault = None; pattrs = [];
                                    pinfo =
                                    { id_resolved =
                                      ref ((Some (Parameter, _)));

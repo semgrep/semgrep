@@ -82,8 +82,16 @@ let parse_pattern_by_lang options lang str =
   (* use adhoc parser (neither menhir nor tree-sitter) *)
   | Lang.Yaml -> Yaml_to_generic.any str
   | Lang.Scala ->
-      let any = Parse_scala.any_of_string str in
-      Scala_to_generic.any any
+      let any =
+        str
+        |> run_pattern
+             [
+               TreeSitterPat Parse_scala_tree_sitter.parse_pattern;
+               PfffPat
+                 (fun s -> Scala_to_generic.any (Parse_scala.any_of_string s));
+             ]
+      in
+      any
   (* Use menhir and tree-sitter *)
   | Lang.Go ->
       let any = Parse_go.any_of_string str in
@@ -275,4 +283,7 @@ let dump_tree_sitter_pattern_cst (lang : Lang.t) (path : Fpath.t) : unit =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree
+  | Lang.Scala ->
+      Tree_sitter_scala.Parse.file file
+      |> dump_and_print_errors Tree_sitter_scala.Boilerplate.dump_tree
   | __else__ -> ()

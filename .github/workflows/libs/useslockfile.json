@@ -55,7 +55,7 @@
     },
     "semgrep": {
       "claude-taskmaster": "e1257e01e0b87b9eaad37f8b83ff3d66abe14e9f",
-      "setup-ocaml": "ce6a88f72f48e02a172c93eb93177b21659e7032"
+      "setup-ocaml": "a739c5405d73c42ef15a9dc995efc0f87396cc36"
     },
     "slackapi": {
       "slack-github-action": "007b2c3c751a190b6f0f040e47ed024deaa72844"

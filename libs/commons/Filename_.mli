@@ -26,10 +26,10 @@ val filename_of_dbe : string * string * string -> string
 
 val dbe_of_filename_many_ext_opt : string -> (string * string * string) option
 (** [dbe_of_filename_many_ext_opt filename] returns [Some (d,b,e)], where
- * [d] is the directory path, and [b ^ "." ^ e] is the base name, where
- * [b] contains no period '.' characters. If this split is not possible,
- * the result is [None].
- * E.g.:
- *     dbe_of_filename_many_ext_opt "foo.test.yaml" = Some (".", "foo", "test.yaml")
- *     dbe_of_filename_many_ext_opt "foo"           = None
+   [d] is the directory path, and [b ^ "." ^ e] is the base name, where
+   [b] contains no period '.' characters. If this split is not possible,
+   the result is [None].
+   E.g.:
+       dbe_of_filename_many_ext_opt "foo.test.yaml" = Some (".", "foo", "test.yaml")
+       dbe_of_filename_many_ext_opt "foo"           = None
  *)

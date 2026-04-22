@@ -137,16 +137,28 @@
                                                       vtok = None })));
                                              s_range = None };
                                             { s =
-                                              (Return (_,
-                                                 (Some { e =
-                                                         (L
-                                                            (Int
-                                                               ((Some 5L), _)));
-                                                         e_id = 0;
-                                                         e_range = None;
-                                                         is_implicit_return =
-                                                         false;
-                                                         facts = <opaque> }),
+                                              (ExprStmt (
+                                                 { e =
+                                                   (StmtExpr
+                                                      { s =
+                                                        (Return (_,
+                                                           (Some { e =
+                                                                   (L
+                                                                    (Int
+                                                                    ((Some 5L),
+                                                                    _)));
+                                                                   e_id = 0;
+                                                                   e_range =
+                                                                   None;
+                                                                   is_implicit_return =
+                                                                   false;
+                                                                   facts =
+                                                                   <opaque> }),
+                                                           _));
+                                                        s_range = None });
+                                                   e_id = 0; e_range = None;
+                                                   is_implicit_return = true;
+                                                   facts = <opaque> },
                                                  _));
                                               s_range = None }
                                             ],

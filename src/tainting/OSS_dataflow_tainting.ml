@@ -83,7 +83,7 @@ type func = {
       (** Best matches for the taint sources/etc, see 'Taint_spec_match'. *)
 }
 (** Data about the top-level function definition under analysis, this does not
- * vary when analyzing lambdas. *)
+   vary when analyzing lambdas. *)
 
 (* REFACTOR: Rename 'Taint_lval_env' as 'Taint_var_env' and create a new module
     for this 'env' type called 'Taint_env' or 'Taint_state' or sth, then we could

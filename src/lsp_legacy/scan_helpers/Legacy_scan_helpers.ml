@@ -43,10 +43,10 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
     files/lines, will be filtered out*)
 
 (** [run_semgrep server] runs semgrep on the given server. If [targets] is
-  * provided, it will be used as the targets for semgrep. If [rules] is
-  * provided, it will be used as the rules for semgrep. Otherwise, the rules
-  * will be read from the config file. If [git_ref] is provided, it will be
-  * used as the git ref for what matches are filtered out based on git diff.
+    provided, it will be used as the targets for semgrep. If [rules] is
+    provided, it will be used as the rules for semgrep. Otherwise, the rules
+    will be read from the config file. If [git_ref] is provided, it will be
+    used as the git ref for what matches are filtered out based on git diff.
   *)
 let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
     (session : Legacy_session.t) =

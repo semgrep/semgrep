@@ -25,11 +25,7 @@ type conf = {
   (* mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
   x_parmap : bool;
-  (* Telemetry *)
-  (* `osemgrep` is not yet the default entry point, so this will not
-     activate telemetry for the entire `osemgrep` command! This is
-     `semgrep lsp`-specific for now.
-   *)
+  (* Telemetry is `semgrep lsp`-specific for now. *)
   telemetry : Telemetry.config option;
 }
 [@@deriving show]

@@ -67,7 +67,7 @@ val pcre_compile : string -> t
 
 val anchored_match : ?on_error:bool -> t -> string -> bool
 (** Match the pattern at the beginning of the string (anchored match)
- * @param on_error is the value to return in case we encounter a PCRE error. *)
+   @param on_error is the value to return in case we encounter a PCRE error. *)
 (* NOTE just adds rflag anchored & runs pmatch_noerr *)
 
 val unanchored_match : ?on_error:bool -> t -> string -> bool
@@ -267,7 +267,7 @@ val replace_first :
   template:string ->
   string ->
   string
-(** [replace_first] replaces the first match according to the substitution template `templ` *)
+(** [replace_first] replaces the first match according to the substitution template [templ] *)
 
 val replace :
   ?iflags:Pcre2.irflag ->
@@ -278,7 +278,7 @@ val replace :
   template:string ->
   string ->
   string
-(** [replace] replaces all matches according to the substitution template `templ` *)
+(** [replace] replaces all matches according to the substitution template [templ] *)
 
 val extract_all :
   ?iflags:Pcre2.irflag ->

@@ -28,8 +28,8 @@ val scan_open_documents : Legacy_session.t -> Legacy_lsp_.Reply.t
 
 val scan_file : Legacy_session.t -> Lsp__Uri0.t -> Legacy_lsp_.Reply.t
 (** [scan_file server] scans the given file. If [content] is provided, it will
-  * be used as the content of the file. Otherwise, the content will be read
-  * from the file system.
+    be used as the content of the file. Otherwise, the content will be read
+    from the file system.
   *)
 
 val refresh_rules : Legacy_session.t -> Legacy_lsp_.Reply.t

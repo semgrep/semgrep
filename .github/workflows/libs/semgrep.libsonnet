@@ -300,6 +300,12 @@ local build_wheel_steps(arch, copy_semgrep_pro=false) =
       name: 'Clean up old artifacts',
       run: 'rm -rf artifacts artifacts.tgz',
     },
+  ] +
+  (if copy_semgrep_pro then [{
+     name: 'Create pro-installed-by.txt',
+     run: 'test -f cli/src/semgrep/bin/pro-installed-by.txt || cli/src/semgrep/bin/semgrep-core-proprietary%s -pro_version > cli/src/semgrep/bin/pro-installed-by.txt' % bin_ext(arch),
+   }] else []) +
+  [
     {
       name: 'Build wheel',
       run: './scripts/build-wheels.sh',
@@ -366,8 +372,10 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
     name: 'e2e semgrep-core test',
     run: "echo '1 == 1' | uv run semgrep -l python -e '$X == $X' --strict -",
   },
-
-];
+] + (if copy_semgrep_pro then [{
+       name: 'Verify pro engine',
+       run: 'uv run semgrep --pro --version',
+     }] else []);
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
