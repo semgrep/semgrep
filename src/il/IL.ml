@@ -454,17 +454,19 @@ and stmt_kind =
       * stmt list
     (* finally / THINK: no finally vs empty finally ? use `option` ? *)
   | Throw of tok * exp (* less: enforce lval here? *)
-  (* TODO:
-      Eventually we may want to lift all nested definitions and have
-      a `type top` for these rather than using 'stmt' like in Generic.
+  (* Lambdas and (with Pro-naming) nested function definitions, and annon classes.
+
+    THINK:
+      Eventually we may want to lift all nested definitions and have a `type top` for
+      these rather than using 'stmt' like in Generic. However, it may complicate
+      taint propagation from the outer function into the nested function/lambda.
     *)
-  (* TODO: Right now this is just lambdas and anon-classes, but we should
-    handle here all nested defs and remove 'DefStmt' from 'MiscStmt'. *)
   | NestedDef of definition
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
 
 and other_stmt =
+  (* Top-level definititions and (for now, for OSS-naming) also nested ones. *)
   | DefStmt of definition
   | DirectiveStmt of G.directive
   | Noop of (* for debugging purposes *) string

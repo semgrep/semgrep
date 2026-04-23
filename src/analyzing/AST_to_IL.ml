@@ -2024,9 +2024,11 @@ and map_stmt_aux env st : stmt list =
       (* We want to analyze any expressions in 'ty'. *)
       let ss, _ = map_type_with_pre_stmts env ty in
       ss
-  | G.DefStmt def ->
+  | G.DefStmt ((ent, _) as def) ->
+      let use_nested_def = H.definition_is_func def && H.entity_is_local ent in
       let def = map_definition env def in
-      [ mk_s (MiscStmt (DefStmt def)) ]
+      if use_nested_def then [ mk_s (NestedDef def) ]
+      else [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> (
       let any_to_stmt s =
