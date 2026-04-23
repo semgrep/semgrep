@@ -423,6 +423,19 @@ let name_is_global = function
   | EnumConstant ->
       false
 
+let definition_is_func (_, defkind) =
+  match defkind with
+  | G.FuncDef _ -> true
+  | __else__ -> false
+
+let entity_is_local ent =
+  match ent with
+  | { G.name = G.EN (G.Id (_, id_info)); _ } -> (
+      match !(id_info.id_resolved) with
+      | Some (G.LocalVar, _) -> true
+      | _ -> false)
+  | __else__ -> false
+
 (* just used in cpp_to_generic.ml for now, could be moved there *)
 let parameter_to_catch_exn_opt p =
   match p with

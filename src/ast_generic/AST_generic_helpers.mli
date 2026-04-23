@@ -108,6 +108,12 @@ val dotted_ident_of_name : AST_generic.name -> AST_generic.dotted_ident
 val id_of_name : AST_generic.name -> AST_generic.ident * AST_generic.id_info
 val name_is_global : AST_generic.resolved_name_kind -> bool
 
+val definition_is_func : AST_generic.definition -> bool
+(** True iff the definition's kind is [FuncDef]. *)
+
+val entity_is_local : AST_generic.entity -> bool
+(** True iff the entity has a [LocalVar] resolved name. *)
+
 val parameter_to_catch_exn_opt :
   AST_generic.parameter -> AST_generic.catch_exn option
 
