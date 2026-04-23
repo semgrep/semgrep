@@ -56,6 +56,9 @@ def mock_state(mocker):
     state.env.semgrep_url = SEMGREP_URL
     state.env.sms_scan_id = None
     state.env.upload_findings_timeout = 30
+    state.env.v2_poll_timeout_seconds = 45
+    state.env.v2_post_max_attempts = 3
+    state.env.v2_overall_timeout_minutes = 3
     mocker.patch("semgrep.app.scans.get_state", return_value=state)
     return state
 

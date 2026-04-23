@@ -107,6 +107,10 @@ class Env:
 
     upload_findings_timeout: int = field()
 
+    v2_poll_timeout_seconds: int = field()
+    v2_post_max_attempts: int = field()
+    v2_overall_timeout_minutes: int = field()
+
     claude_project_dir: Optional[str] = field(default=EnvFactory("CLAUDE_PROJECT_DIR"))
     cursor_project_dir: Optional[str] = field(default=EnvFactory("CURSOR_PROJECT_DIR"))
 
@@ -188,4 +192,19 @@ class Env:
     @upload_findings_timeout.default
     def upload_findings_timeout_default(self) -> int:
         value = os.getenv("SEMGREP_UPLOAD_FINDINGS_TIMEOUT", "300")
+        return int(value)
+
+    @v2_poll_timeout_seconds.default
+    def v2_poll_timeout_seconds_default(self) -> int:
+        value = os.getenv("SEMGREP_V2_POLL_TIMEOUT_SECONDS", "180")
+        return int(value)
+
+    @v2_post_max_attempts.default
+    def v2_post_max_attempts_default(self) -> int:
+        value = os.getenv("SEMGREP_V2_POST_MAX_ATTEMPTS", "3")
+        return int(value)
+
+    @v2_overall_timeout_minutes.default
+    def v2_overall_timeout_minutes_default(self) -> int:
+        value = os.getenv("SEMGREP_V2_OVERALL_TIMEOUT_MINUTES", "9")
         return int(value)

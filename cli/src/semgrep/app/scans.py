@@ -57,13 +57,6 @@ if TYPE_CHECKING:
     from rich.progress import Progress
 logger = getLogger(__name__)
 
-# How long to poll for config per POST attempt before giving up and retrying the POST.
-_V2_POLL_TIMEOUT_SECONDS = 45
-# Maximum number of POST attempts before propagating the timeout error.
-_V2_POST_MAX_ATTEMPTS = 3
-# Maximum total time spent in v2 across all attempts (matches original server deadline).
-_V2_OVERALL_TIMEOUT_MINUTES = 3
-
 
 class _ConfigPollTimeout(Exception):
     """
@@ -452,15 +445,19 @@ class ScanHandler:
 
         1. POST to /api/cli/v2/scans to create scan (returns scan info immediately)
         2. Poll GET /api/cli/v2/scans/{scan_request_id}/config for up to
-           _V2_POLL_TIMEOUT_SECONDS per attempt
+           SEMGREP_V2_POLL_TIMEOUT_SECONDS per attempt
         3. If polling times out (backend likely dropped the job), retry the POST up to
-           _V2_POST_MAX_ATTEMPTS times, subject to an overall _V2_OVERALL_TIMEOUT_MINUTES cap.
+           SEMGREP_V2_POST_MAX_ATTEMPTS times, subject to an overall
+           SEMGREP_V2_OVERALL_TIMEOUT_MINUTES cap.
         4. Construct and return ScanResponse from the combined responses.
 
         Note: scan_request_id is the client-generated unique_id, not the server's scan.id.
         The same scan_request_id is reused across retries because the POST is idempotent.
         """
         state = get_state()
+        poll_timeout_seconds = state.env.v2_poll_timeout_seconds
+        max_attempts = state.env.v2_post_max_attempts
+        overall_timeout_minutes = state.env.v2_overall_timeout_minutes
         span = telemetry.get_current_span()
 
         # scan_request_id is the client-generated unique ID; stable across retries
@@ -474,16 +471,16 @@ class ScanHandler:
         )
 
         overall_deadline = datetime.now().replace(tzinfo=None) + timedelta(
-            minutes=_V2_OVERALL_TIMEOUT_MINUTES
+            minutes=overall_timeout_minutes
         )
 
         # saved so we can log the last exception after the final attempt times out
         last_timeout_exc: Optional[_ConfigPollTimeout] = None
-        for post_attempt in range(1, _V2_POST_MAX_ATTEMPTS + 1):
+        for post_attempt in range(1, max_attempts + 1):
             span.set_attribute("scan.v2.post_attempt", post_attempt)
 
             logger.debug(
-                f"Starting scan (v2) attempt {post_attempt}/{_V2_POST_MAX_ATTEMPTS} "
+                f"Starting scan (v2) attempt {post_attempt}/{max_attempts} "
                 f"with request_id={scan_request_id}: {json.dumps(request.to_json(), indent=4)}"
             )
 
@@ -509,7 +506,7 @@ class ScanHandler:
             if remaining_seconds <= 0:
                 break
 
-            poll_timeout = min(_V2_POLL_TIMEOUT_SECONDS, remaining_seconds)
+            poll_timeout = min(poll_timeout_seconds, remaining_seconds)
             try:
                 return self._poll_for_config_v2(
                     scan_request_id, scan_info, poll_timeout
@@ -519,10 +516,10 @@ class ScanHandler:
                 remaining_seconds = (
                     overall_deadline - datetime.now().replace(tzinfo=None)
                 ).total_seconds()
-                if post_attempt < _V2_POST_MAX_ATTEMPTS and remaining_seconds > 0:
+                if post_attempt < max_attempts and remaining_seconds > 0:
                     logger.warning(
                         f"Config not ready after {poll_timeout:.0f}s "
-                        f"(attempt {post_attempt}/{_V2_POST_MAX_ATTEMPTS}), retrying POST"
+                        f"(attempt {post_attempt}/{max_attempts}), retrying POST"
                     )
                 else:
                     break  # deadline exceeded or final attempt — don't make another POST
