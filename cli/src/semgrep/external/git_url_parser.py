@@ -33,58 +33,72 @@ import re
 from typing import List
 from typing import cast
 
-Parsed = collections.namedtuple('Parsed', [
-    'pathname',
-    'protocols',
-    'protocol',
-    'href',
-    'resource',
-    'user',
-    'port',
-    'name',
-    'owner',
-    'azure_git_dir'
-])
+Parsed = collections.namedtuple(
+    "Parsed",
+    [
+        "pathname",
+        "protocols",
+        "protocol",
+        "href",
+        "resource",
+        "user",
+        "port",
+        "name",
+        "owner",
+        "azure_git_dir",
+    ],
+)
 
 POSSIBLE_REGEXES = (
-    re.compile(r'^(?P<protocol>https?|git|ssh|rsync)\://'
-               r'(?:(?P<user>[^\n@]+)@)*'
-               r'(?P<resource>[a-z0-9_\.-]*)'
-               r'[:/]*'
-               r'(?P<port>(?<=:)[\d]+){0,1}'
-               r'(?P<pathname>\/((?P<owner>[\w\-%\/~\.]+)\/)?'
-               # Matches the last name in a path (non-"/").
-               # Trickily uses lazy matching "+?" to remove any
-               # trailing ".git" and "/" from the end.
-               r'((?P<name>[\w\-%~\.]+?)(\.git)?\/?)?)$'),
-    re.compile(r'(git\+)?'
-               r'((?P<protocol>\w+)://)'
-               r'((?P<user>\w+)@)?'
-               r'((?P<resource>[\w\.\-]+))'
-               r'(:(?P<port>\d+))?'
-               r'(?P<pathname>(\/(?P<owner>\w+)/)?'
-               r'(\/?(?P<name>[\w\-]+)(\.git|\/)?)?)$'),
-    re.compile(r'^'
-               r'(?!\w+\://)'
-               r'(?:(?P<user>[^\n@]+)@)*'
-               r'(?P<resource>[a-z0-9_.-]*)[:]*'
-               r'(?P<port>(?<=:)[\d]+){0,1}'
-               r'(?P<pathname>\/?(?P<owner>.+)/(?P<name>.+?)(\.git)?\/?)$'),
-    re.compile(r'((?P<user>\w+)@)?'
-               r'((?P<resource>[\w\.\-]+))'
-               r'[\:\/]{1,2}'
-               r'(?P<pathname>((?P<owner>([\w\-]+\/)?\w+)/)?'
-               r'((?P<name>[\w\-]+)(\.git|\/)?)?)$'),
-    re.compile(r'((?P<user>\w+)@)?'
-               r'((?P<resource>[\w\.\-]+))'
-               r'[\:\/]{1,2}'
-               r'(?P<pathname>((?P<owner>\w+)/)?'
-               r'((?P<name>[\w\-\.]+)(\.git|\/)?)?)$'),
+    re.compile(
+        r"^(?P<protocol>https?|git|ssh|rsync)\://"
+        r"(?:(?P<user>[^\n@]+)@)*"
+        r"(?P<resource>[a-z0-9_\.-]*)"
+        r"[:/]*"
+        r"(?P<port>(?<=:)[\d]+){0,1}"
+        r"(?P<pathname>\/((?P<owner>[\w\-%\/~\.]+)\/)?"
+        # Matches the last name in a path (non-"/").
+        # Trickily uses lazy matching "+?" to remove any
+        # trailing ".git" and "/" from the end.
+        r"((?P<name>[\w\-%~\.]+?)(\.git)?\/?)?)$"
+    ),
+    re.compile(
+        r"(git\+)?"
+        r"((?P<protocol>\w+)://)"
+        r"((?P<user>\w+)@)?"
+        r"((?P<resource>[\w\.\-]+))"
+        r"(:(?P<port>\d+))?"
+        r"(?P<pathname>(\/(?P<owner>\w+)/)?"
+        r"(\/?(?P<name>[\w\-]+)(\.git|\/)?)?)$"
+    ),
+    re.compile(
+        r"^"
+        r"(?!\w+\://)"
+        r"(?:(?P<user>[^\n@]+)@)*"
+        r"(?P<resource>[a-z0-9_.-]*)[:]*"
+        r"(?P<port>(?<=:)[\d]+){0,1}"
+        r"(?P<pathname>\/?(?P<owner>.+)/(?P<name>.+?)(\.git)?\/?)$"
+    ),
+    re.compile(
+        r"((?P<user>\w+)@)?"
+        r"((?P<resource>[\w\.\-]+))"
+        r"[\:\/]{1,2}"
+        r"(?P<pathname>((?P<owner>([\w\-]+\/)?\w+)/)?"
+        r"((?P<name>[\w\-]+)(\.git|\/)?)?)$"
+    ),
+    re.compile(
+        r"((?P<user>\w+)@)?"
+        r"((?P<resource>[\w\.\-]+))"
+        r"[\:\/]{1,2}"
+        r"(?P<pathname>((?P<owner>\w+)/)?"
+        r"((?P<name>[\w\-\.]+)(\.git|\/)?)?)$"
+    ),
 )
 
 
 class ParserError(Exception):
-    """ Error raised when a URL can't be parsed. """
+    """Error raised when a URL can't be parsed."""
+
     pass
 
 
@@ -95,9 +109,11 @@ class Parser(str):
 
     def __init__(self, url: str):
         # to fix an open bug with trailing slashes: https://github.com/coala/git-url-parse/issues/46
+        if not url:
+            raise ValueError("Empty URL provided")
         self._url: str = url
-        if url and url[-1] == "/":
-          self._url = url[:-1]
+        if url[-1] == "/":
+            self._url = url[:-1]
 
     def parse(self) -> Parsed:
         """
@@ -107,16 +123,16 @@ class Parser(str):
         :raise: :class:`.ParserError`
         """
         d = {
-            'pathname': None,
-            'protocols': self._get_protocols(),
-            'protocol': 'ssh',
-            'href': self._url,
-            'resource': None,
-            'user': None,
-            'port': None,
-            'name': None,
-            'owner': None,
-            'azure_git_dir': ''
+            "pathname": None,
+            "protocols": self._get_protocols(),
+            "protocol": "ssh",
+            "href": self._url,
+            "resource": None,
+            "user": None,
+            "port": None,
+            "name": None,
+            "owner": None,
+            "azure_git_dir": "",
         }
         # Parsing is super slow even after fixing obvious problems in regexps.
         # This mitigates the damage of quadratic behavior.
@@ -132,16 +148,18 @@ class Parser(str):
             msg = "Invalid URL '{}'".format(self._url)
             raise ParserError(msg)
 
-        if d['owner'] is not None and cast(str, d['owner']).endswith('/_git'):  # Azure DevOps Git URLs
-            d['azure_git_dir'] = '/_git'
-            d['owner'] = d['owner'][:-len('/_git')]
+        if d["owner"] is not None and cast(str, d["owner"]).endswith(
+            "/_git"
+        ):  # Azure DevOps Git URLs
+            d["azure_git_dir"] = "/_git"
+            d["owner"] = d["owner"][: -len("/_git")]
 
         return Parsed(**d)
 
     def _get_protocols(self) -> List[str]:
         try:
-            index = self._url.index('://')
+            index = self._url.index("://")
         except ValueError:
             return []
 
-        return self._url[:index].split('+')
+        return self._url[:index].split("+")

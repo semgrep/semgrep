@@ -345,20 +345,14 @@ def test_get_url_from_sstp_url():
 
 
 @pytest.mark.quick
-def test_get_url_from_sstp_url_empty_string():
-    # Regression test for https://github.com/semgrep/semgrep/issues/11342
-    # When git has no remote set, repo_url is an empty string — should not crash.
-    assert get_url_from_sstp_url("") is None
+def test_git_url_parser_empty_url():
+    """Regression test for #11342: empty URL from repo with no remote configured."""
+    with pytest.raises(ValueError, match="Empty URL provided"):
+        Parser("")
 
 
 @pytest.mark.quick
-def test_get_url_from_sstp_url_none():
+def test_get_url_from_sstp_url_empty():
+    """Regression test for #11342: get_url_from_sstp_url should return None for empty input."""
     assert get_url_from_sstp_url(None) is None
-
-
-@pytest.mark.quick
-def test_parser_empty_string():
-    # Regression test for https://github.com/semgrep/semgrep/issues/11342
-    # Parser.__init__ should not crash on empty string input.
-    p = Parser("")
-    assert p._url == ""
+    assert get_url_from_sstp_url("") is None
