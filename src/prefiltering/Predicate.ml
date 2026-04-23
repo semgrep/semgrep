@@ -19,7 +19,8 @@ type t = String of string | Regex of Pcre2_.t
 
 let eval (predicate : t) (content : string) : bool =
   match predicate with
-  | String id ->
-      let re = Pcre2_.matching_exact_string id in
-      Pcre2_.unanchored_match ~on_error:true re content
+  | String needle ->
+      let module Search_pattern = Base.String.Search_pattern in
+      let pat = Search_pattern.create needle in
+      Search_pattern.matches pat content
   | Regex re -> Pcre2_.unanchored_match ~on_error:true re content
