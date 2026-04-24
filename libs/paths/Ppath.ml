@@ -87,6 +87,25 @@ let relative_segments (ppath : t) =
   | "" :: segs -> segs
   | _ -> assert false
 
+(* The final segment of the path. For a directory path (ending in '/'), this
+   is the empty string. For the root path '/', this is also the empty
+   string. *)
+let last_segment (path : t) : string =
+  match List.rev path.segments with
+  | seg :: _ -> seg
+  | [] -> ""
+
+(* Does [path] denote a directory, i.e. end with a trailing slash? *)
+let is_dir_path (path : t) : bool = last_segment path = ""
+
+(* For a directory path '/a/b/', the final non-empty segment ('b'). Returns
+   [""] when the path is not a directory path or has no non-empty segment
+   before the trailing slash. *)
+let dir_segment (path : t) : string =
+  match List.rev path.segments with
+  | "" :: seg :: _ -> seg
+  | _ -> ""
+
 (*****************************************************************************)
 (* Builder helpers (not exposed in Ppath.mli) *)
 (*****************************************************************************)

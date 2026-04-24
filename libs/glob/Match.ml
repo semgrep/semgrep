@@ -220,7 +220,6 @@ let compile ?(conf = default_conf) ~source pat =
      for readability *)
   let re = Pcre2_.regexp ~flags:[ `EXTENDED ] pcre in
   { source; re }
-[@@profiling "Glob.Match.compile"]
 
 let run matcher path =
   let res = Pcre2_.pmatch_noerr ~rex:matcher.re path in
@@ -238,7 +237,6 @@ let run matcher path =
        matcher.source.line_contents matcher.re.pattern path res);
   *)
   res
-[@@profiling "Glob.Match.run"]
 
 let source matcher = matcher.source
 

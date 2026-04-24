@@ -52,4 +52,4 @@ val create :
   exclusion_mechanism:exclusion_mechanism ->
   project_root:Fpath.t ->
   unit ->
-  Gitignore.filter
+  Gitignore_filter.t

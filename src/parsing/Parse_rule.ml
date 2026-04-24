@@ -154,7 +154,7 @@ let parse_fix_regex (env : env) (key : key) fields =
 let make_glob ~rule_name ~is_include source_pattern : Rule.glob =
   let source = Glob.Match.string_loc ~source_kind:None source_pattern in
   let legacy_rule_filtering = true in
-  let { compiled_pattern; is_affected_by_middle_slash_option } :
+  let { compiled_pattern; is_affected_by_middle_slash_option; _ } :
       Parse_gitignore.parse_pattern_result =
     (* This takes care of modifying the pattern depending on whether
        it is anchored or not. For example, 'a/b' is treated as

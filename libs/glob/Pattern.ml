@@ -108,3 +108,32 @@ let of_path_segments (segments : string list) : t =
       let chars = String.fold_right (fun c acc -> Char c :: acc) s [] in
       Segment chars)
     segments
+
+(* Are all fragments of a segment plain [Char]s (i.e., literal characters
+   with no glob metacharacters)? *)
+let all_chars (frags : segment_fragment list) : bool =
+  List.for_all
+    (fun f ->
+      match f with
+      | Char _ -> true
+      | _ -> false)
+    frags
+
+(* Extract a string from a list of [Char] fragments. Non-[Char] fragments are
+   silently skipped, so callers should check [all_chars] first if they want
+   the result to represent the whole segment. *)
+let string_of_chars (frags : segment_fragment list) : string =
+  let buf = Buffer.create (List.length frags) in
+  List.iter
+    (fun f ->
+      match f with
+      | Char c -> Buffer.add_char buf c
+      | _ -> ())
+    frags;
+  Buffer.contents buf
+
+(* Does the segment list end with an empty segment (i.e. a trailing '/')? *)
+let has_trailing_slash (segs : segment list) : bool =
+  match List.rev segs with
+  | Segment [] :: _ -> true
+  | _ -> false

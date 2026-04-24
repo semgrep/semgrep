@@ -307,7 +307,7 @@ let apply_include_filter status selection_events include_filter ppath =
 (* Note that include_filter applies only to the paths of regular files. They're
  * applied last, after the exclude/gitignore/semgrepignore filters.
  *)
-let filter_path (ign : Gitignore.filter)
+let filter_path (ign : Gitignore_filter.t)
     (include_filter : Include_filter.t option) (fppath : Fppath.t) :
     filter_result =
   let { fpath; ppath } : Fppath.t = fppath in
@@ -344,7 +344,7 @@ let filter_path (ign : Gitignore.filter)
    paths returned must correspond to existing regular files!
 *)
 let filter_paths (par_conf : Parallelism_config.t) (num_jobs : int option)
-    ((ign, include_filter) : Gitignore.filter * Include_filter.t option)
+    ((ign, include_filter) : Gitignore_filter.t * Include_filter.t option)
     (target_files : Fppath.t list) : Fppath_set.t * Out.skipped_target list =
   let%trace sp = "Find_targets.filter_paths" in
   let (selected_paths : Fppath.t list ref) = ref [] in
@@ -429,7 +429,7 @@ let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
  *
  * pre: the scan_root must be a path to a directory
  *)
-let walk_skip_and_collect (ign : Gitignore.filter)
+let walk_skip_and_collect (ign : Gitignore_filter.t)
     (include_filter : Include_filter.t option) (scan_root : Fppath.t) :
     Fppath.t list * Out.skipped_target list =
   Log.info (fun m ->
@@ -703,7 +703,7 @@ let group_scanning_roots_by_project (conf : conf)
 *)
 
 let setup_path_filters conf (project_roots : Project.scanning_roots) :
-    Gitignore.filter * Include_filter.t option =
+    Gitignore_filter.t * Include_filter.t option =
   let Project.{ project = { kind; root = project_root }; scanning_roots = _ } =
     project_roots
   in

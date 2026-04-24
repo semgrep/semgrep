@@ -16,6 +16,13 @@
 open Gitignore
 open Ppath.Operators
 
+type t = {
+  project_root : Fpath.t;
+  higher_priority_levels : Gitignore_level_index.t list;
+  gitignore_file_cache : Gitignore_cache.t;
+  lower_priority_levels : Gitignore_level_index.t list;
+}
+
 let create ?gitignore_filenames ?(higher_priority_levels = [])
     ?(lower_priority_levels = []) ~project_root () =
   {
@@ -56,15 +63,8 @@ let rec fold_levels func sel_events levels =
 *)
 let select_one acc levels path : Gitignore.selection_event list =
   fold_levels
-    (fun acc (level : Gitignore.level) ->
-      List.fold_left
-        (fun acc (path_selector : Gitignore.path_selector) ->
-          match path_selector.matcher path with
-          | Some ((Selected _ | Deselected _) as x) -> x :: acc
-          | None -> acc)
-        acc level.patterns)
+    (fun acc lvl -> Gitignore_level_index.select_level lvl path @ acc)
     acc levels
-[@@profiling]
 
 let select_path opt_gitignore_file_cache sel_events levels relative_segments =
   let rec loop sel_events levels parent_path segments =
@@ -132,4 +132,3 @@ let select t (full_git_path : Ppath.t) =
       select_path None sel_events t.lower_priority_levels rel_segments
     in
     result_of_selection_events sel_events
-[@@profiling]

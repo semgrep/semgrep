@@ -90,8 +90,15 @@ let gitignore_glob_conf : M.conf =
     right_anchored = true;
   }
 
+type parsed_pattern = {
+  selector : Gitignore.path_selector;
+  absolute_pattern : Glob.Pattern.t;
+  is_negated : bool;
+}
+
 type parse_pattern_result = {
   compiled_pattern : M.compiled_pattern;
+  absolute_pattern : Glob.Pattern.t;
   is_affected_by_middle_slash_option : bool;
 }
 
@@ -128,11 +135,12 @@ let parse_pattern ?(middle_slash_anchors_left = true) ?(right_anchored = true)
   let conf = { gitignore_glob_conf with right_anchored } in
   {
     compiled_pattern = M.compile ~conf ~source absolute_pattern;
+    absolute_pattern;
     is_affected_by_middle_slash_option;
   }
 
 let parse_line ~anchor source_name source_kind line_number line_contents =
-  if is_ignored_line line_contents then None
+  if line_contents = "" || is_ignored_line line_contents then None
   else
     let loc : M.loc =
       {
@@ -147,7 +155,7 @@ let parse_line ~anchor source_name source_kind line_number line_contents =
       | None -> (false, line_contents)
       | Some s -> (true, s)
     in
-    let { compiled_pattern; _ } =
+    let { compiled_pattern; absolute_pattern; _ } =
       parse_pattern ~source:loc ~left_anchor:anchor pattern_str
     in
     let matcher (ppath : Ppath.t) =
@@ -156,7 +164,7 @@ let parse_line ~anchor source_name source_kind line_number line_contents =
           if is_negated then Some (Deselected loc) else Some (Selected loc)
       | false -> None
     in
-    Some { loc; matcher }
+    Some { selector = { loc; matcher }; absolute_pattern; is_negated }
 
 (* semgrep-legacy *)
 let get_include_path ~orig_semgrepignore_path relative_include_path =
@@ -205,7 +213,7 @@ and from_lines ~allow_include ~anchor ~name ~source_kind ~source_path lines =
       let linenum = i + 1 in
       parse_line ~anchor name source_kind linenum contents)
     lines
-  |> List.filter_map (fun x -> x)
+  |> List.filter_map Fun.id
 
 and from_string_gen ~allow_include ~anchor ~name ~source_path ~source_kind str =
   let lines = read_lines_from_string str in

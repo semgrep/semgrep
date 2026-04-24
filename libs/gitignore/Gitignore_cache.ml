@@ -15,6 +15,15 @@
 *)
 open Gitignore
 
+type t = {
+  project_root : Fpath.t;
+  (* List of gitignore-like files to look for in each of the project's
+     source folders. *)
+  gitignore_filenames : gitignore_filename list;
+  (* TODO? why we use a cache? Why not loading all those .gitiginore at once?*)
+  cache : (string, Gitignore_level_index.t option) Hashtbl.t;
+}
+
 let create ?(gitignore_filenames = [ Gitignore.default_gitignore_filename ])
     ~project_root () =
   let cache = Hashtbl.create 100 in
@@ -47,13 +56,9 @@ let load t dir_path =
         | [] -> None
         | _ :: _ ->
             Some
-              ({
-                 level_kind = "in-project gitignore files";
-                 source_name = Fpath.to_string path;
-                 patterns;
-               }
-                : Gitignore.level)
+              (Gitignore_level_index.of_parsed_patterns
+                 ~level_kind:"in-project gitignore files"
+                 ~source_name:(Fpath.to_string path) patterns)
       in
       Hashtbl.add tbl key res;
       res
-[@@profiling]

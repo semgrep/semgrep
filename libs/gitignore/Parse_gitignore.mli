@@ -18,22 +18,32 @@
    The default selection mode is Ignore.
 *)
 
+type parsed_pattern = {
+  selector : Gitignore.path_selector;
+  absolute_pattern : Glob.Pattern.t;
+  is_negated : bool;
+}
+(** Output of parsing a single gitignore line. Contains the matcher-ready
+    [selector] plus the [absolute_pattern] needed for downstream
+    classification and [is_negated] flag. *)
+
 val from_file :
   anchor:Glob.Pattern.t ->
   format:Gitignore.format ->
   source_kind:string ->
   Fpath.t ->
-  Gitignore.path_selectors
+  parsed_pattern list
 
 val from_string :
   anchor:Glob.Pattern.t ->
   name:string ->
   source_kind:string ->
   string ->
-  Gitignore.path_selectors
+  parsed_pattern list
 
 type parse_pattern_result = {
   compiled_pattern : Glob.Match.compiled_pattern;
+  absolute_pattern : Glob.Pattern.t;
   is_affected_by_middle_slash_option : bool;
 }
 

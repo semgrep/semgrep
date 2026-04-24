@@ -87,19 +87,15 @@ let create ?(cli_patterns = [])
          ~source_kind:"exclude" ~anchor:root_anchor)
       cli_patterns
   in
-  let default_semgrepignore_file_level : Gitignore.level =
-    {
-      level_kind = "default semgrepignore patterns";
-      source_name = "<built-in>";
-      patterns = default_patterns;
-    }
+  let default_semgrepignore_file_level =
+    Gitignore_level_index.of_parsed_patterns
+      ~level_kind:"default semgrepignore patterns" ~source_name:"<built-in>"
+      default_patterns
   in
-  let cli_level : Gitignore.level =
-    {
-      level_kind = "command-line includes/excludes";
-      source_name = "<command line>";
-      patterns = cli_patterns;
-    }
+  let cli_level =
+    Gitignore_level_index.of_parsed_patterns
+      ~level_kind:"command-line includes/excludes" ~source_name:"<command line>"
+      cli_patterns
   in
   let kinds_of_ignore_files_to_consult =
     (* We used to load '.gitignore' files as well here but this plan was
