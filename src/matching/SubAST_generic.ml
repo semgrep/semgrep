@@ -380,15 +380,6 @@ let lambdas_in_expr e =
   do_visit_with_ref visitor (E e)
 [@@profiling]
 
-(* opti: using memoization speeds things up a bit
- * (but again, this is still slow when called many many times).
- * todo? note that this is not the optimal memoization we can do because
- * using Hashtbl where the key is a full expression can be slow (hashing
- * huge expressions still takes some time). It would be better to
- * return a unique identifier to each expression to remove the hashing cost.
- *)
-let lambdas_in_expr_memo = SharedMemo.make lambdas_in_expr
-
 (*****************************************************************************)
 (* Really substmts_of_stmts *)
 (*****************************************************************************)
@@ -412,7 +403,7 @@ let flatten_substmts_of_stmts xs =
     (if go_really_deeper_stmt then
        let es = subexprs_of_stmt x in
        (* getting deeply nested lambdas stmts *)
-       let lambdas = es |> List.concat_map lambdas_in_expr_memo in
+       let lambdas = es |> List.concat_map lambdas_in_expr in
        lambdas
        |> List.map (fun def -> H.funcbody_to_stmt def.fbody)
        |> List.iter aux);
