@@ -28,6 +28,9 @@ from semgrep.constants import RuleScanSource
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error_location import Span
 from semgrep.rule_lang import EmptySpan
+from semgrep.rule_lang import has_patterns_key
+from semgrep.rule_lang import INTERNAL_DEPENDS_ON_KEY
+from semgrep.rule_lang import project_depends_on
 from semgrep.rule_lang import RuleValidation
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
@@ -37,7 +40,6 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
 
-INTERNAL_DEPENDS_ON_KEY = "r2c-internal-project-depends-on"
 _PRODUCT_SCA = out.Product(out.SCA())
 _PRODUCT_SECRETS = out.Product(out.Secrets())
 _PRODUCT_SAST = out.Product(out.SAST())
@@ -189,15 +191,7 @@ class Rule:
 
     @property
     def project_depends_on(self) -> List[Dict[str, str]]:
-        if INTERNAL_DEPENDS_ON_KEY in self._raw:
-            depends_on = self._raw[INTERNAL_DEPENDS_ON_KEY]
-            if "depends-on-either" in depends_on:
-                dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
-                return dependencies
-            else:
-                return [depends_on]
-        else:
-            return []
+        return project_depends_on(self._raw)
 
     @property
     def ecosystems(self) -> Set[Ecosystem]:
@@ -265,7 +259,7 @@ class Rule:
         (beyond Python-handled patterns, like `project-depends-on`).
         Remove this code once all rule runnning is done in the core and the answer is always 'yes'
         """
-        return any(key in RuleValidation.PATTERN_KEYS for key in self._raw)
+        return has_patterns_key(self._raw)
 
     @cached_property
     def product(self) -> out.Product:

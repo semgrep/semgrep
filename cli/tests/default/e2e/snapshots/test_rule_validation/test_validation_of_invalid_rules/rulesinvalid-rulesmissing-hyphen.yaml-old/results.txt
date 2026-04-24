@@ -1,11 +1,16 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/missing-hyphen.yaml:4
-4 |     - pattern: |
-5 |         foo
-6 |       pattern-not: |
-7 |         bar
-8 |   message: |
+  --> rules/invalid-rules/missing-hyphen.yaml:2
+2  | - id: eqeq
+3  |   patterns:
+4  |     - pattern: |
+5  |         foo
+6  |       pattern-not: |
+7  |         bar
+8  |   message: |
+9  |     You need to hyphenate each pattern so it's a different item in the list.
+10 |   languages: [py]
+11 |   severity: WARNING
 
 {'pattern': 'foo\n', 'pattern-not': 'bar\n'} is not valid under any of the given schemas
 

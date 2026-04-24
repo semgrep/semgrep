@@ -54,6 +54,7 @@ from semgrep.rpc_call import validate as rpc_validate
 from semgrep.verbose_logging import getLogger
 
 MISSING_RULE_ID = "no-rule-id"
+INTERNAL_DEPENDS_ON_KEY = "r2c-internal-project-depends-on"
 
 
 logger = getLogger(__name__)
@@ -285,32 +286,51 @@ def parse_yaml_preserve_spans(
     return data
 
 
+def has_patterns_key(raw_rule: Dict[str, Any]) -> bool:
+    """Helper function to check if a rule dict has any of the pattern keys, which is a heuristic for whether it contains patterns at all."""
+    return any(key in RuleValidation.PATTERN_KEYS for key in raw_rule)
+
+
+def project_depends_on(raw_rule: Dict[str, Any]) -> List[Dict[str, str]]:
+    if INTERNAL_DEPENDS_ON_KEY in raw_rule:
+        depends_on = raw_rule[INTERNAL_DEPENDS_ON_KEY]
+        if "depends-on-either" in depends_on:
+            dependencies: List[Dict[str, str]] = depends_on["depends-on-either"]
+            return dependencies
+        else:
+            return [depends_on]
+    else:
+        return []
+
+
 @telemetry.trace()
-def parse_config_preserve_spans(
+def parse_yaml_and_filter_versions(
     contents: str,
     filename: Optional[str],
-    force_jsonschema: bool = False,
-    no_python_schema_validation: bool = False,
-    rules_tmp_path: Optional[str] = None,
 ) -> Tuple[YamlTree, List[SemgrepError]]:
+    """Parse YAML with span preservation and filter out version-incompatible rules.
+    Does NOT do schema validation."""
     data = parse_yaml_preserve_spans(contents, filename)
     if not data:
         raise EmptyYamlException()
-    # TODO: Obtain source_hash using changed keys in SourceTracker.sources?
-    source_hash = SourceTracker.add_source(contents)
     errors = remove_incompatible_version_yamltree(
         data, filename, no_rewrite_rule_ids=False
     )
+    return data, errors
 
-    validate_rules(
-        data,
-        source_hash,
-        filename,
-        force_jsonschema,
-        no_python_schema_validation,
-        rules_tmp_path,
-    )
 
+@telemetry.trace()
+def parse_json_and_filter_versions(
+    contents: str,
+    filename: Optional[str],
+) -> Tuple[Dict[str, Any], List[SemgrepError]]:
+    """Parse JSON and filter out version-incompatible rules.
+    Does NOT do schema validation. Mirrors parse_yaml_and_filter_versions for
+    JSON config sources."""
+    data: Dict[str, Any] = json.loads(contents)
+    raw_rules = data.get("rules", [])
+    surviving, errors = remove_incompatible_version_dicts(raw_rules, filename)
+    data["rules"] = [raw_rules[i] for i in surviving]
     return data, errors
 
 
@@ -509,92 +529,104 @@ class RpcValidationError(Exception):
         super().__init__(core_error.message)
 
 
-# This is tightly coupled to remove_incompatible_version_rules in config_resolver.py
-# These two functions should be kept in sync, as they perform the same task on slightly
-# different source data.
+def remove_incompatible_version_dicts(
+    rule_dicts: List[Dict[str, Any]],
+    filename: Optional[str] = None,
+    no_rewrite_rule_ids: bool = False,
+) -> Tuple[List[int], List[SemgrepError]]:
+    """Check min-version/max-version constraints on a list of rule dicts.
+
+    Returns a tuple of (surviving_indices, errors) where surviving_indices
+    are the indices of rules that passed version checks.
+    """
+    errors: List[SemgrepError] = []
+    surviving: List[int] = []
+    for i, raw_rule in enumerate(rule_dicts):
+        rule_id = raw_rule.get("id", MISSING_RULE_ID)
+        if not no_rewrite_rule_ids:
+            rule_id = prepend_rule_path(filename or "", rule_id)
+
+        min_version = raw_rule.get("min-version")
+        if min_version and Version(__VERSION__) < Version(min_version):
+            msg = (
+                f"This rule requires upgrading Semgrep from version "
+                f"{__VERSION__} to at least {min_version}"
+            )
+            errors.append(
+                version_error(rule_id, filename or "", msg, min_ver=min_version)
+            )
+            continue
+
+        max_version = raw_rule.get("max-version")
+        if max_version and Version(__VERSION__) > Version(max_version):
+            msg = (
+                f"This rule is no longer supported by Semgrep. "
+                f"The last compatible version was {max_version}. "
+                f"This version of Semgrep is {__VERSION__}"
+            )
+            errors.append(
+                version_error(rule_id, filename or "", msg, max_ver=max_version)
+            )
+            continue
+
+        surviving.append(i)
+    return surviving, errors
+
+
 @telemetry.trace()
 def remove_incompatible_version_yamltree(
     root: YamlTree, filename: Optional[str], no_rewrite_rule_ids: bool = False
 ) -> List[SemgrepError]:
     """
     Modifies a YamlTree of the form {"rules": [{<rule_1>}, {<rule_2}, ...]} by removing any rules with invalid versions.
-    Returns a an error for each rule that failed to validate. If filename is provided and no_rewrite_rule_ids is True,
-    will prepend the name of the file to the rule IDs in error messages.
+    Returns an error for each rule that failed to validate.
     """
-    errors: List[SemgrepError] = []
     root_value = root.value
-    if "rules" in root_value:
-        rules = root_value["rules"]
-        rules_value = rules.value
-        ok_rules_value = []
-        for rule in rules_value:
-            rule_value = rule.value
-            rule_id = MISSING_RULE_ID
-            if "id" in rule_value:
-                rule_id = rule_value["id"].value
-                # Turn the rule ID into path.to.name to produce better error
-                # messages. This is normally done later in a call to 'get_rules'.
-                if not no_rewrite_rule_ids:
-                    rule_id = prepend_rule_path(filename or "", rule_id)
-            if "min-version" in rule_value:
-                min_version = rule_value["min-version"]
-                min_version_value = min_version.value
-                if Version(__VERSION__) < Version(min_version_value):
-                    # coupling: we try to print all the same details as
-                    # semgrep-core/osemgrep.
-                    msg = (
-                        f"This rule requires upgrading Semgrep from version "
-                        f"{__VERSION__} to at least {min_version.value}"
-                    )
-                    errors.append(
-                        version_error(
-                            rule_id, filename or "", msg, min_ver=min_version_value
-                        )
-                    )
-                    continue
-            if "max-version" in rule_value:
-                max_version = rule_value["max-version"]
-                max_version_value = max_version.value
-                if Version(__VERSION__) > Version(max_version_value):
-                    msg = (
-                        f"This rule is no longer supported by Semgrep. "
-                        f"The last compatible version was {max_version_value}. "
-                        f"This version of Semgrep is {__VERSION__}"
-                    )
-                    # coupling: almost the same code as above for min-version
-                    errors.append(
-                        version_error(
-                            rule_id, filename or "", msg, max_ver=max_version_value
-                        )
-                    )
-                    continue
-            ok_rules_value.append(rule)
-        rules.value = ok_rules_value
+    if "rules" not in root_value:
+        return []
+    rules = root_value["rules"]
+    rules_value = rules.value
+    rule_dicts = [rule.unroll_dict() for rule in rules_value]
+    surviving, errors = remove_incompatible_version_dicts(
+        rule_dicts, filename, no_rewrite_rule_ids
+    )
+    rules.value = [rules_value[i] for i in surviving]
     return errors
 
 
-# TODO - remove this function in favor of directly calling the `validate_x` functions if we can clean up the amount of routing logic needed
-# to determine the proper validation strategy.
 def validate_rules(
-    data: YamlTree,
-    source_hash: SourceFileHash,
+    data: Dict[str, Any],
+    rpc_source_hash: SourceFileHash,
+    display_source_hash: SourceFileHash,
     filename: Optional[str],
     force_jsonschema: bool = False,
     no_python_schema_validation: bool = False,
     rules_tmp_path: Optional[str] = None,
+    rule_spans: Optional[Dict[str, Span]] = None,
 ) -> None:
     """
-    Applies appropriate validation to a YamlTree of the form {"rules": [{<rule_1>}, {<rule_2}, ...]} based on a set of validation parameters.
-    Raises an Exception if the validation fails.
+    Validates rule data (a dict of the form {"rules": [...]}) via RPC or
+    jsonschema fallback. Raises an Exception if the validation fails.
+
+    rpc_source_hash tracks the JSON dump content (line numbers match
+    semgrep-core output). display_source_hash tracks the original file
+    content (shown in jsonschema fallback errors when rule_spans misses).
     """
     if no_python_schema_validation:
         validate_file_rpc(
-            source_hash,
+            rpc_source_hash,
             filename,
             rules_tmp_path=rules_tmp_path,
+            rule_spans=rule_spans,
+            display_source_hash=display_source_hash,
         )
     elif force_jsonschema or not rules_tmp_path:
-        validate_yaml_json_schema(data)
+        validate_string_json_schema(
+            data,
+            source_hash=display_source_hash,
+            filename=filename,
+            rule_spans=rule_spans,
+        )
     else:
         try:
             if not Path.exists(Path(rules_tmp_path)):
@@ -611,7 +643,12 @@ def validate_rules(
             )
             logger.warning(f"semgrep-core rule validation failed ({error_type})")
             logger.debug(f"semgrep-core validation error detail: {e}")
-            validate_yaml_json_schema(data)
+            validate_string_json_schema(
+                data,
+                source_hash=display_source_hash,
+                filename=filename,
+                rule_spans=rule_spans,
+            )
 
 
 @telemetry.trace()
@@ -619,10 +656,17 @@ def validate_file_rpc(
     source_hash: SourceFileHash,
     filename: Optional[str] = None,
     rules_tmp_path: Optional[str] = None,
+    rule_spans: Optional[Dict[str, Span]] = None,
+    display_source_hash: Optional[SourceFileHash] = None,
 ) -> None:
     """
     Applies validation to a file at filename or rules_tmp_path (preferring filename) via an RPC call to semgrep-core.
     Raises an Exception if validation fails. Uses filename and source_hash to enhance error logging. Ignores some types of validation errors.
+
+    When rule_spans is provided, validation errors are mapped back to the
+    originating rule's YAML location using core_error.rule_id. display_source_hash
+    should be the hash of the original YAML (not the JSON dump sent to the RPC)
+    so the whole-file fallback span renders the YAML.
     """
     if filename and Path(filename).exists():
         path = filename
@@ -653,18 +697,18 @@ def validate_file_rpc(
             # Ignore invalid language errors. They are handled by
             # _LanguageData.resolve with the correct exit code.
             return
-        span = (
-            _core_location_to_error_location_span(
-                core_error.location, filename, source_hash
-            )
-            if core_error.location
-            else None
+        rule_id = core_error.rule_id.value if core_error.rule_id else None
+        span = _rule_span_or_file_fallback(
+            rule_id,
+            rule_spans,
+            display_source_hash if display_source_hash is not None else source_hash,
+            filename,
         )
-        spans = [span] if span is not None else []
+        logger.debug(f"semgrep-core validation error span: {span}")
         raise InvalidRuleSchemaError(
             short_msg="Invalid rule schema",
             long_msg=message,
-            spans=spans,
+            spans=[span],
         )
 
 
@@ -715,6 +759,9 @@ def validate_yaml_json_schema(
 
 def validate_string_json_schema(
     data: Dict[str, Any],
+    source_hash: Optional[SourceFileHash] = None,
+    filename: Optional[str] = None,
+    rule_spans: Optional[Dict[str, Span]] = None,
 ) -> None:
     """
     Applies validation to a Dictionary of the form {"rules": [{<rule_1>}, {<rule_2}, ...]} via jsonschema validation.
@@ -723,31 +770,71 @@ def validate_string_json_schema(
     This function is very similar to `validate_yaml_json_schema` but acts on the data we get from the backend. Converting the
     input to a YamlTree to re-use the validation paths has negative performance impacts for large numbers of rules, leading to
     30-40 seconds of delay just in config parsing.
+
+    When rule_spans is provided (a mapping of rule id to YAML Span), validation
+    errors are mapped back to the originating rule's location in the YAML file.
     """
     try:
         with telemetry.TRACER.start_as_current_span("jsonschema.validate"):
             jsonschema.validate(data, RuleSchema.get(), cls=Draft7Validator)
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
+        span = _resolve_validation_error_span(
+            ve, data, rule_spans, source_hash, filename
+        )
         raise InvalidRuleSchemaError(
             short_msg="Invalid rule schema",
             long_msg=message,
-            spans=[EmptySpan],
+            spans=[span],
         )
 
 
-def _core_location_to_error_location_span(
-    location: out.Location, filename: Optional[str], source_hash: SourceFileHash
+def _rule_span_or_file_fallback(
+    rule_id: Optional[str],
+    rule_spans: Optional[Dict[str, Span]],
+    source_hash: Optional[SourceFileHash],
+    filename: Optional[str],
 ) -> Span:
-    start = Position(
-        line=location.start.line,
-        col=location.start.col,
-        offset=location.start.offset,
-    )
-    end = Position(
-        line=location.end.line,
-        col=location.end.col,
-        offset=location.end.offset,
-    )
-    file_ = filename if filename is not None else location.path.value
-    return Span(file=file_, start=start, end=end, source_hash=source_hash)
+    """Resolve a rule_id to its YAML Span, with a whole-file fallback.
+
+    Shared between the jsonschema and RPC validation paths. Used to point
+    schema-validation errors back at the originating rule's location in the
+    user's YAML when possible.
+    """
+    if rule_id and rule_spans and rule_id in rule_spans:
+        return rule_spans[rule_id]
+    if source_hash is not None:
+        return Span(
+            start=Position(line=1, col=1, offset=-1),
+            end=Position(line=1, col=1, offset=-1),
+            file=filename,
+            source_hash=source_hash,
+        )
+    return EmptySpan
+
+
+def _resolve_validation_error_span(
+    error: jsonschema.exceptions.ValidationError,
+    data: Dict[str, Any],
+    rule_spans: Optional[Dict[str, Span]],
+    source_hash: Optional[SourceFileHash],
+    filename: Optional[str],
+) -> Span:
+    """Map a jsonschema ValidationError back to a YAML source span when possible.
+
+    Walks the error's absolute_path to identify the failing rule index and its
+    id, then defers to `_rule_span_or_file_fallback` for the lookup + fallback.
+    """
+    rule_id: Optional[str] = None
+    root_error = error
+    while root_error.parent is not None:
+        root_error = cast(jsonschema.exceptions.ValidationError, root_error.parent)
+
+    path = list(root_error.absolute_path)
+    if len(path) >= 2 and path[0] == "rules" and isinstance(path[1], int):
+        rule_idx = path[1]
+        rules = data.get("rules", [])
+        if rule_idx < len(rules):
+            rule_id = rules[rule_idx].get("id", "")
+
+    return _rule_span_or_file_fallback(rule_id, rule_spans, source_hash, filename)

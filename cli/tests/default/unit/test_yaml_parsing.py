@@ -19,8 +19,6 @@ from ruamel.yaml import YAML
 
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import parse_config_string
-from semgrep.config_resolver import validate_single_rule
-from semgrep.constants import RULES_KEY
 from semgrep.error import InvalidRuleSchemaError
 
 
@@ -57,12 +55,9 @@ def test_parse_taint_rules():
             severity: WARNING
         """
     )
-    yaml, errors = parse_config_string("testfile", yaml_contents, "file.py")
-    config = yaml["testfile"].value
-    rules = config.get(RULES_KEY)
-    for rule_dict in rules.value:
-        validate_single_rule(rule_dict)
-    assert True
+    result = parse_config_string("testfile", yaml_contents, "file.py")
+    assert len(result.rules) == 3
+    assert len(result.errors) == 0
 
 
 @pytest.mark.quick

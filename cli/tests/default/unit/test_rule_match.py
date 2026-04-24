@@ -31,7 +31,7 @@ from semgrep.rule_match import RuleMatches
 
 
 def create_rule() -> Rule:
-    config, config_errors = parse_config_string(
+    result = parse_config_string(
         "testfile",
         dedent(
             """
@@ -45,7 +45,7 @@ def create_rule() -> Rule:
         ),
         None,
     )
-    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+    return result.rules[0]
 
 
 @pytest.mark.quick

@@ -1,6 +1,11 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/invalid-pattern-child.yaml:7
+  --> rules/invalid-rules/invalid-pattern-child.yaml:2
+2  |   - id: blah
+3  |     message: blah
+4  |     severity: INFO
+5  |     languages: [python]
+6  |     patterns:
 7  |       - pattern-either:
 8  |           - pattern: $X == $Y
 9  |           - pattern-not: $Z == $Z
