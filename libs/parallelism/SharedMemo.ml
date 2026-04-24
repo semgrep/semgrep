@@ -58,8 +58,18 @@ let make_with_key_fn key_fn =
   let ht = Hashtbl.create 101 in
   call_and_remember mtx ht key_fn
 
-let make f x =
-  let mtx = Mutex.create () in
-  let ht = Hashtbl.create 101 in
-  let key_fn = Fun.id in
-  call_and_remember mtx ht key_fn f x
+(* eta-expand just enough to make the binding a lambda; the returned
+   function (e.g. the rhs of `let memo_fn = make fn`) holds onto the `.t`, but
+   only evaluates `make_with_key_fn Fun.id` once, at memo construction time.
+
+   Originally, this was `let make f x = ...`, which pulls `make_with_key_fn
+   Fun.id` _inside_ the lambda, so it's re-evaluated on each call; this means
+   we rebuild the cache each time.
+
+   Later, an attempt to "correct" this to `let make = make_with_key_fn Fun.id`
+   was made, which had the opposite problem: `make_with_key_fun` is only ever
+   called once, no matter how many `SharedMemo`s are created, and so one `.t`
+   is shared across _all_ memos!  (Luckily, the value restriction, combined
+   with the explicit signature in the interface, causes this to not compile.)
+*)
+let make f = make_with_key_fn Fun.id f
