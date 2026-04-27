@@ -106,10 +106,10 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
       ],
       "env": {
         "SEMGREP_APP_TOKEN": "<TOKEN>"
-      }
-    }
-  }
-  ```
+       }
+     }
+   }
+   ```
 
 ### Cursor
 
