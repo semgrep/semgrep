@@ -96,6 +96,20 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
     ```bash
     /setup-semgrep-plugin
     ```
+5. Add the following to ~/.claude.json
+   ```bash
+   "mcpServers": {
+    "semgrep": {
+      "command": "semgrep",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "SEMGREP_APP_TOKEN": "<TOKEN>"
+      }
+    }
+  }
+  ```
 
 ### Cursor
 
