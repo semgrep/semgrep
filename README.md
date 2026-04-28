@@ -219,8 +219,11 @@ To upgrade, run the command below associated with how you installed Semgrep:
 # Using Homebrew
 $ brew upgrade semgrep
 
-# Using pip
-$ python3 -m pip install --upgrade semgrep
+# Using pipx
+$ pipx upgrade semgrep
+
+# Using uv tool command
+$ uv tool upgrade semgrep
 
 # Using Docker
 $ docker pull semgrep/semgrep:latest
