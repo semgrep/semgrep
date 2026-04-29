@@ -18,7 +18,8 @@
    The result of parsing a 'semgrep mcp' command.
 *)
 
-type conf = { common : CLI_common.conf; session_id : string } [@@deriving show]
+type conf = { common : CLI_common.conf; pro : bool; session_id : string }
+[@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-mcp"; <args> |]
