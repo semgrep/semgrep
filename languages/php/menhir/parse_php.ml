@@ -40,14 +40,14 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 (*****************************************************************************)
 let tokens ?(init_state = Lexer_php.INITIAL) input_source =
   Lexer_php.reset ();
-  Lexer_php._mode_stack := [ init_state ];
+  Domain.DLS.set Lexer_php._mode_stack [ init_state ];
 
   let token lexbuf =
     let tok =
       (* for yyless emulation *)
-      match !Lexer_php._pending_tokens with
+      match Domain.DLS.get Lexer_php._pending_tokens with
       | x :: xs ->
-          Lexer_php._pending_tokens := xs;
+          Domain.DLS.set Lexer_php._pending_tokens xs;
           x
       | [] -> (
           match Lexer_php.current_mode () with
@@ -65,7 +65,7 @@ let tokens ?(init_state = Lexer_php.INITIAL) input_source =
           | Lexer_php.ST_START_NOWDOC s -> Lexer_php.st_start_nowdoc s lexbuf)
     in
     if not (TH.is_comment tok) then
-      Lexer_php._last_non_whitespace_like_token := Some tok;
+      Domain.DLS.set Lexer_php._last_non_whitespace_like_token (Some tok);
     tok
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token
