@@ -58,6 +58,7 @@ and pl_type =
   | IDL of idl_type
   | MiscPL of string
   | Elixir
+  | Dart
 [@@deriving yojson]
 
 and config_type =

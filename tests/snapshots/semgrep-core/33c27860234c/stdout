@@ -706,36 +706,12 @@
                                                  { s =
                                                    (ExprStmt (
                                                       { e =
-                                                        (Call (
-                                                           { e =
-                                                             (Special
-                                                                ((ConcatString
-                                                                    SequenceConcat),
-                                                                 _));
-                                                             e_id = 0;
-                                                             e_range = None;
-                                                             is_implicit_return =
-                                                             false;
-                                                             facts = <opaque>
-                                                             },
-                                                           (_,
-                                                            [(Arg
-                                                                { e =
-                                                                  (L
-                                                                    (String
-                                                                    (_,
-                                                                    ("positive box",
-                                                                    _), _)));
-                                                                  e_id = 0;
-                                                                  e_range =
-                                                                  None;
-                                                                  is_implicit_return =
-                                                                  false;
-                                                                  facts =
-                                                                  <opaque> })
-                                                              ],
-                                                            _)
-                                                           ));
+                                                        (L
+                                                           (String
+                                                              (_,
+                                                               ("positive box",
+                                                                _),
+                                                               _)));
                                                         e_id = 0;
                                                         e_range = None;
                                                         is_implicit_return =
@@ -800,7 +776,7 @@
                                                             { e =
                                                               (Special
                                                                  ((ConcatString
-                                                                    SequenceConcat),
+                                                                    InterpolatedConcat),
                                                                   _));
                                                               e_id = 0;
                                                               e_range = None;
@@ -814,7 +790,7 @@
                                                                    (L
                                                                     (String
                                                                     (_,
-                                                                    ("box of v",
+                                                                    ("box of ",
                                                                     _), _)));
                                                                    e_id = 0;
                                                                    e_range =
@@ -822,7 +798,36 @@
                                                                    is_implicit_return =
                                                                    false;
                                                                    facts =
-                                                                   <opaque> })
+                                                                   <opaque> });
+                                                               (Arg
+                                                                  { e =
+                                                                    (
+                                                                    N
+                                                                    (Id (
+                                                                    ("v", _),
+                                                                    { id_resolved =
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (None);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    })
                                                                ],
                                                              _)
                                                             ));
@@ -847,36 +852,11 @@
                                                   { s =
                                                     (ExprStmt (
                                                        { e =
-                                                         (Call (
-                                                            { e =
-                                                              (Special
-                                                                 ((ConcatString
-                                                                    SequenceConcat),
-                                                                  _));
-                                                              e_id = 0;
-                                                              e_range = None;
-                                                              is_implicit_return =
-                                                              false;
-                                                              facts =
-                                                              <opaque> },
-                                                            (_,
-                                                             [(Arg
-                                                                 { e =
-                                                                   (L
-                                                                    (String
-                                                                    (_,
-                                                                    ("null",
-                                                                    _), _)));
-                                                                   e_id = 0;
-                                                                   e_range =
-                                                                   None;
-                                                                   is_implicit_return =
-                                                                   false;
-                                                                   facts =
-                                                                   <opaque> })
-                                                               ],
-                                                             _)
-                                                            ));
+                                                         (L
+                                                            (String
+                                                               (_,
+                                                                ("null", _),
+                                                                _)));
                                                          e_id = 0;
                                                          e_range = None;
                                                          is_implicit_return =
@@ -913,36 +893,11 @@
                                                   { s =
                                                     (ExprStmt (
                                                        { e =
-                                                         (Call (
-                                                            { e =
-                                                              (Special
-                                                                 ((ConcatString
-                                                                    SequenceConcat),
-                                                                  _));
-                                                              e_id = 0;
-                                                              e_range = None;
-                                                              is_implicit_return =
-                                                              false;
-                                                              facts =
-                                                              <opaque> },
-                                                            (_,
-                                                             [(Arg
-                                                                 { e =
-                                                                   (L
-                                                                    (String
-                                                                    (_,
-                                                                    ("other",
-                                                                    _), _)));
-                                                                   e_id = 0;
-                                                                   e_range =
-                                                                   None;
-                                                                   is_implicit_return =
-                                                                   false;
-                                                                   facts =
-                                                                   <opaque> })
-                                                               ],
-                                                             _)
-                                                            ));
+                                                         (L
+                                                            (String
+                                                               (_,
+                                                                ("other", _),
+                                                                _)));
                                                          e_id = 0;
                                                          e_range = None;
                                                          is_implicit_return =

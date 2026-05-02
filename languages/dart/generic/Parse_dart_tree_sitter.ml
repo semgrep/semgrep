@@ -2618,7 +2618,18 @@ and map_selector (env : env) (x : CST.selector) : expr -> expr =
   | `Assi_sele x -> map_assignable_selector env x expr
   | `Arg_part x ->
       let _tyargs_TODO, args = map_argument_part env x in
-      Call (expr, args) |> G.e
+      (* In Dart the 'new' keyword is optional, so the syntax of a call and
+         a constructor invocation are identical. The compiler relies on the
+         type checker to disambiguate; we use Dart's universal naming
+         convention as a heuristic instead — identifiers starting with an
+         uppercase letter are types, anything else is a value. This lets us
+         emit a proper New for things like `Foo()` so taint sources/sinks
+         that target constructors match correctly. *)
+      (match expr.e with
+       | N (Id ((s, _), id_info) as n)
+         when String.length s > 0 && s.[0] >= 'A' && s.[0] <= 'Z' ->
+           G.New (fake "new", TyN n |> G.t, id_info, args) |> G.e
+       | _ -> G.Call (expr, args) |> G.e)
   | `Type_args x ->
       let _tyargs_TODO = map_type_arguments env x in
       expr
@@ -2876,28 +2887,35 @@ and map_strict_formal_parameter_list (env : env)
 *)
 
 and map_string_literal (env : env) (xs : CST.string_literal) : G.expr =
-  G.Call
-    ( G.Special (G.ConcatString G.SequenceConcat, fake "concat") |> G.e,
-      fb
-        (xs
-        |> List.map (fun x ->
-            match x with
-            | `Str_lit_double_quotes x -> map_string_literal_double_quotes env x
-            | `Str_lit_single_quotes x -> map_string_literal_single_quotes env x
-            | `Str_lit_double_quotes_mult x ->
-                map_string_literal_double_quotes_multiple env x
-            | `Str_lit_single_quotes_mult x ->
-                map_string_literal_single_quotes_multiple env x
-            | `Raw_str_lit_double_quotes x ->
-                map_raw_string_literal_double_quotes env x
-            | `Raw_str_lit_single_quotes x ->
-                map_raw_string_literal_single_quotes env x
-            | `Raw_str_lit_double_quotes_mult x ->
-                map_raw_string_literal_double_quotes_multiple env x
-            | `Raw_str_lit_single_quotes_mult x ->
-                map_raw_string_literal_single_quotes_multiple env x)
-        |> List.map (fun x -> Arg x)) )
-  |> G.e
+  let map_one x =
+    match x with
+    | `Str_lit_double_quotes x -> map_string_literal_double_quotes env x
+    | `Str_lit_single_quotes x -> map_string_literal_single_quotes env x
+    | `Str_lit_double_quotes_mult x ->
+        map_string_literal_double_quotes_multiple env x
+    | `Str_lit_single_quotes_mult x ->
+        map_string_literal_single_quotes_multiple env x
+    | `Raw_str_lit_double_quotes x ->
+        map_raw_string_literal_double_quotes env x
+    | `Raw_str_lit_single_quotes x ->
+        map_raw_string_literal_single_quotes env x
+    | `Raw_str_lit_double_quotes_mult x ->
+        map_raw_string_literal_double_quotes_multiple env x
+    | `Raw_str_lit_single_quotes_mult x ->
+        map_raw_string_literal_single_quotes_multiple env x
+  in
+  match xs with
+  | [ x ] ->
+      (* A single literal piece is the whole string — no need to wrap it
+         in a ConcatString call. Wrapping inserts a synthetic Call node
+         that interferes with pattern matching against bare string
+         literals. *)
+      map_one x
+  | xs ->
+      G.Call
+        ( G.Special (G.ConcatString G.SequenceConcat, fake "concat") |> G.e,
+          fb (xs |> List.map map_one |> List.map (fun x -> Arg x)) )
+      |> G.e
 
 and map_string_literal_to_strings (env : env) (xs : CST.string_literal) :
     G.expr list =
@@ -3011,21 +3029,24 @@ and map_switch_block (env : env) ((v1, v2, v3, v4) : CST.switch_block) :
 
 and map_template_substitution (env : env) ((v1, v2) : CST.template_substitution)
     =
-  let _s1, _t1 = (* "$" *) str env v1 in
-  let v2 =
-    match v2 with
-    | `LCURL_exp_RCURL (v1, v2, v3) ->
-        let v1 = (* "{" *) token env v1 in
-        let v2 = map_expression env v2 in
-        let v3 = (* "}" *) token env v3 in
-        Either_.Right3 (v1, Some v2, v3)
-    | `Id_dollar_esca tok ->
-        let s2, t2 =
-          (* pattern ([a-zA-Z_]|(\\\$))([\w]|(\\\$))* *) str env tok
-        in
-        Left3 (s2, t2)
-  in
-  v2
+  let s1, t1 = (* "$" *) str env v1 in
+  match v2 with
+  | `LCURL_exp_RCURL (_v1, v2, _v3) ->
+      (* '${expr}' is a subexpression injected into the string; emit it as
+         Middle3 (the expression slot) rather than Right3 — the curly braces
+         are syntactic and don't survive into the AST. *)
+      let v2 = map_expression env v2 in
+      Either_.Middle3 v2
+  | `Id_dollar_esca tok ->
+      let s2, t2 =
+        (* pattern ([a-zA-Z_]|(\\\$))([\w]|(\\\$))* *) str env tok
+      in
+      (* '$id' resolves to a variable reference in real programs; in
+         pattern mode we keep it as a raw string fragment so that
+         metavariables inside interpolations don't get misparsed. *)
+      (match env.extra with
+       | Program -> Either_.Middle3 (N (H2.name_of_id (s2, t2)) |> G.e)
+       | Pattern -> Either_.Left3 (s1 ^ s2, Tok.combine_toks t1 [ t2 ]))
 
 and map_throw_expression (env : env) ((v1, v2) : CST.throw_expression) =
   let v1 = (* "throw" *) token env v1 in
@@ -3966,9 +3987,9 @@ let map_method_signature (env : env) (x : CST.method_signature) (attrs, body) =
         match v2 with
         | `Func_sign x ->
             map_function_signature ~attrs env x
-              ((Function, fake "Function"), body)
-        | `Getter_sign x -> map_getter_signature ~attrs env x FBNothing
-        | `Setter_sign x -> map_setter_signature ~attrs env x FBNothing
+              ((Method, fake "Method"), body)
+        | `Getter_sign x -> map_getter_signature ~attrs env x body
+        | `Setter_sign x -> map_setter_signature ~attrs env x body
       in
       v2
   | `Op_sign x -> map_operator_signature ~attrs env x

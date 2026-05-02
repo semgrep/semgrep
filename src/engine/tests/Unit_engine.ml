@@ -758,6 +758,12 @@ let lang_tainting_tests () =
 
          let lang = Lang.Scala in
          tainting_tests_for_lang files lang);
+      Testo.categorize "tainting Dart"
+        (let dir = taint_tests_path / "dart" in
+         let files = Common2.glob (dir / "*.dart") in
+
+         let lang = Lang.Dart in
+         tainting_tests_for_lang files lang);
     ]
 
 (*****************************************************************************)
