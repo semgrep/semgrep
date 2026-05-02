@@ -963,7 +963,10 @@ and map_declared_identifier (env : env)
     | None -> []
   in
   let attrs, tyopt = map_final_const_var_or_type env v3 in
-  let v4 = (* pattern [a-zA-Z_$][\w$]* *) str env v4 in
+  let v4 =
+    match v4 with
+    | `Id tok | `Get tok | `Set tok -> str env tok
+  in
   (v1 @ v2 @ attrs, tyopt, v4)
 
 (* Only allow the default expression if it's a normal Param, and if
@@ -1046,12 +1049,26 @@ and map_default_named_parameter (env : env) (x : CST.default_named_parameter) =
 
 and map_element (env : env) (x : CST.element) : expr =
   match x with
-  | `Exp x -> map_expression env x
-  | `Pair (v1, v2, v3) ->
+  | `Opt_QMARK_exp (v1, x) ->
+      (* Dart 3 null-aware element: leading "?" tells the runtime to omit
+         this entry when the expression is null. Wrap with OtherExpr so
+         rules can distinguish it from a plain expression. *)
+      let e = map_expression env x in
+      (match v1 with
+       | None -> e
+       | Some tok ->
+           let qmark = (* "?" *) token env tok in
+           OtherExpr (("NullAwareElement", qmark), [ G.E e ]) |> G.e)
+  | `Pair (v1, v2, v3, v4) ->
       let v1 = map_expression env v1 in
       let _v2 = (* ":" *) token env v2 in
-      let v3 = map_expression env v3 in
-      Container (Tuple, fb [ v1; v3 ]) |> G.e
+      let _v3_TODO =
+        match v3 with
+        | Some tok -> Some ((* "?" *) token env tok)
+        | None -> None
+      in
+      let v4 = map_expression env v4 in
+      Container (Tuple, fb [ v1; v4 ]) |> G.e
   | `Spread_elem (v1, v2, v3) ->
       let v1 = (* "..." *) token env v1 in
       (* I don't know why the question mark should be there. *)
@@ -1495,7 +1512,7 @@ and map_guarded_pattern (env : env) ((v1, v2) : CST.guarded_pattern) =
       PatWhen (pat, v2)
   | None -> pat
 
-and map_if_null_expression_ (env : env) (xs : CST.if_null_expression_) exp =
+and map_if_null_expression_ (env : env) (xs : CST.if_null_expression) exp =
   let l =
     List.map
       (fun (v1, v2) ->
@@ -2197,7 +2214,7 @@ and map_list_pattern_element (env : env) (x : CST.list_pattern_element) =
       OtherPat (("RestPat", v1), v2)
 
 and map_object_pattern (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7) : CST.object_pattern) =
+    ((v1, v2, v3, v4, v5) : CST.object_pattern) =
   let v1 = map_type_name_name env v1 in
   let _v2_TODO =
     match v2 with
@@ -2205,22 +2222,22 @@ and map_object_pattern (env : env)
     | None -> fb []
   in
   let _v3 = (* "(" *) token env v3 in
-  let v4 = snd (map_pattern_field env v4) in
-  let v5 =
-    List.map
-      (fun (v1, v2) ->
-        let _v1 = (* "," *) token env v1 in
-        let v2 = map_pattern_field env v2 in
-        snd v2)
-      v5
+  let fields =
+    match v4 with
+    | None -> []
+    | Some (f1, fs, _trailing_comma) ->
+        let f1 = snd (map_pattern_field env f1) in
+        let fs =
+          List.map
+            (fun (v1, v2) ->
+              let _v1 = (* "," *) token env v1 in
+              snd (map_pattern_field env v2))
+            fs
+        in
+        f1 :: fs
   in
-  let _v6 =
-    match v6 with
-    | Some tok -> Some ((* "," *) token env tok)
-    | None -> None
-  in
-  let _v7 = (* ")" *) token env v7 in
-  PatConstructor (v1, v4 :: v5)
+  let _v5 = (* ")" *) token env v5 in
+  PatConstructor (v1, fields)
 
 and map_outer_pattern (env : env) (x : CST.outer_pattern) =
   match x with
@@ -2406,6 +2423,16 @@ and map_primary (env : env) (x : CST.primary) : expr =
   | `Id tok ->
       N (Id ((* pattern [a-zA-Z_$][\w$]* *) str env tok, empty_id_info ()))
       |> G.e
+  | `Get tok | `Set tok ->
+      (* Dart 3: 'get'/'set' usable as plain identifiers in expression context. *)
+      N (Id (str env tok, empty_id_info ())) |> G.e
+  | `Dot_shor (v1, v2) ->
+      (* Dart 3.10 dot-shorthand: '.foo' or '.new' inferred against context. *)
+      let dot = (* "." *) token env v1 in
+      let id =
+        match v2 with `Id tok | `New_buil tok -> str env tok
+      in
+      OtherExpr (("DotShorthand", dot), [ G.I id ]) |> G.e
   | `New_exp (v1, v2, v3, v4) ->
       let v1 = (* "new" *) token env v1 in
       let v2 = map_type_not_void env v2 in
@@ -2494,7 +2521,7 @@ and map_real_expression (env : env) (x : CST.real_expression) : expr =
           v2
       in
       List.fold_left (fun acc (tk, e) -> special (Op Or, tk) [ acc; e ]) v1 v2
-  | `If_null_exp (v1, v2) ->
+  | `If_null_exp_ (v1, v2) ->
       let v1 = map_real_expression env v1 in
       let v2 = map_if_null_expression_ env v2 in
       v2 v1
@@ -2649,13 +2676,16 @@ and map_simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
   | `Decl_id x ->
       let pattrs, ptype, id = map_declared_identifier env x in
       Param (param_of_id ?ptype ~pattrs id)
-  | `Opt_cova_id (v1, v2) ->
+  | `Opt_cova_choice_id (v1, v2) ->
       let v1 =
         match v1 with
         | Some tok -> [ unhandled_keywordattr ((* "covariant" *) str env tok) ]
         | None -> []
       in
-      let v2 = (* pattern [a-zA-Z_$][\w$]* *) str env v2 in
+      let v2 =
+        match v2 with
+        | `Id tok | `Get tok | `Set tok -> str env tok
+      in
       Param (param_of_id ~pattrs:v1 v2)
 
 and map_statement_as_stmt env x =
@@ -4237,6 +4267,16 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         map_function_signature ~attrs env v2 ((Method, fake "method"), FBNothing)
       in
       [ v2 ]
+  | `Exte_and_static_type_id (v1, v2, v3) ->
+      let attrs = map_external_and_static env v1 @ attrs in
+      let vtype = map_type_ env v2 in
+      let id = (* identifier *) str env v3 in
+      [
+        DefStmt
+          ( basic_entity ~attrs id,
+            VarDef { vinit = None; vtype = Some vtype; vtok = G.no_sc } )
+        |> G.s;
+      ]
   | `Static_func_sign (v1, v2) ->
       let v1 = KeywordAttr (Static, (* "static" *) token env v1) in
       let v2 =
@@ -4622,6 +4662,12 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
       | `Class_defi x -> [ map_class_definition env x ]
       | `Enum_decl x -> [ map_enum_declaration env x ]
       | `Exte_decl x -> [ map_extension_declaration env x ]
+      | `Exte_type_decl (_v1, _v2, _v3, _v4, v5, _v6, _v7, _v8, _v9) ->
+          (* Dart 3 extension type declarations: not yet mapped to Generic
+             AST — emit a placeholder OtherStmt carrying the type's name so
+             rules can still reference it. *)
+          let id = (* identifier *) str env v5 in
+          [ G.OtherStmt (G.OS_Todo, [ G.I id ]) |> G.s ]
       | `Mixin_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
           (* A mixin is basically a nominative extension of a class.
           https://dart.dev/language/mixins
