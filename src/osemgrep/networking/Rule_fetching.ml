@@ -686,14 +686,7 @@ let langs_of_pattern (pat, analyzer_opt) : Analyzer.t list =
        * TODO? use Analyzer.assoc instead?
        *)
       let all_langs =
-        Lang.assoc
-        |> List.map (fun (_k, l) -> l)
-        |> List_.deduplicate
-        (* TODO: we currently get a segfault with the Dart parser
-         * (for example on a pattern like ': string (* filename *)'), so we
-         * skip Dart for now (which anyway is not really supported).
-         *)
-        |> List_.exclude (fun x -> x =*= Lang.Dart)
+        Lang.assoc |> List.map (fun (_k, l) -> l) |> List_.deduplicate
       in
       all_langs
       |> List.filter_map (fun l ->
