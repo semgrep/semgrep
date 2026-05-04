@@ -1,0 +1,1 @@
+MCP `semgrep_findings` tool: added a `refs` parameter to filter findings by branch (defaults to the primary branch when not specified), and made `autotriage_verdict` optional so that findings without an AI verdict can also be returned.
