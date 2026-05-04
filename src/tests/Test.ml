@@ -146,6 +146,7 @@ let tests =
         Unit_memory_limit.tests ();
         Unit_tok.tests;
         Unit_parsed_float.tests;
+        Unit_fast_json.tests;
         Unit_Ppath.tests;
         Unit_Rpath.tests;
         Unit_git_wrapper.tests;

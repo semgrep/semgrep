@@ -154,6 +154,11 @@ let parse_pattern_by_lang options lang str =
       in
       Js_to_generic.any js_ast
   | Lang.Json ->
+      (* Note: we deliberately use [Parse_json + Json_to_generic] here
+       * rather than the faster [Fast_json] used by [Parse_rule]. JSON
+       * pattern fixtures sometimes start with `//` line comments, which
+       * the JS-lexer-based [Parse_json] silently accepts but [Fast_json]
+       * (strict RFC 8259) would reject. *)
       let any = Parse_json.any_of_string str in
       Json_to_generic.any any
   (* Tree-sitter only and use intermediate AST *)
