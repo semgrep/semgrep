@@ -14,4 +14,4 @@
  * to offer also the deriving functions.
  *)
 
-type t = Semver.t [@@deriving show, ord]
+type t = Semver.t [@@deriving show, ord, eq]

@@ -1326,40 +1326,26 @@ let parse_file ?error_recovery ?rewrite_rule_ids file :
     (* coupling: Rule_file.is_valid_rule_filename *)
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
-        (* in a parsing-rule context, we don't want the parsed strings by
-         * Parse_json.parse_program to remain escaped. For example with this
-         * JSON rule:
-         * { "rules": [ {
-         *       "id": "x",
-         *       "message": "",
-         *       "languages": ["python"],
-         *       "severity": "WARNING",
-         *       "pattern": "\"hello\""
-         *     }
-         *   ]
-         * }
-         * we want the pattern in the generic AST of the rule to contain the
-         * string '"hello"', without the antislash, otherwise
-         * Parse_python.parse_any will fail parsing it.
+        (* We use [Fast_json], a hand-written RFC 8259 parser, instead of
+         * the legacy [Parse_json + Json_to_generic ~unescape_strings:true]
+         * chain. The reason the legacy path needed [~unescape_strings:true]
+         * at all is that [Parse_json] piggy-backs on the JS parser, which
+         * leaves most JSON escapes literal in the AST: a JSON pattern field
+         * containing a backslash-escaped quote arrives in the AST with the
+         * backslashes still present, and [unescape_strings:true] then runs
+         * each string through Yojson to do the actual JSON unescape at
+         * AST-rewrite time. [Fast_json] performs full JSON unescaping
+         * inline during parse, so by the time we get [generic] the embedded
+         * pattern string is already in its final unescaped form, ready for
+         * the downstream pattern parser.
          *
-         * Note that we didn't have this problem before when we were using
-         * Yojson to parse a JSON rule, because Yojson correctly unescaped
-         * and returned the "final string".
-         *
-         * Note that this is handled correctly by Yaml_to_generic.parse_rule
-         * below.
-         *)
-        (* Tracing here rather than at the definition site of these functions to
-         * avoid excessive tracing when parsing JSON targets. *)
-        let json =
-          let%trace _span = "Parse_json.parse_program" in
-          Parse_json.parse_program file
-        in
-        let generic =
-          let%trace _span = "Json_to_generic.program" in
-          Json_to_generic.program ~unescape_strings:true json
-        in
-        Ok generic
+         * This swap is rule-file-specific (see [Fast_json.ml] preamble for
+         * scope and intentional differences from the legacy path). It is
+         * NOT safe to use [Fast_json] for parsing JSON patterns or JSON
+         * targets as a drop-in replacement; those paths still use
+         * [Parse_json + Json_to_generic]. *)
+        let%trace _span = "Fast_json.parse_program" in
+        Ok (Fast_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         (* old: via external jsonnet program
            Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
