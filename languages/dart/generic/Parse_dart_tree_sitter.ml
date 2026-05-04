@@ -270,7 +270,10 @@ let map_dot_identifier (env : env) ((v1, v2) : CST.dot_identifier) =
   v2
 
 let map_label (env : env) ((v1, v2) : CST.label) =
-  let v1 = (* pattern [a-zA-Z_$][\w$]* *) str env v1 in
+  let v1 =
+    match v1 with
+    | `Id tok | `Get tok | `Set tok | `Func_buil_id tok -> str env tok
+  in
   let _v2 = (* ":" *) token env v2 in
   v1
 
@@ -972,7 +975,7 @@ and map_declared_identifier (env : env)
   let attrs, tyopt = map_final_const_var_or_type env v3 in
   let v4 =
     match v4 with
-    | `Id tok | `Get tok | `Set tok -> str env tok
+    | `Id tok | `Get tok | `Set tok | `Op tok -> str env tok
   in
   (v1 @ v2 @ attrs, tyopt, v4)
 
@@ -1542,7 +1545,7 @@ and map_initialized_identifier (env : env)
     ((v1, v2) : CST.initialized_identifier) : ident * expr option =
   let v1 =
     match v1 with
-    | `Id tok | `Get tok | `Set tok -> str env tok
+    | `Id tok | `Get tok | `Set tok | `Op tok -> str env tok
   in
   let v2 =
     match v2 with
