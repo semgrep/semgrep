@@ -849,6 +849,16 @@ and map_cascade_assignment_section (env : env)
   let v2 = map_expression_without_cascade env v2 in
   (v1, v2)
 
+and map_cascade_arg_or_bang (env : env)
+    (x : CST.anon_choice_arg_part_7fd04ec) (expr : expr) : expr =
+  match x with
+  | `Arg_part x ->
+      let _tyargs, args = map_argument_part env x in
+      Call (expr, args) |> G.e
+  | `Excl_op tok ->
+      let t = (* "!" *) token env tok in
+      Ref (t, expr) |> G.e
+
 and map_cascade_section (env : env) ((v1, v2, v3, v4, v5) : CST.cascade_section)
     expr =
   let v1 =
@@ -858,8 +868,7 @@ and map_cascade_section (env : env) ((v1, v2, v3, v4, v5) : CST.cascade_section)
   in
   let base = OtherExpr (("CascadeBase", v1), [ G.E expr ]) |> G.e in
   let v2 = map_cascade_selector env v2 base in
-  let argss = List.map (fun x -> snd (map_argument_part env x)) v3 in
-  let e = List.fold_left (fun acc args -> Call (acc, args) |> G.e) v2 argss in
+  let e = List.fold_left (fun acc x -> map_cascade_arg_or_bang env x acc) v2 v3 in
   let v4 = List.map (map_cascade_subsection env) v4 in
   let e = List.fold_left (fun acc f -> f acc) e v4 in
   match v5 with
@@ -886,10 +895,7 @@ and map_cascade_selector (env : env) (x : CST.cascade_selector) expr =
 and map_cascade_subsection (env : env) ((v1, v2) : CST.cascade_subsection) expr
     =
   let v1 = map_assignable_selector env v1 in
-  let v2 = List.map (map_argument_part env) v2 in
-  List.fold_left
-    (fun acc (_tyargs, args) -> Call (acc, args) |> G.e)
-    (v1 expr) v2
+  List.fold_left (fun acc x -> map_cascade_arg_or_bang env x acc) (v1 expr) v2
 
 (* and map_constructor_invocation (env : env)
     ((v1, v2, v3, v4, v5) : CST.constructor_invocation) : expr =
@@ -4355,10 +4361,13 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
         map_function_signature ~attrs env v2 ((Method, fake "method"), FBNothing)
       in
       [ v2 ]
-  | `Exte_and_static_type_id (v1, v2, v3) ->
+  | `Exte_and_static_type_choice_id (v1, v2, v3) ->
       let attrs = map_external_and_static env v1 @ attrs in
       let vtype = map_type_ env v2 in
-      let id = (* identifier *) str env v3 in
+      let id =
+        match v3 with
+        | `Id tok | `Get tok | `Set tok | `Op tok -> str env tok
+      in
       [
         DefStmt
           ( basic_entity ~attrs id,
