@@ -1678,12 +1678,24 @@ and map_record_literal_no_const (env : env)
       let v1 = (* "(" *) token env v1 in
       let v2 = (* ")" *) token env v2 in
       (v1, [], v2)
-  | `LPAR_choice_label_exp_RPAR (v1, v2, v3) ->
+  | `LPAR_choice_label_exp_COMMA_RPAR (v1, v2, v3) ->
       let v1 = (* "(" *) token env v1 in
       let v2 =
         match v2 with
         | `Label_exp x ->
             let id, e = map_named_argument_no_arg env x in
+            [
+              F
+                (DefStmt
+                   ( basic_entity ~attrs:[] id,
+                     FieldDefColon
+                       { vtype = None; vinit = Some e; vtok = G.no_sc } )
+                |> G.s);
+            ]
+        | `Label_exp_COMMA (v1, v2, _v3) ->
+            (* `(label: expr,)` — single named field with trailing comma. *)
+            let id = map_label env v1 in
+            let e = map_expression env v2 in
             [
               F
                 (DefStmt
@@ -1725,10 +1737,32 @@ and map_literal (env : env) (x : CST.literal) =
   | `Symb_lit (v1, v2) ->
       (* For referring to identifiers.
          https://dart.dev/language/built-in-types#symbols
-      *)
+         A symbol can also wrap a dotted identifier list (e.g. `#a.b.c`)
+         or an operator (e.g. `#+`, `#==`, `#[]`). *)
       let v1 = (* "#" *) token env v1 in
-      let v2 = (* pattern [a-zA-Z_$][\w$]* *) str env v2 in
-      OtherExpr (("Symbol", v1), [ G.I v2 ]) |> G.e
+      let body =
+        match v2 with
+        | `Id_rep_DOT_id ids ->
+            let xs = map_dotted_identifier_list env ids in
+            let s = String.concat "." (List.map fst xs) in
+            (s, v1)
+        | `Equa_op tok | `TILDE tok | `BAR tok | `AMP tok | `HAT tok
+        | `LBRACKRBRACK tok | `LBRACKRBRACKEQ tok | `Addi_op tok ->
+            str env tok
+        | `Rela_op x -> map_relational_operator env x
+        | `Shift_op x ->
+            (match x with
+             | `LTLT tok -> str env tok
+             | `GTGT tok -> str env tok
+             | `GTGTGT tok -> str env tok)
+        | `Mult_op x ->
+            (match x with
+             | `STAR tok -> str env tok
+             | `SLASH tok -> str env tok
+             | `PERC tok -> str env tok
+             | `TILDESLASH tok -> str env tok)
+      in
+      OtherExpr (("Symbol", v1), [ G.I body ]) |> G.e
   | `List_lit (v1, v2, v3, v4, v5) ->
       let _v1_TODO =
         match v1 with
@@ -3310,10 +3344,31 @@ and map_constant_pattern (env : env) (x : CST.constant_pattern) =
   | `Symb_lit (v1, v2) ->
       (* For referring to identifiers.
          https://dart.dev/language/built-in-types#symbols
-      *)
+         A symbol may also wrap a dotted identifier list or operator. *)
       let v1 = (* "#" *) token env v1 in
-      let v2 = (* pattern [a-zA-Z_$][\w$]* *) str env v2 in
-      OtherPat (("Symbol", v1), [ G.I v2 ])
+      let body =
+        match v2 with
+        | `Id_rep_DOT_id ids ->
+            let xs = map_dotted_identifier_list env ids in
+            let s = String.concat "." (List.map fst xs) in
+            (s, v1)
+        | `Equa_op tok | `TILDE tok | `BAR tok | `AMP tok | `HAT tok
+        | `LBRACKRBRACK tok | `LBRACKRBRACKEQ tok | `Addi_op tok ->
+            str env tok
+        | `Rela_op x -> map_relational_operator env x
+        | `Shift_op x ->
+            (match x with
+             | `LTLT tok -> str env tok
+             | `GTGT tok -> str env tok
+             | `GTGTGT tok -> str env tok)
+        | `Mult_op x ->
+            (match x with
+             | `STAR tok -> str env tok
+             | `SLASH tok -> str env tok
+             | `PERC tok -> str env tok
+             | `TILDESLASH tok -> str env tok)
+      in
+      OtherPat (("Symbol", v1), [ G.I body ])
   | `Id tok ->
       (* pattern [a-zA-Z_$][\w$]* *) PatId (str env tok, G.empty_id_info ())
   | `Qual x ->
@@ -3738,7 +3793,14 @@ let map_library_name (env : env) ((v1, v2, v3, v4) : CST.library_name) : stmt =
     | None -> []
   in
   let v2 = (* "library" *) token env v2 in
-  let v3 = map_dotted_identifier_list env v3 in
+  (* The dotted identifier list is now optional — Dart 2.19+ allows
+     `library;` (unnamed library directive) for files documenting the
+     library as a whole without a globally-unique name. *)
+  let v3 =
+    match v3 with
+    | Some x -> map_dotted_identifier_list env x
+    | None -> []
+  in
   let _sc = map_semicolon env v4 in
   let dk = Package (v2, v3) in
   DirectiveStmt { d = dk; d_attrs = v1 } |> G.s
