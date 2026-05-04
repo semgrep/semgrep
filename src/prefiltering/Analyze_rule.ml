@@ -278,14 +278,48 @@ let prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
        file) that leads to sink. *)
     None
   else
+    (* If there are any sources or sinks that are ranges-based as opposed to formula-based,
+       we want to not only keep the formula based sources or sinks, but to overall produce
+       an empty list for our sources or sinks.
+       This will signal that we would like the formula to be unconstrained in sources or
+       sinks.
+       Otherwise, we might incorrectly constrain based off of only the formula, which is
+       incorrect, as matches for range-based rules can occur anywhere.
+     *)
+    let have_source_with_ranges =
+      List.exists
+        (fun (src : Rule.taint_source) ->
+          match src.source_formula with
+          | Rule.Ranges _ -> true
+          | Rule.Formula _ -> false)
+        source_patterns
+    in
+    let have_sink_with_ranges =
+      List.exists
+        (fun (sink : Rule.taint_sink) ->
+          match sink.sink_formula with
+          | Rule.Ranges _ -> true
+          | Rule.Formula _ -> false)
+        sink_patterns
+    in
     (* We must be able to match some source _and_ some sink. *)
     let sources =
-      source_patterns
-      |> List.map (fun (src : Rule.taint_source) -> src.source_formula)
+      if have_source_with_ranges then []
+      else
+        source_patterns
+        |> List.filter_map (fun (src : Rule.taint_source) ->
+            match src.source_formula with
+            | Rule.Formula f -> Some f
+            | Rule.Ranges _ -> None)
     in
     let sinks =
-      sink_patterns
-      |> List.map (fun (sink : Rule.taint_sink) -> sink.sink_formula)
+      if have_sink_with_ranges then []
+      else
+        sink_patterns
+        |> List.filter_map (fun (sink : Rule.taint_sink) ->
+            match sink.sink_formula with
+            | Rule.Formula f -> Some f
+            | Rule.Ranges _ -> None)
     in
     (* Note that this formula would likely not yield any meaningful result
        if executed by search-mode, but it works for the purpose of this

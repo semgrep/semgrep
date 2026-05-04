@@ -658,8 +658,8 @@ let run (config : Core_scan_config.t) : unit =
 (* We want to only run the Parmap runtime iff --x-parmap is set.
  * coupling: Pro_CLI.ml
  *)
-let maybe_with_eio (f : Core_scan_config.t -> 'a) : 'a =
-  let config = mk_config () in
+let maybe_with_eio ?rules (f : Core_scan_config.t -> 'a) : 'a =
+  let config = mk_config ?rules () in
   Core_profiling.profiling := config.report_time;
   let num_jobs : Core_scan_config.num_jobs =
     if !Profiling.profile =*= Profiling.ProfAll then (

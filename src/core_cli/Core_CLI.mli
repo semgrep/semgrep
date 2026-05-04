@@ -34,7 +34,7 @@ val output_core_results :
     (depending on the value in config.output_format)
 *)
 
-val maybe_with_eio : (Core_scan_config.t -> 'a) -> 'a
+val maybe_with_eio : ?rules:Rule.rules -> (Core_scan_config.t -> 'a) -> 'a
 
 val maybe_with_tracing :
   string ->
@@ -58,6 +58,10 @@ val all_actions :
   ?par_conf:Parallelism_config.t -> unit -> Arg_.action_spec list
 
 val register_exception_printers : unit -> unit
+
+(* Reset all CLI option refs to defaults. Call before re-entering
+ * main_exn in the same process (e.g. in tests). *)
+val reset_options : unit -> unit
 
 (* this can raise exn; useful in test context *)
 val main_exn : string array -> unit

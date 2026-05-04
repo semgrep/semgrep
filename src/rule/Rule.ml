@@ -234,6 +234,20 @@ type taint_spec_id = string [@@deriving show]
 (** A unique identifier for a taint spec pattern (source, sink, sanitizer, or
     propagator). See e.g. 'Parse_rule.parse_taint_source'. *)
 
+type byte_range = { start : int; end_ : int } [@@deriving show]
+(** A byte-range in a file: [(start_bytepos, end_bytepos)].
+    Isomorphic to [Range.t] but defined here to avoid a dependency on
+    [semgrep.core] from [semgrep.rule]. *)
+
+(** A formula field in a taint spec entry (source, sink, sanitizer).
+    Either a normal pattern formula, or a list of precomputed file/range
+    pairs that bypass formula evaluation (used by the taint_ranges
+    experiment).  taint_propagator is excluded — see note below. *)
+type taint_formula =
+  | Formula of formula
+  | Ranges of (Fpath.t * byte_range) list
+[@@deriving show]
+
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
  *)
@@ -246,7 +260,7 @@ type taint_spec = {
 
 and taint_source = {
   source_id : taint_spec_id;
-  source_formula : formula;
+  source_formula : taint_formula;
   source_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `source(...)`, then the
         `ok` inside `source(sink(ok))` is considered tainted, and `sink(ok)` is
@@ -281,7 +295,7 @@ and taint_source = {
  *)
 and taint_sanitizer = {
   sanitizer_id : taint_spec_id;
-  sanitizer_formula : formula;
+  sanitizer_formula : taint_formula;
   sanitizer_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `sanitize(...)`, then
         the `tainted` inside `sanitize(sink(tainted))` is considered sanitized,
@@ -307,7 +321,7 @@ and taint_sanitizer = {
 
 and taint_sink = {
   sink_id : taint_spec_id;
-  sink_formula : formula;
+  sink_formula : taint_formula;
   sink_exact : bool;
       (** If 'true' (the default), if the formula were e.g. `sink(...)`, then the
         `tainted` inside `sink(if tainted then ok1 else ok2)` is not considered a
@@ -869,12 +883,27 @@ let rec formulas_of_mode (mode : mode) : formula list =
   | `Search formula -> [ formula ]
   | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
     ->
-      List.map (fun src -> src.source_formula) sources
+      List.filter_map
+        (fun src ->
+          match src.source_formula with
+          | Formula f -> Some f
+          | Ranges _ -> None)
+        sources
       @ (match sanitizers with
         | None -> []
         | Some (_, sanitizers) ->
-            List.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
-      @ List.map (fun sink -> sink.sink_formula) sinks
+            List.filter_map
+              (fun s ->
+                match s.sanitizer_formula with
+                | Formula f -> Some f
+                | Ranges _ -> None)
+              sanitizers)
+      @ List.filter_map
+          (fun sink ->
+            match sink.sink_formula with
+            | Formula f -> Some f
+            | Ranges _ -> None)
+          sinks
       @ List.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Steps steps ->

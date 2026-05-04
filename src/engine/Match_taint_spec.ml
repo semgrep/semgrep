@@ -152,31 +152,122 @@ let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
       in
       (ranges |> List.map (fun rwm -> (rwm, x)), expls))
 
+(* Construct a Range_with_metavars.t from a byte-range, with no metavar
+   bindings and a synthetic Core_match.t origin.  Used when a spec entry
+   carries Ranges instead of a formula. *)
+let mk_synthetic_rwm ~(rule : R.t) ~(lang : Lang.t)
+    ~(converters : Pos.bytepos_linecol_converters) (file : Fpath.t)
+    (br : R.byte_range) : RM.t =
+  let r : Range.t = { start = br.start; end_ = br.end_ } in
+  let mk_loc bytepos : Tok.location =
+    let line, column = converters.bytepos_to_linecol_fun bytepos in
+    { Loc.pos = { Pos.file; bytepos; line; column }; str = "" }
+  in
+  let origin : Core_match.t =
+    {
+      Core_match.path =
+        {
+          origin = Origin.Unfilterable_target_file file;
+          internal_path_to_content = file;
+        };
+      range_loc = (mk_loc r.start, mk_loc r.end_);
+      rule_id =
+        {
+          id = fst rule.id;
+          message = "";
+          metadata = None;
+          fix = None;
+          fix_regexp = None;
+          langs = [ lang ];
+          pattern_string = "";
+        };
+      engine_of_match = `OSS;
+      env = [];
+      ast_node = None;
+      tokens = Lazy_safe.from_val [];
+      taint_trace = None;
+      sca_match = None;
+      validation_state = `No_validator;
+      severity_override = None;
+      metadata_override = None;
+      fix_text = None;
+      facts = [];
+    }
+  in
+  RM.{ r; mvars = []; kind = Plain; origin }
+
+(* Given a list of (ranges_list, spec) pairs, filter to the ranges that
+   fall within the current file and build synthetic RWMs. *)
+let mk_ranges_rwm_matches ~(rule : R.t) ~(xtarget : Xtarget.t)
+    (range_specs : ((Fpath.t * R.byte_range) list * 'a) list) : (RM.t * 'a) list
+    =
+  match range_specs with
+  | [] -> []
+  | _ :: _ ->
+      let file = xtarget.path.internal_path_to_content in
+      let lang = Analyzer.to_lang_exn rule.target_analyzer in
+      (* potentially expensive, but guarded by the fact that we only call this for
+         range rules and not formula rules
+         TODO: revisit if we end up in a world where we have a ton of different
+         pre-specified ranges
+       *)
+      let converters = Pos.full_converters_large file in
+      List.concat_map
+        (fun (ranges, spec) ->
+          List.filter_map
+            (fun (f, r) ->
+              if Fpath.equal f file then
+                Some (mk_synthetic_rwm ~rule ~lang ~converters f r, spec)
+              else None)
+            ranges)
+        range_specs
+
 let find_sources_ranges formula_cache xconf xtarget rule (spec : R.taint_spec) =
-  find_range_w_metas formula_cache xconf xtarget rule
-    (spec.sources |> snd
-    |> List.map (fun (src : R.taint_source) -> (src.source_formula, src)))
+  let formula_specs, range_specs =
+    spec.sources |> snd
+    |> List.partition_map (fun (src : R.taint_source) ->
+        match src.source_formula with
+        | R.Formula f -> Left (f, src)
+        | R.Ranges rs -> Right (rs, src))
+  in
+  let formula_results, expls =
+    find_range_w_metas formula_cache xconf xtarget rule formula_specs
+  in
+  let range_results = mk_ranges_rwm_matches ~rule ~xtarget range_specs in
+  (formula_results @ range_results, expls)
 [@@trace_trace]
 
 let find_sinks_ranges formula_cache xconf xtarget rule (spec : R.taint_spec) =
-  find_range_w_metas formula_cache xconf xtarget rule
-    (spec.sinks |> snd
-    |> List.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
+  let formula_specs, range_specs =
+    spec.sinks |> snd
+    |> List.partition_map (fun (sink : R.taint_sink) ->
+        match sink.sink_formula with
+        | R.Formula f -> Left (f, sink)
+        | R.Ranges rs -> Right (rs, sink))
+  in
+  let formula_results, expls =
+    find_range_w_metas formula_cache xconf xtarget rule formula_specs
+  in
+  let range_results = mk_ranges_rwm_matches ~rule ~xtarget range_specs in
+  (formula_results @ range_results, expls)
 [@@trace_trace]
 
 let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
   specs
-  |> concat_map_with_expls (fun (sanitizer : R.taint_sanitizer) ->
-      let ranges, expls =
-        Formula_cache.cached_find_opt formula_cache sanitizer.sanitizer_formula
-          (fun () ->
-            range_w_metas_of_formula xconf xtarget rule
-              sanitizer.sanitizer_formula)
-      in
-      ( ranges |> List.map (fun x -> (sanitizer.R.not_conflicting, x, sanitizer)),
-        expls ))
+  |> concat_map_with_expls (fun (san : R.taint_sanitizer) ->
+      match san.sanitizer_formula with
+      | R.Formula formula ->
+          let ranges, expls =
+            Formula_cache.cached_find_opt formula_cache formula (fun () ->
+                range_w_metas_of_formula xconf xtarget rule formula)
+          in
+          ( ranges |> List.map (fun rwm -> (san.R.not_conflicting, rwm, san)),
+            expls )
+      | R.Ranges rs ->
+          let rwms = mk_ranges_rwm_matches ~rule ~xtarget [ (rs, san) ] in
+          (rwms |> List.map (fun (rwm, s) -> (s.R.not_conflicting, rwm, s)), []))
 [@@trace_trace]
 
 (* Finds all matches of `pattern-propagators`. *)

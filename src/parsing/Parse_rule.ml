@@ -311,7 +311,8 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       |> Result.map (Option.value ~default:R.default_source_label)
     in
     let/ source_requires = take_opt dict env parse_taint_requires "requires" in
-    let/ source_formula = f env dict in
+    let/ raw_source_formula = f env dict in
+    let source_formula = R.Formula raw_source_formula in
     Ok
       {
         R.source_id;
@@ -331,7 +332,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     match source with
     | Left value ->
         let/ formula = Parse_rule_formula.parse_rule_xpattern env value in
-        let source_formula = R.f (R.P formula) in
+        let source_formula = R.Formula (R.f (R.P formula)) in
         Ok
           {
             Rule.source_id;
@@ -401,7 +402,8 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
         (if is_old then "not_conflicting" else "not-conflicting")
       |> Result.map (Option.value ~default:false)
     in
-    let/ sanitizer_formula = f env dict in
+    let/ raw_sanitizer_formula = f env dict in
+    let sanitizer_formula = R.Formula raw_sanitizer_formula in
     Ok
       Rule.
         {
@@ -420,7 +422,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     match sanitizer with
     | Left value ->
         let/ xpattern = Parse_rule_formula.parse_rule_xpattern env value in
-        let sanitizer_formula = R.P xpattern |> R.f in
+        let sanitizer_formula = R.Formula (R.P xpattern |> R.f) in
         Ok
           {
             sanitizer_id;
@@ -500,8 +502,9 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
       take_opt dict env parse_bool "exact"
       |> Result.map (Option.value ~default:true)
     in
-    let/ sink_formula = f env dict in
-    let sink_has_focus = Rule.is_formula_with_focus sink_formula in
+    let/ raw_sink_formula = f env dict in
+    let sink_has_focus = Rule.is_formula_with_focus raw_sink_formula in
+    let sink_formula = Rule.Formula raw_sink_formula in
     Ok
       Rule.
         {
@@ -521,8 +524,9 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match sink with
     | Left value ->
         let/ xpattern = Parse_rule_formula.parse_rule_xpattern env value in
-        let sink_formula = R.P xpattern |> R.f in
-        let sink_has_focus = Rule.is_formula_with_focus sink_formula in
+        let raw_sink_formula = R.P xpattern |> R.f in
+        let sink_has_focus = Rule.is_formula_with_focus raw_sink_formula in
+        let sink_formula = Rule.Formula raw_sink_formula in
         Ok
           Rule.
             {
