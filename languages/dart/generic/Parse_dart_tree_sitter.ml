@@ -2843,6 +2843,10 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
       let _colon = (* ":" *) token env v2 in
       let stmts = map_statement env v3 in
       [ Label (label, G.stmt1 stmts) |> G.s ]
+  | `Empty_stmt tok ->
+      (* `;` — empty/null statement; emit an empty Block. *)
+      let _sc = (* ";" *) token env tok in
+      [ Block (fb []) |> G.s ]
 
 and map_strict_formal_parameter_list (env : env)
     (x : CST.strict_formal_parameter_list) : parameters =
