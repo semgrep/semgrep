@@ -4514,6 +4514,35 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
               VarDef { vinit = None; vtype; vtok = G.no_sc } )
           |> G.s)
         ids
+  | `Exte_choice_final_buil_opt_type_id_list (v1, v2) ->
+      let ext_attr = unhandled_keywordattr ((* "external" *) str env v1) in
+      let new_attrs, vtype, ids =
+        match v2 with
+        | `Final_buil_opt_type_id_list (v1, v2, v3) ->
+            let final_attr =
+              KeywordAttr (Final, (* final_builtin *) token env v1)
+            in
+            let vtype =
+              match v2 with
+              | Some x -> Some (map_type_ env x)
+              | None -> None
+            in
+            ([ final_attr ], vtype, map_identifier_list_ env v3)
+        | `Cova_var_or_type_id_list (v1, v2, v3) ->
+            let cov_attr =
+              unhandled_keywordattr ((* "covariant" *) str env v1)
+            in
+            let vtype = map_var_or_type env v2 in
+            ([ cov_attr ], Some vtype, map_identifier_list_ env v3)
+      in
+      let attrs = (ext_attr :: new_attrs) @ attrs in
+      List.map
+        (fun id ->
+          DefStmt
+            ( basic_entity ~attrs id,
+              VarDef { vinit = None; vtype; vtok = G.no_sc } )
+          |> G.s)
+        ids
 
 let map_declaration_as_stmt (env : env) (x : CST.declaration_) : stmt =
   Block (fb (map_declaration_ env x)) |> G.s
