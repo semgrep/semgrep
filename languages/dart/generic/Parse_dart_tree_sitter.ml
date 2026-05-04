@@ -564,8 +564,23 @@ and map_annotation (env : env) ((v1, v2, v3) : CST.annotation) =
   in
   NamedAttr (v1, H2.name_of_ids v2, args)
 
-and map_anon_arg_rep_COMMA_arg_eb223b2 (env : env)
-    ((v1, v2) : CST.anon_arg_rep_COMMA_arg_eb223b2) =
+and map_for_init_list (env : env) ((v1, v2) :
+    CST.expression * (Tree_sitter_run.Token.t * CST.expression) list) =
+  let v1 = map_expression env v1 in
+  let v2 =
+    List.map
+      (fun (v1, v2) ->
+        let _v1 = (* "," *) token env v1 in
+        let v2 = map_expression env v2 in
+        v2)
+      v2
+  in
+  v1 :: v2
+
+and map_for_update_list (env : env) ((v1, v2, _v3) :
+    CST.expression
+    * (Tree_sitter_run.Token.t * CST.expression) list
+    * Tree_sitter_run.Token.t option) =
   let v1 = map_expression env v1 in
   let v2 =
     List.map
@@ -1262,7 +1277,7 @@ and map_for_loop_parts_ (env : env) (x : CST.for_loop_parts_) : for_header =
       let v2 = (* "in" *) token env v2 in
       let v3 = map_expression env v3 in
       ForEach (v1, v2, v3)
-  | `Opt_choice_local_var_decl_opt_exp_semi_opt_exp_rep_COMMA_exp
+  | `Opt_choice_local_var_decl_opt_exp_semi_opt_exp_rep_COMMA_exp_opt_COMMA
       (v1, v2, v3, v4) ->
       let v1 =
         match v1 with
@@ -1278,7 +1293,7 @@ and map_for_loop_parts_ (env : env) (x : CST.for_loop_parts_) : for_header =
                   | Some x ->
                       List.map
                         (fun x -> ForInitExpr x)
-                        (map_anon_arg_rep_COMMA_arg_eb223b2 env x)
+                        (map_for_init_list env x)
                   | None -> []
                 in
                 let _sc = map_semicolon env v2 in
@@ -1293,7 +1308,7 @@ and map_for_loop_parts_ (env : env) (x : CST.for_loop_parts_) : for_header =
       let _sc = map_semicolon env v3 in
       let v4 =
         match v4 with
-        | Some x -> Some (map_anon_arg_rep_COMMA_arg_eb223b2 env x)
+        | Some x -> Some (map_for_update_list env x)
         | None -> None
       in
       let listify es =
@@ -3857,7 +3872,7 @@ let map_initializer_list_entry (env : env) (x : CST.initializer_list_entry) :
       let lhs = DotAccess (super, v2, FN (Id (v3, empty_id_info ()))) |> G.e in
       let v4 = map_arguments env v4 in
       Call (lhs, v4) |> G.e
-  | `Field_init (v1, v2, v3, v4, v5) ->
+  | `Field_init (v1, v2, v3, v4) ->
       let offset =
         Id ((* pattern [a-zA-Z_$][\w$]* *) str env v2, empty_id_info ())
       in
@@ -3874,11 +3889,7 @@ let map_initializer_list_entry (env : env) (x : CST.initializer_list_entry) :
         | None -> G.N offset |> G.e
       in
       let v3 = (* "=" *) token env v3 in
-      let e =
-        let v4 = map_real_expression env v4 in
-        let v5 = List.map (map_cascade_section env) v5 in
-        List.fold_left (fun acc f -> f acc) v4 v5
-      in
+      let e = map_expression env v4 in
       Assign (lhs, v3, e) |> G.e
   | `Asse x ->
       let assert_tok, args = map_assertion env x in
