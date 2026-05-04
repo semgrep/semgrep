@@ -395,11 +395,11 @@ let map_type_name (env : env) ((v1, v2) : CST.type_name) =
 *)
 let map_combinator (env : env) (x : CST.combinator) =
   match x with
-  | `Show_id_list (v1, v2) ->
+  | `Show_id_list_ (v1, v2) ->
       let _v1 = (* "show" *) token env v1 in
       let v2 = map_identifier_list env v2 in
       v2
-  | `Hide_id_list (v1, v2) ->
+  | `Hide_id_list_ (v1, v2) ->
       (* everything EXCEPT for something
          https://dart.dev/language/libraries#importing-only-part-of-a-library
          what utter nonsense
@@ -686,9 +686,8 @@ and map_assignable_expression (env : env) (x : CST.assignable_expression) : expr
       let v1 = map_constructor_invocation env v1 in
       let v2 = map_assignable_selector_part env v2 in
       v2 v1
-  | `Id tok ->
-      G.N (Id ((* pattern [a-zA-Z_$][\w$]* *) str env tok, empty_id_info ()))
-      |> G.e
+  | `Id tok | `Get tok | `Set tok | `Func_buil_id tok ->
+      G.N (Id (str env tok, empty_id_info ())) |> G.e
 
 and map_assignable_selector (env : env) (x : CST.assignable_selector) :
     expr -> expr =
@@ -2440,8 +2439,9 @@ and map_primary (env : env) (x : CST.primary) : expr =
   | `Id tok ->
       N (Id ((* pattern [a-zA-Z_$][\w$]* *) str env tok, empty_id_info ()))
       |> G.e
-  | `Get tok | `Set tok ->
-      (* Dart 3: 'get'/'set' usable as plain identifiers in expression context. *)
+  | `Get tok | `Set tok | `Func_buil_id tok ->
+      (* Dart 3: 'get'/'set'/'Function' usable as plain identifiers in
+         expression context. *)
       N (Id (str env tok, empty_id_info ())) |> G.e
   | `Dot_shor x -> map_dot_shorthand env x
   | `New_exp (v1, v2, v3, v4) ->
@@ -4399,15 +4399,15 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
             (basic_entity ~attrs id, VarDef { vinit; vtype; vtok = G.no_sc })
           |> G.s)
         inits
-  | `Cova_choice_late_buil_choice_final_buil_opt_type_id_list_ (v1, v2) ->
+  | `Cova_choice_late_buil_choice_final_buil_opt_type_id_list (v1, v2) ->
       let cov_attr = unhandled_keywordattr ((* "covariant" *) str env v1) in
       let new_attrs, vtype, inits =
         match v2 with
-        | `Late_buil_choice_final_buil_opt_type_id_list_ (v1, v2) ->
+        | `Late_buil_choice_final_buil_opt_type_id_list (v1, v2) ->
             let late_attr = unhandled_keywordattr ((* "late" *) str env v1) in
             let v2 =
               match v2 with
-              | `Final_buil_opt_type_id_list_ (v1, v2, v3) ->
+              | `Final_buil_opt_type_id_list (v1, v2, v3) ->
                   let v1 =
                     KeywordAttr (Final, (* final_builtin *) token env v1)
                   in
@@ -4475,6 +4475,38 @@ let map_declaration_ ?(attrs = []) (env : env) (x : CST.declaration_) :
               VarDef { vinit; vtype = Some v2; vtok = G.no_sc } )
           |> G.s)
         inits
+  | `Abst_choice_final_buil_opt_type_id_list (v1, v2) ->
+      let abs_attr = unhandled_keywordattr ((* "abstract" *) str env v1) in
+      let new_attrs, vtype, ids =
+        match v2 with
+        | `Final_buil_opt_type_id_list (v1, v2, v3) ->
+            let final_attr =
+              KeywordAttr (Final, (* final_builtin *) token env v1)
+            in
+            let vtype =
+              match v2 with
+              | Some x -> Some (map_type_ env x)
+              | None -> None
+            in
+            ([ final_attr ], vtype, map_identifier_list_ env v3)
+        | `Cova_var_or_type_id_list (v1, v2, v3) ->
+            let cov_attr =
+              unhandled_keywordattr ((* "covariant" *) str env v1)
+            in
+            let vtype = map_var_or_type env v2 in
+            ([ cov_attr ], Some vtype, map_identifier_list_ env v3)
+        | `Var_or_type_id_list (v1, v2) ->
+            let vtype = map_var_or_type env v1 in
+            ([], Some vtype, map_identifier_list_ env v2)
+      in
+      let attrs = (abs_attr :: new_attrs) @ attrs in
+      List.map
+        (fun id ->
+          DefStmt
+            ( basic_entity ~attrs id,
+              VarDef { vinit = None; vtype; vtok = G.no_sc } )
+          |> G.s)
+        ids
 
 let map_declaration_as_stmt (env : env) (x : CST.declaration_) : stmt =
   Block (fb (map_declaration_ env x)) |> G.s
@@ -4932,6 +4964,51 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
           |> List.map (fun (id, vinit) ->
               ( basic_entity ~attrs id,
                 { vinit; vtype = Some vtype; vtok = G.no_sc } ))
+          |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc
+      | `Opt_meta_exte_buil_choice_final_buil_opt_type_id_list_semi
+          (v1, v2, v3, v4) ->
+          let metadata_attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let ext_attr =
+            G.unhandled_keywordattr ((* "external" *) str env v2)
+          in
+          let attrs, vtype, ids =
+            match v3 with
+            | `Final_buil_opt_type_id_list (vf, vt, vi) ->
+                let final_attr =
+                  KeywordAttr (Final, (* final_builtin *) token env vf)
+                in
+                let vtype =
+                  match vt with
+                  | Some x -> Some (map_type_ env x)
+                  | None -> None
+                in
+                ( metadata_attrs @ [ ext_attr; final_attr ],
+                  vtype,
+                  map_identifier_list env vi
+                )
+            | `Opt_late_buil_var_or_type_id_list (vl, vv, vi) ->
+                let late_attrs =
+                  match vl with
+                  | Some tok ->
+                      [
+                        G.unhandled_keywordattr ((* "late" *) str env tok);
+                      ]
+                  | None -> []
+                in
+                let vtype = map_var_or_type env vv in
+                ( metadata_attrs @ [ ext_attr ] @ late_attrs,
+                  Some vtype,
+                  map_identifier_list env vi )
+          in
+          let sc = map_semicolon env v4 in
+          ids
+          |> List.map (fun id ->
+                 ( basic_entity ~attrs id,
+                   { vinit = None; vtype; vtok = G.no_sc } ))
           |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc)
   | `Semg_ellips tok ->
       [
