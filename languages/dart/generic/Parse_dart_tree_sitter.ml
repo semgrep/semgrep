@@ -1084,16 +1084,21 @@ and map_element (env : env) (x : CST.element) : expr =
        | Some tok ->
            let qmark = (* "?" *) token env tok in
            OtherExpr (("NullAwareElement", qmark), [ G.E e ]) |> G.e)
-  | `Pair (v1, v2, v3, v4) ->
-      let v1 = map_expression env v1 in
-      let _v2 = (* ":" *) token env v2 in
-      let _v3_TODO =
-        match v3 with
+  | `Pair (v1, v2, v3, v4, v5) ->
+      let _v1_TODO =
+        match v1 with
         | Some tok -> Some ((* "?" *) token env tok)
         | None -> None
       in
-      let v4 = map_expression env v4 in
-      Container (Tuple, fb [ v1; v4 ]) |> G.e
+      let v2 = map_expression env v2 in
+      let _v3 = (* ":" *) token env v3 in
+      let _v4_TODO =
+        match v4 with
+        | Some tok -> Some ((* "?" *) token env tok)
+        | None -> None
+      in
+      let v5 = map_expression env v5 in
+      Container (Tuple, fb [ v2; v5 ]) |> G.e
   | `Spread_elem (v1, v2, v3) ->
       let v1 = (* "..." *) token env v1 in
       (* I don't know why the question mark should be there. *)
