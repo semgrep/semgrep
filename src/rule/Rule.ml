@@ -234,7 +234,7 @@ type taint_spec_id = string [@@deriving show, eq]
 (** A unique identifier for a taint spec pattern (source, sink, sanitizer, or
     propagator). See e.g. 'Parse_rule.parse_taint_source'. *)
 
-type byte_range = { start : int; end_ : int } [@@deriving show]
+type byte_range = { start : int; end_ : int } [@@deriving show, eq]
 (** A byte-range in a file: [(start_bytepos, end_bytepos)].
     Isomorphic to [Range.t] but defined here to avoid a dependency on
     [semgrep.core] from [semgrep.rule]. *)
@@ -246,7 +246,7 @@ type byte_range = { start : int; end_ : int } [@@deriving show]
 type taint_formula =
   | Formula of formula
   | Ranges of (Fpath.t * byte_range) list
-[@@deriving show]
+[@@deriving show, eq]
 
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
