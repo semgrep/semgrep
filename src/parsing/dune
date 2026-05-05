@@ -24,7 +24,6 @@
    ;TODO: use lighter JSON parser at some point or move
    ; also out of Parse_rule.ml to reduce even more JS size
    parser_json.menhir parser_json.ast_generic
-   fast_json ; experimental lighter JSON parser with locations
 
    semgrep_core
    semgrep.prefiltering

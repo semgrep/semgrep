@@ -1,1 +1,0 @@
-Faster JSON rule parsing: rule files in JSON format now parse roughly 5x faster end-to-end (measured ~134s → ~28s on a 382MB rule pack) by going through a new hand-written RFC 8259 parser instead of the previous JS-parser-based chain.

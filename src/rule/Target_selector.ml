@@ -68,4 +68,4 @@
    For example, we could select all the Bash scripts but analyze them with
    spacegrep.
 *)
-type t = Lang.t list [@@deriving show, eq]
+type t = Lang.t list [@@deriving show]

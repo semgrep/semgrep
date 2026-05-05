@@ -204,7 +204,7 @@ type precondition =
   | PAnd of precondition list
   | POr of precondition list
   | PNot of precondition
-[@@deriving show, ord, eq]
+[@@deriving show, ord]
 
 let rec show_precondition (p : precondition) : string =
   match p with
@@ -221,16 +221,16 @@ type precondition_with_range = {
   range : (Tok.location * Tok.location) option;
       (** Range used to extract the actual text of the precondition for rule translation. *)
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 type sink_requires =
   | UniReq of precondition_with_range
   | MultiReq of (Mvar.t wrap * precondition_with_range) list  (** non-empty *)
-[@@deriving show, eq]
+[@@deriving show]
 
-type by_side_effect = Only | Yes | No [@@deriving show, eq]
+type by_side_effect = Only | Yes | No [@@deriving show]
 
-type taint_spec_id = string [@@deriving show, eq]
+type taint_spec_id = string [@@deriving show]
 (** A unique identifier for a taint spec pattern (source, sink, sanitizer, or
     propagator). See e.g. 'Parse_rule.parse_taint_source'. *)
 
@@ -373,7 +373,7 @@ and taint_propagator = {
          received.
       *)
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 let default_source_label = "__SOURCE__"
 let default_source_requires = PBool true
@@ -447,7 +447,7 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
     - either treat them as separate files; or
     - concatentate them together
 *)
-and extract_reduction = Separate | Concat [@@deriving show, eq]
+and extract_reduction = Separate | Concat [@@deriving show]
 
 (*****************************************************************************)
 (* secrets mode (Pro-only) *)
@@ -473,7 +473,7 @@ and extract_reduction = Separate | Concat [@@deriving show, eq]
  *)
 
 type header = { name : string; value : string } [@@deriving show, eq]
-type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show, eq]
+type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show]
 
 (* Used to request additional auth headers are computed and added automatically,
  * e.g., because they depend on other headers and/or body
@@ -495,7 +495,7 @@ type auth =
       service : string;
       region : string;
     }
-[@@deriving show, eq]
+[@@deriving show]
 
 type aws_request = {
   secret_access_key : string;
@@ -503,7 +503,7 @@ type aws_request = {
   region : string;
   session_token : string option;
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 (* why is url : string? metavariables (i.e http://$X) are present at parsing; which
  * if parsed with Uri.of_string translates it to http://%24x
@@ -515,11 +515,11 @@ type request = {
   body : string option;
   auth : auth option;
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 (* Used to match on the returned response of some request *)
 type response = { return_code : Parsed_int.t; regex : string option }
-[@@deriving show, eq]
+[@@deriving show]
 
 type http_match_clause = {
   status_code : Parsed_int.t option;
@@ -527,7 +527,7 @@ type http_match_clause = {
   headers : header list;
   content : (formula * Analyzer.t) option;
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 type http_matcher = {
   match_conditions : http_match_clause list;
@@ -537,12 +537,12 @@ type http_matcher = {
   metadata : JSON.t option;
   message : string option;
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 type validator =
   | HTTP of { request : request; response : http_matcher list }
   | AWS of { request : aws_request; response : http_matcher list }
-[@@deriving show, eq]
+[@@deriving show]
 
 (*****************************************************************************)
 (* Paths *)
@@ -559,10 +559,6 @@ type glob = {
 }
 [@@deriving show]
 
-(* compiled_pattern is abstract and has no equal; equality of source_pattern
-   is sufficient since the same source compiles to an equivalent pattern. *)
-let equal_glob a b = String.equal a.source_pattern b.source_pattern
-
 (* TODO? should we provide a pattern-filename: Xpattern to combine
  * with other Xpattern instead of adhoc paths: extra field in the rule?
  * TODO? should we remove this field and opt for a more powerful and general
@@ -578,7 +574,7 @@ type path_filter = {
   (* List of file path patterns we want to exclude. *)
   exclude : glob list;
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 (*****************************************************************************)
 (* Misc *)
@@ -601,18 +597,18 @@ type fix_regexp = {
 (*****************************************************************************)
 
 (* Polymorphic variants used to improve type checking of rules (see below) *)
-type search_mode = [ `Search of formula ] [@@deriving show, eq]
-type taint_mode = [ `Taint of taint_spec ] [@@deriving show, eq]
-type extract_mode = [ `Extract of extract ] [@@deriving show, eq]
+type search_mode = [ `Search of formula ] [@@deriving show]
+type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
+type extract_mode = [ `Extract of extract ] [@@deriving show]
 
 (* a.k.a parity rules, that is for SCA rules without a pattern *)
-type sca_mode = [ `SCA of sca_dependency_formula ] [@@deriving show, eq]
+type sca_mode = [ `SCA of sca_dependency_formula ] [@@deriving show]
 
 (* Steps mode includes rules that use search_mode and taint_mode.
  * Later, if we keep it, we might want to make all rules have steps,
  * but for the experiment this is easier to remove.
  *)
-type steps_mode = [ `Steps of step list ] [@@deriving show, eq]
+type steps_mode = [ `Steps of step list ] [@@deriving show]
 
 (*****************************************************************************)
 (* Steps mode (Pro-only) *)
@@ -624,7 +620,7 @@ and step = {
   step_paths : path_filter option;
 }
 
-and mode_for_step = [ search_mode | taint_mode ] [@@deriving show, eq]
+and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
 
 (*****************************************************************************)
 (* Join mode (parsing support only)*)
@@ -633,16 +629,16 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show, eq]
    been implemented to allow for RPC validation of join mode files. *)
 (*****************************************************************************)
 
-type join_mode = [ `Join of join ] [@@deriving show, eq]
+type join_mode = [ `Join of join ] [@@deriving show]
 
 and join = { refs : join_ref list; rules : join_inline list; on : string list }
-[@@deriving show, eq]
+[@@deriving show]
 
 and join_ref = { rule : string; as_ : string option; renames : rename list }
-[@@deriving show, eq]
+[@@deriving show]
 
-and join_inline = step [@@deriving show, eq]
-and rename = { from_ : string; to_ : string } [@@deriving show, eq]
+and join_inline = step [@@deriving show]
+and rename = { from_ : string; to_ : string } [@@deriving show]
 
 (*****************************************************************************)
 (* The rule *)
@@ -768,7 +764,7 @@ type 'mode rule_info = {
   min_version : Semver_.t option;
   max_version : Semver_.t option;
 }
-[@@deriving show, eq]
+[@@deriving show]
 
 (* Step mode includes rules that use search_mode and taint_mode *)
 (* Later, if we keep it, we might want to make all rules have steps,
@@ -776,14 +772,14 @@ type 'mode rule_info = {
 
 type mode =
   [ search_mode | taint_mode | extract_mode | steps_mode | sca_mode | join_mode ]
-[@@deriving show, eq]
+[@@deriving show]
 
 (* the general type *)
-type rule = mode rule_info [@@deriving show, eq]
+type rule = mode rule_info [@@deriving show]
 
 (* aliases *)
-type t = rule [@@deriving show, eq]
-type rules = rule list [@@deriving show, eq]
+type t = rule [@@deriving show]
+type rules = rule list [@@deriving show]
 type hrules = (Rule_ID.t, t) Hashtbl.t
 
 (* If you know your function accepts only a certain kind of rule,

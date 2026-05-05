@@ -19,8 +19,3 @@ let default = Rule_options_j.t_of_string "{}"
 let pp fmt t =
   let s = Rule_options_j.string_of_t t in
   Format.fprintf fmt "%s" s
-
-(* Equality via JSON serialization — sufficient for rule-parsing diff
-   harnesses, since two options with the same effect serialize identically. *)
-let equal a b =
-  String.equal (Rule_options_j.string_of_t a) (Rule_options_j.string_of_t b)
