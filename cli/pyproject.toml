@@ -76,7 +76,7 @@ dependencies = [
   "requests~=2.22",
   "rich>=13.5.2",
   "ruamel.yaml>=0.18.15",
-  "ruamel.yaml.clib==0.2.14",
+  "ruamel.yaml.clib==0.2.15",
   "semantic-version~=2.10.0",
   "tomli~=2.4.0",
   "typing-extensions~=4.2",
