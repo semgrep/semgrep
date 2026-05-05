@@ -1481,6 +1481,27 @@ and map_function_signature ~attrs (env : env)
             FuncDef { fkind; fparams; frettype; fbody } )
         |> G.s
 
+and map_record_return_function_signature ~attrs (env : env)
+    ((v1, v2, v3, v4, v5) : CST.record_return_function_signature) =
+  let rt = map_record_type env (v1 :> CST.record_type) in
+  let frettype =
+    match v2 with
+    | Some tok -> Some (TyQuestion (rt, (* "?" *) token env tok) |> G.t)
+    | None -> Some rt
+  in
+  let id = (* pattern [a-zA-Z_$][\w$]* *) str env v3 in
+  let tparams, fparams = map_formal_parameter_part env v4 in
+  let _v5_TODO =
+    match v5 with
+    | Some x -> Some (map_native env x)
+    | None -> None
+  in
+  fun (fkind, fbody) ->
+    DefStmt
+      ( basic_entity ~attrs ?tparams id,
+        FuncDef { fkind; fparams; frettype; fbody } )
+    |> G.s
+
 and map_function_type (env : env) (x : CST.function_type) : type_ =
   match x with
   | `Func_type_tails x ->
@@ -4129,6 +4150,31 @@ let map_method_signature (env : env) (x : CST.method_signature) (attrs, body) =
       v2
   | `Op_sign x -> map_operator_signature ~attrs env x
 
+(* Methods whose return type is a record type, preceded by bare annotations.
+   See `_record_return_class_member` in tree-sitter-dart's grammar.js. *)
+let map_record_return_method_signature (env : env)
+    ((v1, v2) : CST.record_return_method_signature) (attrs, body) =
+  let attrs =
+    match v1 with
+    | Some tok ->
+        [ KeywordAttr (Static, (* "static" *) token env tok) ] @ attrs
+    | None -> attrs
+  in
+  map_record_return_function_signature ~attrs env v2
+    ((Method, fake "Method"), body)
+
+let map_bare_annotation (env : env) ((v1, v2) : CST.bare_annotation) =
+  let v1 = (* "@" *) token env v1 in
+  let v2 = map_ambiguous_name env v2 in
+  NamedAttr (v1, H2.name_of_ids v2, fb [])
+
+let map_record_return_class_member (env : env)
+    ((v1, v2, v3) : CST.record_return_class_member) : G.field =
+  let attrs = List.map (map_bare_annotation env) v1 in
+  let v2 = map_record_return_method_signature env v2 in
+  let fattrs, v3 = map_function_body env v3 in
+  G.F (v2 (attrs @ fattrs, v3))
+
 let map_anon_choice_redi_3f8cf96 (env : env) (x : CST.anon_choice_redi_3f8cf96)
     : expr list =
   (* These are initializers, which may appear after a constructor, but before
@@ -4658,6 +4704,11 @@ let map_extension_body (env : env) ((v1, v2, v3) : CST.extension_body) :
             in
             let v2 = map_method_signature env v2 in
             let fattrs, v3 = map_function_body env v3 in
+            [ v2 (attrs @ fattrs, v3) ]
+        | `Record_ret_class_member ((v1, v2, v3) : CST.record_return_class_member) ->
+            let attrs = List.map (map_bare_annotation env) v1 in
+            let v2 = map_record_return_method_signature env v2 in
+            let fattrs, v3 = map_function_body env v3 in
             [ v2 (attrs @ fattrs, v3) ])
       v2
   in
@@ -4704,18 +4755,17 @@ let map_class_member_definition (env : env) (x : CST.class_member_definition) :
       let fattrs, v2 = map_function_body env v2 in
       G.F (v1 (fattrs, v2))
 
-let map_anon_rep_opt_meta_class_member_defi_cd2fbdb (env : env)
-    (xs : CST.anon_rep_opt_meta_class_member_defi_cd2fbdb) =
-  List.map
-    (fun (v1, v2) ->
+let map_anon_choice_opt_meta_class_member_defi_44d3600 (env : env)
+    (x : CST.anon_choice_opt_meta_class_member_defi_44d3600) : G.field =
+  match x with
+  | `Opt_meta_choice_decl__semi (v1, v2) ->
       let _v1 =
         match v1 with
         | Some x -> map_metadata env x
         | None -> []
       in
-      let v2 = map_class_member_definition env v2 in
-      v2)
-    xs
+      map_class_member_definition env v2
+  | `Record_ret_class_member x -> map_record_return_class_member env x
 
 let map_enum_body ~attrs ~enum_tok ~enum_id ~mixins ~implements (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.enum_body) : stmt =
@@ -4738,8 +4788,7 @@ let map_enum_body ~attrs ~enum_tok ~enum_id ~mixins ~implements (env : env)
     match v5 with
     | Some (v1, v2) ->
         let _v1 = (* ";" *) token env v1 in
-        let v2 = map_anon_rep_opt_meta_class_member_defi_cd2fbdb env v2 in
-        v2
+        List.map (map_anon_choice_opt_meta_class_member_defi_44d3600 env) v2
     | None -> []
   in
   let v6 = (* "}" *) token env v6 in
@@ -4785,7 +4834,9 @@ let map_enum_declaration (env : env)
 let map_class_body (env : env) ((v1, v2, v3) : CST.class_body) :
     field list bracket =
   let v1 = (* "{" *) token env v1 in
-  let v2 = map_anon_rep_opt_meta_class_member_defi_cd2fbdb env v2 in
+  let v2 =
+    List.map (map_anon_choice_opt_meta_class_member_defi_44d3600 env) v2
+  in
   let v3 = (* "}" *) token env v3 in
   (v1, v2, v3)
 
@@ -5001,6 +5052,14 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
           let fattrs, fbody = map_function_body env v3 in
           let v1 =
             map_function_signature ~attrs:(attrs @ fattrs) env v2
+              ((Function, fake "function"), fbody)
+          in
+          [ v1 ]
+      | `Rep1_bare_anno_record_ret_func_sign_func_body (v1, v2, v3) ->
+          let attrs = List.map (map_bare_annotation env) v1 in
+          let fattrs, fbody = map_function_body env v3 in
+          let v1 =
+            map_record_return_function_signature ~attrs:(attrs @ fattrs) env v2
               ((Function, fake "function"), fbody)
           in
           [ v1 ]
