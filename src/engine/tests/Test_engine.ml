@@ -114,6 +114,9 @@ let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
              * .yaml ambiguities in tests/rules
              *)
             && ext2 <> "jsonnet"
+            (* golden-output sidecars (e.g. foo.taint_sig.expect,
+             * foo.pp_il.expect) are never runnable targets *)
+            && not (String.ends_with ~suffix:".expect" ext2)
           then Some (Fpath.v path2)
           else None)
 
