@@ -1,0 +1,1 @@
+Scala projects are now identified for Supply Chain only by their root build.sbt, rather than treating each build.sbt as a different subproject.
