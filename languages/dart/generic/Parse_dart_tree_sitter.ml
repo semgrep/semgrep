@@ -5247,14 +5247,39 @@ let parse file =
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
 
+(* Statement keywords that can't appear at top level in Dart. When a
+   pattern starts with one of these, the source-file parse will silently
+   misparse (e.g. `if (kDebugMode) { ... }` reads as a function definition
+   with `if` as the return type), so we prefer the expression/statement
+   path even though the file parse produced no `errors`. *)
+let starts_with_statement_keyword str =
+  let trimmed = String.trim str in
+  let is_word_char c =
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+    || c = '_'
+  in
+  let starts_with_kw kw =
+    let n = String.length kw in
+    String.length trimmed >= n
+    && String.sub trimmed 0 n = kw
+    && (String.length trimmed = n || not (is_word_char trimmed.[n]))
+  in
+  List.exists starts_with_kw
+    [ "if"; "for"; "while"; "do"; "switch"; "try";
+      "return"; "throw"; "break"; "continue"; "assert"; "yield" ]
+
 (* Cribbed from the Cairo parser. *)
 let parse_expression_or_source_file str =
-  let res = Tree_sitter_dart.Parse.string str in
-  match res.errors with
-  | [] -> res
-  | _ ->
-      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
-      Tree_sitter_dart.Parse.string expr_str
+  if starts_with_statement_keyword str then
+    let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+    Tree_sitter_dart.Parse.string expr_str
+  else
+    let res = Tree_sitter_dart.Parse.string str in
+    match res.errors with
+    | [] -> res
+    | _ ->
+        let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+        Tree_sitter_dart.Parse.string expr_str
 
 let parse_pattern str =
   H.wrap_parser
