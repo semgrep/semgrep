@@ -1,0 +1,10 @@
+(library
+ (public_name fast_json)
+ (wrapped false)
+ (libraries
+   lib_parsing
+   paths
+   yojson
+   ast_generic
+ )
+)
