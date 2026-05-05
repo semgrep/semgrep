@@ -1609,22 +1609,22 @@ and map_initialized_variable_definition_unwrapped (env : env)
     ((v1, v2, v3) : CST.initialized_variable_definition) :
     (entity * variable_definition) list =
   let attrs, vtype, id = map_declared_identifier env v1 in
-  let v2 =
+  let first_init =
     match v2 with
     | Some (v1, v2) ->
         let _v1 = (* "=" *) token env v1 in
         let v2 = map_expression env v2 in
-        [ (id, Some v2) ]
-    | None -> []
+        (id, Some v2)
+    | None -> (id, None)
   in
   let inits =
-    v2
-    @ List.map
-        (fun (v1, v2) ->
-          let _v1 = (* "," *) token env v1 in
-          let v2 = map_initialized_identifier env v2 in
-          v2)
-        v3
+    first_init
+    :: List.map
+         (fun (v1, v2) ->
+           let _v1 = (* "," *) token env v1 in
+           let v2 = map_initialized_identifier env v2 in
+           v2)
+         v3
   in
   List.map
     (fun (id, vinit) ->
