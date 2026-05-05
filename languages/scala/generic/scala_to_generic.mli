@@ -12,3 +12,8 @@
 *)
 val program : AST_scala.program -> AST_generic.program
 val any : AST_scala.any -> AST_generic.any
+
+val merge_chained_packages : AST_generic.stmt list -> AST_generic.stmt list
+(** Merge consecutive top-level [Package] directives into a single [Package]
+    with concatenated identifiers (e.g. [package a; package b.c] becomes
+    [package a.b.c]). Shared with [Parse_scala_tree_sitter]. *)

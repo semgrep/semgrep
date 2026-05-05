@@ -1244,7 +1244,27 @@ and v_type_definition_kind = function
       (* abstract type with constraints? *)
       G.AbstractType (fake "")
 
-let v_program v = v_list v_top_stat v |> List_.flatten
+(* Merge consecutive leading [package a; package b.c] into [package a.b.c].
+   https://www.scala-lang.org/files/archive/spec/3.4/09-top-level-definitions.html
+
+   This language feature is unique to Scala, so we'll keep this handling here.
+   Operates on [G.stmt list] so it can be shared with [Parse_scala_tree_sitter],
+   which builds the Generic AST directly. *)
+let rec merge_chained_packages = function
+  | ({ G.s = G.DirectiveStmt ({ G.d = G.Package (tok1, ids1); _ } as d1); _ } as
+     s1)
+    :: { G.s = G.DirectiveStmt { G.d = G.Package (_tok2, ids2); _ }; _ }
+    :: rest ->
+      let merged =
+        {
+          s1 with
+          G.s = G.DirectiveStmt { d1 with G.d = G.Package (tok1, ids1 @ ids2) };
+        }
+      in
+      merge_chained_packages (merged :: rest)
+  | stmts -> stmts
+
+let v_program v = v_list v_top_stat v |> List_.flatten |> merge_chained_packages
 
 let v_any = function
   | Pr v1 ->

@@ -2651,7 +2651,7 @@ and compilation_unit (env : env) ((_shebang, v2) : CST.compilation_unit) : any =
       let rest_stmts =
         List.concat_map (fun (_semi, tld) -> top_level_definition env tld) rest
       in
-      Pr (first_stmts @ rest_stmts)
+      Pr (Scala_to_generic.merge_chained_packages (first_stmts @ rest_stmts))
 
 (*****************************************************************************)
 (* Entry point *)
