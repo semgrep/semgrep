@@ -5266,7 +5266,8 @@ let starts_with_statement_keyword str =
   in
   List.exists starts_with_kw
     [ "if"; "for"; "while"; "do"; "switch"; "try";
-      "return"; "throw"; "break"; "continue"; "assert"; "yield" ]
+      "return"; "throw"; "rethrow"; "break"; "continue";
+      "assert"; "yield"; "await" ]
 
 (* Cribbed from the Cairo parser. *)
 let parse_expression_or_source_file str =
