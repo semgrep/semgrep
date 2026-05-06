@@ -20,6 +20,7 @@ let _dir_fail_tutorial = Fpath.v "tests/jsonnet/tutorial/fail"
 let _dir_fail = Fpath.v "tests/jsonnet/fail"
 let dir_error = Fpath.v "tests/jsonnet/errors"
 let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial/errors"
+let dir_sandbox = Fpath.v "tests/jsonnet/sandbox"
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Filename_.dbe_of_filename !!file in
@@ -44,6 +45,44 @@ let test_maker_err dir : Testo.t list =
           with
           | Eval_jsonnet_common.Error _ ->
               Alcotest.(check bool) "this raised an error" true true))
+
+(* Each fixture in [dir] tries to read a file outside
+   its own directory via [import]/[importstr]. Desugar must reject all of them
+   with [Desugar_jsonnet.Error] before any file content is loaded.
+ *)
+let test_maker_sandbox dir : Testo.t list =
+  Common2.glob (dir / "*jsonnet")
+  |> List.map (fun file ->
+      t ~category:[ !!dir ] (Fpath.basename file) (fun () ->
+          let ast = Parse_jsonnet.parse_program file in
+          try
+            let _ = Desugar_jsonnet.desugar_program file ast in
+            Alcotest.(fail "sandbox traversal should have been rejected")
+          with
+          | Desugar_jsonnet.Error _ -> ()))
+
+(* Mirrors the production [Rule_fetching.mk_import_callback] yaml branch:
+   given an import like 'foo.yml', sandbox-validate the resolved path before
+   using it. Used to verify that yaml-handling callbacks can no longer skip
+   the import-root check. *)
+let yaml_handling_callback ~sandbox base str =
+  if str =~ ".*\\.y[a]?ml$" then
+    let final_path = sandbox (Fpath.v base // Fpath.v str) in
+    let _ : Fpath.t = final_path in
+    Some (AST_jsonnet.L (AST_jsonnet.Null (Tok.unsafe_fake_tok "")))
+  else None
+
+let test_yaml_callback_sandbox () =
+  let file = Fpath.v "tests/jsonnet/sandbox/yaml_import_traversal.jsonnet" in
+  let ast = Parse_jsonnet.parse_program file in
+  try
+    let _ =
+      Desugar_jsonnet.desugar_program ~import_callback:yaml_handling_callback
+        file ast
+    in
+    Alcotest.(fail "yaml import traversal should have been rejected")
+  with
+  | Desugar_jsonnet.Error _ -> ()
 
 let mk_tests (subdir : Fpath.t) (strategys : Conf.eval_strategy list) :
     Testo.t list =
@@ -117,4 +156,10 @@ let tests : Testo.t list =
       *)
       test_maker_err dir_error;
       test_maker_err dir_error_tutorial;
+      test_maker_sandbox dir_sandbox;
+      [
+        t
+          ~category:[ "tests/jsonnet/sandbox" ]
+          "yaml_callback_sandbox" test_yaml_callback_sandbox;
+      ];
     ]

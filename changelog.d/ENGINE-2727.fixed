@@ -1,0 +1,2 @@
+jsonnet: `import` and `importstr` now reject paths that resolve outside the
+rule file's parent directory.

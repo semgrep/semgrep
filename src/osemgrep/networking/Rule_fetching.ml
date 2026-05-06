@@ -219,13 +219,13 @@ let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
    *)
   AST_generic_to_jsonnet.program gen
 
-let mk_import_callback base str =
+let mk_import_callback ~sandbox base str =
   match str with
   | s when s =~ ".*\\.y[a]?ml$" ->
       (* On the fly conversion from yaml to jsonnet. We can do
        * 'local x = import "foo.yml";'!
        *)
-      let final_path = Fpath.v base / str in
+      let final_path = sandbox (Fpath.v base // Fpath.v str) in
       Some (parse_yaml_for_jsonnet final_path)
   | s ->
       let url_opt =

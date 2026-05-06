@@ -11,21 +11,29 @@
    LICENSE for more details.
 *)
 (* Hook to customize how ojsonnet should resolve import expressions
- * (`local $NAME = import $PATH`). The first parameter below is the base
- * directory of the file currently processed and the second is the $PATH
- * above in the local expression.
- * The hook should return an AST_jsonnet expression if it can handle
- * the PATH or None, in which case it will default to a regular
- * jsonnet file import as in `local x = import "foo.jsonnet".
+ * (`local $NAME = import $PATH`). The string args are the base directory
+ * of the file currently being processed and the $PATH from the source.
+ * The hook returns an AST_jsonnet expression if it can handle the PATH,
+ * or None to fall through to the default `local x = import "foo.jsonnet"`
+ * file-import behaviour.
  *
- * This callback is useful for example in osemgrep to let ojsonnet
- * import yaml files (e.g., local x = import 'foo.yaml') or rules from the
- * registry (e.g., local x = import 'p/python').
+ * This callback is useful e.g. in osemgrep to let ojsonnet import yaml
+ * files (`local x = import 'foo.yaml'`) or rules from the registry
+ * (`local x = import 'p/python'`).
+ *
+ * Callbacks that do local file IO MUST run candidate paths through
+ * [~sandbox] before reading them, otherwise they bypass the import-root
+ * check that desugar applies on the default branch (ENGINE-2727).
  *)
 type import_callback =
-  string (* a directory *) -> string -> AST_jsonnet.expr option
+  sandbox:(Fpath.t -> Fpath.t) ->
+  string (* base dir *) ->
+  string (* import path *) ->
+  AST_jsonnet.expr option
 
 val default_callback : import_callback
+
+exception Error of string * Tok.t
 
 (* We pass the original file in addition to its AST so desugar can
  * handle correctly imports by using the dirname of the file as the
