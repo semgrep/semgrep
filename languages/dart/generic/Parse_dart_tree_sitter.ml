@@ -1488,8 +1488,22 @@ and map_function_signature ~attrs (env : env)
      this should be a call to a function named `foo`.
   *)
   fun (fkind, fbody) ->
-    match (env.extra, fparams) with
-    | Pattern, (_, [], _) ->
+    let is_empty_body =
+      match fbody with
+      | FBNothing
+      | FBDecl _ ->
+          true
+      | FBStmt { s = Block (_, [], _); _ } -> true
+      | _ -> false
+    in
+    match (env.extra, fparams, frettype, is_empty_body) with
+    (* Forward-declaration ambiguity: `foo();` at top level is a Dart
+       forward declaration that looks like a call. In pattern mode we
+       prefer the call interpretation, but only when it really is
+       ambiguous — no return type, no parameters, an empty body, no
+       attrs. If any of those are present (e.g. `void test() { ... }`),
+       the user clearly wrote a function definition and we honor that. *)
+    | Pattern, (_, [], _), None, true when attrs = [] ->
         ExprStmt
           (Call (N (Id (id, empty_id_info ())) |> G.e, fb []) |> G.e, G.sc)
         |> G.s
