@@ -1,0 +1,5 @@
+semgrep ci: redact URL-embedded credentials and `Authorization` header
+values from git error messages and from the captured tracebacks sent to
+the fail-open telemetry endpoint, preventing leaks of secrets like
+`CI_JOB_TOKEN` from a failed `git fetch` in GitLab CI. Also closes
+ENGINE-2731 (raw, unsanitized tracebacks in fail-open telemetry).

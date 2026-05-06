@@ -29,6 +29,7 @@ from typing import Sequence
 from semgrep import telemetry
 from semgrep.state import get_state
 from semgrep.util import manually_search_file
+from semgrep.util import redact_credentials
 from semgrep.verbose_logging import getLogger
 
 
@@ -76,14 +77,18 @@ def git_check_output(
             env=cmd_env,
         ).strip()
     except subprocess.CalledProcessError as e:
-        command_str = " ".join(command)
+        # `from None` below: suppress __context__ so traceback.format_exc
+        # can't walk to the original CalledProcessError (whose str() carries
+        # the un-redacted argv).
+        command_str = redact_credentials(" ".join(command))
+        stderr = redact_credentials(e.stderr) if e.stderr else e.stderr
         raise SemgrepError(
             dedent(
                 f"""
                 Command failed with exit code: {e.returncode}
                 -----
                 Command failed with output:
-                {e.stderr}
+                {stderr}
 
                 Failed to run '{command_str}'. Possible reasons:
 
@@ -97,7 +102,7 @@ def git_check_output(
                 Try running the command yourself to debug the issue.
                 """
             ).strip()
-        )
+        ) from None
 
 
 def get_project_url() -> Optional[str]:
