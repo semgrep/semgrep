@@ -6,6 +6,7 @@ import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 from typing import Literal
 
 import requests
@@ -109,12 +110,50 @@ SEVERITIES_FIELD = Field(
 CONFIDENCE_FIELD = Field(
     default=None, description="Confidences of the issues to filter by."
 )
-AUTOTRIAGE_VERDICT_DEFAULT: Literal["VERDICT_TRUE_POSITIVE"] = "VERDICT_TRUE_POSITIVE"
 AUTOTRIAGE_VERDICT_FIELD = Field(
-    default=AUTOTRIAGE_VERDICT_DEFAULT,
-    description="Autotriage verdict of the issues to filter by.",
+    default=None,
+    description="Autotriage verdict of the issues to filter by. If not provided, findings with any verdict (including unrated) are returned.",
+)
+REFS_FIELD: list[str] = Field(
+    default=[],
+    description="List of git refs (branch names) to filter findings by. If not provided, only findings on the primary branch are returned.",
 )
 LIMIT_FIELD = Field(default=10, description="Maximum number of findings to return")
+
+
+def _build_findings_filter(
+    *,
+    status: str,
+    repos: list[str],
+    severities: list[
+        Literal["SEVERITY_CRITICAL", "SEVERITY_HIGH", "SEVERITY_MEDIUM", "SEVERITY_LOW"]
+    ]
+    | None,
+    confidence: list[Literal["CONFIDENCE_HIGH", "CONFIDENCE_MEDIUM", "CONFIDENCE_LOW"]]
+    | None,
+    autotriage_verdict: Literal["VERDICT_TRUE_POSITIVE", "VERDICT_FALSE_POSITIVE"]
+    | None,
+    refs: list[str],
+) -> dict[str, Any]:
+    """Build the `filter` payload for the findings API.
+
+    The endpoint requires either a `refs` list or `on_primary_branch=True`; we set
+    `on_primary_branch` only when no refs are provided. `aiVerdicts` is empty when
+    no `autotriage_verdict` is given so unrated findings are not filtered out.
+    """
+    filter_body: dict[str, Any] = {
+        "status": [status],
+        "repositoryNames": repos,
+        "severities": severities if severities else [],
+        "confidences": confidence if confidence else [],
+        "aiVerdicts": [autotriage_verdict] if autotriage_verdict else [],
+    }
+    if refs:
+        filter_body["refs"] = refs
+    else:
+        filter_body["on_primary_branch"] = True
+    return filter_body
+
 
 # ---------------------------------------------------------------------------------
 # Utilities
@@ -602,9 +641,9 @@ async def semgrep_findings(
     | None = SEVERITIES_FIELD,
     confidence: list[Literal["CONFIDENCE_HIGH", "CONFIDENCE_MEDIUM", "CONFIDENCE_LOW"]]
     | None = CONFIDENCE_FIELD,
-    autotriage_verdict: Literal[
-        "VERDICT_TRUE_POSITIVE", "VERDICT_FALSE_POSITIVE"
-    ] = AUTOTRIAGE_VERDICT_FIELD,
+    autotriage_verdict: Literal["VERDICT_TRUE_POSITIVE", "VERDICT_FALSE_POSITIVE"]
+    | None = AUTOTRIAGE_VERDICT_FIELD,
+    refs: list[str] = REFS_FIELD,
     limit: int = LIMIT_FIELD,
 ) -> list[Finding] | str:
     """
@@ -681,14 +720,14 @@ async def semgrep_findings(
     request_body = {
         "deploymentId": str(deployment_id),
         "issueType": issue_type,
-        "filter": {
-            "status": [status],
-            "repositoryNames": repos,
-            "severities": severities if severities else [],
-            "confidences": confidence if confidence else [],
-            "aiVerdicts": [autotriage_verdict],
-            "on_primary_branch": True,  # Required for this endpoint to work. TODO?: could there not be a primary branch for some repos?
-        },
+        "filter": _build_findings_filter(
+            status=status,
+            repos=repos,
+            severities=severities,
+            confidence=confidence,
+            autotriage_verdict=autotriage_verdict,
+            refs=refs,
+        ),
         "limit": limit,
     }
     try:

@@ -135,6 +135,15 @@ This project uses **make** for build orchestration. **IMPORTANT: Never invoke `d
 
 ## Working with Tests
 
+### Python Test Markers (CLI)
+
+Every pytest test under `cli/tests/` must carry exactly one speed marker, or
+CI's `check-markers` gate fails:
+
+- `@pytest.mark.quick` — under 100 ms
+- `@pytest.mark.kinda_slow` — up to 1–2 s
+- `@pytest.mark.slow` — more than 1–2 s
+
 ### Test Annotations
 
 | Annotation | Meaning | Action |
