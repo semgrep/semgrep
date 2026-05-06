@@ -1,0 +1,10 @@
+rules:
+- id: if-pattern-dart
+  message: kDebugMode-guarded body
+  severity: ERROR
+  languages:
+  - dart
+  pattern: |
+    if (kDebugMode) {
+      ...
+    }
