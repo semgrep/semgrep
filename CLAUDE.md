@@ -25,80 +25,20 @@ Semgrep core follows a multi-stage pipeline:
 
 The `osemgrep` direct entry point is **deprecated**. The primary entry point for Semgrep is the Python CLI (`semgrep`), which calls into OCaml via RPC. Do not use or rely on `osemgrep` directly.
 
-Functionality is incrementally migrated from Python to OCaml via the RPC library (`src/rpc/`). This allows individual components to be ported in isolation without requiring a full rewrite.
+Functionality is incrementally migrated from Python to OCaml via the RPC library (`src/rpc/`). This allows individual components to be ported in isolation without requiring a full rewrite. When migrating a component, ensure a complete project plan is in place that includes deletion of the existing Python code.
 
 **Language choice for new code:**
 - **Default to OCaml** for new functionality.
 - **OCaml is preferred** for: parsing, program analysis, performance-sensitive computations, and code that benefits from future refactoring.
 - **Python is acceptable** for: interactions with external services (third-party SDKs), code that must closely interact with existing Python code, and similar cases where Python is the pragmatic choice.
+- **Lack of OCaml familiarity alone is not a sufficient reason to write new Python code.**
 - Do NOT duplicate work across Python and OCaml. Implement in one language only.
-
-## Directory Layout
-
-| Directory | Purpose |
-|-----------|---------|
-| **Analysis Core** | |
-| `src/ast_generic/` | Generic AST with visitors and mappers for traversal |
-| `src/il/` | Intermediate Language representation |
-| `src/analyzing/` | AST-to-IL transformation, dataflow, control-flow, constant propagation |
-| `src/naming/` | Name resolution with scope management and symbol binding |
-| `src/typing/` | Type inference and checking |
-| **Pattern Matching & Engine** | |
-| `src/engine/` | Core pattern matching with rule orchestration and metavariable unification |
-| `src/matching/` | Pattern matching utilities and language-specific adaptations |
-| `src/tainting/` | Taint analysis and tracking |
-| **Language Support** | |
-| `languages/` | Per-language parser definitions: AST types, Generic AST mappings, and tree-sitter grammars |
-| `src/parsing/` | Language parsers with Tree-sitter integration |
-| **Rules & Configuration** | |
-| `src/rule/` | Rule parsing and multi-layer transformation (YAML → Rule.t → Mini_rule.t) |
-| `src/configuring/` | Configuration for project settings, rules, path filtering |
-| `src/prefiltering/` | Performance optimization by filtering files/rules before analysis |
-| `src/metachecking/` | Rule quality validation and improvement suggestions |
-| `src/spacegrep/` | Language-agnostic whitespace-aware pattern matching |
-| `src/aliengrep/` | Regular expression-based code search |
-| **Scanning & Execution** | |
-| `src/osemgrep/` | OCaml CLI implementation (deprecated as direct entry point; code is used via RPC from Python CLI) |
-| `src/core_scan/` | Scanning orchestration with parallel execution |
-| `src/targeting/` | Target file selection with language detection |
-| `src/target/` | Target representation (file and in-memory) |
-| **Output & Reporting** | |
-| `src/reporting/` | Result reporting (JSON, SARIF, text) |
-| `src/fixing/` | Autofix capabilities for code rewriting |
-| **Additional Features** | |
-| `src/sca/` | Software Composition Analysis for dependency scanning |
-| `src/rpc/` | RPC interface for Python <-> OCaml communication |
-| `src/lsp_legacy/` | Legacy LSP implementation |
-| **Foundation & Testing** | |
-| `src/core/`, `src/core_cli/` | Foundation libraries with utilities, file system operations, logging |
-| `src/printing/` | Pretty printing for AST, IL, error messages |
-| `src/tests/` | Test cases |
-| **Supporting Libraries & Infrastructure** | |
-| `libs/` | Reusable OCaml libraries: collections, file paths, parallelism, profiling, telemetry, tree-sitter runtime, and more |
-| `cli/` | Python command-line interface (orchestration, AppSec Platform communication, Supply Chain analysis) |
-| `interfaces/` | ATD (Abstract Type Definition) files for data exchange between Python CLI and OCaml core |
-| `tests/` | Integration and end-to-end test suite (patterns, rules, parsing, tainting, autofix, etc.) |
-| `perf/` | Performance benchmarking framework for realistic across-repository benchmarks |
 
 ## Developer Setup
 
 ### Initial Setup
 
-**Option 1: Nix-based Setup (reproducible environment, recommended)**
-
-Prerequisites: **Nix** (with flakes enabled) and **direnv**
-
-```bash
-direnv allow                           # Direnv will automatically load the Nix environment
-make all                               # Build (direnv provides all dependencies)
-```
-
-The Nix shell provides all dependencies. Direnv will activate the environment automatically when you enter the project directory.
-
-**Option 2: Standard Setup**
-
 Prerequisites:
-- **OCaml 5.3.0** (via opam)
 - **opam** (OCaml package manager)
 - **Dune** (build system)
 - **Python 3** and **pip**
@@ -107,112 +47,32 @@ Prerequisites:
 - **gcc/clang** and standard C toolchain
 - **git**, **make**, **bash**
 
-Run ONLY ONCE or when dependencies change:
+Run ONLY ONCE or when dependencies change. Strange build errors can often be resolved by running these commands again:
 ```bash
 make setup                      # Installs OCaml dependencies and builds tree-sitter runtime
 pre-commit install              # Sets up the pre-commit hooks
 make all                        # Build OCaml core + Python CLI (includes uv sync)
 ```
 
-## Core Files and Utility Functions
-
-### Entry Points
-- `src/core_cli/Core_CLI.mli` - Low-level semgrep-core CLI entry point with scan orchestration
-- `src/osemgrep/cli/CLI.mli` - OCaml CLI dispatcher (deprecated as direct entry point; see Migration Strategy above)
-
-### Core Data Types (src/core/)
-
-**Results & Matches:**
-- `Core_result.mli` - Aggregated scan results containing matches, errors, profiling data, and statistics
-- `Core_match.mli` - Individual pattern match with location range and metavariable bindings
-- `Range.mli` - File position tracking with character ranges (start/end positions)
-- `Metavariable.mli` - Pattern variable bindings (`$X`, `$FOO`) and their captured values
-
-**Error Handling:**
-- `Core_error.mli` - Error representation with location, rule ID, severity, and error type
-  - `mk_error` - Create errors from exceptions or rule errors
-  - `exn_to_error` - Convert exceptions to structured errors
-  - `string_of_error` - Format errors for display
-
-**Type System:**
-- `Type.mli` - Type inference representation with builtin types (Int, Float, String, Bool), records, functions, arrays, pointers
-  - Supports language-specific type mappings
-  - Includes visitor pattern for AST traversal
-
-### Logging, Profiling & Telemetry (src/core/)
-
-**Logging:**
-- `Log_semgrep.mli` - Logging setup with OpenTelemetry integration
-  - `Log_semgrep.Log.debug`, `.info`, `.warn`, `.err` - Log at different levels
-  - Modules typically create: `module Log = Log_semgrep.Log`
-  - Supports log-to-file and log-to-otel options
-
-**Profiling:**
-- `Core_profiling.mli` - Detailed timing profiling for `-json_time` flag
-  - Tracks parse time and match time per rule and file
-  - `rule_profiling` - Per-rule timing data
-  - `file_profiling` - Per-file timing with rule breakdown
-- `Core_quick_profiling.mli` - Quick profiling stats (parsing, matching, tainting, prefiltering)
-- `Summary_stats.mli` - Summary statistics with "very slow" file/rule identification
-  - Tracks count, mean, standard deviation
-  - Reports top N slowest items
-
-**Telemetry:**
-- `Trace_data.mli` - OpenTelemetry trace data preparation
-  - `analysis_flags` - Track which features are enabled
-  - `get_resource_attrs` - Create telemetry tags for grouping traces/metrics
-
-### CLI Configuration (src/core_cli/)
-
-- `Core_CLI.mli` - Semgrep-core main entry point
-  - `main` - CLI entry point processing command-line arguments
-  - `mk_config` - Compute scan configuration from CLI flags
-  - `output_core_results` - Format results as JSON or text
-  - Command-line flags: `lang`, `num_jobs`, `debug`, `trace`, `symbol_analysis`
-- `Core_exit_code.mli` - Exit codes for semgrep-core
-  - `Success`, `False`, `Bad_command_line`, `Unknown_exception`
-  - `exit_semgrep` - Clean exit with logging
-
-### Output & Formatting (src/core/)
-
-- `Semgrep_output_utils.mli` - Utilities for working with Semgrep output types
-  - `lines_of_file_at_range` - Extract code lines for display
-  - `content_of_file_at_range` - Extract content for metavar interpolation
-  - `sort_core_matches`, `sort_cli_matches` - Sort results for display
-
-### AST Printing (src/printing/)
-
-- `Ugly_print_AST.mli` - Syntactically-correct AST-to-code printing (recommended)
-  - `python_printer`, `jsts_printer`, `ocaml_printer` classes
-  - `print_expr`, `print_arguments`, `print_name` - Print AST nodes as code
-  - Used for autofix and code generation
-- `Pretty_print_AST.mli` - DEPRECATED, use Ugly_print_AST instead
-
-### Testing Utilities (src/core/)
-
-- `Test_tags.mli` - Test filtering tags for Testo framework
-  - `flaky` - Mark tests that sometimes fail
-  - `e2e` - End-to-end tests
-  - `tags_of_lang` - Language-specific test filtering
-
-### Version & Metadata (src/core/)
-
-- `Version_info.mli` - Semgrep version parsing and comparison
-
 ## Repository Etiquette
 
 ### Branch Naming
 - Use format: `username/brief-description`
 - Examples: `brandon/fix-code-actions-hanging`, `yosef/upgrade-cli-deps`
+- **IMPORTANT**: All branches must be based off `develop` (or part of a Graphite stack that is ultimately based off `develop`)
 
 ### Commits
 - Use conventional commits: `feat:`, `fix:`, `chore:`, `test:`, `docs:`
 - Keep commits focused and atomic
 - Reference issue numbers when applicable
 
+### Changelog
+For any nontrivial user-facing change, add an entry under `changelog.d/`. Name the file after the Linear ticket with an appropriate suffix (e.g. `changelog.d/ENGINE-1234.fixed`). Valid suffixes are `.added`, `.changed`, `.fixed`, and `.infra` — see `changelog.d/README` for details.
+
 ### Pull Requests
 Before submitting:
 - Update documentation if relevant
+- Add a changelog entry (see above) for nontrivial user-facing changes
 - Run `make test` and confirm tests pass
 - Flag any security implications to the security team
 - Ensure no sensitive information is logged at INFO/WARNING/ERROR levels
@@ -249,14 +109,17 @@ This project uses **Dune** for build orchestration. **IMPORTANT: Never invoke `d
 - `dune build @doc` - Generate `ocamldoc` to `_build/default/_doc/_html`
 - `dune build @doc-private` - Generate `ocamldoc` of module implementation to `_build/default/_doc/_html`
 
-
 ## OCaml Code Style Guidelines
 
 ### General
 
-- OCaml with type annotations (recent focus)
-- Extensive use of modules and functors
-- Pattern matching and algebraic data types
+ - Avoid mutable data structures. Only use `ref`, `Hashtbl`, etc. for:
+   - Interacting with existing code.
+   - Performance-sensitive code.
+   - Code where mutability genuinely makes it more readable and maintainable.
+ - Avoid the implicit use of polymorphic compare, hash, etc. in complex data
+   structures. Prefer instantiations of `Stdlib`'s `Map`/`Set` using
+   ppx-generated compare functions, for example.
 
 ### `ocamldoc` Guidelines
 
@@ -266,56 +129,6 @@ This project uses **Dune** for build orchestration. **IMPORTANT: Never invoke `d
    are accessible to other `.ml` files.
  - ALWAYS document functions and types that are accessible to other source code.
  - NEVER document functions that are idiomatically converting from one type to another (e.g. `x_of_y`)
-
-### Pattern Matching Best Practices
-
-When working with Option types and conditional logic:
-
-**Prefer:** Direct pattern matching with guards
-```ocaml
-match get_attrs() with
-| None -> false
-| Some attrs when List.mem TargetAttr attrs -> true
-| Some attrs -> (* other logic *)
-```
-
-**Avoid:** Intermediate booleans and nested if-then-else
-```ocaml
-let attrs_opt = get_attrs() in
-let has_attr = match attrs_opt with Some attrs -> List.mem TargetAttr attrs | None -> false in
-if has_attr then true else (* other logic *)
-```
-
-**Rationale:**
-- Single traversal of the data structure
-- Pattern guards (`when` clauses) are idiomatic OCaml
-- Clear n-way branching structure
-- Avoids redundant pattern matches
-- More explicit about early exit conditions
-
-## Debugging Tips
-
-### General Tips
-- Enable verbose logging with `-debug`
-
-### Debugging with LLDB/GDB
-
-**IMPORTANT: Apple Silicon Limitations**
-- Binaries built on Apple Silicon (M1/M2/M3) do not include debug symbols
-- **You must debug on Linux** if you need to sync execution with source code
-- Use Docker or a Linux VM for proper debugging with symbols
-
-**Using LLDB with OCaml:**
-- OCaml function names are mangled - use regular expression breakpoints
-- Example: `breakpoint set -r "camlCore_scan.*"` to break on Core_scan functions
-- Example: `breakpoint set -r "camlMatching.*match_rules"` for specific functions
-- Use `image lookup -rn <pattern>` to find available function names
-
-### Inspecting AST Representations
-- Use `semgrep-core -dump_tree_sitter_cst -lang $LANG $FILE` to see the raw TreeSitter CST
-- Use `semgrep-core -dump-named-ast -lang $LANG $FILE` to see the Generic AST
-- Use `semgrep-core -dump-il -lang $LANG $FILE` to see the IL representation
-- Use `semgrep-core -cfg_il -lang $LANG $FILE` to see the CFG representation
 
 ## Working with Tests
 
