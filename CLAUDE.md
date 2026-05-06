@@ -104,7 +104,7 @@ For Python CLI changes (`cli/`):
 2. `make -C cli test` - Run Python tests
 
 ### Development Tools
-This project uses **Dune** for build orchestration. **IMPORTANT: Never invoke `dune` directly for building or testing** — always use the Makefile targets above. The Makefiles handle path resolution for the monorepo layout. Direct `dune` usage is only appropriate for documentation generation:
+This project uses **make** for build orchestration. **IMPORTANT: Never invoke `dune` directly for building or testing** — always use the Makefile targets above. The Makefiles handle path resolution for the monorepo layout. Direct `dune` usage is only appropriate for documentation generation:
 
 - `dune build @doc` - Generate `ocamldoc` to `_build/default/_doc/_html`
 - `dune build @doc-private` - Generate `ocamldoc` of module implementation to `_build/default/_doc/_html`
@@ -117,6 +117,9 @@ This project uses **Dune** for build orchestration. **IMPORTANT: Never invoke `d
    - Interacting with existing code.
    - Performance-sensitive code.
    - Code where mutability genuinely makes it more readable and maintainable.
+   - Code that is safe from data races.  Use `Hook` and `SharedMemo` in cases
+     where sharing mutable state is truly unavoidable, but avoid if at all
+     possible.
  - Avoid the implicit use of polymorphic compare, hash, etc. in complex data
    structures. Prefer instantiations of `Stdlib`'s `Map`/`Set` using
    ppx-generated compare functions, for example.
