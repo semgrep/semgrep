@@ -268,6 +268,21 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
     args.extend(["--x-mcp"])
     if config:
         args.extend(["--config", config])
+
+    # If the config is auto and metrics are off, raise an error. This
+    # should only happen if the user is calling the MCP scan tool without
+    # a config with metrics turned off. Hooks are not affected
+    # since we pass in the config "hooks" for the hooks.
+    if (config is None or config == "auto") and (
+        (os.environ.get("SEMGREP_SEND_METRICS") or "").lower() in ("off", "0", "false")
+    ):
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message="Cannot run scan with auto config when metrics are off. Please allow metrics or run with a specific config.",
+            )
+        )
+
     args.append(temp_dir)
     return args
 
