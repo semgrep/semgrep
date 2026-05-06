@@ -1,0 +1,1 @@
+Fixed Scala parse errors during highly-parallel parsing.
