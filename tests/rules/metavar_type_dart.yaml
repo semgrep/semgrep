@@ -1,0 +1,11 @@
+rules:
+- id: metavar-type-dart
+  message: $X has type String
+  severity: ERROR
+  languages:
+  - dart
+  patterns:
+  - pattern: 'print($X)'
+  - metavariable-type:
+      metavariable: $X
+      type: String
