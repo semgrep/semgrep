@@ -7,7 +7,6 @@
 // networking errors (or for other reasons such as a 'git' execution failure).
 
 local actions = import 'libs/actions.libsonnet';
-local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 local uses = import 'libs/uses.libsonnet';
 
@@ -209,45 +208,48 @@ local semgrep_ci_on_pr_job = {
   'runs-on': 'ubuntu-22.04',
   needs: 'get-inputs',
   outputs: {
-    'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
+    'pr-number': '${{ steps.cpr.outputs.pull-request-number }}',
   },
-  steps: semgrep.github_bot.get_token_steps + [
+  steps: [
+    {
+      name: 'Get token for semgrep-ci GitHub App',
+      id: 'token',
+      uses: uses.actions.create_github_app_token,
+      with: {
+        'app-id': '${{ secrets.SEMGREP_CI_APP_ID }}',
+        'private-key': '${{ secrets.SEMGREP_CI_APP_KEY }}',
+        owner: 'semgrep',
+        repositories: 'e2e',
+      },
+    },
     {
       uses: uses.actions.checkout,
       with: {
         repository: 'semgrep/e2e',
         ref: '${{ github.event.repository.default_branch }}',
-        token: semgrep.github_bot.token_ref,
+        token: '${{ steps.token.outputs.token }}',
       },
     },
     {
-      name: 'Prepare the PR',
+      name: 'Bump version',
       env: {
         DOCKER_TAG: docker_tag,
-        RUN_ID: '${{ github.run_id }}',
       },
-      run: |||
-        git checkout -b "e2e-test-pr-$RUN_ID"
-        scripts/change-version.sh "$DOCKER_TAG"
-        %s
-        git add --all
-        git commit -m "chore: Bump version to $DOCKER_TAG"
-        git push --set-upstream origin "e2e-test-pr-$RUN_ID"
-      ||| % gha.git_config_user,
+      run: 'scripts/change-version.sh "$DOCKER_TAG"',
     },
     {
-      name: 'Make the PR',
-      id: 'open-pr',
-      env: {
-        GITHUB_TOKEN: semgrep.github_bot.token_ref,
-        RUN_ID: '${{ github.run_id }}',
-        DOCKER_TAG: docker_tag,
+      id: 'cpr',
+      // sign-commits: commits are signed via the GitHub API
+      uses: uses.peter_evans.create_pull_request,
+      with: {
+        token: '${{ steps.token.outputs.token }}',
+        branch: 'e2e-test-pr-${{ github.run_id }}',
+        'commit-message': 'chore: Bump version to ' + docker_tag,
+        title: 'chore: fake PR for ' + docker_tag,
+        body: 'Fake PR',
+        base: 'develop',
+        'sign-commits': true,
       },
-      run: |||
-        PR_URL=$(gh pr create --title "chore: fake PR for $DOCKER_TAG" --body "Fake PR" --base "develop" --head "e2e-test-pr-${RUN_ID}")
-        PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
-        echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
-      |||,
     },
   ],
 };
@@ -260,11 +262,22 @@ local len_checks = "$(gh pr -R semgrep/e2e view %s --json statusCheckRollup --jq
 local wait_for_checks_job = {
   'runs-on': 'ubuntu-22.04',
   needs: 'semgrep-ci-on-pr',
-  steps: semgrep.github_bot.get_token_steps + [
+  steps: [
+    {
+      name: 'Get token for semgrep-ci GitHub App',
+      id: 'token',
+      uses: uses.actions.create_github_app_token,
+      with: {
+        'app-id': '${{ secrets.SEMGREP_CI_APP_ID }}',
+        'private-key': '${{ secrets.SEMGREP_CI_APP_KEY }}',
+        owner: 'semgrep',
+        repositories: 'e2e',
+      },
+    },
     {
       name: 'Wait for checks to register',
       env: {
-        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
       },
       run: |||
         LEN_CHECKS=%s;
@@ -281,7 +294,7 @@ local wait_for_checks_job = {
     {
       name: 'Wait for checks to complete',
       env: {
-        GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        GITHUB_TOKEN: '${{ steps.token.outputs.token }}',
       },
       run: 'gh pr -R semgrep/e2e checks %s --interval 30 --watch' % pr_number,
     },
