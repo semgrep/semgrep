@@ -3164,12 +3164,20 @@ and map_template_substitution (env : env) ((v1, v2) : CST.template_substitution)
       Either_.Middle3 v2
   | `Id_dollar_esca tok -> (
       let s2, t2 = (* pattern ([a-zA-Z_]|(\\\$))([\w]|(\\\$))* *) str env tok in
-      (* '$id' resolves to a variable reference in real programs; in
-         pattern mode we keep it as a raw string fragment so that
-         metavariables inside interpolations don't get misparsed. *)
+      (* '$id' resolves to a variable reference in real programs. In pattern
+         mode we keep most '$id' fragments as raw text so that real Dart
+         interpolations inside patterns don't accidentally bind, BUT if the
+         name matches Semgrep's metavariable convention (`$NAME` —
+         uppercase/underscore, never a real Dart identifier), emit it as an
+         expression so it can bind interpolated values like in any other
+         language. *)
+      let mvar = s1 ^ s2 in
       match env.extra with
       | Program -> Either_.Middle3 (N (H2.name_of_id (s2, t2)) |> G.e)
-      | Pattern -> Either_.Left3 (s1 ^ s2, Tok.combine_toks t1 [ t2 ]))
+      | Pattern when is_metavar_name mvar ->
+          let mvar_tok = Tok.combine_toks t1 [ t2 ] in
+          Either_.Middle3 (N (H2.name_of_id (mvar, mvar_tok)) |> G.e)
+      | Pattern -> Either_.Left3 (mvar, Tok.combine_toks t1 [ t2 ]))
 
 and map_throw_expression (env : env) ((v1, v2) : CST.throw_expression) =
   let v1 = (* "throw" *) token env v1 in
