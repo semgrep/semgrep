@@ -1,0 +1,1 @@
+Warn when a multi-job scan (`-j > 1`) returns 0 findings with no errors but real rules and targets, since this can indicate workers failing silently under memory pressure.

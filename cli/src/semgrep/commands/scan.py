@@ -75,6 +75,7 @@ from semgrep.types import FilteredMatches
 from semgrep.types import TargetInfoAccumulator
 from semgrep.util import abort
 from semgrep.util import is_truthy
+from semgrep.util import unit_str
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -578,7 +579,13 @@ def scan_options(func: Callable) -> Callable:
 
 
 def log_findings(
-    filtered_matches_by_rule: RuleMatchMap, engine_type: EngineType
+    filtered_matches_by_rule: RuleMatchMap,
+    engine_type: EngineType,
+    *,
+    jobs: Optional[int] = None,
+    num_targets: int = 0,
+    num_rules: int = 0,
+    has_errors: bool = False,
 ) -> None:
     findings_count = sum(len(matches) for matches in filtered_matches_by_rule.values())
     no_findings = findings_count == 0
@@ -590,6 +597,29 @@ def log_findings(
                 logger.info(msg)
         except Exception as e:
             logger.debug(f"Error getting no findings message: {e}")
+
+        # If a high-parallelism scan exercised real work (rules and targets) but
+        # produced no findings *and* no errors, surface a warning. Workers that
+        # die under resource pressure (e.g. OOM) can leave findings missing
+        # without anything in the JSON `errors` array, which has caused silent
+        # correctness regressions in the field. See issue #11606.
+        if (
+            jobs is not None
+            and jobs > 1
+            and num_targets > 0
+            and num_rules > 0
+            and not has_errors
+        ):
+            logger.warning(
+                "Scan with -j %d returned 0 findings across %s and %s and "
+                "produced no errors. If you expected results, re-running with "
+                "-j 1 may help confirm whether high parallelism on a "
+                "memory-constrained host caused workers to fail silently "
+                "(see https://github.com/semgrep/semgrep/issues/11606).",
+                jobs,
+                unit_str(num_rules, "rule"),
+                unit_str(num_targets, "target"),
+            )
 
     if findings_count > TOO_MANY_FINDINGS_THRESHOLD and engine_type is EngineType.OSS:
         try:
@@ -1180,6 +1210,17 @@ def scan(
             # Fetch the latest version and potentially display a banner
             version_check()
             # TODO? this should be guarded by enable_version_check too??
-            log_findings(filtered_matches_by_rule.kept, engine_type)
+            # log_findings depends on the scan path having populated the
+            # match-by-rule map; on the --validate-only path return_data is
+            # still None and there is nothing to log.
+            if return_data is not None:
+                log_findings(
+                    return_data.filtered_matches_by_rule,
+                    engine_type,
+                    jobs=jobs,
+                    num_targets=len(return_data.all_targets.targets),
+                    num_rules=len(return_data.filtered_rules),
+                    has_errors=bool(return_data.semgrep_errors),
+                )
 
         return return_data
