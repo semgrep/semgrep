@@ -341,12 +341,13 @@ def test_parse_config_string_jsonschema_fallback(mocked_rpc_validation_error):
 @pytest.mark.osemfail
 def test_parse_config_string_as_rules_no_surrogate_pairs_in_rules_file(mocker):
     """
-    Rules containing characters above U+FFFF (e.g. emoji) must be serialized
-    as raw UTF-8 in the .rules temp file, not as JSON surrogate pairs.
-    json.dumps(ensure_ascii=True) encodes U+1F6AB as \\ud83d\\udeab, which is
-    valid JSON but invalid YAML (YAML 1.2.2 §5.1 forbids surrogate code
-    points). semgrep-core parses this file as YAML, so surrogate pairs cause
-    parse errors.
+    Rules whose original source contains characters above U+FFFF (e.g. emoji)
+    must reach semgrep-core in a form its parser can handle. For JSON input,
+    we write the content with a .json suffix so semgrep-core's JSON parser
+    (which handles \\uXXXX surrogate escapes natively) runs. For YAML input,
+    we write it with a .yaml suffix so the YAML parser runs (which reads the
+    raw UTF-8 bytes). Either way, RPC validation should succeed without a
+    fallback to Python's jsonschema.
     """
     import semgrep.rule_lang
 
@@ -370,8 +371,8 @@ def test_parse_config_string_as_rules_no_surrogate_pairs_in_rules_file(mocker):
     assert len(result.rules) == 1
     assert result.rules[0].id == "emoji-rule"
     assert len(result.errors) == 0
-    # Verify semgrep-core's YAML parser accepted the rules file directly,
-    # rather than falling back to Python JSON schema validation.
+    # Verify semgrep-core accepted the rules file directly, rather than
+    # falling back to Python's jsonschema validation.
     spy.assert_called_once()
     assert spy.spy_exception is None
 

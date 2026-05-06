@@ -1,17 +1,8 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/invalid-paths-list.yaml:2
-2  |   - id: arg-reassign
-3  |     pattern-either:
-4  |       - pattern: $X = 1
-5  |       - pattern: $X = 2
-6  |     paths:
-7  |       # bad syntax: these should be under an object, i.e. `exclude:`
-8  |       - "*.py"
-9  |       - "test/*"
-10 |     message: "$X is being assigned to one or two"
-11 |     languages: [python]
-12 |     severity: WARNING
+  --> rules/invalid-rules/invalid-paths-list.yaml:7
+7 |   - '*.py'
+  |   ^
 
 each paths should be a dictionary
 

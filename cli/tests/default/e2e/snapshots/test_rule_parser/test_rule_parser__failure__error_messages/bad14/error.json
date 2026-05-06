@@ -14,7 +14,7 @@
             "offset": -1
           },
           "file": "rules/syntax/bad14.yaml",
-          "source_hash": "3288d50ef917f40d8e5d0bec082d910a53ea93465167f5b2efbaac7ed68efcb2",
+          "source_hash": "2077ff5b0b9e50d642755280dcb9d7bd7d3b5e29cbfdf4d8ef32fd8f1ec72fc8",
           "start": {
             "col": 1,
             "line": 1,

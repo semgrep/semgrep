@@ -16,16 +16,14 @@ import os
 import re
 import time
 from collections import OrderedDict
-from contextlib import contextmanager
 from dataclasses import dataclass
 from dataclasses import field
 from enum import auto
 from enum import Enum
+from io import StringIO
 from pathlib import Path
-from tempfile import mkstemp
 from typing import Any
 from typing import Dict
-from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
@@ -36,6 +34,7 @@ from urllib.parse import urlencode
 
 import click
 import requests
+from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -65,7 +64,8 @@ from semgrep.rule_lang import parse_json_and_filter_versions
 from semgrep.rule_lang import parse_yaml_and_filter_versions
 from semgrep.rule_lang import prepend_rule_path
 from semgrep.rule_lang import project_depends_on
-from semgrep.rule_lang import validate_rules
+from semgrep.rule_lang import run_jsonschema_validation
+from semgrep.rule_lang import validate_via_rpc_with_fallback
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.state import get_state
@@ -84,19 +84,6 @@ AUTO_CONFIG_LOCATION = "c/auto"
 CLOUD_PLATFORM_CONFIG_ID = "semgrep-app-rules"
 REGISTRY_CONFIG_ID = "remote-registry"
 NON_REGISTRY_REMOTE_CONFIG_ID = "remote-url"
-
-
-@contextmanager
-def rules_temp_file(contents: str) -> Iterator[str]:
-    """Context manager that writes contents to a temp file and cleans up on exit."""
-    tmp_fd, path = mkstemp(suffix=".rules", prefix="semgrep-", text=True)
-    try:
-        with os.fdopen(tmp_fd, "w", encoding="utf-8") as fp:
-            fp.write(contents)
-        logger.debug(f"Saved rules to {path}")
-        yield path
-    finally:
-        os.remove(path)
 
 
 @dataclass
@@ -844,22 +831,6 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
-def _build_rule_spans(yaml_tree: YamlTree) -> Dict[str, Span]:
-    """Extract rule_id -> YAML Span from a parsed YamlTree.
-
-    Called before the tree is unrolled to a plain dict, so that validation
-    errors can be mapped back to the originating rule's YAML location.
-    """
-    spans: Dict[str, Span] = {}
-    rules_node = yaml_tree.value.get(RULES_KEY)
-    if rules_node is not None:
-        for rule_node in rules_node.value:
-            rule_id_node = rule_node.value.get("id")
-            if rule_id_node is not None:
-                spans[rule_id_node.value] = rule_node.span
-    return spans
-
-
 def _create_rules(
     data: Dict[str, Any],
     config_id: str,
@@ -889,8 +860,12 @@ def parse_config_string(
 ) -> ParsedConfig:
     """Parse config contents (JSON or YAML), create Rule objects, and validate.
 
-    This is the single unified pipeline: parse → version filter → Rule
-    construction → schema validate (core-bound rules only) → return Rules.
+    Pipeline: parse → version filter → drop SCA-only rules → validate core-
+    bound rules → build Rule objects. Validation runs either via semgrep-
+    core's RPC (preferred) or Python's jsonschema (fallback or when forced).
+    SCA-only rules (r2c-internal-project-depends-on with no pattern keys)
+    are excluded from validation because they don't conform to the semgrep-
+    core rule schema.
     """
     if not contents:
         raise SemgrepError(
@@ -899,13 +874,15 @@ def parse_config_string(
 
     errors: List[SemgrepError] = []
 
-    # 1. PARSE + VERSION FILTER: detect format, parse, remove incompatible rules.
+    # 1. PARSE + VERSION FILTER (always — Python needs parsed rules for Rule()).
     #
-    # We check if it's json or not here because json parsing on the python side
-    # is much faster than yaml parsing, so let's not use the yaml parser if we
-    # don't have to
+    # We check if it's JSON or not because JSON parsing on the Python side is
+    # much faster than YAML parsing.
     is_json = contents.lstrip().startswith("{")
-    rule_spans: Optional[Dict[str, Span]] = None
+    # Needed so we can reconstruct error messages with accurate line numbers.
+    # Only populated for YAML since we use the jsonschema validator even if we
+    # start with yaml, since that's much faster
+    yaml_tree: Optional[YamlTree] = None
     try:
         if is_json:
             logger.debug(f"Parsing {filename} as JSON")
@@ -916,13 +893,9 @@ def parse_config_string(
             yaml_tree, parse_errors = parse_yaml_and_filter_versions(contents, filename)
             errors.extend(parse_errors)
             # Guard against YAML that parses to a non-mapping (e.g. a bare
-            # string or list). Downstream code (rule_spans extraction, dict
-            # access) assumes a mapping at the top level.
+            # string or list). Downstream code assumes a mapping at the top.
             if not isinstance(yaml_tree.value, YamlMap):
                 raise SemgrepError(f"{config_id} was not a mapping")
-            # Build rule_id -> YAML span mapping before we discard the tree.
-            # This lets validation errors point back to the right line in the YAML.
-            rule_spans = _build_rule_spans(yaml_tree)
             data = yaml_tree.unroll_dict()
     except EmptyYamlException:
         raise SemgrepError(
@@ -939,37 +912,44 @@ def parse_config_string(
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
 
-    # 2. VALIDATE: schema-validate only rules that have pattern keys (i.e. will
-    #    run on semgrep-core). SCA-only rules (just r2c-internal-project-depends-on,
-    #    no pattern keys) don't conform to the semgrep-core rule schema and would
-    #    fail validation.
-    display_source_hash = SourceTracker.add_source(contents)
+    # 2. FILTER: drop SCA-only rules (r2c-internal-project-depends-on with
+    #    no pattern keys). Those rules are handled by the Python Supply
+    #    Chain pipeline and don't conform to the semgrep-core schema, so
+    #    they must not reach validation. Only re-serialize `contents` when
+    #    something was actually filtered out; otherwise pass the original
+    #    through so semgrep-core sees accurate line numbers.
+    all_rule_dicts = data.get(RULES_KEY, [])
     core_rule_dicts = [
-        r
-        for r in data.get(RULES_KEY, [])
-        if has_patterns_key(r) or not (project_depends_on(r))
+        r for r in all_rule_dicts if has_patterns_key(r) or not project_depends_on(r)
     ]
-    core_rules_json = {RULES_KEY: core_rule_dicts}
-    # Only use semgrep-core to validate the rules that are going to run on semgrep-core
-    # ensure_ascii=False so that characters above U+FFFF (e.g. emoji) are
-    # written as raw UTF-8 rather than JSON surrogate pairs (\ud83d\udeab).
-    # semgrep-core parses this file as YAML, which forbids surrogate code
-    # points (YAML 1.2.2 §5.1), so surrogate pair escapes cause parse errors.
-    contents_to_validate = json.dumps(core_rules_json, ensure_ascii=False)
-    rpc_source_hash = SourceTracker.add_source(contents_to_validate)
-    with rules_temp_file(contents_to_validate) as tmp_path:
-        validate_rules(
-            core_rules_json,
-            rpc_source_hash,
-            display_source_hash,
+    core_rules_data = {RULES_KEY: core_rule_dicts}
+    if is_json:
+        contents = json.dumps(core_rules_data, ensure_ascii=False)
+    else:
+        stream = StringIO()
+        YAML().dump(core_rules_data, stream)
+        contents = stream.getvalue()
+
+    # 3. VALIDATE: decide path up-front. RPC gets the (possibly filtered)
+    #    contents with a format-matching suffix; jsonschema fallback builds
+    #    the YAML span bridge from yaml_tree. no_python_schema_validation
+    #    is a hard constraint — when set, we must not fall back to
+    #    jsonschema even if force_jsonschema is also set.
+    source_hash = SourceTracker.add_source(contents)
+    if force_jsonschema and not no_python_schema_validation:
+        run_jsonschema_validation(core_rules_data, yaml_tree, source_hash, filename)
+    else:
+        validate_via_rpc_with_fallback(
+            contents,
+            is_json,
+            core_rules_data,
+            yaml_tree,
+            source_hash,
             filename,
-            force_jsonschema,
             no_python_schema_validation,
-            tmp_path,
-            rule_spans=rule_spans,
         )
 
-    # 3. CREATE RULES
+    # 4. CREATE RULES
     rules, rule_errors = _create_rules(data, config_id)
     errors.extend(rule_errors)
 

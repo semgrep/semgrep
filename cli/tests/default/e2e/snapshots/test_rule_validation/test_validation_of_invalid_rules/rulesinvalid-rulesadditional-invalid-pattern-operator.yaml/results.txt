@@ -1,13 +1,8 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/additional-invalid-pattern-operator.yaml:2
-2 | - id: eqeq
-3 |   match:
+  --> rules/invalid-rules/additional-invalid-pattern-operator.yaml:4
 4 |     pattern: foo
-5 |     foo: bar
-6 |   message: Useless comparison
-7 |   languages: [py]
-8 |   severity: WARNING
+  |     ^
 
 Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, or `inside`
 

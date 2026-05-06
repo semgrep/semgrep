@@ -1,13 +1,8 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/string-pattern.yaml:2
-2 | - id: eqeq
-3 |   pattern-either:
-4 |     - "foo"
-5 |   message: |
-6 |     You can't use string literals as patterns in old-style rules!
-7 |   languages: [py]
-8 |   severity: WARNING
+  --> rules/invalid-rules/string-pattern.yaml:4
+4 |   - foo
+  |     ^^^
 
 Strings not allowed at this position, maybe try `pattern: foo`
 

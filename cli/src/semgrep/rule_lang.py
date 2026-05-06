@@ -11,14 +11,18 @@
 # LICENSE for more details.
 #
 import json
+import os
 import re
+from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
+from tempfile import mkstemp
 from typing import Any
 from typing import cast
 from typing import Dict
 from typing import Generic
 from typing import ItemsView
+from typing import Iterator
 from typing import KeysView
 from typing import List
 from typing import Optional
@@ -39,9 +43,9 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep import telemetry
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
+from semgrep.constants import RULES_KEY
 from semgrep.error import default_level
 from semgrep.error import InvalidRuleSchemaError
-from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
@@ -594,122 +598,66 @@ def remove_incompatible_version_yamltree(
     return errors
 
 
-def validate_rules(
-    data: Dict[str, Any],
-    rpc_source_hash: SourceFileHash,
-    display_source_hash: SourceFileHash,
-    filename: Optional[str],
-    force_jsonschema: bool = False,
-    no_python_schema_validation: bool = False,
-    rules_tmp_path: Optional[str] = None,
-    rule_spans: Optional[Dict[str, Span]] = None,
-) -> None:
-    """
-    Validates rule data (a dict of the form {"rules": [...]}) via RPC or
-    jsonschema fallback. Raises an Exception if the validation fails.
-
-    rpc_source_hash tracks the JSON dump content (line numbers match
-    semgrep-core output). display_source_hash tracks the original file
-    content (shown in jsonschema fallback errors when rule_spans misses).
-    """
-    if no_python_schema_validation:
-        validate_file_rpc(
-            rpc_source_hash,
-            filename,
-            rules_tmp_path=rules_tmp_path,
-            rule_spans=rule_spans,
-            display_source_hash=display_source_hash,
-        )
-    elif force_jsonschema or not rules_tmp_path:
-        validate_string_json_schema(
-            data,
-            source_hash=display_source_hash,
-            filename=filename,
-            rule_spans=rule_spans,
-        )
-    else:
-        try:
-            if not Path.exists(Path(rules_tmp_path)):
-                raise NotImplementedError(
-                    "Cannot execute RPC validation without a rules_tmp_path"
-                )
-            run_rpc_validate_exn(rules_tmp_path=rules_tmp_path)
-            logger.debug("RPC validation succeeded")
-        except (RpcValidationError, NotImplementedError) as e:
-            error_type = (
-                e.core_error.error_type.kind
-                if isinstance(e, RpcValidationError)
-                else type(e).__name__
-            )
-            logger.warning(f"semgrep-core rule validation failed ({error_type})")
-            logger.debug(f"semgrep-core validation error detail: {e}")
-            validate_string_json_schema(
-                data,
-                source_hash=display_source_hash,
-                filename=filename,
-                rule_spans=rule_spans,
-            )
-
-
-@telemetry.trace()
-def validate_file_rpc(
+def maybe_raise_from_rpc_error(
+    e: Union[RpcValidationError, NotImplementedError],
     source_hash: SourceFileHash,
-    filename: Optional[str] = None,
-    rules_tmp_path: Optional[str] = None,
-    rule_spans: Optional[Dict[str, Span]] = None,
-    display_source_hash: Optional[SourceFileHash] = None,
+    filename: Optional[str],
 ) -> None:
-    """
-    Applies validation to a file at filename or rules_tmp_path (preferring filename) via an RPC call to semgrep-core.
-    Raises an Exception if validation fails. Uses filename and source_hash to enhance error logging. Ignores some types of validation errors.
+    """Lift an RPC validation failure into a user-facing schema error.
 
-    When rule_spans is provided, validation errors are mapped back to the
-    originating rule's YAML location using core_error.rule_id. display_source_hash
-    should be the hash of the original YAML (not the JSON dump sent to the RPC)
-    so the whole-file fallback span renders the YAML.
+    Used by callers that don't want to fall back to Python's jsonschema
+    validation (i.e. --x-no-python-schema-validation). Swallows error kinds
+    that are handled elsewhere (invalid regex, invalid language) and
+    non-actionable severities. Re-raises NotImplementedError as-is since it
+    indicates an RPC infrastructure problem.
     """
-    if filename and Path(filename).exists():
-        path = filename
-    elif rules_tmp_path and Path(rules_tmp_path).exists():
-        path = rules_tmp_path
-    else:
-        raise SemgrepError(
-            "Cannot execute RPC validation without a rules_tmp_path or filename",
-            code=MISSING_CONFIG_EXIT_CODE,
-        )
-
-    core_error = rpc_validate(out.Fpath(path))
-    logger.debug(f"semgrep-core validation response: {core_error=}")
-    if core_error is None:
-        logger.debug("semgrep-core validation succeeded")
+    if isinstance(e, NotImplementedError):
+        raise e
+    core_error = e.core_error
+    if core_error.severity not in {default_level, warning_level}:
         return
+    message = core_error.message
+    if message.startswith("invalid regex"):
+        # TODO: Previously, with the Python JSON Schema based validation
+        # invalid regex in the rules files would cause an exit with
+        # FATAL_EXIT_CODE. We keep that behavior by swallowing here; a
+        # downstream code path surfaces the regex error separately.
+        return
+    if message.startswith("invalid language"):
+        # Handled by _LanguageData.resolve with the correct exit code.
+        return
+    span = _span_from_core_error(core_error, source_hash, filename)
+    logger.debug(f"semgrep-core validation error span: {span}")
+    raise InvalidRuleSchemaError(
+        short_msg="Invalid rule schema",
+        long_msg=message,
+        spans=[span],
+    )
 
-    if core_error.severity in {default_level, warning_level}:
-        message = core_error.message
-        if message.startswith("invalid regex"):
-            # TODO: Previously, with the Python JSON Schema based validation
-            # invalid regex in the rules files would cause an exit with
-            # FATAL_EXIT_CODE. We are trying to keep that behavior with the RPC
-            # validation, currently. But, once RPC validation is merged, we
-            # maybe better off removing this "workaround".
-            return
-        if message.startswith("invalid language"):
-            # Ignore invalid language errors. They are handled by
-            # _LanguageData.resolve with the correct exit code.
-            return
-        rule_id = core_error.rule_id.value if core_error.rule_id else None
-        span = _rule_span_or_file_fallback(
-            rule_id,
-            rule_spans,
-            display_source_hash if display_source_hash is not None else source_hash,
-            filename,
+
+def _span_from_core_error(
+    core_error: out.CoreError,
+    source_hash: SourceFileHash,
+    filename: Optional[str],
+) -> Span:
+    """Build a Span from a semgrep-core error's location, with a whole-file
+    fallback when the error doesn't carry a location."""
+    loc = core_error.location
+    if loc is not None:
+        return Span(
+            start=Position(
+                line=loc.start.line, col=loc.start.col, offset=loc.start.offset
+            ),
+            end=Position(line=loc.end.line, col=loc.end.col, offset=loc.end.offset),
+            file=filename,
+            source_hash=source_hash,
         )
-        logger.debug(f"semgrep-core validation error span: {span}")
-        raise InvalidRuleSchemaError(
-            short_msg="Invalid rule schema",
-            long_msg=message,
-            spans=[span],
-        )
+    return Span(
+        start=Position(line=1, col=1, offset=-1),
+        end=Position(line=1, col=1, offset=-1),
+        file=filename,
+        source_hash=source_hash,
+    )
 
 
 def run_rpc_validate_exn(rules_tmp_path: str) -> None:
@@ -726,6 +674,94 @@ def run_rpc_validate_exn(rules_tmp_path: str) -> None:
         raise RpcValidationError(error)
     except Exception as e:
         raise e
+
+
+@contextmanager
+def rules_temp_file(contents: str, suffix: str) -> Iterator[str]:
+    """Context manager that writes contents to a temp file and cleans up on exit.
+
+    The suffix controls how semgrep-core detects the file format (see
+    `File_type.file_type_of_file`): `.json` goes through the JSON parser,
+    `.yaml`/`.yml` through the YAML parser. Using the right suffix lets us pass
+    the original content straight through without re-encoding, which would be
+    otherwise required due to differences in yaml/json.
+    """
+    tmp_fd, path = mkstemp(suffix=suffix, prefix="semgrep-", text=True)
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as fp:
+            fp.write(contents)
+        logger.debug(f"Saved rules to {path}")
+        yield path
+    finally:
+        os.remove(path)
+
+
+def build_rule_spans(yaml_tree: YamlTree) -> Dict[str, Span]:
+    """Extract rule_id -> YAML Span from a parsed YamlTree.
+
+    Called before the tree is unrolled to a plain dict, so that validation
+    errors can be mapped back to the originating rule's YAML location.
+    """
+    spans: Dict[str, Span] = {}
+    rules_node = yaml_tree.value.get(RULES_KEY)
+    if rules_node is not None:
+        for rule_node in rules_node.value:
+            rule_id_node = rule_node.value.get("id")
+            if rule_id_node is not None:
+                spans[rule_id_node.value] = rule_node.span
+    return spans
+
+
+def validate_via_rpc_with_fallback(
+    contents: str,
+    is_json: bool,
+    data: Dict[str, Any],
+    yaml_tree: Optional[YamlTree],
+    source_hash: SourceFileHash,
+    filename: Optional[str],
+    no_python_schema_validation: bool,
+) -> None:
+    """Validate `contents` via the semgrep-core RPC, falling back to Python
+    jsonschema validation on RPC failure unless `no_python_schema_validation`
+    is set (in which case the RPC failure surfaces directly).
+    """
+    suffix = ".json" if is_json else ".yaml"
+    with rules_temp_file(contents, suffix) as tmp_path:
+        try:
+            run_rpc_validate_exn(rules_tmp_path=tmp_path)
+            logger.debug("RPC validation succeeded")
+        except (RpcValidationError, NotImplementedError) as e:
+            if no_python_schema_validation:
+                maybe_raise_from_rpc_error(e, source_hash, filename)
+                return
+            error_type = (
+                e.core_error.error_type.kind
+                if isinstance(e, RpcValidationError)
+                else type(e).__name__
+            )
+            logger.warning(f"semgrep-core rule validation failed ({error_type})")
+            logger.debug(f"semgrep-core validation error detail: {e}")
+            run_jsonschema_validation(data, yaml_tree, source_hash, filename)
+
+
+def run_jsonschema_validation(
+    data: Dict[str, Any],
+    yaml_tree: Optional[YamlTree],
+    source_hash: SourceFileHash,
+    filename: Optional[str],
+) -> None:
+    """Run Python jsonschema validation on the pre-filtered core-bound rules.
+
+    Errors are mapped back to YAML rule locations when available via
+    rule_spans.
+    """
+    rule_spans = build_rule_spans(yaml_tree) if yaml_tree is not None else None
+    validate_string_json_schema(
+        data,
+        source_hash=source_hash,
+        filename=filename,
+        rule_spans=rule_spans,
+    )
 
 
 def validate_yaml_json_schema(

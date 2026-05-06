@@ -1,11 +1,8 @@
 Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
 semgrep error: Invalid rule schema
-  --> rules/invalid-rules/invalid-pattern.yaml:7
-7  | - id: print
-8  |   pattern: print..);
-9  |   message: Using print
-10 |   languages: [py]
-11 |   severity: WARNING
+  --> rules/invalid-rules/invalid-pattern.yaml:9
+9 |   pattern: print..);
+  |            ^^^^^^^^^
 
 Invalid pattern for Python:
 --- pattern ---
