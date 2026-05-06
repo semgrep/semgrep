@@ -3210,7 +3210,14 @@ and map_type_bound (env : env) ((v1, v2) : CST.type_bound) : type_ =
 and map_type_cast (env : env) ((v1, v2) : CST.type_cast) exp : expr =
   let v1 = (* as_operator *) token env v1 in
   let v2 = map_type_not_void env v2 in
-  Cast (v2, v1, exp) |> G.e
+  (* In pattern mode, `$X as T` is the typed-metavariable syntax:
+     bind `$X` only against expressions whose resolved type is `T`.
+     Same trick TS/Java/Swift use to overload an existing cast/annotation
+     form into a TypedMetavar. *)
+  match (env.extra, exp.e) with
+  | Pattern, N (Id ((s, tok), _)) when is_metavar_name s ->
+      TypedMetavar ((s, tok), v1, v2) |> G.e
+  | _ -> Cast (v2, v1, exp) |> G.e
 
 and map_type_not_function (env : env) (x : CST.type_not_function) : type_ =
   match x with
