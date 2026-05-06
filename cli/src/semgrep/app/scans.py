@@ -723,18 +723,11 @@ class ScanHandler:
             )
             for match in all_ignored_matches
         ]
-        token = (
-            # GitHub (cloud)
-            os.getenv("GITHUB_TOKEN")
-            # GitLab.com (cloud)
-            or os.getenv("GITLAB_TOKEN")
-            # Bitbucket Cloud
-            or os.getenv("BITBUCKET_TOKEN")
-        )
-
         self.ci_scan_results = out.CiScanResults(
-            # send a backup token in case the app is not available
-            token=token,
+            # We used to send SCM tokens (e.g GITHUB_TOKEN) to the app as fallback
+            # but we now no longer depend on this fallback as much.
+            # see ENGINE-2729.
+            token=None,
             findings=findings,
             ignores=ignores,
             searched_paths=[
