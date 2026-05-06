@@ -1,0 +1,3 @@
+jsonnet rules: bound recursion in both rule loading and evaluation so a
+malicious rule can no longer hang semgrep via mutually-recursive `import`s
+or runtime function calls that recurse forever.

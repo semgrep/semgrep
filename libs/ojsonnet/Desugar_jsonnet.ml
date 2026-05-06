@@ -61,6 +61,12 @@ type env = {
      ref: ENGINE-2727.
    *)
   import_root : Fpath.t;
+  (* Canonical paths of files currently being desugared. Used to detect
+     mutually-recursive imports (e.g. a.jsonnet imports b.jsonnet which
+     imports a.jsonnet) and reject them, otherwise desugar would loop
+     until the OCaml stack overflows.  ref: ENGINE-2727.
+   *)
+  in_progress_imports : Fpath_.Fpath_set.t;
   import_callback : import_callback;
   (* TODO: cache_file
    * The cache_file is used to ensure referencial transparency (see the spec
@@ -511,8 +517,19 @@ and desugar_import env v : C.expr =
         match env.import_callback ~sandbox !!(env.base) str with
         | None ->
             let final_path = sandbox (env.base // Fpath.v str) in
+            if Fpath_.Fpath_set.mem final_path env.in_progress_imports then
+              error tk
+                (spf "circular import detected: %s is already being desugared"
+                   !!final_path);
             let ast = Parse_jsonnet.parse_program final_path in
-            let env = { env with base = Fpath_.dirname final_path } in
+            let env =
+              {
+                env with
+                base = Fpath_.dirname final_path;
+                in_progress_imports =
+                  Fpath_.Fpath_set.add final_path env.in_progress_imports;
+              }
+            in
             (ast, env)
         | Some ast ->
             (* TODO? let the import callback adjust base? *)
@@ -541,8 +558,22 @@ let desugar_expr_profiled env e = desugar_expr env e [@@profiling]
 let desugar_program ?(import_callback = default_callback) (file : Fpath.t)
     (e : program) : C.program =
   let base = Filename.dirname !!file |> Unix.realpath |> Fpath.v in
+  (* Seed the cycle-detector with the entry-point file (canonicalized) so
+     that any import path which transitively resolves back to it is caught.
+     We use the realpath of the entry file when it exists; otherwise the
+     program AST was supplied in-memory and the entry can't appear as an
+     import target anyway. *)
+  let in_progress_imports =
+    Unix.realpath !!file |> Fpath.v |> Fpath_.Fpath_set.singleton
+  in
   let env =
-    { within_an_object = false; base; import_root = base; import_callback }
+    {
+      within_an_object = false;
+      base;
+      import_root = base;
+      in_progress_imports;
+      import_callback;
+    }
   in
   let e =
     if !Conf_ojsonnet.use_std then

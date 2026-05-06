@@ -279,7 +279,9 @@ and eval_std_filter_element (env : V.env) (tk : tok) (f : function_definition)
       let locals = Local_id_map.add (V.LId (fst id)) ei env.locals in
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
-      (eval_expr { env with depth = env.depth + 1; locals } f_body, env)
+      let depth = env.depth + 1 in
+      H.check_eval_depth tk depth;
+      (eval_expr { env with depth; locals } f_body, env)
   | _else_ -> error tk "filter function takes 1 parameter"
 
 (*****************************************************************************)

@@ -21,6 +21,7 @@ let _dir_fail = Fpath.v "tests/jsonnet/fail"
 let dir_error = Fpath.v "tests/jsonnet/errors"
 let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial/errors"
 let dir_sandbox = Fpath.v "tests/jsonnet/sandbox"
+let dir_dos = Fpath.v "tests/jsonnet/dos"
 
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Filename_.dbe_of_filename !!file in
@@ -83,6 +84,26 @@ let test_yaml_callback_sandbox () =
     Alcotest.(fail "yaml import traversal should have been rejected")
   with
   | Desugar_jsonnet.Error _ -> ()
+
+(* Each fixture in [dir] is a malicious jsonnet program designed to hang
+   semgrep via unbounded recursion (either runtime function calls caught
+   by the eval-depth limit, or circular imports caught by the desugar
+   cycle detector). Either failure path is acceptable; the test fails
+   only if neither check fires.  ref: ENGINE-2727.
+ *)
+let test_maker_dos dir : Testo.t list =
+  Common2.glob (dir / "*jsonnet")
+  |> List.map (fun file ->
+      t ~category:[ !!dir ] (Fpath.basename file) (fun () ->
+          let ast = Parse_jsonnet.parse_program file in
+          try
+            let core = Desugar_jsonnet.desugar_program file ast in
+            let _ = Eval_jsonnet.eval_program core in
+            Alcotest.(fail "DoS fixture should have hit a recursion limit")
+          with
+          | Desugar_jsonnet.Error _
+          | Eval_jsonnet_common.Error _ ->
+              ()))
 
 let mk_tests (subdir : Fpath.t) (strategys : Conf.eval_strategy list) :
     Testo.t list =
@@ -162,4 +183,5 @@ let tests : Testo.t list =
           ~category:[ "tests/jsonnet/sandbox" ]
           "yaml_callback_sandbox" test_yaml_callback_sandbox;
       ];
+      test_maker_dos dir_dos;
     ]

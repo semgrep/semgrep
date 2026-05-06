@@ -62,6 +62,17 @@ let error tk s =
   (* TODO? if Parse_info.is_fake tk ... *)
   raise (Error (s, tk))
 
+(* limit recursion depth so a rule can't hang the evaluator with deep recursion.
+   500 matches upstream Google jsonnet's default --max-stack value.
+ *)
+let max_eval_depth = 500
+
+let check_eval_depth tk depth =
+  if depth > max_eval_depth then
+    error tk
+      (spf "max recursion depth exceeded (%d); jsonnet eval aborted"
+         max_eval_depth)
+
 let fk = Tok.unsafe_fake_tok ""
 
 (*****************************************************************************)
@@ -180,8 +191,9 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
       let locals =
         Local_id_map.fold (fun k v acc -> Local_id_map.add k v acc) locals start
       in
-      env.eval_expr
-        { env with depth = env.depth + 1; locals }
+      let depth = env.depth + 1 in
+      check_eval_depth largs depth;
+      env.eval_expr { env with depth; locals }
         (Local (lparams, binds, rparams, eb))
   | v -> error largs (spf "not a function: %s" (sv v))
 
