@@ -94,7 +94,7 @@ class Terminal:
         file_formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
-        file_handler.setLevel(stdout_level)
+        file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(file_formatter)
 
         # there are code paths that call configure multiple times. we only want to keep the latest stdout and file handlers.
