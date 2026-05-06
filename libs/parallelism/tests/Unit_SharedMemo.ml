@@ -13,47 +13,45 @@
 let t = Testo.create
 
 let test_make_with_state () =
-  let mtx = Mutex.create () in
-  let ht = Hashtbl.create 257 in
+  let cache = SharedMemo.create ~initial_size:257 () in
 
   let cache_misses = Atomic.make 0 in
   let f =
-    SharedMemo.make_with_state mtx ht (fun k ->
+    SharedMemo.make_with_state cache (fun k ->
         Atomic.incr cache_misses;
         k + 1)
   in
 
+  (* Seed the cache so the reader always has at least one valid key.  The
+   * [Domain.spawn] below establishes a happens-before edge, so the seed is
+   * visible to both spawned domains. *)
   let largest_written = Atomic.make 0 in
-  (* Ensure invariant that keys are on [0..largest_written] *)
-  Hashtbl.add ht 0 1;
+  assert (f 0 = 1);
 
   let reader =
     Domain.spawn @@ fun () ->
     for _ = 0 to 50000 do
-      (* inv: k is on [0..largest_written] *)
+      (* inv: k is on [0..largest_written], so [f k] is expected to be a
+       * cache hit.  A miss here would bump [cache_misses] and indicate a
+       * lost update. *)
       let lw = Atomic.get largest_written in
       let k = Random.int (1 + lw) in
-
-      let v =
-        Mutex.protect mtx @@ fun () ->
-        match Hashtbl.find_opt ht k with
-        | None -> failwith (Printf.sprintf "Lost update? %d %d" lw k)
-        | Some n -> n
-      in
-      assert (k + 1 = v)
+      assert (k + 1 = f k)
     done
   in
   let writer =
     Domain.spawn @@ fun () ->
-    for k = 0 to 50000 do
-      (* This call to f will be a cache hit. *)
+    for k = 1 to 50000 do
       assert (k + 1 = f k);
       Atomic.set largest_written k
     done
   in
   Domain.join reader;
   Domain.join writer;
-  Alcotest.(check int) __LOC__ (1 + Atomic.get cache_misses) (Hashtbl.length ht)
+  (* The seed plus the writer's 50000 iterations are the only expected
+   * misses.  A reader miss would push this number higher. *)
+  Alcotest.(check int) __LOC__ 50001 (Atomic.get cache_misses);
+  Alcotest.(check int) __LOC__ 50001 (SharedMemo.length cache)
 
 let test_make_x_domains () =
   (* Tests a "realistic" use of a SharedMemo, across fibers schedule
@@ -78,7 +76,7 @@ let test_key_fn () =
   let key_fn_calls = ref 0 in
   let key_fn =
    fun i ->
-    key_fn_calls := !key_fn_calls + 1;
+    incr key_fn_calls;
     Int.to_string i
   in
   let f = SharedMemo.make_with_key_fn key_fn (fun i -> i + 1) in
@@ -88,10 +86,48 @@ let test_key_fn () =
   done;
   assert (!key_fn_calls > 0)
 
+let test_remove () =
+  let cache = SharedMemo.create () in
+  let calls = ref 0 in
+  let f =
+    SharedMemo.make_with_state cache (fun k ->
+        incr calls;
+        k + 1)
+  in
+  assert (f 42 = 43);
+  assert (f 42 = 43);
+  Alcotest.(check int) __LOC__ 1 !calls;
+  SharedMemo.remove cache 42;
+  (* After [remove], the next call recomputes. *)
+  assert (f 42 = 43);
+  Alcotest.(check int) __LOC__ 2 !calls;
+  (* [remove] on an absent key is a no-op. *)
+  SharedMemo.remove cache 99;
+  Alcotest.(check int) __LOC__ 1 (SharedMemo.length cache)
+
+let test_iter () =
+  let cache = SharedMemo.create () in
+  let f = SharedMemo.make_with_state cache (fun k -> k * 10) in
+  List.iter (fun k -> ignore (f k)) [ 1; 2; 3 ];
+  let seen = ref [] in
+  SharedMemo.iter (fun k v -> seen := (k, v) :: !seen) cache;
+  let sorted = List.sort compare !seen in
+  Alcotest.(check (list (pair int int)))
+    __LOC__
+    [ (1, 10); (2, 20); (3, 30) ]
+    sorted;
+  (* [iter]'s snapshot semantics: it's safe for [f] (here, the memoizer)
+   * to be invoked from within the iteration without deadlocking. *)
+  let reentrant_hits = ref 0 in
+  SharedMemo.iter (fun k _ -> if f k = k * 10 then incr reentrant_hits) cache;
+  Alcotest.(check int) __LOC__ 3 !reentrant_hits
+
 let tests =
   Testo.categorize "SharedMemo"
     [
       t "test_make_with_state" test_make_with_state;
       t "test_make_x_domains" test_make_x_domains;
       t "test_key_fn" test_key_fn;
+      t "test_remove" test_remove;
+      t "test_iter" test_iter;
     ]
