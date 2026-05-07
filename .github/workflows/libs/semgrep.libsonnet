@@ -18,7 +18,7 @@ local github_bot = {
       id: 'token',
       uses: uses.actions.create_github_app_token,
       with: {
-        'app-id': '${{ secrets.SEMGREP_CI_APP_ID }}',
+        'client-id': '${{ secrets.SEMGREP_CI_CLIENT_ID }}',
         'private-key': '${{ secrets.SEMGREP_CI_APP_KEY }}',
         owner: 'semgrep',
       } + (if repositories != null

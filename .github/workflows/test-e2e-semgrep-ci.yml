@@ -100,7 +100,7 @@ jobs:
         name: Get token for semgrep-ci GitHub App
         uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3
         with:
-          app-id: ${{ secrets.SEMGREP_CI_APP_ID }}
+          client-id: ${{ secrets.SEMGREP_CI_CLIENT_ID }}
           owner: semgrep
           private-key: ${{ secrets.SEMGREP_CI_APP_KEY }}
           repositories: e2e
@@ -131,7 +131,7 @@ jobs:
         name: Get token for semgrep-ci GitHub App
         uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3
         with:
-          app-id: ${{ secrets.SEMGREP_CI_APP_ID }}
+          client-id: ${{ secrets.SEMGREP_CI_CLIENT_ID }}
           owner: semgrep
           private-key: ${{ secrets.SEMGREP_CI_APP_KEY }}
           repositories: e2e
