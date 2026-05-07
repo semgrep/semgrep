@@ -120,6 +120,8 @@ REFS_FIELD: list[str] = Field(
 )
 LIMIT_FIELD = Field(default=10, description="Maximum number of findings to return")
 
+MCP_AGENT_TAG = "(command/mcp)"
+
 
 def _build_findings_filter(
     *,
@@ -1381,6 +1383,13 @@ def setup_oauth_routes(mcp: FastMCP, server_url: str) -> None:
 
 
 def register(mcp: FastMCP) -> None:
+    state = get_state()
+    # Since the remote server doesn't call the command semgrep mcp, which should
+    # add the tag "(command/mcp)" to the user agent tag, we need to add the tag manually here
+    # for it to show up in the metrics.
+    if MCP_AGENT_TAG not in state.app_session.user_agent.tags:
+        state.app_session.user_agent.tags.add(MCP_AGENT_TAG)
+
     # tools
     mcp.add_tool(semgrep_rule_schema)
     mcp.add_tool(get_supported_languages)
