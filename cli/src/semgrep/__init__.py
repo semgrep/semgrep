@@ -10,4 +10,4 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
-__VERSION__ = "1.161.0"
+__VERSION__ = "1.162.0"

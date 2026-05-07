@@ -1,1 +1,0 @@
-`semgrep ci` no longer transmits SCM tokens to the Semgrep Platform.
