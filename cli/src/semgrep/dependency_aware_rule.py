@@ -258,30 +258,40 @@ def generate_unreachable_sca_findings(
                     logger.debug(
                         f"SCA TR is on! Running for rule {rule.id}, subproject {subproject.info.dependency_source}, {len(transitive_findings)} transitive findings"
                     )
+                # We serialize as JSON, so the suffix must be `.json` —
+                # OCaml's `Parse_rule.parse_file` dispatches purely on file
+                # extension. A `.yaml` suffix would route this through
+                # `Yaml_to_generic.parse_yaml_file` and parse JSON-as-YAML,
+                # which is dramatically slower (and was the historical bug).
                 fd, rules_tmp_path = mkstemp(
-                    suffix=".yaml", prefix="semgrep-", text=True
+                    suffix=".json", prefix="semgrep-tr-rules-", text=True
                 )
-                with os.fdopen(fd, "w") as fp:
-                    fp.write(json.dumps([rule.raw]))
-                params = out.TransitiveReachabilityFilterParams(
-                    rules_path=out.Fpath(rules_tmp_path),
-                    findings=transitive_findings,
-                    dependencies=list(
-                        iter_dependencies(subproject.resolved_dependencies)
-                    ),
-                    write_to_cache=write_to_tr_cache,
-                )
-                # to debug: print(params.to_json_string())
-                if rpc_session:
-                    ret = rpc_session.call(
-                        out.FunctionCall(out.CallTransitiveReachabilityFilter(params)),
-                        out.RetTransitiveReachabilityFilter,
+                try:
+                    with os.fdopen(fd, "w") as fp:
+                        fp.write(json.dumps([rule.raw]))
+                    params = out.TransitiveReachabilityFilterParams(
+                        rules_path=out.Fpath(rules_tmp_path),
+                        findings=transitive_findings,
+                        dependencies=list(
+                            iter_dependencies(subproject.resolved_dependencies)
+                        ),
+                        write_to_cache=write_to_tr_cache,
                     )
-                    tr_filtered_matches = ret.value if ret else transitive_findings
-                else:
-                    tr_filtered_matches = rpc_call.transitive_reachability_filter(
-                        params
-                    )
+                    # to debug: print(params.to_json_string())
+                    if rpc_session:
+                        ret = rpc_session.call(
+                            out.FunctionCall(
+                                out.CallTransitiveReachabilityFilter(params)
+                            ),
+                            out.RetTransitiveReachabilityFilter,
+                        )
+                        tr_filtered_matches = ret.value if ret else transitive_findings
+                    else:
+                        tr_filtered_matches = rpc_call.transitive_reachability_filter(
+                            params
+                        )
+                finally:
+                    os.remove(rules_tmp_path)
 
                 # TODO: associate these in a more robust way. This currently
                 # depends on the RPC call returning the same matches in the
