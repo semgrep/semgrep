@@ -22,7 +22,7 @@ local github_bot = {
         'private-key': '${{ secrets.SEMGREP_CI_APP_KEY }}',
         owner: 'semgrep',
       } + (if repositories != null
-           then { repositories: std.join(',', repositories) }
+           then { repositories: std.join(', ', repositories) }
            else {}),
     },
   ],
