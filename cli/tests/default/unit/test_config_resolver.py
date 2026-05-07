@@ -379,6 +379,73 @@ def test_parse_config_string_as_rules_no_surrogate_pairs_in_rules_file(mocker):
 
 @pytest.mark.quick
 @pytest.mark.osemfail
+def test_parse_config_string_defers_core_validation(mocker):
+    import semgrep.config_resolver
+
+    validate_rpc = mocker.patch.object(
+        semgrep.config_resolver, "validate_via_rpc_with_fallback"
+    )
+    validate_jsonschema = mocker.patch.object(
+        semgrep.config_resolver, "run_jsonschema_validation"
+    )
+
+    rule_config = """{
+        "rules": [
+            {
+                "id": "test-rule",
+                "message": "Test rule",
+                "languages": ["python"],
+                "severity": "WARNING",
+                "pattern": "$X"
+            }
+        ]
+    }"""
+
+    result = parse_config_string(
+        "test-config",
+        rule_config,
+        "rules.json",
+        defer_core_rule_validation=True,
+    )
+
+    assert len(result.rules) == 1
+    assert result.rules[0].id == "test-rule"
+    assert len(result.errors) == 0
+    validate_rpc.assert_not_called()
+    validate_jsonschema.assert_not_called()
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_parse_config_string_validates_core_rules_by_default(mocker):
+    import semgrep.config_resolver
+
+    validate_rpc = mocker.patch.object(
+        semgrep.config_resolver, "validate_via_rpc_with_fallback"
+    )
+
+    rule_config = """{
+        "rules": [
+            {
+                "id": "test-rule",
+                "message": "Test rule",
+                "languages": ["python"],
+                "severity": "WARNING",
+                "pattern": "$X"
+            }
+        ]
+    }"""
+
+    result = parse_config_string("test-config", rule_config, "rules.json")
+
+    assert len(result.rules) == 1
+    assert result.rules[0].id == "test-rule"
+    assert len(result.errors) == 0
+    validate_rpc.assert_called_once()
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
 def test_yaml_schema_error_points_to_correct_rule(mocked_rpc_validation_error):
     """Schema validation errors for YAML rules should point at the failing
     rule's location in the YAML file, not at 'a: b' / None."""

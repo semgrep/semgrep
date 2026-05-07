@@ -642,6 +642,7 @@ class Config:
         raw_rules: str,
         force_jsonschema: bool = False,
         no_python_schema_validation: bool = False,
+        defer_core_rule_validation: bool = False,
     ) -> Tuple["Config", List[SemgrepError]]:
         if not raw_rules:
             return cls({}), [
@@ -658,6 +659,7 @@ class Config:
                 "rules.json",
                 force_jsonschema=force_jsonschema,
                 no_python_schema_validation=no_python_schema_validation,
+                defer_core_rule_validation=defer_core_rule_validation,
             )
             return cls({CLOUD_PLATFORM_CONFIG_ID: result.rules}), result.errors
         except SemgrepError as e:
@@ -857,8 +859,9 @@ def parse_config_string(
     filename: Optional[str],
     force_jsonschema: bool = False,
     no_python_schema_validation: bool = False,
+    defer_core_rule_validation: bool = False,
 ) -> ParsedConfig:
-    """Parse config contents (JSON or YAML), create Rule objects, and validate.
+    """Parse config contents (JSON or YAML), validate, and create Rule objects.
 
     Pipeline: parse → version filter → drop SCA-only rules → validate core-
     bound rules → build Rule objects. Validation runs either via semgrep-
@@ -866,6 +869,10 @@ def parse_config_string(
     SCA-only rules (r2c-internal-project-depends-on with no pattern keys)
     are excluded from validation because they don't conform to the semgrep-
     core rule schema.
+
+    When defer_core_rule_validation is set, both the SCA-only filter and the
+    schema validation step are skipped here; validation is left to the scan
+    subprocess that consumes the same rules.
     """
     if not contents:
         raise SemgrepError(
@@ -912,42 +919,47 @@ def parse_config_string(
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
 
-    # 2. FILTER: drop SCA-only rules (r2c-internal-project-depends-on with
-    #    no pattern keys). Those rules are handled by the Python Supply
-    #    Chain pipeline and don't conform to the semgrep-core schema, so
-    #    they must not reach validation. Only re-serialize `contents` when
-    #    something was actually filtered out; otherwise pass the original
-    #    through so semgrep-core sees accurate line numbers.
-    all_rule_dicts = data.get(RULES_KEY, [])
-    core_rule_dicts = [
-        r for r in all_rule_dicts if has_patterns_key(r) or not project_depends_on(r)
-    ]
-    core_rules_data = {RULES_KEY: core_rule_dicts}
-    if is_json:
-        contents = json.dumps(core_rules_data, ensure_ascii=False)
+    if defer_core_rule_validation:
+        logger.debug(f"Skipping semgrep-core RPC rule validation for {filename}")
     else:
-        stream = StringIO()
-        YAML().dump(core_rules_data, stream)
-        contents = stream.getvalue()
+        # 2. FILTER: drop SCA-only rules (r2c-internal-project-depends-on with
+        #    no pattern keys). Those rules are handled by the Python Supply
+        #    Chain pipeline and don't conform to the semgrep-core schema, so
+        #    they must not reach validation. Only re-serialize `contents` when
+        #    something was actually filtered out; otherwise pass the original
+        #    through so semgrep-core sees accurate line numbers.
+        all_rule_dicts = data.get(RULES_KEY, [])
+        core_rule_dicts = [
+            r
+            for r in all_rule_dicts
+            if has_patterns_key(r) or not project_depends_on(r)
+        ]
+        core_rules_data = {RULES_KEY: core_rule_dicts}
+        if is_json:
+            contents = json.dumps(core_rules_data, ensure_ascii=False)
+        else:
+            stream = StringIO()
+            YAML().dump(core_rules_data, stream)
+            contents = stream.getvalue()
 
-    # 3. VALIDATE: decide path up-front. RPC gets the (possibly filtered)
-    #    contents with a format-matching suffix; jsonschema fallback builds
-    #    the YAML span bridge from yaml_tree. no_python_schema_validation
-    #    is a hard constraint — when set, we must not fall back to
-    #    jsonschema even if force_jsonschema is also set.
-    source_hash = SourceTracker.add_source(contents)
-    if force_jsonschema and not no_python_schema_validation:
-        run_jsonschema_validation(core_rules_data, yaml_tree, source_hash, filename)
-    else:
-        validate_via_rpc_with_fallback(
-            contents,
-            is_json,
-            core_rules_data,
-            yaml_tree,
-            source_hash,
-            filename,
-            no_python_schema_validation,
-        )
+        # 3. VALIDATE: decide path up-front. RPC gets the (possibly filtered)
+        #    contents with a format-matching suffix; jsonschema fallback builds
+        #    the YAML span bridge from yaml_tree. no_python_schema_validation
+        #    is a hard constraint — when set, we must not fall back to
+        #    jsonschema even if force_jsonschema is also set.
+        source_hash = SourceTracker.add_source(contents)
+        if force_jsonschema and not no_python_schema_validation:
+            run_jsonschema_validation(core_rules_data, yaml_tree, source_hash, filename)
+        else:
+            validate_via_rpc_with_fallback(
+                contents,
+                is_json,
+                core_rules_data,
+                yaml_tree,
+                source_hash,
+                filename,
+                no_python_schema_validation,
+            )
 
     # 4. CREATE RULES
     rules, rule_errors = _create_rules(data, config_id)

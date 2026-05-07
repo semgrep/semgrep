@@ -762,6 +762,14 @@ def ci(
             if scan_handler and scan_handler.autofix
             else AutofixBehavior.IGNORE
         )
+
+        # rules_string is assigned only from ScanHandler.rules, i.e.
+        # ScanResponse.config.rules returned by the App start-scan flow.
+        # For that path, defer semgrep-core rule validation from CLI rule
+        # loading to the scan subprocess, which parses the same rules before
+        # matching. This avoids validating the cloud rules twice in one scan.
+        defer_core_rule_validation = rules_string is not None
+
         # Base arguments for actually running the scan. This is done here so we can
         # re-use this in the event we need to perform a second scan. Currently the
         # only case for this is a separate "historical" scan, where we scan the git
@@ -779,6 +787,7 @@ def ci(
             "lang": None,
             "rules_string": rules_string,
             "config_strs": config,
+            "defer_core_rule_validation": defer_core_rule_validation,
             "no_rewrite_rule_ids": (not rewrite_rule_ids),
             "dump_command_for_core": dump_command_for_core,
             "jobs": jobs,
