@@ -59,7 +59,6 @@ from semgrep.error_location import Span
 from semgrep.rule import Rule
 from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptyYamlException
-from semgrep.rule_lang import has_patterns_key
 from semgrep.rule_lang import parse_json_and_filter_versions
 from semgrep.rule_lang import parse_yaml_and_filter_versions
 from semgrep.rule_lang import prepend_rule_path
@@ -922,18 +921,24 @@ def parse_config_string(
     if defer_core_rule_validation:
         logger.debug(f"Skipping semgrep-core RPC rule validation for {filename}")
     else:
-        # 2. FILTER: drop SCA-only rules (r2c-internal-project-depends-on with
-        #    no pattern keys). Those rules are handled by the Python Supply
-        #    Chain pipeline and don't conform to the semgrep-core schema, so
-        #    they must not reach validation. Only re-serialize `contents` when
-        #    something was actually filtered out; otherwise pass the original
-        #    through so semgrep-core sees accurate line numbers.
+        # 2. FILTER: drop every rule with `r2c-internal-project-depends-on`.
+        #    Two reasons, one correctness, one performance:
+        #      - SCA-only rules (no patterns) don't conform to the semgrep-core
+        #        rule schema; they're handled by the Python Supply Chain
+        #        pipeline and must not reach validation.
+        #      - Reachability-style rules (patterns + project-depends-on) WILL
+        #        be filtered down by `filter_dependency_aware_rules` in
+        #        run_scan.run_rules to only those whose deps actually resolve
+        #        for this project. The survivors are then re-parsed by
+        #        `Core_scan.rules_of_config` when `core_runner` invokes
+        #        semgrep-core. Validating the full set here doubles the bytes
+        #        sent through `RPC CallValidate` for no additional coverage.
+        #    Trade-off: this loses fail-fast for syntax errors in
+        #    dependency-aware rules; those are now reported by the in-scan
+        #    parse via `error_recovery:true` (warning, not abort), matching
+        #    the existing behavior for SCA-only rules.
         all_rule_dicts = data.get(RULES_KEY, [])
-        core_rule_dicts = [
-            r
-            for r in all_rule_dicts
-            if has_patterns_key(r) or not project_depends_on(r)
-        ]
+        core_rule_dicts = [r for r in all_rule_dicts if not project_depends_on(r)]
         core_rules_data = {RULES_KEY: core_rule_dicts}
         if is_json:
             contents = json.dumps(core_rules_data, ensure_ascii=False)
