@@ -2962,14 +2962,6 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
       let tok, args = map_assertion env v1 in
       let sc = (* ";" *) map_semicolon env v2 in
       [ Assert (tok, args, sc) |> G.s ]
-  | `Labe_stmt (v1, v2, v3) ->
-      (* Dart's labeled_statement: `<id>: <stmt>`. The label can be the
-         target of `break <id>;` / `continue <id>;` from inside any
-         statement, not just loops. *)
-      let label = (* identifier *) str env v1 in
-      let _colon = (* ":" *) token env v2 in
-      let stmts = map_statement env v3 in
-      [ Label (label, G.stmt1 stmts) |> G.s ]
   | `Empty_stmt tok ->
       (* `;` — empty/null statement; emit an empty Block. *)
       let _sc = (* ";" *) token env tok in

@@ -108,7 +108,7 @@ url = https://github.com/returntocorp/semgrep-promql.git
 
 [submodule "OSS/languages/dart/tree-sitter/semgrep-dart"]
 path = languages/dart/tree-sitter/semgrep-dart
-url = https://github.com/AlexLaroche/semgrep-dart.git
+url = https://github.com/returntocorp/semgrep-dart
 
 [submodule "OSS/languages/ql/tree-sitter/semgrep-ql"]
 path = languages/ql/tree-sitter/semgrep-ql
