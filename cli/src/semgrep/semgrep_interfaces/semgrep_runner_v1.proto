@@ -1,0 +1,51 @@
+/*
+ * Spec of the Semgrep Runner service utilized in semgrep-proprietary server command.
+ * 
+ * This file has the _v1 suffix to explicitely represent the
+ * version of this protobuf format used by the Semgrep Runner service. 
+ * If you need to extend this file, please check that all changes are backwards compatible.
+ * If a breaking change is introduced (and ensure that it does need to be introduced), then
+ * bump the version number.
+ */
+syntax = "proto3";
+
+package semgrep_runner_v1;
+
+option go_package = "semgrep_runner.v1";
+
+import "protos/semgrep_output_v1.proto";
+
+enum RuleFormat {
+    RULE_FORMAT_UNSPECIFIED = 0;
+    RULE_FORMAT_YAML = 1;
+    RULE_FORMAT_JSON = 2;
+    RULE_FORMAT_JSONNET = 3;
+}
+
+message FilePath {
+    string path = 1;
+}
+
+message FileBlob {
+    FilePath file_path = 1;
+    string contents = 2;
+}
+
+message ScanRequest {
+    // the rule raw content
+    string rule = 1;
+    // how to parse the rule content
+    RuleFormat rule_format = 2;
+    // list of file blobs to receive via SubmitFileBlob service
+    repeated FileBlob files = 3;
+}
+
+message ScanResult {
+    string request_id = 1;
+    semgrep_output_v1.CliMatch cli_match = 2;
+}
+
+service ScanService {
+    // we provide a streaming interface here! to return results as soon as they arrive!
+    rpc Scan(ScanRequest) returns (stream ScanResult) {};
+}

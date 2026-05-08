@@ -1,0 +1,320 @@
+(* Semgrep metrics.
+ *
+ * The goal of this module is to specify the schema for the metrics
+ * data sent by the Semgrep CLI to https://metrics.semgrep.dev.
+ *
+ * coupling: with semgrep/PRIVACY.md where we carefully document
+ * all the metrics we send with a big table explaining each field.
+ *
+ * translated originally from semgrep/cli/.../metrics.py
+ *
+ * TODO:
+ * - some optional arguments could be removed when `osemgrep` replace
+ *   `pysemgrep`. Currently, we try to fit the tests and don't update the
+ *   JSON output.
+ * - specify the schema for the answer from https://metrics.semgrep.dev
+ * - document also what we send via open telemetry in our traces when
+ *   using --trace?
+*)
+
+<python text="from dataclasses import field">
+
+(*****************************************************************************)
+(* Basic types *)
+(*****************************************************************************)
+
+type uuid = string wrap <ocaml module="ATD_string_wrap.Uuidm">
+
+type sha256 = string wrap <ocaml module="ATD_string_wrap.Sha256">
+
+(* RFC 3339 formatted datetime *)
+type datetime = string wrap <ocaml module="ATD_string_wrap.Datetime">
+
+(* ideally this would be the same than in Language.ml *)
+type lang = string
+
+(* Note that there is no 'fpath' type here. We don't send concrete filenames
+ * on purpose (see PRIVACY.md).
+ *)
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+(* In addition to the fields below, some code in the semgrep-app-lambdas repo
+ * in metrics-handler/prod/index.js adds a few fields in the payload such as:
+ *
+ *    clientIP: string; (e.g., "1.2.3.4")
+ *    userAgent: string; (e.g., "Semgrep/1.37.0 (Docker) (command/ci)")
+ *  
+ * note: the use of 'mutable' below is a bit unusual, but many metrics fields
+ * are adjusted in different modules and functions in Semgrep so it was simpler
+ * to use a global in Metrics_.ml and mutable fields.
+ * See the comments in Metrics_.ml about the global 'g' for more information.
+ *)
+type payload = {
+    (* required event and timing *)
+    event_id <ocaml mutable>: uuid;
+    started_at <python default="Datetime('')"> <ocaml mutable>: datetime;
+    sent_at <python default="Datetime('')"> <ocaml mutable>: datetime;
+    (* as stored in ~/.semgrep/settings.yml *)
+    anonymous_user_id <python default="''"> <ocaml mutable>: string;
+
+    (* The fields order below follows the presentation order in PRIVACY.md *)
+    environment: environment;
+    performance: performance;
+    (* the string is a 'lang' below but we can't use the alias because this
+     * confuses ATD which is checking for a 'string' because of the JSON
+     * repr annotation coming after.
+     * TODO? should we move under performance instead of at the top here?
+     *)
+    ~parse_rate <ocaml mutable>: (string (* lang *) * parse_stat) list
+                                 <json repr="object">;
+    errors: errors;
+    value: value;
+    extension: extension;
+    mcp: mcp;
+}
+
+(*****************************************************************************)
+(* Environment *)
+(*****************************************************************************)
+
+type environment = {
+    (* Semgrep CLI version (e.g., "1.45.0") *)
+    version <ocaml mutable>: string;
+    (* Since Semgrep 1.59 *)
+    os: string; (* e.g. "linux" *)
+    (* Since Semgrep 1.59 *)
+    isTranspiledJS <ocaml mutable>: bool;
+    projectHash <ocaml mutable>: sha256 nullable;
+    configNamesHash <python default="Sha256hash('')"> <ocaml mutable>: sha256;
+    ?rulesHash <ocaml mutable>: sha256 option;
+    (* TODO: should be just boolean *)
+    ci <ocaml mutable>: string nullable;
+    (* indicates whether `--baseline-commit` option has been specified. When
+     * `baseline_commit` option is set, it implies that the scan is operating
+     * in differential scan mode.
+     * Since semgrep 1.46
+     *)
+    ~isDiffScan <python default="False"> <ocaml mutable> : bool;
+    ?integrationName <ocaml mutable>: string option;
+    ~isAuthenticated <python default="False"> <ocaml mutable>: bool;
+    ?deployment_id <ocaml mutable>: int option;
+  }
+
+(*****************************************************************************)
+(* Performance *)
+(*****************************************************************************)
+
+type performance = {
+    ?numRules <ocaml mutable>: int option;
+    ?numTargets <ocaml mutable>: int option;
+    ?totalBytesScanned <ocaml mutable>: int option;
+    ?fileStats <ocaml mutable>: file_stats list option;
+    ?ruleStats <ocaml mutable>: rule_stats list option;
+    ?profilingTimes <ocaml mutable>: (string * float) list <json repr="object"> option;
+    ?maxMemoryBytes <ocaml mutable>: int option;
+  }
+
+type file_stats = {
+    size <ocaml mutable>: int;
+    numTimesScanned <ocaml mutable>: int;
+    (* LATER: factorize with semgrep_output_v1.atd? *)
+    ?parseTime <ocaml mutable>: float option;
+    ?matchTime <ocaml mutable>: float option;
+    ?runTime <ocaml mutable>: float option;
+  }
+
+type rule_stats = {
+    ruleHash <ocaml mutable>: string;
+    bytesScanned <ocaml mutable>: int;
+    ?matchTime <ocaml mutable>: float option;
+}
+
+(*****************************************************************************)
+(* Parsing stats *)
+(*****************************************************************************)
+
+type parse_stat = {
+    targets_parsed <ocaml mutable>: int;
+    num_targets <ocaml mutable>: int;
+    bytes_parsed <ocaml mutable>: int;
+    num_bytes <ocaml mutable>: int;
+}
+
+(*****************************************************************************)
+(* Errors *)
+(*****************************************************************************)
+
+type errors = {
+    ?returnCode <ocaml mutable>: int option;
+    ?errors <ocaml mutable>: error list option;
+}
+
+(* This is mostly semgrep_output_v1.error_type but in a string form
+ * thanks to Error.string_of_error_type.
+ * TODO: use directly semgrep_output_v1.error_type but need ATD modules.
+ *)
+type error = string
+
+(*****************************************************************************)
+(* Value ("data that indicate how useful a run is for the end user") *)
+(*****************************************************************************)
+
+type value = {
+    (* The string has the form "key/value" and is used to encode lots
+     * of information such as:
+     *  - "subcommand/ci" (the subcommand is also part of the userAgent)
+     *  - "cli-flag/strict", "cli-flag/output"
+     *  - "cli-envvar/??"
+     *  - "cli-prompt/??"
+     *  - "config/local", "config/auto"
+     *  - "output/path", "output/url"
+     *  - "semgrepignore/exclude"
+     *  - "language/python", "language/<multilang"
+     *  - "registry-query/??"
+     *  - "ruleset/??"
+     * coupling: features is commented a lot in semgrep/PRIVACY.md
+    *)
+    features <ocaml mutable>: string list;
+    (* Since semgrep 1.46 *)
+    ?proFeatures <ocaml mutable>: pro_features option;
+    (* most important metric for the end user *)
+    ?numFindings <ocaml mutable>: int option;
+    (* Since Semgrep 1.56.0, see PA-3312 *)
+    ?numFindingsByProduct <ocaml mutable>: (string * int) list <json repr="object"> option;
+    ?numIgnored <ocaml mutable>: int option;
+    ?ruleHashesWithFindings <ocaml mutable>: (string * int) list <json repr="object"> option;
+    (* TODO: should be OSS | Pro, see semgrep_output_v1.atd engine_kind type *)
+    ~engineRequested <python default="'OSS'"> <ocaml mutable>: string;
+    (* Since Semgrep 1.54.0 *)
+    ?engineConfig <ocaml mutable>: engine_config option;
+    (* Since Semgrep 1.49.0 *)
+    ?interfileLanguagesUsed: string list option;
+  }
+
+
+type pro_features = {
+    (* The value is determined by the `--diff-depth` option, and it's utilized
+     * for inter-file differential scanning.
+     * Since semgrep 1.46
+     *)
+    ?diffDepth <ocaml mutable>: int option;
+    (* The number of scanned files per language for inter-file diff scan mode.
+     * This number represents the count of changed files and their limited
+     * dependencies.
+     * Since semgrep 1.70
+     *)
+    ?numInterfileDiffScanned <ocaml mutable>: (string (* lang *) * int) list
+                                              <json repr="object"> option;
+}
+
+(* Since v1.55.0 *)
+type engine_config <ocaml attr="deriving show"> = {
+  analysis_type: analysis_type;
+  pro_langs: bool;
+  (* `Some c` where `c` is the config if the product was run.
+   * `None` if it was not run.
+   *)
+  ?code_config: code_config option;
+  ?secrets_config: secrets_config option;
+  ?supply_chain_config: supply_chain_config option;
+}
+
+type analysis_type <ocaml attr="deriving show"> = [ 
+    | Intraprocedural 
+    | Interprocedural 
+    | Interfile
+]
+
+(* Ideally this and supply_chain_config would be unit or empty records,  but
+ * ATD doesn't generate correct code for Python when unit is aliased
+ * (to_json/from_json are wrong and try to call methods on a fake Unit class).
+ * In the alternative, {} doesn't work either since ATD just passes it through
+ * instead of converting to unit and it is not valid OCaml syntax.
+ *
+ * So we have a "reserved for future use" (RFU) field just to act as a
+ * placeholder.
+ *)
+type code_config  <ocaml attr="deriving show"> = { ?_rfu: int option; }
+
+type secrets_origin <ocaml attr="deriving show"> = [ Any | Semgrep | NoCommunity ]
+type secrets_config 
+     <ocaml attr="deriving show"> = {
+  permitted_origins: secrets_origin;
+}
+
+type supply_chain_config  <ocaml attr="deriving show"> = { ?_rfu: int option; }
+
+(*****************************************************************************)
+(* Extension *)
+(*****************************************************************************)
+
+(* Metrics from our IDE extensions? *)
+type extension = {
+    (* unique ID provided by the integration *)
+    ?machineId <ocaml mutable>: string option;
+    (* if the integration was just installed *)
+    ?isNewAppInstall <ocaml mutable>: bool option;
+    (* tracks unique sessions of the integration *)
+    ?sessionId <ocaml mutable>: string option;
+    (* version of the integration. NOT semgrep version *)
+    ?version <ocaml mutable>: string option;
+    (* type of extension, i.e. vscode, or intellij *)
+    ?ty <ocaml mutable>: string option;
+    (* number of autofixes accepted via code actions *)
+    ?autofixCount <ocaml mutable>: int option;
+    (* how many findings have been ignored *)
+    ?ignoreCount <ocaml mutable>: int option;
+}
+
+(* This is only used for the MCP metrics *)
+type finding = {
+  path: string;
+  line: int;
+  col: int;
+  offset: int;
+  severity: string;
+}
+
+
+type mcp = {
+    ?deployment_name <ocaml mutable>: string option;
+    ?session_id <ocaml mutable>: string option;
+    ?num_skipped_rules <ocaml mutable>: int option;
+    ?rules <ocaml mutable>: string list option;
+    ?num_scanned_files <ocaml mutable>: int option;
+    ?num_findings <ocaml mutable>: int option;
+    ?findings <ocaml mutable>: (string (* rule_id *) * finding) list <json repr="object"> option;
+    ?errors <ocaml mutable>: string list option;
+    ?num_lines <ocaml mutable>: int option;
+    ?git_username <ocaml mutable>: string option;
+    ?git_repo <ocaml mutable>: string option;
+    ?git_branch <ocaml mutable>: string option;
+    ?tool_name <ocaml mutable>: string option;
+    ?num_tps <ocaml mutable>: int option;
+    ?tps <ocaml mutable>: (string (* rule_id *) * finding) list <json repr="object"> option;
+    ?num_fps <ocaml mutable>: int option;
+    ?fps <ocaml mutable>: (string (* rule_id *) * finding) list <json repr="object"> option;
+    ?num_skips <ocaml mutable>: int option;
+    ?skips <ocaml mutable>: (string (* rule_id *) * finding) list <json repr="object"> option;
+    (* NEW: since OAuth *)
+    ?oauth_id <ocaml mutable>: string option;
+    ?oauth_name <ocaml mutable>: string option;
+    ?oauth_email <ocaml mutable>: string option;
+}
+
+(*****************************************************************************)
+(* TODO Response by metrics.semgrep.dev *)
+(*****************************************************************************)
+(*   Here is an example of answer when an error occured:
+ *       { "errorType":"TypeError",
+ *         "errorMessage":"Cannot read property 'map' of undefined",
+ *          "trace":[
+ *             "TypeError: Cannot read property 'map' of undefined",
+ *             "    at createPerRuleObjects (/var/task/index.js:287:24)",
+ *             "    at Runtime.exports.handler (/var/task/index.js:363:20)",
+ *           ]
+ *        }
+ *)
