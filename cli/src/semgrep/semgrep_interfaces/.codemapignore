@@ -1,0 +1,8 @@
+*_[jt].ml
+*_j.mli
+
+semgrep_output_v1.*
+ast_generic_v1.*
+semgrep_metrics.*
+# negation :)
+!*.atd
