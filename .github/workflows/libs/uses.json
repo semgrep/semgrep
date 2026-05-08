@@ -10,7 +10,7 @@
     "actions": {
       "cache": "v4",
       "checkout": "v4",
-      "create-github-app-token": "v2",
+      "create-github-app-token": "v3",
       "download-artifact": "v4",
       "setup-go": "v5",
       "setup-python": "v5",
@@ -49,7 +49,7 @@
       "sticky-pull-request-comment": "v2"
     },
     "peter-evans": {
-      "create-pull-request": "v7"
+      "create-pull-request": "v8"
     },
     "pre-commit": {
       "action": "v3.0.0"
