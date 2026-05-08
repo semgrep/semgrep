@@ -1,0 +1,1261 @@
+# Specification of the Semgrep rule YAML syntax using JSON schema.
+#
+# Note that even if most Semgrep users use YAML to write a rule, and not JSON,
+# we still use a JSON tool (jsonschema) to specify the rule schema because
+# YAML is a superset of JSON and can be mechanically translated into JSON;
+# there is no yamlschema (see https://json-schema-everywhere.github.io/yaml).
+# To add even more confusion, a jsonschema can actually be specified using
+# YAML (like in in this file), and so one can use YAML syntax to specify the
+# JSON schema of files actually written in YAML (hmmm).
+
+$id: https://raw.githubusercontent.com/returntocorp/semgrep-interfaces/main/rule_schema_v1.yaml
+$schema: http://json-schema.org/draft-07/schema#
+#!!If you modify this file, update the submodules in semgrep and semgrep-app!!
+#!!If you add new syntax to this file, you probably need to add some
+#  EXPERIMENTAL comment before!!
+$defs:
+  # EXPERIMENTAL
+  validator:
+    properties:
+      http:
+        properties:
+          request:
+            $ref: "#/$defs/http-request-content"
+          response:
+            $ref: "#/$defs/http-response-content"
+        required: [ request, response ]
+      aws:
+        properties:
+          request:
+            $ref: "#/$defs/aws-request-content"
+          response:
+            $ref: "#/$defs/http-response-content"
+        required: [ request, response ]
+    # An individual validator shall be exactly one 'kind' of validator.
+    oneOf:
+      - required: [ http ]
+      - required: [ aws ]
+  analyzer:
+    title: Analyzer to use
+    oneOf:
+      - const: entropy
+      - const: entropy_v2
+      - const: redos
+      - type: object
+        properties:
+          kind:
+            const: entropy
+        required:
+          - kind
+        additionalProperties: false
+      - type: object
+        properties:
+          kind:
+            const: entropy_v2
+          mode:
+            oneOf:
+              - const: lax
+              - const: strict
+              - const: default
+        required:
+          - kind
+        additionalProperties: false
+      - type: object
+        properties:
+          kind:
+            const: redos
+        required:
+          - kind
+        additionalProperties: false
+  # EXPERIMENTAL
+  aws-request-content:
+    properties:
+      access_key_id:
+        type: string
+      secret_access_key:
+        type: string
+      region:
+        type: string
+      session_token:
+        type: string
+    required: [ access_key_id, secret_access_key, region ]
+  # EXPERIMENTAL
+  http-request-content:
+    properties:
+      url:
+        type: string
+      method:
+        type: string
+      headers:
+        type: object
+      body:
+        type: string
+      auth:
+        type: object
+  # EXPERIMENTAL
+  http-response-content:
+    type: array
+    items:
+      $ref: "#/$defs/http-response-item"
+  # EXPERIMENTAL
+  http-response-item:
+    properties:
+      match:
+        $ref: "#/$defs/http-response-match"
+      result:
+        properties:
+          validity:
+            enum: [ valid, invalid ]
+
+  # EXPERIMENTAL
+  http-response-match:
+    properties:
+      status-code:
+        type: integer
+      headers:
+        type: array
+        items:
+          properties:
+            name:
+              type: string
+            value:
+              type: string
+      content:
+        type: object
+        properties:
+          # TODO(cooper): re-use languages sub-enum?
+          language:
+            type: string
+        $ref: "#/$defs/general-pattern-content"
+  # EXPERIMENTAL
+  new-source-pattern:
+    $ref: "#/$defs/new-pattern"
+    properties:
+      requires:
+        type: string
+      label:
+        type: string
+  new-sink-pattern:
+    $ref: "#/$defs/new-pattern"
+    properties:
+      requires:
+        oneOf:
+          - type: string
+          - type: array
+            items:
+              type: object
+              minProperties: 1
+              maxProperties: 1
+              additionalProperties:
+                type: string
+  new-sanitizer-pattern:
+    $ref: "#/$defs/new-pattern"
+    properties:
+      not-conflicting:
+        type: string
+  new-propagator-pattern:
+    $ref: "#/$defs/new-pattern"
+    required: [ from, to ]
+    properties:
+      from:
+        type: string
+      to:
+        type: string
+  new-taint-content:
+    title: "Return finding using taint, given sources and sinks"
+    type: object
+    required:
+      - sources
+      - sinks
+    properties:
+      sources:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/new-source-pattern"
+      sinks:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/new-sink-pattern"
+      propagators:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/new-propagator-pattern"
+      sanitizers:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/new-sanitizer-pattern"
+  new-pattern:
+    title: "Return finding where code matches against the following pattern"
+    oneOf:
+    - type: string
+    - type: object
+      oneOf:
+        - required: [ pattern ]
+        - required: [ regex ]
+        - required: [ all ]
+        - required: [ any ]
+        - required: [ not ]
+        - required: [ inside ]
+        - required: [ anywhere ]
+        - required: [ taint ]
+      properties:
+        pattern:
+          type: string
+        regex:
+          type: string
+        all:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/new-pattern"
+        any:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/new-pattern"
+        not:
+          $ref: "#/$defs/new-pattern"
+        inside:
+          $ref: "#/$defs/new-pattern"
+        anywhere:
+          $ref: "#/$defs/new-pattern"
+        where:
+          type: array
+          items:
+            oneOf:
+              - required: [ focus ]
+                properties:
+                  focus:
+                    oneOf:
+                      - type: string
+                      - type: array
+                        items:
+                          type: string
+              - required: [ comparison ]
+                properties:
+                  comparison:
+                    type: string
+                  base:
+                    title: Integer base to parse metavariable contents as
+                    type: integer
+                  strip:
+                    title: Whether to strip quotes from compared metavariables
+                    type: boolean
+              - required: [ metavariable ]
+                $ref: "#/$defs/new-pattern"
+                properties:
+                  metavariable:
+                    type: string
+              - required: [ metavariable, type ]
+                properties:
+                  metavariable:
+                    type: string
+                  type:
+                    type: string
+              - required: [ metavariable, types ]
+                properties:
+                  metavariable:
+                    type: string
+                  types:
+                    type: array
+                    items:
+                      type: string
+              - required: [ metavariable, analyzer ]
+                properties:
+                  metavariable:
+                    type: string
+                  analyzer:
+                    $ref: "#/$defs/analyzer"
+  general-pattern-content:
+    title: "Return finding where code matches against the following pattern"
+    oneOf:
+    - type: string
+    # This is scuffed, but it seems that `allOf` does not short circuit.
+    # This schema can potentially run on things which are not objects
+    # (such as lists), and if that happens, the validator will crash when
+    # it checks the keys of the object.
+    # I would normally just use `allOf`, but since it doensn't short circuit,
+    # I had to instead make it this weird `if-then-else` thing to properly
+    # skip the keys check on a non-object.
+    - if:
+        type: object
+      then:
+        oneOf:
+          - required: [ pattern ]
+          - required: [ pattern-regex ]
+          - required: [ patterns ]
+          - required: [ pattern-either ]
+          - required: [ pattern-not ]
+          - required: [ pattern-inside ]
+          - required: [ semgrep-internal-pattern-anywhere ]
+          - required: [ pattern-not-inside ]
+        properties:
+          pattern:
+            type: string
+          pattern-regex:
+            type: string
+          patterns:
+            $ref: "#/$defs/patterns-content"
+          pattern-either:
+            $ref: "#/$defs/pattern-either-content"
+          pattern-not:
+            $ref: "#/$defs/general-pattern-content"
+          pattern-inside:
+            $ref: "#/$defs/general-pattern-content"
+          semgrep-internal-pattern-anywhere:
+            $ref: "#/$defs/general-pattern-content"
+          pattern-not-inside:
+            $ref: "#/$defs/general-pattern-content"
+      else:
+        type: object
+  patterns-content:
+    type: array
+    title: "Return finding where all of the nested conditions are true"
+    items:
+      anyOf:
+        - $ref: "#/$defs/patterns"
+        - $ref: "#/$defs/pattern-either"
+        - $ref: "#/$defs/focus-metavariable"
+        - $ref: "#/$defs/pattern-inside"
+        - $ref: "#/$defs/semgrep-internal-pattern-anywhere"
+        - $ref: "#/$defs/pattern-not-inside"
+        - $ref: "#/$defs/pattern-not"
+        - $ref: "#/$defs/pattern"
+        - $ref: "#/$defs/pattern-regex"
+        - $ref: "#/$defs/pattern-not-regex"
+        - $ref: "#/$defs/metavariable-analysis"
+        - $ref: "#/$defs/metavariable-regex"
+        - $ref: "#/$defs/metavariable-pattern"
+        - $ref: "#/$defs/metavariable-type"
+        - $ref: "#/$defs/semgrep-internal-metavariable-name"
+        - $ref: "#/$defs/metavariable-name"
+        - $ref: "#/$defs/metavariable-comparison"
+        - $ref: "#/$defs/pattern-where-python"
+  pattern-either-content:
+    type: array
+    title: "Return finding where any of the nested conditions are true"
+    items:
+      anyOf:
+        - $ref: "#/$defs/patterns"
+        - $ref: "#/$defs/pattern-either"
+        - $ref: "#/$defs/pattern-inside"
+        - $ref: "#/$defs/semgrep-internal-pattern-anywhere"
+        - $ref: "#/$defs/pattern"
+        - $ref: "#/$defs/pattern-regex"
+  taint-content:
+    type: array
+    items:
+      anyOf:
+        - type: object
+          properties:
+            pattern:
+              title: Return finding where Semgrep pattern matches exactly
+              type: string
+            pattern-regex:
+              title: Return finding where regular expression matches exactly
+              type: string
+            patterns:
+              $ref: "#/$defs/patterns-content"
+            pattern-either:
+              $ref: "#/$defs/pattern-either-content"
+          oneOf:
+            - required:
+                - pattern
+              not:
+                anyOf:
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - patterns
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - pattern-either
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-either
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-regex
+            - required:
+                - pattern-regex
+              not:
+                anyOf:
+                  - required:
+                      - pattern
+                  - required:
+                      - patterns
+                  - required:
+                      - pattern-either
+  # EXPERIMENTAL
+  r2c-internal-project-depends-on-content:
+    type: object
+    title: "One or more dependencies that the project contains in a lock file"
+    properties:
+      namespace:
+        type: string
+      package:
+        type: string
+      version:
+        type: string
+      depends-on-either:
+        type: array
+        properties:
+          namespace:
+            type: string
+          package:
+            type: string
+          version:
+            type: string
+        additionalProperties: false
+        required:
+          - namespace
+          - package
+          - version
+    oneOf:
+      - required:
+          - namespace
+          - package
+          - version
+        not:
+          required:
+            - depends-on-either
+      - required:
+          - depends-on-either
+        not:
+          anyOf:
+            - required:
+                - namespace
+            - required:
+                - package
+            - required:
+                - version
+  # EXPERIMENTAL
+  join-content:
+    type: object
+    title: "Join one or more rules together based on metavariable contents"
+    properties:
+      refs:
+        type: array
+        items:
+          type: object
+          properties:
+            rule:
+              type: string
+            renames:
+              type: array
+              items:
+                type: object
+                properties:
+                  from:
+                    type: string
+                  to:
+                    type: string
+            as:
+              type: string
+          additionalProperties: false
+      rules:
+        type: array
+        items:
+          type: object
+          required:
+            - id
+            - languages
+          oneOf:
+            - required:
+                - pattern
+            - required:
+                - patterns
+            - required:
+                - pattern-sources
+                - pattern-sinks
+          properties:
+            id:
+              $ref: "#/$defs/id"
+            languages:
+              $ref: "#/$defs/languages"
+            pattern:
+              type: string
+            patterns:
+              $ref: "#/$defs/patterns-content"
+            mode:
+              enum:
+                - search
+                - taint
+            pattern-sources:
+              $ref: "#/$defs/taint-content"
+            pattern-propagators:
+              $ref: "#/$defs/taint-content"
+            pattern-sinks:
+              $ref: "#/$defs/taint-content"
+            pattern-sanitizers:
+              $ref: "#/$defs/taint-content"
+          additionalProperties: false
+      on:
+        type: array
+        items:
+          type: string
+      additionalProperties: false
+    additionalProperties: false
+  # This a generic version of metavariable-regex and metavariable-pattern.
+  # It is meant to allow a variety of built-in analyzers, each with a
+  # name and its own options. For example, this is used for the entropy
+  # analyzer.
+  metavariable-analysis:
+    type: object
+    properties:
+      metavariable-analysis:
+        type: object
+        title: Inspect a metavariable with a given analyzer
+        properties:
+          analyzer:
+            $ref: "#/$defs/analyzer"
+          metavariable:
+            type: string
+            title: Metavariable to analyze
+        required:
+          - analyzer
+          - metavariable
+        additionalProperties: false
+    required:
+      - metavariable-analysis
+    additionalProperties: false
+  metavariable-regex:
+    type: object
+    properties:
+      metavariable-regex:
+        type: object
+        title: Search metavariable value with RegEx
+        properties:
+          metavariable:
+            type: string
+            title: Metavariable to search
+          regex:
+            type: string
+            title: PCRE regular expression
+          constant-propagation:
+            type: boolean
+        required:
+          - metavariable
+          - regex
+        additionalProperties: false
+    required:
+      - metavariable-regex
+    additionalProperties: false
+  metavariable-pattern:
+    type: object
+    properties:
+      metavariable-pattern:
+        type: object
+        title: Match metavariable value with a pattern formula
+        properties:
+          metavariable:
+            type: string
+            title: Metavariable to match
+          language:
+            type: string
+          pattern:
+            title: Return finding where Semgrep pattern matches exactly
+            type: string
+          pattern-regex:
+            title: Return finding where regular expression matches exactly
+            type: string
+          patterns:
+            $ref: "#/$defs/patterns-content"
+          pattern-either:
+            $ref: "#/$defs/pattern-either-content"
+        required:
+          - metavariable
+        oneOf:
+          - required:
+              - pattern
+            not:
+              anyOf:
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+          - required:
+              - patterns
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-either
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-regex
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+        additionalProperties: false
+    required:
+      - metavariable-pattern
+    additionalProperties: false
+  metavariable-type:
+    type: object
+    properties:
+      metavariable-type:
+        type: object
+        title: Filter for metavariables with a certain type
+        properties:
+          metavariable:
+            type: string
+            title: Metavariable to match
+          type:
+            title: Type expression
+            type: string
+          types:
+            title: Type expressions
+            type: array
+            items:
+              type: string
+          language:
+            type: string
+        oneOf:
+          - required:
+              - type
+          - required:
+              - types
+        additionalProperties: false
+    required:
+      - metavariable-type
+    additionalProperties: false
+  metavariable-name:
+    type: object
+    properties:
+      # NOTE: Similar to the semgrep-internal-* variant, but doesn't yet permit
+      # a `kind` constraint.
+      metavariable-name:
+        type: object
+        title: Filter for metavariables with a certain kind
+        properties:
+          metavariable:
+            type: string
+            title: Metavariable to match
+          module:
+            title: A module name
+            type: string
+          modules:
+            title: A list of module names
+            type: array
+            items:
+              type: string
+        required:
+          - metavariable
+        oneOf:
+        - required:
+            - module
+        - required:
+            - modules
+        additionalProperties: false
+    required:
+      - metavariable-name
+    additionalProperties: false
+  # EXPERIMENTAL variant
+  semgrep-internal-metavariable-name:
+    type: object
+    properties:
+      semgrep-internal-metavariable-name:
+        type: object
+        title: Filter for metavariables with a certain kind
+        properties:
+          metavariable:
+            type: string
+            title: Metavariable to match
+          # If updating kind, consider if this experimental version can be
+          # removed in favour of the non-prefixed one.
+          kind:
+            title: Kind keyword
+            type: string
+          module:
+            title: A module name
+            type: string
+          modules:
+            title: A list of module names
+            type: array
+            items:
+              type: string
+          fqn:
+            title: A fully qualified name
+            type: string
+          fqns:
+            title: A list of fully qualified names
+            type: array
+            items:
+              type: string
+        required:
+          - metavariable
+        anyOf:
+        - required:
+            - kind
+        - oneOf:
+          - required:
+              - module
+          - required:
+              - modules
+        - oneOf:
+          - required:
+              - fqn
+          - required:
+              - fqns
+        additionalProperties: false
+    required:
+      - semgrep-internal-metavariable-name
+    additionalProperties: false
+  metavariable-comparison:
+    type: object
+    properties:
+      metavariable-comparison:
+        type: object
+        title: Compare metavariables with other metavariables or literals using constant propagation
+        properties:
+          metavariable:
+            type: string
+            title: Metavariable to compare
+          comparison:
+            type: string
+            title: Comparison expression
+          strip:
+            type: boolean
+          base:
+            type: integer
+        required:
+          - comparison
+        additionalProperties: false
+    required:
+      - metavariable-comparison
+    additionalProperties: false
+  pattern:
+    type: object
+    properties:
+      pattern:
+        title: Return finding where Semgrep pattern matches exactly
+        type: string
+    required:
+      - pattern
+    additionalProperties: false
+  pattern-regex:
+    type: object
+    properties:
+      pattern-regex:
+        title: Return finding where regular expression matches
+        type: string
+    required:
+      - pattern-regex
+    additionalProperties: false
+  pattern-not-regex:
+    type: object
+    properties:
+      pattern-not-regex:
+        title: Do not return finding where regular expression matches
+        type: string
+    required:
+      - pattern-not-regex
+    additionalProperties: false
+  patterns:
+    type: object
+    properties:
+      patterns:
+        title: Return finding where all of the nested conditions are true
+        $ref: "#/$defs/patterns-content"
+    required:
+      - patterns
+    additionalProperties: false
+  pattern-either:
+    type: object
+    properties:
+      pattern-either:
+        title: Return finding where any of the nested conditions are true
+        $ref: "#/$defs/pattern-either-content"
+    required:
+      - pattern-either
+    additionalProperties: false
+  focus-metavariable:
+    type: object
+    properties:
+      focus-metavariable:
+        title: Focus on what a given metavariable is matching
+        items:
+          OneOf:
+            - string
+            - array
+    required:
+      - focus-metavariable
+    additionalProperties: false
+  pattern-inside:
+    type: object
+    properties:
+      pattern-inside:
+        title: Return findings only from within snippets Semgrep pattern matches
+        $ref: "#/$defs/general-pattern-content"
+    required:
+      - pattern-inside
+    additionalProperties: false
+  # EXPERIMENTAL
+  semgrep-internal-pattern-anywhere:
+    type: object
+    properties:
+      semgrep-internal-pattern-anywhere:
+        title: >-
+          Marks this subpattern such that at a containing `patterns` or other
+          form of conjunction the range is not considered; subpattern matches
+          are instead combined solely on the basis of metavariables, without
+          respect to range, and the range of the matching subpattern is
+          discarded wholly.
+        $ref: "#/$defs/general-pattern-content"
+    required:
+      - semgrep-internal-pattern-anywhere
+    additionalProperties: false
+  pattern-not-inside:
+    type: object
+    properties:
+      pattern-not-inside:
+        title: Do not return findings from within snippets Semgrep pattern matches
+        $ref: "#/$defs/general-pattern-content"
+    required:
+      - pattern-not-inside
+    additionalProperties: false
+  pattern-not:
+    type: object
+    properties:
+      pattern-not:
+        title: Do not return finding where Semgrep pattern matches exactly
+        $ref: "#/$defs/general-pattern-content"
+    required:
+      - pattern-not
+    additionalProperties: false
+  # DEPRECATED
+  pattern-where-python:
+    type: object
+    properties:
+      pattern-where-python:
+        title: Return finding where Python expression returns true
+        type: string
+    required:
+      - pattern-where-python
+    additionalProperties: false
+  path-array:
+    type: array
+    items:
+      type: string
+  id:
+    title: Rule ID to attach to findings
+    type: string
+    pattern: "^[a-zA-Z0-9._-]*$"
+  # coupling: if you modify this, you first need to modify lang.json in the semgrep-langs repository
+  languages:
+    title: Languages this pattern should run on
+    type: array
+    items:
+      anyOf:
+        - type: string
+        - enum:
+            - apex
+            - bash
+            - sh
+            - c
+            - clojure
+            - cpp
+            - c++
+            - csharp
+            - c#
+            - dart
+            - dockerfile
+            - docker
+            - ex
+            - elixir
+            - generic
+            - go
+            - golang
+            - gosu
+            - hack
+            - html
+            - java
+            - js
+            - javascript
+            - json
+            - jsonnet
+            - julia
+            - kt
+            - kotlin
+            - lisp
+            - lua
+            - ocaml
+            - php
+            - python2
+            - python3
+            - py
+            - python
+            - r
+            - regex
+            - none
+            - ruby
+            - rust
+            - scala
+            - scheme
+            - solidity
+            - sol
+            - swift
+            - tf
+            - hcl
+            - terraform
+            - ts
+            - typescript
+            - vue
+            - yaml
+            - xml
+required:
+  - rules
+properties:
+  rules:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          $ref: "#/$defs/id"
+        min-version:
+          title: Earliest Semgrep version supporting this rule
+          type: string
+        max-version:
+          title: Last Semgrep version supporting this rule
+          type: string
+        version:
+          title: Version of rule
+          type: string
+        message:
+          title: Description to attach to findings
+          type: string
+        mode:
+          default: search
+          enum:
+            - search
+            - taint
+            # EXPERIMENTAL
+            - join
+            - extract
+        languages:
+          $ref: "#/$defs/languages"
+        paths:
+          title: Path globs this pattern should run on
+          type: object
+          properties:
+            include:
+              $ref: "#/$defs/path-array"
+            exclude:
+              $ref: "#/$defs/path-array"
+          additionalProperties: false
+        severity:
+          title: Severity to report alongside this finding
+          enum:
+            - ERROR
+            - WARNING
+            - INFO
+            # EXPERIMENTAL
+            - INVENTORY
+            - EXPERIMENT
+            # since 1.72.0
+            - CRITICAL
+            - HIGH
+            - MEDIUM
+            - LOW
+        pattern-sinks:
+          $ref: "#/$defs/taint-content"
+        pattern-sources:
+          $ref: "#/$defs/taint-content"
+        pattern-sanitizers:
+          $ref: "#/$defs/taint-content"
+        # EXPERIMENTAL
+        pattern-propagators:
+          $ref: "#/$defs/taint-content"
+        taint:
+          $ref: "#/$defs/new-taint-content"
+        join:
+          $ref: "#/$defs/join-content"
+        # EXPERIMENTAL
+        validators:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/validator"
+        fix:
+          title: Replacement text to fix matched code. Can use matched metavariables.
+          type: string
+        fix-regex:
+          type: object
+          title: Replacement regex to fix matched code.
+          properties:
+            count:
+              title: Replace up to this many regex matches
+              type: integer
+            regex:
+              title: Regular expression to find in matched code
+              type: string
+            replacement:
+              title: Code to replace the regular expression match with. Can use capture groups.
+              type: string
+          required:
+            - regex
+            - replacement
+          additionalProperties: false
+        metadata:
+          title: Arbitrary structured data for your own reference
+          type: object
+        options:
+          title: Options object to enable/disable certain matching features in semgrep-core
+          type: object
+        pattern:
+          title: Return finding where Semgrep pattern matches exactly
+          type: string
+        pattern-regex:
+          title: Return finding where regular expression matches exactly
+          type: string
+        patterns:
+          $ref: "#/$defs/patterns-content"
+        pattern-either:
+          $ref: "#/$defs/pattern-either-content"
+        # EXPERIMENTAL
+        r2c-internal-project-depends-on:
+          $ref: "#/$defs/r2c-internal-project-depends-on-content"
+        # EXPERIMENTAL
+        match:
+          $ref: "#/$defs/new-pattern"
+        # EXPERIMENTAL
+        extract:
+          title: Metavariable whose content to use as the extracted result for subsequent rules
+          type: string
+        dest-rules:
+          title: Rules to include or exclude when running the destination language rules on the extracted file
+          type: object
+          properties:
+             include:
+                $ref: "#/$defs/path-array"
+             exclude:
+                $ref: "#/$defs/path-array"
+        dest-language:
+          title: Language to process the extracted result of this rule as
+          type: string
+        # EXPERIMENTAL
+        transform:
+          title: Method to transform the extracted content
+          enum:
+            - no_transform
+            - unquote_string
+            - concat_json_string_array
+          default: no_transform
+        reduce:
+          title: Method of intrafile match reduction
+          enum:
+            - concat
+            - separate
+          default: separate
+
+      # IMPORTANT: we are allowing additional fields so that the schema validator will not fail
+      # rules that might be using features the current semgrep version is unaware of. The min-version field
+      # should be used to indicate the earliest semgrep version that supports the rule.
+      additionalProperties: true
+
+      allOf:
+        # EXPERIMENTAL
+        - if:
+            properties:
+              mode:
+                const: extract
+            required:
+              - mode
+          then:
+            required:
+              - id
+              - languages
+              - dest-language
+              - extract
+            oneOf:
+              - required: [ match ]
+              - required: [ pattern ]
+              - required: [ patterns ]
+              - required: [ pattern-either ]
+              - required: [ pattern-regex ]
+            properties:
+              message: false
+              severity: false
+              pattern-sinks: false
+              pattern-sources: false
+              pattern-propagators: false
+              pattern-sanitizers: false
+              join: false
+        - if:
+          # We should only proceed with this old-style taint rule if we do
+          # not see a `taint` top-level key.
+          # Otherwise, it's a new-style taint rule.
+            properties:
+              mode:
+                const: taint
+              taint: false
+            required:
+              - mode
+          then:
+            required:
+              - id
+              - message
+              - languages
+              - severity
+              - pattern-sinks
+              - pattern-sources
+            properties:
+              extract: false
+              dest-language: false
+              # EXPERIMENTAL
+              transform: false
+              reduce: false
+              match: false
+              pattern: false
+              patterns: false
+              pattern-either: false
+              pattern-regex: false
+              join: false
+        # EXPERIMENTAL
+        - if:
+            # If it has a top-level taint key, it must be a new-style taint rule.
+            # It's allowed to have `mode: taint`, however.
+            required:
+              - taint
+          then:
+            required:
+              - id
+              - message
+              - languages
+              - severity
+              - taint
+            properties:
+              extract: false
+              dest-language: false
+              # EXPERIMENTAL
+              transform: false
+              reduce: false
+              match: false
+              pattern: false
+              patterns: false
+              pattern-either: false
+              pattern-regex: false
+              join: false
+        # EXPERIMENTAL
+        - if:
+            properties:
+              mode:
+                const: join
+            required:
+              - mode
+          then:
+            required:
+              - id
+              - message
+              - severity
+              - join
+            properties:
+              extract: false
+              dest-language: false
+              # EXPERIMENTAL
+              transform: false
+              reduce: false
+              patterns: false
+              pattern: false
+              pattern-either: false
+              pattern-sinks: false
+              pattern-sources: false
+              pattern-propagators: false
+              pattern-sanitizers: false
+              match: false
+        - if:
+            properties:
+              mode:
+                const: search
+              taint: false
+          then:
+            required:
+              - id
+              - message
+              - languages
+              - severity
+            if:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+            then:
+              oneOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+            else:
+              oneOf:
+                # This is still here for error message purposes.
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+                # EXPERIMENTAL
+                - required:
+                    - r2c-internal-project-depends-on
+                - required:
+                    - match
+            properties:
+              extract: false
+              dest-language: false
+              # EXPERIMENTAL
+              transform: false
+              reduce: false
+              pattern-sinks: false
+              pattern-sources: false
+              pattern-propagators: false
+              pattern-sanitizers: false
+              join: false

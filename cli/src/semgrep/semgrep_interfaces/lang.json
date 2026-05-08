@@ -1,0 +1,977 @@
+[
+  {
+    "id": "apex",
+    "name": "Apex",
+    "keys": [
+      "apex"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".cls"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": [
+      "is_proprietary"
+    ]
+  },
+  {
+    "id": "bash",
+    "name": "Bash",
+    "keys": [
+      "bash",
+      "sh"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".bash",
+      ".sh"
+    ],
+    "example_ext": ".sh",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "bash",
+      "sh"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "c",
+    "name": "C",
+    "keys": [
+      "c"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".c",
+      ".h"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "cairo",
+    "name": "Cairo",
+    "keys": [
+      "cairo"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".cairo"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "circom",
+    "name": "Circom",
+    "keys": [
+      "circom"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".circom"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "clojure",
+    "name": "Clojure",
+    "keys": [
+      "clojure"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".clj",
+      ".cljs",
+      ".cljc",
+      ".edn"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "cpp",
+    "name": "C++",
+    "keys": [
+      "cpp",
+      "c++"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".cc",
+      ".cpp",
+      ".cxx",
+      ".c++",
+      ".pcc",
+      ".tpp",
+      ".C",
+      ".h",
+      ".hh",
+      ".hpp",
+      ".hxx",
+      ".inl",
+      ".ipp"
+    ],
+    "example_ext": ".cpp",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "csharp",
+    "name": "C#",
+    "keys": [
+      "csharp",
+      "c#"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".cs"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "dart",
+    "name": "Dart",
+    "keys": [
+      "dart"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".dart"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "comment": "'Dockerfile' is the only standard name for Dockerfiles.\nThe extension '.Dockerfile' is cited in the official documentation as\na popular extension. Whatever naming scheme is used in practice and is\nnot ambiguous is welcome here.\n",
+    "id": "dockerfile",
+    "name": "Dockerfile",
+    "keys": [
+      "dockerfile",
+      "docker"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".dockerfile",
+      ".Dockerfile",
+      "Dockerfile",
+      "dockerfile"
+    ],
+    "example_ext": ".dockerfile",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "fga",
+    "name": "Fga",
+    "keys": [
+      "fga",
+      "openfga"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".fga"
+    ],
+    "example_ext": ".fga",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "elixir",
+    "name": "Elixir",
+    "keys": [
+      "ex",
+      "elixir"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".ex",
+      ".exs"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": [
+      "is_proprietary"
+    ]
+  },
+  {
+    "id": "go",
+    "name": "Go",
+    "keys": [
+      "go",
+      "golang"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".go"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "gosu",
+    "name": "Gosu",
+    "keys": [
+      "gosu"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".gs"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": [
+      "is_proprietary"
+    ]
+  },
+  {
+    "id": "hack",
+    "name": "Hack",
+    "keys": [
+      "hack"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".hack",
+      ".hck",
+      ".hh"
+    ],
+    "example_ext": ".hack",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "hhvm"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "html",
+    "name": "HTML",
+    "keys": [
+      "html"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".htm",
+      ".html"
+    ],
+    "example_ext": ".html",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "java",
+    "name": "Java",
+    "keys": [
+      "java"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".java"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "js",
+    "name": "JavaScript",
+    "keys": [
+      "js",
+      "javascript"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".cjs",
+      ".js",
+      ".jsx",
+      ".mjs"
+    ],
+    "example_ext": ".jsx",
+    "excluded_exts": [
+      ".min.js"
+    ],
+    "reverse_exts": null,
+    "shebangs": [
+      "node",
+      "js",
+      "nodejs"
+    ],
+    "is_target_language": true,
+    "tags": [
+      "is_js"
+    ]
+  },
+  {
+    "id": "json",
+    "name": "JSON",
+    "keys": [
+      "json"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".json",
+      ".ipynb"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "jsonnet",
+    "name": "Jsonnet",
+    "keys": [
+      "jsonnet"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".jsonnet",
+      ".libsonnet"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "julia",
+    "name": "Julia",
+    "keys": [
+      "julia"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".jl"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "kotlin",
+    "name": "Kotlin",
+    "keys": [
+      "kt",
+      "kotlin"
+    ],
+    "maturity": "beta",
+    "exts": [
+      ".kt",
+      ".kts",
+      ".ktm"
+    ],
+    "example_ext": ".kt",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "lisp",
+    "name": "Lisp",
+    "keys": [
+      "lisp"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".lisp",
+      ".cl",
+      ".el"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "lua",
+    "name": "Lua",
+    "keys": [
+      "lua"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".lua"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "lua"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "comment": "Move language with SUI flavor",
+    "id": "move_on_sui",
+    "name": "Move on Sui",
+    "keys": [
+      "move_on_sui"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".move"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "comment": "Move language with Aptos flavor",
+    "id": "move_on_aptos",
+    "name": "Move on Aptos",
+    "keys": [
+      "move_on_aptos"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".move"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "ocaml",
+    "name": "OCaml",
+    "keys": [
+      "ocaml"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".ml",
+      ".mli"
+    ],
+    "example_ext": ".ml",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "ocaml",
+      "ocamlscript"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "php",
+    "name": "PHP",
+    "keys": [
+      "php"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".php",
+      ".tpl",
+      ".phtml"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "php"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "powershell",
+    "name": "Powershell",
+    "keys": [
+      "powershell"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".ps1"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "promql",
+    "name": "Prometheus Query Language",
+    "keys": [
+      "promql"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".promql"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "protobuf",
+    "name": "Protocol Buffers",
+    "keys": [
+      "proto",
+      "protobuf",
+      "proto3"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".proto"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "python2",
+    "name": "Python 2",
+    "keys": [
+      "python2"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".py",
+      ".pyi"
+    ],
+    "example_ext": ".py",
+    "excluded_exts": [],
+    "reverse_exts": [],
+    "shebangs": [
+      "python",
+      "python2"
+    ],
+    "is_target_language": true,
+    "tags": [
+      "is_python"
+    ]
+  },
+  {
+    "id": "python3",
+    "name": "Python 3",
+    "keys": [
+      "python3"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".py",
+      ".pyi"
+    ],
+    "example_ext": ".py",
+    "excluded_exts": [],
+    "reverse_exts": [],
+    "shebangs": [
+      "python",
+      "python3"
+    ],
+    "is_target_language": true,
+    "tags": [
+      "is_python"
+    ]
+  },
+  {
+    "id": "python",
+    "name": "Python",
+    "keys": [
+      "py",
+      "python"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".py",
+      ".pyi"
+    ],
+    "example_ext": ".py",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "python",
+      "python2",
+      "python3"
+    ],
+    "is_target_language": true,
+    "tags": [
+      "is_python"
+    ]
+  },
+  {
+    "id": "ql",
+    "name": "QL",
+    "keys": [
+      "ql"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".ql",
+      ".qll"
+    ],
+    "example_ext": ".ql",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "r",
+    "name": "R",
+    "keys": [
+      "r"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".r",
+      ".R"
+    ],
+    "example_ext": ".R",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "ruby",
+    "name": "Ruby",
+    "keys": [
+      "ruby"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".rb"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "ruby"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "rust",
+    "name": "Rust",
+    "keys": [
+      "rust"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".rs"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "run-cargo-script"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "scala",
+    "name": "Scala",
+    "keys": [
+      "scala"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".scala"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [
+      "scala"
+    ],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "scheme",
+    "name": "Scheme",
+    "keys": [
+      "scheme"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".scm",
+      ".ss"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "solidity",
+    "name": "Solidity",
+    "keys": [
+      "solidity",
+      "sol"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".sol"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "swift",
+    "name": "Swift",
+    "keys": [
+      "swift"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".swift"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "terraform",
+    "name": "Terraform",
+    "keys": [
+      "tf",
+      "hcl",
+      "terraform"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".tf",
+      ".hcl",
+      ".tfvars"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "ts",
+    "name": "TypeScript",
+    "keys": [
+      "ts",
+      "typescript"
+    ],
+    "maturity": "ga",
+    "exts": [
+      ".ts",
+      ".tsx"
+    ],
+    "example_ext": ".tsx",
+    "excluded_exts": [
+      ".d.ts"
+    ],
+    "reverse_exts": null,
+    "shebangs": [
+      "ts-node"
+    ],
+    "is_target_language": true,
+    "tags": [
+      "is_js"
+    ]
+  },
+  {
+    "id": "vue",
+    "name": "Vue",
+    "keys": [
+      "vue"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ".vue"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "xml",
+    "name": "XML",
+    "keys": [
+      "xml"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".xml",
+      ".plist"
+    ],
+    "example_ext": ".xml",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "id": "yaml",
+    "name": "YAML",
+    "keys": [
+      "yaml"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".yml",
+      ".yaml"
+    ],
+    "example_ext": ".yaml",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
+    "comment": "This can be used in rules as a target selector that selects\nall the files regardless of their extension or contents.\nWhen no target analyzer is specified, the spacegrep engine shall\nbe used.\n",
+    "id": "generic",
+    "name": "Generic",
+    "keys": [
+      "generic",
+      "spacegrep"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ""
+    ],
+    "example_ext": ".generic",
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": false,
+    "tags": []
+  },
+  {
+    "comment": "Alternative engine for generic files",
+    "id": "aliengrep",
+    "name": "Aliengrep",
+    "keys": [
+      "aliengrep"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ""
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": [],
+    "shebangs": [],
+    "is_target_language": false,
+    "tags": []
+  },
+  {
+    "comment": "This can be used in rules as a target selector that selects\nall the files regardless of their extension or contents.\nWhen no target analyzer is specified, the regex engine shall be used.\n",
+    "id": "regex",
+    "name": "regex",
+    "keys": [
+      "regex",
+      "none"
+    ],
+    "maturity": "develop",
+    "exts": [
+      ""
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": [],
+    "shebangs": [],
+    "is_target_language": false,
+    "tags": []
+  }
+]

@@ -34,6 +34,9 @@
    ; because of our use of Rule_options.atd)
    semgrep.configuring
 
+   ; in cli/src/semgrep/semgrep_interfaces/
+   semgrep.interfaces
+
  )
  (preprocess
    (pps
