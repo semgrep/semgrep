@@ -9,39 +9,22 @@ local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
 
 local github_bot = {
-  get_token_steps: [
-    {
-      name: 'Get JWT for semgrep-ci GitHub App',
-      id: 'jwt',
-      uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
-      env: {
-        EXPIRATION: 600,  // in seconds
-        ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
-        PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
-      },
-    },
-    // We are using the standard github-recommended method for short-live
-    // authentification.
-    // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
-    {
-      name: 'Get token for semgrep-ci GitHub App',
-      id: 'token',
-      env: {
-        SEMGREP_CI_APP_INSTALLATION_ID: '${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}',
-        JWT: '${{ steps.jwt.outputs.jwt }}',
-      },
-      run: |||
-        TOKEN="$(curl -X POST \
-        -H "Authorization: Bearer $JWT" \
-        -H "Accept: application/vnd.github.v3+json" \
-        "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
-        jq -r .token)"
-        echo "::add-mask::$TOKEN"
-        echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      |||,
-    },
-  ],
-  // Token computed in get_token_steps to be used in the caller
+  // If `repositories` is null, the token is scoped to all repos in the
+  // `semgrep` org that the app is installed on. Pass a list of repo names
+  // (e.g. ['semgrep', 'semgrep-proprietary']) to scope the token down.
+  get_token_step(repositories=null): {
+    name: 'Get token for semgrep-ci GitHub App',
+    id: 'token',
+    uses: uses.actions.create_github_app_token,
+    with: {
+      'client-id': '${{ secrets.SEMGREP_CI_CLIENT_ID }}',
+      'private-key': '${{ secrets.SEMGREP_CI_APP_KEY }}',
+      owner: 'semgrep',
+    } + (if repositories != null
+         then { repositories: std.join(', ', repositories) }
+         else {}),
+  },
+  // Token computed in get_token_step to be used in the caller
   token_ref: '${{ steps.token.outputs.token }}',
 };
 
