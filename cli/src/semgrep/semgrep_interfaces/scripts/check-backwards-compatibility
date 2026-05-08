@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# This script is used in CI to ensure that we don't introduce breaking changes to the semgrep_output_v1.atd file.
+# We need this since the backend uses the latest ATD's to validate/parse JSON from all supported client versions.
+# Adding fields as required breaks the backend when an older client doesn't send this field.
+#
+# The rough idea here is:
+#  - Fetch the minimum supported version from the semgrep.dev API
+#  - Enumerate all tags since the minimum version
+#  - For each tag we need to support:
+#    - Diff against origin/main to establish a baseline
+#    - Diff against HEAD
+#    - Diff the two diffs to see if new issues were introduced
+set -euo pipefail
+
+version_url="https://semgrep.dev/api/check-version"
+min_version=$(curl -s "$version_url" | jq -r '.versions.minimum')
+if [[ -z "$min_version" ]]; then
+    echo "Failed to obtain minimum supported version from $version_url" >&2
+    exit 1
+fi
+
+printf "Backwards compatibility summary:\n"
+minimum="v${min_version}"
+tags=$(git log --simplify-by-decoration --pretty=format:%D "${minimum}^!" origin/main | grep -o 'tag: [^,)]\+' | sed 's/^tag: //' | sort -n)
+
+checked=("dummy")
+errors=0
+for tag in $tags; do
+    commit=$(git rev-list -n 1 "$tag")
+    if [[ "${checked[*]}" =~ $commit ]]; then
+        echo "Skipping $tag because commit $commit has already been checked"
+        continue
+    fi
+    checked+=("$commit")
+
+    set +e # do our own error handling for a bit
+    echo "Checking backward compatibility of semgrep_output_v1.atd against past version $tag"
+
+    # We don't check for incompatibilities in the pysemgrep/semgrep-core
+    # interface because these two programs are always distributed together,
+    # allowing their interface to change freely.
+    #
+    # --exit-success: exit 0 even if differences are found.
+    #
+    # TODO: add '--ignore ...' so as to produce
+    # an error if we fail to update the '--types' option when adding
+    # future new type definitions. This requires atddiff > 2.15.
+    #
+    #    --ignore core_output,targets,function_call,function_return
+    #
+    atddiff_options="--exit-success --no-locations --backward --types ci_scan_complete,ci_scan_complete_response,ci_scan_failure,ci_scan_results,ci_scan_results_response,cli_output,datetime,deployment_response,diff_files,partial_scan_result,scan_config,scan_request,scan_response,tests_result"
+
+    git difftool --trust-exit-code -x "atddiff $atddiff_options" -y \
+        "$tag" "origin/main" -- semgrep_output_v1.atd >before.txt
+    # The exit code is 0 if atddiff's exit code is 0, and it's an
+    # unspecified nonzero value if atddiff's exit code is not 0 (but
+    # not the same nonzero value!)
+    ret=$?
+    if [[ "$ret" -ne 0 ]]; then
+        echo "ERROR: atddiff had an error: git difftool exit $ret"
+        cat before.txt
+        exit 1
+    fi
+    git difftool --trust-exit-code -x "atddiff $atddiff_options" -y \
+        "$tag" "HEAD" -- semgrep_output_v1.atd >after.txt
+    ret=$?
+    if [[ "$ret" -ne 0 ]]; then
+        echo "ERROR: atddiff had an error: git difftool exit $ret"
+        cat after.txt
+        exit 1
+    fi
+
+    diff -u before.txt after.txt
+    if [[ "$?" -ne 0 ]]; then
+        echo "ERROR: semgrep_output_v1.atd is not backward compatible with $tag"
+        errors=$((errors + 1))
+    fi
+    set -e
+done
+
+if [[ "$errors" -ne 0 ]]; then
+    exit 1
+fi

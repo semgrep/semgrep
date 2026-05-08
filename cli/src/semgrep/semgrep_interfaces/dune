@@ -1,0 +1,26 @@
+(library
+ (public_name semgrep.interfaces)
+ (name semgrep_interfaces)
+ (wrapped false)
+ (modules
+   Analyzer
+   Lang
+   Language
+   Rule_ID
+   Rule_schema_v2_adapter
+   Semgrep_output_v1_t
+   Semgrep_output_v1_j
+   Target_selector)
+ (libraries
+   atdgen-runtime
+   yojson
+   commons
+   paths)
+ (preprocess
+   (pps
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_deriving.ord
+     ppx_deriving_yojson
+     ppx_hash
+     ppx_sexp_conv)))

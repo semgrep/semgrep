@@ -78,10 +78,6 @@ url = https://github.com/returntocorp/semgrep-python.git
 path = languages/swift/tree-sitter/semgrep-swift
 url = https://github.com/returntocorp/semgrep-swift.git
 
-[submodule "OSS/cli/src/semgrep/semgrep_interfaces"]
-path = cli/src/semgrep/semgrep_interfaces
-url = https://github.com/returntocorp/semgrep-interfaces.git
-
 [submodule "OSS/languages/julia/tree-sitter/semgrep-julia"]
 path = languages/julia/tree-sitter/semgrep-julia
 url = https://github.com/returntocorp/semgrep-julia.git

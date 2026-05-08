@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package semgrep_studio_v1;
+
+option go_package = "semgrep_studio.v1";
+
+import "protos/semgrep_output_v1.proto";
+
+enum RuleFormat {
+  YAML = 0;
+  JSON = 1;
+  JSONNET = 2;
+}
+
+message ScanRequest {
+    // the rule raw content
+    string rule = 1;
+    // how to parse the rule content
+    RuleFormat rule_format = 2;
+
+    // list of repos to scan, e.g. ["semgrep", "semgrep-app"]
+    // Note that semgrep-server must be setup with those
+    // same repos and use the same names
+    repeated string repository_names = 3;
+}
+
+message ScanResult {
+    // same as one of the repository_names in the request
+    string repository_name = 1;
+    semgrep_output_v1.CliMatch cli_match = 2;
+}
+
+service ScanService {
+    // we provide a streaming interface here! to return results as soon as they arrive!
+    rpc Scan(ScanRequest) returns (stream ScanResult) {};
+}
