@@ -37,4 +37,5 @@
   languages
   src
   tools
+  cli
 )

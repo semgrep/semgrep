@@ -9,7 +9,7 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-exclude: "^tests|^cli/tests/default/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b|^libs/ocaml-tree-sitter-core|^libs/testo|^libs/pcre2|^cli/src/semgrep/semgrep_interfaces|languages/.*/semgrep-.*|tests/semgrep-rules"
+exclude: "^tests|^cli/tests/default/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b|^libs/ocaml-tree-sitter-core|^libs/testo|^libs/pcre2|^cli/src/semgrep/semgrep_interfaces|languages/.*/semgrep-.*|tests/semgrep-rules|^cli/src/semgrep/semgrep_interfaces"
 
 default_stages: [commit]
 
