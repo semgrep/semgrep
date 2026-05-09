@@ -242,10 +242,6 @@ class StreamingSemgrepCore:
         self._progress_bar_task_id: Optional[TaskID] = None
         self._engine_type: EngineType = engine_type
 
-        # Map from file name to contents, to be checked before the real
-        # file system when servicing requests from semgrep-core.
-        self.vfs_map: Dict[str, bytes] = {}
-
     @property
     def stdout(self) -> str:
         # stdout of semgrep-core sans "." and extra target counts
@@ -425,24 +421,6 @@ class StreamingSemgrepCore:
 
             line = line_bytes.decode("utf-8", "replace")
             stderr_lines.append(line)
-
-    def _handle_read_file(self, fname: str) -> Tuple[bytes, int]:
-        """
-        Handler for semgrep_analyze 'read_file' callback.
-        """
-        try:
-            if fname in self.vfs_map:
-                contents = self.vfs_map[fname]
-                logger.debug(f"read_file: in memory {fname}: {len(contents)} bytes")
-                return (contents, 0)
-            with open(fname, "rb") as in_file:
-                contents = in_file.read()
-                logger.debug(f"read_file: disk read {fname}: {len(contents)} bytes")
-                return (contents, 0)
-        except BaseException as e:  # noqa: B036
-            logger.debug(f"read_file: reading {fname}: exn: {e!r}")
-            exnClass = type(e).__name__
-            return (f"{fname}: {exnClass}: {e}".encode(), 1)
 
     async def _handle_process_outputs(
         self, stdout: asyncio.StreamReader, stderr: Optional[asyncio.StreamReader]
@@ -1105,17 +1083,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             if not self._respect_rule_paths:
                 cmd.append("-disable_rule_paths")
 
-            # Create a map to feed to semgrep-core as an alternative to
-            # having it actually read the files.
-            vfs_map: Dict[str, bytes] = {
-                rule_file.name: rule_file_contents.encode("UTF-8"),
-                **(
-                    {target_file.name: target_file_contents.encode("UTF-8")}
-                    if not target_mode_config.is_historical_scan
-                    else {}
-                ),
-            }
-
             if self._optimizations != "none":
                 cmd.append("-fast")
 
@@ -1220,7 +1187,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 engine_type=engine,
                 capture_stderr=self._capture_stderr,
             )
-            runner.vfs_map = vfs_map
             returncode = runner.execute()
             # Process output
             output_json = self._extract_core_output(
