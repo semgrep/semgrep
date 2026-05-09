@@ -47,12 +47,16 @@ Prerequisites:
 - **gcc/clang** and standard C toolchain
 - **git**, **make**, **bash**
 
-Run ONLY ONCE or when dependencies change. Strange build errors can often be resolved by running these commands again:
+**IMPORTANT**: Run every one of these commands ONCE when initially setting up the
+repository. Do not skip any.
 ```bash
 make setup                      # Installs OCaml dependencies and builds tree-sitter runtime
 pre-commit install              # Sets up the pre-commit hooks
 make all                        # Build OCaml core + Python CLI (includes uv sync)
 ```
+
+`make setup` must be re-run when dependencies change. It often resolves strange
+build errors.
 
 ## Repository Etiquette
 
