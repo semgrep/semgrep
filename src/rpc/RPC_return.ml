@@ -80,9 +80,9 @@ let sarif_format (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
 let contributions () : Out.contributions =
   Parse_contribution.get_contributions ()
 
-let validate (path : Out.fpath) : Out.core_error option =
+let validate ~par_conf ~num_jobs (path : Out.fpath) : Out.core_error option =
   try
-    let res = Parse_rule.parse path in
+    let res = Parse_rule.parse ~par_conf ~num_jobs path in
     let valid =
       match res with
       | Ok _ -> None

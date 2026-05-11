@@ -444,11 +444,15 @@ let filter_rules_by_targets_analyzers rules targets =
 (* for -rules *)
 let rules_of_config (config : Core_scan_config.t) : Rule_error.rules_and_invalid
     =
+  let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
   let rules, invalid_rules =
     match config.rule_source with
     | Core_scan_config.Rule_file file -> (
         Logs.info (fun m -> m "Parsing rules in %s" !!file);
-        match Parse_rule.parse_and_filter_invalid_rules file with
+        match
+          Parse_rule.parse_and_filter_invalid_rules ~par_conf:config.par_conf
+            ~num_jobs file
+        with
         | Ok rules -> rules
         | Error e ->
             failwith ("Error in parsing: " ^ Rule_error.string_of_error e))
