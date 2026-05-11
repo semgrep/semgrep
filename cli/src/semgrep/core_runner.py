@@ -1021,8 +1021,20 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             ]
 
             # adding rules option
+            # Compact JSON on the hot path; pretty-printed only when the
+            # caller has opted into --matching-explanations, which exposes
+            # `loc` blocks pointing into this file. Pretty-printing keeps
+            # the reported line/col numbers human-meaningful (and snapshot
+            # tests stable).
+            # TODO: sort object key order on the OCaml side so we can drop
+            # sort_keys here. (See core_output.py where match.extra.metadata,
+            # emitted by semgrep-core in input order, replaces inner dicts
+            # via dict.update.)
             rule_file_contents = json.dumps(
-                {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
+                {"rules": [rule._raw for rule in rules]},
+                sort_keys=True,
+                indent=2 if matching_explanations else None,
+                separators=None if matching_explanations else (",", ":"),
             )
             rule_file.write(rule_file_contents)
             rule_file.flush()
