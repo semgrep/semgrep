@@ -59,6 +59,7 @@
     },
     "semgrep": {
       "claude-taskmaster": "e1257e01e0b87b9eaad37f8b83ff3d66abe14e9f",
+      "github-api-commit-action": "455b1aaa1455b8c1d7ef123c4cb918a1a4709a5d",
       "setup-ocaml": "a739c5405d73c42ef15a9dc995efc0f87396cc36"
     },
     "slackapi": {
