@@ -71,7 +71,9 @@ let handle_call (conf : config) (call : Out.function_call) :
       let str = RPC_return.format output_format ctx cli_output in
       Ok (`RetFormatter str)
   | `CallValidate path ->
-      let valid = RPC_return.validate path in
+      let valid =
+        RPC_return.validate ~par_conf:conf.par_conf ~num_jobs:conf.num_jobs path
+      in
       Ok (`RetValidate valid)
   | `CallResolveDependencies params -> (
       match !RPC_return.hook_resolve_dependencies with

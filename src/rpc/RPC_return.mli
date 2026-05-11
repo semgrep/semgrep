@@ -24,7 +24,12 @@ val sarif_format :
   string
 
 val contributions : unit -> Out.contributions
-val validate : Out.fpath -> Out.core_error option
+
+val validate :
+  par_conf:Parallelism_config.t ->
+  num_jobs:int ->
+  Out.fpath ->
+  Out.core_error option
 
 (* TODO: switch all those option ref to Hook.t *)
 val hook_resolve_dependencies :

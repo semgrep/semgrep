@@ -1230,8 +1230,50 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
       dependency_formula = dep_formula_opt;
     }
 
-let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
-    (file : Fpath.t) (ast : AST_generic.program) :
+(* Below this many rules, the overhead of spawning
+   domains for parallel validation outweighs the benefit.
+ *)
+let min_rules_for_parallel_validation = 128
+
+let parse_one_rule_with_recovery ~error_recovery ?rewrite_rule_ids (i : int)
+    (rule : G.expr) :
+    ((Rule.t, Rule_error.invalid_rule) Either.t, Rule_error.t) result =
+  match parse_one_rule ~rewrite_rule_ids i rule with
+  | Ok rule -> Ok (Either.Left rule)
+  | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
+    when error_recovery || Rule_error.is_skippable_error kind ->
+      let s = Rule_error.string_of_invalid_rule_kind kind in
+      Log.warn (fun m ->
+          m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
+      Ok (Either.Right err)
+  | Error err -> Error err
+
+let parse_rules ?par_conf ?num_jobs ~error_recovery ?rewrite_rule_ids
+    (rules : G.expr list) :
+    ((Rule.t, Rule_error.invalid_rule) Either.t list, Rule_error.t) result =
+  let parse_one i rule =
+    parse_one_rule_with_recovery ~error_recovery ?rewrite_rule_ids i rule
+  in
+  let results =
+    match (par_conf, num_jobs) with
+    | Some (Parallelism_config.Eio_executor conf), Some n
+      when n > 1
+           && List.compare_length_with rules min_rules_for_parallel_validation
+              >= 0 ->
+        Log.debug (fun m -> m "Validating rules across %d domains" n);
+        rules
+        |> List.mapi (fun i rule -> (i, rule))
+        |> Concurrent.map ~conf ~domain_count:n (fun (i, rule) ->
+            parse_one i rule)
+        |> List.map (function
+          | Ok inner -> inner
+          | Error ((_i, _rule), exn) -> Exception.catch_and_reraise exn)
+    | _ -> List.mapi parse_one rules
+  in
+  Base.Result.all results
+
+let parse_generic_ast ?(error_recovery = false) ?par_conf ?num_jobs
+    ?rewrite_rule_ids (file : Fpath.t) (ast : AST_generic.program) :
     (Rule_error.rules_and_invalid, Rule_error.t) result =
   let res =
     let/ rules =
@@ -1274,18 +1316,7 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
       (* yaml_to_generic should always return a ExprStmt *)
     in
     let/ xs =
-      rules
-      |> List.mapi (fun i rule ->
-          match parse_one_rule ~rewrite_rule_ids i rule with
-          | Ok rule -> Ok (Either.Left rule)
-          | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
-            when error_recovery || Rule_error.is_skippable_error kind ->
-              let s = Rule_error.string_of_invalid_rule_kind kind in
-              Log.warn (fun m ->
-                  m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
-              Ok (Either.Right err)
-          | Error err -> Error err)
-      |> Base.Result.all
+      parse_rules ?par_conf ?num_jobs ~error_recovery ?rewrite_rule_ids rules
     in
     Ok (Either_.partition (fun x -> x) xs)
   in
@@ -1320,7 +1351,7 @@ let parse_yaml_rule_file ~is_target (file : Fpath.t) =
       Error (Rule_error.mk_error (InvalidYaml (s, t)))
 [@@trace]
 
-let parse_file ?error_recovery ?rewrite_rule_ids file :
+let parse_file ?error_recovery ?par_conf ?num_jobs ?rewrite_rule_ids file :
     (Rule.rules * Rule_error.invalid_rule list, Rule_error.t) result =
   let/ ast =
     (* coupling: Rule_file.is_valid_rule_filename *)
@@ -1376,16 +1407,20 @@ let parse_file ?error_recovery ?rewrite_rule_ids file :
               !!file);
         parse_yaml_rule_file ~is_target:true file
   in
-  parse_generic_ast ?error_recovery ?rewrite_rule_ids file ast
+  parse_generic_ast ?error_recovery ?par_conf ?num_jobs ?rewrite_rule_ids file
+    ast
 [@@trace]
 
 (*****************************************************************************)
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) :
+let parse_and_filter_invalid_rules ?par_conf ?num_jobs ?rewrite_rule_ids
+    (file : Fpath.t) :
     (Rule.rules * Rule_error.invalid_rule list, Rule_error.t) result =
-  let/ rules, errors = parse_file ~error_recovery:true ?rewrite_rule_ids file in
+  let/ rules, errors =
+    parse_file ~error_recovery:true ?par_conf ?num_jobs ?rewrite_rule_ids file
+  in
   Log.debug (fun m ->
       m "Parse_rule.parse_and_filter_invalid_rules(%s) = " !!file);
   rules |> List.iter (fun r -> Log.debug (fun m -> m "%s" (Rule.show r)));
@@ -1413,8 +1448,11 @@ let parse_fake_xpattern analyzer str =
 (* Useful for tests *)
 (*****************************************************************************)
 
-let parse (file : Fpath.t) : (Rule.rules, Rule_error.t) result =
-  let/ xs, _skipped = parse_file ~error_recovery:false file in
+let parse ?par_conf ?num_jobs (file : Fpath.t) :
+    (Rule.rules, Rule_error.t) result =
+  let/ xs, _skipped =
+    parse_file ~error_recovery:false ?par_conf ?num_jobs file
+  in
   (* The skipped rules include Apex rules and other rules that are always
      skippable. *)
   Ok xs
