@@ -37,6 +37,12 @@ val generate_prefilter :
     type could be a subtype of [Foo] (but only when interfile naming is used).
     *)
 
+val make_generate_prefilter :
+  interfile:bool -> unit -> Rule.t -> Predicate.t Formula.t option
+(** [make_generate_prefilter ~interfile ()] builds a memoized version of
+    [generate_prefilter]: call it once per scan and reuse the returned
+    function across all rules so the cache actually persists. *)
+
 val generate_prefilter_from_formula :
   interfile:bool ->
   analyzer:Analyzer.t ->

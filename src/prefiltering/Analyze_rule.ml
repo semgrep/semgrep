@@ -357,8 +357,10 @@ let generate_prefilter_internal ~interfile
 (* Entry points *)
 (*****************************************************************************)
 
-(* Memoized prefilter generation *)
-let generate_prefilter ~interfile =
+let generate_prefilter ~interfile rule =
+  generate_prefilter_internal ~interfile rule
+
+let make_generate_prefilter ~interfile () : Rule.t -> prefilter option =
   let key_fn = fun ({ id = key, _; _ } : Rule.t) -> key in
   SharedMemo.make_with_key_fn key_fn (generate_prefilter_internal ~interfile)
 
