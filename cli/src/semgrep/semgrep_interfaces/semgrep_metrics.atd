@@ -283,7 +283,7 @@ type mcp = {
     ?deployment_name <ocaml mutable>: string option;
     ?session_id <ocaml mutable>: string option;
     ?num_skipped_rules <ocaml mutable>: int option;
-    ?rules <ocaml mutable>: string list option;
+    ?rules <ocaml mutable>: string list option; (* DEPRECATED *)
     ?num_scanned_files <ocaml mutable>: int option;
     ?num_findings <ocaml mutable>: int option;
     ?findings <ocaml mutable>: (string (* rule_id *) * finding) list <json repr="object"> option;

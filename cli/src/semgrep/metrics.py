@@ -584,7 +584,6 @@ class Metrics:
             self.payload.performance.totalBytesScanned = total_bytes_scanned
             self.payload.performance.numRules = len(rules)
             self.payload.mcp.num_skipped_rules = len(results.skipped_rules)
-            self.payload.mcp.rules = rules
             self.payload.mcp.num_scanned_files = len(results.paths["scanned"])
             self.payload.mcp.num_findings = len(results.results)
             self.payload.mcp.findings = self.cli_matches_to_findings(results.results)
