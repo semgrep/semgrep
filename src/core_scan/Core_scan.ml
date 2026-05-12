@@ -445,17 +445,51 @@ let filter_rules_by_targets_analyzers rules targets =
 let rules_of_config (config : Core_scan_config.t) : Rule_error.rules_and_invalid
     =
   let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
+  let parse_rule_file ?par_conf ?num_jobs file =
+    Logs.info (fun m -> m "Parsing rules in %s" !!file);
+    match
+      Parse_rule.parse_and_filter_invalid_rules ?par_conf ?num_jobs file
+    with
+    | Ok rules -> rules
+    | Error e -> failwith ("Error in parsing: " ^ Rule_error.string_of_error e)
+  in
+  let parse_rule_files files =
+    let combine rules_and_invalids =
+      let rules, invalid_rules = List_.split rules_and_invalids in
+      (List_.flatten rules, List_.flatten invalid_rules)
+    in
+    let file_count = List.length files in
+    match config.par_conf with
+    | Parallelism_config.Eio_executor conf when num_jobs > 1 && file_count > 1
+      ->
+        Logs.debug (fun m ->
+            m "Parsing %d rule files across %d domains" file_count num_jobs);
+        let indexed_files = List.mapi (fun i file -> (i, file)) files in
+        let parse_one_with_exn (_i, file) =
+          Exception.catch_all (fun () -> parse_rule_file file)
+        in
+        let unwrap_exn = function
+          | Ok res -> res
+          | Error exn -> Exception.reraise exn
+        in
+        indexed_files
+        |> Concurrent.map ~conf ~domain_count:num_jobs parse_one_with_exn
+        |> List.map (function
+          | Ok res -> unwrap_exn res
+          | Error ((_i, _file), exn) -> Exception.catch_and_reraise exn)
+        |> combine
+    | _ ->
+        (* Single-file path: forward [par_conf]/[num_jobs] so the per-rule
+           validation step inside [Parse_rule] can parallelize when the
+           file is large enough. *)
+        files
+        |> List.map (fun file ->
+            parse_rule_file ~par_conf:config.par_conf ~num_jobs file)
+        |> combine
+  in
   let rules, invalid_rules =
     match config.rule_source with
-    | Core_scan_config.Rule_file file -> (
-        Logs.info (fun m -> m "Parsing rules in %s" !!file);
-        match
-          Parse_rule.parse_and_filter_invalid_rules ~par_conf:config.par_conf
-            ~num_jobs file
-        with
-        | Ok rules -> rules
-        | Error e ->
-            failwith ("Error in parsing: " ^ Rule_error.string_of_error e))
+    | Core_scan_config.Rule_files files -> parse_rule_files files
     | Core_scan_config.Rules rules -> (rules, [])
   in
   (rules, invalid_rules)

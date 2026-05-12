@@ -21,12 +21,16 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime
+from itertools import accumulate
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Coroutine
 from typing import Dict
+from typing import IO
+from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -78,6 +82,29 @@ from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+# Sharding pays an extra fixed cost when core has only one worker, so keep
+# small scans and runs without explicit --jobs on the historical single-file
+# path.
+RULE_FILE_SHARD_MIN_RULES = 128
+
+
+def _shard_count(rules: int, jobs: Optional[int]) -> int:
+    if rules < RULE_FILE_SHARD_MIN_RULES:
+        return 1
+    if jobs is None or jobs <= 1:
+        return 1
+    return min(rules, jobs)
+
+
+def _shard_rules(rules: Sequence[Rule], shard_count: int) -> Iterable[Sequence[Rule]]:
+    base_size, remainder = divmod(len(rules), shard_count)
+    shard_sizes = [
+        base_size + (1 if shard_index < remainder else 0)
+        for shard_index in range(shard_count)
+    ]
+    offsets = [0, *accumulate(shard_sizes)]
+    return [rules[start:end] for start, end in pairwise(offsets)]
 
 
 # Size in bytes of the input buffer for reading analysis outputs.
@@ -964,18 +991,21 @@ class CoreRunner:
 
         parsing_data: ParsingData = ParsingData()
 
-        # Create an exit stack context manager to properly handle closing
-        # either the temp files for an actual run or else the dump files for
-        # a future direct run of semgrep-core. This method of file management
-        # is OS-agnostic and should be portable across POSIX and Windows
-        # systems. It also ensures that NamedTemporaryFile objects will delete
-        # their corresponding temp files after closing streams to them.
         exit_stack = contextlib.ExitStack()
-        rule_file = exit_stack.enter_context(
-            (state.env.user_data_folder / "semgrep_rules.json").open("w+")
-            if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w+", suffix=".json")
-        )
+
+        # Rule sharding
+        def f_for_shard(shard: int) -> IO[str]:
+            f: IO[str]
+            if dump_command_for_core:
+                fn = f"semgrep_rules_{shard}.json"
+                f = (state.env.user_data_folder / fn).open("w")
+            else:
+                f = tempfile.NamedTemporaryFile("w+", suffix=".json", encoding="utf-8")
+            return exit_stack.enter_context(f)
+
+        num_shards = _shard_count(len(rules), self._jobs)
+        rule_files = [f_for_shard(i) for i in range(num_shards)]
+
         # A historical scan does not create a targeting file since targeting is
         # performed directly by core.
         if not target_mode_config.is_historical_scan:
@@ -1020,25 +1050,31 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 "-json",
             ]
 
+            def dumps(rules: Iterable[Rule]) -> str:
+                # Compact JSON on the hot path; pretty-printed only when the
+                # caller has opted into --matching-explanations, which exposes
+                # `loc` blocks pointing into this file. Pretty-printing keeps
+                # the reported line/col numbers human-meaningful (and snapshot
+                # tests stable).
+                return json.dumps(
+                    {"rules": [rule._raw for rule in rules]},
+                    # TODO: sort object key order on the OCaml side so we can
+                    # drop sort_keys here. (See core_output.py where
+                    # match.extra.metadata, emitted by semgrep-core in input
+                    # order, replaces inner dicts via dict.update.)
+                    sort_keys=True,
+                    indent=2 if matching_explanations else None,
+                    separators=None if matching_explanations else (",", ":"),
+                )
+
             # adding rules option
-            # Compact JSON on the hot path; pretty-printed only when the
-            # caller has opted into --matching-explanations, which exposes
-            # `loc` blocks pointing into this file. Pretty-printing keeps
-            # the reported line/col numbers human-meaningful (and snapshot
-            # tests stable).
-            # TODO: sort object key order on the OCaml side so we can drop
-            # sort_keys here. (See core_output.py where match.extra.metadata,
-            # emitted by semgrep-core in input order, replaces inner dicts
-            # via dict.update.)
-            rule_file_contents = json.dumps(
-                {"rules": [rule._raw for rule in rules]},
-                sort_keys=True,
-                indent=2 if matching_explanations else None,
-                separators=None if matching_explanations else (",", ":"),
-            )
-            rule_file.write(rule_file_contents)
-            rule_file.flush()
-            cmd.extend(["-rules", rule_file.name])
+
+            logger.debug(f"Passing rules to semgrep-core in {num_shards} shards")
+            for file, rule_shard in zip(rule_files, _shard_rules(rules, num_shards)):
+                blob = dumps(rule_shard)
+                file.write(blob)
+                file.flush()
+                cmd.extend(["-rules", file.name])
 
             # Turn on simple profiling. See Profiling.ml and simple_profiling.py
             if enabled_simple_profiling:
@@ -1410,6 +1446,8 @@ Exception raised: `{e}`
                 rule_file.name,
                 *configs,
             ]
+            if self._jobs is not None:
+                cmd.extend(["-j", str(self._jobs)])
 
             # only scanning combined rules. Only 1 target, but total is 3 to account for
             # Pro Engine

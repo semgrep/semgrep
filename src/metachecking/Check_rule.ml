@@ -277,7 +277,7 @@ let semgrep_check (metachecks : Fpath.t) (rules : Fpath.t list) :
   let (config : Core_scan_config.t) =
     {
       Core_scan_config.default with
-      rule_source = Rule_file metachecks;
+      rule_source = Rule_files [ metachecks ];
       target_source = Targets targets;
       (* we're used from pysemgrep --validate *)
       output_format = Json true;

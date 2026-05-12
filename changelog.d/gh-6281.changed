@@ -1,0 +1,1 @@
+Rule parsing now runs in parallel across shards on multi-core machines, reducing scan startup time on large rulesets.
