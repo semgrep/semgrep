@@ -23,18 +23,24 @@ type output_format =
 [@@deriving show]
 
 (*
-   'Rule_file' is for the semgrep-core CLI.
+   'Rule_files' is for the semgrep-core CLI. A single rule file is represented
+   as a singleton list; pysemgrep may pass multiple generated shards so core can
+   parse them in parallel.
    'Rules' is for osemgrep or when for some reason the rules had to be
     preparsed.
 *)
-type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
+type rule_source = Rule_files of Fpath.t list | Rules of Rule.t list
 
 (* old: was [@@deriving show] but when using --config p/default
  * the logs were getting too big
  *)
 let pp_rule_source (fmt : Format.formatter) (x : rule_source) : unit =
   match x with
-  | Rule_file x -> Format.fprintf fmt "Rule_file (%a)" Fpath.pp x
+  | Rule_files xs ->
+      let pp_sep fmt () = Format.fprintf fmt ";@ " in
+      Format.fprintf fmt "Rule_files (%a)"
+        (Format.pp_print_list ~pp_sep Fpath.pp)
+        xs
   | Rules xs ->
       (* TODO: we should use Scan_CLI max_log_list_entries
        * and Output.too_much_data, but hard to pass that in

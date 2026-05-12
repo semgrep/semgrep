@@ -58,7 +58,7 @@ let sarif_format (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
   let fake_config =
     {
       Core_scan_config.default with
-      rule_source = Core_scan_config.Rule_file rules;
+      rule_source = Core_scan_config.Rule_files [ rules ];
     }
   in
   let rules, invalid_rules = Core_scan.rules_of_config fake_config in

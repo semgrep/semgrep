@@ -60,7 +60,15 @@ let trace_endpoint = ref None
 (* ------------------------------------------------------------------------- *)
 
 (* -rules *)
-let rule_source = ref None
+let rule_source : Core_scan_config.rule_source option ref = ref None
+
+let add_rule_file file =
+  match !rule_source with
+  | None -> rule_source := Some (Core_scan_config.Rule_files [ file ])
+  | Some (Core_scan_config.Rule_files files) ->
+      rule_source := Some (Core_scan_config.Rule_files (files @ [ file ]))
+  | Some (Core_scan_config.Rules _) ->
+      failwith "internal error: cannot combine preparsed rules with rule files"
 
 (* -targets (takes the list of files in a file given by pysemgrep) *)
 let target_file : Fpath.t option ref = ref None
@@ -477,7 +485,7 @@ let reset_options () =
 let options (actions : unit -> Arg_.cmdline_actions) =
   [
     ( "-rules",
-      Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
+      Arg.String (fun s -> add_rule_file (Fpath.v s)),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-targets",
       Arg.String (fun s -> target_file := Some (Fpath.v s)),
