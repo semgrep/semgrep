@@ -122,6 +122,29 @@ let test_iter () =
   SharedMemo.iter (fun k _ -> if f k = k * 10 then incr reentrant_hits) cache;
   Alcotest.(check int) __LOC__ 3 !reentrant_hits
 
+let test_should_cache_predicate () =
+  (* [?should_cache] lets callers decline to cache specific values. With
+     [Result.is_ok] on a result-returning function, [Error] values are returned
+     to the caller but not inserted into [cache], so repeated calls re-run [f].
+     [Ok] values cache as usual. *)
+  let cache = SharedMemo.create () in
+  let calls = ref 0 in
+  let f k =
+    incr calls;
+    if k mod 2 = 0 then Ok (k + 1) else Error (Printf.sprintf "odd:%d" k)
+  in
+  let memo k =
+    SharedMemo.make_with_state ~should_cache:Result.is_ok cache f k
+  in
+  (* Ok values are cached. *)
+  Alcotest.(check bool) __LOC__ true (memo 2 = Ok 3);
+  Alcotest.(check bool) __LOC__ true (memo 2 = Ok 3);
+  Alcotest.(check int) __LOC__ 1 !calls;
+  (* Error values are NOT cached: each call re-runs f. *)
+  Alcotest.(check bool) __LOC__ true (memo 3 = Error "odd:3");
+  Alcotest.(check bool) __LOC__ true (memo 3 = Error "odd:3");
+  Alcotest.(check int) __LOC__ 3 !calls
+
 let tests =
   Testo.categorize "SharedMemo"
     [
@@ -130,4 +153,5 @@ let tests =
       t "test_key_fn" test_key_fn;
       t "test_remove" test_remove;
       t "test_iter" test_iter;
+      t "test_should_cache_predicate" test_should_cache_predicate;
     ]

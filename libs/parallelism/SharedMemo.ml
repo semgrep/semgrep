@@ -55,7 +55,12 @@ let iter f t =
 (* API *)
 (*****************************************************************************)
 
-let call_and_remember t key_fn f k =
+let call_and_remember ?(should_cache = Fun.const true) t key_fn f k =
+  (* [should_cache v] decides whether [v] is inserted into [ht]. The default
+   * [fun _ -> true] reproduces unconditional caching. Passing a predicate
+   * lets specialized entry points (e.g. [make_result_with_state]) skip
+   * caching for values that embed caller-specific state, such as [Error]s
+   * carrying source locations. *)
   let k' = key_fn k in
   (* Assumption: [k] will more often than not be a cache hit.  As a result,
    * in the unlikely event of a cache miss, we pay the cost of unlocking and
@@ -64,30 +69,36 @@ let call_and_remember t key_fn f k =
   | Some v -> v
   | None ->
       (* Note: f could well be an expensive computation, so do not starve
-         other accesses to the hashtable while we call it by holding the mutex.
+       other accesses to the hashtable while we call it by holding the mutex.
 
-         This does leave open the possibility that two threads will race on
-         computation on the same key: whoever gets there first will not be
-         overridden by the straggler.  Since f has to be deterministic, this
-         is fine (and while unfortunate, still preferable to holding the lock
-         through the computation.
-       *)
+       This does leave open the possibility that two threads will race on
+       computation on the same key: whoever gets there first will not be
+       overridden by the straggler.  Since f has to be deterministic, this
+       is fine (and while unfortunate, still preferable to holding the lock
+       through the computation.
+     *)
       let v = f k in
-      Mutex.protect t.mtx (fun () ->
-          match Hashtbl.find_opt t.ht k' with
-          (* Someone beat us to the insert! So it goes; discard our copy. *)
-          | Some v' -> v'
-          | None ->
-              Hashtbl.add t.ht k' v;
-              v)
+      if not (should_cache v) then v
+      else
+        Mutex.protect t.mtx (fun () ->
+            match Hashtbl.find_opt t.ht k' with
+            (* Someone beat us to the insert! So it goes; discard our copy. *)
+            | Some v' -> v'
+            | None ->
+                Hashtbl.add t.ht k' v;
+                v)
 
-let make_with_state t =
+let make_with_state ?should_cache t =
   let key_fn = Fun.id in
-  call_and_remember t key_fn
+  call_and_remember ?should_cache t key_fn
 
-let make_with_key_fn key_fn =
+let make_with_key_fn ?should_cache key_fn =
   let t = create () in
-  call_and_remember t key_fn
+  call_and_remember ?should_cache t key_fn
+
+let make_with_state_legacy mtx ht =
+  let key_fn = Fun.id in
+  call_and_remember { mtx; ht } key_fn
 
 (* eta-expand just enough to make the binding a lambda; the returned
    function (e.g. the rhs of `let memo_fn = make fn`) holds onto the `.t`, but
@@ -103,8 +114,4 @@ let make_with_key_fn key_fn =
    is shared across _all_ memos!  (Luckily, the value restriction, combined
    with the explicit signature in the interface, causes this to not compile.)
 *)
-let make f = make_with_key_fn Fun.id f
-
-let make_with_state_legacy mtx ht =
-  let key_fn = Fun.id in
-  call_and_remember { mtx; ht } key_fn
+let make ?should_cache f = make_with_key_fn ?should_cache Fun.id f

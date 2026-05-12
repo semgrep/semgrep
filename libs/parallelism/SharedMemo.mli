@@ -46,11 +46,7 @@ val iter : ('k -> 'v -> unit) -> ('k, 'v) t -> unit
 
     Memory use is O(n) in the cache size at call time. *)
 
-val make : ('a -> 'b) -> 'a -> 'b
-(** Memoizes calls to the supplied function, such that reentrant calls across
-   domains is safe.*)
-
-val make_with_state : ('a, 'b) t -> ('a -> 'b) -> 'a -> 'b
+val make : ?should_cache:('b -> bool) -> ('a -> 'b) -> 'a -> 'b
 (** Memoizes the given function for concurrent access, storing results in
     the supplied [t].  Use this when the cache needs to be reachable
     outside [make]'s scope (e.g. to call [remove] from a cleanup hook).
@@ -63,7 +59,17 @@ val make_with_state : ('a, 'b) t -> ('a -> 'b) -> 'a -> 'b
     results.  The type system cannot rule this out because two functions
     with the same ['a -> 'b] signature unify onto the same [t]. *)
 
-val make_with_key_fn : ('a -> 'k) -> ('a -> 'b) -> 'a -> 'b
+val make_with_state :
+  ?should_cache:('b -> bool) -> ('a, 'b) t -> ('a -> 'b) -> 'a -> 'b
+(** Memoizes the given function for concurrent access, given a mutex and
+    hashtable.  (This is useful when the hashtable needs to be explicitly
+    exposed outside [make]'s scope, e.g.
+    [UTmp.register_temp_file_cleanup_hook].)
+
+    See [make] for the meaning of [?should_cache]. *)
+
+val make_with_key_fn :
+  ?should_cache:('b -> bool) -> ('a -> 'k) -> ('a -> 'b) -> 'a -> 'b
 (** Memoizes calls to the supplied function, such that reentrant calls across
    domains is safe.  The [key_fn] argument transforms the input argument for
    the memoizer.
