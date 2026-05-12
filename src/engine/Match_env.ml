@@ -39,8 +39,8 @@ type prefilter_policy =
   | NoPrefiltering
 
 let make_prefilter () =
-  let with_interfile = Prefiltering.File.of_rule ~interfile:true in
-  let without_interfile = Prefiltering.File.of_rule ~interfile:false in
+  let with_interfile = Prefiltering.File.make_of_rule ~interfile:true () in
+  let without_interfile = Prefiltering.File.make_of_rule ~interfile:false () in
   CachedPrefilter
     (fun ~interfile r ->
       if interfile then with_interfile r else without_interfile r)

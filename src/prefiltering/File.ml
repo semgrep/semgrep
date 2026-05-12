@@ -25,6 +25,9 @@ let of_rule ?(interfile = false) (rule : Rule.t) : t option =
   (* Use analysis logic from Analyze_rule - no conversion needed since Predicate.t = Predicate.t *)
   Analyze_rule.generate_prefilter ~interfile rule
 
+let make_of_rule ~interfile () : Rule.t -> t option =
+  Analyze_rule.make_generate_prefilter ~interfile ()
+
 let check (prefilter : t) (content : string) : bool =
   Formula.eval (fun pred -> Predicate.eval pred content) prefilter
 
