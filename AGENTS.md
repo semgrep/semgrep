@@ -107,6 +107,9 @@ For Python CLI changes (`cli/`):
 1. Changes take effect immediately if using `cd cli && uv run`
 2. `make -C cli test` - Run Python tests
 
+For all changes:
+1. `pre-commit run --files /path/to/changed/files` - Run formatters and other pre-commit checks
+
 ### Development Tools
 This project uses **make** for build orchestration. **IMPORTANT: Never invoke `dune` directly for building or testing** — always use the Makefile targets above. The Makefiles handle path resolution for the monorepo layout. Direct `dune` usage is only appropriate for documentation generation:
 
