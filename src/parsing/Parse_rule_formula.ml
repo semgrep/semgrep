@@ -156,29 +156,63 @@ and unwrap_type_expr env key lang expr =
 
 (* less: could move in a separate Parse_xpattern.ml *)
 (* NOTE: I don't think this can raise any more *)
+
+(* Process-lifetime cache of parsed xpattern payloads, keyed by the
+   pattern string, target analyzer, and rule options, the three inputs
+   that determine how a pattern is parsed. Registry-scale rulesets reuse
+   pattern strings heavily across rules (~91% duplicate rate on the
+   default ruleset, per #6122), so caching collapses redundant parser
+   invocations into a single compute.
+
+   The cache stores the [xpattern_kind] payload, not the full [XP.t]:
+   [XP.t] embeds a unique [pid] (from gensym) and the caller's source
+   [tok], so each caller re-wraps via [XP.mk_xpat] to produce its own.
+
+   Thread-safety via [SharedMemo]. Rule parsing is parallel in the
+   primary scan path today, and this function is exposed via
+   [Parse_rule.parse_xpattern] and reached from concurrent contexts
+   (LSP sessions, test parallelism).
+*)
+let xpattern_payload_cache = SharedMemo.create ()
+
 let parse_rule_xpattern env (str, tok) =
-  match env.target_analyzer with
-  | Analyzer.L (lang, _) ->
-      let+ pat =
-        (* we need to raise the right error *)
-        try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-            parse_pattern_with_rule_error env (str, tok)
-              ?rule_options:env.options lang str)
-      in
-      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
-  | Analyzer.LRegex ->
-      let+ re = parse_regexp env (str, tok) in
-      XP.mk_xpat (XP.Regexp re) (str, tok)
-  | Analyzer.LSpacegrep -> (
-      let src = Spacegrep.Src_file.of_string str in
-      match Spacegrep.Parse_pattern.of_src src with
-      | Ok ast -> Ok (XP.mk_xpat (XP.Spacegrep ast) (str, tok))
-      (* TODO: use R.Err exn instead? *)
-      | Error err -> failwith err.msg)
-  | Analyzer.LAliengrep ->
-      let+ conf = aliengrep_conf_of_options env in
-      let pat = Aliengrep.Pat_compile.from_string conf str in
-      XP.mk_xpat (XP.Aliengrep pat) (str, tok)
+  (* [env] and [tok] close over the current caller's context and are
+     used only to construct per-caller errors on miss. [str],
+     [analyzer], and [options] come from the SharedMemo key — the
+     cached payload is a pure function of that tuple. *)
+  let compute (str, analyzer, options) :
+      (Xpattern.xpattern_kind, Rule_error.t) result =
+    match analyzer with
+    | Analyzer.L (lang, _) ->
+        let+ pat =
+          (* we need to raise the right error *)
+          try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
+              parse_pattern_with_rule_error env (str, tok) ?rule_options:options
+                lang str)
+        in
+        XP.Sem (pat, lang)
+    | Analyzer.LRegex ->
+        let+ re = parse_regexp env (str, tok) in
+        XP.Regexp re
+    | Analyzer.LSpacegrep -> (
+        let src = Spacegrep.Src_file.of_string str in
+        match Spacegrep.Parse_pattern.of_src src with
+        | Ok ast -> Ok (XP.Spacegrep ast)
+        (* TODO: use R.Err exn instead? *)
+        | Error err -> failwith err.msg)
+    | Analyzer.LAliengrep ->
+        let+ conf = aliengrep_conf_of_options env in
+        let pat = Aliengrep.Pat_compile.from_string conf str in
+        XP.Aliengrep pat
+  in
+  (* [Error] values are not cached because they embed caller-specific
+   state ([env.id], [env.path], [tok]) which would be stale if returned from
+   the cache to a different caller.
+   *)
+  SharedMemo.make_with_state ~should_cache:Result.is_ok xpattern_payload_cache
+    compute
+    (str, env.target_analyzer, env.options)
+  |> Result.map (fun kind -> XP.mk_xpat kind (str, tok))
 
 (* TODO: note that the [pattern] string and token location [t] given to us
  * by the YAML parser do not correspond exactly to the content
