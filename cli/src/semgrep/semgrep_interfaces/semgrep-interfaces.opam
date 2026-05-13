@@ -7,7 +7,7 @@ homepage: "n/a"
 bug-reports: "n/a"
 synopsis: "Interfaces for Semgrep"
 dev-repo: "git+https://github.com/semgrep/semgrep-interfaces.git"
-license: "LGPL-2.1-only"
+license: "LGPL-2.1-only WITH OCaml-LGPL-linking-exception"
 
 build: []
 install: []
