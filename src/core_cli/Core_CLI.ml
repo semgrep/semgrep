@@ -275,11 +275,6 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
 (* Config *)
 (*****************************************************************************)
 
-(* Coupling: these need to be kept in sync with tracing.py *)
-let default_trace_endpoint = Uri.of_string "https://telemetry.semgrep.dev"
-let default_dev_endpoint = Uri.of_string "https://telemetry.dev2.semgrep.dev"
-let default_local_endpoint = Uri.of_string "http://localhost:4318"
-
 let mk_config ?rules () : Core_scan_config.t =
   {
     rule_source =
@@ -313,18 +308,15 @@ let mk_config ?rules () : Core_scan_config.t =
       (let env = Sys.getenv_opt "SEMGREP_DEPLOYMENT_ENV" in
        match (!trace, !trace_endpoint) with
        | true, Some url ->
-           let endpoint =
-             match url with
-             (* coupling: cli/src/semgrep/telemetry.py _OTEL_ENDPOINT_ALIASES *)
-             | "semgrep-prod" -> default_trace_endpoint
-             | "semgrep-dev" -> default_dev_endpoint
-             | "semgrep-local" -> default_local_endpoint
-             | _ -> Uri.of_string url
-           in
+           let endpoint = Trace_endpoints.resolve url in
            Some { endpoint; top_level_scope = None; env }
        | true, None ->
            Some
-             { endpoint = default_trace_endpoint; top_level_scope = None; env }
+             {
+               endpoint = Trace_endpoints.default_trace_endpoint;
+               top_level_scope = None;
+               env;
+             }
        | false, Some _ ->
            Logs.warn (fun m ->
                m
