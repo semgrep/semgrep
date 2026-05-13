@@ -1,32 +1,27 @@
-## [1.162.0](https://github.com/semgrep/semgrep/releases/tag/v1.162.0) - 2026-05-07
+## [1.163.0](https://github.com/semgrep/semgrep/releases/tag/v1.163.0) - 2026-05-13
 
 ### ### Added
 
-- pro: Improved support for tracking taint through nested functions. (LANG-95)
-- Added indexes to file targeting to improve performance of semgrepignore matching. (gh-27830)
+- Updated PHP target parsing to support grammar changes from PHP 8.1-8.5 (LANG-380)
 
 ### ### Changed
 
-- Faster JSON rule parsing: rule files in JSON format now parse roughly 5x faster end-to-end (measured ~134s → ~28s on a 382MB rule pack) by going through a new hand-written RFC 8259 parser instead of the previous JS-parser-based chain. (ENGINE-2725)
-- Scala projects are now identified for Supply Chain only by their root build.sbt, rather than treating each build.sbt as a different subproject. (SC-3293)
-- MCP `semgrep_findings` tool: added a `refs` parameter to filter findings by branch (defaults to the primary branch when not specified), and made `autotriage_verdict` optional so that findings without an AI verdict can also be returned. (engine-2723)
+- Improved `semgrep ci` startup time with App-provided rules by avoiding duplicate semgrep-core rule validation during CLI rule loading while preserving config-style failures for invalid rules. (ci-rule-validation-startup)
+- Semgrep now validates dependency aware rules only on the core side, improving startup time (validate-skip-dep-aware)
+- Rule validation now runs in parallel across cores on large rulesets, reducing scan startup time. (gh-6279)
+- Rule parsing now runs in parallel across shards on multi-core machines, reducing scan startup time on large rulesets. (gh-6281)
 
 ### ### Fixed
 
-- jsonnet: `import` and `importstr` now reject paths that resolve outside the
-  rule file's parent directory. (ENGINE-2727)
-- semgrep ci: redact URL-embedded credentials and `Authorization` header
-  values from git error messages and from the captured tracebacks sent to
-  the fail-open telemetry endpoint, preventing leaks of secrets like
-  `CI_JOB_TOKEN` from a failed `git fetch` in GitLab CI. Also closes
-  ENGINE-2731 (raw, unsanitized tracebacks in fail-open telemetry). (ENGINE-2728)
-- `semgrep ci` no longer transmits SCM tokens to the Semgrep Platform. (ENGINE-2729)
-- semgrep CLI: the on-disk log file (`~/.semgrep/semgrep.log` or `$SEMGREP_LOG_FILE`) now respects the requested log level instead of always being written at DEBUG. This narrows the surface for credentials to land on disk via CI runner filesystems or job artifacts; pass `--debug` to restore the previous behavior. (ENGINE-2730)
-- jsonnet rules: bound recursion in both rule loading and evaluation so a
-  malicious rule can no longer hang semgrep via mutually-recursive `import`s
-  or runtime function calls that recurse forever. (ENGINE-2727-dos)
-- Scala: Merging consecutive top-level package declarations into a single package path. (LANG-374)
-- Fixed PHP parse errors during highly-parallel parsing. (gh-6197)
-- Fixed Scala parse errors during highly-parallel parsing. (gh-6198)
-- Surface a clearer error from the MCP scan tool when metrics is off and auto config is specified (gh-11649)
-- Fixed unknown option error when spawning the MCP daemon (gh-11660)
+- Improved name resolution for fully-qualified names in Java, Kotlin, and Scala. This could lead to fewer false positives and more true positives when the code under analysis uses fully-qualified names instead of imports. (java-qualified)
+- Optimised rule prefiltering and parsing to improve engine startup time. (rule-parse-cache)
+- Reduced peak memory usage when scanning repos with large rulesets. (rules-json-compact)
+- Fixed transitive reachability rule parsing performance: the temporary rule
+  file written for each transitive-reachability RPC call is JSON content
+  (`json.dumps([rule.raw])`) but was being created with a `.yaml` suffix.
+  OCaml's `Parse_rule.parse_file` dispatches purely on file extension, so this
+  routed every TR rule through `Yaml_to_generic.parse_yaml_file` (the slow YAML
+  path) instead of `Fast_json.parse_program` (the new hand-written RFC 8259
+  parser). Switching the suffix to `.json` lines the suffix up with the actual
+  content and lets every TR rule parse take the fast path. (tr-json-suffix)
+- Pro: Fixed a naming resolution bug in Java. (LANG-274)

@@ -1,1 +1,0 @@
-Improved `semgrep ci` startup time with App-provided rules by avoiding duplicate semgrep-core rule validation during CLI rule loading while preserving config-style failures for invalid rules.

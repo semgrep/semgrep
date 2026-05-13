@@ -1,1 +1,0 @@
-Improved name resolution for fully-qualified names in Java, Kotlin, and Scala. This could lead to fewer false positives and more true positives when the code under analysis uses fully-qualified names instead of imports.

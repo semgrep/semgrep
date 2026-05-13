@@ -1,1 +1,0 @@
-Semgrep now validates dependency aware rules only on the core side, improving startup time

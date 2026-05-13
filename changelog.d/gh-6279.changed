@@ -1,1 +1,0 @@
-Rule validation now runs in parallel across cores on large rulesets, reducing scan startup time.

@@ -1,8 +1,0 @@
-Fixed transitive reachability rule parsing performance: the temporary rule
-file written for each transitive-reachability RPC call is JSON content
-(`json.dumps([rule.raw])`) but was being created with a `.yaml` suffix.
-OCaml's `Parse_rule.parse_file` dispatches purely on file extension, so this
-routed every TR rule through `Yaml_to_generic.parse_yaml_file` (the slow YAML
-path) instead of `Fast_json.parse_program` (the new hand-written RFC 8259
-parser). Switching the suffix to `.json` lines the suffix up with the actual
-content and lets every TR rule parse take the fast path.
