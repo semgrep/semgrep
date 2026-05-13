@@ -2316,6 +2316,13 @@ let basic_id_info ?(fake = false) resolved =
 
 let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
 
+(** [true] when the definition is a function/method whose entity is marked as
+    compiler-synthesised (fake). *)
+let is_fake_funcdef : definition -> bool = function
+  | { name = EN (Id (_, id_info)); _ }, FuncDef _ ->
+      IdFlags.is_fake !(id_info.id_flags)
+  | _ -> false
+
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
 let dotted_to_canonical xs = List.map fst xs

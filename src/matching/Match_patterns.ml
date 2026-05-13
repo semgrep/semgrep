@@ -553,7 +553,10 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                             hook pm));
                 super#visit_stmt env x
               in
-              visit_stmt ()
+              match x.s with
+              | DefStmt def when is_fake_funcdef def ->
+                  (* Skip synthetic function bodies. *) ()
+              | _ -> visit_stmt ()
 
             method! v_stmts env x =
               (* this is potentially slower than what we did in Coccinelle with
