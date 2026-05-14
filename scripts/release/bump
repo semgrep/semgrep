@@ -96,6 +96,16 @@ EOF
   git add "$target"
 }
 
+update_interfaces_version() {
+  target=cli/src/semgrep/semgrep_interfaces/.semgrep-version
+  targets+=" $target"
+  echo "Updating $target"
+  sed_in_place \
+      's/^Tracking Semgrep version is v.*.$/Tracking Semgrep version is v'"$release"'./g' \
+      "$target"
+  git add "$target"
+}
+
 # Update files containing the release ID.
 #
 # Ideally this shouldn't modify source files,
@@ -106,6 +116,7 @@ bump() {
   update_pyproject_toml
   update_uv_lock
   update_version_ml
+  update_interfaces_version
 }
 
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
