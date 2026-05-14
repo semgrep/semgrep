@@ -9,6 +9,7 @@
 
    commons
    telemetry
+   parallelism
    pfff-lang_GENERIC-analyze
 
    parser_regexp

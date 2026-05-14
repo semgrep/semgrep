@@ -57,12 +57,6 @@ val of_rule : ?interfile:bool -> Rule.t -> t option
     type could be a subtype of [Foo] (but only when interfile naming is used).
     *)
 
-val make_of_rule : interfile:bool -> unit -> Rule.t -> t option
-(** [make_of_rule ~interfile ()] returns a memoized version of [of_rule]: call
-    it once at scan setup and reuse the returned function for all rules in
-    that scan. The memo is keyed on [Rule_ID.t]; its lifetime matches the
-    returned closure. Prefer this over [of_rule] on hot paths. *)
-
 val check : t -> string -> bool
 (** [check prefilter content] tests if [prefilter] matches [content].
     Returns [true] if the prefilter matches (rule should be considered),

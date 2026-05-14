@@ -984,7 +984,14 @@ let scan_exn (config : Core_scan_config.t)
     targets_of_config config valid_rules
   in
   let prefilter_policy =
-    if config.filter_irrelevant_rules then Match_env.make_prefilter ()
+    if config.filter_irrelevant_rules then
+      let par =
+        match config.par_conf with
+        | Parallelism_config.Eio_executor conf ->
+            Some (conf, Core_scan_config.finalize_num_jobs config.num_jobs)
+        | Parallelism_config.Process -> None
+      in
+      Match_env.make_prefilter ~rules:valid_rules ?par ()
     else Match_env.NoPrefiltering
   in
   let file_results, (scanned_targets : Target.t list) =

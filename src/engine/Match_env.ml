@@ -15,6 +15,7 @@
 module E = Core_error
 module Out = Semgrep_output_v1_t
 module PM = Core_match
+module Log = Log_engine.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -38,12 +39,67 @@ type prefilter_policy =
   (* The policy for when we do not wish to prefilter at all. *)
   | NoPrefiltering
 
-let make_prefilter () =
-  let with_interfile = Prefiltering.File.make_of_rule ~interfile:true () in
-  let without_interfile = Prefiltering.File.make_of_rule ~interfile:false () in
+(* Build a prefilter policy whose per-rule prefilters are precomputed
+   eagerly, then served read-only to the matching engine across multiple
+   domains.  Produced an immutable [ROHashtbl] view; safe to share between
+   threads.
+
+   The [intrafile] table is always built (every scan does an intrafile
+   matching pass).  The [interfile] table is built only when
+   [~need_interfile] is true — Pro deep/interfile scans need it; OSS
+   scans, Pro intrafile-only scans, and LSP search never query it, so
+   we'd otherwise be paying a full per-rule prefilter compute pass for
+   nothing.  If a caller queries [~interfile:true] when the table
+   wasn't built, we return [None] (no prefilter, file is scanned).
+
+   When [~par:(conf, domain_count)] is provided, the per-rule prefilter
+   computation is fanned out across [domain_count] domains via
+   [Concurrent.map].
+*)
+let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
+    ?(par : (Parallelism_config.eio_state * int) option) () =
+  let mk ~interfile =
+    let h = Hashtbl.create (List.length rules) in
+    let compute_kv (r : Rule.t) =
+      (fst r.id, Prefiltering.File.of_rule ~interfile r)
+    in
+    (match par with
+    | None ->
+        List.iter
+          (fun r ->
+            let k, v = compute_kv r in
+            Hashtbl.replace h k v)
+          rules
+    | Some (conf, domain_count) ->
+        (* The serial path lets exceptions propagate; the parallel path
+           captures them per-rule into [Error (rule, exn)].
+
+           Lookups for a failing rule will fail open and produce [None], which
+           the matcher treats as "no prefilter needed; scan the target".
+        *)
+        Concurrent.map ~conf ~domain_count compute_kv rules
+        |> List.iter (function
+          | Ok (k, v) -> Hashtbl.replace h k v
+          | Error ((r : Rule.t), exn) ->
+              Log.warn (fun m ->
+                  m "Prefilter creation failed for %a: %s" Rule_ID.pp (fst r.id)
+                    (Printexc.to_string exn))));
+    ROHashtbl.of_hashtbl h
+  in
+  let intrafile_table = mk ~interfile:false in
+  let interfile_table =
+    if need_interfile then Some (mk ~interfile:true) else None
+  in
   CachedPrefilter
-    (fun ~interfile r ->
-      if interfile then with_interfile r else without_interfile r)
+    (fun ~interfile (r : Rule.t) ->
+      let key = fst r.id in
+      match (interfile, interfile_table) with
+      | true, Some t -> ROHashtbl.find_opt t key |> Option.join
+      | true, None ->
+          (* Caller asked for interfile but didn't request the build.
+             Treat as "no prefilter": file is scanned. *)
+          None
+      | false, _ -> ROHashtbl.find_opt intrafile_table key |> Option.join)
 
 (* eXtended config.*)
 type xconfig = {
