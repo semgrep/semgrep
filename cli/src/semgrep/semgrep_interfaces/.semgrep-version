@@ -1,0 +1,7 @@
+Tracking Semgrep version is v1.163.0.
+
+This is necessary to track in order for the oss-release workflow to
+know which synced commit to tag as a new release. This is
+automatically bumped by the bump-version workflow and included in the
+release commit that should be synced and merged as part of the release
+process.
