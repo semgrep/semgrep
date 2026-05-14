@@ -28,9 +28,6 @@ Here is a short description of the workflows in this directory:
 - tests.jsonnet: building Semgrep and running our Semgrep testsuite for our PRs.
   It also runs benchmarks, test our MacOS, Linux, and Docker build, and more.
 
-- semgrep.jsonnet: dogfood Semgrep by using our Semgrep Github action
-  and submitting findings to Semgrep App for bugs in the semgrep repo itself.
-
 - update-semgrep-rules.jsonnet: cron to update semgrep/tests/semgrep-rules
   submodule to its latest version.
 

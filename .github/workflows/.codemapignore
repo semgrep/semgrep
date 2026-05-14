@@ -1,4 +1,3 @@
-semgrep.yml
 lint.yml
 build-test-core-x86.yml
 build-test-osx-x86.yml
