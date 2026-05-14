@@ -329,8 +329,17 @@ let prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
         And (rule_tok, [ f (Or (rule_tok, sources)); f (Or (rule_tok, sinks)) ])
         |> f)
 
-let generate_prefilter_internal ~interfile
-    ({ id = rule_id, _; _ } as r : Rule.t) =
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+(* Public entry point.  Not memoized — callers that want memoization
+   should construct it at the right scope (typically per-scan, with
+   eager prefill).  See [Match_env.make_prefilter] for the canonical
+   pattern.  Module-scope memoization here is unsafe because two
+   unrelated scans in the same process (LSP reload, test runner) can
+   reuse the same [Rule_ID.t] for different rule bodies. *)
+let generate_prefilter ~interfile ({ id = rule_id, _; _ } as r : Rule.t) =
   try
     match r.mode with
     | `Search f
@@ -352,17 +361,6 @@ let generate_prefilter_internal ~interfile
       Log.err (fun m ->
           m "Stack overflow when generating prefilter for %a" Rule_ID.pp rule_id);
       None
-
-(*****************************************************************************)
-(* Entry points *)
-(*****************************************************************************)
-
-let generate_prefilter ~interfile rule =
-  generate_prefilter_internal ~interfile rule
-
-let make_generate_prefilter ~interfile () : Rule.t -> prefilter option =
-  let key_fn = fun ({ id = key, _; _ } : Rule.t) -> key in
-  SharedMemo.make_with_key_fn key_fn (generate_prefilter_internal ~interfile)
 
 (* Alias for the lower-level function to match the mli *)
 let generate_prefilter_from_formula = prefilter_of_formula
