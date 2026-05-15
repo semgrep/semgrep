@@ -102,6 +102,9 @@ local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, 
   },
 };
 
+// This looks through the 30 commits (based on GH API page size)
+// behind `sha` (inclusive) on `repo` for the latest one that contains
+// `message`.
 local get_commit_with_message(sha, message, repo='${{ github.repository }}') = {
   name: 'Get commit from with message %s' % message,
   id: 'get_commit_with_message',
