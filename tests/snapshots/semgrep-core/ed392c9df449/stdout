@@ -45,28 +45,9 @@
                                 (_,
                                  [(Arg
                                      { e =
-                                       (Call (
-                                          { e =
-                                            (Special
-                                               ((ConcatString SequenceConcat),
-                                                _));
-                                            e_id = 0; e_range = None;
-                                            is_implicit_return = false;
-                                            facts = <opaque> },
-                                          (_,
-                                           [(Arg
-                                               { e =
-                                                 (L
-                                                    (String
-                                                       (_,
-                                                        ("Hello, World!", _),
-                                                        _)));
-                                                 e_id = 0; e_range = None;
-                                                 is_implicit_return = false;
-                                                 facts = <opaque> })
-                                             ],
-                                           _)
-                                          ));
+                                       (L
+                                          (String
+                                             (_, ("Hello, World!", _), _)));
                                        e_id = 0; e_range = None;
                                        is_implicit_return = false;
                                        facts = <opaque> })

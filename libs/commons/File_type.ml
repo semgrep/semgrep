@@ -81,6 +81,7 @@ and pl_type =
   | IDL of idl_type
   | MiscPL of string
   | Elixir
+  | Dart
 [@@deriving yojson]
 
 and config_type =
@@ -191,6 +192,7 @@ let file_type_of_file file =
   | "mm" ->
       PL (ObjectiveC e)
   | "swift" -> PL Swift
+  | "dart" -> PL Dart
   | "java" -> PL Java
   | "kt" -> PL Kotlin
   | "cs" -> PL Csharp

@@ -182,7 +182,6 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file
         [ TreeSitter Parse_ruby_tree_sitter.parse ]
         Ruby_to_generic.program
-  (* tree-sitter-dart is currently buggy and can generate some segfaults *)
   | Lang.Dart ->
       run file [ TreeSitter Parse_dart_tree_sitter.parse ] (fun x -> x)
   | Lang.Hack ->

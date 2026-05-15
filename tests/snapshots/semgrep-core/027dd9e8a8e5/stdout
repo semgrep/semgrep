@@ -28,7 +28,7 @@
                          attrs = [(KeywordAttr (Static, _))]; tparams = None
                          },
                        (FuncDef
-                          { fkind = (Function, _); fparams = (_, [], _);
+                          { fkind = (Method, _); fparams = (_, [], _);
                             frettype =
                             (Some { t =
                                     (TyN
@@ -49,35 +49,11 @@
                                      [{ s =
                                         (Return (_,
                                            (Some { e =
-                                                   (Call (
-                                                      { e =
-                                                        (Special
-                                                           ((ConcatString
-                                                               SequenceConcat),
-                                                            _));
-                                                        e_id = 0;
-                                                        e_range = None;
-                                                        is_implicit_return =
-                                                        false;
-                                                        facts = <opaque> },
-                                                      (_,
-                                                       [(Arg
-                                                           { e =
-                                                             (L
-                                                                (String
-                                                                   (_,
-                                                                    (
-                                                                    "hello world",
-                                                                    _), _)));
-                                                             e_id = 0;
-                                                             e_range = None;
-                                                             is_implicit_return =
-                                                             false;
-                                                             facts = <opaque>
-                                                             })
-                                                         ],
-                                                       _)
-                                                      ));
+                                                   (L
+                                                      (String
+                                                         (_,
+                                                          ("hello world", _),
+                                                          _)));
                                                    e_id = 0; e_range = None;
                                                    is_implicit_return = false;
                                                    facts = <opaque> }),
@@ -103,7 +79,7 @@
                           attrs = [(KeywordAttr (Static, _))]; tparams = None
                           },
                         (FuncDef
-                           { fkind = (Function, _);
+                           { fkind = (Method, _);
                              fparams =
                              (_,
                               [(Param

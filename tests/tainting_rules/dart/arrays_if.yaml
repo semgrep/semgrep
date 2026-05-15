@@ -1,0 +1,16 @@
+
+rules:
+- id: taint
+  mode: taint
+  languages: [dart]
+  message: "tainted"
+  severity: INFO
+  pattern-sources:
+    - patterns:
+        - pattern-inside: |
+            void $F($T $P) {
+              ...
+            }
+        - focus-metavariable: $P
+  pattern-sinks:
+    - pattern: sink($R)

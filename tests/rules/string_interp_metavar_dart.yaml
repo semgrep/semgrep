@@ -1,0 +1,7 @@
+rules:
+- id: string-interp-metavar-dart
+  message: greet with $X
+  severity: ERROR
+  languages:
+  - dart
+  pattern: 'print("hello $X")'

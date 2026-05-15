@@ -36,6 +36,7 @@ let wrap_type_expr lang str =
   | Lang.Julia -> Some (spf "x :: %s" str)
   | Lang.Cpp -> Some (spf "(%s) x" str)
   | Lang.C -> Some (spf "(%s) x" str)
+  | Lang.Dart -> Some (spf "x as %s" str)
   | _ -> None
 
 let unwrap_type_expr lang expr =
@@ -68,4 +69,5 @@ let unwrap_type_expr lang expr =
   | Lang.Julia, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.Cpp, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | Lang.C, G.E { e = G.Cast (t, _, _); _ } -> Some t
+  | Lang.Dart, G.E { e = G.Cast (t, _, _); _ } -> Some t
   | _ -> None
