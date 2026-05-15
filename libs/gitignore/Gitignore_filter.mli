@@ -28,6 +28,10 @@ type t
    gitignore_filenames: set this option to consult other files than
                         '.gitignore'.
 
+   Note: this eagerly walks the project tree under [project_root] (via
+   [Gitignore_cache.create]) to pre-populate the gitignore cache. Cost is
+   proportional to the number of directories under [project_root].
+   Construct once per project; avoid calling this in tight loops.
 *)
 val create :
   ?gitignore_filenames:Gitignore.gitignore_filename list ->
@@ -48,8 +52,8 @@ val create :
 
    [2] Paths to folders must have a trailing slash.
 
-   Return the status and the list of selection/deselection events that the path
-   went through, in reverse order. The first element of the list, if any,
-   determines whether the file is selected.
+   Returns the status and the list of selection/deselection events that the
+   path went through, in reverse order. The first element of the list, if
+   any, determines whether the file is selected.
 *)
 val select : t -> Ppath.t -> Gitignore.status * Gitignore.selection_event list

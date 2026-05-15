@@ -428,6 +428,8 @@ let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
  * python: was called Target.files_from_filesystem ()
  *
  * pre: the scan_root must be a path to a directory
+ *
+ * TODO: contemplate porting this to use `FPpath.walk_dirs`.
  *)
 let walk_skip_and_collect (ign : Gitignore_filter.t)
     (include_filter : Include_filter.t option) (scan_root : Fppath.t) :
