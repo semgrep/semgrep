@@ -206,7 +206,16 @@ let test_classify () =
   (* Single-char wildcard alone. *)
   check "?" Regex
 
-(* Build a single-level filter from a gitignore source (one pattern per line). *)
+(* Build a single-level filter from a gitignore source (one pattern per line).
+
+   We point [project_root] at a freshly-created, empty tempdir rather than
+   at [Filename.get_temp_dir_name ()]. [Gitignore_filter.create] now eagerly
+   walks the project tree to pre-populate the gitignore cache, and the
+   shared system tempdir can contain thousands of unrelated directories;
+   using a fresh empty dir keeps the cache walk O(1) and isolates these
+   tests from whatever else is in /tmp. The patterns under test come via
+   [higher_priority_levels], not from the project tree, so an empty dir is
+   strictly sufficient. *)
 let single_level_filter gitignore_source =
   let anchor = Glob.Pattern.root_pattern in
   let patterns =
@@ -217,9 +226,8 @@ let single_level_filter gitignore_source =
     Gitignore_level_index.of_parsed_patterns ~level_kind:"test"
       ~source_name:"test" patterns
   in
-  Gitignore_filter.create ~higher_priority_levels:[ level ]
-    ~project_root:(Fpath.v (Filename.get_temp_dir_name ()))
-    ()
+  let project_root = Fpath.v (Filename.temp_dir "semgrep_gitignore_test_" "") in
+  Gitignore_filter.create ~higher_priority_levels:[ level ] ~project_root ()
 
 (* Verify that indexed matching agrees with the naive PCRE-only matcher
    at the [Gitignore_level_index] layer. We compare the set of selection
@@ -448,6 +456,72 @@ let test_multiple_patterns_same_key () =
       (sprintf "shared-key bucket: expected >=2 events, got %d"
          (List.length events))
 
+(* Pin the contract that the cache walker skips directories named [.git]
+   at any depth and does not load gitignore files under them.
+
+   Construction: place a [.git/.gitignore] at the root with a pattern that
+   would otherwise ignore [/main.ml], and a nested [sub/.git/.gitignore]
+   with a pattern that would otherwise ignore [/sub/x.py]. If the walker
+   is ever changed to descend into [.git], both assertions flip. *)
+let test_walk_skips_dot_git () =
+  let open F in
+  F.with_tempdir ~chdir:true (fun root ->
+      let files =
+        [
+          dir ".git" [ gitignore [ "*.ml" ] ];
+          file "main.ml";
+          dir "sub" [ dir ".git" [ gitignore [ "*.py" ] ]; file "x.py" ];
+        ]
+      in
+      F.write_dir root files;
+      let filter = Gitignore_filter.create ~project_root:root () in
+      let check path =
+        let ppath = Ppath.of_string_for_tests path in
+        let status, _events = Gitignore_filter.select filter ppath in
+        if status = Gitignore.Ignored then
+          failwith
+            (sprintf
+               "Expected %s to be Not_ignored, but it was Ignored — the walker \
+                descended into a .git directory and applied its gitignore."
+               path)
+      in
+      check "/main.ml";
+      check "/sub/x.py")
+
+(* Pin the contract that the cache walker uses [lstat] and therefore does
+   not follow symlinks-to-directories. A symlink pointing into a real
+   subdir with its own [.gitignore] must NOT cause that gitignore's
+   patterns to apply to paths under the symlink's name.
+
+   If anyone swaps the [UUnix.lstat] check for [UUnix.stat] or
+   [Sys.is_directory], the walker would descend into [alias/], load
+   [real/.gitignore] as if it lived at [/alias/.gitignore], and the
+   assertion below would flip. *)
+let test_walk_does_not_follow_symlinks () =
+  let open F in
+  F.with_tempdir ~chdir:true (fun root ->
+      let files =
+        [ dir "real" [ gitignore [ "*.ml" ] ]; symlink "alias" "real" ]
+      in
+      F.write_dir root files;
+      let filter = Gitignore_filter.create ~project_root:root () in
+      (* Sanity: the real subtree's gitignore is loaded. *)
+      let real_status, _ =
+        Gitignore_filter.select filter (Ppath.of_string_for_tests "/real/x.ml")
+      in
+      if real_status <> Gitignore.Ignored then
+        failwith
+          "Expected /real/x.ml to be Ignored (real/.gitignore should be \
+           loaded), but it was Not_ignored.";
+      (* Real check: the symlinked path must not inherit real/'s gitignore. *)
+      let alias_status, _ =
+        Gitignore_filter.select filter (Ppath.of_string_for_tests "/alias/x.ml")
+      in
+      if alias_status = Gitignore.Ignored then
+        failwith
+          "Expected /alias/x.ml to be Not_ignored, but it was Ignored — the \
+           walker followed a symlink and loaded the target's gitignore.")
+
 (* An empty gitignore line must not accidentally classify as a strategy
    that matches every path. Both the PCRE2 path and the strategy path
    should agree that it matches nothing real. *)
@@ -476,6 +550,9 @@ let tests =
       Testo.create "strategy negation" test_negation;
       Testo.create "strategy multi-pattern" test_multiple_patterns_same_key;
       Testo.create "strategy empty pattern" test_empty_pattern;
+      Testo.create "walker skips .git" test_walk_skips_dot_git;
+      Testo.create "walker does not follow symlinks"
+        test_walk_does_not_follow_symlinks;
       t "list one file" (test_list [ file "a" ]);
       t "list hierarchy"
         (test_list

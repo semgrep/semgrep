@@ -66,7 +66,8 @@ let select_one acc levels path : Gitignore.selection_event list =
     (fun acc lvl -> Gitignore_level_index.select_level lvl path @ acc)
     acc levels
 
-let select_path opt_gitignore_file_cache sel_events levels relative_segments =
+let select_path opt_gitignore_file_cache sel_events levels relative_segments :
+    Gitignore.selection_event list =
   let rec loop sel_events levels parent_path segments =
     (* add a segment to the path and check if it's gitignored *)
     match segments with
@@ -76,7 +77,7 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
           match opt_gitignore_file_cache with
           | Some cache -> (
               (* load local gitignore file *)
-              match Gitignore_cache.load cache parent_path with
+              match Gitignore_cache.find cache parent_path with
               | Some additional_level -> levels @ [ additional_level ]
               | None -> levels)
           | None -> levels
@@ -116,7 +117,8 @@ let select_path opt_gitignore_file_cache sel_events levels relative_segments =
    Each time we descend into a folder, we read the .gitignore files in
    that folder which add filters to the existing filters found earlier.
 *)
-let select t (full_git_path : Ppath.t) =
+let select t (full_git_path : Ppath.t) :
+    Gitignore.status * Gitignore.selection_event list =
   let sel_events = [] in
   let rel_segments = Ppath.relative_segments full_git_path in
   (* higher levels (command-line)
@@ -128,7 +130,5 @@ let select t (full_git_path : Ppath.t) =
   if is_selected sel_events then result_of_selection_events sel_events
   else
     (* lower levels (other sources of gitignore patterns) *)
-    let sel_events =
-      select_path None sel_events t.lower_priority_levels rel_segments
-    in
-    result_of_selection_events sel_events
+    result_of_selection_events
+      (select_path None sel_events t.lower_priority_levels rel_segments)
