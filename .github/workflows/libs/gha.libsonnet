@@ -69,6 +69,15 @@ local check_comment_and_write_permissions = check_and_comment_permissions {
   on_pull_request: {
     pull_request: on_pull_request_config,
   },
+  // `on_classic` with a paths-ignore filter on the pull_request trigger only.
+  // Push triggers stay unfiltered so develop/release branches keep full coverage.
+  on_classic_paths_ignore_pr(paths_ignore):
+    self.on_classic {
+      pull_request: on_pull_request_config { 'paths-ignore': paths_ignore },
+    },
+  // `on_pull_request` with a paths-ignore filter.
+  on_pull_request_paths_ignore(paths_ignore):
+    { pull_request: on_pull_request_config { 'paths-ignore': paths_ignore } },
   on_dispatch_or_call: {
     workflow_dispatch: null,
     workflow_call: null,
