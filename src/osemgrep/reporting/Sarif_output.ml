@@ -129,6 +129,14 @@ let tags_of_metadata metadata =
      properties
    }
 *)
+(* GitHub SARIF upload rejects rule IDs longer than 255 characters.
+   See https://github.com/semgrep/semgrep/issues/10941 *)
+let sarif_max_rule_id_length = 255
+
+let truncate_rule_id (id : string) : string =
+  if String.length id <= sarif_max_rule_id_length then id
+  else String.sub id 0 sarif_max_rule_id_length
+
 let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     Sarif.reporting_descriptor =
   ignore ctx;
@@ -136,7 +144,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
    * including the severity of the finding is stored within "rules".
    * The results then reference the ID of the rule
    *)
-  let rule_id_str = Rule_ID.to_string (fst rule.id) in
+  let rule_id_str = truncate_rule_id (Rule_ID.to_string (fst rule.id)) in
   let default_configuration =
     Sarif.create_reporting_configuration
       ~level:(severity_of_severity rule.severity)
@@ -444,7 +452,7 @@ let result (ctx : Out.format_context) show_dataflow_traces
     else [ ("matchBasedId/v1", Gated_data.msg) ]
   in
   Sarif.create_result
-    ~rule_id:(Rule_ID.to_string cli_match.check_id)
+    ~rule_id:(truncate_rule_id (Rule_ID.to_string cli_match.check_id))
     ~message:(message cli_match.extra.message)
     ~locations:[ location ] ~fingerprints ~properties ?code_flows ?fixes
     ?suppressions ()

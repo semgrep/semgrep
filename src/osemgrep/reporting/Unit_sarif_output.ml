@@ -138,9 +138,34 @@ let test_call_trace_to_locations () =
         test_clicall_with_intermediates;
     ]
 
+let test_truncate_rule_id_short () =
+  let id = "gitlab.flawfinder.drand48" in
+  Alcotest.(check string) __LOC__ id (Sarif_output.truncate_rule_id id)
+
+let test_truncate_rule_id_at_limit () =
+  let id = String.make 255 'x' in
+  Alcotest.(check string) __LOC__ id (Sarif_output.truncate_rule_id id)
+
+let test_truncate_rule_id_over_limit () =
+  (* Reproduces https://github.com/semgrep/semgrep/issues/10941:
+     gitlab.flawfinder.drand48 has a 327-char rule ID *)
+  let id = String.make 327 'x' in
+  let result = Sarif_output.truncate_rule_id id in
+  Alcotest.(check int) __LOC__ 255 (String.length result);
+  Alcotest.(check string) __LOC__ (String.make 255 'x') result
+
+let test_truncate_rule_id () =
+  Testo.categorize "truncate_rule_id"
+    [
+      t "short ID unchanged" test_truncate_rule_id_short;
+      t "ID at 255 chars unchanged" test_truncate_rule_id_at_limit;
+      t "ID over 255 chars truncated to 255" test_truncate_rule_id_over_limit;
+    ]
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let tests =
-  Testo.categorize_suites "Sarif output" [ test_call_trace_to_locations () ]
+  Testo.categorize_suites "Sarif output"
+    [ test_call_trace_to_locations (); test_truncate_rule_id () ]

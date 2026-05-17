@@ -28,3 +28,8 @@ val call_trace_to_locations :
 (** Exposed for testing. Recursively flattens a [match_call_trace] into a list
     of SARIF thread flow locations, incrementing the nesting level at each
     [CliCall] boundary. *)
+
+val truncate_rule_id : string -> string
+(** Exposed for testing. Truncates a rule ID to at most 255 characters so that
+    SARIF output can be uploaded to GitHub (which rejects IDs longer than 255).
+    See https://github.com/semgrep/semgrep/issues/10941 *)
