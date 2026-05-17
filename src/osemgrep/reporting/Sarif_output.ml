@@ -135,7 +135,7 @@ let sarif_max_rule_id_length = 255
 
 let truncate_rule_id (id : string) : string =
   if String.length id <= sarif_max_rule_id_length then id
-  else String.sub id 0 sarif_max_rule_id_length
+  else Str.first_chars id sarif_max_rule_id_length
 
 let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     Sarif.reporting_descriptor =
