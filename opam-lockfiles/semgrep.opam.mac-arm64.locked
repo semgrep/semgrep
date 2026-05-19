@@ -52,7 +52,7 @@ depends: [
   "carton-git" {= "0.7.2"}
   "carton-lwt" {= "0.7.2"}
   "checkseum" {= "0.5.2"}
-  "cmdliner" {= "2.1.0"}
+  "cmdliner" {= "2.1.1"}
   "cohttp" {= "6.2.1"}
   "cohttp-eio" {= "6.2.1"}
   "cohttp-lwt" {= "6.2.1"}
