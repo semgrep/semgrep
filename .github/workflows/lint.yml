@@ -24,32 +24,10 @@ jobs:
           make
           git diff --exit-code
   pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          submodules: true
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
-        with:
-          enable-cache: false
-          python-version: "3.11"
-          version: 0.10.9
-      - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
-        with:
-          cache-prefix: v5
-          ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda
-          opam-pin: false
-          save-opam-post-run: true
-      - run: opam install -y ocamlformat.0.29.0
-      - env:
-          SKIP: check-opam-conflicts
-        uses: pre-commit/action@646c83fcd040023954eafda54b4db0192ce70507
+    uses: semgrep/release-workflows/.github/workflows/pre-commit-with-opam.yaml@ef88cfbc3f18439dab4c6dbc571f40c0369d114e # leif/reusable-pre-commit-with-opam
+    with:
+      submodules: true
+      skip: check-opam-conflicts
 name: lint
 on:
   pull_request:
