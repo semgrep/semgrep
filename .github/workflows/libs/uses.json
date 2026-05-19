@@ -59,7 +59,7 @@
     },
     "semgrep": {
       "setup-ocaml": "latest",
-      "claude-taskmaster": "v0.1.6",
+      "claude-taskmaster": "v0.1.8",
       "github-api-commit-action": "v1.1.0"
     },
     "slackapi": {
