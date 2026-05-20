@@ -376,18 +376,59 @@ def baseline_handler_opt(
     return baseline_handler
 
 
+def _baseline_scan_failure_suppression_sets(
+    baseline_errors: Sequence[SemgrepError],
+) -> Tuple[Set[Path], Set[Tuple[Path, str]]]:
+    """Paths where baseline scan failures make ``(rule, path)`` comparisons unreliable."""
+    """Return two sets:
+    - file_wide_paths: paths where the baseline scan failed without a specific rule
+    - rule_scoped_path_and_rule: (path, rule_id) pairs where the baseline scan failed for that rule on that file
+    """
+    file_wide_paths: Set[Path] = set()
+    rule_scoped_path_and_rule: Set[Tuple[Path, str]] = set()
+    for err in baseline_errors:
+        if not isinstance(err, SemgrepCoreError) or not err.is_scan_failure():
+            continue
+        loc = err.core.location
+        if not loc or not loc.path or not (path_val := loc.path.value):
+            continue
+        path = Path(path_val)
+        if (rule_id := err.core.rule_id) and rule_id.value:
+            rule_scoped_path_and_rule.add((path, rule_id.value))
+        else:
+            file_wide_paths.add(path)
+    return file_wide_paths, rule_scoped_path_and_rule
+
+
 @telemetry.trace()
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
     file_renames: Dict[str, Path],
+    baseline_errors: Sequence[SemgrepError],
 ) -> RuleMatchMap:
     """
-    Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
+    Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule.
+
+    Additionally drops head matches when the baseline scan could not produce
+    reliable data for the comparison:
+
+    - If a baseline scan failure has **no** ``rule_id`` (e.g. engine error tied
+      only to the file), every finding on that path is suppressed as "cannot
+      prove new".
+    - If the failure **has** a ``rule_id`` (e.g. per-rule timeout), only findings
+      for that rule on that path are suppressed; other rules on the same file
+      are unchanged.
     """
     logger.verbose("Removing matches that exist in baseline scan")
     kept_matches_by_rule: RuleMatchMap = {}
     num_removed = 0
+    num_suppressed_file_wide = 0
+    num_suppressed_rule_scoped = 0
+    (
+        file_wide_paths,
+        rule_scoped_path_and_rule,
+    ) = _baseline_scan_failure_suppression_sets(baseline_errors)
 
     for rule, matches in head_matches_by_rule.items():
         if len(matches) == 0:
@@ -395,17 +436,40 @@ def remove_matches_in_baseline(
         baseline_matches = {
             match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
         }
-        kept_matches_by_rule[rule] = [
-            match
-            for match in matches
-            if match.get_path_changed_ci_unique_key(file_renames)
-            not in baseline_matches
-        ]
-        num_removed += len(matches) - len(kept_matches_by_rule[rule])
+        kept = []
+        for match in matches:
+            if match.path in file_wide_paths:
+                num_suppressed_file_wide += 1
+            elif (match.path, rule.id) in rule_scoped_path_and_rule:
+                num_suppressed_rule_scoped += 1
+            elif match.get_path_changed_ci_unique_key(file_renames) in baseline_matches:
+                num_removed += 1
+            else:
+                kept.append(match)
+        kept_matches_by_rule[rule] = kept
 
     logger.verbose(
         f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
     )
+    n_suppressed = num_suppressed_file_wide + num_suppressed_rule_scoped
+    if n_suppressed > 0:
+        parts = []
+        if num_suppressed_file_wide:
+            parts.append(
+                f"{unit_str(num_suppressed_file_wide, 'finding')} on file(s) where "
+                "the baseline scan failed without a specific rule"
+            )
+        if num_suppressed_rule_scoped:
+            parts.append(
+                f"{unit_str(num_suppressed_rule_scoped, 'finding')} where the "
+                "baseline scan failed for that rule on that file"
+            )
+        detail = "; ".join(parts)
+        logger.info(
+            f"Suppressed {unit_str(n_suppressed, 'finding')} from being reported as "
+            f"new because baseline data was incomplete ({detail}). Re-run with a "
+            "higher --timeout to evaluate them."
+        )
     return kept_matches_by_rule
 
 
@@ -580,6 +644,7 @@ def baseline_run(
                     rule_matches_by_rule,
                     baseline_rule_matches_by_rule,
                     baseline_handler.status.renamed,
+                    baseline_errors=baseline_semgrep_errors,
                 )
                 output_handler.handle_semgrep_errors(baseline_semgrep_errors)
         except Exception as e:
