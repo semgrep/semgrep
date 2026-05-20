@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import shlex
 import shutil
 import tempfile
 from collections.abc import AsyncIterator
@@ -290,6 +291,26 @@ def create_temp_files_from_code_content(code_files: list[CodeFile]) -> str:
         ) from e
 
 
+def get_semgrep_rules_configs() -> list[str]:
+    """
+    Return configs from SEMGREP_RULES using the same whitespace-separated shape
+    as the Click --config option's envvar.
+    """
+    rules = os.environ.get("SEMGREP_RULES")
+    if not rules:
+        return []
+
+    try:
+        return shlex.split(rules)
+    except ValueError as e:
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message=f"Could not parse SEMGREP_RULES: {e!s}",
+            )
+        ) from e
+
+
 def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]:
     """
     Builds command arguments for semgrep scan
@@ -302,25 +323,31 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
         List of command arguments
     """
 
-    # Build command arguments and just run semgrep scan
-    # if no config is provided to allow for either the default "auto"
-    # or whatever the logged in config is
+    # Build command arguments and just run semgrep scan.
+    # If no config is provided, allow SEMGREP_RULES to behave like the
+    # regular --config envvar before falling back to the default "auto"
+    # or whatever the logged in config is.
     args = ["scan", "--json", "--experimental"]  # avoid the extra exec
     args.extend(["--x-mcp"])
     if config:
-        args.extend(["--config", config])
+        configs = [config]
+    else:
+        configs = get_semgrep_rules_configs()
+
+    for cfg in configs:
+        args.extend(["--config", cfg])
 
     # If the config is auto and metrics are off, raise an error. This
     # should only happen if the user is calling the MCP scan tool without
     # a config with metrics turned off. Hooks are not affected
     # since we pass in the config "hooks" for the hooks.
-    if (config is None or config == "auto") and (
+    if (not configs or "auto" in configs) and (
         (os.environ.get("SEMGREP_SEND_METRICS") or "").lower() in ("off", "0", "false")
     ):
         raise McpError(
             ErrorData(
                 code=INVALID_PARAMS,
-                message="Cannot run scan with auto config when metrics are off. Please allow metrics or run with a specific config.",
+                message="Cannot run scan with auto config when metrics are off. Please allow metrics, set SEMGREP_RULES to a non-auto config, or run with a specific config.",
             )
         )
 
