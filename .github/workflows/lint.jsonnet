@@ -11,22 +11,33 @@ local uses = import 'libs/uses.libsonnet';
 // The jobs
 // ----------------------------------------------------------------------------
 
+// Note that in a CI context pre-commit runs the hooks with the '--all'
+// flag, so semgrep for example is passed all the files in the repository,
+// not just the one modifed in the PR (as it is the case when it's ran from
+// git hooks locally). This is why sometimes pre-commit passes locally but
+// fails in CI, for the same PR.
+//
+// WARNING!!! it is unreasonably difficult to get pre-commit to run in a
+// subdir. Don't bother, just add whatever check you need to the top level
+// pre-commit config. You have been warned!!
 local pre_commit_steps() = [
-  gha.git_safedir,
-  actions.setup_python_step(cache=false),
+  actions.setup_python_step(cache=true),
   semgrep.opam_setup(),
   { run: 'opam install -y ocamlformat.0.29.0' },
-  // note that in a CI context pre-commit runs the hooks with the '--all' flag, so
-  // semgrep for example is passed all the files in the repository, not just
-  // the one modifed in the PR (as it is the case when it's ran from git
-  // hooks locally). This is why sometimes pre-commit passes locally but fails
-  // in CI, for the same PR.
-  //
-  // WARNING!!! it is unreasonably difficult to get pre-commit to run in a
-  // subdir. Don't bother, just add whatever check you need to the top level
-  // pre-commit config. You have been warned!!
   {
-    uses: uses.pre_commit.action,
+    name: 'Cache pre-commit hook envs',
+    uses: uses.actions.cache,
+    with: {
+      path: '~/.cache/pre-commit',
+      key: "pre-commit-v1|${{ hashFiles('.pre-commit-config.yaml') }}",
+    },
+  },
+  {
+    name: 'Install pre-commit',
+    run: 'uv tool install pre-commit --with pre-commit-uv',
+  },
+  {
+    name: 'Run pre-commit',
     env: {
       // check-opam-conflicts will report an error about missing vendored
       // dependencies in CI (like tree-sitter), but for local development
@@ -34,6 +45,7 @@ local pre_commit_steps() = [
       // check in CI.
       SKIP: 'check-opam-conflicts',
     },
+    run: 'pre-commit run --show-diff-on-failure --color=always --all-files',
   },
 ];
 
