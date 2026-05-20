@@ -198,26 +198,56 @@ let o_include : string list Term.t =
   let info =
     Arg.info [ "include" ] ~docv:"PATTERN"
       ~doc:
-        {|Specify files or directories that should be scanned by semgrep,
-excluding other files.
-This filter is applied after these other filters: '--exclude' options,
-any filtering done by git (or other SCM), and filtering by '.semgrepignore'
-files. Multiple '--include' options can be specified. A file path is selected
-if it matches at least one of the include patterns.
-$(docv) is a glob-style pattern such as 'foo.*' that
-must match the path. For example,
-specifying the language with '-l javascript' might preselect files
-'src/foo.jsx' and 'lib/bar.js'. Specifying one of '--include=src',
-'--include=*.jsx', or '--include=src/foo.*' will restrict the
-selection to the single file 'src/foo.jsx'. A choice of multiple
-'--include' patterns can be specified. For example, '--include=foo.*
---include=bar.*' will select both 'src/foo.jsx' and
-'lib/bar.js'. Glob-style patterns follow the syntax supported by
-gitignore and semgrepignore, which is documented at
+        {|Filter files or directories by path matching $(docv).
+Only paths matching this pattern will be scanned.
+Multiple '--include' options may be specified.
+$(docv) is a glob-style pattern that uses the same syntax as gitignore
+and semgrepignore, which is documented at
 https://git-scm.com/docs/gitignore#_pattern_format
 |}
   in
   Arg.value (Arg.opt_all Arg.string [] info)
+
+let o_semgrepignore_filename : string list Term.t =
+  let info =
+    Arg.info [ "semgrepignore-filename" ] ~docv:"FILENAME"
+      ~doc:
+        {|Specify an alternate name for the .semgrepignore file.
+Defaults to '.semgrepignore'. This option can be specified multiple
+times to use multiple filenames.
+|}
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
+
+(* ------------------------------------------------------------------ *)
+(* Performance and memory options *)
+(* ------------------------------------------------------------------ *)
+
+let o_num_jobs : int Term.t =
+  let default = default.core_runner_conf.num_jobs in
+  let info =
+    Arg.info [ "j"; "num-jobs" ] ~docv:"N"
+      ~doc:
+        (spf
+           {|Number of subprocesses to use to run checks in parallel.
+Defaults to %d.
+|}
+           default)
+  in
+  Arg.value (Arg.opt Arg.int default info)
+
+let o_max_memory_mb : int Term.t =
+  let default = default.core_runner_conf.max_memory_mb in
+  let info =
+    Arg.info [ "max-memory-mb" ]
+      ~doc:
+        (spf
+           {|Maximum system memory in MB to use when running a rule on a single
+file. If set to 0, no memory limit is enforced. Defaults to %d MB.
+|}
+           default)
+  in
+  Arg.value (Arg.opt Arg.int default info)
 
 let o_max_target_bytes : int Term.t =
   let default = default.targeting_conf.max_target_bytes in
@@ -225,179 +255,57 @@ let o_max_target_bytes : int Term.t =
     Arg.info [ "max-target-bytes" ]
       ~doc:
         (spf
-           {|Maximum size for a file to be scanned by Semgrep, e.g
-'1.5MB'. Any input program larger than this will be ignored. A zero or
-negative value disables this filter. Defaults to %d bytes|}
+           {|Maximum size for a file to be scanned.
+Files larger than this limit (in bytes) will be ignored.
+Set to 0 to disable the limit. Defaults to %d bytes.
+|}
            default)
   in
+  Arg.value (Arg.opt Arg.int default info)
 
-  Arg.value (Arg.opt Cmdliner_.number_of_bytes_converter default info)
-
-(*
-   TODO: deprecate this confusing option as soon as we have alternatives
-   and we're migrated to osemgrep for file targeting.
-*)
 let o_use_git : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
     ~default:default.targeting_conf.respect_gitignore
     ~doc:
-      {|'--use-git-ignore' is Semgrep's default behavior.
-        Under the default behavior, Git-tracked files are not excluded
-        by Gitignore rules and only untracked files are excluded by Gitignore
-        rules.
-        '--no-git-ignore' causes semgrep to not call 'git' and not consult
-        '.gitignore' files to determine which files semgrep should scan.
-        As a result of '--no-git-ignore', gitignored files and Git submodules
-        will be scanned unless excluded by other means ('.semgrepignore',
-        '--exclude', etc.).
-        This flag has no effect if the scanning root is not
-        in a Git repository.|}
-
-(*
-   This is a temporary option that has an effect only in pysemgrep during
-   the process of migration from Python's file targeting to the OCaml
-   implementation in semgrep-core. It's only here so that we get
-   it documented in '--help'!
-
-   '--no-semgrepignore-v2' is no longer available since semgrep 1.119 or 1.120
-   (projected).
-*)
-let o_use_semgrepignore_v2 : bool Cmdliner.Term.t =
-  let info =
-    Arg.info [ "semgrepignore-v2" ]
-      ~doc:
-        {|[DEPRECATED] '--semgrepignore-v2' used to force the use of the newer
-Semgrepignore v2 implementation for discovering and filtering target files.
-It is now the default and only behavior. The transitional option
-'--no-semgrepignore-v2' is no longer available.
+      {|Skip files ignored by git. Enabled by default. Use --no-git-ignore
+to disable this behavior and scan all files, even those ignored by git.
 |}
-  in
-  Arg.value (Arg.flag info)
-
-let o_x_ignore_semgrepignore_files : bool Term.t =
-  let info =
-    Arg.info
-      [ "x-ignore-semgrepignore-files" ]
-      ~docs:CLI_common.experimental_section_title
-      ~doc:
-        {|[INTERNAL] Ignore all '.semgrepignore' files found in the project
-tree for the purpose of selecting target files to be scanned by semgrep.
-Other filters may still apply.
-THIS OPTION IS NOT PART OF THE SEMGREP API AND MAY
-CHANGE OR DISAPPEAR WITHOUT NOTICE.
-|}
-  in
-  Arg.value (Arg.flag info)
-
-let o_semgrepignore_filename : string option Term.t =
-  let info =
-    Arg.info ~docv:"FILENAME"
-      [ "x-semgrepignore-filename" ]
-      ~docs:CLI_common.experimental_section_title
-      ~doc:
-        {|[INTERNAL] Files named $(docv) shall be consulted instead of
-the files named '.semgrepignore'. This option can be useful for testing
-semgrep on intentionally broken code that should normally be ignored.|}
-  in
-  Arg.value (Arg.opt Arg.(some string) None info)
 
 let o_scan_unknown_extensions : bool Term.t =
-  let default = default.targeting_conf.always_select_explicit_targets in
-  H.negatable_flag
-    [ "scan-unknown-extensions" ]
-    ~neg_options:[ "skip-unknown-extensions" ]
-    ~default
-    ~doc:
-      (spf
-         {|If true, target files specified directly on the command line
-will bypass normal language detection. They will be analyzed according to
-the value of --lang if applicable, or otherwise with the analyzers/languages
-specified in the Semgrep rule(s) regardless of file extension or file type.
-This setting doesn't apply to target files discovered by scanning folders.
-Defaults to %b.
+  let info =
+    Arg.info [ "scan-unknown-extensions" ]
+      ~doc:
+        {|Scan files even when their file extension does not match the
+target languages of the rules. By default, Semgrep only scans files
+with extensions that match the languages specified in the rules.
 |}
-         default)
+  in
+  Arg.value (Arg.flag info)
 
-(* alt: could be put in the Display options with nosem *)
 let o_baseline_commit : string option Term.t =
   let info =
     Arg.info [ "baseline-commit" ]
       ~doc:
-        {|Only show results that are not found in this commit hash. Aborts run
-if not currently in a git directory, there are unstaged changes, or
-given baseline hash doesn't exist.
+        {|Only show findings that are not present in the specified commit.
+This is useful for scanning pull requests or diffs. The value should be
+a git commit hash or ref (e.g., 'HEAD~1').
 |}
-      ~env:(Cmd.Env.info "SEMGREP_BASELINE_COMMIT")
-    (* TOPORT: support also SEMGREP_BASELINE_REF; unfortunately cmdliner
-             supports only one environment variable per option *)
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-(* ------------------------------------------------------------------ *)
-(* Performance and memory options *)
-(* ------------------------------------------------------------------ *)
-
-let num_jobs_arg =
-  let parse str =
-    match int_of_string_opt str with
-    | Some n -> Ok (Core_scan_config.Force n)
-    | None -> Error (`Msg ("invalid number of jobs: " ^ str))
-  in
-  let print ppf num =
-    Format.fprintf ppf "%i" (Core_scan_config.finalize_num_jobs num)
-  in
-  Arg.conv ~docv:"NUM" (parse, print)
-
-let o_num_jobs : Core_scan_config.num_jobs Term.t =
-  let info =
-    Arg.info [ "j"; "jobs" ]
-      ~doc:
-        {|Degree of parallelism to use for parallel scanning, either
-using shared-memory threads (the default) or the legacy process-based
-parallelism (enabled with the deprecated --x-parmap flag).
-
-Semgrep recommends under-provisioning the job count by 10-15 percent to account
-for overhead from the garbage collector managing the shared heap (for example,
-on a 12-core box, a -j value of 10 or 11 would be considered a good starting
-value). We highly recommend that users do not _oversubscribe_ threads to CPUs,
-since this has been seen to induce significant GC latency and slow scan times.
-(Doing so will log a warning in debug mode.)
-
-The default jobs value is derived from the number of logical cores that are
-detected by Semgrep, scaled by 0.85.
-|}
-  in
-  Arg.value (Arg.opt num_jobs_arg default.core_runner_conf.num_jobs info)
-
-let o_max_memory_mb : int Term.t =
-  let default = default.core_runner_conf.max_memory_mb in
-  let info =
-    Arg.info [ "max-memory" ]
-      ~doc:
-        {|Maximum system memory in MiB to use during the interfile pre-processing
-phase, or when running a rule on a single file. If set to 0, will
-not have memory limit. Defaults to 0. For CI scans that use the Pro Engine,
-defaults to 5000 MiB.
-|}
-  in
-  Arg.value (Arg.opt Arg.int default info)
-
-let o_x_mem_policy : string option Term.t =
-  let info =
-    Arg.info [ "x-mem-policy" ]
-      ~doc:"[INTERNAL] Heap and GC tuning policy. Only affects the Pro Engine."
-  in
-  Arg.value (Arg.opt (Arg.some Arg.string) None info)
-
-let o_optimizations : bool Term.t =
+let o_optimizations : bool option Term.t =
   let parse = function
-    | "all" -> Ok true
-    | "none" -> Ok false
-    | other -> Error (spf "unsupported value %S" other)
+    | "all" -> Ok (Some true)
+    | "none" -> Ok (Some false)
+    | str ->
+        Error
+          ("Invalid value for --optimizations: " ^ str
+         ^ ", expected 'all' or 'none'")
   in
   let print fmt = function
-    | true -> Format.pp_print_string fmt "all"
-    | false -> Format.pp_print_string fmt "none"
+    | Some true -> Format.pp_print_string fmt "all"
+    | Some false -> Format.pp_print_string fmt "none"
+    | None -> Format.pp_print_string fmt "none"
   in
   let converter = Arg.conv' (parse, print) in
   let info =
@@ -468,11 +376,16 @@ a TTY; defaults to using the TTY status
 |}
 
 let o_max_chars_per_line : int Term.t =
+  let default = default.output_conf.max_chars_per_line in
   let info =
     Arg.info [ "max-chars-per-line" ]
-      ~doc:"Maximum number of characters to show per line."
+      ~doc:
+        (spf
+           {|Maximum number of characters to show per line.
+Set to 0 for unlimited. Defaults to %d.|}
+           default)
   in
-  Arg.value (Arg.opt Arg.int default.output_conf.max_chars_per_line info)
+  Arg.value (Arg.opt Arg.int default info)
 
 let o_max_lines_per_finding : int Term.t =
   let info =
