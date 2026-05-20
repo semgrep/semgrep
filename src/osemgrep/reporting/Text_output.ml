@@ -449,7 +449,7 @@ let matches_output ~max_chars_per_line ~max_lines_per_finding
 let text_output ~max_chars_per_line ~max_lines_per_finding
     (cli_output : Out.cli_output) : string =
   let groups : (report_group, Out.cli_match list) Assoc.t =
-    cli_output.results |> Semgrep_output_utils.sort_cli_matches
+    cli_output.results |> List.filter (fun (m : Out.cli_match) -> m.extra.is_ignored <> Some true) |> Semgrep_output_utils.sort_cli_matches
     |> Assoc.group_by (fun (m : Out.cli_match) ->
         match Product.of_cli_match m with
         | `SCA -> (
