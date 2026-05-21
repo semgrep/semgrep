@@ -60,3 +60,18 @@ def test_nosem_rule__with_disable_nosem(run_semgrep_in_tmp: RunSemgrep, posix_sn
         run_semgrep_in_tmp("rules/nosem.yaml", options=["--disable-nosem"]).stdout,
         "results.json",
     )
+
+
+# Regression for the --error exit-code path: on a target with only
+# nosemgrep-suppressed matches, --disable-nosem should treat them as real
+# findings (user explicitly opted out of suppression) and exit non-zero.
+@pytest.mark.kinda_slow
+def test_disable_nosem_error_exit_on_suppressed_only_target(
+    run_semgrep_in_tmp: RunSemgrep,
+):
+    run_semgrep_in_tmp(
+        "rules/nosem.yaml",
+        target_name="nosem_only/suppressed-only.py",
+        options=["--disable-nosem", "--error"],
+        assert_exit_code=1,
+    )

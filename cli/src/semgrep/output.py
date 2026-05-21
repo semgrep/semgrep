@@ -219,8 +219,10 @@ class OutputHandler:
     def __init__(
         self,
         output_settings: OutputSettings,
+        disable_nosem: bool = False,
     ):
         self.settings: NormalizedOutputSettings = output_settings.normalize()
+        self.disable_nosem = disable_nosem
 
         self.rule_matches: List[RuleMatch] = []
         self.all_targets: Set[TargetInfo] = set()
@@ -394,6 +396,16 @@ class OutputHandler:
             )
         )
 
+    def _matches_for_display(self) -> List[RuleMatch]:
+        # nosemgrep-suppressed matches are kept in self.rule_matches so that
+        # formatters that opt in (e.g. SARIF) can still see them. Strip them
+        # here for any consumer that just wants the user-visible matches.
+        # --disable-nosem bypasses the filter: the user explicitly opted out
+        # of nosemgrep, so suppression should not apply anywhere.
+        if self.disable_nosem:
+            return self.rule_matches
+        return [m for m in self.rule_matches if not m.match.extra.is_ignored]
+
     # TODO: why run_scan.scan() calls output() to set the fields why
     # run_scan.run_scan_and_return_json() modify directly the fields instead?
     def output(
@@ -453,7 +465,8 @@ class OutputHandler:
 
         final_error = None
         any_findings_not_ignored = any(
-            not rm.match.extra.is_ignored for rm in self.rule_matches
+            self.disable_nosem or not rm.match.extra.is_ignored
+            for rm in self.rule_matches
         )
 
         if self.final_error:
@@ -495,7 +508,7 @@ class OutputHandler:
 
         if self.filtered_rules:
             fingerprint_matches, regular_matches = partition(
-                self.rule_matches,
+                self._matches_for_display(),
                 lambda m: m.severity
                 in [
                     out.MatchSeverity(out.Inventory()),
@@ -716,9 +729,18 @@ class OutputHandler:
 
         state = get_state()
         formatter = self._formatters[output_destination]
+        # If this formatter doesn't want suppressed matches, strip them. The
+        # global filter_ignored in run_scan.py keeps them whenever any
+        # registered formatter requests them (e.g. SARIF), so without this
+        # they would leak into formatters that don't (e.g. text on stdout).
+        matches_for_formatter = (
+            self.rule_matches
+            if formatter.keep_ignores()
+            else self._matches_for_display()
+        )
         output = formatter.output(  # the rules are used only by the SARIF formatter
             self.rules,
-            self.rule_matches,
+            matches_for_formatter,
             self.semgrep_structured_errors,
             cli_output_extra,
             extra,
