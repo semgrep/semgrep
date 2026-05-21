@@ -242,6 +242,9 @@ install-deps-for-semgrep-core:
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
+# semgrep-core* are dynamically linked, but semgrep-forge is still statically
+# linked. On Alpine, that requires a minimal libcurl.a plus the static apk
+# variants of libssl/libcrypto/libz. No-op on non-Alpine systems.
 	./scripts/build-static-libcurl.sh
 	$(MAKE) install-opam-deps
 
