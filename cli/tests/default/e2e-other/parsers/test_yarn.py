@@ -37,6 +37,10 @@ from semdep.parsers import yarn
             ),
             ("@tailwindcss/postcss7-compat", ""),
         ),
+        (
+            ("resolve", "patch:resolve@^1.1.7#~builtin<compat/resolve>"),
+            ("resolve", "patch:resolve@^1.1.7#~builtin<compat/resolve>"),
+        ),
     ],
 )
 def test_dep_version_pair(original, expected) -> None:
