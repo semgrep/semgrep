@@ -1,0 +1,26 @@
+[
+  {
+    "package": "@babel/generator",
+    "version": "7.17.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "2987dbebb484727a227f1ce3db90810320986cfb3ffd23e6d1d87f75bbd8e7871b5bc44252822d4d5f048a2d872a5702b2a9bf7bab7e07f087d7f306f0ea6c0a"
+      ]
+    },
+    "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/yarn_explicit_key_patch.v2/yarn.lock",
+    "line_number": 8,
+    "children": []
+  },
+  {
+    "package": "resolve",
+    "version": "1.22.10",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/yarn_explicit_key_patch.v2/yarn.lock",
+    "line_number": 15,
+    "children": []
+  }
+]
