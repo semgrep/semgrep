@@ -718,7 +718,9 @@ def ci(
             dataflow_traces=dataflow_traces,
             max_log_list_entries=max_log_list_entries,
         )
-        output_handler = OutputHandler(output_settings)
+        output_handler = OutputHandler(
+            output_settings, disable_nosem=(not enable_nosem)
+        )
 
         per_product_excludes = {
             product: [*exclude] if exclude else [] for product in ALL_PRODUCTS
@@ -982,6 +984,10 @@ def ci(
         non_cai_matches_by_rule: RuleMatchMap = defaultdict(list)
         blocking_matches: List[RuleMatch] = []
         nonblocking_matches: List[RuleMatch] = []
+        # TODO: cai_matches is appended to below but never read anywhere in
+        # this file. Either wire it into something (logging, telemetry) or
+        # drop it and replace the append with `pass`/`_ = match` for
+        # symmetry with the CAI branch in the rule partition above.
         cai_matches: List[RuleMatch] = []
 
         # Remove the prev scan matches by the rules that are in the current scan
@@ -1003,15 +1009,22 @@ def ci(
                 ]
 
             for match in matches:
-                applicable_result_list = (
-                    cai_matches
-                    if "r2c-internal-cai" in rule.id
-                    else blocking_matches
-                    if match.is_blocking
-                    else nonblocking_matches
-                )
-                applicable_result_list.append(match)
-                if "r2c-internal-cai" not in rule.id:
+                is_cai = "r2c-internal-cai" in rule.id
+                # Nosemgrep-suppressed matches must not be bucketed as
+                # blocking/nonblocking (they should not fail the scan), but
+                # they still need to reach output_handler.output() so the
+                # SARIF formatter can emit them with `suppressions` entries.
+                is_suppressed = enable_nosem and match.match.extra.is_ignored
+                if not is_suppressed:
+                    applicable_result_list = (
+                        cai_matches
+                        if is_cai
+                        else blocking_matches
+                        if match.is_blocking
+                        else nonblocking_matches
+                    )
+                    applicable_result_list.append(match)
+                if not is_cai:
                     non_cai_matches_by_rule[rule].append(match)
 
         num_nonblocking_findings = len(nonblocking_matches)
