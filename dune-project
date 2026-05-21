@@ -49,10 +49,6 @@ For more information see https://semgrep.dev
 ; semgrep.opam.template to the local version, so we don't have to worry about
 ; publishing to opam. If you want to add another, add it below and pin it there
 ;
-; coupling: because of the way we need to statically link on macOS, if you add a
-; library here, you'll probably need to update src/main/flags.sh if this library
-; has some C stubs.
-;
 ; coupling: if you add a dependency here and the nix workflow fails, you may
 ; need to manually trigger the "nix-weekly-update-flake" workflow
   (depends

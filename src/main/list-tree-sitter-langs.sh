@@ -4,6 +4,9 @@
 # This runs from the project root and looks for tree-sitter parsers
 # in the standard locations.
 #
+# Now only used by src/experiments/forge/, which still links every
+# tree-sitter language stub statically. The main semgrep-core binaries
+# are now dynamically linked and no longer need this list.
 set -eu
 
 # Paths are relative to the project root which can be
