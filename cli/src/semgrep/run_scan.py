@@ -1706,7 +1706,9 @@ def run_scan_and_return_json(
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
 
     StringIO()
-    output_handler = OutputHandler(output_settings)
+    output_handler = OutputHandler(
+        output_settings, disable_nosem=kwargs.get("disable_nosem", False)
+    )
     (
         filtered_matches_by_rule,
         _,
