@@ -153,9 +153,9 @@ let test_truncate_rule_id_over_limit () =
   let result = Sarif_output.truncate_rule_id id in
   Alcotest.(check int) __LOC__ 255 (String.length result);
   (* First 247 chars are the original prefix *)
-  Alcotest.(check string) __LOC__ (String.make 247 'x') (String.sub result 0 247);
-  (* Last 8 chars are the MD5 hash suffix, not the naive truncation *)
-  Alcotest.(check string) __LOC__ "ade735f7" (String.sub result 247 8);
+  Alcotest.(check string) __LOC__ (String.make 247 'x') (Str.first_chars result 247);
+  (* Last 8 chars are the SHA-256 hash suffix, not the naive truncation *)
+  Alcotest.(check string) __LOC__ "1b41fd70" (String.sub result 247 8);
   Alcotest.(check bool) __LOC__ false (result = String.make 255 'x')
 
 let test_truncate_rule_id_no_collision () =

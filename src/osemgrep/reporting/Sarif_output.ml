@@ -130,13 +130,12 @@ let truncate_rule_id (id : string) : string =
   if String.length id <= sarif_max_rule_id_length then id
   else
     (* Append an 8-hex-char SHA-256 suffix instead of plain truncation so
-       that two rule IDs sharing a long common prefix stay distinct. The
-       bounds check above guarantees String.sub is safe here. *)
+       that two rule IDs sharing a long common prefix stay distinct. *)
     let prefix =
-      String.sub id 0 (sarif_max_rule_id_length - sarif_rule_id_hash_len)
+      Str.first_chars id (sarif_max_rule_id_length - sarif_rule_id_hash_len)
     in
     let hash = Digestif.SHA256.(to_hex (digest_string id)) in
-    prefix ^ String.sub hash 0 sarif_rule_id_hash_len
+    prefix ^ Str.first_chars hash sarif_rule_id_hash_len
 
 (* We want to produce a JSON object with the following shape:
    { id; name;
