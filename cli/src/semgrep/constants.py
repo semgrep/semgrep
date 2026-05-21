@@ -24,11 +24,10 @@ PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. P
 
 DEFAULT_SEMGREP_APP_CONFIG_URL = "api/agent/deployments/scans/config"
 
-DEFAULT_TIMEOUT = (
-    5  # seconds, coupling: keep up-to-date with Scan_CLI.ml and User_settings.ml
-)
+# coupling: keep defaults up-to-date with Scan_CLI.ml and User_settings.ml
+DEFAULT_TIMEOUT = 5  # seconds,
 DEFAULT_PRO_TIMEOUT_CI = 10800  # seconds
-DEFAULT_MAX_MEMORY_PRO_CI = 5000  # MiB
+DEFAULT_MAX_MEMORY_PRO_CI = 8 * 1024  # MiB
 
 SETTINGS_FILENAME = "settings.yml"
 
