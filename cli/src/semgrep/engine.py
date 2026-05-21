@@ -127,10 +127,25 @@ class EngineType(Enum):
         )
         return output.rstrip()
 
-    @property
     def default_max_memory(self) -> int:
         """Interfile uses a lot of memory, so it should have a safe default limit."""
         if self == EngineType.PRO_INTERFILE:
+            # TODO: consider the right thing for MacOS or Windows.
+            # Linux: memory.max either holds a value in bytes, or "max" for unlimited.
+            try:
+                raw = Path("/sys/fs/cgroup/memory.max").read_text().strip()
+                if raw != "max":
+                    mib = int(raw) // 1024 // 1024
+                    budget = int(mib * 0.9)
+                    if budget < 1024:
+                        logger.warning(
+                            f"Detected an unusually-low cgroup memory limit of {mib} MiB."
+                            f"Using {budget} MiB as the max-memory budget; on out-of-memory"
+                            "errors or other scan failures, consider increasing container resources."
+                        )
+                    return budget
+            except (OSError, ValueError):
+                pass
             return DEFAULT_MAX_MEMORY_PRO_CI
         return 0  # unlimited
 
