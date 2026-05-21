@@ -377,8 +377,8 @@ let o_max_memory_mb : int Term.t =
         {|Maximum system memory in MiB to use during the interfile pre-processing
 phase, or when running a rule on a single file. If set to 0, will
 not have memory limit. Defaults to 0. For CI scans that use the Pro Engine,
-defaults to either 90 percent of the container's available memory; or simply 8 GiB
-if querying the available system memory is otherwise impossible.
+defaults to either 90 percent of the container's available memory; or 8 GiB
+if querying the available system memory is not feasible.
 |}
   in
   Arg.value (Arg.opt Arg.int default info)
