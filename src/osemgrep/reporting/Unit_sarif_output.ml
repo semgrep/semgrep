@@ -13,15 +13,15 @@
 *)
 module Out = Semgrep_output_v1_t
 
-(*****************************************************************************)
+(****************************************************************************)
 (* Prelude *)
-(*****************************************************************************)
+(****************************************************************************)
 
 let t = Testo.create
 
-(*****************************************************************************)
+(****************************************************************************)
 (* Helpers *)
-(*****************************************************************************)
+(****************************************************************************)
 
 let pos line col = Out.{ line; col; offset = 0 }
 let fpath_of_string_opt s = Fpath.of_string s |> Result.to_option
@@ -55,9 +55,9 @@ let fpath = Alcotest.testable Fpath.pp Fpath.equal
 let nesting_of_tfl (tfl : Sarif.Sarif_v_2_1_0_t.thread_flow_location) =
   Option.value tfl.nesting_level ~default:(-1L)
 
-(*****************************************************************************)
+(****************************************************************************)
 (* Tests *)
-(*****************************************************************************)
+(****************************************************************************)
 
 let test_cliloc_one_location () =
   let call_trace = Out.CliLoc (loc "src/foo.py" 4 13 17, "event") in
@@ -152,19 +152,35 @@ let test_truncate_rule_id_over_limit () =
   let id = String.make 327 'x' in
   let result = Sarif_output.truncate_rule_id id in
   Alcotest.(check int) __LOC__ 255 (String.length result);
-  Alcotest.(check string) __LOC__ (String.make 255 'x') result
+  (* First 247 chars are the original prefix *)
+  Alcotest.(check string) __LOC__ (String.make 247 'x') (String.sub result 0 247);
+  (* Last 8 chars are the MD5 hash suffix, not the naive truncation *)
+  Alcotest.(check string) __LOC__ "ade735f7" (String.sub result 247 8);
+  Alcotest.(check bool) __LOC__ false (result = String.make 255 'x')
+
+let test_truncate_rule_id_no_collision () =
+  (* Two IDs sharing a long common prefix must produce distinct truncated IDs.
+     This is the case that plain truncation fails on. *)
+  let id1 = String.make 300 'x' ^ "1" in
+  let id2 = String.make 300 'x' ^ "2" in
+  Alcotest.(check bool) __LOC__ true
+    (Sarif_output.truncate_rule_id id1 <> Sarif_output.truncate_rule_id id2)
 
 let test_truncate_rule_id () =
   Testo.categorize "truncate_rule_id"
     [
-      t "short ID unchanged" test_truncate_rule_id_short;
-      t "ID at 255 chars unchanged" test_truncate_rule_id_at_limit;
-      t "ID over 255 chars truncated to 255" test_truncate_rule_id_over_limit;
+      t "short ID passes through unchanged" test_truncate_rule_id_short;
+      t "ID of exactly 255 chars passes through unchanged"
+        test_truncate_rule_id_at_limit;
+      t "ID over 255 chars: length 255, correct prefix and hash suffix"
+        test_truncate_rule_id_over_limit;
+      t "two long IDs with common prefix produce distinct truncated IDs"
+        test_truncate_rule_id_no_collision;
     ]
 
-(*****************************************************************************)
+(****************************************************************************)
 (* Entry point *)
-(*****************************************************************************)
+(****************************************************************************)
 
 let tests =
   Testo.categorize_suites "Sarif output"

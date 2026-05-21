@@ -19,7 +19,7 @@ val sarif_output :
   show_dataflow_traces:bool ->
   Sarif.Sarif_v_2_1_0_t.sarif_json_schema
 
-(**/**)
+(**/**)  
 
 val call_trace_to_locations :
   int ->
@@ -30,6 +30,9 @@ val call_trace_to_locations :
     [CliCall] boundary. *)
 
 val truncate_rule_id : string -> string
-(** Exposed for testing. Truncates a rule ID to at most 255 characters so that
-    SARIF output can be uploaded to GitHub (which rejects IDs longer than 255).
+(** Exposed for testing. If [id] is at most 255 characters, returns it
+    unchanged. Otherwise returns a 255-character string: the first 247
+    characters of [id] followed by the first 8 hex digits of its MD5 hash.
+    Using a hash suffix instead of plain truncation ensures that two rule IDs
+    sharing a long common prefix produce distinct output.
     See https://github.com/semgrep/semgrep/issues/10941 *)

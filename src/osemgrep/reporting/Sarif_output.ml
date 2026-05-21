@@ -14,9 +14,9 @@ open Common
 module Out = Semgrep_output_v1_t
 module Sarif = Sarif.Sarif_v_2_1_0_v
 
-(*****************************************************************************)
+(****************************************************************************)
 (* Prelude *)
-(*****************************************************************************)
+(****************************************************************************)
 (* Formats the CLI output to the SARIF format using the sarif OPAM package.
  *
  * Originally written based on:
@@ -33,9 +33,9 @@ module Sarif = Sarif.Sarif_v_2_1_0_v
  * Ported from formatters/sarif.py
  *)
 
-(*****************************************************************************)
+(****************************************************************************)
 (* Helpers *)
-(*****************************************************************************)
+(****************************************************************************)
 
 (* SARIF v2.1.0-compliant severity string.
  * See the "level" property in the spec
@@ -121,6 +121,22 @@ let tags_of_metadata metadata =
   let all_tags = cwe @ owasp @ confidence @ semgrep_policy_slug @ tags in
   List.sort_uniq String.compare all_tags
 
+(* GitHub SARIF upload rejects rule IDs longer than 255 characters.
+   See https://github.com/semgrep/semgrep/issues/10941 *)
+let sarif_max_rule_id_length = 255
+let sarif_rule_id_hash_len = 8
+
+let truncate_rule_id (id : string) : string =
+  if String.length id <= sarif_max_rule_id_length then id
+  else
+    (* Append an 8-hex-char MD5 suffix instead of plain truncation so that
+       two rule IDs sharing a long common prefix stay distinct. *)
+    let prefix =
+      String.sub id 0 (sarif_max_rule_id_length - sarif_rule_id_hash_len)
+    in
+    let hash = Digest.string id |> Digest.to_hex in
+    prefix ^ String.sub hash 0 sarif_rule_id_hash_len
+
 (* We want to produce a JSON object with the following shape:
    { id; name;
      defaultConfiguration = { level };
@@ -129,14 +145,6 @@ let tags_of_metadata metadata =
      properties
    }
 *)
-(* GitHub SARIF upload rejects rule IDs longer than 255 characters.
-   See https://github.com/semgrep/semgrep/issues/10941 *)
-let sarif_max_rule_id_length = 255
-
-let truncate_rule_id (id : string) : string =
-  if String.length id <= sarif_max_rule_id_length then id
-  else Str.first_chars id sarif_max_rule_id_length
-
 let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     Sarif.reporting_descriptor =
   ignore ctx;
@@ -144,7 +152,8 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
    * including the severity of the finding is stored within "rules".
    * The results then reference the ID of the rule
    *)
-  let rule_id_str = truncate_rule_id (Rule_ID.to_string (fst rule.id)) in
+  let full_rule_id_str = Rule_ID.to_string (fst rule.id) in
+  let rule_id_str = truncate_rule_id full_rule_id_str in
   let default_configuration =
     Sarif.create_reporting_configuration
       ~level:(severity_of_severity rule.severity)
@@ -156,7 +165,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     match JSON.member "shortDescription" metadata with
     | Some (JSON.String shortDescription) -> shortDescription
     | Some _ -> raise Impossible
-    | None -> spf "Semgrep Finding: %s" rule_id_str
+    | None -> spf "Semgrep Finding: %s" full_rule_id_str
   in
   (*
   In a Semgrep rule's metadata section, two fields may provide URLs:
@@ -201,7 +210,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     @ security_severity
   in
   (* nudge *)
-  let nudge_base = "💎 Enable cross-file analysis and Pro rules for free at"
+  let nudge_base = "\xF0\x9F\x92\x8E Enable cross-file analysis and Pro rules for free at"
   and nudge_url = "sg.run/pro" in
   let nudge_plaintext = spf "\n%s %s" nudge_base nudge_url
   and nudge_md =
@@ -233,7 +242,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     | [] -> ""
     | xs -> "\n\n<b>References:</b>\n" ^ String.concat "" xs
   in
-  Sarif.create_reporting_descriptor ~id:rule_id_str ~name:rule_id_str
+  Sarif.create_reporting_descriptor ~id:rule_id_str ~name:full_rule_id_str
     ~short_description:(multiformat_message short_description)
     ~full_description:(multiformat_message rule.message)
     ~default_configuration
@@ -467,9 +476,9 @@ let error_to_sarif_notification (e : Out.cli_error) =
   in
   Sarif.create_notification ~message ~descriptor ~level ()
 
-(*****************************************************************************)
+(****************************************************************************)
 (* Entry point *)
-(*****************************************************************************)
+(****************************************************************************)
 
 let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
     (cli_output : Out.cli_output) ~is_pro ~show_dataflow_traces :
