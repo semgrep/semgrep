@@ -85,15 +85,31 @@ def create_dependency_dict(
     return dependency_dict
 
 
+# Yarn protocol prefixes that resolve to a non-npm source. When a version
+# field starts with one of these, the version may still contain '@' (e.g.
+# "patch:resolve@^1.1.7#~builtin<compat/resolve>") but it is NOT npm
+# aliasing and must not be split on '@'.
+_NON_NPM_PROTOCOL_PREFIXES = (
+    "patch:",
+    "file:",
+    "workspace:",
+    "git:",
+    "git+",
+    "ssh://",
+    "https://",
+    "http://",
+)
+
+
 def dep_version_pair(dep: str, version: str) -> Tuple[str, str]:
     """
     Given a dependency and a version, return a tuple of the dependency and version
     """
     stripped_version = remove_npm_prefix(version)
+    if stripped_version.startswith(_NON_NPM_PROTOCOL_PREFIXES):
+        return (dep, stripped_version)
     split_stripped_version = stripped_version.split("@")
-    if len(split_stripped_version) > 1 and not (
-        "ssh://" in split_stripped_version[0] or "https://" in split_stripped_version[0]
-    ):  # Detect npm aliasing
+    if len(split_stripped_version) > 1:  # Detect npm aliasing
         if (
             split_stripped_version[0] == ""
         ):  # Indicates that the package being aliased is scoped itself - use the next element for the package name instead
@@ -216,7 +232,12 @@ source2 = pair(
 # Examples:
 # "@apidevtools/json-schema-ref-parser@npm:9.0.9"
 # "@babel/generator@npm:^7.12.11, @babel/generator@npm:^7.12.5, @babel/generator@npm:^7.18.10"
-multi_source2 = quoted(source2.sep_by(string(", ")))
+#
+# Yarn Berry also emits a multi-line form inside a YAML explicit-key block,
+# where descriptors are separated by `,\n  ` (comma, newline, two-space
+# continuation indent) instead of `, `. See SC-3479.
+key_separator2 = string(", ") | regex(r",\n  ")
+multi_source2 = quoted(source2.sep_by(key_separator2))
 
 # Examples:
 #   version: 7.18.10
@@ -254,9 +275,15 @@ dependencies2 = (
 #   checksum: 2987dbebb484727a227f1ce3db90810320986cfb3ffd23e6d1d87f75bbd8e7871b5bc44252822d4d5f048a2d872a5702b2a9bf7bab7e07f087d7f306f0ea6c0a
 #   languageName: node
 #   linkType: hard
+# Yarn Berry emits two forms for the key half of an entry:
+#   Inline:        "k1, k2":\n   ...
+#   Explicit-key:  ? "k1,\n  k2"\n:\n   ...
+# The explicit-key form is YAML's way of writing keys too long for one line,
+# and Yarn uses it for comma-joined patch: descriptors. See SC-3479.
+key_terminator2 = string("\n:\n") | string(":\n")
 yarn_dep2 = mark_line(
     pair(
-        multi_source2 << string(":\n"),
+        string("? ").optional() >> multi_source2 << key_terminator2,
         key_value2.sep_by(string("\n")).bind(
             lambda dep_info: dependencies2.map(
                 lambda deps: create_dependency_dict(
