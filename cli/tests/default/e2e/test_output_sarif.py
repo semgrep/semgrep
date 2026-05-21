@@ -11,6 +11,7 @@
 # LICENSE for more details.
 #
 import json
+from pathlib import Path
 
 import pytest
 from tests.conftest import skip_on_windows
@@ -110,6 +111,103 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, posix_sn
         ).stdout,
         "results.sarif",
     )
+
+
+# Regression for https://github.com/semgrep/semgrep/issues/11715:
+# when --sarif-output is used alongside the default terminal text output,
+# nosemgrep-suppressed findings must not appear in the terminal text or
+# inflate the summary count. The SARIF-side "suppressed matches preserved
+# with a `suppressions` attribute" half of the contract is covered by
+# test_sarif_output_include_nosemgrep above.
+@pytest.mark.kinda_slow
+@skip_on_windows
+def test_text_terminal_filters_nosemgrep_with_sarif_output(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path: Path
+):
+    sarif_path = tmp_path / "out.sarif"
+    result = run_semgrep_in_tmp(
+        "rules/regex/regex-nosemgrep.yaml",
+        target_name="basic/regex-nosemgrep.txt",
+        # No --sarif/--json flag: leave the default terminal text output.
+        output_format=None,
+        options=["--sarif-output", str(sarif_path)],
+        is_logged_in_weak=True,
+    )
+
+    # The target has two matches: the suppressed line ends with `# nosemgrep`,
+    # the non-suppressed line does not. Only the non-suppressed one should
+    # appear in the terminal text output.
+    assert "aws_account_id:123456789012" in result.stdout, result.stdout
+    assert "# nosemgrep" not in result.stdout, result.stdout
+    # The scan-summary line (stderr) should also count one finding, not two.
+    # Use the trailing "Ran ... finding" line because it appears in both
+    # pysemgrep and osemgrep summary formats.
+    assert "Ran 1 rule on 1 file: 1 finding." in result.stderr, result.stderr
+
+
+# Pins the per-formatter contract introduced by the engine-1824 fix: any
+# concurrent non-SARIF file output strips suppressed matches while SARIF
+# retains them. Without this test, a future regression where the JSON
+# formatter (or any other non-SARIF formatter) silently keeps suppressed
+# matches would not be caught by the text-only test above.
+# osemfail: osemgrep does not write --json-output files (see
+# test_additional_outputs_with_format_flag in test_output.py).
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+@skip_on_windows
+def test_sarif_output_with_json_output_filters_nosemgrep_from_json(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path: Path
+):
+    sarif_path = tmp_path / "out.sarif"
+    json_path = tmp_path / "out.json"
+    run_semgrep_in_tmp(
+        "rules/regex/regex-nosemgrep.yaml",
+        target_name="basic/regex-nosemgrep.txt",
+        output_format=None,
+        options=[
+            "--sarif-output",
+            str(sarif_path),
+            "--json-output",
+            str(json_path),
+        ],
+        is_logged_in_weak=True,
+    )
+
+    json_out = json.loads(json_path.read_text())
+    assert len(json_out["results"]) == 1, json_out["results"]
+
+    sarif = json.loads(sarif_path.read_text())
+    results = sarif["runs"][0]["results"]
+    assert len(results) == 2, results
+    suppressed = [r for r in results if r.get("suppressions")]
+    assert len(suppressed) == 1, results
+
+
+# Pins the load-bearing `disable_nosem` branch in OutputHandler: when the
+# user explicitly passes --disable-nosem, suppressed matches must reach
+# the terminal text output and count toward the summary, even when a
+# concurrent --sarif-output keeps them upstream.
+@pytest.mark.kinda_slow
+@skip_on_windows
+def test_disable_nosem_includes_suppressed_in_text_when_sarif_output_present(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path: Path
+):
+    sarif_path = tmp_path / "out.sarif"
+    result = run_semgrep_in_tmp(
+        "rules/regex/regex-nosemgrep.yaml",
+        target_name="basic/regex-nosemgrep.txt",
+        output_format=None,
+        options=["--disable-nosem", "--sarif-output", str(sarif_path)],
+        is_logged_in_weak=True,
+    )
+
+    # Both matches should reach the terminal text output, including the
+    # one annotated with `# nosemgrep`.
+    assert "aws_account_id = 123456789012" in result.stdout, result.stdout
+    assert "aws_account_id:123456789012" in result.stdout, result.stdout
+    # And the summary should count both. Use the trailing "Ran ... findings"
+    # line because it appears in both pysemgrep and osemgrep summary formats.
+    assert "Ran 1 rule on 1 file: 2 findings." in result.stderr, result.stderr
 
 
 # Test that rule board information makes its way into SARIF output

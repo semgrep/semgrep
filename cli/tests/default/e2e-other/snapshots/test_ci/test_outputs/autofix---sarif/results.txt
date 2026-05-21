@@ -641,7 +641,7 @@
 │ Scan Summary │
 └──────────────┘
 ✅ CI scan completed successfully.
- • Findings: 13 (10 blocking)
+ • Findings: 8 (6 blocking)
  • Rules run: 7
  • Targets scanned: 3
  • Parsed lines: ~100.0%

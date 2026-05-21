@@ -999,7 +999,9 @@ def scan(
 
             scanning_roots = write_pipes_to_disk(scanning_roots, Path(pipes_dir))
 
-            output_handler = OutputHandler(output_settings)
+            output_handler = OutputHandler(
+                output_settings, disable_nosem=(not enable_nosem)
+            )
             return_data: Optional[ScanResult] = None
 
             if validate:

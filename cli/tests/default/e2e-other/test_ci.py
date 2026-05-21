@@ -1753,6 +1753,54 @@ def test_nosem(
     )
 
 
+# Regression for ENGINE-1824: `semgrep ci --sarif-output` must preserve
+# nosemgrep-suppressed findings in the SARIF file with `suppressions`
+# entries, not drop them entirely. The bucketing in commands/ci.py must
+# exclude suppressed matches only from the blocking/nonblocking exit-code
+# counters, while still routing them to OutputHandler so the SARIF
+# formatter (keep_ignores()=True) can emit them.
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail  # osemgrep does not write --sarif-output files
+def test_ci_sarif_output_preserves_nosemgrep_suppressions(
+    git_tmp_path_with_commit,
+    mock_autofix,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    sarif_path = "out.sarif"
+    run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--enable-nosem",
+            "--sarif-output",
+            sarif_path,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    sarif = json.loads(Path(sarif_path).read_text())
+    results = sarif["runs"][0]["results"]
+    suppressed = [r for r in results if r.get("suppressions")]
+    # foo.py contains several `# nosemgrep` annotations; the SARIF file
+    # must retain those matches with `suppressions` entries rather than
+    # dropping them as the pre-fix ci.py path did.
+    assert len(suppressed) > 0, results
+    for r in suppressed:
+        assert r["suppressions"] == [{"kind": "inSource"}], r
+
+
 @pytest.mark.parametrize(
     "scan_config",
     [GENERIC_SECRETS_AND_REAL_RULE],
