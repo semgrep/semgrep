@@ -14,9 +14,9 @@ open Common
 module Out = Semgrep_output_v1_t
 module Sarif = Sarif.Sarif_v_2_1_0_v
 
-(****************************************************************************)
+(*****************************************************************************)
 (* Prelude *)
-(****************************************************************************)
+(*****************************************************************************)
 (* Formats the CLI output to the SARIF format using the sarif OPAM package.
  *
  * Originally written based on:
@@ -33,9 +33,9 @@ module Sarif = Sarif.Sarif_v_2_1_0_v
  * Ported from formatters/sarif.py
  *)
 
-(****************************************************************************)
+(*****************************************************************************)
 (* Helpers *)
-(****************************************************************************)
+(*****************************************************************************)
 
 (* SARIF v2.1.0-compliant severity string.
  * See the "level" property in the spec
@@ -129,12 +129,13 @@ let sarif_rule_id_hash_len = 8
 let truncate_rule_id (id : string) : string =
   if String.length id <= sarif_max_rule_id_length then id
   else
-    (* Append an 8-hex-char MD5 suffix instead of plain truncation so that
-       two rule IDs sharing a long common prefix stay distinct. *)
+    (* Append an 8-hex-char SHA-256 suffix instead of plain truncation so
+       that two rule IDs sharing a long common prefix stay distinct. The
+       bounds check above guarantees String.sub is safe here. *)
     let prefix =
       String.sub id 0 (sarif_max_rule_id_length - sarif_rule_id_hash_len)
     in
-    let hash = Digest.string id |> Digest.to_hex in
+    let hash = Digestif.SHA256.(to_hex (digest_string id)) in
     prefix ^ String.sub hash 0 sarif_rule_id_hash_len
 
 (* We want to produce a JSON object with the following shape:
@@ -203,14 +204,19 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
   in
   let properties =
     let tags = tags_of_metadata metadata in
-    [
-      ("precision", `String "very-high");
-      ("tags", `List (List.map (fun s -> `String s) tags));
-    ]
-    @ security_severity
+    let base =
+      [
+        ("precision", `String "very-high");
+        ("tags", `List (List.map (fun s -> `String s) tags));
+      ]
+      @ security_severity
+    in
+    if rule_id_str <> full_rule_id_str then
+      base @ [ ("original-rule-id", `String full_rule_id_str) ]
+    else base
   in
   (* nudge *)
-  let nudge_base = "\xF0\x9F\x92\x8E Enable cross-file analysis and Pro rules for free at"
+  let nudge_base = "💎 Enable cross-file analysis and Pro rules for free at"
   and nudge_url = "sg.run/pro" in
   let nudge_plaintext = spf "\n%s %s" nudge_base nudge_url
   and nudge_md =
@@ -242,7 +248,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     | [] -> ""
     | xs -> "\n\n<b>References:</b>\n" ^ String.concat "" xs
   in
-  Sarif.create_reporting_descriptor ~id:rule_id_str ~name:full_rule_id_str
+  Sarif.create_reporting_descriptor ~id:rule_id_str ~name:rule_id_str
     ~short_description:(multiformat_message short_description)
     ~full_description:(multiformat_message rule.message)
     ~default_configuration
@@ -476,9 +482,9 @@ let error_to_sarif_notification (e : Out.cli_error) =
   in
   Sarif.create_notification ~message ~descriptor ~level ()
 
-(****************************************************************************)
+(*****************************************************************************)
 (* Entry point *)
-(****************************************************************************)
+(*****************************************************************************)
 
 let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
     (cli_output : Out.cli_output) ~is_pro ~show_dataflow_traces :
