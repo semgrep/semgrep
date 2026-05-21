@@ -674,7 +674,7 @@ def ci(
             dataflow_traces = engine_type.has_dataflow_traces
 
         if max_memory is None:
-            max_memory = engine_type.default_max_memory
+            max_memory = engine_type.default_max_memory()
 
         if interfile_timeout is None:
             interfile_timeout = engine_type.default_interfile_timeout
