@@ -1,2 +1,0 @@
-Fixed a yarn.lock parse error on Yarn Berry entries written
-in YAML explicit-key form. Affected lockfiles previously failed to parse.
