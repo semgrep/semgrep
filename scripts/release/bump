@@ -147,7 +147,7 @@ fi
 
 bump
 
-if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core/Version.ml\|../scripts/run-pro-benchmarks.sh\|cli/pyproject.toml\|cli/uv.lock'; then
+if git status -s | grep -vq 'cli/src/semgrep/__init__.py\|cli/setup.py\|setup.py\|src/core/Version.ml\|../scripts/run-pro-benchmarks.sh\|cli/pyproject.toml\|cli/uv.lock\|cli/src/semgrep/semgrep_interfaces/\.semgrep-version'; then
   error <<EOF
 The release branch contains unexpected changes, cancelling release.
 EOF
