@@ -1,0 +1,1 @@
+Fixed a bug that could cause unreliable target filtering in parallel scans.
