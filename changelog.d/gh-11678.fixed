@@ -1,4 +1,0 @@
-Dart: improved parser fidelity for Dart 3 grammar features and routed
-pattern parsing for statements beginning with `await`, `rethrow`, and other
-statement keywords. Eliminates a large class of `PartialParsing` errors on
-real-world pub.dev packages.
