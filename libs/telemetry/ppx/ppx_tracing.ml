@@ -137,7 +137,7 @@ let make_traced_expr ~level ~with_span_fn ?error_to_string loc action_name
           @ extra_args
           @ [ (Nolabel, Exp.constant (Pconst_string (action_name, loc, None))) ]
           ) );
-      (Nolabel, Exp.fun_ Nolabel None var_pat e);
+      (Nolabel, Ast_builder.Default.pexp_fun ~loc Nolabel None var_pat e);
     ]
 
 (*****************************************************************************)
@@ -148,21 +148,18 @@ let make_traced_expr ~level ~with_span_fn ?error_to_string loc action_name
    `let f args = Tracing.with_span ~__FILE__ ~__LINE__ "<action_name>" @@
                  fun _sp -> body`
    (or with_span_result for [@@trace_result]) *)
-let rec map_expr_add_tracing ~level ~with_span_fn attr_payload pat e =
+(* In ppxlib 0.36+ (OCaml 5.3 AST), multi-argument function sugar
+   [let f x y = body] is a single [Pexp_function] node with all parameters
+   bundled in [params], rather than nested [Pexp_fun]s with ghost locs on
+   the inner ones. So no spine walk is needed: wrap the body of the
+   outermost [Pfunction_body] directly. User-written nested
+   [let f x = fun y -> body] still nest as separate [Pexp_function] nodes,
+   in which case we wrap the outer body (the inner [Pexp_function] value),
+   matching the previous behavior on non-ghost inner Pexp_fun. *)
+let map_expr_add_tracing ~level ~with_span_fn attr_payload pat e =
   match e.pexp_desc with
-  (* `let f x y = ...` is desugared into `let f = fun x -> fun y -> ...`.
-   * Without handling this case specially, we would always report 0 duration
-   * traces for such functions, since we would only log the time that it takes
-   * to return the `fun y -> ...` closure.
-   *
-   * This desugaring is characterized by a nested function with a ghost
-   * location. *)
-  | Pexp_fun (arg_label, exp_opt, pattern, ({ pexp_desc = Pexp_fun _; _ } as e'))
-    when e'.pexp_loc.loc_ghost ->
-      let e' = map_expr_add_tracing ~level ~with_span_fn attr_payload pat e' in
-      { e with pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, e') }
-  | Pexp_fun (arg_label, exp_opt, pattern, e') ->
-      let loc = e'.pexp_loc in
+  | Pexp_function (params, type_constraint, Pfunction_body body) ->
+      let loc = body.pexp_loc in
       let action_name =
         match attr_payload with
         | Some s -> s
@@ -172,13 +169,13 @@ let rec map_expr_add_tracing ~level ~with_span_fn attr_payload pat e =
       in
       let var_pat = Ast_builder.Default.ppat_var ~loc { txt = "_sp"; loc } in
       let body_with_tracing =
-        make_traced_expr ~level ~with_span_fn loc action_name var_pat e'
+        make_traced_expr ~level ~with_span_fn loc action_name var_pat body
       in
       {
-        (* TODO This should probably be `e` not `e'`? *)
-        e'
-        with
-        pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, body_with_tracing);
+        e with
+        pexp_desc =
+          Pexp_function
+            (params, type_constraint, Pfunction_body body_with_tracing);
       }
   | _ -> e
 
@@ -225,7 +222,9 @@ let let_payload =
   let open! Ast_pattern in
   single_expr_payload
     (pexp_let nonrecursive
-       (value_binding ~pat:(var_or_unit_pat ()) ~expr:(estring __) ^:: nil)
+       (value_binding ~pat:(var_or_unit_pat ()) ~expr:(estring __)
+          ~constraint_:drop
+       ^:: nil)
        __)
 
 let let_payload_result =
@@ -234,6 +233,7 @@ let let_payload_result =
     (pexp_let nonrecursive
        (value_binding ~pat:(var_or_unit_pat ())
           ~expr:(pexp_tuple (estring __ ^:: __ ^:: nil))
+          ~constraint_:drop
        ^:: nil)
        __)
 

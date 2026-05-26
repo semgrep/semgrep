@@ -46,13 +46,13 @@ depends: [
   "xmlm" {>= "1.4.0"}
   "sarif" {>= "0.3.1"}
   "cmdliner" {>= "2.0.0"}
-  "ppxlib" {= "0.35.0"}
+  "ppxlib" {= "0.37.0"}
   "ppx_blob" {>= "0.9.0"}
   "ppx_deriving" {>= "6.0.3"}
   "ppx_deriving_yojson" {>= "3.9.1"}
   "ppx_hash" {>= "v0.17.0"}
   "ppx_inline_test" {>= "v0.17.0"}
-  "ppx_sexp_conv" {= "v0.17.0"}
+  "ppx_sexp_conv" {>= "v0.17.1"}
   "visitors-cleanroom"
   "re" {>= "1.14.0"}
   "conf-libpcre" {= "2"}
@@ -72,6 +72,7 @@ depends: [
   "opentelemetry-client-ocurl"
   "opentelemetry-client-cohttp-eio"
   "opentelemetry-logs"
+  "trace" {< "0.11"}
   "ocurl" {= "0.9.1"}
   "ambient-context-lwt" {>= "0.1.0" & < "0.2"}
   "conf-libcurl" {= "2"}
@@ -133,10 +134,10 @@ pin-depends: [
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
-  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
-  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
+  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#df4e13caddbd362a5a3b78e167e2546c96e28776"]
+  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#df4e13caddbd362a5a3b78e167e2546c96e28776"]
   (* clean-room visitors runtime + upstream PPX *)
-  ["visitors-cleanroom.dev" "git+https://github.com/semgrep/semgrep-ocaml-visitors.git#772e36fb4899651856d38478bc796da2cd85968d"]
+  ["visitors-cleanroom.dev" "git+https://github.com/semgrep/semgrep-ocaml-visitors.git#8e3e85c46d8c4e8f61bb4e5b652d1f6d080e6715"]
   ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]

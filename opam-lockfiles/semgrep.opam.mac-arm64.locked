@@ -135,7 +135,7 @@ depends: [
   "lsp" {= "1.23.1"}
   "lwt" {= "5.9.2"}
   "lwt-dllist" {= "1.1.0"}
-  "lwt_ppx" {= "5.9.1"}
+  "lwt_ppx" {= "5.9.3"}
   "macaddr" {= "5.6.1"}
   "macaddr-cstruct" {= "5.6.1"}
   "magic-mime" {= "1.3.1"}
@@ -192,18 +192,18 @@ depends: [
   "ppx_cold" {= "v0.17.0"}
   "ppx_compare" {= "v0.17.0"}
   "ppx_derivers" {= "1.2.1"}
-  "ppx_deriving" {= "6.0.3"}
-  "ppx_deriving_yojson" {= "3.9.1"}
+  "ppx_deriving" {= "6.1.1"}
+  "ppx_deriving_yojson" {= "3.10.0"}
   "ppx_enumerate" {= "v0.17.0"}
-  "ppx_globalize" {= "v0.17.0"}
+  "ppx_globalize" {= "v0.17.2"}
   "ppx_hash" {= "v0.17.0"}
   "ppx_here" {= "v0.17.0"}
-  "ppx_inline_test" {= "v0.17.0"}
-  "ppx_optcomp" {= "v0.17.0"}
-  "ppx_sexp_conv" {= "v0.17.0"}
+  "ppx_inline_test" {= "v0.17.1"}
+  "ppx_optcomp" {= "v0.17.1"}
+  "ppx_sexp_conv" {= "v0.17.1"}
   "ppx_yojson_conv_lib" {= "v0.17.0"}
-  "ppxlib" {= "0.35.0"}
-  "ppxlib_jane" {= "v0.17.2"}
+  "ppxlib" {= "0.37.0"}
+  "ppxlib_jane" {= "v0.17.4"}
   "psq" {= "0.2.1"}
   "ptime" {= "1.2.0"}
   "pyro-caml-instruments" {= "dev"}
@@ -238,6 +238,7 @@ depends: [
   "tls-lwt" {= "2.0.3"}
   "tls-mirage" {= "2.0.3"}
   "topkg" {= "1.1.1"}
+  "trace" {= "0.10.1"}
   "tree-sitter" {= "dev"}
   "tsort" {= "2.2.0"}
   "uri" {= "4.4.0"}
@@ -307,11 +308,11 @@ pin-depends: [
   ]
   [
     "pyro-caml-instruments.dev"
-    "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"
+    "git+https://github.com/semgrep/pyro-caml.git#df4e13caddbd362a5a3b78e167e2546c96e28776"
   ]
   [
     "pyro-caml-ppx.dev"
-    "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"
+    "git+https://github.com/semgrep/pyro-caml.git#df4e13caddbd362a5a3b78e167e2546c96e28776"
   ]
   [
     "semgrep-interfaces.dev"
@@ -339,7 +340,7 @@ pin-depends: [
   ]
   [
     "visitors-cleanroom.dev"
-    "git+https://github.com/semgrep/semgrep-ocaml-visitors.git#772e36fb4899651856d38478bc796da2cd85968d"
+    "git+https://github.com/semgrep/semgrep-ocaml-visitors.git#8e3e85c46d8c4e8f61bb4e5b652d1f6d080e6715"
   ]
 ]
 x-maintenance-intent: ["(latest)"]
