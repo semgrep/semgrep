@@ -1,2 +1,0 @@
-Lower the glibc contraint from `>=2.35` to `>=2.34`, allowing users on distros
-that ship glibc 2.34 (e.g RHEL 9 & AL2023) to install the semgrep wheel.

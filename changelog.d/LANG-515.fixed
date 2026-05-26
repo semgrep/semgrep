@@ -1,6 +1,0 @@
-Baseline diff scans (``semgrep ci`` and ``--baseline-commit``) no longer treat every finding on a file as newly introduced when rule(s) failed during the baseline run.
-
-Per-rule failures (for example a timeout for a single rule) on baseline analysis now hide only that rule's matches on that file from the "new vs baseline" comparison.
-Other rules on the same file are still taken in comparison for the "new vs baseline" comparison.
-
-Per-file, rule-independent failures now hide all findings on that file from the "new vs baseline" comparison.

@@ -1,1 +1,0 @@
-The (beta) SBT resolver with `--allow-local-builds` now correctly identifies dependencies as part of the Maven ecosystem.
