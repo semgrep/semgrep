@@ -119,8 +119,7 @@ For more information see https://semgrep.dev
     ; CLI
     (cmdliner (>= 2.0.0))
     ; PPX
-    ; some ppx libs below don't support 0.36.0 yet
-    (ppxlib (= 0.35.0))
+    (ppxlib (= 0.37.0))
     (ppx_blob (>= 0.9.0))
     (ppx_deriving (>= 6.0.3 ))
     (ppx_deriving_yojson (>= 3.9.1))
@@ -128,8 +127,7 @@ For more information see https://semgrep.dev
     (ppx_hash (>= v0.17.0))
     ; https://github.com/janestreet/ppx_inline_test/issues/52
     (ppx_inline_test (>= v0.17.0))
-    ; https://github.com/janestreet/ppx_sexp_conv/issues/43
-    (ppx_sexp_conv ( = v0.17.0))
+    (ppx_sexp_conv (>= v0.17.1))
     ; clean-room visitors runtime + upstream PPX (replaces upstream visitors package)
     visitors-cleanroom
     ; regexps
@@ -160,6 +158,9 @@ For more information see https://semgrep.dev
     opentelemetry-client-ocurl
     opentelemetry-client-cohttp-eio
     opentelemetry-logs
+    ; trace 0.11 removed the Otrace.trace_id type that our pinned
+    ; opentelemetry-trace still uses; pin until we bump the opentelemetry SHA
+    (trace (< 0.11))
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
@@ -178,7 +179,6 @@ For more information see https://semgrep.dev
     (digestif (>= 1.3.0))
     ; concurrency
     (lwt (>= 5.9.2))
-    ; needs bumping once we move to ppxlib 0.36.0
     (lwt_ppx (>= 5.9.1))
     (conf-libev (and (<> :os win32) (= 4-13))) ; for lwt, to get better FD perf
     ;TODO: this is for secrets and should be in ../dune-project but doing so
