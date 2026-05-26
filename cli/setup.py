@@ -63,8 +63,8 @@ def linux_detect_libc():
 plat_libc_to_tag = {
     ("linux_aarch64", "musl"): "musllinux_1_2_aarch64",
     ("linux_x86_64", "musl"): "musllinux_1_2_x86_64",
-    ("linux_aarch64", "glibc"): "manylinux_2_35_aarch64",
-    ("linux_x86_64", "glibc"): "manylinux_2_35_x86_64",
+    ("linux_aarch64", "glibc"): "manylinux_2_34_aarch64",
+    ("linux_x86_64", "glibc"): "manylinux_2_34_x86_64",
 }
 
 
