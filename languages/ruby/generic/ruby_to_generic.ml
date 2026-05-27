@@ -420,7 +420,8 @@ and binary_msg = function
   | Op_REM -> G.Mod
   | Op_DIV -> G.Div
   | Op_LSHIFT -> G.LSL
-  | Op_RSHIFT -> G.LSR
+  | Op_RSHIFT ->
+      G.ASR (* Ruby ints are signed arbitrary-precision; >> is arithmetic *)
   | Op_BAND -> G.BitAnd
   | Op_BOR -> G.BitOr
   | Op_XOR -> G.BitXor

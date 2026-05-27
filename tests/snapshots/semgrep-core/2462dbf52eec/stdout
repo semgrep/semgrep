@@ -6047,7 +6047,7 @@
                                              { e =
                                                (Call (
                                                   { e =
-                                                    (Special ((Op LSR), _));
+                                                    (Special ((Op ASR), _));
                                                     e_id = 0; e_range = None;
                                                     is_implicit_return =
                                                     false; facts = <opaque> },

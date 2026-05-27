@@ -1342,8 +1342,8 @@ pre_in_expr(x):
  | pre_in_expr(x) T_PLUS pre_in_expr(d1)    { bop Plus $1 $2 $3 }
  | pre_in_expr(x) T_MINUS pre_in_expr(d1)   { bop Minus $1 $2 $3 }
  | pre_in_expr(x) T_LSHIFT pre_in_expr(d1)  { bop LSL $1 $2 $3 }
- | pre_in_expr(x) T_RSHIFT pre_in_expr(d1)  { bop LSR $1 $2 $3 }
- | pre_in_expr(x) T_RSHIFT3 pre_in_expr(d1) { bop ASR $1 $2 $3 }
+ | pre_in_expr(x) T_RSHIFT pre_in_expr(d1)  { bop ASR $1 $2 $3 }
+ | pre_in_expr(x) T_RSHIFT3 pre_in_expr(d1) { bop LSR $1 $2 $3 }
 
  (* es7: *)
  | pre_in_expr(x) T_EXPONENT pre_in_expr(d1) { bop Pow $1 $2 $3 }
@@ -1476,8 +1476,8 @@ assignment_operator:
  | T_PLUS_ASSIGN    { $1, Some Plus  }
  | T_MINUS_ASSIGN   { $1, Some Minus }
  | T_LSHIFT_ASSIGN  { $1, Some LSL }
- | T_RSHIFT_ASSIGN  { $1, Some LSR }
- | T_RSHIFT3_ASSIGN { $1, Some ASR  }
+ | T_RSHIFT_ASSIGN  { $1, Some ASR }
+ | T_RSHIFT3_ASSIGN { $1, Some LSR  }
  | T_BIT_AND_ASSIGN { $1, Some BitAnd }
  | T_BIT_XOR_ASSIGN { $1, Some BitXor }
  | T_BIT_OR_ASSIGN  { $1, Some BitOr }

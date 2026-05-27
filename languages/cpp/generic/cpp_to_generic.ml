@@ -761,7 +761,8 @@ and map_arithOp _env = function
   | Div -> G.Div
   | Mod -> G.Mod
   | DecLeft -> G.LSL
-  | DecRight -> G.LSR
+  (* signed >>: ASR by default; see AST_generic.operator *)
+  | DecRight -> G.ASR
   | And -> G.BitAnd
   | Or -> G.BitOr
   | Xor -> G.BitXor

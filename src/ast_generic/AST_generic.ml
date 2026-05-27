@@ -1060,9 +1060,9 @@ and operator =
   | Pow (* ** binary op; for unary see HashSplat above *)
   | FloorDiv
   | MatMult (* Python *)
-  | LSL
-  | LSR
-  | ASR (* L = logic, A = Arithmetic, SL = shift left *)
+  | LSL (* << logical shift left *)
+  | LSR (* >>> logical shift right, zero-fill *)
+  | ASR (* >>  arithmetic shift right, sign-preserving *)
   | BitOr
   | BitXor
   | BitAnd

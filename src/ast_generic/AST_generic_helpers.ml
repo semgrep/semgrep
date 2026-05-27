@@ -312,7 +312,7 @@ let is_boolean_operator = function
   | Plus (* unary too *) | Minus (* unary too *)
   | Mult | Div | Mod
   | Pow | FloorDiv | MatMult (* Python *)
-  | LSL | LSR | ASR (* L = logic, A = Arithmetic, SL = shift left *)
+  | LSL | LSR | ASR
   | BitOr | BitXor | BitAnd | BitNot | BitClear (* unary *)
   | Range | Nullish | NotNullPostfix | Elvis | Length
   | RangeInclusive

@@ -180,7 +180,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : G.expr =
         | `SLASH tok -> (Div, token env tok)
         | `PERC tok -> (Mod, token env tok)
         | `LTLT tok -> (LSL, token env tok)
-        | `GTGT tok -> (LSR, token env tok)
+        | `GTGT tok -> (ASR, token env tok)
         | `AMP tok -> (BitAnd, token env tok)
         | `AMPHAT tok ->
             let t = token env tok in

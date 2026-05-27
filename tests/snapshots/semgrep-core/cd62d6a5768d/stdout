@@ -649,7 +649,7 @@
                           (ExprStmt (
                              { e =
                                (Call (
-                                  { e = (Special ((Op LSR), _)); e_id = 0;
+                                  { e = (Special ((Op ASR), _)); e_id = 0;
                                     e_range = None;
                                     is_implicit_return = false;
                                     facts = <opaque> },
