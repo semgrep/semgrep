@@ -1170,7 +1170,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       A.Binop (v1, v2, v3)
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
-      let v2 = (* ">>" *) (A.ArithOp G.LSR, token env v2) in
+      let v2 = (* ">>" *) (A.ArithOp G.ASR, token env v2) in
       let v3 = map_expression env v3 in
       A.Binop (v1, v2, v3)
   | `Exp_PLUS_exp (v1, v2, v3) ->
@@ -1556,7 +1556,7 @@ and map_expression (env : env) (x : CST.expression) : A.expr =
         | `DASHEQ tok -> (* "-=" *) (A.ArithOp G.Minus, token env tok)
         | `DOTEQ tok -> (* ".=" *) (A.ArithOp G.Concat, token env tok)
         | `LTLTEQ tok -> (* "<<=" *) (A.ArithOp G.LSL, token env tok)
-        | `GTGTEQ tok -> (* ">>=" *) (A.ArithOp G.LSR, token env tok)
+        | `GTGTEQ tok -> (* ">>=" *) (A.ArithOp G.ASR, token env tok)
         | `AMPEQ tok -> (* "&=" *) (A.ArithOp G.BitAnd, token env tok)
         | `HATEQ tok -> (* "^=" *) (A.ArithOp G.BitXor, token env tok)
         | `BAREQ tok -> (* "|=" *) (A.ArithOp G.BitOr, token env tok)

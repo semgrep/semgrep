@@ -1187,7 +1187,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
         (* ">>" *)
       in
       let v3 = expression env v3 in
-      Apply (IdSpecial (ArithOp G.LSR, v2), fb [], fb [ v1; v3 ])
+      Apply (IdSpecial (ArithOp G.ASR, v2), fb [], fb [ v1; v3 ])
   | `Exp_GTGTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 =
@@ -1195,7 +1195,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
         (* ">>>" *)
       in
       let v3 = expression env v3 in
-      Apply (IdSpecial (ArithOp G.ASR, v2), fb [], fb [ v1; v3 ])
+      Apply (IdSpecial (ArithOp G.LSR, v2), fb [], fb [ v1; v3 ])
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 =
@@ -2284,8 +2284,8 @@ and expression (env : env) (x : CST.expression) : expr =
         | `HATEQ tok -> (G.BitXor, false, token env tok) (* "^=" *)
         | `AMPEQ tok -> (G.BitAnd, false, token env tok) (* "&=" *)
         | `BAREQ tok -> (G.BitOr, false, token env tok) (* "|=" *)
-        | `GTGTEQ tok -> (G.LSR, false, token env tok) (* ">>=" *)
-        | `GTGTGTEQ tok -> (G.ASR, false, token env tok) (* ">>>=" *)
+        | `GTGTEQ tok -> (G.ASR, false, token env tok) (* ">>=" *)
+        | `GTGTGTEQ tok -> (G.LSR, false, token env tok) (* ">>>=" *)
         | `LTLTEQ tok -> (G.LSL, false, token env tok) (* "<<=" *)
         | `STARSTAREQ tok -> (G.Pow, false, token env tok) (* "**=" *)
         | `AMPAMPEQ tok -> (G.And, true, token env tok) (* "&&=" *)

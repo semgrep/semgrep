@@ -1089,12 +1089,14 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v1 = map_expression env v1 in
       let v2 = (* ">>" *) token env v2 in
       let v3 = map_expression env v3 in
-      G.opcall (LSR, v2) [ v1; v3 ]
+      (* Solidity has no >>>; >> defaults to arithmetic for signed ints. *)
+      G.opcall (ASR, v2) [ v1; v3 ]
   | `Exp_GTGTGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* ">>>" *) token env v2 in
       let v3 = map_expression env v3 in
-      G.opcall (ASR, v2) [ v1; v3 ]
+      (* Solidity's >>> is the unsigned/logical right shift, matching LSR. *)
+      G.opcall (LSR, v2) [ v1; v3 ]
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "<<" *) token env v2 in
@@ -1395,8 +1397,8 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
         | `HATEQ tok -> (* "^=" *) (BitXor, token env tok)
         | `AMPEQ tok -> (* "&=" *) (BitAnd, token env tok)
         | `BAREQ tok -> (* "|=" *) (BitOr, token env tok)
-        | `GTGTEQ tok -> (* ">>=" *) (LSR, token env tok)
-        | `GTGTGTEQ tok -> (* ">>>=" *) (ASR, token env tok)
+        | `GTGTEQ tok -> (* ">>=" *) (ASR, token env tok)
+        | `GTGTGTEQ tok -> (* ">>>=" *) (LSR, token env tok)
         | `LTLTEQ tok -> (* "<<=" *) (LSL, token env tok)
       in
       let rhs = map_expression env v3 in

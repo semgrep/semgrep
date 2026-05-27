@@ -395,7 +395,8 @@ and operator = function
   | Pow -> G.Pow
   | FloorDiv -> G.FloorDiv
   | LShift -> G.LSL
-  | RShift -> G.LSR
+  | RShift ->
+      G.ASR (* Python ints are signed arbitrary-precision; >> is arithmetic *)
   | BitOr -> G.BitOr
   | BitXor -> G.BitXor
   | BitAnd -> G.BitAnd

@@ -528,7 +528,7 @@ and arith_op = function
   | Mod -> G.Mod
   | Pow -> G.Pow
   | DecLeft -> G.LSL
-  | DecRight -> G.LSR
+  | DecRight -> G.ASR (* PHP ints are signed; >> is arithmetic *)
   | And -> G.BitAnd
   | Or -> G.BitOr
   | Xor -> G.BitXor
