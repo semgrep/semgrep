@@ -18,7 +18,7 @@
       ppx_deriving.ord
       ppx_hash
       profiling.ppx
-      visitors-cleanroom.ppx
+      visitors.ppx
       ppx_sexp_conv
    )
  )

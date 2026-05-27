@@ -25,8 +25,6 @@ pin-depends: [
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
   ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#df4e13caddbd362a5a3b78e167e2546c96e28776"]
   ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#df4e13caddbd362a5a3b78e167e2546c96e28776"]
-  (* clean-room visitors runtime + upstream PPX *)
-  ["visitors-cleanroom.dev" "git+https://github.com/semgrep/semgrep-ocaml-visitors.git#8e3e85c46d8c4e8f61bb4e5b652d1f6d080e6715"]
   ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]

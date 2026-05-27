@@ -128,8 +128,7 @@ For more information see https://semgrep.dev
     ; https://github.com/janestreet/ppx_inline_test/issues/52
     (ppx_inline_test (>= v0.17.0))
     (ppx_sexp_conv (>= v0.17.1))
-    ; clean-room visitors runtime + upstream PPX (replaces upstream visitors package)
-    visitors-cleanroom
+    (visitors (= 20260520))
     ; regexps
     (re ( >= 1.14.0))
     (conf-libpcre (= 2))
