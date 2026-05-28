@@ -78,18 +78,16 @@ let generate_ograph_xxx g filename =
 (* Visualization *)
 (*****************************************************************************)
 
-(* TODO: switch from cmd_to_list to UCmd.status_of_run with
- * properly built Cmd.
- *)
 let launch_png_cmd filename =
-  UCmd.cmd_to_list (spf "dot -Tpng %s -o %s.png" filename filename) |> ignore;
-  UCmd.cmd_to_list (spf "open %s.png" filename) |> ignore;
+  UCmd.status_of_run (Name "dot", [ "-Tpng"; filename; "-o"; filename ^ ".png" ])
+  |> ignore;
+  UCmd.status_of_run (Name "open", [ filename ^ ".png" ]) |> ignore;
   ()
 
 let launch_gv_cmd filename =
-  UCmd.cmd_to_list ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;")
+  UCmd.status_of_run (Name "dot", [ filename; "-Tps"; "-o"; filename ^ ".ps" ])
   |> ignore;
-  UCmd.cmd_to_list ("gv " ^ filename ^ ".ps") |> ignore;
+  UCmd.status_of_run (Name "gv", [ filename ^ ".ps" ]) |> ignore;
   (* weird: I needed this when I launch the program with '&' via eshell,
    * otherwise 'gv' did not get the chance to be launched
    * Unix.sleep 1;
