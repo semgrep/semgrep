@@ -1,0 +1,1 @@
+Added bit shift operations to metavar comparison in addition to already present standard arithmetic operators and logical bit ops.

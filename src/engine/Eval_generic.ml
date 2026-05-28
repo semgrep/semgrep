@@ -439,6 +439,10 @@ and eval_op op values code =
   | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int64.logand i1 i2)
   | G.BitOr, [ Int i1; Int i2 ] -> Int (Int64.logor i1 i2)
   | G.BitXor, [ Int i1; Int i2 ] -> Int (Int64.logxor i1 i2)
+  | G.LSL, [ Int i1; Int i2 ] -> Int (Int64.shift_left i1 (Int64.to_int i2))
+  | G.ASR, [ Int i1; Int i2 ] -> Int (Int64.shift_right i1 (Int64.to_int i2))
+  | G.LSR, [ Int i1; Int i2 ] ->
+      Int (Int64.shift_right_logical i1 (Int64.to_int i2))
   | G.Eq, [ Int v1; Float v2 ] -> Bool (Int64.to_float v1 =*= v2)
   | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= Int64.to_float v2)
   (* TODO? dangerous use of polymorphic =*= ? *)
