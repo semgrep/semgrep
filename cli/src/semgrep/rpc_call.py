@@ -77,7 +77,7 @@ def validate(fp: out.Fpath) -> Optional[out.CoreError]:
     call = out.FunctionCall(out.CallValidate(fp))
     ret: Optional[out.RetValidate] = rpc_call(call, out.RetValidate)
     if ret is None:
-        logger.error("Failed to validate semgrep configuration")
+        logger.verbose("Failed to validate semgrep configuration")
         return out.CoreError(
             error_type=out.ErrorType(out.SemgrepError()),
             severity=out.ErrorSeverity(out.Error_()),
