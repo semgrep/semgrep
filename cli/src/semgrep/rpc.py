@@ -100,7 +100,7 @@ def _read_packet(io: IO[bytes]) -> Optional[str]:
     if not size_str.isdigit():
         # Avoid horrific log spew if we somehow got a really long line
         truncated = size_str[:50]
-        logger.error(f"RPC input error: Expected a number, got '{truncated}'")
+        logger.verbose(f"RPC input error: Expected a number, got '{truncated}'")
         return None
     size = int(size_str)
     return _really_read(io, size)
@@ -366,7 +366,7 @@ class RpcSession:
 
         ret_str = _read_packet(proc_stdout)
         if ret_str is None:
-            logger.error(f"Unable to read RPC response")
+            logger.verbose(f"Unable to read RPC response")
             return None
         ret = _parse_function_result(ret_str)
         if ret is None:
