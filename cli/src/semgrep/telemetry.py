@@ -241,11 +241,15 @@ def record_phase_data(
 # So we create this class that allows us to mutate the resource afterwards
 class MutableResource(Resource):
     _mutable_attributes: BoundedAttributes
+    # Keys present at construction take precedence over later update_attributes calls,
+    # so OTEL_RESOURCE_ATTRIBUTES can override values written later in the scan flow.
+    _frozen_keys: frozenset[str]
 
     def __init__(self, base_resource: Resource) -> None:
         self._mutable_attributes = BoundedAttributes(
             attributes=base_resource.attributes, immutable=False
         )
+        self._frozen_keys = frozenset(base_resource.attributes.keys())
         super().__init__(
             attributes=self._mutable_attributes, schema_url=base_resource.schema_url
         )
@@ -260,6 +264,8 @@ class MutableResource(Resource):
         if not new_attrs:
             return
         for k in new_attrs:
+            if k in self._frozen_keys:
+                continue
             self._mutable_attributes[k] = new_attrs[k]
 
 
