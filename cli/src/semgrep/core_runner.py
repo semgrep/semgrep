@@ -1419,16 +1419,19 @@ Exception raised: `{e}`
         )
 
     def validate_configs(
-        self, configs: Tuple[str, ...], no_python_schema_validation: bool = False
+        self,
+        configs: Tuple[str, ...],
     ) -> Sequence[SemgrepError]:
         if self._binary_path is None:  # should never happen, doing this for mypy
             raise SemgrepError("semgrep engine not found.")
 
+        # The metacheck pack is Semgrep-bundled (not user input), so its
+        # loading is always fully validated regardless of how the user asked
+        # us to validate their own rules.
         metachecks = Config.from_config_list(
             ["p/semgrep-rule-lints"],
             None,
             force_jsonschema=True,
-            no_python_schema_validation=no_python_schema_validation,
         )[0].get_rules(True)
 
         parsed_errors = []

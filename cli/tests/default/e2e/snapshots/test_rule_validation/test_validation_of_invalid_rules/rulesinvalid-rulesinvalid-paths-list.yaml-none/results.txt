@@ -1,0 +1,4 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+[ERROR] Malformed rule in rules/invalid-rules/invalid-paths-list.yaml
+[ERROR] Rule parse error in rule arg-reassign:
+ each paths should be a dictionary

@@ -90,6 +90,7 @@ from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc import RpcSession
 from semgrep.rpc_call import dump_rule_partitions
 from semgrep.rule import Rule
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_match import RuleMatches
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_metrics import Any_ as AnySecretsOrigin
@@ -210,20 +211,19 @@ def sanity_check_resolved_config(
         )
 
 
-def _raise_deferred_core_rule_validation_errors(
+def _raise_skipped_rule_validation_errors(
     errors: Sequence[SemgrepError],
-    defer_core_rule_validation: bool,
+    validation_mode: RuleValidationMode,
 ) -> None:
-    """Preserve config-loading error semantics after deferring core validation.
+    """Preserve config-loading error semantics when pre-validation was skipped.
 
-    `defer_core_rule_validation` is used for App-provided rules in `semgrep ci`.
-    Those rules used to fail during Python config loading if semgrep-core rejected
-    their schema. After deferring that validation, the same failure is reported
-    by the scan subprocess as a structured RuleParseError. Convert it back into
-    the config-style error before regular scan error handling so CI reports the
-    failure to the App and exits with the historical missing-config code.
+    When `validation_mode` is NONE we skip the Python-side schema check; rule
+    schema errors then surface from the scan subprocess as RuleParseError.
+    Convert those back into the config-style error before regular scan error
+    handling so the historical missing-config exit code and error wording are
+    preserved (matters in particular for the `semgrep ci` App-rules path).
     """
-    if not defer_core_rule_validation:
+    if validation_mode is not RuleValidationMode.NONE:
         return
 
     rule_errors = [
@@ -1249,7 +1249,7 @@ def run_scan(
     # not set a default at this level.
     config_strs: Optional[Sequence[str]],
     rules_string: Optional[str] = None,
-    defer_core_rule_validation: bool = False,
+    validation_mode: RuleValidationMode = RuleValidationMode.FULL,
     no_rewrite_rule_ids: bool = False,
     jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
@@ -1289,7 +1289,6 @@ def run_scan(
     x_parmap: bool = False,
     x_pro_naming: bool = False,
     x_run_taint_once: bool = True,
-    x_no_python_schema_validation: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     allow_local_builds: bool = False,
@@ -1355,8 +1354,7 @@ def run_scan(
             elif rules_string is not None:
                 configs_obj, config_errors = Config.from_rules_string(
                     rules_string,
-                    no_python_schema_validation=x_no_python_schema_validation,
-                    defer_core_rule_validation=defer_core_rule_validation,
+                    validation_mode=validation_mode,
                 )
             elif config_strs is not None:
                 if replacement:
@@ -1366,7 +1364,7 @@ def run_scan(
                 configs_obj, config_errors = Config.from_config_list(
                     config_strs or [],
                     project_url,
-                    no_python_schema_validation=x_no_python_schema_validation,
+                    validation_mode=validation_mode,
                 )
 
         progress.remove_task(task_id)
@@ -1579,9 +1577,9 @@ def run_scan(
         )
         profiler.save("core_time", core_start_time)
         semgrep_errors: List[SemgrepError] = config_errors + scan_errors
-        _raise_deferred_core_rule_validation_errors(
+        _raise_skipped_rule_validation_errors(
             scan_errors,
-            defer_core_rule_validation,
+            validation_mode,
         )
         output_handler.handle_semgrep_errors(semgrep_errors)
 

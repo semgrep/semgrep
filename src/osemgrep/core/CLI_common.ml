@@ -102,14 +102,27 @@ let o_parmap : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_rule_validation : string Term.t =
+  let info =
+    Arg.info [ "x-rule-validation" ] ~docs:experimental_section_title
+      ~doc:
+        "[INTERNAL] Control rule pre-validation. 'full' (default) runs Python \
+         jsonschema + semgrep-core RPC validation. 'core-only' runs only the \
+         RPC validation. 'none' skips both; rule errors surface from the scan \
+         subprocess instead."
+  in
+  Arg.value (Arg.opt Arg.string "full" info)
+
+(* Deprecated; superseded by --x-rule-validation. Kept as a hidden no-op so
+   existing scripts don't break; pysemgrep logs a deprecation warning. *)
 let o_no_python_schema_validation : bool Term.t =
   let info =
     Arg.info
       [ "x-no-python-schema-validation" ]
       ~docs:experimental_section_title
       ~doc:
-        "[INTERNAL] Skip JSON schema validation; rely on osemgrep parser to \
-         validate rules files"
+        "[DEPRECATED] No-op alias kept for backward compatibility. Use \
+         --x-rule-validation=core-only instead."
   in
   Arg.value (Arg.flag info)
 
@@ -228,9 +241,11 @@ let o_telemetry : Telemetry.config option Term.t =
 let o_common : conf Term.t =
   (* keep the arguments in alphabetic order please *)
   let combine logging maturity profile simple_profiling x_eio x_parmap
-      x_no_python_schema_validation telemetry =
-    (* experimental flag only used by pysemgrep *)
-    ignore x_no_python_schema_validation;
+      rule_validation no_python_schema_validation telemetry =
+    (* user-facing flag only used by pysemgrep *)
+    ignore rule_validation;
+    (* deprecated no-op; pysemgrep logs the warning *)
+    ignore no_python_schema_validation;
     (* --x-eio will be passed to pysemgrep, which will report a deprecation
      * warning. *)
     ignore x_eio;
@@ -245,8 +260,8 @@ let o_common : conf Term.t =
   in
   Term.(
     const combine $ o_logging $ Maturity.o_maturity $ o_profile
-    $ o_simple_profiling $ o_eio $ o_parmap $ o_no_python_schema_validation
-    $ o_telemetry)
+    $ o_simple_profiling $ o_eio $ o_parmap $ o_rule_validation
+    $ o_no_python_schema_validation $ o_telemetry)
 
 (*************************************************************************)
 (* Misc *)

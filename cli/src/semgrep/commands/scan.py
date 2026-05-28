@@ -65,6 +65,7 @@ from semgrep.notifications import possibly_notify_user
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_match import RuleMatchMap
 from semgrep.run_scan import AutofixBehavior
 from semgrep.semgrep_core import SemgrepCore
@@ -98,6 +99,19 @@ def validate_mem_policy(
         abort(
             f"Invalid value for '--x-mem-policy': '{value}' is not one of {valid_options}"
         )
+
+
+_VALIDATION_MODE_BY_NAME = {
+    "none": RuleValidationMode.NONE,
+    "core-only": RuleValidationMode.CORE_ONLY,
+    "full": RuleValidationMode.FULL,
+}
+
+
+def _parse_validation_mode(
+    _ctx: click.Context, _param: click.Parameter, value: str
+) -> RuleValidationMode:
+    return _VALIDATION_MODE_BY_NAME[value]
 
 
 class MetricsStateType(click.ParamType):
@@ -508,10 +522,25 @@ _scan_options: List[Callable] = [
         default=False,
     ),
     optgroup.option(
+        "--x-rule-validation",
+        "validation_mode",
+        type=click.Choice(list(_VALIDATION_MODE_BY_NAME.keys())),
+        default="full",
+        callback=_parse_validation_mode,
+        help="Control rule pre-validation. 'full' (default) runs Python "
+        "jsonschema + semgrep-core RPC validation. 'core-only' runs only the "
+        "RPC validation. 'none' skips both; rule errors surface from the scan "
+        "subprocess instead.",
+    ),
+    optgroup.option(
+        # Deprecated; superseded by --x-rule-validation. Kept as a hidden
+        # no-op so existing scripts don't break; a warning is logged in the
+        # command body and the flag will be removed in a future release.
         "--x-no-python-schema-validation",
         "x_no_python_schema_validation",
         is_flag=True,
         default=False,
+        hidden=True,
     ),
     optgroup.option(
         "--x-dump-symbol-analysis",
@@ -779,6 +808,7 @@ def scan(
     x_parmap: bool,
     x_pro_naming: bool,
     x_run_taint_once: bool,
+    validation_mode: RuleValidationMode,
     x_no_python_schema_validation: bool,
     x_semgrepignore_filename: Optional[str],
     x_simple_profiling: bool,
@@ -815,6 +845,17 @@ def scan(
                     + "This flag will be removed in a future version of Semgrep.",
                 )
             )
+
+    if x_no_python_schema_validation:
+        logger.warning(
+            with_color(
+                Colors.yellow,
+                "WARN: --x-no-python-schema-validation is deprecated and now "
+                "a no-op. Use --x-rule-validation=core-only for the previous "
+                "behavior. This flag will be removed in a future version of "
+                "Semgrep.",
+            )
+        )
 
     # 2025-04-14: Feel free to remove these messages after a while.
     # This was a temporary flag for the Semgrepignore v1->v2 transition.
@@ -1023,7 +1064,7 @@ def scan(
                             config or [],
                             get_project_url(),
                             force_jsonschema=True,
-                            no_python_schema_validation=x_no_python_schema_validation,
+                            validation_mode=validation_mode,
                         )
 
                     # Run `semgrep-core -check_rules` on the config files. This
@@ -1047,10 +1088,7 @@ def scan(
                                 allow_untrusted_validators=allow_untrusted_validators,
                                 path_sensitive=path_sensitive,
                                 group_taint_rules=x_group_taint_rules,
-                            ).validate_configs(
-                                config,
-                                no_python_schema_validation=x_no_python_schema_validation,
-                            )
+                            ).validate_configs(config)
                         except SemgrepError as e:
                             validation_errors = [e]
 
@@ -1134,7 +1172,7 @@ def scan(
                         x_parmap=x_parmap,
                         x_pro_naming=x_pro_naming,
                         x_run_taint_once=x_run_taint_once,
-                        x_no_python_schema_validation=x_no_python_schema_validation,
+                        validation_mode=validation_mode,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,

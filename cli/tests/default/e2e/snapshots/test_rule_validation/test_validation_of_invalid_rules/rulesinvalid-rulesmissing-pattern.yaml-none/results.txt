@@ -1,0 +1,3 @@
+Configuration is invalid - found 1 configuration error(s), and 1 rule(s).
+[ERROR] Rule parse error in rule eqeq:
+ Expected one of `pattern`, `pattern-either`, `patterns`, `pattern-regex`, or `r2c-internal-project-depends-on` to be present.

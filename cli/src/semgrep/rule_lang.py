@@ -14,6 +14,7 @@ import json
 import os
 import re
 from contextlib import contextmanager
+from enum import Enum
 from io import StringIO
 from pathlib import Path
 from tempfile import mkstemp
@@ -66,6 +67,24 @@ logger = getLogger(__name__)
 
 class EmptyYamlException(Exception):
     pass
+
+
+class RuleValidationMode(Enum):
+    """How aggressively to pre-validate rule files in Python before the scan.
+
+    The scan subprocess always re-parses rules, so pre-validation is best-effort
+    fail-fast. Modes:
+      FULL      — semgrep-core RPC validation, with Python jsonschema fallback
+                  on RPC failure (to produce nicer error messages with YAML
+                  line/column info). Default.
+      CORE_ONLY — semgrep-core RPC validation only; RPC errors surface as-is.
+      NONE      — skip all pre-validation; rule errors will instead be reported
+                  by the scan subprocess.
+    """
+
+    FULL = "full"
+    CORE_ONLY = "core_only"
+    NONE = "none"
 
 
 class RuleSchema:
@@ -606,7 +625,7 @@ def maybe_raise_from_rpc_error(
     """Lift an RPC validation failure into a user-facing schema error.
 
     Used by callers that don't want to fall back to Python's jsonschema
-    validation (i.e. --x-no-python-schema-validation). Swallows error kinds
+    validation (RuleValidationMode.CORE_ONLY). Swallows error kinds
     that are handled elsewhere (invalid regex, invalid language) and
     non-actionable severities. Re-raises NotImplementedError as-is since it
     indicates an RPC infrastructure problem.
@@ -719,11 +738,11 @@ def validate_via_rpc_with_fallback(
     yaml_tree: Optional[YamlTree],
     source_hash: SourceFileHash,
     filename: Optional[str],
-    no_python_schema_validation: bool,
+    mode: RuleValidationMode,
 ) -> None:
-    """Validate `contents` via the semgrep-core RPC, falling back to Python
-    jsonschema validation on RPC failure unless `no_python_schema_validation`
-    is set (in which case the RPC failure surfaces directly).
+    """Validate `contents` via the semgrep-core RPC. When `mode` is FULL, fall
+    back to Python jsonschema validation on RPC failure to produce nicer error
+    messages; when CORE_ONLY, surface the RPC failure directly.
     """
     suffix = ".json" if is_json else ".yaml"
     with rules_temp_file(contents, suffix) as tmp_path:
@@ -731,7 +750,7 @@ def validate_via_rpc_with_fallback(
             run_rpc_validate_exn(rules_tmp_path=tmp_path)
             logger.debug("RPC validation succeeded")
         except (RpcValidationError, NotImplementedError) as e:
-            if no_python_schema_validation:
+            if mode is RuleValidationMode.CORE_ONLY:
                 maybe_raise_from_rpc_error(e, source_hash, filename)
                 return
             error_type = (

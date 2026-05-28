@@ -26,6 +26,7 @@ from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.rule_lang import RpcValidationError
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.state import SemgrepState
 
 FAKE_USER_AGENT = "user-agent"
@@ -379,7 +380,7 @@ def test_parse_config_string_as_rules_no_surrogate_pairs_in_rules_file(mocker):
 
 @pytest.mark.quick
 @pytest.mark.osemfail
-def test_parse_config_string_defers_core_validation(mocker):
+def test_parse_config_string_skips_validation_when_none(mocker):
     import semgrep.config_resolver
 
     validate_rpc = mocker.patch.object(
@@ -405,7 +406,7 @@ def test_parse_config_string_defers_core_validation(mocker):
         "test-config",
         rule_config,
         "rules.json",
-        defer_core_rule_validation=True,
+        validation_mode=RuleValidationMode.NONE,
     )
 
     assert len(result.rules) == 1
@@ -413,6 +414,45 @@ def test_parse_config_string_defers_core_validation(mocker):
     assert len(result.errors) == 0
     validate_rpc.assert_not_called()
     validate_jsonschema.assert_not_called()
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_parse_config_string_core_only_skips_jsonschema_under_force(mocker):
+    # CORE_ONLY is a hard constraint: even when --validate sets
+    # force_jsonschema=True, we must take the RPC path, not jsonschema.
+    import semgrep.config_resolver
+
+    validate_rpc = mocker.patch.object(
+        semgrep.config_resolver, "validate_via_rpc_with_fallback"
+    )
+    validate_jsonschema = mocker.patch.object(
+        semgrep.config_resolver, "run_jsonschema_validation"
+    )
+
+    rule_config = """{
+        "rules": [
+            {
+                "id": "test-rule",
+                "message": "Test rule",
+                "languages": ["python"],
+                "severity": "WARNING",
+                "pattern": "$X"
+            }
+        ]
+    }"""
+
+    parse_config_string(
+        "test-config",
+        rule_config,
+        "rules.json",
+        force_jsonschema=True,
+        validation_mode=RuleValidationMode.CORE_ONLY,
+    )
+
+    validate_jsonschema.assert_not_called()
+    validate_rpc.assert_called_once()
+    assert validate_rpc.call_args.args[-1] is RuleValidationMode.CORE_ONLY
 
 
 @pytest.mark.quick
