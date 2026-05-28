@@ -64,6 +64,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.run_scan import AutofixBehavior
@@ -326,8 +327,9 @@ def ci(
     enable_transitive_reachability: Optional[bool],
     x_pro_naming: bool,
     x_run_taint_once: bool,
-    x_semgrepignore_filename: Optional[str],
+    validation_mode: RuleValidationMode,
     x_no_python_schema_validation: bool,
+    x_semgrepignore_filename: Optional[str],
     x_simple_profiling: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
@@ -403,6 +405,14 @@ def ci(
                     "WARN: --x-eio (Multicore Semgrep) now enabled by default.  "
                     + "This flag will be removed in a future version of Semgrep."
                 )
+
+        if x_no_python_schema_validation:
+            logger.warning(
+                "WARN: --x-no-python-schema-validation is deprecated and now "
+                "a no-op. Use --x-rule-validation=core-only for the previous "
+                "behavior. This flag will be removed in a future version of "
+                "Semgrep."
+            )
 
         if config and partial_config:
             logger.info(
@@ -767,10 +777,13 @@ def ci(
 
         # rules_string is assigned only from ScanHandler.rules, i.e.
         # ScanResponse.config.rules returned by the App start-scan flow.
-        # For that path, defer semgrep-core rule validation from CLI rule
-        # loading to the scan subprocess, which parses the same rules before
-        # matching. This avoids validating the cloud rules twice in one scan.
-        defer_core_rule_validation = rules_string is not None
+        # For that path, skip all CLI-side rule pre-validation; the scan
+        # subprocess parses the same rules before matching, so doing it here
+        # would just validate the cloud rules twice.
+        if rules_string is not None:
+            effective_validation_mode = RuleValidationMode.NONE
+        else:
+            effective_validation_mode = validation_mode
 
         # Base arguments for actually running the scan. This is done here so we can
         # re-use this in the event we need to perform a second scan. Currently the
@@ -789,7 +802,7 @@ def ci(
             "lang": None,
             "rules_string": rules_string,
             "config_strs": config,
-            "defer_core_rule_validation": defer_core_rule_validation,
+            "validation_mode": effective_validation_mode,
             "no_rewrite_rule_ids": (not rewrite_rule_ids),
             "dump_command_for_core": dump_command_for_core,
             "jobs": jobs,

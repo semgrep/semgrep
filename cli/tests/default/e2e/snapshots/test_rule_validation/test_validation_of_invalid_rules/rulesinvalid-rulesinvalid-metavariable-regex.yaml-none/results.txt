@@ -1,0 +1,15 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Detected duplicate key
+  --> rules/invalid-rules/invalid-metavariable-regex.yaml:6
+5  |     - metavariable-regex:
+6  |         metavariable: $HOST
+7  |         regex: '192.168\.\d{1,3}\.\d{1,3}'
+8  |         metavariable: $MODULE
+9  |         regex: (boto|boto3)
+10 |   message: "Boto3 connection to internal network"
+11 |   languages: [python]
+
+Detected duplicate key name, one of ['metavariable', 'regex'].
+
+[ERROR] Rule parse error in rule boto3-internal-network:
+ duplicate key 'metavariable' in dictionary. You should use multiple metavariable-regex

@@ -17,6 +17,17 @@ from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
 
+VALIDATION_MODES = ["full", "core-only", "none"]
+
+
+def _validation_options(mode: str) -> list:
+    # "full" is the default semgrep behavior, so don't bother passing the flag
+    # for it; this also keeps the bare `--validate` case under test.
+    if mode == "full":
+        return ["--validate"]
+    return ["--validate", f"--x-rule-validation={mode}"]
+
+
 invalid_rules = [
     "rules/invalid-rules/invalid-metavariable-regex.yaml",
     "rules/invalid-rules/invalid-pattern-child.yaml",
@@ -32,33 +43,24 @@ invalid_rules = [
 ]
 
 parametrized_invalid_rules = [
-    (rule, schema_validation)
-    for rule in invalid_rules
-    for schema_validation in [True, False]
+    (rule, mode) for rule in invalid_rules for mode in VALIDATION_MODES
 ]
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
-    "rule,schema_validation",
+    "rule,validation_mode",
     parametrized_invalid_rules,
-    ids=[
-        f"{rule}-old" if schema_validation else rule
-        for rule, schema_validation in parametrized_invalid_rules
-    ],
+    ids=[f"{rule}-{mode}" for rule, mode in parametrized_invalid_rules],
 )
 @pytest.mark.osemfail
 @skip_on_windows  # better backslash replacement logic
 def test_validation_of_invalid_rules(
-    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, schema_validation: bool
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, validation_mode: str
 ):
-    options = ["--validate"]
-    if not schema_validation:
-        options.append("--x-no-python-schema-validation")
-
     _, err = run_semgrep_in_tmp(
         rule,
-        options=options,
+        options=_validation_options(validation_mode),
         output_format=OutputFormat.TEXT,
         assert_exit_code={2, 4},
     )
@@ -70,34 +72,26 @@ def test_validation_of_invalid_rules(
 
 
 parametrized_top_level_valid = [
-    ("rules/extra_field.yaml", True),
-    ("rules/extra_field.yaml", False),
+    ("rules/extra_field.yaml", mode) for mode in VALIDATION_MODES
 ]
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
-    "rule,schema_validation",
+    "rule,validation_mode",
     parametrized_top_level_valid,
-    ids=[
-        f"{rule}-old" if schema_validation else rule
-        for rule, schema_validation in parametrized_top_level_valid
-    ],
+    ids=[f"{rule}-{mode}" for rule, mode in parametrized_top_level_valid],
 )
 @pytest.mark.osemfail
 def test_extra_top_level_valid(
-    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, schema_validation: bool
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, validation_mode: str
 ):
     """
     An extra field in the rule does not cause it to fail validation
     """
-    options = ["--validate"]
-    if not schema_validation:
-        options.append("--x-no-python-schema-validation")
-
     _, err = run_semgrep_in_tmp(
         rule,
-        options=options,
+        options=_validation_options(validation_mode),
         output_format=OutputFormat.TEXT,
         assert_exit_code={0},
     )
@@ -115,31 +109,22 @@ valid_rules = [
 ]
 
 parametrized_valid_rules = [
-    (rule, schema_validation)
-    for rule in valid_rules
-    for schema_validation in [True, False]
+    (rule, mode) for rule in valid_rules for mode in VALIDATION_MODES
 ]
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
-    "rule,schema_validation",
+    "rule,validation_mode",
     parametrized_valid_rules,
-    ids=[
-        f"{rule}-old" if schema_validation else rule
-        for rule, schema_validation in parametrized_valid_rules
-    ],
+    ids=[f"{rule}-{mode}" for rule, mode in parametrized_valid_rules],
 )
 def test_validation_of_valid_rules(
-    run_semgrep_in_tmp: RunSemgrep, rule, schema_validation: bool
+    run_semgrep_in_tmp: RunSemgrep, rule, validation_mode: str
 ):
-    options = ["--validate"]
-    if not schema_validation:
-        options.append("--x-no-python-schema-validation")
-
     run_semgrep_in_tmp(
         rule,
-        options=options,
+        options=_validation_options(validation_mode),
         output_format=OutputFormat.TEXT,
         assert_exit_code=0,
     )

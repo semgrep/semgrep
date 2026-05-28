@@ -63,6 +63,7 @@ from semgrep.rule_lang import parse_json_and_filter_versions
 from semgrep.rule_lang import parse_yaml_and_filter_versions
 from semgrep.rule_lang import prepend_rule_path
 from semgrep.rule_lang import project_depends_on
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_lang import run_jsonschema_validation
 from semgrep.rule_lang import validate_via_rpc_with_fallback
 from semgrep.rule_lang import YamlMap
@@ -459,7 +460,7 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
 def parse_config_files(
     loaded_config_infos: List[ConfigFile],
     force_jsonschema: bool = False,
-    no_python_schema_validation: bool = False,
+    validation_mode: RuleValidationMode = RuleValidationMode.FULL,
 ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError], int]:
     """
     Parse a list of config files into rules.
@@ -528,7 +529,7 @@ def parse_config_files(
                 config_id,
                 contents,
                 filename,
-                no_python_schema_validation=no_python_schema_validation,
+                validation_mode=validation_mode,
                 force_jsonschema=force_jsonschema,
             )
             future_to_config_id_and_path[validation_future] = config_id, config_path
@@ -563,7 +564,7 @@ def resolve_config(
     config_str: str,
     project_url: Optional[str] = None,
     force_jsonschema: bool = False,
-    no_python_schema_validation: bool = False,
+    validation_mode: RuleValidationMode = RuleValidationMode.FULL,
 ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError], int]:
     """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
@@ -571,7 +572,7 @@ def resolve_config(
     config, errors, missed_rule_count = parse_config_files(
         config_loader.load_config(),
         force_jsonschema=force_jsonschema,
-        no_python_schema_validation=no_python_schema_validation,
+        validation_mode=validation_mode,
     )
     if config:
         logger.debug(
@@ -640,8 +641,7 @@ class Config:
         cls,
         raw_rules: str,
         force_jsonschema: bool = False,
-        no_python_schema_validation: bool = False,
-        defer_core_rule_validation: bool = False,
+        validation_mode: RuleValidationMode = RuleValidationMode.FULL,
     ) -> Tuple["Config", List[SemgrepError]]:
         if not raw_rules:
             return cls({}), [
@@ -657,8 +657,7 @@ class Config:
                 raw_rules,
                 "rules.json",
                 force_jsonschema=force_jsonschema,
-                no_python_schema_validation=no_python_schema_validation,
-                defer_core_rule_validation=defer_core_rule_validation,
+                validation_mode=validation_mode,
             )
             return cls({CLOUD_PLATFORM_CONFIG_ID: result.rules}), result.errors
         except SemgrepError as e:
@@ -671,7 +670,7 @@ class Config:
         configs: Sequence[str],
         project_url: Optional[str],
         force_jsonschema: bool = False,
-        no_python_schema_validation: bool = False,
+        validation_mode: RuleValidationMode = RuleValidationMode.FULL,
     ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -694,7 +693,7 @@ class Config:
                     config,
                     project_url,
                     force_jsonschema=force_jsonschema,
-                    no_python_schema_validation=no_python_schema_validation,
+                    validation_mode=validation_mode,
                 )
                 errors.extend(config_errors)
                 missed_rule_count += missed
@@ -836,7 +835,16 @@ def _create_rules(
     data: Dict[str, Any],
     config_id: str,
 ) -> Tuple[List[Rule], List[SemgrepError]]:
-    """Extract and construct Rule objects from a parsed config dict."""
+    """Extract and construct Rule objects from a parsed config dict.
+
+    Schema validation usually rejects malformed rules before we get here, but
+    in NONE validation mode no pre-validation runs and `Rule.__init__` may
+    encounter shapes it wasn't designed for (e.g. `paths:` declared as a
+    list). We catch broadly so any per-rule failure surfaces as a rule error
+    instead of crashing the worker. Trade-off: this also swallows programming
+    bugs in `Rule.__init__`; the alternative is to let NONE-mode scans crash
+    on user-supplied malformed YAML.
+    """
     errors: List[SemgrepError] = []
     rules: List[Rule] = []
     raw_rules = data.get(RULES_KEY)
@@ -847,7 +855,25 @@ def _create_rules(
             spans=[],
         )
     for raw_rule in raw_rules:
-        rules.append(Rule.from_json(raw_rule))
+        try:
+            rules.append(Rule.from_json(raw_rule))
+        except SemgrepError:
+            # SemgrepError subclasses (UnknownLanguageError,
+            # InvalidRuleSchemaError, etc.) carry user-facing diagnostics
+            # and specific exit codes; let `from_config_list` route them.
+            raise
+        except Exception:
+            # Last-resort safety net: Rule.__init__ does ad-hoc structural
+            # access and can raise AttributeError/TypeError/etc. on shapes
+            # validation would normally reject. Without pre-validation
+            # (NONE mode) those would crash the worker.
+            logger.debug(f"Rule.from_json failed in {config_id}", exc_info=True)
+            errors.append(
+                SemgrepError(
+                    f"Malformed rule in {config_id}",
+                    code=RULE_PARSE_FAILURE_EXIT_CODE,
+                )
+            )
     return rules, errors
 
 
@@ -857,8 +883,7 @@ def parse_config_string(
     contents: str,
     filename: Optional[str],
     force_jsonschema: bool = False,
-    no_python_schema_validation: bool = False,
-    defer_core_rule_validation: bool = False,
+    validation_mode: RuleValidationMode = RuleValidationMode.FULL,
 ) -> ParsedConfig:
     """Parse config contents (JSON or YAML), validate, and create Rule objects.
 
@@ -869,8 +894,8 @@ def parse_config_string(
     are excluded from validation because they don't conform to the semgrep-
     core rule schema.
 
-    When defer_core_rule_validation is set, both the SCA-only filter and the
-    schema validation step are skipped here; validation is left to the scan
+    When validation_mode is NONE, both the SCA-only filter and the schema
+    validation step are skipped here; validation is left to the scan
     subprocess that consumes the same rules.
     """
     if not contents:
@@ -918,8 +943,8 @@ def parse_config_string(
             code=UNPARSEABLE_YAML_EXIT_CODE,
         )
 
-    if defer_core_rule_validation:
-        logger.debug(f"Skipping semgrep-core RPC rule validation for {filename}")
+    if validation_mode is RuleValidationMode.NONE:
+        logger.debug(f"Skipping rule pre-validation for {filename}")
     else:
         # 2. FILTER: drop every rule with `r2c-internal-project-depends-on`.
         #    Two reasons, one correctness, one performance:
@@ -949,11 +974,11 @@ def parse_config_string(
 
         # 3. VALIDATE: decide path up-front. RPC gets the (possibly filtered)
         #    contents with a format-matching suffix; jsonschema fallback builds
-        #    the YAML span bridge from yaml_tree. no_python_schema_validation
-        #    is a hard constraint — when set, we must not fall back to
-        #    jsonschema even if force_jsonschema is also set.
+        #    the YAML span bridge from yaml_tree. CORE_ONLY is a hard constraint
+        #    — when set, we must not run jsonschema even if force_jsonschema is
+        #    also set.
         source_hash = SourceTracker.add_source(contents)
-        if force_jsonschema and not no_python_schema_validation:
+        if force_jsonschema and validation_mode is RuleValidationMode.FULL:
             run_jsonschema_validation(core_rules_data, yaml_tree, source_hash, filename)
         else:
             validate_via_rpc_with_fallback(
@@ -963,7 +988,7 @@ def parse_config_string(
                 yaml_tree,
                 source_hash,
                 filename,
-                no_python_schema_validation,
+                validation_mode,
             )
 
     # 4. CREATE RULES
