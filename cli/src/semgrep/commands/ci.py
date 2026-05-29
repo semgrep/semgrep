@@ -471,6 +471,20 @@ def ci(
             if partial_output:
                 dry_run = True
 
+            # When --secrets is set, every rule eligible for validators must
+            # come directly from the appsec platform. A saved scan
+            # config is a JSON file on a filesystem, and rules could
+            # be substituted, so we discard the saved path and let
+            # ScanHandler re-fetch from the app.
+            saved_scan_config_path = x_use_saved_scan_config_path
+            if run_secrets_flag and saved_scan_config_path:
+                logger.warning(
+                    f"Ignoring saved scan config at {saved_scan_config_path} "
+                    "because --secrets is set. Re-fetching from app so only "
+                    "platform-served rules are eligible for validators."
+                )
+                saved_scan_config_path = None
+
             scan_handler = ScanHandler(
                 enable_transitive_reachability=enable_transitive_reachability,
                 dry_run=dry_run,
@@ -478,7 +492,7 @@ def ci(
                 dump_scan_id_path=dump_scan_id_path,
                 enable_mal_deps=enable_mal_deps,
                 dump_scan_config_path=x_dump_scan_config_path,
-                load_saved_scan_config_path=x_use_saved_scan_config_path,
+                load_saved_scan_config_path=saved_scan_config_path,
             )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
@@ -633,11 +647,49 @@ def ci(
                     )
                     sys.exit(MISSING_CONFIG_EXIT_CODE)
 
-                # Partial config overrides the config we get from the app,
-                # but we still need to communicate with the app to get other
-                # configs such as products, deployment ID, etc.
+                # start_scan above has populated scan_handler.scan_response
+                # with everything beyond rules: enabled_products, deployment_id,
+                # deployment_name, scan_id, ignore_patterns, fips_mode,
+                # symbol_analysis. Here we only override the rules string. The
+                # allowlist below is built from scan_handler.rules (the
+                # network-served set), so start_scan must always run, even when
+                # partial_config is set.
                 if partial_config:
-                    config = (str(partial_config),)
+                    # For security, only allow rules that are actually
+                    # downloaded from the app. The partial config can only
+                    # select which subset of network-served rules to run.
+                    # It cannot supply the rule content (pattern, message,
+                    # metadata, etc.). A malicious user could otherwise
+                    # craft a partial config with a legitimate rule ID but
+                    # attacker-controlled body and bypass the allowlist.
+                    rules_from_network_json = json.loads(scan_handler.rules)
+                    network_rules_by_id = {
+                        rule["id"]: rule for rule in rules_from_network_json["rules"]
+                    }
+                    try:
+                        with partial_config.open() as f:
+                            partial_config_json = json.load(f)
+                    except FileNotFoundError:
+                        logger.warning(
+                            f"Partial config file not found: {partial_config}"
+                        )
+                        scan_handler.report_failure(MISSING_CONFIG_EXIT_CODE)
+                        sys.exit(MISSING_CONFIG_EXIT_CODE)
+                    partial_config_rules = partial_config_json.get("rules")
+                    if partial_config_rules is None:
+                        logger.warning(
+                            f"Partial config missing 'rules' key: {partial_config}"
+                        )
+                        scan_handler.report_failure(MISSING_CONFIG_EXIT_CODE)
+                        sys.exit(MISSING_CONFIG_EXIT_CODE)
+                    safe_partial_config_json = {
+                        "rules": [
+                            network_rules_by_id[rule["id"]]
+                            for rule in partial_config_rules
+                            if rule["id"] in network_rules_by_id
+                        ]
+                    }
+                    rules_string = json.dumps(safe_partial_config_json)
                 else:
                     rules_string = scan_handler.rules
 
