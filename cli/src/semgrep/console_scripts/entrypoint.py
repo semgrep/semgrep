@@ -198,6 +198,49 @@ def exec_osemgrep():
                 )
                 exec_pysemgrep()
             else:
+                print(
+                    "Attempting to auto-install semgrep-core-proprietary and retry the command...",
+                    file=sys.stderr,
+                )
+
+                # Lazy import to keep the entry point lightweight
+                from semgrep.app import auth
+                from semgrep.cli import cli
+
+                # If not logged in, prompt user to log in
+                if not auth.is_logged_in_weak():
+                    print(
+                        "Run `semgrep login` before running `semgrep scan --pro`. Or in non-interactive environments, ensure your SEMGREP_APP_TOKEN variable is set correctly.",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
+
+                # We already attempted to auto-install in this process tree and so we fail
+                if os.environ.get("_SEMGREP_PRO_AUTO_INSTALLED"):
+                    print(
+                        "install-semgrep-pro previously reported success but the binary still isn't reachable.",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
+
+                # Otherwise, install-semgrep-pro and try again
+                try:
+                    cli.main(args=["install-semgrep-pro"], standalone_mode=False)
+                except SystemExit as exc:
+                    # If installation failed, we print the error
+                    if exc.code not in (0, None):
+                        raise
+
+                    # Otherwise, retry the original command now that semgrep-pro is installed
+                    # Environment variable ensures that we don't try to auto-install again if something goes wrong
+                    os.environ["_SEMGREP_PRO_AUTO_INSTALLED"] = "1"
+                    print(
+                        "Semgrep Pro Engine installed successfully, retrying the original command...",
+                        file=sys.stderr,
+                    )
+                    exec_osemgrep()
+                    return
+
                 sys.exit(2)
         # If you call semgrep-core-proprietary as osemgrep-pro, then we get
         # osemgrep-pro behavior, see semgrep-proprietary/src/main/Pro_main.ml
