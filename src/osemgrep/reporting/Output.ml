@@ -55,6 +55,8 @@ type conf = {
   skipped_files : bool;
   (* alt: in CLI_common.conf *)
   max_log_list_entries : int;
+  (* Limits characters of match context in output. 0 = unlimited. *)
+  max_match_context_size : int;
   (* Used when outputting MCP scan results. *)
   output_mcp_scan_results : bool;
 }
@@ -72,6 +74,7 @@ let default : conf =
     fips_mode = false;
     skipped_files = false;
     max_log_list_entries = 100;
+    max_match_context_size = 0;
     output_mcp_scan_results = false;
   }
 

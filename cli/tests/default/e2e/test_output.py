@@ -622,3 +622,72 @@ def test_output_truncated_messages(run_semgrep_in_tmp: RunSemgrep, posix_snapsho
     )
     posix_snapshot.assert_match(stdout, "report.json")
     # NOTE if we display these in text mode then we should also test that
+
+
+_TRUNCATION_SUFFIX = "... [truncated; adjust with --max-match-context-size]"
+# minified.js has a single very long line (~620 chars) with console.log(...)
+_MINIFIED_JS = "minified.js"
+_CONSOLE_LOG_RULE = "rules/console-log.yaml"
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_max_match_context_size_truncates_minified_js(
+    run_semgrep_in_tmp: RunSemgrep,
+) -> None:
+    """--max-match-context-size truncates the lines field for minified JS matches.
+
+    Truncation is only applied in the OCaml output path (osemgrep). In the
+    pysemgrep path the lines field is returned as-is from the core subprocess,
+    so we skip the truncation assertion there.
+    """
+    limit = 50
+    stdout, _ = run_semgrep_in_tmp(
+        _CONSOLE_LOG_RULE,
+        target_name=_MINIFIED_JS,
+        output_format=OutputFormat.JSON,
+        options=[f"--max-match-context-size={limit}"],
+        assert_exit_code={0, 1},
+        is_logged_in_weak=True,
+    )
+    results = json.loads(stdout)["results"]
+    assert results, "expected at least one match in minified.js"
+    for match in results:
+        lines = match["extra"]["lines"]
+        assert len(lines) == limit + len(
+            "console.log(debugInfo)" + _TRUNCATION_SUFFIX
+        ), f"truncated prefix should be exactly {limit} chars, got: {lines!r}"
+        assert (
+            "console.log(debugInfo)" in lines
+        ), f"expected to find console.log(debugInfo) in lines: {lines!r}"
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_max_match_context_size_zero_means_unlimited(
+    run_semgrep_in_tmp: RunSemgrep,
+) -> None:
+    """--max-match-context-size=0 (the default) leaves lines untruncated."""
+    stdout_limited, _ = run_semgrep_in_tmp(
+        _CONSOLE_LOG_RULE,
+        target_name=_MINIFIED_JS,
+        output_format=OutputFormat.JSON,
+        options=["--max-match-context-size=0"],
+        assert_exit_code={0, 1},
+        is_logged_in_weak=True,
+    )
+    stdout_default, _ = run_semgrep_in_tmp(
+        _CONSOLE_LOG_RULE,
+        target_name=_MINIFIED_JS,
+        output_format=OutputFormat.JSON,
+        assert_exit_code={0, 1},
+        is_logged_in_weak=True,
+    )
+    for stdout in (stdout_limited, stdout_default):
+        results = json.loads(stdout)["results"]
+        assert results, "expected at least one match"
+        for match in results:
+            lines = match["extra"]["lines"]
+            assert not lines.endswith(
+                _TRUNCATION_SUFFIX
+            ), f"lines should not be truncated with size=0: {lines!r}"
