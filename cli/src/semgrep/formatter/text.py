@@ -34,6 +34,7 @@ from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
+from semgrep.constants import TOO_MUCH_CONTEXT
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
@@ -266,6 +267,7 @@ def finding_to_line(
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
     show_separator: bool,
+    max_match_context_size: int = 0,
 ) -> Iterator[Text]:
     path = rule_match.path
     start_line = rule_match.start.line
@@ -273,21 +275,50 @@ def finding_to_line(
     start_col = rule_match.start.col
     end_col = rule_match.end.col
     if path:
-        lines = rule_match._fixed_lines or rule_match.lines
+        line_list = list(rule_match._fixed_lines or rule_match.lines)
+        truncated = False
+
+        if max_match_context_size > 0 and line_list:
+            start = line_list[0]
+            end = line_list[-1].rstrip()
+            start_pos = max(0, rule_match.start.col - 1 - (max_match_context_size // 2))
+            end_pos = min(
+                len(end), rule_match.end.col - 1 + (max_match_context_size // 2)
+            )
+            truncated = start_pos > 0 or end_pos < len(end)
+            if rule_match.start.line < rule_match.end.line:
+                line_list[0] = start[start_pos:]
+                line_list[-1] = end[:end_pos]
+            else:
+                line_list[0] = start[start_pos:end_pos]
+                # For single-line, [0] and [-1] are the same element
+            # Adjust col references for chars removed from the left of the
+            # first line.  end_col only needs adjustment on single-line
+            # matches (multi-line: last line is right-truncated only).
+            start_col = max(1, start_col - start_pos)
+            if rule_match.start.line == rule_match.end.line:
+                end_col = max(1, end_col - start_pos)
+
         yield from format_lines(
             path,
             start_line,
             start_col,
             end_line,
             end_col,
-            lines,
+            line_list,
             color_output,
             isinstance(rule_match.product.value, out.Secrets),
             per_finding_max_lines_limit,
             per_line_max_chars_limit,
-            show_separator,
+            show_separator and not truncated,
             False,
         )
+
+        if truncated:
+            yield Text.assemble(
+                " " * (FINDINGS_INDENT_DEPTH - 4),
+                TOO_MUCH_CONTEXT,
+            )
 
 
 def match_to_lines(
@@ -653,6 +684,7 @@ def print_matches(
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
     dataflow_traces: bool,
+    max_match_context_size: int = 0,
 ) -> None:
     last_file = None
     last_rule_id = None
@@ -851,6 +883,7 @@ def print_matches(
             # because otherwise it is easy to mistake taint traces as belonging
             # to a different finding
             show_separator,
+            max_match_context_size,
         ):
             console.print(line)
 
@@ -987,6 +1020,7 @@ class TextFormatter(base.BaseFormatter):
                         extra["per_finding_max_lines_limit"],
                         extra["per_line_max_chars_limit"],
                         extra["dataflow_traces"],
+                        extra.get("max_match_context_size", 0),
                     )
 
             if code_blocking_rules and ctx.is_ci_invocation:

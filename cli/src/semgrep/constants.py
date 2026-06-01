@@ -136,6 +136,13 @@ DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
 DEFAULT_MAX_LOG_LIST_ENTRIES = 100
 TOO_MUCH_DATA = "<SKIPPED DATA (too many entries; use --max-log-list-entries)>"
 
+# Maximum total characters of match context (the source lines around a match)
+# to include in output. Prevents minified JS from producing enormous output.
+# 0 means unlimited.
+# coupling: with Output.ml
+DEFAULT_MAX_MATCH_CONTEXT_SIZE = 0
+TOO_MUCH_CONTEXT = "... [truncated; adjust with --max-match-context-size]"
+
 
 class Colors(Enum):
     # these colors come from user's terminal theme
