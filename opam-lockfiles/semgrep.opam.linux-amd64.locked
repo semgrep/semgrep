@@ -30,8 +30,8 @@ depends: [
   "atdpy" {= "4.2.0"}
   "atdts" {= "4.2.0"}
   "atomic" {= "base"}
-  "awa" {= "0.5.2"}
-  "awa-mirage" {= "0.5.2"}
+  "awa" {= "0.6.0"}
+  "awa-mirage" {= "0.6.0"}
   "base" {= "v0.17.3"}
   "base-bigarray" {= "base"}
   "base-bytes" {= "base"}
@@ -75,7 +75,6 @@ depends: [
   "csexp" {= "1.5.2"}
   "cstruct" {= "6.2.0"}
   "cstruct-lwt" {= "6.2.0"}
-  "cstruct-unix" {= "6.2.0"}
   "ctypes" {= "0.24.0"}
   "decompress" {= "1.5.3"}
   "digestif" {= "1.3.0"}
