@@ -34,6 +34,8 @@ type conf = {
    * in the log output.
    *)
   max_log_list_entries : int;
+  (* Limits characters of match context in output. 0 = unlimited. *)
+  max_match_context_size : int;
   (* Used when outputting MCP scan results. *)
   output_mcp_scan_results : bool;
 }

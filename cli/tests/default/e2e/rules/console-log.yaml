@@ -1,0 +1,6 @@
+rules:
+  - id: console-log
+    pattern: console.log(...)
+    message: console.log call detected
+    severity: ERROR
+    languages: [javascript]

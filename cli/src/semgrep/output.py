@@ -146,6 +146,7 @@ class NormalizedOutputSettings(NamedTuple):
     dataflow_traces: bool
     # alt: put that in terminal.py, which can then be accessed globally
     max_log_list_entries: int
+    max_match_context_size: int
 
     def get_outputs(self) -> Iterator[Tuple[Optional[str], OutputFormat]]:
         return self.outputs.items().__iter__()
@@ -170,6 +171,7 @@ class OutputSettings(NamedTuple):
     timeout_threshold: int = 0
     dataflow_traces: bool = False
     max_log_list_entries: int = 0
+    max_match_context_size: int = 0
 
     def normalize(self) -> NormalizedOutputSettings:
         normalized_outputs: Dict[Optional[str], OutputFormat] = {}
@@ -197,6 +199,7 @@ class OutputSettings(NamedTuple):
             timeout_threshold=self.timeout_threshold,
             dataflow_traces=self.dataflow_traces,
             max_log_list_entries=self.max_log_list_entries,
+            max_match_context_size=self.max_match_context_size,
         )
 
 
@@ -687,6 +690,7 @@ class OutputHandler:
                 "per_line_max_chars_limit"
             ] = self.settings.output_per_line_max_chars_limit
             extra["dataflow_traces"] = self.settings.dataflow_traces
+        extra["max_match_context_size"] = self.settings.max_match_context_size
         if output_format == OutputFormat.SARIF:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 

@@ -34,7 +34,10 @@ class GitlabSecretsFormatter(base.BaseFormatter):
         ctx: out.FormatContext,
     ) -> str:
         output = base.to_CliOutput(
-            rule_matches, semgrep_structured_errors, cli_output_extra
+            rule_matches,
+            semgrep_structured_errors,
+            cli_output_extra,
+            max_match_context_size=extra.get("max_match_context_size", 0),
         )
         return semgrep.rpc_call.format(
             out.OutputFormat(out.GitlabSecrets()), ctx, output

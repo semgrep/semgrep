@@ -51,6 +51,7 @@ from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
+from semgrep.constants import DEFAULT_MAX_MATCH_CONTEXT_SIZE
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MemoryPolicy
@@ -285,6 +286,14 @@ _scan_options: List[Callable] = [
         "--max-log-list-entries",
         type=int,
         default=DEFAULT_MAX_LOG_LIST_ENTRIES,
+    ),
+    optgroup.option(
+        "--max-match-context-size",
+        type=int,
+        default=DEFAULT_MAX_MATCH_CONTEXT_SIZE,
+        help="Maximum number of characters of source code to include as context "
+        "for a match in the output. Prevents very long lines (e.g., minified "
+        "JavaScript) from producing enormous output. Set to 0 for unlimited.",
     ),
     optgroup.option(
         "--dataflow-traces",
@@ -762,6 +771,7 @@ def scan(
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_log_list_entries: int,
+    max_match_context_size: int,
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
@@ -993,6 +1003,7 @@ def scan(
             output_per_line_max_chars_limit=max_chars_per_line,
             dataflow_traces=dataflow_traces,
             max_log_list_entries=max_log_list_entries,
+            max_match_context_size=max_match_context_size,
             # those are not set in ci.py as they are scan-specific flags
             error_on_findings=error_on_findings,
             strict=strict,

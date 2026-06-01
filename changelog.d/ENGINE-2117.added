@@ -1,0 +1,1 @@
+Added `--max-match-context-size` option to limit the number of characters of source code included as context for each match in the output. This prevents matches in minified files (e.g., minified JavaScript where the entire file is a single line) from producing enormous output Set to 0 for unlimited, which is the default value.
