@@ -74,6 +74,7 @@ type payload = {
     value: value;
     extension: extension;
     mcp: mcp;
+    guardian: guardian;
 }
 
 (*****************************************************************************)
@@ -303,6 +304,37 @@ type mcp = {
     ?oauth_id <ocaml mutable>: string option;
     ?oauth_name <ocaml mutable>: string option;
     ?oauth_email <ocaml mutable>: string option;
+}
+
+(* This is only used by the external Guardian plugin (e.g. the Claude Code
+ * hook), not by the Semgrep CLI. It mirrors the mcp section above for the
+ * fields that apply, plus a few hook-specific ones (hook/blocking).
+ *)
+type guardian = {
+    (* lifecycle *)
+    ?hook <ocaml mutable>: string option;             (* PreToolUse | PostToolUse | ... *)
+    ?session_id <ocaml mutable>: string option;
+    ?login_method <ocaml mutable>: string option;     (* oauth | app_token *)
+    ?scanner_version <ocaml mutable>: string option;  (* semgrep version from the scan response *)
+    (* identity (no email/name in v1) *)
+    ?deployment_name <ocaml mutable>: string option;
+    ?deployment_id <ocaml mutable>: int option;
+    ?organization_id <ocaml mutable>: int option;
+    ?oauth_id <ocaml mutable>: string option;
+    (* tool context being scanned *)
+    ?tool_name <ocaml mutable>: string option;        (* Write | Edit | Bash *)
+    ?package_manager <ocaml mutable>: string option;  (* npm | poetry | cargo ... *)
+    ?attached_lockfile <ocaml mutable>: string option;
+    (* scan size *)
+    ?num_scanned_files <ocaml mutable>: int option;
+    ?num_lines <ocaml mutable>: int option;
+    (* findings *)
+    ?num_findings <ocaml mutable>: int option;
+    ?findings <ocaml mutable>: (string (* rule_id *) * finding) list <json repr="object"> option;
+    (* outcome *)
+    ?blocking <ocaml mutable>: bool option;
+    ?exit_code <ocaml mutable>: int option;
+    ?errors <ocaml mutable>: string list option;
 }
 
 (*****************************************************************************)

@@ -265,8 +265,7 @@ from dataclasses import field
 
 @dataclass
 class SupplyChainConfig:
-    """Original type: supply_chain_config = { ... }
-    """
+    """Original type: supply_chain_config = { ... }"""
 
     _rfu: Optional[int] = None
 
@@ -295,8 +294,7 @@ class SupplyChainConfig:
 
 @dataclass
 class Any_:
-    """Original type: secrets_origin = [ ... | Any | ... ]
-    """
+    """Original type: secrets_origin = [ ... | Any | ... ]"""
 
     @property
     def kind(self) -> str:
@@ -313,8 +311,7 @@ class Any_:
 
 @dataclass
 class Semgrep:
-    """Original type: secrets_origin = [ ... | Semgrep | ... ]
-    """
+    """Original type: secrets_origin = [ ... | Semgrep | ... ]"""
 
     @property
     def kind(self) -> str:
@@ -331,8 +328,7 @@ class Semgrep:
 
 @dataclass
 class NoCommunity:
-    """Original type: secrets_origin = [ ... | NoCommunity | ... ]
-    """
+    """Original type: secrets_origin = [ ... | NoCommunity | ... ]"""
 
     @property
     def kind(self) -> str:
@@ -349,8 +345,7 @@ class NoCommunity:
 
 @dataclass
 class SecretsOrigin:
-    """Original type: secrets_origin = [ ... ]
-    """
+    """Original type: secrets_origin = [ ... ]"""
 
     value: Union[Any_, Semgrep, NoCommunity]
 
@@ -384,8 +379,7 @@ class SecretsOrigin:
 
 @dataclass
 class SecretsConfig:
-    """Original type: secrets_config = { ... }
-    """
+    """Original type: secrets_config = { ... }"""
 
     permitted_origins: SecretsOrigin
 
@@ -413,8 +407,7 @@ class SecretsConfig:
 
 @dataclass
 class ProFeatures:
-    """Original type: pro_features = { ... }
-    """
+    """Original type: pro_features = { ... }"""
 
     diffDepth: Optional[int] = None
     numInterfileDiffScanned: Optional[List[Tuple[str, int]]] = None
@@ -447,8 +440,7 @@ class ProFeatures:
 
 @dataclass
 class CodeConfig:
-    """Original type: code_config = { ... }
-    """
+    """Original type: code_config = { ... }"""
 
     _rfu: Optional[int] = None
 
@@ -477,8 +469,7 @@ class CodeConfig:
 
 @dataclass
 class Intraprocedural:
-    """Original type: analysis_type = [ ... | Intraprocedural | ... ]
-    """
+    """Original type: analysis_type = [ ... | Intraprocedural | ... ]"""
 
     @property
     def kind(self) -> str:
@@ -495,8 +486,7 @@ class Intraprocedural:
 
 @dataclass
 class Interprocedural:
-    """Original type: analysis_type = [ ... | Interprocedural | ... ]
-    """
+    """Original type: analysis_type = [ ... | Interprocedural | ... ]"""
 
     @property
     def kind(self) -> str:
@@ -513,8 +503,7 @@ class Interprocedural:
 
 @dataclass
 class Interfile:
-    """Original type: analysis_type = [ ... | Interfile | ... ]
-    """
+    """Original type: analysis_type = [ ... | Interfile | ... ]"""
 
     @property
     def kind(self) -> str:
@@ -531,8 +520,7 @@ class Interfile:
 
 @dataclass
 class AnalysisType:
-    """Original type: analysis_type = [ ... ]
-    """
+    """Original type: analysis_type = [ ... ]"""
 
     value: Union[Intraprocedural, Interprocedural, Interfile]
 
@@ -566,8 +554,7 @@ class AnalysisType:
 
 @dataclass
 class EngineConfig:
-    """Original type: engine_config = { ... }
-    """
+    """Original type: engine_config = { ... }"""
 
     analysis_type: AnalysisType
     pro_langs: bool
@@ -610,8 +597,7 @@ class EngineConfig:
 
 @dataclass
 class Value:
-    """Original type: value = { ... }
-    """
+    """Original type: value = { ... }"""
 
     features: List[str]
     proFeatures: Optional[ProFeatures] = None
@@ -670,8 +656,7 @@ class Value:
 
 @dataclass
 class Uuid:
-    """Original type: uuid
-    """
+    """Original type: uuid"""
 
     value: str
 
@@ -692,8 +677,7 @@ class Uuid:
 
 @dataclass
 class Sha256:
-    """Original type: sha256
-    """
+    """Original type: sha256"""
 
     value: str
 
@@ -714,8 +698,7 @@ class Sha256:
 
 @dataclass
 class RuleStats:
-    """Original type: rule_stats = { ... }
-    """
+    """Original type: rule_stats = { ... }"""
 
     ruleHash: str
     bytesScanned: int
@@ -750,8 +733,7 @@ class RuleStats:
 
 @dataclass
 class FileStats:
-    """Original type: file_stats = { ... }
-    """
+    """Original type: file_stats = { ... }"""
 
     size: int
     numTimesScanned: int
@@ -794,8 +776,7 @@ class FileStats:
 
 @dataclass
 class Performance:
-    """Original type: performance = { ... }
-    """
+    """Original type: performance = { ... }"""
 
     numRules: Optional[int] = None
     numTargets: Optional[int] = None
@@ -848,8 +829,7 @@ class Performance:
 
 @dataclass
 class ParseStat:
-    """Original type: parse_stat = { ... }
-    """
+    """Original type: parse_stat = { ... }"""
 
     targets_parsed: int
     num_targets: int
@@ -886,8 +866,7 @@ class ParseStat:
 
 @dataclass
 class Finding:
-    """Original type: finding = { ... }
-    """
+    """Original type: finding = { ... }"""
 
     path: str
     line: int
@@ -927,8 +906,7 @@ class Finding:
 
 @dataclass
 class Mcp:
-    """Original type: mcp = { ... }
-    """
+    """Original type: mcp = { ... }"""
 
     deployment_name: Optional[str] = None
     session_id: Optional[str] = None
@@ -1040,9 +1018,105 @@ class Mcp:
 
 
 @dataclass
+class Guardian:
+    """Original type: guardian = { ... }"""
+
+    hook: Optional[str] = None
+    session_id: Optional[str] = None
+    login_method: Optional[str] = None
+    scanner_version: Optional[str] = None
+    deployment_name: Optional[str] = None
+    deployment_id: Optional[int] = None
+    organization_id: Optional[int] = None
+    oauth_id: Optional[str] = None
+    tool_name: Optional[str] = None
+    package_manager: Optional[str] = None
+    attached_lockfile: Optional[str] = None
+    num_scanned_files: Optional[int] = None
+    num_lines: Optional[int] = None
+    num_findings: Optional[int] = None
+    findings: Optional[List[Tuple[str, Finding]]] = None
+    blocking: Optional[bool] = None
+    exit_code: Optional[int] = None
+    errors: Optional[List[str]] = None
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'Guardian':
+        if isinstance(x, dict):
+            return cls(
+                hook=_atd_read_string(x['hook']) if 'hook' in x else None,
+                session_id=_atd_read_string(x['session_id']) if 'session_id' in x else None,
+                login_method=_atd_read_string(x['login_method']) if 'login_method' in x else None,
+                scanner_version=_atd_read_string(x['scanner_version']) if 'scanner_version' in x else None,
+                deployment_name=_atd_read_string(x['deployment_name']) if 'deployment_name' in x else None,
+                deployment_id=_atd_read_int(x['deployment_id']) if 'deployment_id' in x else None,
+                organization_id=_atd_read_int(x['organization_id']) if 'organization_id' in x else None,
+                oauth_id=_atd_read_string(x['oauth_id']) if 'oauth_id' in x else None,
+                tool_name=_atd_read_string(x['tool_name']) if 'tool_name' in x else None,
+                package_manager=_atd_read_string(x['package_manager']) if 'package_manager' in x else None,
+                attached_lockfile=_atd_read_string(x['attached_lockfile']) if 'attached_lockfile' in x else None,
+                num_scanned_files=_atd_read_int(x['num_scanned_files']) if 'num_scanned_files' in x else None,
+                num_lines=_atd_read_int(x['num_lines']) if 'num_lines' in x else None,
+                num_findings=_atd_read_int(x['num_findings']) if 'num_findings' in x else None,
+                findings=_atd_read_assoc_object_into_list(Finding.from_json)(x['findings']) if 'findings' in x else None,
+                blocking=_atd_read_bool(x['blocking']) if 'blocking' in x else None,
+                exit_code=_atd_read_int(x['exit_code']) if 'exit_code' in x else None,
+                errors=_atd_read_list(_atd_read_string)(x['errors']) if 'errors' in x else None,
+            )
+        else:
+            _atd_bad_json('Guardian', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        if self.hook is not None:
+            res['hook'] = _atd_write_string(self.hook)
+        if self.session_id is not None:
+            res['session_id'] = _atd_write_string(self.session_id)
+        if self.login_method is not None:
+            res['login_method'] = _atd_write_string(self.login_method)
+        if self.scanner_version is not None:
+            res['scanner_version'] = _atd_write_string(self.scanner_version)
+        if self.deployment_name is not None:
+            res['deployment_name'] = _atd_write_string(self.deployment_name)
+        if self.deployment_id is not None:
+            res['deployment_id'] = _atd_write_int(self.deployment_id)
+        if self.organization_id is not None:
+            res['organization_id'] = _atd_write_int(self.organization_id)
+        if self.oauth_id is not None:
+            res['oauth_id'] = _atd_write_string(self.oauth_id)
+        if self.tool_name is not None:
+            res['tool_name'] = _atd_write_string(self.tool_name)
+        if self.package_manager is not None:
+            res['package_manager'] = _atd_write_string(self.package_manager)
+        if self.attached_lockfile is not None:
+            res['attached_lockfile'] = _atd_write_string(self.attached_lockfile)
+        if self.num_scanned_files is not None:
+            res['num_scanned_files'] = _atd_write_int(self.num_scanned_files)
+        if self.num_lines is not None:
+            res['num_lines'] = _atd_write_int(self.num_lines)
+        if self.num_findings is not None:
+            res['num_findings'] = _atd_write_int(self.num_findings)
+        if self.findings is not None:
+            res['findings'] = _atd_write_assoc_list_to_object((lambda x: x.to_json()))(self.findings)
+        if self.blocking is not None:
+            res['blocking'] = _atd_write_bool(self.blocking)
+        if self.exit_code is not None:
+            res['exit_code'] = _atd_write_int(self.exit_code)
+        if self.errors is not None:
+            res['errors'] = _atd_write_list(_atd_write_string)(self.errors)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'Guardian':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
 class Extension:
-    """Original type: extension = { ... }
-    """
+    """Original type: extension = { ... }"""
 
     machineId: Optional[str] = None
     isNewAppInstall: Optional[bool] = None
@@ -1095,8 +1169,7 @@ class Extension:
 
 @dataclass
 class Error:
-    """Original type: error
-    """
+    """Original type: error"""
 
     value: str
 
@@ -1117,8 +1190,7 @@ class Error:
 
 @dataclass
 class Errors:
-    """Original type: errors = { ... }
-    """
+    """Original type: errors = { ... }"""
 
     returnCode: Optional[int] = None
     errors: Optional[List[Error]] = None
@@ -1151,8 +1223,7 @@ class Errors:
 
 @dataclass
 class Environment:
-    """Original type: environment = { ... }
-    """
+    """Original type: environment = { ... }"""
 
     version: str
     os: str
@@ -1213,8 +1284,7 @@ class Environment:
 
 @dataclass
 class Datetime:
-    """Original type: datetime
-    """
+    """Original type: datetime"""
 
     value: str
 
@@ -1235,8 +1305,7 @@ class Datetime:
 
 @dataclass
 class Payload:
-    """Original type: payload = { ... }
-    """
+    """Original type: payload = { ... }"""
 
     event_id: Uuid
     started_at: Datetime
@@ -1248,6 +1317,7 @@ class Payload:
     value: Value
     extension: Extension
     mcp: Mcp
+    guardian: Guardian
     parse_rate: List[Tuple[str, ParseStat]] = field(default_factory=lambda: [])
 
     @classmethod
@@ -1264,6 +1334,7 @@ class Payload:
                 value=Value.from_json(x['value']) if 'value' in x else _atd_missing_json_field('Payload', 'value'),
                 extension=Extension.from_json(x['extension']) if 'extension' in x else _atd_missing_json_field('Payload', 'extension'),
                 mcp=Mcp.from_json(x['mcp']) if 'mcp' in x else _atd_missing_json_field('Payload', 'mcp'),
+                guardian=Guardian.from_json(x['guardian']) if 'guardian' in x else _atd_missing_json_field('Payload', 'guardian'),
                 parse_rate=_atd_read_assoc_object_into_list(ParseStat.from_json)(x['parse_rate']) if 'parse_rate' in x else [],
             )
         else:
@@ -1281,6 +1352,7 @@ class Payload:
         res['value'] = (lambda x: x.to_json())(self.value)
         res['extension'] = (lambda x: x.to_json())(self.extension)
         res['mcp'] = (lambda x: x.to_json())(self.mcp)
+        res['guardian'] = (lambda x: x.to_json())(self.guardian)
         res['parse_rate'] = _atd_write_assoc_list_to_object((lambda x: x.to_json()))(self.parse_rate)
         return res
 
@@ -1294,8 +1366,7 @@ class Payload:
 
 @dataclass
 class Lang:
-    """Original type: lang
-    """
+    """Original type: lang"""
 
     value: str
 

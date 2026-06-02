@@ -242,6 +242,27 @@ let default_payload =
         oauth_name = None;
         oauth_email = None;
       };
+    guardian =
+      {
+        hook = None;
+        session_id = None;
+        login_method = None;
+        scanner_version = None;
+        deployment_name = None;
+        deployment_id = None;
+        organization_id = None;
+        oauth_id = None;
+        tool_name = None;
+        package_manager = None;
+        attached_lockfile = None;
+        num_scanned_files = None;
+        num_lines = None;
+        num_findings = None;
+        findings = None;
+        blocking = None;
+        exit_code = None;
+        errors = None;
+      };
   }
 
 let default () =
