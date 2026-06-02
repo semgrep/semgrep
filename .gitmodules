@@ -4,7 +4,7 @@ url = https://github.com/returntocorp/semgrep-cpp
 
 [submodule "OSS/languages/csharp/tree-sitter/semgrep-c-sharp"]
 path = languages/csharp/tree-sitter/semgrep-c-sharp
-url = https://github.com/returntocorp/semgrep-c-sharp
+url = https://github.com/AlexLaroche/semgrep-c-sharp.git
 
 [submodule "OSS/languages/go/tree-sitter/semgrep-go"]
 path = languages/go/tree-sitter/semgrep-go
