@@ -56,6 +56,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Errors
 from semgrep.semgrep_interfaces.semgrep_metrics import Extension
 from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
 from semgrep.semgrep_interfaces.semgrep_metrics import Finding
+from semgrep.semgrep_interfaces.semgrep_metrics import Guardian
 from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
 from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
@@ -147,6 +148,7 @@ class Metrics:
             performance=Performance(maxMemoryBytes=None),
             extension=Extension(),
             mcp=Mcp(),
+            guardian=Guardian(),
             value=Value(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
             event_id=met.Uuid(str(get_frozen_id())),
