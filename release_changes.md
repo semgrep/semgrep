@@ -1,36 +1,15 @@
-## [1.164.0](https://github.com/semgrep/semgrep/releases/tag/v1.164.0) - 2026-05-26
+## [1.165.0](https://github.com/semgrep/semgrep/releases/tag/v1.165.0) - 2026-06-03
 
 ### ### Added
 
-- Dart: typed metavariables (`$X as T`) and `metavariable-type`,
-  metavariable binding inside string interpolations, and function-definition
-  patterns that match Dart function definitions. (gh-11678)
+- Added `--max-match-context-size` option to limit the number of characters of source code included as context for each match in the output. This prevents matches in minified files (e.g., minified JavaScript where the entire file is a single line) from producing enormous output Set to 0 for unlimited, which is the default value. (ENGINE-2117)
 
 ### ### Changed
 
-- The default memory limit for Pro interfile scans on Linux now adapts to the container's cgroup memory limit (90% of it) instead of the previous fixed 5 GiB, with an 8 GiB fallback when no cgroup limit is detected. (ENGINE-2568)
-- Lower the glibc contraint from `>=2.35` to `>=2.34`, allowing users on distros
-  that ship glibc 2.34 (e.g RHEL 9 & AL2023) to install the semgrep wheel. (gh-11622)
+- Replaced `--x-no-python-schema-validation` with a value-taking `--x-rule-validation=full|core-only|none` flag. The default (`full`) preserves existing Python rule validation behavior; `core-only` matches the old flag's semantics (disables Python rule validation and uses semgrep-core RPC validation only); `none` skips both pre-validation passes, surfacing rule errors at scan-time. `--x-no-python-schema-validation` is still accepted as a no-op with a deprecation warning, and will be removed in a future release. (x-rule-validation)
+- Python: Updated Python grammar (LANG-201)
 
 ### ### Fixed
 
-- Baseline diff scans (``semgrep ci`` and ``--baseline-commit``) no longer treat every finding on a file as newly introduced when rule(s) failed during the baseline run.
-
-  Per-rule failures (for example a timeout for a single rule) on baseline analysis now hide only that rule's matches on that file from the "new vs baseline" comparison.
-  Other rules on the same file are still taken in comparison for the "new vs baseline" comparison.
-
-  Per-file, rule-independent failures now hide all findings on that file from the "new vs baseline" comparison. (LANG-515)
-- Fixed a yarn.lock parse error on Yarn Berry entries written
-  in YAML explicit-key form. Affected lockfiles previously failed to parse. (SC-3479)
-- The (beta) SBT resolver with `--allow-local-builds` now correctly identifies dependencies as part of the Maven ecosystem. (SC-3522)
-- Fix `--sarif-output` and `--sarif` causing nosemgrep-suppressed findings to be reported in CLI scan output and to block scans. Suppressed findings are now correctly excluded from terminal text output, the scan-summary count, and the CLI's exit code. (engine-1824)
-- Fixed a bug that could cause unreliable target filtering in parallel scans. (gh-6313)
-- Dart: improved parser fidelity for Dart 3 grammar features and routed
-  pattern parsing for statements beginning with `await`, `rethrow`, and other
-  statement keywords. Eliminates a large class of `PartialParsing` errors on
-  real-world pub.dev packages. (gh-11678)
-
-### ### Infra/Release Changes
-
-- pro: macOS: Fixed dynamic library lookup for `semgrep-core-proprietary` so the binary works when `semgrep install-semgrep-pro` is invoked, and `semgrep` is installed via Homebrew. (pro-binary-homebrew)
-- Pro: Added optional `<case>.named_ast.expect` golden files for `tests/intrafile/maturity/` fixtures, exercised by `Unit_maturity_named_asts`. (LANG-287)
+- Added bit shift operations to metavar comparison in addition to already present standard arithmetic operators and logical bit ops. (ENGINE-2448)
+- Reduce intermittent `validation_error` results on HTTP secret validators (Facebook, Slack, Stripe, Google, Cloudflare, etc.) by retrying transient network failures, mirroring the retry behavior already present for AWS validators. (SCRT-965)
