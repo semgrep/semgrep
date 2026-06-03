@@ -126,15 +126,19 @@ let configure_proxy settings =
   let scheme_proxy = make_scheme_proxy settings in
   let all_proxy = settings.all_proxy in
   let proxy_headers = make_proxy_headers settings in
-  (* TODO(eio): This is specific to using Cohttp_lwt for networking. When we
-     switch to EIO, this will need to be updated. Since we will probably need a
-     separate client for multiple users (instead of a mutable singleton) we'll
-     need to change the structure here a bit, but the important thing is when
-     creating such clients we ensure we configure the proxy appropriately, as
-     we do here. *)
   (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m -> m "Proxy was configured with %a" pp_settings settings);
   Cohttp_lwt_unix.Client.set_cache
     (Cohttp_lwt_unix.Connection_proxy.call
        (Cohttp_lwt_unix.Connection_proxy.create ?all_proxy ~scheme_proxy
           ?no_proxy:settings.no_proxy ?proxy_headers ()))
+
+(* TODO Consider merging with configure_proxy? Or just drop LWT entirely at some
+ * point? *)
+let configure_proxy_eio settings =
+  let scheme_proxies = make_scheme_proxy settings in
+  let proxy_headers = make_proxy_headers settings in
+  (* nosemgrep: no-logs-in-library *)
+  Logs.info (fun m -> m "EIO proxy was configured with %a" pp_settings settings);
+  Cohttp_eio.Client.set_proxies ?no_proxy_patterns:settings.no_proxy
+    ?default_proxy:settings.all_proxy ~scheme_proxies ?proxy_headers ()
