@@ -43,3 +43,37 @@ let go_package_alias s =
     matched1 pkgbase
   else (* default convention *)
     pkgbase
+
+(* Pick the canonical library-prefix name from a Dart import URI's dotted
+ * segments. The Dart language spec (§17.2 "URI references in imports")
+ * does not define a "package name", but real-world Dart code follows the
+ * convention that the library prefix matches the imported file's basename
+ * without its `.dart` extension — e.g. `import 'package:http/http.dart'
+ * as http;`, `import 'dart:async' as async;`. We mirror that convention
+ * so a pattern written as `http.get(...)` matches code that imports
+ * `package:http/http.dart` under any local alias.
+ *
+ * Input: dotted segments produced by Parse_dart_tree_sitter.map_uri,
+ * e.g. ["package"; "http"; "http.dart"] or ["dart"; "async"]. For
+ * `package:` and `dart:` URIs, map_uri splits on `/` so the last segment
+ * is already path-component-free (`"http.dart"`, `"async"`). For
+ * relative-path imports like `'./util/helper.dart'`, map_uri's
+ * else-branch leaves the whole URI as a single segment containing `/`
+ * characters, so we run Filename.basename before chop_extension to
+ * isolate `helper` from `./util/helper.dart`.
+ *
+ * Output: the conventional library prefix as a single segment,
+ * e.g. ["http"] or ["async"]. Falls back to the original segments when
+ * the input has no recognizable basename (defensive — keeps name
+ * resolution at parity with the previous behavior).
+ *)
+let dart_canonical_segments (xs : (string * 'tok) list) :
+    (string * 'tok) list =
+  match List.rev xs with
+  | [] -> xs
+  | (last_str, t) :: _ ->
+      let base = Filename.basename last_str in
+      let stem =
+        try Filename.chop_extension base with Invalid_argument _ -> base
+      in
+      if stem = "" then xs else [ (stem, t) ]

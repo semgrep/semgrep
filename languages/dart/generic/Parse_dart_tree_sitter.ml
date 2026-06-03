@@ -517,6 +517,14 @@ let map_additive_operator (env : env) x =
   | "-", t -> (Minus, t)
   | _, t -> (Plus, t)
 
+(* Build a fresh id_info with id_type populated when a syntactic type
+ * annotation is available. Naming_AST will propagate this further from
+ * declarations to use sites. *)
+let id_info_with_type (tyopt : G.type_ option) : G.id_info =
+  let info = G.empty_id_info () in
+  info.id_type := tyopt;
+  info
+
 let rec map_additive_expression (env : env) (x : CST.additive_expression) =
   match x with
   | `Real_exp_rep1_addi_op_real_exp (v1, v2) ->
@@ -1451,6 +1459,16 @@ and map_function_formal_parameter (env : env)
   *)
   let _tparams, _params = map_formal_parameter_part env v4 in
   let param = G.param_of_id ~pattrs ?ptype v3 in
+  (* When ptype is present, propagate it through pinfo.id_type so
+     Naming_AST can carry the type to use sites. Mutate the existing
+     id_type ref rather than replacing pinfo wholesale so the
+     `Some (Parameter, unsafe_default)` id_resolved that param_of_id
+     installed is preserved — important for OtherParam-wrapped Dart
+     optional/named parameters that Naming_AST.params_of_parameters
+     doesn't recurse into. *)
+  (match ptype with
+  | None -> ()
+  | Some _ -> param.G.pinfo.id_type := ptype);
   let v5 =
     match v5 with
     | Some tok ->
@@ -1664,7 +1682,9 @@ and map_initialized_variable_definition_unwrapped (env : env)
   in
   List.map
     (fun (id, vinit) ->
-      (basic_entity ~attrs id, { vtype; vinit; vtok = G.no_sc }))
+      let idinfo = id_info_with_type vtype in
+      let ent = { G.name = G.EN (G.Id (id, idinfo)); attrs; tparams = None } in
+      (ent, { G.vtype; vinit; vtok = G.no_sc }))
     inits
 
 and map_initialized_variable_definition (env : env)
@@ -2735,6 +2755,24 @@ and map_relational_pattern (env : env) (x : CST.relational_pattern) : pattern =
   | `Un_pat x -> map_unary_pattern env x
 
 and map_selector (env : env) (x : CST.selector) : expr -> expr =
+ fun expr ->
+  match x with
+  | `Choice_excl_op c -> map_selector_choice env c expr
+  | `Semg_dot_ellips_sele (_dot, ellipsis_tok) ->
+      (* `. ...` as a chained-call selector — used by the polyglot
+         dots_method_chaining pattern `$X = $O.foo(). ... .bar(). ...`.
+         Emit `DotAccessEllipsis` (the same Generic AST node that C#'s
+         `member_access_ellipsis_expression` produces) so the existing
+         matcher logic handles it. *)
+      let t = token env ellipsis_tok in
+      G.DotAccessEllipsis (expr, t) |> G.e
+
+and map_selector_choice (env : env)
+    (x :
+      [ `Excl_op of Tree_sitter_run.Token.t
+      | `Assi_sele of CST.assignable_selector
+      | `Arg_part of CST.argument_part
+      | `Type_args of CST.type_arguments ]) : expr -> expr =
  fun expr ->
   match x with
   (* Seems to be a null-assert pattern.
@@ -4803,19 +4841,26 @@ let map_import_or_export (env : env) (x : CST.import_or_export) : stmt =
 let map_class_member_definition (env : env) (x : CST.class_member_definition) :
     field =
   match x with
-  | `Decl__semi (v1, v2) ->
-      let v1 = map_declaration_as_stmt env v1 in
-      let _sc = map_semicolon env v2 in
-      G.F v1
-  | `Meth_sign_func_body (v1, v2) ->
-      let v1 = map_method_signature env v1 in
-      let fattrs, v2 = map_function_body env v2 in
-      G.F (v1 (fattrs, v2))
+  | `Choice_decl__semi c -> (
+      match c with
+      | `Decl__semi (v1, v2) ->
+          let v1 = map_declaration_as_stmt env v1 in
+          let _sc = map_semicolon env v2 in
+          G.F v1
+      | `Meth_sign_func_body (v1, v2) ->
+          let v1 = map_method_signature env v1 in
+          let fattrs, v2 = map_function_body env v2 in
+          G.F (v1 (fattrs, v2)))
+  | `Semg_ellips tok ->
+      (* `...` as a class body member, used by the polyglot pattern
+         `class $X { ... }` to match any sequence of members. *)
+      let t = token env tok in
+      G.F (G.ExprStmt (G.Ellipsis t |> G.e, G.sc) |> G.s)
 
-let map_anon_choice_opt_meta_class_member_defi_44d3600 (env : env)
-    (x : CST.anon_choice_opt_meta_class_member_defi_44d3600) : G.field =
+let map_anon_choice_opt_meta_class_member_defi_15eaa47 (env : env)
+    (x : CST.anon_choice_opt_meta_class_member_defi_15eaa47) : G.field =
   match x with
-  | `Opt_meta_choice_decl__semi (v1, v2) ->
+  | `Opt_meta_choice_choice_decl__semi (v1, v2) ->
       let _v1 =
         match v1 with
         | Some x -> map_metadata env x
@@ -4845,7 +4890,7 @@ let map_enum_body ~attrs ~enum_tok ~enum_id ~mixins ~implements (env : env)
     match v5 with
     | Some (v1, v2) ->
         let _v1 = (* ";" *) token env v1 in
-        List.map (map_anon_choice_opt_meta_class_member_defi_44d3600 env) v2
+        List.map (map_anon_choice_opt_meta_class_member_defi_15eaa47 env) v2
     | None -> []
   in
   let v6 = (* "}" *) token env v6 in
@@ -4892,7 +4937,7 @@ let map_class_body (env : env) ((v1, v2, v3) : CST.class_body) :
     field list bracket =
   let v1 = (* "{" *) token env v1 in
   let v2 =
-    List.map (map_anon_choice_opt_meta_class_member_defi_44d3600 env) v2
+    List.map (map_anon_choice_opt_meta_class_member_defi_15eaa47 env) v2
   in
   let v3 = (* "}" *) token env v3 in
   (v1, v2, v3)
@@ -5250,11 +5295,28 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
         G.ExprStmt (G.Ellipsis ((* "..." *) token env tok) |> G.e, G.fake "")
         |> G.s;
       ]
+  | `Exp_stmt x ->
+      (* Bare expression statement at top level. Real Dart forbids this,
+         but the semgrep-dart wrapper grammar accepts it so polyglot
+         patterns like
+           $V = get();
+           ...
+           eval($V);
+         parse as a sequence of statements without a containing function
+         body. Delegate to the existing expression-statement mapper. *)
+      [ map_expression_statement env x ]
 
 let map_semgrep_pattern (env : env) (x : CST.semgrep_pattern) =
   match x with
   | `Exp x -> E (map_expression env x)
   | `Stmt x -> Pr (map_statement env x)
+  | `Semg_stmt_list (first, rest) ->
+      (* Multi-statement pattern (`__SEMGREP_EXPRESSION s1; s2; …`) used
+         by polyglot patterns like `dots_stmts` and `metavar_equality_var`
+         that consist of a sequence of statements. Produce a `Pr [stmts]`
+         shape — same as a real Dart program — so the matcher can search
+         for the sequence anywhere in the target AST. *)
+      Pr (List.concat_map (map_statement env) (first :: rest))
 
 let map_program (env : env) (prog : CST.program) =
   match prog with

@@ -16,3 +16,12 @@
  * This lets us avoid having to duplicate the logic of these functions. *)
 val is_js_angular_decorator : string -> bool
 val go_package_alias : string -> string
+
+(** Reduce a Dart import URI's dotted segments to the conventional
+    library-prefix basename. Used by Naming_AST when resolving
+    `import '...' as p;` so a rule pattern written against the
+    conventional prefix matches code that aliases the same library
+    under any local name. See the .ml for the convention (Dart spec
+    §17.2) and the relative-path / `package:` / `dart:` handling. *)
+val dart_canonical_segments :
+  (string * 'tok) list -> (string * 'tok) list

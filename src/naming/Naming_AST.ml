@@ -423,6 +423,7 @@ let is_resolvable_name_ctx env lang =
       | Lang.Kotlin
       | Lang.Apex
       | Lang.Csharp
+      | Lang.Dart
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
       | Lang.Ts
@@ -781,8 +782,20 @@ let resolution_visitor =
               | _ -> ())
             imported_names
       | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
-          (* for python *)
           let sid = SId.mk () in
+          (* The Dart mapper expands an import URI like
+             `package:http/http.dart` into the dotted segments
+             ["package"; "http"; "http.dart"]. Reduce that to the
+             conventional library-prefix basename (here ["http"]) so a
+             pattern written as `http.get(...)` matches code that
+             imports the library under any local alias. Other languages
+             keep the python-style behavior of treating the dotted name
+             as the canonical entity. *)
+          let xs =
+            match env.lang with
+            | Lang.Dart -> dart_canonical_segments xs
+            | _ -> xs
+          in
           let canonical = dotted_to_canonical xs in
           let resolved = untyped_ent (ImportedModule canonical, sid) in
           set_resolved env id_info resolved;

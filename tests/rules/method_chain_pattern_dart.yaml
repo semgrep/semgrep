@@ -1,0 +1,9 @@
+rules:
+- id: method-chain-pattern-dart
+  message: configuration chain ends with .build() — review for side effects
+  severity: INFO
+  languages: [dart]
+  # `.build()` may be preceded by any number of intermediate `.with*()`
+  # configuration calls. The `. ...` selector lets the pattern skip over
+  # those without naming each.
+  pattern: $X.configure(...). ... .build()
