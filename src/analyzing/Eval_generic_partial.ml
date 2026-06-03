@@ -76,41 +76,155 @@ let find_name env name =
   | IdQualified _ -> None
   | IdSpecial _ -> None
 
-let fold_args1 f args =
+let apply_bop_args f args =
   match args with
-  | [] -> None
-  | a1 :: args -> List.fold_left f a1 args
+  | [ a1; a2 ] -> f a1 a2
+  | _ -> None
 
-(** [find_type_args args] returns the [Some type] where type is the type of the
-first literal or constant in the list. If none exists, it returns [None]. *)
-let find_type_args args =
-  args
-  |> List.find_map (function
-    | Some (Lit (Bool _)) -> Some Cbool
-    | Some (Lit (Int _)) -> Some Cint
-    | Some (Lit (String _)) -> Some Cstr
-    | Some (Cst ctype) -> Some ctype
-    | _arg -> None)
+let apply_uop_args f args =
+  match args with
+  | [ a1 ] -> f a1
+  | _ -> None
 
-let sign i = Int64.shift_right i (Sys.int_size - 1)
+let lit_to_type = function
+  | Some (Lit (Bool _)) -> Some Cbool
+  | Some (Lit (Int _)) -> Some Cint
+  | Some (Lit (String _)) -> Some Cstr
+  | Some (Cst ctype) -> Some ctype
+  | _arg -> None
+
+let map_type_args = List.map lit_to_type
+
+(* Sign of an Int64 value as a plain OCaml int (-1, 0, or 1).
+ * Avoids Int64.abs wrapping and shift-amount pitfalls in sign detection. *)
+let sign i : int =
+  if Int64_.(i > 0L) then 1 else if Int64_.(i < 0L) then -1 else 0
 
 let int_add n m =
   let r = Int64.add n m in
-  if Int64.equal (sign n) (sign m) && sign r <> sign n then None (* overflow *)
+  (* Overflow/underflow: same-sign operands produce an opposite-sign result. *)
+  if
+    (n > Int64.zero && m > Int64.zero && r < Int64.zero)
+    || (n < Int64.zero && m < Int64.zero && r > Int64.zero)
+  then None
+  else Some r
+
+let int_sub n m =
+  let r = Int64.sub n m in
+  (* Underflow when m>0: n-m < min_int iff n < min_int+m (safe: min_int+m > min_int) *)
+  (* Overflow  when m<0: n-m > max_int iff n > max_int+m (safe: max_int+m < max_int) *)
+  if
+    (m > Int64.zero && n < Int64.add Int64.min_int m)
+    || (m < Int64.zero && n > Int64.add Int64.max_int m)
+  then None
   else Some r
 
 let int_mult i1 i2 =
   let overflow =
     Int64_.(
       i1 <> 0L && i2 <> 0L
-      && ((i1 < 0L && i2 = min_int) (* >max_int *)
-         || (i1 = min_int && i2 < 0L) (* >max_int *)
+      && ((i1 < 0L && i2 =|= min_int) (* >max_int *)
+         || (i1 =|= min_int && i2 < 0L) (* >max_int *)
+         (* min_int * k for k >= 2: abs(min_int) wraps in Int64, defeating
+          * the abs-based guard below, so catch this case explicitly. *)
+         || (i1 =|= min_int && i2 >= 2L)
+         || (i2 =|= min_int && i1 >= 2L)
          ||
-         if sign i1 * sign i2 = 1L then abs i1 > abs (max_int / i2)
-           (* >max_int *)
-         else abs i1 > abs (min_int / i2) (* <min_int *)))
+         (* same sign → result positive, compare against max_int *)
+         (* different sign → result negative, compare against min_int *)
+         let same_sign = sign i1 = sign i2 in
+         if same_sign then abs i1 > abs (max_int / i2)
+         else abs i1 > abs (min_int / i2)))
   in
   if overflow then None else Some Int64_.(i1 * i2)
+
+(* OCaml int div is trunc div, but many languages have different semantics *)
+(* if clean div, return Some i1/i2. O/w, return None *)
+let int_div i1 i2 =
+  if i2 = Int64.zero then None
+  else if i1 = Int64.min_int && i2 = Int64.minus_one then None (* overflow *)
+  else if Int64_.(i1 mod i2) <> Int64.zero then
+    None (* not an integer division *)
+  else Some Int64_.(i1 / i2)
+
+let lang_divs_to_int (lang : Lang.t option) =
+  match lang with
+  | Some
+      ( Cpp | C | Csharp | Go | Java | Kotlin | Rust | Swift | Solidity | Apex
+      | Cairo | Powershell | Ruby | Python2 | Php | Hack ) ->
+      true
+  | _ -> false
+
+let int_mod i1 i2 =
+  if i2 = Int64.zero then None
+  else if i1 = Int64.min_int && i2 = Int64.minus_one then None (* overflow *)
+  else
+    let r = Int64_.(i1 mod i2) in
+    (* OCaml and Python have different semantics for negative remainders *)
+    if r <> Int64.zero && sign i1 <> sign i2 then None else Some r
+
+let int_floor_div i1 i2 =
+  if i2 = Int64.zero then None
+  else if i1 = Int64.min_int && i2 = Int64.minus_one then None
+  else if
+    (* Floor division rounds down towards negative infinity *)
+    sign i1 <> sign i2 && Int64_.(i1 mod i2) <> Int64.zero
+  then Some Int64_.((i1 / i2) - 1L)
+  else Some Int64_.(i1 / i2)
+
+let int_pow i1 i2 =
+  let open Int64_ in
+  if i2 < 0L then None
+  else if i1 = 0L && i2 = 0L then None
+  else if i1 = 0L then Some 0L
+  else if i1 = 1L then Some 1L
+  else if i1 = -1L then if Int64.rem i2 2L = 0L then Some 1L else Some (-1L)
+  else
+    let rec safe_power x n =
+      if equal n 0L then Some 1L
+      else if equal n 1L then Some x
+      else if equal Int64_.(n mod 2L) 0L then
+        let* y = safe_power x Int64_.(n / 2L) in
+        int_mult y y
+      else
+        let* rest = safe_power x Int64_.((n - 1L) / 2L) in
+        Option.bind (int_mult rest rest) (int_mult x)
+    in
+    safe_power i1 i2
+
+let int_bitand i1 i2 = Some Int64_.(i1 land i2)
+let int_bitor i1 i2 = Some Int64_.(i1 lor i2)
+let int_bitxor i1 i2 = Some Int64_.(i1 lxor i2)
+let int_bitnot i = Some Int64_.(i lxor -1L)
+let valid_shift i2 = i2 >= Int64.zero && i2 < 64L
+
+let int_lsl i1 i2 =
+  if not (valid_shift i2) then None
+  else
+    let n = Int64.to_int i2 in
+    if n > 0 && Int64_.(i1 lsr Int.sub 64 n) <> Int64.zero then None
+    else Some Int64_.(i1 lsl n)
+
+let int_lsr i1 i2 =
+  if not (valid_shift i2) then None else Some Int64_.(i1 lsr Int64.to_int i2)
+
+let int_asr i1 i2 =
+  if not (valid_shift i2) then None else Some Int64_.(i1 asr Int64.to_int i2)
+
+let unop_int_cst op i =
+  match i with
+  | Some (Lit (Int (Some n, _))) ->
+      let* r = op n in
+      Some (Lit (Int (Parsed_int.of_int64 r)))
+  | Some (Lit (Int _)) -> Some (Cst Cint)
+  | Some (Cst Cint) -> Some (Cst Cint)
+  | _i -> None
+
+let unop_bool_cst op b =
+  match b with
+  | Some (Lit (Bool (b, t))) -> Some (Lit (Bool (op b, t)))
+  | Some (Cst Cbool) -> Some (Cst Cbool)
+  | _b -> None
 
 let binop_int_cst op i1 i2 =
   match (i1, i2) with
@@ -130,6 +244,15 @@ let binop_bool_cst op b1 b2 =
   | Some (Cst Cbool), Some (Lit (Bool _)) ->
       Some (Cst Cbool)
   | _b1, _b2 -> None
+
+let binop_cmp_cst cmp i1 i2 =
+  match (i1, i2) with
+  | Some (Lit (Int (Some n, _))), Some (Lit (Int (Some m, _))) ->
+      Some (Lit (Bool (cmp n m, Tok.unsafe_fake_tok "")))
+  | Some (Lit (Int _)), Some (Cst Cint)
+  | Some (Cst Cint), Some (Lit (Int _)) ->
+      Some (Cst Cbool)
+  | _i1, _i2 -> None
 
 let concat_string_cst env s1 s2 =
   match (s1, s2) with
@@ -218,34 +341,95 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
   | N name -> find_name env name
   | _ -> None
 
-and eval_args env args =
+and eval_args env (args : arguments) : G.svalue option list =
   args |> Tok.unbracket
   |> List.map (function
     | Arg e -> eval env e
     | _ -> None)
 
-and eval_special env (special, _) args =
-  match (special, eval_args env args) with
-  (* booleans *)
-  | Op Not, [ Some (Lit (Bool (b, t))) ] -> Some (Lit (Bool (not b, t)))
-  | Op Or, args -> fold_args1 (binop_bool_cst ( || )) args
-  | Op And, args -> fold_args1 (binop_bool_cst ( && )) args
-  (* integers *)
-  | Op Plus, args when find_type_args args = Some Cint ->
-      fold_args1 (binop_int_cst int_add) args
-  | Op Mult, args when find_type_args args = Some Cint ->
-      fold_args1 (binop_int_cst int_mult) args
+and eval_special env (special, _) (args : arguments) =
+  let args = eval_args env args in
+  match (special, args |> map_type_args) with
+  | Op Plus, [ Some Cint ] ->
+      (* unary plus is identity *)
+      apply_uop_args (unop_int_cst Option.some) args
+  | Op Plus, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_add) args
+  | Op Minus, [ Some Cint ] ->
+      (* unary minus *)
+      apply_uop_args
+        (unop_int_cst (fun n ->
+             if n = Int64.min_int then None else Some (Int64.neg n)))
+        args
+  | Op Minus, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_sub) args
+  | Op Mult, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_mult) args
+  | Op Div, [ Some Cint; Some Cint ] when lang_divs_to_int env.lang ->
+      apply_bop_args (binop_int_cst int_div) args
+  | Op Mod, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_mod) args
+  | Op Pow, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_pow) args
+  | Op FloorDiv, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_floor_div) args
+  | Op LSL, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_lsl) args
+  | Op LSR, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_lsr) args
+  | Op ASR, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_asr) args
+  | Op BitAnd, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_bitand) args
+  | Op BitOr, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_bitor) args
+  | Op BitXor, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_int_cst int_bitxor) args
+  | Op BitNot, [ Some Cint ] -> apply_uop_args (unop_int_cst int_bitnot) args
+  (* bools *)
+  | Op Not, [ Some Cbool ] -> apply_uop_args (unop_bool_cst not) args
+  | Op Or, [ Some Cbool; Some Cbool ] ->
+      apply_bop_args (binop_bool_cst ( || )) args
+  | Op And, [ Some Cbool; Some Cbool ] ->
+      apply_bop_args (binop_bool_cst ( && )) args
+  | Op Xor, [ Some Cbool; Some Cbool ] ->
+      apply_bop_args (binop_bool_cst ( <> )) args
+  | Op Eq, [ Some Cbool; Some Cbool ] ->
+      apply_bop_args (binop_bool_cst ( = )) args
+  | Op Eq, [ Some Cint; Some Cint ] -> apply_bop_args (binop_cmp_cst ( = )) args
+  | Op NotEq, [ Some Cbool; Some Cbool ] ->
+      apply_bop_args (binop_bool_cst ( <> )) args
+  | Op NotEq, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_cmp_cst ( <> )) args
+  | Op Lt, [ Some Cint; Some Cint ] -> apply_bop_args (binop_cmp_cst ( < )) args
+  | Op Gt, [ Some Cint; Some Cint ] -> apply_bop_args (binop_cmp_cst ( > )) args
+  | Op LtE, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_cmp_cst ( <= )) args
+  | Op GtE, [ Some Cint; Some Cint ] ->
+      apply_bop_args (binop_cmp_cst ( >= )) args
   (* strings *)
-  | ConcatString (FString "f"), args when is_lang env Lang.Python ->
+  | ConcatString (FString "f"), _ when is_lang env Lang.Python ->
       eval_python_fstring env args
-  | (Op (Plus | Concat) | ConcatString _), args
-    when find_type_args args = Some Cstr ->
-      fold_args1 (concat_string_cst env) args
-  | Op Mult, [ Some (Lit (String _) | Cst Cstr); _N ]
-    when env.lang = Some Lang.Python ->
+  | ConcatString _, _ ->
+      (* ConcatString can have N parts (template literals, implicit concat); fold all *)
+      begin match args with
+      | hd :: tl -> List.fold_left (concat_string_cst env) hd tl
+      | [] -> None
+      end
+  | Op (Plus | Concat), Some Cstr :: _ ->
+      (* Binary string concat; first arg is a string so attempt concat.
+       * concat_string_cst handles implicit int/float-to-string for JS/Java. *)
+      apply_bop_args (concat_string_cst env) args
+  | Op Mult, [ Some Cstr; _N ] when env.lang = Some Lang.Python ->
       (* Python: "..." * N, NOTE that we don't check the type of N, partly because
        * we lack good type inference for Python, but should be fine. *)
       Some (Cst Cstr)
+  | Op Nullish, _ when is_js env ->
+      begin match args with
+      | [ Some (Lit (Null _)); Some v ] -> Some v
+      | hd :: _ -> hd
+      | _ -> None
+      end
   | __else__ -> None
 
 and eval_call env name args =
@@ -289,11 +473,13 @@ and eval_python_fstring env args =
   in
   match args with
   | [] -> helper ""
-  | _ ->
+  | _ -> (
       args
       |> List.map (function
         | Some (Lit (String _) | Cst Cstr) as x -> x
         | Some (Lit (Int (Some n, _))) -> helper (Int64.to_string n)
         | Some (Lit (Float (Some f, _))) -> helper (string_of_float f)
         | _ -> None)
-      |> fold_args1 (concat_string_cst env)
+      |> function
+      | [] -> None
+      | hd :: tl -> List.fold_left (concat_string_cst env) hd tl)
