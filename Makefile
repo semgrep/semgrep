@@ -245,6 +245,37 @@ install-deps-for-semgrep-core:
 	./scripts/build-static-libcurl.sh
 	$(MAKE) install-opam-deps
 
+# Pin the upstream opam-repository to a known-good commit.
+# coupling: keep this commit in sync with opam_repository_pin in
+# .github/workflows/libs/semgrep.libsonnet
+#
+OPAM_REPOSITORY_PIN = git+https://github.com/ocaml/opam-repository.git\#78d29aba187e8362b8ab86c189790c0af9153d4b
+
+# Extra flags forwarded to 'opam init' by 'opam-init'. The Dockerfiles pass
+# '--disable-sandboxing' since containers can't use the bubblewrap sandbox.
+OPAM_INIT_FLAGS ?=
+
+pin-opam-repo:
+	opam repository remove default --all-switches --yes
+	opam repository add default $(OPAM_REPOSITORY_PIN) --all-switches --set-default --yes
+
+# Initialize opam and pin to a commit of ocaml/opam-repository.
+opam-init:
+	opam init --bare --yes $(OPAM_INIT_FLAGS)
+	$(MAKE) pin-opam-repo
+
+# Create the opam switch, then install our fork of the compiler. Run
+# 'make opam-init' first to pin the opam-repository (the Dockerfiles do this).
+switch:
+	opam switch create 5.3.0 ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
+	$(MAKE) pin-ocaml-fork
+
+switch-tsan:
+	opam switch create 5.3.0-tsan ocaml-variants.5.3.0+options ocaml-option-tsan -y -v
+	$(MAKE) pin-ocaml-fork-tsan
+	# For some reason tsan on x86 linux fails unless we preemptively install dune
+	opam install dune -y
+
 pin-ocaml-fork:
 	# the fork without TSan is pinned via our `semgrep.opam.template` file + `semgrep.opam`
 	echo "skipping pinning ocaml fork via make"
@@ -384,6 +415,7 @@ setup:
 	./scripts/make-symlinks
 	./scripts/check-bash-version
 	./scripts/pick-lockfile.sh semgrep.opam
+	$(MAKE) pin-opam-repo
 	LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" $(MAKE) install-deps-for-semgrep-core
 
 # Install optional development dependencies in addition to build dependencies.

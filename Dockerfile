@@ -116,17 +116,27 @@ RUN apk update && apk add bash build-base git make rsync opam
 # - scripts/{osx-setup-for-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-RUN opam init --disable-sandboxing -v && opam switch create 5.3.0 ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
-
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
+
+# Copy just the Makefile (and its include) first so that initializing opam and
+# creating the switch stay in their own docker cache layers, independent of the
+# opam files, lockfiles, and sources copied below. Creating the switch (which
+# builds the compiler) is one of the most expensive steps of the build.
+COPY Makefile cygwin-env.mk ./
+
+# Initialize opam with our pinned opam-repository (containers can't use the
+# bubblewrap sandbox), then create the switch and install our fork of the
+# compiler ('make switch' runs 'make pin-ocaml-fork').
+RUN make opam-init OPAM_INIT_FLAGS=--disable-sandboxing
+RUN make switch
 
 # Copy just what is needed for make install-deps below to work to maximize
 # docker cache hit as building and installing all the opam packages
 # is what takes the most time in the docker build.
 #
 # coupling: if you change this you probably want to change this in semgrep-pro
-COPY Makefile cygwin-env.mk semgrep.opam ./
+COPY semgrep.opam ./
 COPY dev/required.opam dev/
 COPY scripts/build-static-libcurl.sh scripts/
 COPY scripts/validate-compiler-sha.sh scripts/
@@ -134,9 +144,6 @@ COPY scripts/pick-lockfile.sh scripts/
 COPY opam-lockfiles/ ./opam-lockfiles
 COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
-
-# Install our fork of the compiler
-RUN make pin-ocaml-fork
 
 RUN make install-deps
 
