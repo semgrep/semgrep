@@ -23,7 +23,13 @@ let hash_fold_int64 = Ppx_hash_lib.Std.Hash.fold_int64
 
 type t = int64 [@@deriving hash, show, eq, sexp]
 
-let rec power x n = if equal n 0L then 1L else mul x (power x (sub n 1L))
+let rec power x n =
+  if equal n 0L then 1L
+  else if equal (Int64.rem n 2L) 0L then
+    let y = power x (Int64.div n 2L) in
+    mul y y
+  else mul x (power x (Int64.sub n 1L))
+
 let ( + ) = Int64.add
 let ( - ) = Int64.sub
 let ( * ) = Int64.mul
@@ -31,6 +37,7 @@ let ( / ) = Int64.div
 let ( mod ) = Int64.rem
 let ( asr ) = Int64.shift_right
 let ( lsl ) = Int64.shift_left
+let ( lsr ) = Int64.shift_right_logical
 let ( lor ) = Int64.logor
 let ( land ) = Int64.logand
 let ( lxor ) = Int64.logxor
