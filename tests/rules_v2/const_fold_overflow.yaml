@@ -1,0 +1,9 @@
+rules:
+  - id: const-fold-overflow
+    pattern-either:
+      - pattern: sink(9223372036854775807)    # max_int
+      - pattern: sink(-2)
+      - pattern: sink(0)
+    languages: [python]
+    severity: ERROR
+    message: match
