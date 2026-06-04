@@ -124,19 +124,19 @@ let isatty chan =
   let fd = Unix.descr_of_out_channel chan in
   !ANSITerminal.isatty fd
 
-let create_formatter opt_file =
-  let chan, fmt =
-    match opt_file with
-    | None -> (Stdlib.stderr, Format.get_err_formatter ())
-    | Some out_file ->
-        let oc =
-          (* This truncates the log file, which is usually what we want for
-             Semgrep. *)
-          Stdlib.open_out (Fpath.to_string out_file)
-        in
-        (oc, Format.formatter_of_out_channel oc)
-  in
-  (isatty chan, fmt)
+let create_dst opt_file =
+  match opt_file with
+  | None -> (isatty Stdlib.stderr, Format.get_err_formatter)
+  | Some out_file ->
+      let oc =
+        (* This truncates the log file, which is usually what we want for
+           Semgrep. *)
+        Stdlib.open_out (Fpath.to_string out_file)
+      in
+      let key =
+        Domain.DLS.new_key (fun () -> Format.formatter_of_out_channel oc)
+      in
+      (isatty oc, fun () -> Domain.DLS.get key)
 
 (*****************************************************************************)
 (* The "reporter" *)
@@ -160,6 +160,7 @@ let mk_reporter
   let select_all_debug_messages = List.mem "all" require_one_of_these_tags in
 
   let report src level ~over k msgf =
+    let dst = dst () in
     let src_name = Logs.Src.name src in
     let is_default_src = src_name = "application" in
     let k _ =
@@ -314,10 +315,9 @@ let with_reporter reporter func =
  * precise call to setup_logging.
  *)
 let with_basic_setup ?(level = Some Logs.Warning) func =
-  let dst = Format.get_err_formatter () in
   with_reporter
-    (mk_reporter ~dst ~require_one_of_these_tags:[] ~read_tags_from_env_vars:[]
-       ()) (fun () -> with_level level func)
+    (mk_reporter ~dst:Format.get_err_formatter ~require_one_of_these_tags:[]
+       ~read_tags_from_env_vars:[] ()) (fun () -> with_level level func)
 
 (*
    Logs should be used as follows:
@@ -364,7 +364,7 @@ let with_setup ?(highlight_setting : Console.highlight_setting option)
   let active_source_names =
     Logs.Src.list () |> List.filter is_active_src |> List.map Logs.Src.name
   in
-  let isatty, dst = create_formatter opt_file in
+  let isatty, dst = create_dst opt_file in
   let style_renderer =
     match highlight_setting with
     | None -> Atomic.get style_renderer_state
