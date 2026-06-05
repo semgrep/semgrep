@@ -1,0 +1,1 @@
+Pro: Added experimental cross-file (interfile) analysis for Gosu, enabling taint tracking across multiple Gosu source files.
