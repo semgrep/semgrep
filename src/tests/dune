@@ -39,6 +39,7 @@
     git_wrapper.tests
     paths.tests
     lib_parsing.tests
+    semgrep.ast_generic.tests
     fast_json.tests
     ojsonnet.tests
     process_limits.tests

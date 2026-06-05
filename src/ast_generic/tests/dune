@@ -1,0 +1,5 @@
+(library
+ (public_name semgrep.ast_generic.tests)
+ (name semgrep_ast_generic_tests)
+ (wrapped false)
+ (libraries ast_generic commons alcotest))

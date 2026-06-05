@@ -56,6 +56,17 @@ let snapshot_ast (lang : Lang.t) =
          the input program is interpreted. *)
       true
 
+(* Golden AST output may live next to a fixture as [foo.ast.expect] (same
+   sidecar convention as maturity tests: replace the source extension). When
+   absent, fall back to Testo's default hash-based snapshot under
+   [tests/snapshots/semgrep-core/]. *)
+let checked_output_for_snapshot file =
+  let ast_expect_path file = Fpath.set_ext "ast.expect" (Fpath.v file) in
+  let expect_path = ast_expect_path file in
+  if Sys_.Fpath.exists expect_path then
+    Testo.stdout ~expected_stdout_path:expect_path ()
+  else Testo.stdout ()
+
 (*
    Strict parsing: errors due to missing (inserted) tokens are not tolerated
    in these tests.
@@ -69,7 +80,7 @@ let parsing_tests_for_lang ?expected_outcome files lang =
               TODO: fix it (I thought I already did but I guess I didn't)
            *)
         if snapshot_ast lang && Option.is_none expected_outcome then
-          Some (Testo.stdout ())
+          Some (checked_output_for_snapshot file)
         else None
       in
       Testo.create ?checked_output ?expected_outcome
@@ -156,9 +167,15 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
       failwith
         (spf "Unrecognized extension for file %s for lang %s" !!file slang)
   in
-  (* Get all files then check extensions *)
+  (* Get all files then check extensions. Markdown files are documentation
+     about the test corpus (e.g. a coverage README), not test inputs, so we
+     skip them rather than treat them as parse targets. *)
   let pattern = dir / "**" / "*" in
-  let files = Common2.glob pattern in
+  let files =
+    Common2.glob pattern
+    |> List_.exclude (fun file ->
+        Fpath.has_ext ".md" file || Fpath.has_ext "ast.expect" file)
+  in
   if files =*= [] then
     failwith (spf "Empty set of parsing tests for %s at %s" slang !!pattern);
   List.iter check_ext files;

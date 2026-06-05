@@ -223,6 +223,34 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 *)
 let pp_hidden fmt _ = Format.fprintf fmt "_"
 
+let windows_float_exponent_re =
+  Lazy_safe.from_fun (fun () -> Pcre2_.regexp {|e[-+]0[0-9][0-9]+|})
+
+(* Windows' C runtime prints float exponents with a minimum of three digits
+   (e.g. "1.5e-010") whereas Unix uses two ("1.5e-10"). Normalize to Unix snapshots format. *)
+let normalize_windows_float_exponent s =
+  Pcre2_.substitute
+    ~rex:(Lazy_safe.force windows_float_exponent_re)
+    ~subst:(fun matched ->
+      (* [matched] looks like "e+013" or "e-010". *)
+      let sign = matched.[1] in
+      let digits = Str.string_after matched 2 in
+      Printf.sprintf "e%c%02d" sign (int_of_string digits))
+    s
+
+(* Type alias so [literal.Float] can use a custom [show] printer.
+   Match [@@deriving show] for [float] so AST
+   snapshots stay stable, but normalize three-digit exponents on Windows. *)
+type ast_float =
+  (float
+  [@printer
+    fun fmt f ->
+      if Sys.unix then Format.fprintf fmt "%F" f
+      else
+        let s = Printf.sprintf "%F" f in
+        Format.pp_print_string fmt (normalize_windows_float_exponent s)])
+[@@deriving eq, ord, hash, sexp, show { with_path = false }]
+
 (*****************************************************************************)
 (* Token (leaf) *)
 (*****************************************************************************)
@@ -469,6 +497,7 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
+    method visit_ast_float _env _ = ()
 
     method visit_parsed_int env pi =
       Parsed_int.visit
@@ -542,6 +571,7 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
+    method visit_ast_float _env f = f
     method visit_parsed_int env pi = Parsed_int.map_tok (self#visit_tok env) pi
   end
 
@@ -873,7 +903,7 @@ and literal =
   (* See explanation for @name where the visitors are generated at the end of
      * this long recursive type. *)
   | Int of (Parsed_int.t[@name "parsed_int"])
-  | Float of float option wrap
+  | Float of ast_float option wrap
   | Char of string wrap
   (* String literals:
      The token includes the quotes (if any) but the string value excludes them.

@@ -4,7 +4,6 @@
  (public_name ast_generic)
  (wrapped false)
  (libraries
-   pcre
    atdgen-runtime
    sexplib
 
