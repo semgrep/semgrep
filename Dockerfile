@@ -312,6 +312,11 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 # will show the help text, but
 #   docker run -it semgrep/semgrep /bin/bash
 # will let users bring up a bash session.
+#
+# This stage intentionally stays as root so `docker run -v ${PWD}:/src ...`
+# works against host-owned bind mounts; the `nonroot` stage below is what
+# ships to users who want a non-root image.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
@@ -331,10 +336,18 @@ FROM semgrep-oss AS semgrep-cli
 # locally, set the SEMGREP_APP_TOKEN environment variable and then run:
 #
 # $ docker build --secret id=SEMGREP_APP_TOKEN ...
-RUN --mount=type=secret,id=SEMGREP_APP_TOKEN if [ -f /run/secrets/SEMGREP_APP_TOKEN ]; then ( SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug ); else ( echo "SEMGREP_APP_TOKEN secret not set, skipping semgrep-pro install" >&2 ); fi
-
-# Clear out any detritus from the pro install (especially credentials)
-RUN rm -rf /root/.semgrep
+#
+# The install and the credentials cleanup must run in the same RUN so the
+# token-bearing ~/.semgrep/settings.yml never lands in a committed layer.
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN \
+    rc=0; \
+    if [ -f /run/secrets/SEMGREP_APP_TOKEN ]; then \
+        SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug || rc=$?; \
+    else \
+        echo "SEMGREP_APP_TOKEN secret not set, skipping semgrep-pro install" >&2; \
+    fi; \
+    rm -rf /root/.semgrep; \
+    exit ${rc}
 
 # This was the final step! This is what we ship to users!
 
