@@ -65,20 +65,14 @@ def generate_anonymous_user_id(api_token: Optional[str]) -> str:
     )
 
 
-def generate_default_settings(api_token: Optional[str] = None) -> SettingsSchema:
-    anonymous_user_id = generate_anonymous_user_id(api_token)
-    logged_out_settings: SettingsSchema = {
+def generate_default_settings(env_api_token: Optional[str] = None) -> SettingsSchema:
+    # If the API token is set via an envvar, we still use it to generate the
+    # anonymous user ID, but we do not persist it on disk (so
+    # `SettingsSchema.api_token` remains unset here.)
+    return {
         "has_shown_metrics_notification": False,
-        "anonymous_user_id": anonymous_user_id,
+        "anonymous_user_id": generate_anonymous_user_id(env_api_token),
     }
-    return (
-        {
-            **logged_out_settings,
-            "api_token": api_token,
-        }
-        if api_token is not None
-        else logged_out_settings
-    )
 
 
 @define
