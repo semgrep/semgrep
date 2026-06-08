@@ -22,25 +22,25 @@ superseded by the language reference.
 | 3.5 | [Generalized `*`/`**` unpacking in literals & calls](https://docs.python.org/3/reference/expressions.html#displays-for-lists-sets-and-dictionaries) (PEP 448) | `generalized_unpacking.py` |
 | 3.5 | [Starred expression in `return`/`yield`](https://docs.python.org/3/reference/simple_stmts.html#the-return-statement) (PEP 448) | `tuple_expansion.py` |
 | 3.5 | [`*`/`**` unpacking in class base list](https://docs.python.org/3/reference/compound_stmts.html#class-definitions) (PEP 448) | `nonlocal_and_class_bases.py` |
-| 3.5 | [Matrix-multiplication operator `@` / `@=`](https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations) (PEP 465) | UNTESTED |
+| 3.5 | [Matrix-multiplication operator `@` / `@=`](https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations) (PEP 465) | `matrix_multiplication.py` |
 | 3.6 | [f-strings](https://docs.python.org/3/reference/lexical_analysis.html#f-strings) (PEP 498) | `f_strings.py` |
 | 3.6 | [Underscores in numeric literals](https://docs.python.org/3/reference/lexical_analysis.html#integer-literals) (PEP 515) | `numeric_underscores.py` |
 | 3.6 | [Variable annotations — class body](https://docs.python.org/3/reference/simple_stmts.html#annassign) (PEP 526) | `field.py` |
 | 3.6 | [Variable annotations — module & function scope](https://docs.python.org/3/reference/simple_stmts.html#annassign) (PEP 526) | `variable_annotations.py` |
 | 3.6 | [Async generators](https://docs.python.org/3/reference/compound_stmts.html#async-def) (PEP 525) | `async_generators_and_comprehensions.py` |
 | 3.6 | [Async comprehensions](https://docs.python.org/3/reference/expressions.html#displays-for-lists-sets-and-dictionaries) (PEP 530) | `async_generators_and_comprehensions.py` |
-| 3.8 | [Assignment expressions — walrus `:=`](https://docs.python.org/3/reference/expressions.html#assignment-expressions) (PEP 572) | UNTESTED |
-| 3.8 | [Positional-only parameters `/`](https://docs.python.org/3/reference/compound_stmts.html#function-definitions) (PEP 570) | UNTESTED |
-| 3.8 | [f-string self-documenting `=` (`f"{x=}"`)](https://docs.python.org/3/reference/lexical_analysis.html#f-strings) | UNTESTED |
+| 3.8 | [Assignment expressions — walrus `:=`](https://docs.python.org/3/reference/expressions.html#assignment-expressions) (PEP 572) | `assignment_expressions.py` |
+| 3.8 | [Positional-only parameters `/`](https://docs.python.org/3/reference/compound_stmts.html#function-definitions) (PEP 570) | `positional_only_parameters.py` |
+| 3.8 | [f-string self-documenting `=` (`f"{x=}"`)](https://docs.python.org/3/reference/lexical_analysis.html#f-strings) | `f_string_debug.py` |
 | 3.9 | [Relaxed decorator grammar](https://docs.python.org/3/reference/compound_stmts.html#function-definitions) (PEP 614) | UNTESTED |
 | 3.10 | [Structural pattern matching `match`/`case`](https://docs.python.org/3/reference/compound_stmts.html#the-match-statement) (PEP 634–636) | `pattern_matching.py`, `dict_structural pattern.py` |
 | 3.10 | [Parenthesized context managers](https://docs.python.org/3/reference/compound_stmts.html#the-with-statement) (PEP 617) | `as_pattern.py` |
 | 3.11 | [Exception groups & `except*`](https://docs.python.org/3/reference/compound_stmts.html#except-star) (PEP 654) | `as_pattern.py` |
 | 3.11 | [Variadic-generic `*Ts` unpacking in subscript](https://docs.python.org/3/reference/expressions.html#subscriptions) (PEP 646) | UNTESTED |
-| 3.12 | [Type-parameter syntax — `type X = …`, `def f[T]`, `class C[T]`](https://docs.python.org/3/reference/compound_stmts.html#type-params) (PEP 695) | UNTESTED |
+| 3.12 | [Type-parameter syntax — `type X = …`, `def f[T]`, `class C[T]`](https://docs.python.org/3/reference/compound_stmts.html#type-params) (PEP 695) | `type_parameters.py` |
 | 3.12 | [f-string formalization — nested quotes, multiline, backslashes](https://docs.python.org/3/reference/lexical_analysis.html#f-strings) (PEP 701) | UNTESTED |
 | 3.13 | [Type-parameter defaults](https://docs.python.org/3/reference/compound_stmts.html#type-params) (PEP 696) | UNTESTED |
-| 3.14 | [Template strings — t-strings](https://docs.python.org/3/library/string.templatelib.html#template-strings) (PEP 750) | UNTESTED |
+| 3.14 | [Template strings — t-strings](https://docs.python.org/3/library/string.templatelib.html#template-strings) (PEP 750) | `parsing_todo/python/t_strings.py` (not yet supported — `t"…"` parses to `ERROR`) |
 
 ## Other parsing tests in this directory
 
