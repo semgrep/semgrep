@@ -36,6 +36,56 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+# Environment variables that describe the parent repo's local state. When git
+# invokes a hook (e.g., pre-commit), it exports these to the hook process so
+# the hook can inspect the in-flight commit. Subprocesses that chdir into a
+# different worktree must not inherit them: the values describe the wrong
+# repo, and at least one (GIT_INDEX_FILE) is often a path relative to the
+# original cwd, which re-resolves to a broken path after chdir.
+#
+# Authoritative list: `git rev-parse --local-env-vars`.
+GIT_LOCAL_ENV_VARS = (
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_CONFIG",
+    "GIT_CONFIG_PARAMETERS",
+    "GIT_CONFIG_COUNT",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_GRAFT_FILE",
+    "GIT_INDEX_FILE",
+    "GIT_NO_REPLACE_OBJECTS",
+    "GIT_REPLACE_REF_BASE",
+    "GIT_PREFIX",
+    "GIT_SHALLOW_FILE",
+    "GIT_COMMON_DIR",
+)
+
+
+@contextmanager
+def _scrubbed_git_local_env() -> Iterator[None]:
+    """Remove GIT_LOCAL_ENV_VARS from os.environ for the duration of the block.
+
+    Use this around any code that chdirs out of the parent repo into a
+    different worktree and then spawns git subprocesses. Without scrubbing,
+    inherited GIT_INDEX_FILE=.git/index (a relative path that git commit
+    exports to hooks) re-resolves against the new cwd and breaks index
+    locking with ENOTDIR.
+
+    See https://lore.kernel.org/git/CAJFQqN+Z9eX6onaj8vVSqpvf-nOC7-Y0Un4NLUie6x6bGfmvZA@mail.gmail.com/
+    """
+    to_restore: Dict[str, str] = {}
+    for var in GIT_LOCAL_ENV_VARS:
+        if var in os.environ:
+            to_restore[var] = os.environ[var]
+            del os.environ[var]
+    try:
+        yield
+    finally:
+        os.environ.update(to_restore)
+
+
 def zsplit(s: str) -> List[str]:
     """Split a string on null characters."""
     s = s.strip("\0")
@@ -490,7 +540,7 @@ class BaselineHandler:
                 logger.debug("Finished restoring head commit")
 
         else:
-            with tempfile.TemporaryDirectory() as tmpdir:
+            with tempfile.TemporaryDirectory() as tmpdir, _scrubbed_git_local_env():
                 try:
                     logger.debug("Running git worktree for baseline context")
                     # Add a new working tree at the temporary directory

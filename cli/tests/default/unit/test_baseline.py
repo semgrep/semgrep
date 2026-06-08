@@ -10,6 +10,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import os
 import subprocess
 from pathlib import Path
 
@@ -90,3 +91,53 @@ def test_baseline_context(monkeypatch, tmp_path):
     assert not foo_c.exists()
     assert bar_a.exists()
     assert foo_d.read_text() == "x = 11111111\n"
+
+
+@pytest.mark.kinda_slow
+def test_baseline_context_with_relative_git_index_file_env(monkeypatch, tmp_path):
+    """
+    Regression test for the pre-commit hook ENOTDIR bug.
+
+    `git commit` exports GIT_INDEX_FILE=.git/index (relative) into the
+    pre-commit hook environment. When baseline_context() chdirs into a
+    temp worktree, that inherited relative path re-resolves to
+    <tmp>/.git/index. <tmp>/.git is a gitfile (regular file), so any
+    subprocess that honors the inherited env and tries to lock the index
+    fails with 'Unable to create <tmp>/.git/index.lock: Not a directory'.
+
+    baseline_context must scrub GIT_INDEX_FILE (and the other git
+    local-env-vars) before its git subprocesses.
+    """
+    monkeypatch.chdir(tmp_path)
+
+    subprocess.check_call(["git", "init"])
+    subprocess.check_call(["git", "config", "user.email", "baselinetest@semgrep.com"])
+    subprocess.check_call(["git", "config", "user.name", "Baseline Test"])
+    subprocess.check_call(["git", "checkout", "-B", "main"])
+
+    Path("a.py").write_text("x = 1\n")
+    subprocess.check_call(["git", "add", "a.py"])
+    subprocess.check_call(["git", "commit", "-m", "first"])
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    # Stage an unrelated change so the repo is "dirty" and baseline_context
+    # takes the git-worktree branch (the buggy code path).
+    Path("a.py").write_text("x = 2\n")
+    subprocess.check_call(["git", "add", "a.py"])
+
+    # Simulate exactly the env that `git commit -m` exports to pre-commit
+    # hooks on a typical git installation: GIT_INDEX_FILE as a relative
+    # path. Without the env scrub in baseline_context, this would explode
+    # with ENOTDIR when git checkout tries to lock <tmp>/.git/index.lock.
+    monkeypatch.setenv("GIT_INDEX_FILE", ".git/index")
+
+    baseline_handler = BaselineHandler(base_commit)
+    with baseline_handler.baseline_context():
+        # If we got here, the scrub worked — the worktree was created and
+        # checked out without ENOTDIR.
+        assert Path("a.py").read_text() == "x = 1\n"
+
+    # Confirm the env var is restored after the context exits.
+    assert os.environ["GIT_INDEX_FILE"] == ".git/index"
