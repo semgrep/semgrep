@@ -284,6 +284,9 @@ let langs_with_error_tolerance =
     (Lang.Cpp, Strict);
     (Lang.Php, Strict);
     (Lang.Python, Strict);
+    (* t-strings (PEP 750, 3.14) are not yet supported by the bundled
+       tree-sitter-python grammar. See tests/parsing_todo/python/. *)
+    (Lang.Python, Todo);
     (Lang.Ocaml, Strict);
     (* recursive descent parser *)
     (Lang.Scala, Strict);
