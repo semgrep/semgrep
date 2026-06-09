@@ -53,6 +53,30 @@ let is_octal_digit = function
   | '0' .. '7' -> true
   | _ -> false
 
+(* OCaml's Int64.of_string_opt accepts underscores between digits (PEP 515 /
+ * Rust style) but not immediately after a radix prefix (e.g. 0x_dead_beef). *)
+let int64_of_literal s =
+  match Int64.of_string_opt s with
+  | Some _ as ok -> ok
+  | None -> (
+      let len = String.length s in
+      if len < 3 || s.[0] <> '0' then None
+      else
+        match s.[1] with
+        | 'x'
+        | 'X'
+        | 'o'
+        | 'O'
+        | 'b'
+        | 'B'
+          when s.[2] = '_' ->
+            let rec skip i =
+              if i < len && Char.equal s.[i] '_' then skip (i + 1) else i
+            in
+            let i = skip 2 in
+            Int64.of_string_opt (Str.first_chars s 2 ^ Str.string_after s i)
+        | _ -> None)
+
 (*****************************************************************************)
 (* Creators *)
 (*****************************************************************************)
@@ -69,10 +93,10 @@ let c_octal_opt s =
     String.starts_with ~prefix:"0" s
     && String.exists is_octal_digit octal_num
     && String.length s > 1
-  then Int64.of_string_opt ("0o" ^ octal_num)
-  else Int64.of_string_opt s
+  then int64_of_literal ("0o" ^ octal_num)
+  else int64_of_literal s
 
-let parse (s, t) = (Int64.of_string_opt s, t)
+let parse (s, t) = (int64_of_literal s, t)
 let parse_c_octal (s, t) = (c_octal_opt s, t)
 
 let of_float f =
@@ -86,7 +110,7 @@ let of_int i = Some (Int64.of_int i) |> promote
 let of_int64 i64 = Some i64 |> promote
 
 let of_string_opt s =
-  match Int64.of_string_opt s with
+  match int64_of_literal s with
   | None -> None
   | Some i64 -> Some (Some i64 |> promote)
 

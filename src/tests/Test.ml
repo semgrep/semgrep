@@ -147,6 +147,7 @@ let tests =
         Unit_tok.tests;
         Unit_parsed_float.tests;
         Unit_ast_generic.tests;
+        Unit_parsed_int.tests;
         Unit_fast_json.tests;
         Unit_Ppath.tests;
         Unit_Rpath.tests;
