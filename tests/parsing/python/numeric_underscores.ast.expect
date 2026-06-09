@@ -93,8 +93,8 @@
               e_id = 0; e_range = None; is_implicit_return = false;
               facts = <opaque> },
             _,
-            { e = (L (Int (None, _))); e_id = 0; e_range = None;
-              is_implicit_return = false; facts = <opaque> }
+            { e = (L (Int ((Some 3735928559L), _))); e_id = 0;
+              e_range = None; is_implicit_return = false; facts = <opaque> }
             ));
          e_id = 0; e_range = None; is_implicit_return = false;
          facts = <opaque> },
@@ -161,7 +161,7 @@
               e_id = 0; e_range = None; is_implicit_return = false;
               facts = <opaque> },
             _,
-            { e = (L (Int (None, _))); e_id = 0; e_range = None;
+            { e = (L (Int ((Some 493L), _))); e_id = 0; e_range = None;
               is_implicit_return = false; facts = <opaque> }
             ));
          e_id = 0; e_range = None; is_implicit_return = false;
@@ -195,7 +195,7 @@
               e_id = 0; e_range = None; is_implicit_return = false;
               facts = <opaque> },
             _,
-            { e = (L (Int (None, _))); e_id = 0; e_range = None;
+            { e = (L (Int ((Some 170L), _))); e_id = 0; e_range = None;
               is_implicit_return = false; facts = <opaque> }
             ));
          e_id = 0; e_range = None; is_implicit_return = false;

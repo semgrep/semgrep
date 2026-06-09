@@ -1,0 +1,167 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("decimal", _),
+               { id_resolved = ref (None);
+                 id_resolved_alternatives = ref ([]); id_type = ref (None);
+                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (FuncDef
+          { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+            fbody =
+            (FBStmt
+               { s =
+                 (Block
+                    (_,
+                     [{ s =
+                        (DefStmt
+                           ({ name = (EPattern (PatWildcard _)); attrs = [];
+                              tparams = None },
+                            (VarDef
+                               { vinit =
+                                 (Some { e = (L (Int ((Some 1000000L), _)));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> });
+                                 vtype = None; vtok = (Some _) })));
+                        s_range = None };
+                       { s =
+                         (DefStmt
+                            ({ name = (EPattern (PatWildcard _)); attrs = [];
+                               tparams = None },
+                             (VarDef
+                                { vinit =
+                                  (Some { e = (L (Int ((Some 98222L), _)));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = true;
+                                          facts = <opaque> });
+                                  vtype = None; vtok = (Some _) })));
+                         s_range = None }
+                       ],
+                     _));
+                 s_range = None })
+            })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("hex_oct_bin", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (DefStmt
+                            ({ name = (EPattern (PatWildcard _)); attrs = [];
+                               tparams = None },
+                             (VarDef
+                                { vinit =
+                                  (Some { e =
+                                          (L (Int ((Some 3735928559L), _)));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> });
+                                  vtype = None; vtok = (Some _) })));
+                         s_range = None };
+                        { s =
+                          (DefStmt
+                             ({ name = (EPattern (PatWildcard _));
+                                attrs = []; tparams = None },
+                              (VarDef
+                                 { vinit =
+                                   (Some { e =
+                                           (L (Int ((Some 3735928559L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> });
+                                   vtype = None; vtok = (Some _) })));
+                          s_range = None };
+                        { s =
+                          (DefStmt
+                             ({ name = (EPattern (PatWildcard _));
+                                attrs = []; tparams = None },
+                              (VarDef
+                                 { vinit =
+                                   (Some { e = (L (Int ((Some 1L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> });
+                                   vtype = None; vtok = (Some _) })));
+                          s_range = None };
+                        { s =
+                          (DefStmt
+                             ({ name = (EPattern (PatWildcard _));
+                                attrs = []; tparams = None },
+                              (VarDef
+                                 { vinit =
+                                   (Some { e = (L (Int ((Some 493L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = false;
+                                           facts = <opaque> });
+                                   vtype = None; vtok = (Some _) })));
+                          s_range = None };
+                        { s =
+                          (DefStmt
+                             ({ name = (EPattern (PatWildcard _));
+                                attrs = []; tparams = None },
+                              (VarDef
+                                 { vinit =
+                                   (Some { e = (L (Int ((Some 170L), _)));
+                                           e_id = 0; e_range = None;
+                                           is_implicit_return = true;
+                                           facts = <opaque> });
+                                   vtype = None; vtok = (Some _) })));
+                          s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("multiple_underscores_after_prefix", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody =
+             (FBStmt
+                { s =
+                  (Block
+                     (_,
+                      [{ s =
+                         (DefStmt
+                            ({ name = (EPattern (PatWildcard _)); attrs = [];
+                               tparams = None },
+                             (VarDef
+                                { vinit =
+                                  (Some { e = (L (Int ((Some 1L), _)));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = true;
+                                          facts = <opaque> });
+                                  vtype = None; vtok = (Some _) })));
+                         s_range = None }
+                        ],
+                      _));
+                  s_range = None })
+             })));
+    s_range = None }
+  ]
