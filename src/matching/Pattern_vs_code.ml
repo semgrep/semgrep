@@ -1028,6 +1028,12 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       B.Call ({ e = B.Special (B.Op B.Minus, _); _ }, (_, [ B.Arg argb ], _)) )
     ->
       m_expr (G.L (G.Int (Parsed_int.neg int_lit)) |> G.e) argb
+  (* equivalence: Call (-, [Int (n)]) => Int (-n) within patterns, match with constprop *)
+  | ( G.Call
+        ( { e = G.Special (G.Op G.Minus, _); _ },
+          (_, [ G.Arg { e = G.L (G.Int int_lit); _ } ], _) ),
+      _b ) ->
+      m_expr (G.L (G.Int (Parsed_int.neg int_lit)) |> G.e) b
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
