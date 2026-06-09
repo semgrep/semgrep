@@ -2,6 +2,7 @@
 
 # Type alias statement.
 type Point = tuple[float, float]
+type Alias[T] = list[T]
 
 # Generic function.
 def first[T](items: list[T]) -> T:

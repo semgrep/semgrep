@@ -449,6 +449,8 @@ and decorator = tok (* @ *) * expr
 and function_definition =
   tok (* 'def' *)
   * name (* name *)
+  * type_ list bracket
+    option (* PEP 695 type parameters, e.g. [T] in def f[T](...) *)
   * parameters (* args *)
   * type_ option
   * (* return type *)
@@ -462,6 +464,8 @@ and function_definition =
 and class_definition =
   tok (* 'class' *)
   * name (* name *)
+  * type_ list bracket
+    option (* PEP 695 type parameters, e.g. [T] in class C[T]: *)
   * type_parent list (* bases *)
   * stmt list (* body *)
   * decorator list (* decorator_list *)
