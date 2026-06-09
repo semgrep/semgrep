@@ -29,6 +29,89 @@ let
       scopeToPkgs =
         query: scope: builtins.attrValues (pkgs.lib.getAttrs (builtins.attrNames query) scope);
 
+      # Build an opam-nix `query` (a `{ name = version; }` attrset of exact
+      # version pins) from a `*.opam.locked` lockfile.
+      #
+      # opam-nix's `buildOpamProject` ignores lockfiles entirely: it reads the
+      # unlocked `.opam` file and re-solves the whole dependency graph against
+      # `opam-repository` from scratch. Unconstrained deps (e.g. `pbrt`, whose
+      # version is only pulled in transitively by `ocaml-protoc {>= "3.1.1"}`)
+      # are then free to resolve to whatever the repo offers, which is how we
+      # ended up with two incompatible `pbrt` versions in one build. Feeding
+      # the lockfile's pins back in as the query forces the solver to the exact
+      # locked versions, so the resolved set matches `opam install --locked`.
+      #
+      # We parse the lockfile with opam-nix's `fromOpam` (which shells out to
+      # `opam2json`, so this is import-from-derivation — same as the solver the
+      # rest of buildOpamProject already relies on) and keep only deps pinned
+      # with an exact `{= "<version>"}` constraint. `eq` constraints can sit
+      # either directly in a dep's `conditions` list or nested as the `lhs` of
+      # an `and` (e.g. `{= "3.19.1" & build}`); we look in both places. Deps
+      # without an `eq` pin (none in our lockfiles) are simply left for the
+      # solver. `.dev` versions correspond to the git `pin-depends` already
+      # declared in the unlocked `.opam`, and opam-nix resolves those from the
+      # pinned source.
+      lockfileQuery =
+        lockfile:
+        let
+          # opam2json renders a dep constraint either as a single condition
+          # object or, for `a & b`, as an `and` node with `lhs`/`rhs`. Find the
+          # `eq` relop wherever it lives.
+          eqVersion =
+            cond:
+            if cond ? prefix_relop && cond.prefix_relop == "eq" then
+              cond.arg
+            else if cond ? logop && cond.logop == "and" then
+              # only the lhs of our `{= "v" & build}`-style pins carries the
+              # version; recurse into both sides to be safe.
+              let
+                l = eqVersion cond.lhs;
+              in
+              if l != null then l else eqVersion cond.rhs
+            else
+              null;
+          # Each `depends` entry is either a bare string (no constraint) or
+          # `{ val = name; conditions = [ ... ]; }`.
+          depToPin =
+            dep:
+            if builtins.isAttrs dep && dep ? val && dep ? conditions then
+              let
+                versions = builtins.filter (v: v != null) (map eqVersion dep.conditions);
+              in
+              if versions == [ ] then { } else { ${dep.val} = builtins.head versions; }
+            else
+              { };
+          parsed = on.fromOpam (builtins.readFile lockfile);
+          depends = parsed.depends or [ ];
+        in
+        builtins.foldl' (acc: dep: acc // (depToPin dep)) { } depends;
+
+      # Resolve the committed, platform-specific lockfile for this build.
+      #
+      # The lockfiles are platform dependent (see opam-lockfiles/README.md), so
+      # the repo commits one variant per platform under `<dir>/<name>.opam.<os>-
+      # <arch>.locked` and a `pick-lockfile.sh` script copies the matching one
+      # to `<name>.opam.locked` at (non-nix) build time. That picked file is
+      # gitignored, so it isn't part of the flake source and we can't read it
+      # here — instead we select the committed variant directly from the Nix
+      # `system`, mirroring pick-lockfile.sh's os/arch mapping.
+      lockfileFor =
+        dir: name:
+        let
+          suffix =
+            {
+              "aarch64-darwin" = "mac-arm64";
+              "x86_64-darwin" = "mac-x86";
+              "aarch64-linux" = "linux-arm64";
+              "x86_64-linux" = "linux-amd64";
+            }
+            .${system}
+              or (throw "no committed ${name} lockfile for nix system ${system}");
+        in
+        # path + string keeps this a source-relative path (so `readFile` reads
+        # the committed file) rather than coercing `dir` into the store first.
+        dir + "/${name}.opam.${suffix}.locked";
+
       # Pass a src and list of paths in that source to get a src that is only
       # those paths
       strictSrc =
@@ -53,6 +136,11 @@ let
         {
           name,
           src,
+          # Optional path to a `*.opam.locked` lockfile. When set, every exact
+          # `{= "v"}` pin in it is fed into the solver query so the build
+          # resolves to the locked versions instead of re-solving freely. See
+          # `lockfileQuery`.
+          lockfile ? null,
           query ? { },
           overlays ? [
             patchesOverlay
@@ -71,6 +159,10 @@ let
             # ocaml-base-compiler = ocamlVersion;
             ocaml-option-flambda = "*";
           };
+          # Lockfile pins are the floor; the explicit `query` and `baseQuery`
+          # win on conflict so callers can still override and the flambda
+          # option is preserved.
+          lockedQuery = if lockfile == null then { } else lockfileQuery lockfile;
           resolveArgs = {
             # speeds up so we don't get a solver timeout
             criteria = null;
@@ -96,7 +188,7 @@ let
               overlays
               resolveArgs
               ;
-          } name src (baseQuery // query);
+          } name src (lockedQuery // baseQuery // query);
           inputsFromQuery = scopeToPkgs query scope;
         in
         addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
@@ -121,6 +213,7 @@ let
   semgrepOpam = lib.buildOpamPkg {
     name = "semgrep";
     src = ./.;
+    lockfile = lib.lockfileFor ./opam-lockfiles "semgrep";
     inputs = (
       with pkgs;
       [
