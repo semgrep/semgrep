@@ -1899,7 +1899,7 @@ and map_class_definition (env : env)
   in
   let _colon = (* ":" *) token env v5 in
   let body = map_suite env v6 in
-  (tclass, id, parents, body, [])
+  (tclass, id, v3, parents, body, [])
 
 (* not in original grammar, but help to factorize boilerplate code *)
 and map_or_else_as_list env v =
@@ -1987,11 +1987,11 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
       let def =
         match v2 with
         | `Class_defi x ->
-            let a, b, c, d, _ = map_class_definition env x in
-            ClassDef (a, b, c, d, decorators)
+            let a, b, c, d, e, _ = map_class_definition env x in
+            ClassDef (a, b, c, d, e, decorators)
         | `Func_defi x ->
-            let a, b, c, d, e, _ = map_function_definition env x in
-            FunctionDef (a, b, c, d, e, decorators)
+            let a, b, c, d, e, f, _ = map_function_definition env x in
+            FunctionDef (a, b, c, d, e, f, decorators)
       in
       def
   | `Match_stmt (v1, v2, v3, v4, v5, v6) ->
@@ -2138,7 +2138,7 @@ and map_function_definition (env : env)
   in
   let _tcolon = (* ":" *) token env v7 in
   let body = map_suite env v8 in
-  (tdef, id, params, topt, body, [])
+  (tdef, id, v4, params, topt, body, [])
 
 and map_match_block (env : env) (x : CST.match_block) =
   match x with

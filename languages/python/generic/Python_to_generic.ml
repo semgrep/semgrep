@@ -611,6 +611,12 @@ and type_parameter env = function
       G.OtherTypeParam
         (("OtherTypeParam", unsafe_fake "OtherTypeParam"), [ G.T t ])
 
+and type_parameters_bracket env = function
+  | None -> None
+  | Some (l, types, r) ->
+      let tparams = List.map (type_parameter env) types in
+      Some (l, tparams, r)
+
 and type_alias_def env (_tok, v1, v2) =
   let v2 = type_ env v2 in
   let def = G.TypeDef { tbody = G.AliasType v2 } in
@@ -651,7 +657,7 @@ and type_alias_def env (_tok, v1, v2) =
 
 and stmt_aux env x =
   match x with
-  | FunctionDef (t, v1, v2, v3, v4, v5) ->
+  | FunctionDef (t, v1, tparams, v2, v3, v4, v5) ->
       let fkind =
         match env.context with
         | InClass -> G.Method
@@ -659,11 +665,12 @@ and stmt_aux env x =
       in
       let env = { env with context = InFunctionOrMethod } in
       let v1 = name env v1
+      and tparams = type_parameters_bracket env tparams
       and v2 = parameters env v2
       and v3 = option (type_ env) v3
       and v4 = list_stmt1 env v4
       and v5 = list (decorator env) v5 in
-      let ent = G.basic_entity v1 ~attrs:v5 in
+      let ent = { (G.basic_entity v1 ~attrs:v5) with tparams } in
       let def =
         {
           G.fparams = fb v2;
@@ -673,13 +680,14 @@ and stmt_aux env x =
         }
       in
       [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
-  | ClassDef (v0, v1, v2, v3, v4) ->
+  | ClassDef (v0, v1, tparams, v2, v3, v4) ->
       let env = { env with context = InClass } in
       let v1 = name env v1
+      and tparams = type_parameters_bracket env tparams
       and v2 = list (type_parent env) v2
       and v3 = list_stmt env v3
       and v4 = list (decorator env) v4 in
-      let ent = G.basic_entity v1 ~attrs:v4 in
+      let ent = { (G.basic_entity v1 ~attrs:v4) with tparams } in
       let def =
         {
           G.ckind = (G.Class, v0);

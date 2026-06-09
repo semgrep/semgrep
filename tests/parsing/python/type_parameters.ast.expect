@@ -72,13 +72,77 @@
     (DefStmt
        ({ name =
           (EN
+             (Id (("Alias", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
+                  }
+                )));
+          attrs = [];
+          tparams =
+          (Some (_,
+                 [(TP
+                     { tp_id = ("T", _); tp_attrs = []; tp_bounds = [];
+                       tp_default = None; tp_variance = None })
+                   ],
+                 _))
+          },
+        (TypeDef
+           { tbody =
+             (AliasType
+                { t =
+                  (TyExpr
+                     { e =
+                       (ArrayAccess (
+                          { e =
+                            (N
+                               (Id (("list", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (None);
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )));
+                            e_id = 0; e_range = None;
+                            is_implicit_return = false; facts = <opaque> },
+                          (_,
+                           { e =
+                             (N
+                                (Id (("T", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (None);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   )));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           _)
+                          ));
+                       e_id = 0; e_range = None; is_implicit_return = false;
+                       facts = <opaque> });
+                  t_attrs = [] })
+             })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
              (Id (("first", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
                   }
                 )));
-          attrs = []; tparams = None },
+          attrs = [];
+          tparams =
+          (Some (_,
+                 [(TP
+                     { tp_id = ("T", _); tp_attrs = []; tp_bounds = [];
+                       tp_default = None; tp_variance = None })
+                   ],
+                 _))
+          },
         (FuncDef
            { fkind = (Function, _);
              fparams =
@@ -304,7 +368,15 @@
                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
                   }
                 )));
-          attrs = []; tparams = None },
+          attrs = [];
+          tparams =
+          (Some (_,
+                 [(TP
+                     { tp_id = ("T", _); tp_attrs = []; tp_bounds = [];
+                       tp_default = None; tp_variance = None })
+                   ],
+                 _))
+          },
         (ClassDef
            { ckind = (Class, _); cextends = []; cimplements = [];
              cmixins = []; cparams = (_, [], _);

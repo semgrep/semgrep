@@ -363,10 +363,10 @@ namedexpr_or_star_expr:
 (*************************************************************************)
 (* this rule is referenced in compound_stmt shown later *)
 funcdef: DEF NAME parameters return_type? ":" suite
-    { FunctionDef ($1, $2, $3, $4, $6, []) }
+    { FunctionDef ($1, $2, None, $3, $4, $6, []) }
 
 async_funcdef: ASYNC DEF NAME parameters return_type? ":" suite
-    { FunctionDef ($2, $3, $4, $5, $7, [] (* TODO $1 *)) }
+    { FunctionDef ($2, $3, None, $4, $5, $7, [] (* TODO $1 *)) }
 
 (* typing-ext: *)
 return_type:
@@ -440,7 +440,7 @@ fplist:
 (*************************************************************************)
 
 classdef: CLASS NAME arglist_paren_opt ":" suite
-  { ClassDef ($1, $2, $3, $5, []) }
+  { ClassDef ($1, $2, None, $3, $5, []) }
 
 arglist_paren_opt:
  | (* empty *) { [] }
@@ -562,17 +562,17 @@ compound_stmt:
 decorated:
   | decorator+ classdef {
      match $2 with
-     | ClassDef (t, a, b, c, d) -> ClassDef (t, a, b, c, $1 @ d)
+     | ClassDef (t, a, b, c, d, e) -> ClassDef (t, a, b, c, d, $1 @ e)
      | _ -> raise Impossible
    }
   | decorator+ funcdef {
      match $2 with
-     | FunctionDef (t, a, b, c, d, e) -> FunctionDef (t, a, b, c, d, $1 @ e)
+     | FunctionDef (t, a, b, c, d, e, f) -> FunctionDef (t, a, b, c, d, e, $1 @ f)
      | _ -> raise Impossible
    }
   | decorator+ async_funcdef {
      match $2 with
-     | FunctionDef (t, a, b, c, d, e) -> FunctionDef (t, a, b, c, d, $1 @ e)
+     | FunctionDef (t, a, b, c, d, e, f) -> FunctionDef (t, a, b, c, d, e, $1 @ f)
      | _ -> raise Impossible
   }
 
