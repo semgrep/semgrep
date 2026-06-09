@@ -203,7 +203,12 @@ let int_lsl i1 i2 =
   else
     let n = Int64.to_int i2 in
     if n > 0 && Int64_.(i1 lsr Int.sub 64 n) <> Int64.zero then None
-    else Some Int64_.(i1 lsl n)
+    else
+      let result = Int64_.(i1 lsl n) in
+      (* Sign-change check: if the shift moves a 0-bit into the sign position
+       * (e.g. max_int << 1 = -2) the result is not representable as a signed
+       * integer of the same width, so decline to fold. *)
+      if i1 >= Int64.zero <> (result >= Int64.zero) then None else Some result
 
 let int_lsr i1 i2 =
   if not (valid_shift i2) then None else Some Int64_.(i1 lsr Int64.to_int i2)
