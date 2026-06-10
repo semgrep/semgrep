@@ -13,7 +13,7 @@ jobs:
           enable-cache: auto
           python-version: "3.10"
           version: 0.10.9
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
@@ -63,7 +63,7 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --locked
         working-directory: cli
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
       - name: Install artifacts
@@ -190,7 +190,7 @@ jobs:
           enable-cache: auto
           python-version: "3.12"
           version: 0.10.9
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
       - name: Install artifacts

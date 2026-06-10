@@ -11,10 +11,10 @@
       "cache": "v4",
       "checkout": "v4",
       "create-github-app-token": "v3",
-      "download-artifact": "v4",
+      "download-artifact": "v7",
       "setup-go": "v5",
       "setup-python": "v5",
-      "upload-artifact": "v4"
+      "upload-artifact": "v7"
     },
     "anthropics":{
       "claude-code-action": "v1"
@@ -46,7 +46,7 @@
       "submodule-branch-check-action": "v1"
     },
     "marocchino": {
-      "sticky-pull-request-comment": "v2"
+      "sticky-pull-request-comment": "v2.9.4"
     },
     "peter-evans": {
       "create-pull-request": "v8"
@@ -66,7 +66,7 @@
       "slack-github-action": "v1.23.0"
     },
     "softprops": {
-      "action-gh-release": "v2"
+      "action-gh-release": "v2.6.1"
     },
     "tibdex": {
       "github-app-token": "v2"

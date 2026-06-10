@@ -8,7 +8,7 @@ jobs:
     steps:
       - id: token
         name: Get token for semgrep-ci GitHub App
-        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
           client-id: ${{ secrets.SEMGREP_CI_CLIENT_ID }}
           owner: semgrep
