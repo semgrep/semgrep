@@ -9,7 +9,7 @@
     },
     "actions": {
       "cache": "v4",
-      "checkout": "v4",
+      "checkout": "v6",
       "create-github-app-token": "v3",
       "download-artifact": "v7",
       "setup-go": "v5",

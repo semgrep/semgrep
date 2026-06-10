@@ -47,7 +47,7 @@ jobs:
     needs: get-inputs
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - run: semgrep ci
   semgrep-ci-fail-open:
     container:
@@ -59,7 +59,7 @@ jobs:
     needs: get-inputs
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - name: Remove Git Exe
         run: |
           which git
@@ -74,7 +74,7 @@ jobs:
     needs: get-inputs
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - id: create-code
         name: Create code under test
         run: |
@@ -104,7 +104,7 @@ jobs:
           owner: semgrep
           private-key: ${{ secrets.SEMGREP_CI_APP_KEY }}
           repositories: e2e
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           ref: ${{ github.event.repository.default_branch }}
           repository: semgrep/e2e

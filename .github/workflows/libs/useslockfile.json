@@ -9,7 +9,7 @@
     },
     "actions": {
       "cache": "0057852bfaa89a56745cba8c7296529d2fc39830",
-      "checkout": "34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "checkout": "df4cb1c069e1874edd31b4311f1884172cec0e10",
       "create-github-app-token": "bcd2ba49218906704ab6c1aa796996da409d3eb1",
       "download-artifact": "37930b1c2abaa49bbe596cd826c3c89aef350131",
       "setup-go": "40f1582b2485089dde7abd97c1529aa768e1baff",
