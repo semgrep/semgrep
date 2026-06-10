@@ -67,7 +67,7 @@ semgrep_output_$(VER).proto: semgrep_output_$(VER).jsonschema
 
 # The call to ocamlc is just to typecheck the generated OCaml files
 Language.ml Language.mli lang.json: generate.py
-	uvx mypy generate
+	uvx mypy@1.19.1 generate
 	./generate
 	opam exec -- ocamlc -o Language Language.mli Language.ml
 

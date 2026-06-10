@@ -69,7 +69,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional, TextIO
+from typing import Any, Dict, List, Optional, TextIO
 import json
 import re
 
@@ -89,7 +89,7 @@ class Maturity(Enum):
     # GA means "general availability"
     GA = "ga"
 
-    def to_json(self):
+    def to_json(self) -> str:
         return self.value
 
 
@@ -167,7 +167,7 @@ class Language():
     # - "is_python" - for Python, Python2, Python3
     tags: List[str] = field(default_factory=list)
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         if self.comment:
             # Remove indentation from comment lines
             comment = re.sub("\n +", "\n", self.comment)

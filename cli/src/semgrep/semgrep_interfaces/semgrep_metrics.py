@@ -265,7 +265,8 @@ from dataclasses import field
 
 @dataclass
 class SupplyChainConfig:
-    """Original type: supply_chain_config = { ... }"""
+    """Original type: supply_chain_config = { ... }
+    """
 
     _rfu: Optional[int] = None
 
@@ -294,7 +295,8 @@ class SupplyChainConfig:
 
 @dataclass
 class Any_:
-    """Original type: secrets_origin = [ ... | Any | ... ]"""
+    """Original type: secrets_origin = [ ... | Any | ... ]
+    """
 
     @property
     def kind(self) -> str:
@@ -311,7 +313,8 @@ class Any_:
 
 @dataclass
 class Semgrep:
-    """Original type: secrets_origin = [ ... | Semgrep | ... ]"""
+    """Original type: secrets_origin = [ ... | Semgrep | ... ]
+    """
 
     @property
     def kind(self) -> str:
@@ -328,7 +331,8 @@ class Semgrep:
 
 @dataclass
 class NoCommunity:
-    """Original type: secrets_origin = [ ... | NoCommunity | ... ]"""
+    """Original type: secrets_origin = [ ... | NoCommunity | ... ]
+    """
 
     @property
     def kind(self) -> str:
@@ -345,7 +349,8 @@ class NoCommunity:
 
 @dataclass
 class SecretsOrigin:
-    """Original type: secrets_origin = [ ... ]"""
+    """Original type: secrets_origin = [ ... ]
+    """
 
     value: Union[Any_, Semgrep, NoCommunity]
 
@@ -379,7 +384,8 @@ class SecretsOrigin:
 
 @dataclass
 class SecretsConfig:
-    """Original type: secrets_config = { ... }"""
+    """Original type: secrets_config = { ... }
+    """
 
     permitted_origins: SecretsOrigin
 
@@ -407,7 +413,8 @@ class SecretsConfig:
 
 @dataclass
 class ProFeatures:
-    """Original type: pro_features = { ... }"""
+    """Original type: pro_features = { ... }
+    """
 
     diffDepth: Optional[int] = None
     numInterfileDiffScanned: Optional[List[Tuple[str, int]]] = None
@@ -440,7 +447,8 @@ class ProFeatures:
 
 @dataclass
 class CodeConfig:
-    """Original type: code_config = { ... }"""
+    """Original type: code_config = { ... }
+    """
 
     _rfu: Optional[int] = None
 
@@ -469,7 +477,8 @@ class CodeConfig:
 
 @dataclass
 class Intraprocedural:
-    """Original type: analysis_type = [ ... | Intraprocedural | ... ]"""
+    """Original type: analysis_type = [ ... | Intraprocedural | ... ]
+    """
 
     @property
     def kind(self) -> str:
@@ -486,7 +495,8 @@ class Intraprocedural:
 
 @dataclass
 class Interprocedural:
-    """Original type: analysis_type = [ ... | Interprocedural | ... ]"""
+    """Original type: analysis_type = [ ... | Interprocedural | ... ]
+    """
 
     @property
     def kind(self) -> str:
@@ -503,7 +513,8 @@ class Interprocedural:
 
 @dataclass
 class Interfile:
-    """Original type: analysis_type = [ ... | Interfile | ... ]"""
+    """Original type: analysis_type = [ ... | Interfile | ... ]
+    """
 
     @property
     def kind(self) -> str:
@@ -520,7 +531,8 @@ class Interfile:
 
 @dataclass
 class AnalysisType:
-    """Original type: analysis_type = [ ... ]"""
+    """Original type: analysis_type = [ ... ]
+    """
 
     value: Union[Intraprocedural, Interprocedural, Interfile]
 
@@ -554,7 +566,8 @@ class AnalysisType:
 
 @dataclass
 class EngineConfig:
-    """Original type: engine_config = { ... }"""
+    """Original type: engine_config = { ... }
+    """
 
     analysis_type: AnalysisType
     pro_langs: bool
@@ -597,7 +610,8 @@ class EngineConfig:
 
 @dataclass
 class Value:
-    """Original type: value = { ... }"""
+    """Original type: value = { ... }
+    """
 
     features: List[str]
     proFeatures: Optional[ProFeatures] = None
@@ -656,7 +670,8 @@ class Value:
 
 @dataclass
 class Uuid:
-    """Original type: uuid"""
+    """Original type: uuid
+    """
 
     value: str
 
@@ -677,7 +692,8 @@ class Uuid:
 
 @dataclass
 class Sha256:
-    """Original type: sha256"""
+    """Original type: sha256
+    """
 
     value: str
 
@@ -698,7 +714,8 @@ class Sha256:
 
 @dataclass
 class RuleStats:
-    """Original type: rule_stats = { ... }"""
+    """Original type: rule_stats = { ... }
+    """
 
     ruleHash: str
     bytesScanned: int
@@ -733,7 +750,8 @@ class RuleStats:
 
 @dataclass
 class FileStats:
-    """Original type: file_stats = { ... }"""
+    """Original type: file_stats = { ... }
+    """
 
     size: int
     numTimesScanned: int
@@ -776,7 +794,8 @@ class FileStats:
 
 @dataclass
 class Performance:
-    """Original type: performance = { ... }"""
+    """Original type: performance = { ... }
+    """
 
     numRules: Optional[int] = None
     numTargets: Optional[int] = None
@@ -829,7 +848,8 @@ class Performance:
 
 @dataclass
 class ParseStat:
-    """Original type: parse_stat = { ... }"""
+    """Original type: parse_stat = { ... }
+    """
 
     targets_parsed: int
     num_targets: int
@@ -866,7 +886,8 @@ class ParseStat:
 
 @dataclass
 class Finding:
-    """Original type: finding = { ... }"""
+    """Original type: finding = { ... }
+    """
 
     path: str
     line: int
@@ -906,7 +927,8 @@ class Finding:
 
 @dataclass
 class Mcp:
-    """Original type: mcp = { ... }"""
+    """Original type: mcp = { ... }
+    """
 
     deployment_name: Optional[str] = None
     session_id: Optional[str] = None
@@ -1019,7 +1041,8 @@ class Mcp:
 
 @dataclass
 class Guardian:
-    """Original type: guardian = { ... }"""
+    """Original type: guardian = { ... }
+    """
 
     hook: Optional[str] = None
     session_id: Optional[str] = None
@@ -1116,7 +1139,8 @@ class Guardian:
 
 @dataclass
 class Extension:
-    """Original type: extension = { ... }"""
+    """Original type: extension = { ... }
+    """
 
     machineId: Optional[str] = None
     isNewAppInstall: Optional[bool] = None
@@ -1169,7 +1193,8 @@ class Extension:
 
 @dataclass
 class Error:
-    """Original type: error"""
+    """Original type: error
+    """
 
     value: str
 
@@ -1190,7 +1215,8 @@ class Error:
 
 @dataclass
 class Errors:
-    """Original type: errors = { ... }"""
+    """Original type: errors = { ... }
+    """
 
     returnCode: Optional[int] = None
     errors: Optional[List[Error]] = None
@@ -1223,7 +1249,8 @@ class Errors:
 
 @dataclass
 class Environment:
-    """Original type: environment = { ... }"""
+    """Original type: environment = { ... }
+    """
 
     version: str
     os: str
@@ -1284,7 +1311,8 @@ class Environment:
 
 @dataclass
 class Datetime:
-    """Original type: datetime"""
+    """Original type: datetime
+    """
 
     value: str
 
@@ -1305,7 +1333,8 @@ class Datetime:
 
 @dataclass
 class Payload:
-    """Original type: payload = { ... }"""
+    """Original type: payload = { ... }
+    """
 
     event_id: Uuid
     started_at: Datetime
@@ -1366,7 +1395,8 @@ class Payload:
 
 @dataclass
 class Lang:
-    """Original type: lang"""
+    """Original type: lang
+    """
 
     value: str
 
