@@ -1,0 +1,2 @@
+`semgrep ci` scans originating from a pre-commit hook will no longer fail with
+`Unable to create '<tmp>/.git/index.lock': Not a directory` in certain cases.

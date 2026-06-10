@@ -1,0 +1,3 @@
+Semgrep no longer stores the API token in  `~/.semgrep/settings.yml`'s stored
+token when the current scan's token is supplied via the `SEMGREP_APP_TOKEN`
+envvar.
