@@ -239,6 +239,7 @@ let scan_config_of_legacy_string sc_string : Out.scan_configuration =
       (* Not present in legacy response; callers don't use these. *)
       project_merge_base = None;
       fips_mode = false;
+      nosemgrep_disabled = false;
     }
 
 let scan_config_of_token = function
