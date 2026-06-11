@@ -38,7 +38,9 @@ def test_regex_rule__utf8_on_image(run_semgrep_in_tmp: RunSemgrep, posix_snapsho
     # https://github.com/returntocorp/semgrep/issues/4258
     posix_snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/regex/regex-utf8.yaml", target_name="image/semgrep.png"
+            "rules/regex/regex-utf8.yaml",
+            target_name="image/semgrep.png",
+            options=["--no-exclude-binary-files"],
         ).stdout,
         "results.json",
     )

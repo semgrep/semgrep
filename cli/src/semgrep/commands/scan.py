@@ -190,6 +190,11 @@ _scan_options: List[Callable] = [
         default=[],
     ),
     optgroup.option(
+        "--exclude-binary-files/--no-exclude-binary-files",
+        is_flag=True,
+        default=True,
+    ),
+    optgroup.option(
         "--include",
         multiple=True,
         default=[],
@@ -761,6 +766,7 @@ def scan(
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
+    exclude_binary_files: bool,
     force_color: bool,
     force_novcs_project: bool,
     force_project_root: Optional[str],
@@ -1153,6 +1159,7 @@ def scan(
                         include=include,
                         exclude={product: (exclude or ()) for product in ALL_PRODUCTS},
                         exclude_rule=exclude_rule,
+                        exclude_binary_files=exclude_binary_files,
                         max_target_bytes=max_target_bytes,
                         replacement=replacement,
                         strict=strict,

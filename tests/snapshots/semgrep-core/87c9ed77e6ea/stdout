@@ -1,0 +1,14 @@
+Test name: with git > .txt file with magic bytes is kept
+--- Files added before 'git add' ---
+notes.txt
+--- begin input files ---
+notes.txt
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 1 file changed, 1 insertion(+)
+ create mode 100644 notes.txt
+--- Errors ---
+--- Selected targets ---
+selected notes.txt
+--- Skipped targets ---

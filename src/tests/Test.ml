@@ -142,6 +142,7 @@ let tests =
         Parser_regexp_tests.Unit_parsing.tests;
         Unit_ReDoS.tests;
         Unit_guess_lang.tests;
+        Unit_skip_target.tests;
         Unit_cgroup_limits.tests;
         Unit_memory_limit.tests ();
         Unit_tok.tests;

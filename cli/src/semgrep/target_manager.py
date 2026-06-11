@@ -874,6 +874,7 @@ class TargetManager:
     scanning_root_strings: FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
     excludes: Mapping[out.Product, Sequence[str]] = Factory(dict)
+    exclude_binary_files: bool = True
     force_novcs_project: bool = False
     force_project_root: Optional[str] = None
     max_target_bytes: int = -1
@@ -922,6 +923,7 @@ class TargetManager:
                 # shouldn't be needed since we provide the scanning roots:
                 explicit_targets=[],
                 force_novcs_project=self.force_novcs_project,
+                exclude_binary_files=self.exclude_binary_files,
                 exclude_minified_files=False,
                 include_=(list(self.includes) or None),
                 force_project_root=(

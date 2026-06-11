@@ -320,8 +320,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
   let combine allow_local_builds allow_untrusted_validators autofix
       baseline_commit common config dataflow_traces dryrun
       _dump_command_for_core emacs emacs_outputs exclude_ exclude_minified_files
-      exclude_rule_ids files_with_matches force_color gitlab_sast
-      gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
+      exclude_binary_files exclude_rule_ids files_with_matches force_color
+      gitlab_sast gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
       _historical_secrets ignore_semgrepignore_files include_ incremental_output
       json json_outputs junit_xml junit_xml_outputs matching_explanations
       max_chars_per_line max_lines_per_finding max_log_list_entries
@@ -415,6 +415,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         extra_gitignore_patterns_to_exclude_git_untracked_files = [];
         semgrepignore_filename;
         exclude_minified_files;
+        exclude_binary_files;
         par_conf = Parallelism_config.default;
         num_jobs =
           Some (Core_scan_config.finalize_num_jobs core_runner_conf.num_jobs);
@@ -475,8 +476,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ o_autofix $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
     $ SC.o_dataflow_traces $ o_dryrun $ SC.o_dump_command_for_core $ SC.o_emacs
     $ SC.o_emacs_outputs $ SC.o_exclude $ SC.o_exclude_minified_files
-    $ SC.o_exclude_rule_ids $ SC.o_files_with_matches $ SC.o_force_color
-    $ SC.o_gitlab_sast $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
+    $ SC.o_exclude_binary_files $ SC.o_exclude_rule_ids
+    $ SC.o_files_with_matches $ SC.o_force_color $ SC.o_gitlab_sast
+    $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
     $ SC.o_gitlab_secrets_outputs $ SC.o_historical_secrets
     $ SC.o_x_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
     $ SC.o_json $ SC.o_json_outputs $ SC.o_junit_xml $ SC.o_junit_xml_outputs

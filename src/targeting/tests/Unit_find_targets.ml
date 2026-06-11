@@ -47,6 +47,7 @@ module Out = Semgrep_output_v1_t
 *)
 let test_find_targets ?expected_outcome ?includes ?(excludes = [])
     ?(non_git_files : F.t list = []) ?(respect_gitignore = true)
+    ?(exclude_binary_files = true)
     ?(extra_gitignore_patterns_to_exclude_git_untracked_files = [])
     ?(scanning_root = ".") ~with_git name (files : F.t list) =
   let category = if with_git then "with git" else "without git" in
@@ -77,6 +78,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
             include_ = includes;
             exclude = excludes;
             respect_gitignore;
+            exclude_binary_files;
             extra_gitignore_patterns_to_exclude_git_untracked_files;
           }
         in
@@ -171,6 +173,37 @@ let tests_with_or_without_git ~with_git =
         F.symlink "symlink.py" "semgrepignored.py";
         F.file "semgrepignored.py";
         F.File (".semgrepignore", "semgrepignored.py\n");
+      ];
+    (* A binary file (.png extension + PNG magic bytes) is skipped with the
+       'Binary' reason, while the regular source file is selected. *)
+    test_find_targets ~with_git "binary file is skipped"
+      [
+        F.File ("logo.png", "\x89PNG\r\n\x1a\n\x00\x00\x00binary data");
+        F.file "a.py";
+      ];
+    (* With binary filtering disabled, the same binary file is selected. *)
+    test_find_targets ~with_git ~exclude_binary_files:false
+      "binary file is kept when binary filtering is disabled"
+      [
+        F.File ("logo.png", "\x89PNG\r\n\x1a\n\x00\x00\x00binary data");
+        F.file "a.py";
+      ];
+    (* A text file starting with magic-like bytes is NOT treated as
+        binary (it's selected). *)
+    test_find_targets ~with_git ".txt file with magic bytes is kept"
+      [ F.File ("notes.txt", "%PDF- this is just text\n") ];
+    (* A png file starting without magic bytes is NOT treated as
+        binary (it's selected). *)
+    test_find_targets ~with_git ".png file without magic bytes is kept"
+      [ F.File ("notes.png", "this is just text") ];
+    (* An extension-less ELF/Mach-O binary (e.g. a compiled executable) is
+       skipped: with no extension it falls into File_type.Other and is caught
+       by the magic-byte sniff. This exercises the fallback end-to-end, not
+       just Skip_target.is_binary in isolation. *)
+    test_find_targets ~with_git "extension-less binary is skipped"
+      [
+        F.File ("mytool", "\x7fELF\x02\x01\x01\x00 compiled binary");
+        F.file "a.py";
       ];
   ]
 
