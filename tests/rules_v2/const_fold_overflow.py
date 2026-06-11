@@ -36,3 +36,29 @@ sink((-9223372036854775807 - 1) * 4)
 sink(4 * (-9223372036854775807 - 1))
 # ok: const-fold-overflow
 sink((-9223372036854775807 - 1) << 1)
+
+
+# --- Intraprocedural (IL) overflow detection: Eval_il_partial ---
+# Same checks, but exercised through the flow-sensitive IL svalue analysis: the
+# reassigned local forces the IL pass (not the generic pass) to do the folding.
+def _il_overflow():
+    # Folds normally; confirms the rule fires through the IL pass.
+    a = 0
+    a = 4 - (-9223372036854775803)  # 9223372036854775807 = max_int
+    # ruleid: const-fold-overflow
+    sink(a)
+    # Subtraction overflow: min_int - 1 wraps to max_int if the check is removed.
+    b = 0
+    b = (-9223372036854775807 - 1) - 1
+    # ok: const-fold-overflow
+    sink(b)
+    # Multiplication overflow: max_int * 2 wraps to -2 if the check is removed.
+    c = 0
+    c = 9223372036854775807 * 2
+    # ok: const-fold-overflow
+    sink(c)
+    # Shift overflow: max_int << 1 wraps to -2 if the check is removed.
+    d = 0
+    d = 9223372036854775807 << 1
+    # ok: const-fold-overflow
+    sink(d)
