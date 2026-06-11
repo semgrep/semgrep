@@ -1,1 +1,0 @@
-Python parsing now preserves type parameters on `def` and `class` definitions.
