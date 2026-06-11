@@ -93,6 +93,7 @@ val o_dump_command_for_core : bool Cmdliner.Term.t
 val o_emacs : bool Cmdliner.Term.t
 val o_emacs_outputs : string list Cmdliner.Term.t
 val o_exclude_minified_files : bool Cmdliner.Term.t
+val o_exclude_binary_files : bool Cmdliner.Term.t
 val o_exclude_rule_ids : string list Cmdliner.Term.t
 val o_files_with_matches : bool Cmdliner.Term.t
 val o_force_color : bool Cmdliner.Term.t

@@ -1,0 +1,11 @@
+Test name: without git > binary file is kept when binary filtering is disabled
+--- Files not added to git ---
+a.py
+logo.png
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected a.py
+selected logo.png
+--- Skipped targets ---

@@ -1257,6 +1257,7 @@ type targeting_conf = {
     *);
   force_novcs_project: bool;
   exclude_minified_files: bool;
+  exclude_binary_files: bool;
   baseline_commit: string option
 }
   [@@deriving show]

@@ -214,6 +214,8 @@ type conf = {
   force_novcs_project : bool;
   (* osemgrep-only option, exclude scanning minified files, default false *)
   exclude_minified_files : bool;
+  (* exclude scanning binary files, default true *)
+  exclude_binary_files : bool;
   baseline_commit : string option;
   par_conf : Parallelism_config.t;
   num_jobs : int option;
@@ -241,6 +243,7 @@ let default_conf : conf =
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
     exclude_minified_files = false;
+    exclude_binary_files = true;
     baseline_commit = None;
     par_conf = Parallelism_config.default;
     num_jobs = None;
@@ -411,6 +414,16 @@ let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
   Log.debug (fun m -> m "skipped_size: %d" (List.length skipped_size));
   Log.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
   (selected_fppaths, skipped_size @ skipped_minified)
+
+let filter_binary paths =
+  let selected_ffpaths, skipped_binary =
+    Result_.partition
+      (fun (fppath : Fppath.t) ->
+        Result.map (fun _ -> fppath) (Skip_target.is_binary fppath.fpath))
+      paths
+  in
+  Log.debug (fun m -> m "skipped_binary: %d" (List.length skipped_binary));
+  (selected_ffpaths, skipped_binary)
 
 (*************************************************************************)
 (* Finding by walking *)
@@ -923,7 +936,7 @@ let get_targets (conf : conf) (scanning_roots : Scanning_root.t list) :
   |> List.map (get_targets_for_project conf)
   |> List_.split
   |> fun (path_set_list, skipped_paths_list) ->
-  let paths, skipped_size_minified =
+  let paths, skipped_size_minified_binary =
     let path_set =
       List.fold_left Fppath_set.union Fppath_set.empty path_set_list
     in
@@ -943,11 +956,19 @@ let get_targets (conf : conf) (scanning_roots : Scanning_root.t list) :
         ~exclude_minified_files:conf.exclude_minified_files
         ~max_target_bytes:conf.max_target_bytes paths_to_check
     in
-    (selected_paths_to_check @ exempt_paths, skipped_size_minified)
+
+    (* Filter out binary files *)
+    let selected_paths_to_check, skipped_binary =
+      if conf.exclude_binary_files then filter_binary selected_paths_to_check
+      else (selected_paths_to_check, [])
+    in
+
+    ( selected_paths_to_check @ exempt_paths,
+      skipped_size_minified @ skipped_binary )
   in
   let sorted_skipped_targets =
     let skipped_paths_list =
-      List_.flatten skipped_paths_list @ skipped_size_minified
+      List_.flatten skipped_paths_list @ skipped_size_minified_binary
     in
     skipped_paths_list
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->

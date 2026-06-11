@@ -2695,7 +2695,8 @@
       "required": [
         "exclude", "max_target_bytes", "respect_gitignore",
         "respect_semgrepignore_files", "always_select_explicit_targets",
-        "explicit_targets", "force_novcs_project", "exclude_minified_files"
+        "explicit_targets", "force_novcs_project", "exclude_minified_files",
+        "exclude_binary_files"
       ],
       "properties": {
         "exclude": { "type": "array", "items": { "type": "string" } },
@@ -2720,6 +2721,7 @@
         },
         "force_novcs_project": { "type": "boolean" },
         "exclude_minified_files": { "type": "boolean" },
+        "exclude_binary_files": { "type": "boolean" },
         "baseline_commit": { "type": "string" }
       }
     },

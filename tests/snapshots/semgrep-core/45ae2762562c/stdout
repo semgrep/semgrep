@@ -1,0 +1,11 @@
+Test name: without git > extension-less binary is skipped
+--- Files not added to git ---
+a.py
+mytool
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected a.py
+--- Skipped targets ---
+ignored mytool [Semgrep_output_v1_t.Binary]

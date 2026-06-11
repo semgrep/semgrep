@@ -4,7 +4,7 @@ The --semgrepignore-v2 flag is no longer needed!
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 24 files tracked by git with 4 Code rules:
+  Scanning 23 files tracked by git with 4 Code rules:
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
