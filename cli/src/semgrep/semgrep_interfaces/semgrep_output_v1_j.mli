@@ -1638,6 +1638,11 @@ type scan_configuration = Semgrep_output_v1_t.scan_configuration = {
       From 1.126.0. Customers in FIPS environments have specific hash
       function requirements that this flag will override. See SAF-2057 for
       details.
+    *);
+  nosemgrep_disabled: bool
+    (**
+      From 1.166.0. Org-wide setting (deployment.nosemgrep_disabled) that
+      disables 'nosemgrep' inline ignore comments for the scan.
     *)
 }
 

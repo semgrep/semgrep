@@ -963,6 +963,8 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
         triage_ignored_match_based_ids = _;
         project_merge_base = _;
         fips_mode;
+        (* TODO: use ? *)
+        nosemgrep_disabled = _;
       };
     (* TODO: lots of things to use there *)
     engine_params =

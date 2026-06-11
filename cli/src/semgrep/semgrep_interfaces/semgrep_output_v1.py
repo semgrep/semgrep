@@ -9419,6 +9419,9 @@ class ScanConfiguration:
     :param fips_mode: From 1.126.0. Customers in FIPS environments have
     specific hash function requirements that this flag will override. See
     SAF-2057 for details.
+    :param nosemgrep_disabled: From 1.166.0. Org-wide setting
+    (deployment.nosemgrep_disabled) that disables 'nosemgrep' inline ignore
+    comments for the scan.
     """
 
     rules: RawJson
@@ -9426,6 +9429,7 @@ class ScanConfiguration:
     triage_ignored_match_based_ids: List[str] = field(default_factory=lambda: [])
     project_merge_base: Optional[Sha1] = None
     fips_mode: bool = field(default_factory=lambda: False)
+    nosemgrep_disabled: bool = field(default_factory=lambda: False)
 
     @classmethod
     def from_json(cls, x: Any) -> 'ScanConfiguration':
@@ -9436,6 +9440,7 @@ class ScanConfiguration:
                 triage_ignored_match_based_ids=_atd_read_list(_atd_read_string)(x['triage_ignored_match_based_ids']) if 'triage_ignored_match_based_ids' in x else [],
                 project_merge_base=Sha1.from_json(x['project_merge_base']) if 'project_merge_base' in x else None,
                 fips_mode=_atd_read_bool(x['fips_mode']) if 'fips_mode' in x else False,
+                nosemgrep_disabled=_atd_read_bool(x['nosemgrep_disabled']) if 'nosemgrep_disabled' in x else False,
             )
         else:
             _atd_bad_json('ScanConfiguration', x)
@@ -9448,6 +9453,7 @@ class ScanConfiguration:
         if self.project_merge_base is not None:
             res['project_merge_base'] = (lambda x: x.to_json())(self.project_merge_base)
         res['fips_mode'] = _atd_write_bool(self.fips_mode)
+        res['nosemgrep_disabled'] = _atd_write_bool(self.nosemgrep_disabled)
         return res
 
     @classmethod
