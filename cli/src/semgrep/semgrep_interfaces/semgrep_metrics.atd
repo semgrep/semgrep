@@ -316,11 +316,13 @@ type guardian = {
     ?session_id <ocaml mutable>: string option;
     ?login_method <ocaml mutable>: string option;     (* oauth | app_token *)
     ?scanner_version <ocaml mutable>: string option;  (* semgrep version from the scan response *)
-    (* identity (no email/name in v1) *)
+    ?guardian_version <ocaml mutable>: string option; (* guardian cli version that kicked off the request *)
+    (* identity *)
     ?deployment_name <ocaml mutable>: string option;
     ?deployment_id <ocaml mutable>: int option;
     ?organization_id <ocaml mutable>: int option;
     ?oauth_id <ocaml mutable>: string option;
+    ?oauth_email <ocaml mutable>: string option;
     (* tool context being scanned *)
     ?tool_name <ocaml mutable>: string option;        (* Write | Edit | Bash *)
     ?package_manager <ocaml mutable>: string option;  (* npm | poetry | cargo ... *)
