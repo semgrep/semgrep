@@ -65,6 +65,7 @@
     - [Cursor](#cursor-integration)
     - [VS Code / Copilot](#vs-code--copilot)
     - [Windsurf](#windsurf)
+    - [Kiro](#kiro)
     - [Custom clients](#custom-clients)
       - [Example Python streamable HTTP client](#example-python-streamable-http-client)
   - [Contributing, community, and running from source](#contributing-community-and-running-from-source)
@@ -314,6 +315,30 @@ See [VS Code docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) 
 5. Restart Windsurf to apply hook configuration.
 
 See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
+
+### Kiro
+
+Runs Semgrep locally using the CLI. Clicking the box below opens directly in Kiro to add the server — it does not open a new browser tab:
+
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=semgrep&config=%7B%22command%22%3A%22semgrep%22%2C%22args%22%3A%5B%22mcp%22%5D%2C%22env%22%3A%7B%22SEMGREP_APP_TOKEN%22%3A%22%24%7BSEMGREP_TOKEN%7D%22%7D%7D)
+
+Alternatively, follow the [Kiro MCP docs](https://kiro.dev/docs/mcp/) and add this file to your `.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "semgrep": {
+      "command": "semgrep",
+      "args": ["mcp"],
+      "env": {
+        "SEMGREP_APP_TOKEN": "${SEMGREP_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+See [Kiro docs](https://kiro.dev/docs/mcp/) for more info.
 
 ### Custom clients
 
