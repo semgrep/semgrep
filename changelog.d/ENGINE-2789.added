@@ -1,1 +1,0 @@
-Added support for more operators for folding for constant propagation, including subtraction, division, bit ops, bit shifts, comparisons, and more
