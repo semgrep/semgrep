@@ -171,12 +171,14 @@ let eval_binop_bool op b1 b2 =
   match op with
   | G.Or -> G.Lit (literal_of_bool (b1 || b2))
   | G.And -> G.Lit (literal_of_bool (b1 && b2))
+  | G.Xor -> G.Lit (literal_of_bool (b1 <> b2))
   | _else -> G.Cst G.Cbool
 
 let eval_unop_int op opt_i =
   match (op, opt_i) with
   | G.Plus, Some i -> G.Lit (literal_of_int i)
   | G.Minus, Some i -> G.Lit (literal_of_int (Int64.neg i))
+  | G.BitNot, Some i -> G.Lit (literal_of_int (Int64.lognot i))
   | ___else____ -> G.Cst G.Cint
 
 (* This reduces arithmetic "exceptions" to `G.Cst G.Cint`, it does NOT
@@ -185,17 +187,22 @@ let eval_unop_int op opt_i =
  *)
 let eval_binop_int tok op opt_i1 opt_i2 =
   let open Int64_ in
-  let sign_bit i = i asr Int.sub Sys.int_size 1 =|= 1L in
+  let sign_bit i = if i < 0L then 1 else 0 in
+  let valid_shift i2 = i2 >= Int64.zero && i2 < 64L in
   match (op, opt_i1, opt_i2) with
   | G.Plus, Some i1, Some i2 ->
       let r = i1 + i2 in
-      if sign_bit i1 =:= sign_bit i2 && sign_bit r <> sign_bit i1 then
-        G.Cst G.Cint (* overflow *)
+      if
+        Int.equal (sign_bit i1) (sign_bit i2)
+        && (not @@ Int.equal (sign_bit r) (sign_bit i1))
+      then G.Cst G.Cint (* overflow *)
       else G.Lit (literal_of_int (i1 + i2))
   | G.Minus, Some i1, Some i2 ->
       let r = i1 - i2 in
-      if sign_bit i1 <> sign_bit i2 && sign_bit r <> sign_bit i1 then
-        G.Cst G.Cint (* overflow *)
+      if
+        (not @@ Int.equal (sign_bit i1) (sign_bit i2))
+        && (not @@ Int.equal (sign_bit r) (sign_bit i1))
+      then G.Cst G.Cint (* overflow *)
       else G.Lit (literal_of_int (i1 - i2))
   | G.Mult, Some i1, Some i2 ->
       let overflow =
@@ -203,19 +210,87 @@ let eval_binop_int tok op opt_i1 opt_i2 =
         && ((i1 < 0L && i2 =|= min_int) (* >max_int *)
            || (i1 =|= min_int && i2 < 0L) (* >max_int *)
            ||
-           if sign_bit i1 =:= sign_bit i2 then abs i1 > abs (max_int / i2)
-             (* >max_int *)
+           if Int.equal (sign_bit i1) (sign_bit i2) then
+             abs i1 > abs (max_int / i2) (* >max_int *)
            else abs i1 > abs (min_int / i2) (* <min_int *))
       in
       if overflow then G.Cst G.Cint else G.Lit (literal_of_int (i1 * i2))
-  | G.Div, Some i1, Some i2 -> (
+  | G.Div, Some i1, Some i2 ->
       if i1 =|= min_int && i2 =|= -1L then
         G.Cst G.Cint (* = max_int+1, overflow *)
+      else if i2 =|= 0L then (
+        warning tok "Found division by zero";
+        G.Cst G.Cint (* division by zero *))
+      else if i1 mod i2 =|= 0L then
+        (* no way to check lang without passing in *)
+        G.Lit (literal_of_int (i1 / i2))
+      else G.Cst G.Cint
+  | G.FloorDiv, Some i1, Some i2 ->
+      if i1 =|= min_int && i2 =|= -1L then
+        G.Cst G.Cint (* = max_int+1, overflow *)
+      else if i2 =|= 0L then (
+        warning tok "Found division by zero";
+        G.Cst G.Cint (* division by zero *))
+      else if (not @@ Int.equal (sign_bit i1) (sign_bit i2)) && i1 mod i2 <|> 0L
+      then G.Lit (literal_of_int ((i1 / i2) - one))
+      else G.Lit (literal_of_int (i1 / i2))
+  | G.Pow, Some i1, Some i2 when i2 >= 0L ->
+      if i1 =|= 0L then
+        if i2 =|= 0L then (
+          warning tok "Found 0**0, setting to 1";
+          G.Lit (literal_of_int 1L))
+        else G.Lit (literal_of_int 0L)
+      else if i1 =|= 1L then G.Lit (literal_of_int 1L)
+      else if i1 =|= -1L then
+        if i2 mod 2L =|= 0L then G.Lit (literal_of_int 1L)
+        else G.Lit (literal_of_int (-1L))
       else
-        try G.Lit (literal_of_int (i1 / i2)) with
-        | Division_by_zero ->
-            warning tok "Found division by zero";
-            G.Cst G.Cint)
+        let rec pow acc n =
+          if n =|= 0L then acc
+          else
+            let acc' = Option.map (Int64.mul i1) acc in
+            if
+              match (acc', acc) with
+              | Some x, Some y -> x / i1 <|> y
+              | _ -> false
+            then None (* overflow *)
+            else pow acc' (n - 1L)
+        in
+        begin match pow (Some one) i2 with
+        | None -> G.Cst G.Cint
+        | Some r when r < 0L -> G.Cst G.Cint
+        | Some r -> G.Lit (literal_of_int r)
+        end
+  | G.Mod, Some i1, Some i2 ->
+      if i2 =|= 0L then (
+        warning tok "Found modulo by zero";
+        G.Cst G.Cint (* modulo by zero *))
+      else if i1 =|= min_int && i2 =|= -1L then
+        G.Cst G.Cint (* = 0, but we want to be sound wrt. overflow *)
+      else if not @@ Int.equal (sign_bit i1) (sign_bit i2) then
+        G.Cst G.Cint (* semantic differences in diff langs *)
+      else G.Lit (literal_of_int (i1 mod i2))
+  | G.BitAnd, Some i1, Some i2 -> G.Lit (literal_of_int (i1 land i2))
+  | G.BitOr, Some i1, Some i2 -> G.Lit (literal_of_int (i1 lor i2))
+  | G.BitXor, Some i1, Some i2 -> G.Lit (literal_of_int (i1 lxor i2))
+  | G.Eq, Some i1, Some i2 -> G.Lit (literal_of_bool (i1 =|= i2))
+  | G.NotEq, Some i1, Some i2 -> G.Lit (literal_of_bool (i1 <|> i2))
+  | G.Gt, Some i1, Some i2 -> G.Lit (literal_of_bool (i1 > i2))
+  | G.GtE, Some i1, Some i2 -> G.Lit (literal_of_bool (i1 >= i2))
+  | G.Lt, Some i1, Some i2 -> G.Lit (literal_of_bool (i1 < i2))
+  | G.LtE, Some i1, Some i2 -> G.Lit (literal_of_bool (i1 <= i2))
+  | G.LSL, Some i1, Some i2 when valid_shift i2 ->
+      let n = to_int i2 in
+      if i2 > zero && i1 lsr Int.sub 64 n <|> zero then
+        G.Cst G.Cint (* high bits shifted out *)
+      else
+        let r = Int64.shift_left i1 n in
+        if i1 >= zero <> (r >= zero) then G.Cst G.Cint (* overflow *)
+        else G.Lit (literal_of_int r)
+  | G.LSR, Some i1, Some i2 when valid_shift i2 ->
+      G.Lit (literal_of_int Int64.(shift_right_logical i1 (to_int i2)))
+  | G.ASR, Some i1, Some i2 when valid_shift i2 ->
+      G.Lit (literal_of_int Int64.(shift_right i1 (to_int i2)))
   | ___else____ -> G.Cst G.Cint
 
 let eval_binop_string ?tok op s1 s2 =

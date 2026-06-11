@@ -17,3 +17,33 @@ sink(d)
 sink(e)
 # ERROR:
 sink(f)
+
+
+# --- Intraprocedural (IL) constant folding: Eval_il_partial ---
+# Reassigning each local forces the flow-sensitive IL svalue analysis (rather
+# than the syntactic generic pass) to do the folding. Each still folds to 12.
+def _il_bitwise():
+    a = 0
+    a = 12 & 15  # AND
+    # ERROR:
+    sink(a)
+    b = 0
+    b = 8 | 4  # OR
+    # ERROR:
+    sink(b)
+    c = 0
+    c = 15 ^ 3  # XOR
+    # ERROR:
+    sink(c)
+    d = 0
+    d = ~(-13)  # NOT
+    # ERROR:
+    sink(d)
+    e = 0
+    e = 3 << 2  # LSL
+    # ERROR:
+    sink(e)
+    f = 0
+    f = 48 >> 2  # ASR
+    # ERROR:
+    sink(f)
