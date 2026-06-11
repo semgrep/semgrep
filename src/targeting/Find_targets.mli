@@ -103,6 +103,10 @@ type conf = {
   exclude_minified_files : bool;
       (** osemgrep-only: exclude scanning large files based on
           max_target_bytes, default true *)
+  exclude_binary_files : bool;
+      (** exclude scanning binary files, default true. Binary files are
+          defined as files that contain magic bytes matching their
+          extension. *)
   baseline_commit : string option;
   par_conf : Parallelism_config.t;
   num_jobs : int option;

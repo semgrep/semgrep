@@ -1270,6 +1270,7 @@ type targeting_conf = Semgrep_output_v1_t.targeting_conf = {
     *);
   force_novcs_project: bool;
   exclude_minified_files: bool;
+  exclude_binary_files: bool;
   baseline_commit: string option
 }
   [@@deriving show]
@@ -18155,6 +18156,15 @@ let write_targeting_conf : _ -> targeting_conf -> _ = (
       Yojson.Safe.write_bool
     )
       ob x.exclude_minified_files;
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
+      Buffer.add_string ob "\"exclude_binary_files\":";
+    (
+      Yojson.Safe.write_bool
+    )
+      ob x.exclude_binary_files;
     (match x.baseline_commit with None -> () | Some x ->
       if !is_first then
         is_first := false
@@ -18188,6 +18198,7 @@ let read_targeting_conf = (
     let field_force_project_root = ref (None) in
     let field_force_novcs_project = ref (None) in
     let field_exclude_minified_files = ref (None) in
+    let field_exclude_binary_files = ref (None) in
     let field_baseline_commit = ref (None) in
     try
       Yojson.Safe.read_space p lb;
@@ -18216,7 +18227,7 @@ let read_targeting_conf = (
               )
             | 15 -> (
                 if String.unsafe_get s pos = 'b' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'n' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'c' && String.unsafe_get s (pos+10) = 'o' && String.unsafe_get s (pos+11) = 'm' && String.unsafe_get s (pos+12) = 'm' && String.unsafe_get s (pos+13) = 'i' && String.unsafe_get s (pos+14) = 't' then (
-                  12
+                  13
                 )
                 else (
                   -1
@@ -18263,6 +18274,14 @@ let read_targeting_conf = (
             | 19 -> (
                 if String.unsafe_get s pos = 'f' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 'c' && String.unsafe_get s (pos+4) = 'e' && String.unsafe_get s (pos+5) = '_' && String.unsafe_get s (pos+6) = 'n' && String.unsafe_get s (pos+7) = 'o' && String.unsafe_get s (pos+8) = 'v' && String.unsafe_get s (pos+9) = 'c' && String.unsafe_get s (pos+10) = 's' && String.unsafe_get s (pos+11) = '_' && String.unsafe_get s (pos+12) = 'p' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'o' && String.unsafe_get s (pos+15) = 'j' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'c' && String.unsafe_get s (pos+18) = 't' then (
                   10
+                )
+                else (
+                  -1
+                )
+              )
+            | 20 -> (
+                if String.unsafe_get s pos = 'e' && String.unsafe_get s (pos+1) = 'x' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'l' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'b' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'y' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'f' && String.unsafe_get s (pos+16) = 'i' && String.unsafe_get s (pos+17) = 'l' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 's' then (
+                  12
                 )
                 else (
                   -1
@@ -18425,6 +18444,14 @@ let read_targeting_conf = (
               )
             );
           | 12 ->
+            field_exclude_binary_files := (
+              Some (
+                (
+                  Atdgen_runtime.Oj_run.read_bool
+                ) p lb
+              )
+            );
+          | 13 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_baseline_commit := (
                 Some (
@@ -18465,7 +18492,7 @@ let read_targeting_conf = (
                 )
               | 15 -> (
                   if String.unsafe_get s pos = 'b' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'n' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'c' && String.unsafe_get s (pos+10) = 'o' && String.unsafe_get s (pos+11) = 'm' && String.unsafe_get s (pos+12) = 'm' && String.unsafe_get s (pos+13) = 'i' && String.unsafe_get s (pos+14) = 't' then (
-                    12
+                    13
                   )
                   else (
                     -1
@@ -18512,6 +18539,14 @@ let read_targeting_conf = (
               | 19 -> (
                   if String.unsafe_get s pos = 'f' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 'c' && String.unsafe_get s (pos+4) = 'e' && String.unsafe_get s (pos+5) = '_' && String.unsafe_get s (pos+6) = 'n' && String.unsafe_get s (pos+7) = 'o' && String.unsafe_get s (pos+8) = 'v' && String.unsafe_get s (pos+9) = 'c' && String.unsafe_get s (pos+10) = 's' && String.unsafe_get s (pos+11) = '_' && String.unsafe_get s (pos+12) = 'p' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'o' && String.unsafe_get s (pos+15) = 'j' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'c' && String.unsafe_get s (pos+18) = 't' then (
                     10
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 20 -> (
+                  if String.unsafe_get s pos = 'e' && String.unsafe_get s (pos+1) = 'x' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'l' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'b' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'y' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'f' && String.unsafe_get s (pos+16) = 'i' && String.unsafe_get s (pos+17) = 'l' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 's' then (
+                    12
                   )
                   else (
                     -1
@@ -18674,6 +18709,14 @@ let read_targeting_conf = (
                 )
               );
             | 12 ->
+              field_exclude_binary_files := (
+                Some (
+                  (
+                    Atdgen_runtime.Oj_run.read_bool
+                  ) p lb
+                )
+              );
+            | 13 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_baseline_commit := (
                   Some (
@@ -18704,6 +18747,7 @@ let read_targeting_conf = (
             force_project_root = !field_force_project_root;
             force_novcs_project = (match !field_force_novcs_project with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "force_novcs_project");
             exclude_minified_files = (match !field_exclude_minified_files with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "exclude_minified_files");
+            exclude_binary_files = (match !field_exclude_binary_files with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "exclude_binary_files");
             baseline_commit = !field_baseline_commit;
           }
          : targeting_conf)

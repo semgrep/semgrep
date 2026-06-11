@@ -1,0 +1,18 @@
+Test name: with git > binary file is skipped
+--- Files added before 'git add' ---
+a.py
+logo.png
+--- begin input files ---
+a.py
+logo.png
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a.py
+ create mode 100644 logo.png
+--- Errors ---
+--- Selected targets ---
+selected a.py
+--- Skipped targets ---
+ignored logo.png [Semgrep_output_v1_t.Binary]

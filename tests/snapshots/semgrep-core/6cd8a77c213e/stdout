@@ -1,0 +1,18 @@
+Test name: with git > extension-less binary is skipped
+--- Files added before 'git add' ---
+a.py
+mytool
+--- begin input files ---
+a.py
+mytool
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a.py
+ create mode 100644 mytool
+--- Errors ---
+--- Selected targets ---
+selected a.py
+--- Skipped targets ---
+ignored mytool [Semgrep_output_v1_t.Binary]

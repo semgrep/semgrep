@@ -1073,6 +1073,7 @@ export type TargetingConf = {
   force_project_root?: ProjectRoot;
   force_novcs_project: boolean;
   exclude_minified_files: boolean;
+  exclude_binary_files: boolean;
   baseline_commit?: string;
 }
 
@@ -4579,6 +4580,7 @@ export function writeTargetingConf(x: TargetingConf, context: any = x): any {
     'force_project_root': _atd_write_optional_field(writeProjectRoot, x.force_project_root, x),
     'force_novcs_project': _atd_write_required_field('TargetingConf', 'force_novcs_project', _atd_write_bool, x.force_novcs_project, x),
     'exclude_minified_files': _atd_write_required_field('TargetingConf', 'exclude_minified_files', _atd_write_bool, x.exclude_minified_files, x),
+    'exclude_binary_files': _atd_write_required_field('TargetingConf', 'exclude_binary_files', _atd_write_bool, x.exclude_binary_files, x),
     'baseline_commit': _atd_write_optional_field(_atd_write_string, x.baseline_commit, x),
   };
 }
@@ -4597,6 +4599,7 @@ export function readTargetingConf(x: any, context: any = x): TargetingConf {
     force_project_root: _atd_read_optional_field(readProjectRoot, x['force_project_root'], x),
     force_novcs_project: _atd_read_required_field('TargetingConf', 'force_novcs_project', _atd_read_bool, x['force_novcs_project'], x),
     exclude_minified_files: _atd_read_required_field('TargetingConf', 'exclude_minified_files', _atd_read_bool, x['exclude_minified_files'], x),
+    exclude_binary_files: _atd_read_required_field('TargetingConf', 'exclude_binary_files', _atd_read_bool, x['exclude_binary_files'], x),
     baseline_commit: _atd_read_optional_field(_atd_read_string, x['baseline_commit'], x),
   };
 }

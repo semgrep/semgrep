@@ -33,7 +33,7 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 8 files tracked by git with 0 Code rules:
+  Scanning 7 files tracked by git with 0 Code rules:
   Nothing to scan.
 
 

@@ -1,0 +1,9 @@
+Test name: without git > .txt file with magic bytes is kept
+--- Files not added to git ---
+notes.txt
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected notes.txt
+--- Skipped targets ---
