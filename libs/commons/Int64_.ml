@@ -42,6 +42,7 @@ let ( lor ) = Int64.logor
 let ( land ) = Int64.logand
 let ( lxor ) = Int64.logxor
 let ( =|= ) = Int64.equal
+let ( <|> ) = fun x y -> not (Int64.equal x y)
 let ( > ) i1 i2 = Int64.compare i1 i2 > 0
 let ( < ) i1 i2 = Int64.compare i1 i2 < 0
 let ( >= ) i1 i2 = Int64.compare i1 i2 >= 0

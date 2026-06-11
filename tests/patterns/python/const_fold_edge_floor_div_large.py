@@ -24,3 +24,14 @@ sink(9223372036854775806 // 2)
 # that must still fold correctly (floor rounds toward -infinity).
 # -9223372036854775807 // 2 = -4611686018427387904  (not equal to pattern, so no match)
 sink(-9223372036854775807 // 2)
+
+
+# --- Intraprocedural (IL) constant folding: Eval_il_partial ---
+# Same large-dividend sign_bit regression, but exercised through the IL svalue
+# analysis (reassigned local inside a function body) rather than the generic
+# pass. Must still fold to the exact floor.
+def _il_floor_div_large():
+    x = 0
+    x = 9223372036854775807 // 2
+    # ERROR:
+    sink(x)

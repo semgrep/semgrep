@@ -43,3 +43,40 @@ sink((-7) % 2)
 sink(7 % (-3))
 # Python: (-1) % 100 = 99; C-style: -1 rem 100 = -1.
 sink((-1) % 100)
+
+
+# --- Intraprocedural (IL) constant folding: Eval_il_partial ---
+# The same guards must hold for the flow-sensitive IL svalue analysis. Each
+# local is reassigned so the IL pass (not the generic pass) does the folding.
+# Only the valid baseline folds to 6; every other case must NOT fold to 6.
+def _il_invalid():
+    # Valid baseline: 3 << 1 = 6, confirms the rule fires through the IL pass.
+    x = 0
+    x = 3 << 1
+    # ERROR:
+    sink(x)
+    # Shift amount out of range (>= 64) must not fold (6 << 64 would wrap to 6
+    # via OCaml's (n & 63) without the valid_shift guard).
+    a = 0
+    a = 6 << 64
+    sink(a)
+    # Negative shift amount must not fold.
+    b = 0
+    b = 6 << -1
+    sink(b)
+    # Division / modulo by zero must not fold (and must not crash).
+    c = 0
+    c = 12 // 0
+    sink(c)
+    d = 0
+    d = 6 % 0
+    sink(d)
+    # Mixed-sign modulo must not fold: OCaml's 78 mod -12 = 6, but Python's
+    # 78 % -12 = -6, so folding to 6 here would be unsound.
+    e = 0
+    e = 78 % (-12)
+    sink(e)
+    # Negative integer exponent (float result in Python) must not fold.
+    f = 0
+    f = 2 ** -1
+    sink(f)

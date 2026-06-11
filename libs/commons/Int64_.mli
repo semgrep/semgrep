@@ -32,6 +32,7 @@ val ( lor ) : int64 -> int64 -> int64
 val ( land ) : int64 -> int64 -> int64
 val ( lxor ) : int64 -> int64 -> int64
 val ( =|= ) : int64 -> int64 -> bool
+val ( <|> ) : int64 -> int64 -> bool
 val ( > ) : int64 -> int64 -> bool
 val ( < ) : int64 -> int64 -> bool
 val ( >= ) : int64 -> int64 -> bool
