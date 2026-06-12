@@ -3,6 +3,9 @@
 Python **syntactic** language features (new grammar the parser must accept) and
 the parsing test that covers each. Features without a test show `UNTESTED`.
 
+For matching these features as Semgrep **patterns** (rather than just parsing
+them), see the companion `tests/patterns/python/LANGUAGE_FEATURE_COVERAGE.md`.
+
 Feature names link to the [Python language reference](https://docs.python.org/3/reference/)
 (canonical grammar). PEP numbers note the original proposal and are not linked —
 many are now [historical documents](https://peps.python.org/pep-0012/#pep-types)
