@@ -1801,6 +1801,57 @@ def test_ci_sarif_output_preserves_nosemgrep_suppressions(
         assert r["suppressions"] == [{"kind": "inSource"}], r
 
 
+# Regression: --sarif-output must not zero out `CiScanResults.ignores`
+# on upload. Previously the JSON path populated it but the SARIF path
+# did not.
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "extra_options,expect_in_sarif_file",
+    [
+        ([], False),
+        (["--sarif-output", "out.sarif"], True),
+    ],
+    ids=["no-sarif", "sarif-output"],
+)
+@pytest.mark.osemfail  # osemgrep does not write --sarif-output files
+def test_ci_upload_ignores_field_populated_under_sarif(
+    git_tmp_path_with_commit,
+    mock_autofix,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+    extra_options,
+    expect_in_sarif_file,
+):
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--enable-nosem",
+            *extra_options,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    uploaded = upload_results_mock.last_request.json()
+    assert len(uploaded["ignores"]) > 0, uploaded
+
+    if expect_in_sarif_file:
+        sarif = json.loads(Path("out.sarif").read_text())
+        suppressed = [r for r in sarif["runs"][0]["results"] if r.get("suppressions")]
+        assert len(suppressed) > 0, sarif["runs"][0]["results"]
+
+
 @pytest.mark.parametrize(
     "scan_config",
     [GENERIC_SECRETS_AND_REAL_RULE],

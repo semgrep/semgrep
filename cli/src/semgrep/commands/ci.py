@@ -549,6 +549,7 @@ def ci(
                         contributions=contributions,
                         engine_requested=engine_type,
                         progress_bar=progress_bar,
+                        disable_nosem=(not enable_nosem),
                     )
                     sys.exit(0)
 
@@ -1196,6 +1197,7 @@ def ci(
                     contributions=contributions,
                     engine_requested=engine_type,
                     progress_bar=progress_bar,
+                    disable_nosem=(not enable_nosem),
                 )
             app_blocked_mids = set()
             if (
