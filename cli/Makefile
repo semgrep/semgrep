@@ -49,11 +49,16 @@ clean:
 # the quick tests but for the sake of maintainability, we use the same options
 # everywhere.
 #
+# Some of our tests perform git commits, so to avoid signing them as the
+# current user, we ignore the user's .gitconfig by sourcing a global git_config
+# from /dev/null.
+#
 # We are seeing some pytest runs failing with a segfault, despite all the tests
 # passing. Adding PYTHONFAULTHANDLER=1 to the pytest command so that next time
 # it happens, we can get a traceback.
 PYTEST ?= \
    PYTHONFAULTHANDLER=1 \
+   GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="commit.gpgsign" GIT_CONFIG_VALUE_0="false" \
   uv run --locked pytest \
     -n auto -vv --tb=long --timeout=300 --durations=10 $(PYTEST_EXTRA_ARGS)
 
