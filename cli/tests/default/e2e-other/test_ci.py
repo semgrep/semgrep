@@ -1753,6 +1753,66 @@ def test_nosem(
     )
 
 
+@pytest.mark.osemfail
+@pytest.mark.parametrize(
+    ("nosem_flag", "config_nosemgrep_disabled", "expected_disable_nosem"),
+    [
+        # No flag passed: the app's nosemgrep_disabled config drives behavior.
+        (None, True, True),
+        (None, False, False),
+        # An explicit flag always wins; the config value is ignored.
+        ("--enable-nosem", True, False),
+        ("--disable-nosem", False, True),
+    ],
+)
+def test_nosem_config_precedence(
+    git_tmp_path_with_commit,
+    mocker,
+    nosem_flag,
+    config_nosemgrep_disabled,
+    expected_disable_nosem,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """`semgrep ci` honors nosemgrep_disabled from the scan config only when
+    neither --enable-nosem nor --disable-nosem was passed; an explicit flag
+    always wins over the config value."""
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    # Simulate the org-wide setting the app sends in the scan config.
+    mocker.patch.object(ScanHandler, "nosemgrep_disabled", config_nosemgrep_disabled)
+
+    # Capture the resolved run_scan args, then short-circuit so we don't need a
+    # real scan to assert how nosemgrep handling was resolved.
+    captured: Dict = {}
+
+    def fake_run_scan(**kwargs):
+        captured.update(kwargs)
+        raise SemgrepError("stop after capturing args", code=2)
+
+    mocker.patch.object(semgrep.run_scan, "run_scan", side_effect=fake_run_scan)
+
+    options = ["--no-suppress-errors", "--oss-only"]
+    if nosem_flag:
+        options.append(nosem_flag)
+
+    run_semgrep(
+        subcommand="ci",
+        options=options,
+        target_name=None,
+        strict=False,
+        assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    assert captured["disable_nosem"] is expected_disable_nosem
+
+
 # Regression for ENGINE-1824: `semgrep ci --sarif-output` must preserve
 # nosemgrep-suppressed findings in the SARIF file with `suppressions`
 # entries, not drop them entirely. The bucketing in commands/ci.py must
