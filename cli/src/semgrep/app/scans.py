@@ -226,6 +226,15 @@ class ScanHandler:
         return False
 
     @property
+    def nosemgrep_disabled(self) -> bool:
+        """
+        Has the org disabled 'nosemgrep' inline ignore comments for this scan?
+        """
+        if self.scan_response:
+            return self.scan_response.config.nosemgrep_disabled
+        return False
+
+    @property
     def project_merge_base(self) -> Optional[str]:
         """
         If the app tells us a merge base let's use it.

@@ -784,6 +784,17 @@ def ci(
             max_log_list_entries=max_log_list_entries,
             max_match_context_size=max_match_context_size,
         )
+        # Resolve nosemgrep handling. An explicit --enable-nosem/--disable-nosem
+        # on the command line always wins, so the config value is ignored. When
+        # neither flag was passed, honor the org-wide nosemgrep_disabled setting
+        # the app sent in the scan config.
+        nosem_flag_passed = (
+            ctx.get_parameter_source("enable_nosem")
+            != click.core.ParameterSource.DEFAULT
+        )
+        if not nosem_flag_passed and scan_handler and scan_handler.nosemgrep_disabled:
+            enable_nosem = False
+
         output_handler = OutputHandler(
             output_settings, disable_nosem=(not enable_nosem)
         )
