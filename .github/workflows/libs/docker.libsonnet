@@ -430,7 +430,7 @@ local job(
            +
            (if artifact_name != null then (
               [
-                copy_from_docker_step(target='%s-binaries' % target, output_dir='binaries', platforms=platforms, build_args=build_args),
+                copy_from_docker_step(target='%s-binaries' % target, output_dir='binaries', file=file, platforms=platforms, build_args=build_args),
               ] + std.flattenArrays(
                 std.map(function(arch)
                   [
