@@ -61,6 +61,14 @@ endif
 
 -include cygwin-env.mk
 
+# On macOS we point lwt's discover (and flags.sh's static linking) at the
+# brew-installed libraries via LIBRARY_PATH=$(HOMEBREW_PREFIX)/lib. GitHub-hosted
+# macOS runners export HOMEBREW_PREFIX in the environment, but some other runners
+# (e.g. Depot's macOS images) do not.
+ifeq ($(shell uname -s),Darwin)
+  HOMEBREW_PREFIX ?= $(shell brew --prefix 2>/dev/null)
+endif
+
 ###############################################################################
 # Build (and clean) targets
 ###############################################################################
