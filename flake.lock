@@ -70,11 +70,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1780749050,
-        "narHash": "sha256-3av0pIjlOWQ6rDbNOmpUSvbNnJkGORQKKjb4LtCZsIY=",
+        "lastModified": 1781074563,
+        "narHash": "sha256-md8WlXOlfnIeHeOScMTTHFyf2d6iaTwPl2apR5EQ3P4=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "a799d3e3886da994fa307f817a6bc705ae538eeb",
+        "rev": "9ae611a455b90cf061d8f332b977e387bda8e1ca",
         "type": "github"
       },
       "original": {
@@ -211,11 +211,11 @@
     "opam-repository_2": {
       "flake": false,
       "locked": {
-        "lastModified": 1780829777,
-        "narHash": "sha256-sirKb+1b8XBGObb5MaPTjHfYxII1f5dVybp4Cbb0Vwg=",
+        "lastModified": 1781439732,
+        "narHash": "sha256-F9/1KBLpXn3yL06AexhKhfPwVYodxYj3qKHKanH1LpE=",
         "owner": "ocaml",
         "repo": "opam-repository",
-        "rev": "61948ed88d454fbe461c991a1f007467a03fbb60",
+        "rev": "bfde4320ee9c2203443d5cfcbdf2031671ea7e3c",
         "type": "github"
       },
       "original": {
@@ -343,11 +343,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1780418295,
-        "narHash": "sha256-yZVQNvmDx1SFjvlwevywsXWJnieSRqmQr7/fCTMyyd0=",
+        "lastModified": 1781413266,
+        "narHash": "sha256-442W/86PUnx6XEK7azeUQ7+ie8IolyDj5B7WjcqwCy8=",
         "owner": "pyproject-nix",
         "repo": "uv2nix",
-        "rev": "0497ccef038da091002be7c05263a7f27820974f",
+        "rev": "8a41370bc4d5ab40d29ab405f22320957e47c8a2",
         "type": "github"
       },
       "original": {
