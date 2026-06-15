@@ -178,6 +178,18 @@ core-test:
 	./test --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
+# Smoke subset of the OCaml test suite: only the tests tagged 'smoke' in
+# src/tests/Test.ml. Used on slower CI platforms (e.g. osx x86) to catch
+# platform-specific breakage without running the full suite. We bypass
+# run-core-test (and its extra inline/expect runs) to keep this lean.
+# coupling: the root Makefile's test-osx-smoke target.
+.PHONY: core-test-smoke
+core-test-smoke:
+	./scripts/make-symlinks
+	$(MAKE) build-core-test
+	./test --help 2>&1 >/dev/null
+	./test --max-inline-log-bytes=100_000 -t smoke
+
 # Please keep this standalone target.
 # We want to rebuild the tests without re-running all of them.
 # This is for working on one or a few specific test cases.
