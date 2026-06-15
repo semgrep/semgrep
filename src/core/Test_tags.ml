@@ -22,6 +22,9 @@ open Common
 let flaky = Testo.Tag.declare "flaky"
 let e2e = Testo.Tag.declare "e2e"
 
+(* Curated smoke-test subset; see Test_tags.mli and 'make test-osx-smoke'. *)
+let smoke = Testo.Tag.declare "smoke"
+
 (* "lang.none" would be shorter but possibly confusing since we're using
    the term "generic" everywhere. *)
 let lang_generic = Testo.Tag.declare "lang.generic"
