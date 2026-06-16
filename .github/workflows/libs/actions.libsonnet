@@ -16,36 +16,44 @@ local download_artifact_step(artifact_name, run_id=null, path=null) = {
 // want to wait for checks on a specific commit to complete, but it's not part
 // of a PR
 local
+  // `event` (optional): restrict to runs triggered by this event (e.g. 'push').
+  // A commit on a release-* branch has both a push run (which builds the
+  // release artifacts, e.g. the osx-x86 wheel) and a pull_request run (which
+  // skips them), so callers that need the build artifacts must pass
+  // event='push' or they may resolve the pull_request run and not find them.
   get_workflow_run_id_step(
     sha,
     workflow_file,
-    repo='${{ github.repository }}'
-  ) = {
-    name: 'Get latest workflow id',
-    id: 'get_workflow_run_id',
+    repo='${{ github.repository }}',
+    event=null,
+  ) =
+    local event_filter = if event == null then '' else ' -f event=%s' % event;
+    {
+      name: 'Get latest workflow id',
+      id: 'get_workflow_run_id',
 
-    env: {
-      GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-      SHA: sha,
-      WORKFLOW_FILE: workflow_file,
-      REPO: repo,
-    },
-    // Get the most recent workflow run id from a specific commit sha.
-    //
-    // This assumes that the workflows are sorted newest first and it
-    // appears to be the case in practice. But if for some unusual reason
-    // the latest workflow run attempt failed, it will be picked up here.
-    // In this case, an easy fix is to identify the failed
-    // workflow run on the GitHub website and right-click to delete it. It
-    // will then disappear from the list of workflow runs returned by
-    // the 'gh api' command below.
-    run: |||
-      workflow_run_id=$(gh api /repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs \
-        --method GET -f head_sha=${SHA} \
-        -q '.workflow_runs[0].id')
-      echo "workflow_run_id=$workflow_run_id" >> $GITHUB_OUTPUT
-    |||,
-  };
+      env: {
+        GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+        SHA: sha,
+        WORKFLOW_FILE: workflow_file,
+        REPO: repo,
+      },
+      // Get the most recent workflow run id from a specific commit sha.
+      //
+      // This assumes that the workflows are sorted newest first and it
+      // appears to be the case in practice. But if for some unusual reason
+      // the latest workflow run attempt failed, it will be picked up here.
+      // In this case, an easy fix is to identify the failed
+      // workflow run on the GitHub website and right-click to delete it. It
+      // will then disappear from the list of workflow runs returned by
+      // the 'gh api' command below.
+      run: |||
+        workflow_run_id=$(gh api /repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs \
+          --method GET -f head_sha=${SHA}%(event_filter)s \
+          -q '.workflow_runs[0].id')
+        echo "workflow_run_id=$workflow_run_id" >> $GITHUB_OUTPUT
+      ||| % { event_filter: event_filter },
+    };
 // output from the above step
 local workflow_run_id_output = '${{ steps.get_workflow_run_id.outputs.workflow_run_id }}';
 
@@ -62,45 +70,53 @@ local wait_for_workflow_run(run_id, interval=3, repo='${{ github.repository }}')
 // Wait for a specific job within a workflow to complete on a given commit
 // Unlike wait_for_workflow_run above which waits for an entire workflow run to complete,
 // this utility finds the workflow run for a commit and waits for just one job within it
-local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, timeout_minutes=120) = {
-  name: 'Wait for %s job in %s workflow on commit' % [job_name, workflow_name],
-  'timeout-minutes': timeout_minutes,
-  run: |||
-    # Wait for the %(job_name)s job to complete on the given commit
-    echo "Waiting for %(job_name)s job to complete on commit: $COMMIT_SHA"
+// `event` (optional): restrict to runs triggered by this event (e.g. 'push').
+// A commit on a release-* branch produces both a push run (which runs the
+// release-only jobs like the RC binary upload) and a pull_request run (which
+// skips them), so callers that need the push run must pass event='push' or they
+// may match the pull_request run where the job is skipped (= falsely "complete").
+local wait_for_workflow_job_on_commit_step(commit_sha, workflow_name, job_name, timeout_minutes=120, event=null) =
+  local event_arg = if event == null then '' else ' --event %s' % event;
+  {
+    name: 'Wait for %s job in %s workflow on commit' % [job_name, workflow_name],
+    'timeout-minutes': timeout_minutes,
+    run: |||
+      # Wait for the %(job_name)s job to complete on the given commit
+      echo "Waiting for %(job_name)s job to complete on commit: $COMMIT_SHA"
 
-    # Wait for the job to complete
-    while true; do
-      # Get the run ID for the %(workflow_name)s workflow on the given commit
-      RUN_ID=$(gh run list --repo "${{ github.repository }}" --commit "$COMMIT_SHA" --workflow="%(workflow_name)s" --json databaseId --jq ".[0].databaseId" || echo "")
+      # Wait for the job to complete
+      while true; do
+        # Get the run ID for the %(workflow_name)s workflow on the given commit
+        RUN_ID=$(gh run list --repo "${{ github.repository }}" --commit "$COMMIT_SHA" --workflow="%(workflow_name)s"%(event_arg)s --json databaseId --jq ".[0].databaseId" || echo "")
 
-      if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
-        # Check the status of the %(job_name)s job specifically
-        JOB_STATUS=$(gh api --paginate repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs --jq ".jobs[] | select(.name == \"%(job_name)s\") | .status" || echo "not_found")
+        if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+          # Check the status of the %(job_name)s job specifically
+          JOB_STATUS=$(gh api --paginate repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs --jq ".jobs[] | select(.name == \"%(job_name)s\") | .status" || echo "not_found")
 
-        if [ "$JOB_STATUS" = "completed" ]; then
-          echo "%(job_name)s job completed on commit"
-          break
-        elif [ "$JOB_STATUS" = "not_found" ]; then
-          echo "%(job_name)s job not found yet, waiting..."
+          if [ "$JOB_STATUS" = "completed" ]; then
+            echo "%(job_name)s job completed on commit"
+            break
+          elif [ "$JOB_STATUS" = "not_found" ]; then
+            echo "%(job_name)s job not found yet, waiting..."
+          else
+            echo "%(job_name)s job status: $JOB_STATUS, waiting..."
+          fi
         else
-          echo "%(job_name)s job status: $JOB_STATUS, waiting..."
+          echo "No %(workflow_name)s workflow run found yet for commit $COMMIT_SHA, waiting..."
         fi
-      else
-        echo "No %(workflow_name)s workflow run found yet for commit $COMMIT_SHA, waiting..."
-      fi
-      sleep 30
-    done
-  ||| % {
-    commit_sha: commit_sha,
-    workflow_name: workflow_name,
-    job_name: job_name,
-  },
-  env: {
-    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-    COMMIT_SHA: commit_sha,
-  },
-};
+        sleep 30
+      done
+    ||| % {
+      commit_sha: commit_sha,
+      workflow_name: workflow_name,
+      job_name: job_name,
+      event_arg: event_arg,
+    },
+    env: {
+      GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+      COMMIT_SHA: commit_sha,
+    },
+  };
 
 // This looks through the 30 commits (based on GH API page size)
 // behind `sha` (inclusive) on `repo` for the latest one that contains
