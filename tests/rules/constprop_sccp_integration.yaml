@@ -1,0 +1,7 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Test
+    pattern: sink("yes")
+    severity: WARNING

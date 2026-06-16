@@ -1,0 +1,7 @@
+rules:
+  - id: test-sccp
+    languages:
+      - python
+    message: Test
+    pattern: foo("live")
+    severity: WARNING

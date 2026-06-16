@@ -49,6 +49,13 @@ end)
 let hook_constness_of_function = Hook.create None
 let hook_transfer_of_assume = Hook.create None
 
+(* When set, this replaces the default flow-sensitive fixpoint with an
+ * alternative implementation (e.g. a more precise one). The default (unset)
+ * is the classic must-analysis fixpoint defined below. *)
+let hook_fixpoint_with_env :
+    (Lang.t -> G.svalue Var_env.t -> Fun_CFG.t -> mapping) option Hook.t =
+  Hook.create None
+
 (*****************************************************************************)
 (* Constness *)
 (*****************************************************************************)
@@ -323,20 +330,12 @@ let transfer_of_assume (assume : bool) (cond : IL.exp_kind)
   | None -> inp
   | Some hook -> hook assume cond inp
 
-let rec transfer :
-    lang:Lang.t ->
-    enter_env:G.svalue Var_env.t ->
-    fun_cfg:Fun_CFG.t ->
-    G.svalue Var_env.transfn =
- fun ~lang ~enter_env ~fun_cfg
-     (* the transfer function to update the mapping at node index ni *)
-       mapping ni ->
-  let flow = fun_cfg.cfg in
-
-  let node = Int_map.find ni flow.graph#nodes in
-
-  let inp' = input_env ~enter_env ~flow mapping ni in
-
+(* Per-node transfer: given the already-joined input env [inp'], compute the
+ * output env for [node]. Factored out so that alternative fixpoints (see
+ * [hook_fixpoint_with_env]) can reuse the exact same per-node semantics while
+ * supplying their own input-env join strategy. *)
+let rec transfer_node ~lang ~(fun_cfg : Fun_CFG.t) (node : F.node)
+    (inp' : G.svalue Var_env.t) : G.svalue Var_env.t =
   let out' =
     match node.F.n with
     | Enter
@@ -435,8 +434,20 @@ let rec transfer :
             | None -> inp'
             | Some lvar -> VarMap.remove (IL.str_of_name lvar) inp'))
   in
-  let out' = do_lambdas lang fun_cfg.lambdas out' node in
-  { D.in_env = inp'; out_env = out' }
+  do_lambdas lang fun_cfg.lambdas out' node
+
+and transfer :
+    lang:Lang.t ->
+    enter_env:G.svalue Var_env.t ->
+    fun_cfg:Fun_CFG.t ->
+    G.svalue Var_env.transfn =
+ fun ~lang ~enter_env ~fun_cfg
+     (* the transfer function to update the mapping at node index ni *)
+       mapping ni ->
+  let flow = fun_cfg.cfg in
+  let node = Int_map.find ni flow.graph#nodes in
+  let inp' = input_env ~enter_env ~flow mapping ni in
+  { D.in_env = inp'; out_env = transfer_node ~lang ~fun_cfg node inp' }
 
 and do_lambdas lang lambdas in_env node =
   (* In svalue-analysis we only need to visit lambdas at definition site,
@@ -480,18 +491,22 @@ and do_lambdas lang lambdas in_env node =
   | __else__ -> in_env
 
 and fixpoint_with_env lang enter_env fun_cfg =
-  let flow = fun_cfg.cfg in
-  let mapping, timeout =
-    DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
-      ~eq_env:(Var_env.eq_env Eval.eq)
-      ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
-      ~trans:(transfer ~lang ~enter_env ~fun_cfg)
-        (* svalue is a forward analysis! *)
-      ~forward:true ~flow
-  in
-  if timeout =*= `Timeout then
-    Log.warn (fun m -> m "Fixpoint timeout while performing svalue-propagation");
-  mapping
+  match Hook.get hook_fixpoint_with_env with
+  | Some fixpoint_with_env' -> fixpoint_with_env' lang enter_env fun_cfg
+  | None ->
+      let flow = fun_cfg.cfg in
+      let mapping, timeout =
+        DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
+          ~eq_env:(Var_env.eq_env Eval.eq)
+          ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
+          ~trans:(transfer ~lang ~enter_env ~fun_cfg)
+            (* svalue is a forward analysis! *)
+          ~forward:true ~flow
+      in
+      if timeout =*= `Timeout then
+        Log.warn (fun m ->
+            m "Fixpoint timeout while performing svalue-propagation");
+      mapping
 
 (*****************************************************************************)
 (* Entry point *)

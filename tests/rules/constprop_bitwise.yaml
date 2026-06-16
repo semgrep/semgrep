@@ -1,0 +1,19 @@
+rules:
+  - id: test
+    languages:
+      - python
+    message: Test integer constant folding to 112
+    pattern: sink(112)
+    severity: WARNING
+  - id: test-pow
+    languages:
+      - python
+    message: Test power constant folding
+    pattern: sink(1024)
+    severity: WARNING
+  - id: test-sccp
+    languages:
+      - python
+    message: Test SCCP dead-branch elimination (negative intermediates)
+    pattern: sink("yes")
+    severity: WARNING

@@ -51,3 +51,21 @@ val hook_transfer_of_assume :
   AST_generic.svalue Dataflow_var_env.t)
   option
   Hook.t
+
+(* pro-scan hook: replaces the default flow-sensitive fixpoint with an
+ * alternative implementation. The argument is [lang -> enter_env -> fun_cfg].
+ * Unset in CE, where the default must-analysis fixpoint runs. *)
+val hook_fixpoint_with_env :
+  (Lang.t -> AST_generic.svalue Dataflow_var_env.t -> Fun_CFG.t -> mapping)
+  option
+  Hook.t
+
+val transfer_node :
+  lang:Lang.t ->
+  fun_cfg:Fun_CFG.t ->
+  IL.node ->
+  AST_generic.svalue Dataflow_var_env.t ->
+  AST_generic.svalue Dataflow_var_env.t
+(** Per-node transfer used by the default fixpoint. Exposed so that an
+    alternative fixpoint installed via {!hook_fixpoint_with_env} can reuse the
+    exact same per-node constant-propagation semantics. *)

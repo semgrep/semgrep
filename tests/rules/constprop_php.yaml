@@ -1,0 +1,7 @@
+rules:
+  - id: test-sccp
+    languages:
+      - php
+    message: Test bool Xor SCCP dead-branch elimination in PHP
+    pattern: sink("yes")
+    severity: WARNING

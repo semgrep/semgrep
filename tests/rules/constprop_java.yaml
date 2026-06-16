@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    languages:
+      - java
+    message: Test integer constant folding in Java
+    pattern: sink(112)
+    severity: WARNING
+  - id: test-sccp
+    languages:
+      - java
+    message: Test SCCP dead-branch elimination in Java
+    pattern: sink("yes")
+    severity: WARNING

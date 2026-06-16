@@ -29,8 +29,10 @@ let tests (parse_program : Fpath.t -> AST_generic.program) : Testo.t list =
     [
       (* Just checking that it terminates without crashing. *)
       t "regression files" (fun () ->
-          let dir = Fpath.(tests_path / "dataflow" / "python") in
-          let files = Common2.glob (dir / "*.py") in
+          let files =
+            Common2.glob Fpath.(tests_path / "patterns" / "python" / "*.py")
+            @ Common2.glob Fpath.(tests_path / "rules" / "*.py")
+          in
           files
           |> List.iter (fun file ->
               let ast = parse_program file in
