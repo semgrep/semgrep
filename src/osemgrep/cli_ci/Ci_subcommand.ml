@@ -358,6 +358,7 @@ let scan_metadata () : Out.scan_metadata =
         packages = [];
         sms_scan_id = !Semgrep_envvars.v.sms_scan_id;
         enable_mal_deps = None;
+        partial_scan_rule_ids = None;
       }
   in
   res.sms_scan_id

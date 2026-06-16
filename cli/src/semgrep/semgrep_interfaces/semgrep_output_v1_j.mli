@@ -1720,6 +1720,15 @@ type scan_metadata = Semgrep_output_v1_t.scan_metadata = {
     (**
       Override to enable malicious dependency rules for this scan, even if
       disabled at the deployment level.
+    *);
+  partial_scan_rule_ids: rule_id list option
+    (**
+      If set, the backend should filter the generated scan config down to
+      only these rule IDs. Used by Semgrep Managed Scanning to run fast
+      supply-chain incident scans for a small set of rules. Absent means a
+      normal full scan. Acts as a filter on the config that would otherwise
+      be produced: rules not normally included for this scan will still not
+      run.
     *)
 }
 

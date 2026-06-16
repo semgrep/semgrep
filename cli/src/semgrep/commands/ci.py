@@ -256,6 +256,16 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     type=click.Path(allow_dash=True, path_type=Path),
     hidden=True,
 )
+@click.option(
+    # Used by Semgrep Managed Scanning to run fast supply-chain incident scans
+    # restricted to a small set of rules. The backend uses this list to filter
+    # the generated scan config. May be repeated.
+    "--x-partial-scan-rule-id",
+    "x_partial_scan_rule_ids",
+    multiple=True,
+    type=str,
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     # coupling: we use the names/values of some of these args in telemetry.py for tagging traces
@@ -348,6 +358,7 @@ def ci(
     x_computed_dependencies_dir: Optional[Path],
     x_dump_scan_config_path: Optional[Path],
     x_use_saved_scan_config_path: Optional[Path],
+    x_partial_scan_rule_ids: Tuple[str, ...],
 ) -> None:
     if x_dump_scan_config_path and x_use_saved_scan_config_path:
         raise click.UsageError(
@@ -495,6 +506,7 @@ def ci(
                 enable_mal_deps=enable_mal_deps,
                 dump_scan_config_path=x_dump_scan_config_path,
                 load_saved_scan_config_path=saved_scan_config_path,
+                partial_scan_rule_ids=x_partial_scan_rule_ids,
             )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")

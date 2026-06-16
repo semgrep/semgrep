@@ -307,6 +307,14 @@ let o_x_use_saved_scan_config_path : string Term.t =
   in
   Arg.value (Arg.opt Arg.string "" info)
 
+let o_x_partial_scan_rule_id : string list Term.t =
+  let info =
+    Arg.info
+      [ "x-partial-scan-rule-id" ]
+      ~docs:CLI_common.experimental_section_title ~doc:{|Internal flag.|}
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
+
 (*************************************************************************)
 (* 'scan' subset supported by 'ci' *)
 (*************************************************************************)
@@ -510,7 +518,7 @@ let cmdline_term : conf Term.t =
       _x_partial_config _x_partial_output x_upload_partial_results
       x_upload_partial_results_scan_id _x_use_saved_scan_config_path
       x_validate_partial_results_actual x_validate_partial_results_expected
-      _enable_mal_deps =
+      _enable_mal_deps _x_partial_scan_rule_ids =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -558,7 +566,8 @@ let cmdline_term : conf Term.t =
     $ o_x_partial_config $ o_x_partial_output $ o_x_upload_partial_results
     $ o_x_upload_partial_results_scan_id $ o_x_use_saved_scan_config_path
     $ o_x_validate_partial_results_actual
-    $ o_x_validate_partial_results_expected $ o_enable_mal_deps)
+    $ o_x_validate_partial_results_expected $ o_enable_mal_deps
+    $ o_x_partial_scan_rule_id)
 
 let doc = "the recommended way to run semgrep in CI"
 

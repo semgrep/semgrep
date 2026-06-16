@@ -263,3 +263,50 @@ def test_poll_for_config_v2_raises_config_poll_timeout_when_expired(
         handler._poll_for_config_v2(SCAN_REQUEST_ID, scan_info, timeout_seconds=0)
 
     mock_state.app_session.get.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# partial_scan_rule_ids tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_partial_scan_rule_ids_default_absent(mock_state):
+    """Without --x-partial-scan-rule-id, scan_metadata.partial_scan_rule_ids is None
+    and the field is omitted from the serialized JSON body."""
+    handler = ScanHandler(enable_transitive_reachability=None)
+    assert handler.scan_metadata.partial_scan_rule_ids is None
+    assert "partial_scan_rule_ids" not in handler.scan_metadata.to_json()
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_partial_scan_rule_ids_populated(mock_state):
+    """When the flag is passed (one or more values), scan_metadata.partial_scan_rule_ids
+    is wrapped as a list of RuleId and serializes as a list of strings."""
+    handler = ScanHandler(
+        enable_transitive_reachability=None,
+        partial_scan_rule_ids=("rules.foo", "rules.bar"),
+    )
+    assert handler.scan_metadata.partial_scan_rule_ids == [
+        out.RuleId("rules.foo"),
+        out.RuleId("rules.bar"),
+    ]
+    assert handler.scan_metadata.to_json()["partial_scan_rule_ids"] == [
+        "rules.foo",
+        "rules.bar",
+    ]
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_partial_scan_rule_ids_empty_tuple_is_absent(mock_state):
+    """An empty tuple (the Click default when the flag isn't passed) is treated
+    the same as omitted: field stays None and is not serialized."""
+    handler = ScanHandler(
+        enable_transitive_reachability=None,
+        partial_scan_rule_ids=(),
+    )
+    assert handler.scan_metadata.partial_scan_rule_ids is None
+    assert "partial_scan_rule_ids" not in handler.scan_metadata.to_json()

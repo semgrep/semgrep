@@ -24,6 +24,7 @@ from typing import FrozenSet
 from typing import List
 from typing import Optional
 from typing import Set
+from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
@@ -102,6 +103,7 @@ class ScanHandler:
         enable_mal_deps: bool = False,
         dump_scan_config_path: Path | None = None,
         load_saved_scan_config_path: Path | None = None,
+        partial_scan_rule_ids: Tuple[str, ...] = (),
     ) -> None:
         """
         When dry_run is True, semgrep ci would get the config from the app,
@@ -131,6 +133,11 @@ class ScanHandler:
             dry_run=dry_run,
             sms_scan_id=state.env.sms_scan_id,
             enable_mal_deps=enable_mal_deps if enable_mal_deps else None,
+            partial_scan_rule_ids=(
+                [out.RuleId(rid) for rid in partial_scan_rule_ids]
+                if partial_scan_rule_ids
+                else None
+            ),
         )
         self.scan_response: Optional[out.ScanResponse] = None
         self.dry_run = dry_run

@@ -1720,6 +1720,15 @@ type scan_metadata = Semgrep_output_v1_t.scan_metadata = {
     (**
       Override to enable malicious dependency rules for this scan, even if
       disabled at the deployment level.
+    *);
+  partial_scan_rule_ids: rule_id list option
+    (**
+      If set, the backend should filter the generated scan config down to
+      only these rule IDs. Used by Semgrep Managed Scanning to run fast
+      supply-chain incident scans for a small set of rules. Absent means a
+      normal full scan. Acts as a filter on the config that would otherwise
+      be produced: rules not normally included for this scan will still not
+      run.
     *)
 }
 
@@ -26472,6 +26481,61 @@ let read_scan_response = (
 )
 let scan_response_of_string s =
   read_scan_response (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write__rule_id_list = (
+  Atdgen_runtime.Oj_run.write_list (
+    write_rule_id
+  )
+)
+let string_of__rule_id_list ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write__rule_id_list ob x;
+  Buffer.contents ob
+let read__rule_id_list = (
+  Atdgen_runtime.Oj_run.read_list (
+    read_rule_id
+  )
+)
+let _rule_id_list_of_string s =
+  read__rule_id_list (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write__rule_id_list_option = (
+  Atdgen_runtime.Oj_run.write_std_option (
+    write__rule_id_list
+  )
+)
+let string_of__rule_id_list_option ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write__rule_id_list_option ob x;
+  Buffer.contents ob
+let read__rule_id_list_option = (
+  fun p lb ->
+    Yojson.Safe.read_space p lb;
+    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
+      | `Double_quote -> (
+          match Yojson.Safe.finish_string p lb with
+            | "None" ->
+              (None : _ option)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+      | `Square_bracket -> (
+          match Atdgen_runtime.Oj_run.read_string p lb with
+            | "Some" ->
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_comma p lb;
+              Yojson.Safe.read_space p lb;
+              let x = (
+                  read__rule_id_list
+                ) p lb
+              in
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_rbr p lb;
+              (Some x : _ option)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+)
+let _rule_id_list_option_of_string s =
+  read__rule_id_list_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
 let write_scan_metadata : _ -> scan_metadata -> _ = (
   fun ob (x : scan_metadata) ->
     Buffer.add_char ob '{';
@@ -26552,6 +26616,17 @@ let write_scan_metadata : _ -> scan_metadata -> _ = (
       )
         ob x;
     );
+    (match x.partial_scan_rule_ids with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"partial_scan_rule_ids\":";
+      (
+        write__rule_id_list
+      )
+        ob x;
+    );
     Buffer.add_char ob '}';
 )
 let string_of_scan_metadata ?(len = 1024) x =
@@ -26570,6 +26645,7 @@ let read_scan_metadata = (
     let field_ecosystems = ref ([]) in
     let field_packages = ref ([]) in
     let field_enable_mal_deps = ref (None) in
+    let field_partial_scan_rule_ids = ref (None) in
     try
       Yojson.Safe.read_space p lb;
       Yojson.Safe.read_object_end lb;
@@ -26649,6 +26725,14 @@ let read_scan_metadata = (
                   -1
                 )
               )
+            | 21 -> (
+                if String.unsafe_get s pos = 'p' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 't' && String.unsafe_get s (pos+4) = 'i' && String.unsafe_get s (pos+5) = 'a' && String.unsafe_get s (pos+6) = 'l' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'c' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 'n' && String.unsafe_get s (pos+12) = '_' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'u' && String.unsafe_get s (pos+15) = 'l' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = '_' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'd' && String.unsafe_get s (pos+20) = 's' then (
+                  8
+                )
+                else (
+                  -1
+                )
+              )
             | _ -> (
                 -1
               )
@@ -26721,6 +26805,16 @@ let read_scan_metadata = (
                 Some (
                   (
                     Atdgen_runtime.Oj_run.read_bool
+                  ) p lb
+                )
+              );
+            )
+          | 8 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_partial_scan_rule_ids := (
+                Some (
+                  (
+                    read__rule_id_list
                   ) p lb
                 )
               );
@@ -26808,6 +26902,14 @@ let read_scan_metadata = (
                     -1
                   )
                 )
+              | 21 -> (
+                  if String.unsafe_get s pos = 'p' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 't' && String.unsafe_get s (pos+4) = 'i' && String.unsafe_get s (pos+5) = 'a' && String.unsafe_get s (pos+6) = 'l' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'c' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 'n' && String.unsafe_get s (pos+12) = '_' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'u' && String.unsafe_get s (pos+15) = 'l' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = '_' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'd' && String.unsafe_get s (pos+20) = 's' then (
+                    8
+                  )
+                  else (
+                    -1
+                  )
+                )
               | _ -> (
                   -1
                 )
@@ -26884,6 +26986,16 @@ let read_scan_metadata = (
                   )
                 );
               )
+            | 8 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_partial_scan_rule_ids := (
+                  Some (
+                    (
+                      read__rule_id_list
+                    ) p lb
+                  )
+                );
+              )
             | _ -> (
                 Yojson.Safe.skip_json p lb
               )
@@ -26901,6 +27013,7 @@ let read_scan_metadata = (
             ecosystems = !field_ecosystems;
             packages = !field_packages;
             enable_mal_deps = !field_enable_mal_deps;
+            partial_scan_rule_ids = !field_partial_scan_rule_ids;
           }
          : scan_metadata)
       )
@@ -32978,22 +33091,6 @@ let read__scanning_time_option = (
 )
 let _scanning_time_option_of_string s =
   read__scanning_time_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
-let write__rule_id_list = (
-  Atdgen_runtime.Oj_run.write_list (
-    write_rule_id
-  )
-)
-let string_of__rule_id_list ?(len = 1024) x =
-  let ob = Buffer.create len in
-  write__rule_id_list ob x;
-  Buffer.contents ob
-let read__rule_id_list = (
-  Atdgen_runtime.Oj_run.read_list (
-    read_rule_id
-  )
-)
-let _rule_id_list_of_string s =
-  read__rule_id_list (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
 let write__prefiltering_stats_option = (
   Atdgen_runtime.Oj_run.write_std_option (
     write_prefiltering_stats

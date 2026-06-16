@@ -560,6 +560,7 @@ let make_scan_request_v2 ?(secrets = false) ?(sca = false) () :
           ecosystems = [];
           packages = [];
           enable_mal_deps = None;
+          partial_scan_rule_ids = None;
         };
       project_config = None;
     }

@@ -9676,6 +9676,12 @@ class ScanMetadata:
     Scanning. Since 1.96.0
     :param enable_mal_deps: Override to enable malicious dependency rules for
     this scan, even if disabled at the deployment level.
+    :param partial_scan_rule_ids: If set, the backend should filter the
+    generated scan config down to only these rule IDs. Used by Semgrep Managed
+    Scanning to run fast supply-chain incident scans for a small set of rules.
+    Absent means a normal full scan. Acts as a filter on the config that would
+    otherwise be produced: rules not normally included for this scan will
+    still not run.
     """
 
     cli_version: Version
@@ -9686,6 +9692,7 @@ class ScanMetadata:
     ecosystems: List[str] = field(default_factory=lambda: [])
     packages: List[str] = field(default_factory=lambda: [])
     enable_mal_deps: Optional[bool] = None
+    partial_scan_rule_ids: Optional[List[RuleId]] = None
 
     @classmethod
     def from_json(cls, x: Any) -> 'ScanMetadata':
@@ -9699,6 +9706,7 @@ class ScanMetadata:
                 ecosystems=_atd_read_list(_atd_read_string)(x['ecosystems']) if 'ecosystems' in x else [],
                 packages=_atd_read_list(_atd_read_string)(x['packages']) if 'packages' in x else [],
                 enable_mal_deps=_atd_read_bool(x['enable_mal_deps']) if 'enable_mal_deps' in x else None,
+                partial_scan_rule_ids=_atd_read_list(RuleId.from_json)(x['partial_scan_rule_ids']) if 'partial_scan_rule_ids' in x else None,
             )
         else:
             _atd_bad_json('ScanMetadata', x)
@@ -9715,6 +9723,8 @@ class ScanMetadata:
         res['packages'] = _atd_write_list(_atd_write_string)(self.packages)
         if self.enable_mal_deps is not None:
             res['enable_mal_deps'] = _atd_write_bool(self.enable_mal_deps)
+        if self.partial_scan_rule_ids is not None:
+            res['partial_scan_rule_ids'] = _atd_write_list((lambda x: x.to_json()))(self.partial_scan_rule_ids)
         return res
 
     @classmethod
