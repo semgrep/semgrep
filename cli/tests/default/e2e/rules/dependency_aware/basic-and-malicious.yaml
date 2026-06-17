@@ -1,0 +1,32 @@
+rules:
+  # sca-kind: upgrade-only renders as "Basic" in the SCA analysis table.
+  - id: js-basic
+    r2c-internal-project-depends-on:
+      namespace: npm
+      package: lodash
+      version: "< 5.0.0"
+    message: found a basic vulnerable dependency
+    languages: [js]
+    severity: WARNING
+    metadata:
+      sca-kind: upgrade-only
+  # A malicious-dependency rule, following the convention used by other
+  # sca-kind: malicious rules (cf. monorepo_with_first_party.yaml). Renders
+  # as "Malicious" in the SCA analysis table.
+  - id: js-malicious
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: npm
+      package: bad-lib
+      version: < 0.0.8
+    message: ''
+    languages: [js]
+    severity: WARNING
+    metadata:
+      ghsa: MAL-FOO-BAR
+      sca-kind: malicious
+      category: security
+      confidence: HIGH
+      sca-schema: 20230302
+      sca-severity: HIGH
+      sca-vuln-database-identifier: MAL-FOO-BAR
