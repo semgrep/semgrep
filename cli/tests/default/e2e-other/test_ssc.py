@@ -245,6 +245,14 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/swift-sca.yaml",
             "dependency_aware/swiftpm_missing_version",
         ),
+        # In the analysis table, check that basic/malicious are distinguished
+        # Two SCA rules on one target -- one "Basic" (upgrade-only) and one
+        # "Malicious" -- to exercise the SCA analysis-type labels in the plan
+        # table (see table_by_sca_analysis() in core_targets_plan.py).
+        (
+            "rules/dependency_aware/basic-and-malicious.yaml",
+            "dependency_aware/basic_and_malicious",
+        ),
     ],
 )
 @pytest.mark.osemfail
