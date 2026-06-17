@@ -343,7 +343,7 @@ class Plan:
         SCA_ANALYSIS_NAMES = {
             "reachable": "Reachability",
             "legacy": "Basic",
-            "malicious": "Basic",
+            "malicious": "Malicious",
             "upgrade-only": "Basic",
         }
 
