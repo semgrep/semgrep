@@ -1,0 +1,176 @@
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "engine_requested": "OSS",
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/basic_and_malicious/app.js",
+      "targets/dependency_aware/basic_and_malicious/yarn.lock"
+    ]
+  },
+  "profiling_results": [],
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.js-malicious",
+      "end": {
+        "col": 6,
+        "line": 7,
+        "offset": 242
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "",
+        "metadata": {
+          "category": "security",
+          "confidence": "HIGH",
+          "ghsa": "MAL-FOO-BAR",
+          "sca-kind": "malicious",
+          "sca-schema": 20230302,
+          "sca-severity": "HIGH",
+          "sca-vuln-database-identifier": "MAL-FOO-BAR"
+        },
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "npm",
+              "package": "bad-lib",
+              "semver_range": "< 0.0.8"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "children": [],
+              "ecosystem": "npm",
+              "line_number": 10,
+              "lockfile_path": "targets/dependency_aware/basic_and_malicious/yarn.lock",
+              "package": "bad-lib",
+              "resolved_url": "https://registry.yarnpkg.com/bad-lib/-/bad-lib-0.0.7.tgz",
+              "transitivity": "unknown",
+              "version": "0.0.7"
+            },
+            "lockfile": "targets/dependency_aware/basic_and_malicious/yarn.lock"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/dependency_aware/basic_and_malicious/app.js",
+      "start": {
+        "col": 1,
+        "line": 7,
+        "offset": 237
+      }
+    },
+    {
+      "check_id": "rules.dependency_aware.js-basic",
+      "end": {
+        "col": 1,
+        "line": 5,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "found a basic vulnerable dependency",
+        "metadata": {
+          "sca-kind": "upgrade-only"
+        },
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "npm",
+              "package": "lodash",
+              "semver_range": "< 5.0.0"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha512": [
+                  "3e585d15c8a594e20d7de57b362ea81754c011acb2641a19f1b72c8531ea39825896bab344ae616a0a5a824cb9a381df0b3cddd534645cf305aba70a93dac698"
+                ]
+              },
+              "children": [],
+              "ecosystem": "npm",
+              "line_number": 5,
+              "lockfile_path": "targets/dependency_aware/basic_and_malicious/yarn.lock",
+              "package": "lodash",
+              "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-4.17.20.tgz",
+              "transitivity": "unknown",
+              "version": "4.17.20"
+            },
+            "lockfile": "targets/dependency_aware/basic_and_malicious/yarn.lock"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/basic_and_malicious/yarn.lock",
+      "start": {
+        "col": 1,
+        "line": 5,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "time": "<masked in tests>",
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 0 Code rules, 2 Supply Chain rules:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+
+  Dependency Sources                                       Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/basic_and_malicious/yarn.lock   Lockfile            Npm         2                  2
+
+
+  Analysis    Rules
+ ───────────────────
+  Basic           1
+  Malicious       1
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 2 (2 blocking)
+ • Rules run: 2
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
+Ran 2 rules on 2 files: 2 findings.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color
