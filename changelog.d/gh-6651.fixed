@@ -1,3 +1,0 @@
-`semgrep ci` with `--sarif` now correctly populates the output's `ignores`
-field with nosemgrep-suppressed findings, in accordance with other output
-formatters.

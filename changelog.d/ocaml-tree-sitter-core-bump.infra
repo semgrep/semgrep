@@ -1,4 +1,0 @@
-Updated the `ocaml-tree-sitter-core` submodule to the latest upstream `main`, providing
-
-* improved thread-safety
-* bumps the tree-sitter CLI option used from 0.20.6 to 0.20.8.
