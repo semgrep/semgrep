@@ -1049,9 +1049,9 @@ class Guardian:
     login_method: Optional[str] = None
     scanner_version: Optional[str] = None
     guardian_version: Optional[str] = None
-    deployment_name: Optional[str] = None
-    deployment_id: Optional[int] = None
-    organization_id: Optional[int] = None
+    deployment_names: Optional[List[str]] = None
+    deployment_ids: Optional[List[int]] = None
+    organization_ids: Optional[List[int]] = None
     oauth_id: Optional[str] = None
     oauth_email: Optional[str] = None
     tool_name: Optional[str] = None
@@ -1074,9 +1074,9 @@ class Guardian:
                 login_method=_atd_read_string(x['login_method']) if 'login_method' in x else None,
                 scanner_version=_atd_read_string(x['scanner_version']) if 'scanner_version' in x else None,
                 guardian_version=_atd_read_string(x['guardian_version']) if 'guardian_version' in x else None,
-                deployment_name=_atd_read_string(x['deployment_name']) if 'deployment_name' in x else None,
-                deployment_id=_atd_read_int(x['deployment_id']) if 'deployment_id' in x else None,
-                organization_id=_atd_read_int(x['organization_id']) if 'organization_id' in x else None,
+                deployment_names=_atd_read_list(_atd_read_string)(x['deployment_names']) if 'deployment_names' in x else None,
+                deployment_ids=_atd_read_list(_atd_read_int)(x['deployment_ids']) if 'deployment_ids' in x else None,
+                organization_ids=_atd_read_list(_atd_read_int)(x['organization_ids']) if 'organization_ids' in x else None,
                 oauth_id=_atd_read_string(x['oauth_id']) if 'oauth_id' in x else None,
                 oauth_email=_atd_read_string(x['oauth_email']) if 'oauth_email' in x else None,
                 tool_name=_atd_read_string(x['tool_name']) if 'tool_name' in x else None,
@@ -1105,12 +1105,12 @@ class Guardian:
             res['scanner_version'] = _atd_write_string(self.scanner_version)
         if self.guardian_version is not None:
             res['guardian_version'] = _atd_write_string(self.guardian_version)
-        if self.deployment_name is not None:
-            res['deployment_name'] = _atd_write_string(self.deployment_name)
-        if self.deployment_id is not None:
-            res['deployment_id'] = _atd_write_int(self.deployment_id)
-        if self.organization_id is not None:
-            res['organization_id'] = _atd_write_int(self.organization_id)
+        if self.deployment_names is not None:
+            res['deployment_names'] = _atd_write_list(_atd_write_string)(self.deployment_names)
+        if self.deployment_ids is not None:
+            res['deployment_ids'] = _atd_write_list(_atd_write_int)(self.deployment_ids)
+        if self.organization_ids is not None:
+            res['organization_ids'] = _atd_write_list(_atd_write_int)(self.organization_ids)
         if self.oauth_id is not None:
             res['oauth_id'] = _atd_write_string(self.oauth_id)
         if self.oauth_email is not None:
