@@ -318,9 +318,9 @@ type guardian = {
     ?scanner_version <ocaml mutable>: string option;  (* semgrep version from the scan response *)
     ?guardian_version <ocaml mutable>: string option; (* guardian cli version that kicked off the request *)
     (* identity *)
-    ?deployment_name <ocaml mutable>: string option;
-    ?deployment_id <ocaml mutable>: int option;
-    ?organization_id <ocaml mutable>: int option;
+    ?deployment_names <ocaml mutable>: string list option;
+    ?deployment_ids <ocaml mutable>: int list option;
+    ?organization_ids <ocaml mutable>: int list option;
     ?oauth_id <ocaml mutable>: string option;
     ?oauth_email <ocaml mutable>: string option;
     (* tool context being scanned *)
