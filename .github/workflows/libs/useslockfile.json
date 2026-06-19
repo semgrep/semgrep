@@ -33,6 +33,7 @@
       "increment-semantic-version": "4ac542a8ebf91f4edc224cbe3a19cc086826ae77"
     },
     "depot": {
+      "bake-action": "1d58c2668346981089b088b7ef36755b206b20e9",
       "build-push-action": "fe21fca271114de9237a9b1129b9ef38c77a1c21",
       "setup-action": "15c09a5f77a0840ad4bce955686522a257853461"
     },
