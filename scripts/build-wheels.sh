@@ -19,10 +19,3 @@ uv build
 # job on actual releases. Checking here will catch malformed packages on PR
 # rather than on release.
 uv tool run twine check dist/*.whl
-
-# Zipping for a stable name to upload as an artifact
-if command -v zip &>/dev/null; then
-	zip -r dist.zip dist
-else
-	tar czvf dist.tgz dist
-fi
