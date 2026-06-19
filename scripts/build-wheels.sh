@@ -12,7 +12,7 @@ set -ex
 # Invoke `uv` to build the wheel, which invokes the build backend (`setup.py`)
 cd cli
 uv sync --locked
-uv build
+uv build --wheel
 
 # Do some sanity checks on the built packages. These checks are done as part of
 # uploading to pypi (in the gh-action-pypi-publish action), but we only run that

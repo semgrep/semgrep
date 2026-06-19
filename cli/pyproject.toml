@@ -17,10 +17,8 @@ authors = [
 name = "semgrep"
 version = "1.166.0"
 description = "Lightweight static analysis for many languages. Find bug variants with patterns that look like source code."
-# Since our readme lives outside of the project root (i.e in ../), and we do
-# some dynamic logic in `setup.py`, we need to declare the field as dynamic
-# here
-dynamic = ["readme"]
+# README.md is a symlink to the canonical ../README.md.
+readme = "README.md"
 requires-python = ">=3.10"
 license = "LGPL-2.1-or-later"
 license-files = ["LICENSE"]
