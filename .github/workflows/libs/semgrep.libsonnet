@@ -271,7 +271,10 @@ local bin_ext(arch) = if is_windows_arch(arch) then '.exe' else '';
 local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' else ''];
 
 //TODO always want to include semgrep pro ...
-local build_wheel_steps(arch, copy_semgrep_pro=false) =
+local build_wheel_steps(arch, copy_semgrep_pro=false, root='.') =
+  local in_root(p) = if root == '.' then p else '%s/%s' % [root, p];
+  local bin_dir = in_root('cli/src/semgrep/bin');
+  local run_in_root(step) = if root == '.' then step else step { 'working-directory': root };
   [
     actions.setup_python_step(),
     {
@@ -288,7 +291,7 @@ local build_wheel_steps(arch, copy_semgrep_pro=false) =
   [
     {
       name: 'Copy artifacts to wheel',
-      run: 'cp -LR artifacts/* cli/src/semgrep/bin',
+      run: 'cp -LR artifacts/* %s' % bin_dir,
     },
     {
       name: 'Clean up old artifacts',
@@ -297,14 +300,14 @@ local build_wheel_steps(arch, copy_semgrep_pro=false) =
   ] +
   (if copy_semgrep_pro then [{
      name: 'Create pro-installed-by.txt',
-     run: 'test -f cli/src/semgrep/bin/pro-installed-by.txt || cli/src/semgrep/bin/semgrep-core-proprietary%s -pro_version > cli/src/semgrep/bin/pro-installed-by.txt' % bin_ext(arch),
+     run: 'test -f %(bin)s/pro-installed-by.txt || %(bin)s/semgrep-core-proprietary%(ext)s -pro_version > %(bin)s/pro-installed-by.txt' % { bin: bin_dir, ext: bin_ext(arch) },
    }] else []) +
   [
-    {
+    run_in_root({
       name: 'Build wheel',
       run: './scripts/build-wheels.sh',
-    },
-    actions.make_artifact_step('cli/dist'),
+    }),
+    actions.make_artifact_step(in_root('cli/dist')),
     actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
   ];
 
