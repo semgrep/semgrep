@@ -84,6 +84,8 @@ local digest_step(digest_image) = {
   //                upload as <name>-linux-<arch> GHA artifacts.
   // needs:         prerequisite jobs.
   // large:         use a bigger runner.
+  // extra_env:     extra bake variables (env vars) merged into bake_env, e.g.
+  //                to override a `variable` declared in docker-bake.hcl.
   job(
     group,
     checkout_steps,
@@ -93,6 +95,7 @@ local digest_step(digest_image) = {
     artifacts=[],
     needs=[],
     large=false,
+    extra_env={},
   ):
     (if needs != [] then { needs: needs } else {}) +
     {
@@ -111,7 +114,7 @@ local digest_step(digest_image) = {
             id: 'bake',
             name: 'Build %s pipeline with depot bake' % group,
             uses: uses.depot.bake_action,
-            env: bake_env,
+            env: bake_env + extra_env,
             with: {
               // Reads the Depot project id from depot.json in the repo root.
               files: './docker-bake.hcl',
