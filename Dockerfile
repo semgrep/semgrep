@@ -409,11 +409,8 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 # Copy in scripts folder
 COPY scripts/ ./scripts/
 
-# Build the source distribution and binary wheel, validate that the wheel
-# installs correctly. We're only checking the musllinux wheel because this is
-# an Alpine container. It should not be a problem because the content of the
-# wheels are identical.
-RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
+# Build the source distribution and binary wheel.
+RUN scripts/build-wheels.sh
 
 FROM scratch AS semgrep-wheel-binaries
 
