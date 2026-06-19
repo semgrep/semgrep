@@ -504,5 +504,6 @@ local inputs = {
   validate: validate,
   retag_step: retag_step,
   build_and_run_gha_job: build_and_run_gha_job,
+  pull_and_run_image_steps: pull_and_run_image_steps,
   ecr_repo: ecr_repo,
 }
