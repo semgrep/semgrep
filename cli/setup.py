@@ -11,20 +11,12 @@
 # LICENSE for more details.
 #
 # type: ignore
-import os
 import platform
 import subprocess
 import sys
 
 import setuptools
-from distutils import log as distutils_log
-from distutils.errors import DistutilsFileError
-from setuptools.command.sdist import sdist
 
-SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
-SOURCE_README = os.path.join(SOURCE_DIR, "README.md")
-REPO_ROOT = os.path.dirname(SOURCE_DIR)
-REPO_README = os.path.join(REPO_ROOT, "README.md")
 IS_WINDOWS = platform.system() == "Windows"
 # See ../scripts/build-wheels.sh, which is called from our GHA workflows.
 # This script assumes the presence of a semgrep-core binary copied under
@@ -68,27 +60,7 @@ plat_libc_to_tag = {
 }
 
 
-# uv builds our wheels out of an sdist, so the sdist must have the README in it for it to
-# show up in the final manifest (see how we compute long_description below). We modify
-# the sdist step to manually copy in the README.
-class SdistWithReadme(sdist):
-    def make_release_tree(self, base_dir, files):
-        super().make_release_tree(base_dir, files)
-
-        if os.path.exists(REPO_README):
-            readme_path = REPO_README
-        elif os.path.exists(SOURCE_README):
-            readme_path = SOURCE_README
-        else:
-            raise DistutilsFileError(
-                f"README.md not found at {REPO_README} or {SOURCE_README}"
-            )
-
-        dest_readme = os.path.join(base_dir, "README.md")
-        self.copy_file(readme_path, dest_readme)
-
-
-cmdclass = {"sdist": SdistWithReadme}
+cmdclass = {}
 
 if WHEEL_CMD in sys.argv:
     try:
@@ -143,21 +115,6 @@ if WHEEL_CMD in sys.argv:
 
     cmdclass[WHEEL_CMD] = BdistWheel
 
-# setting readme logic, taken out in pull/5420 but brought back temporarily
-if os.path.exists(REPO_README):
-    # not building from an sdist
-    with open(REPO_README) as f:
-        long_description = f.read()
-elif os.path.exists(SOURCE_README):
-    # building in an sdist
-    with open(SOURCE_README) as f:
-        long_description = f.read()
-else:
-    distutils_log.warn("README.md not found, using placeholder text")
-    long_description = "**SETUP: README NOT FOUND**"
-
 setuptools.setup(
-    long_description=long_description,
-    long_description_content_type="text/markdown",
     cmdclass=cmdclass,
 )
