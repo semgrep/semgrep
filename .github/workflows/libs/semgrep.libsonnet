@@ -268,7 +268,6 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', bui
 
 local is_windows_arch(arch) = std.findSubstr('windows', arch) != [];
 local bin_ext(arch) = if is_windows_arch(arch) then '.exe' else '';
-local archive_ext(arch) = if is_windows_arch(arch) then '.tgz' else '.zip';
 local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' else ''];
 
 //TODO always want to include semgrep pro ...
@@ -305,7 +304,7 @@ local build_wheel_steps(arch, copy_semgrep_pro=false) =
       name: 'Build wheel',
       run: './scripts/build-wheels.sh',
     },
-    actions.make_artifact_step('cli/dist%s' % archive_ext(arch)),
+    actions.make_artifact_step('cli/dist'),
     actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
   ];
 
@@ -317,7 +316,7 @@ local unpack_wheel_steps = [
   },
   {
     name: 'Unpack wheel',
-    run: 'tar --wildcards -xzf ./artifacts/dist.tgz "*.whl" || unzip ./artifacts/dist.zip "*.whl"',
+    run: 'mkdir -p dist && cp ./artifacts/dist/*.whl dist/',
   },
 ];
 
