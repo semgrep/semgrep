@@ -41,6 +41,17 @@ module Sarif = Sarif.Sarif_v_2_1_0_v
  * See the "level" property in the spec
  * See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
  *)
+(* GitHub's CodeQL SARIF upload API enforces a 255-character limit on
+ * rule IDs. We truncate here to ensure compatibility.
+ * See semgrep#10941
+ *)
+let max_rule_id_length = 255
+
+let truncate_rule_id (id : string) : string =
+  if String.length id > max_rule_id_length then
+    String.sub id 0 max_rule_id_length
+  else id
+
 let severity_of_severity sev : Sarif.notification_level =
   match sev with
   | `Info
@@ -136,7 +147,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
    * including the severity of the finding is stored within "rules".
    * The results then reference the ID of the rule
    *)
-  let rule_id_str = Rule_ID.to_string (fst rule.id) in
+  let rule_id_str = truncate_rule_id (Rule_ID.to_string (fst rule.id)) in
   let default_configuration =
     Sarif.create_reporting_configuration
       ~level:(severity_of_severity rule.severity)
@@ -444,7 +455,7 @@ let result (ctx : Out.format_context) show_dataflow_traces
     else [ ("matchBasedId/v1", Gated_data.msg) ]
   in
   Sarif.create_result
-    ~rule_id:(Rule_ID.to_string cli_match.check_id)
+    ~rule_id:(truncate_rule_id (Rule_ID.to_string cli_match.check_id))
     ~message:(message cli_match.extra.message)
     ~locations:[ location ] ~fingerprints ~properties ?code_flows ?fixes
     ?suppressions ()
