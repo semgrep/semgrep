@@ -73,7 +73,7 @@ let print_semgrep_dashdash_help () =
 
   Run @{<cyan>`semgrep SUBCOMMAND --help`@} for more information on each subcommand
 
-  If no subcommand is passed, will run @{<cyan>`scan`@} subcommand by default
+  If no subcommand is passed, help information will be displayed
 
 @{<ul>Options@}:
   -h, --help  Show this message and exit.
