@@ -153,10 +153,17 @@ local opam_repository_pin = '78d29aba187e8362b8ab86c189790c0af9153d4b';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
-// TODO upstream the changes in austin's custom setup-ocaml action,
-// or move the project to the semgrep org
 // coupling: default is above opam_switch
-local opam_setup = function(opam_switch=opam_switch_default) {
+//
+// 'checkout_path' is the path the repository was checked out into, relative to
+// the workspace root (e.g. 'semgrep-proprietary' when a workflow checks the
+// repo out into a subdir). It must match the 'path' passed to the checkout
+// step, otherwise the lockfile globs below won't match and the cache prefix
+// silently collapses to a static value (poisoning the cache across switches).
+// Defaults to '' for the common case of checking out at the workspace root.
+local opam_setup = function(opam_switch=opam_switch_default, checkout_path='') {
+  // normalize to a glob prefix: '' -> '', 'foo' -> 'foo/'
+  local p = if checkout_path == '' then '' else checkout_path + '/',
   uses: uses.semgrep.setup_ocaml,
   with: {
     'ocaml-compiler': opam_switch,
@@ -168,7 +175,10 @@ local opam_setup = function(opam_switch=opam_switch_default) {
     ||| % opam_repository_pin,
     // Save the cache post run instead of after installing the compiler
     'save-opam-post-run': true,
-    'cache-prefix': opam_cache_version,
+    // cache by lockfiles instead of `.opam` files; this is useful since we might
+    // not update a `.opam` file; if we don't update a `a.opam` file but update
+    // `a.opam.locked`, we'd have a poisoned cache.
+    'cache-prefix': "%s-${{ hashFiles('%sopam-lockfiles/*.locked', '%sOSS/opam-lockfiles/*.locked') }}" % [opam_cache_version, p, p],
   },
 };
 
