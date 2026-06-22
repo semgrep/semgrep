@@ -61,7 +61,8 @@
     "semgrep": {
       "setup-ocaml": "latest",
       "claude-taskmaster": "v0.1.8",
-      "github-api-commit-action": "v1.1.0"
+      "github-api-commit-action": "v1.1.0",
+      "mfw": "v0.1.8"
     },
     "slackapi": {
       "slack-github-action": "v1.23.0"
