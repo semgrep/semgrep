@@ -232,6 +232,7 @@ export type DependencyMatch = {
   dependency_pattern: ScaPattern;
   found_dependency: FoundDependency;
   lockfile: Fpath;
+  dependency_paths?: DependencyPath[];
 }
 
 export type ScaPattern = {
@@ -257,6 +258,10 @@ export type FoundDependency = {
 export type DependencyChild = {
   package_: string;
   version: string;
+}
+
+export type DependencyPath = {
+  nodes: DependencyChild[];
 }
 
 export type ValidationState =
@@ -2201,6 +2206,7 @@ export function writeDependencyMatch(x: DependencyMatch, context: any = x): any 
     'dependency_pattern': _atd_write_required_field('DependencyMatch', 'dependency_pattern', writeScaPattern, x.dependency_pattern, x),
     'found_dependency': _atd_write_required_field('DependencyMatch', 'found_dependency', writeFoundDependency, x.found_dependency, x),
     'lockfile': _atd_write_required_field('DependencyMatch', 'lockfile', writeFpath, x.lockfile, x),
+    'dependency_paths': _atd_write_optional_field(_atd_write_array(writeDependencyPath), x.dependency_paths, x),
   };
 }
 
@@ -2209,6 +2215,7 @@ export function readDependencyMatch(x: any, context: any = x): DependencyMatch {
     dependency_pattern: _atd_read_required_field('DependencyMatch', 'dependency_pattern', readScaPattern, x['dependency_pattern'], x),
     found_dependency: _atd_read_required_field('DependencyMatch', 'found_dependency', readFoundDependency, x['found_dependency'], x),
     lockfile: _atd_read_required_field('DependencyMatch', 'lockfile', readFpath, x['lockfile'], x),
+    dependency_paths: _atd_read_optional_field(_atd_read_array(readDependencyPath), x['dependency_paths'], x),
   };
 }
 
@@ -2271,6 +2278,18 @@ export function readDependencyChild(x: any, context: any = x): DependencyChild {
   return {
     package_: _atd_read_required_field('DependencyChild', 'package', _atd_read_string, x['package'], x),
     version: _atd_read_required_field('DependencyChild', 'version', _atd_read_string, x['version'], x),
+  };
+}
+
+export function writeDependencyPath(x: DependencyPath, context: any = x): any {
+  return {
+    'nodes': _atd_write_required_field('DependencyPath', 'nodes', _atd_write_array(writeDependencyChild), x.nodes, x),
+  };
+}
+
+export function readDependencyPath(x: any, context: any = x): DependencyPath {
+  return {
+    nodes: _atd_read_required_field('DependencyPath', 'nodes', _atd_read_array(readDependencyChild), x['nodes'], x),
   };
 }
 

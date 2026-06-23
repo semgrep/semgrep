@@ -504,6 +504,35 @@ class DependencyKind:
         return json.dumps(self.to_json(), **kw)
 
 
+@dataclass
+class DependencyPath:
+    """Original type: dependency_path = { ... }
+    """
+
+    nodes: List[DependencyChild]
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'DependencyPath':
+        if isinstance(x, dict):
+            return cls(
+                nodes=_atd_read_list(DependencyChild.from_json)(x['nodes']) if 'nodes' in x else _atd_missing_json_field('DependencyPath', 'nodes'),
+            )
+        else:
+            _atd_bad_json('DependencyPath', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res['nodes'] = _atd_write_list((lambda x: x.to_json()))(self.nodes)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'DependencyPath':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
 @dataclass(frozen=True)
 class Npm:
     """Original type: ecosystem = [ ... | Npm | ... ]
@@ -3015,11 +3044,22 @@ class ScaPattern:
 @dataclass
 class DependencyMatch:
     """Original type: dependency_match = { ... }
+
+    :param dependency_paths: All known dependency paths by which the matched
+    (transitive) dependency was introduced into the project. Each path is
+    ordered from the direct dependency that introduced it (node 0) to the
+    matched (transitive) dependency (last node). Computed locally from the
+    resolved dependency graph at scan time; only populated when
+    dependency-graph (path-to-transitivity) resolution ran for the ecosystem.
+    Empty/absent for direct dependencies or ecosystems without graph
+    resolution. The number of paths per match is capped. EXPERIMENTAL since
+    1.166.0
     """
 
     dependency_pattern: ScaPattern
     found_dependency: FoundDependency
     lockfile: Fpath
+    dependency_paths: Optional[List[DependencyPath]] = None
 
     @classmethod
     def from_json(cls, x: Any) -> 'DependencyMatch':
@@ -3028,6 +3068,7 @@ class DependencyMatch:
                 dependency_pattern=ScaPattern.from_json(x['dependency_pattern']) if 'dependency_pattern' in x else _atd_missing_json_field('DependencyMatch', 'dependency_pattern'),
                 found_dependency=FoundDependency.from_json(x['found_dependency']) if 'found_dependency' in x else _atd_missing_json_field('DependencyMatch', 'found_dependency'),
                 lockfile=Fpath.from_json(x['lockfile']) if 'lockfile' in x else _atd_missing_json_field('DependencyMatch', 'lockfile'),
+                dependency_paths=_atd_read_list(DependencyPath.from_json)(x['dependency_paths']) if 'dependency_paths' in x else None,
             )
         else:
             _atd_bad_json('DependencyMatch', x)
@@ -3037,6 +3078,8 @@ class DependencyMatch:
         res['dependency_pattern'] = (lambda x: x.to_json())(self.dependency_pattern)
         res['found_dependency'] = (lambda x: x.to_json())(self.found_dependency)
         res['lockfile'] = (lambda x: x.to_json())(self.lockfile)
+        if self.dependency_paths is not None:
+            res['dependency_paths'] = _atd_write_list((lambda x: x.to_json()))(self.dependency_paths)
         return res
 
     @classmethod

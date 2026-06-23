@@ -777,6 +777,17 @@ type dependency_match <ocaml attr="deriving ord"> = {
   dependency_pattern: sca_pattern;
   found_dependency: found_dependency;
   lockfile: fpath;
+  ?dependency_paths
+    <doc text="
+     All known dependency paths by which the matched (transitive) dependency was
+     introduced into the project. Each path is ordered from the direct dependency
+     that introduced it (node 0) to the matched (transitive) dependency (last
+     node). Computed locally from the resolved dependency graph at scan time;
+     only populated when
+     dependency-graph (path-to-transitivity) resolution ran for the ecosystem.
+     Empty/absent for direct dependencies or ecosystems without graph resolution.
+     The number of paths per match is capped. EXPERIMENTAL since 1.166.0">
+  : dependency_path list option;
 }
 
 type sca_pattern <ocaml attr="deriving ord"> = {
@@ -831,6 +842,15 @@ type dependency_child
   <python decorator="dataclass(frozen=True)"> = {
   package: string;
   version: string;
+}
+
+(* An ordered chain describing how a transitive dependency was introduced.
+   Nodes reuse dependency_child (a package@version reference); node 0 is the
+   direct dependency that introduced the chain, the last node is the matched
+   (transitive) dependency. *)
+type dependency_path
+  <ocaml attr="deriving ord"> = {
+  nodes: dependency_child list;
 }
 
 (*****************************************************************************)
