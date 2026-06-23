@@ -33,6 +33,7 @@ from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignor
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.package_restrictions import dependencies_range_match_any
 from semdep.package_restrictions import is_in_range
+from semgrep.dependency_path import DependencyParentIndex
 from semgrep.error import SemgrepError
 from semgrep.rpc import RpcSession
 from semgrep.rule import Rule
@@ -107,19 +108,20 @@ class SubprojectDependencyIndex:
 
     index: dict[str, list[out.FoundDependency]]
     num_deps: int
+    # the flat list of dependencies, in resolution order
+    deps: list[out.FoundDependency]
 
     @classmethod
     @simple_profiling
     def from_subproject(
         cls, subproject: out.ResolvedSubproject
     ) -> "SubprojectDependencyIndex":
+        deps = list(iter_found_dependencies(subproject.resolved_dependencies))
         subproject_index: dict[str, list[out.FoundDependency]] = defaultdict(list)
-        num_deps = 0
-        for dependency in iter_found_dependencies(subproject.resolved_dependencies):
+        for dependency in deps:
             subproject_index[dependency.package].append(dependency)
-            num_deps += 1
 
-        return cls(subproject_index, num_deps)
+        return cls(subproject_index, len(deps), deps)
 
     def get_dependency_matches(
         self, sca_patterns: list[out.ScaPattern]
@@ -153,6 +155,7 @@ def generate_unreachable_sca_findings(
     fips_mode: bool,
     write_to_tr_cache: bool = True,
     rpc_session: Optional[RpcSession] = None,
+    parent_indexes: Optional[Dict[int, DependencyParentIndex]] = None,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Returns matches to a only a rule's sca-depends-on patterns;
@@ -167,6 +170,9 @@ def generate_unreachable_sca_findings(
     errors: List[SemgrepError] = []
     depends_on_entries = list(parse_depends_on_yaml(rule.project_depends_on))
     ecosystems = list(rule.ecosystems)
+    # only populated when --x-dependency-paths is on (see run_scan); a present
+    # entry is the signal to emit paths for that subproject.
+    parent_indexes = parent_indexes or {}
 
     non_reachable_matches: List[RuleMatch] = []
     match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
@@ -177,6 +183,7 @@ def generate_unreachable_sca_findings(
             subproject_kind = dep_source_to_subproject_kind(
                 subproject.info.dependency_source
             )
+            parent_index = parent_indexes.get(id(subproject))
             subproject_matches: List[RuleMatch] = []
 
             dependency_matches: List[Tuple[out.ScaPattern, out.FoundDependency]] = list(
@@ -204,6 +211,9 @@ def generate_unreachable_sca_findings(
                     dependency_pattern=dep_pat,
                     found_dependency=found_dep,
                     lockfile=found_dep.lockfile_path,
+                    dependency_paths=(parent_index.paths_for(found_dep) or None)
+                    if parent_index is not None
+                    else None,
                 )
                 sca_match = out.ScaMatch(
                     sca_finding_schema=SCA_FINDING_SCHEMA,
@@ -323,29 +333,45 @@ def transitive_dep_is_also_direct(
 def generate_reachable_sca_findings(
     matches: List[RuleMatch],
     rule: Rule,
-    resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
+    dependency_index: dict[
+        Ecosystem, list[tuple[out.ResolvedSubproject, SubprojectDependencyIndex]]
+    ],
+    parent_indexes: Optional[Dict[int, DependencyParentIndex]] = None,
 ) -> Tuple[
     List[RuleMatch], List[SemgrepError], Callable[[Path, out.FoundDependency], bool]
 ]:
     errors: List[SemgrepError] = []
     depends_on_entries = list(parse_depends_on_yaml(rule.project_depends_on))
     ecosystems = list(rule.ecosystems)
+    # only populated when --x-dependency-paths is on (see run_scan); a present
+    # entry is the signal to emit paths for that subproject.
+    parent_indexes = parent_indexes or {}
 
     # Reachability rule
     reachable_matches: List[RuleMatch] = []
     reachable_deps = set()
     for ecosystem in ecosystems:
+        # The per-subproject index (carrying the flat deps) is built once for
+        # the whole scan in run_scan and reused here, rather than rebuilt per
+        # rule. We index it by subproject identity to look it back up after
+        # matching a code finding's path (same keying as parent_indexes).
+        subproject_entries = dependency_index.get(ecosystem, [])
+        subprojects = [subproject for subproject, _ in subproject_entries]
+        index_by_subproject = {
+            id(subproject): subproject_index
+            for subproject, subproject_index in subproject_entries
+        }
         for rule_match in matches:
             try:
                 subproject = find_closest_resolved_subproject(
-                    rule_match.path, ecosystem, resolved_deps.get(ecosystem, [])
+                    rule_match.path, ecosystem, subprojects
                 )
                 if subproject is None:
                     continue
 
-                deps: List[out.FoundDependency] = list(
-                    iter_found_dependencies(subproject.resolved_dependencies)
-                )
+                subproject_index = index_by_subproject[id(subproject)]
+                deps = subproject_index.deps
+                parent_index = parent_indexes.get(id(subproject))
 
                 dependency_matches: List[
                     Tuple[out.ScaPattern, out.FoundDependency]
@@ -421,6 +447,9 @@ def generate_reachable_sca_findings(
                         dependency_pattern=dep_pat,
                         found_dependency=found_dep,
                         lockfile=found_dep.lockfile_path,
+                        dependency_paths=(parent_index.paths_for(found_dep) or None)
+                        if parent_index is not None
+                        else None,
                     )
                     sca_match = out.ScaMatch(
                         sca_finding_schema=SCA_FINDING_SCHEMA,

@@ -886,7 +886,7 @@ def adjust_matches_for_sca_rules(
             ) = generate_reachable_sca_findings(
                 rule_matches_by_rule.get(rule, []),
                 rule,
-                resolved_subprojects,
+                dependency_index,
             )
 
             rule_matches_by_rule[rule] = dep_rule_matches
