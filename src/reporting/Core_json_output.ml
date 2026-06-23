@@ -394,7 +394,15 @@ let sca_to_sca (rule_metadata : Yojson.Basic.t option) (m : SCA_match.t) :
     let found_dependency : Out.found_dependency =
       Dependency.to_found_dependency ~lockfile_path:lockfile dep None
     in
-    Out.{ dependency_pattern; found_dependency; lockfile }
+    (* dependency paths are computed in pysemgrep (dependency_aware_rule.py),
+     * not in semgrep-core; left unset here. *)
+    Out.
+      {
+        dependency_pattern;
+        found_dependency;
+        lockfile;
+        dependency_paths = None;
+      }
   in
   let kind =
     match (kind, sca_rule_kind) with

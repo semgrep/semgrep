@@ -118,6 +118,8 @@ type dependency_kind =
 
   [@@deriving ord, eq, show]
 
+type dependency_path = { nodes: dependency_child list } [@@deriving ord]
+
 (**
   both ecosystem and transitivity below have frozen=True so the generated
   classes can be hashed and put in sets (see calls to reachable_deps.add() in
@@ -492,7 +494,18 @@ type sca_pattern = {
 type dependency_match = {
   dependency_pattern: sca_pattern;
   found_dependency: found_dependency;
-  lockfile: fpath
+  lockfile: fpath;
+  dependency_paths: dependency_path list option
+    (**
+      All known dependency paths by which the matched (transitive) dependency
+      was introduced into the project. Each path is ordered from the direct
+      dependency that introduced it (node 0) to the matched (transitive)
+      dependency (last node). Computed locally from the resolved dependency
+      graph at scan time; only populated when dependency-graph
+      (path-to-transitivity) resolution ran for the ecosystem. Empty/absent
+      for direct dependencies or ecosystems without graph resolution. The
+      number of paths per match is capped. EXPERIMENTAL since 1.166.0
+    *)
 }
   [@@deriving ord]
 

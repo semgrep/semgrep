@@ -654,7 +654,12 @@
       "properties": {
         "dependency_pattern": { "$ref": "#/definitions/sca_pattern" },
         "found_dependency": { "$ref": "#/definitions/found_dependency" },
-        "lockfile": { "$ref": "#/definitions/fpath" }
+        "lockfile": { "$ref": "#/definitions/fpath" },
+        "dependency_paths": {
+          "description": "All known dependency paths by which the matched (transitive) dependency was introduced into the project. Each path is ordered from the direct dependency that introduced it (node 0) to the matched (transitive) dependency (last node). Computed locally from the resolved dependency graph at scan time; only populated when dependency-graph (path-to-transitivity) resolution ran for the ecosystem. Empty/absent for direct dependencies or ecosystems without graph resolution. The number of paths per match is capped. EXPERIMENTAL since 1.166.0",
+          "type": "array",
+          "items": { "$ref": "#/definitions/dependency_path" }
+        }
       }
     },
     "sca_pattern": {
@@ -714,6 +719,16 @@
       "properties": {
         "package": { "type": "string" },
         "version": { "type": "string" }
+      }
+    },
+    "dependency_path": {
+      "type": "object",
+      "required": [ "nodes" ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/dependency_child" }
+        }
       }
     },
     "validation_state": {
