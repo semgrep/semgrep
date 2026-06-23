@@ -721,6 +721,19 @@ let o_x_tr : bool option Term.t =
   in
   Arg.value (Arg.vflag None [ enable; disable ])
 
+(* Parsed but unused here: osemgrep falls back to pysemgrep (Pysemgrep.Fallback)
+ * which receives the original argv and computes the dependency paths in
+ * dependency_aware_rule.py. We only need cmdliner to accept the flag. *)
+let o_x_dependency_paths : bool Term.t =
+  let info =
+    Arg.info [ "x-dependency-paths" ]
+      ~docs:CLI_common.experimental_section_title
+      ~doc:
+        "(experimental) Include the full dependency path(s) for transitive \
+         supply-chain findings in --json and --sarif output."
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Run Secrets Post Processors                                  *)
 (* ------------------------------------------------------------------ *)
@@ -1508,9 +1521,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       severity show_supported_languages strict target_roots test
       test_ignore_todo text text_outputs time_flag timeout
       _timeout_interfileTODO timeout_threshold use_git _use_semgrepignore_v2
-      validate version version_check vim vim_outputs _x_dump_symbol_analysis
-      x_ignore_semgrepignore_files x_ls x_ls_long x_mem_policy x_tr x_pro_naming
-      x_group_taint_rules x_mcp x_run_taint_once =
+      validate version version_check vim vim_outputs _x_dependency_paths
+      _x_dump_symbol_analysis x_ignore_semgrepignore_files x_ls x_ls_long
+      x_mem_policy x_tr x_pro_naming x_group_taint_rules x_mcp x_run_taint_once
+      =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
@@ -1761,7 +1775,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_strict $ o_target_roots $ o_test $ Test_CLI.o_test_ignore_todo $ o_text
     $ o_text_outputs $ o_time $ o_timeout $ o_timeout_interfile
     $ o_timeout_threshold $ o_use_git $ o_use_semgrepignore_v2 $ o_validate
-    $ o_version $ o_version_check $ o_vim $ o_vim_outputs
+    $ o_version $ o_version_check $ o_vim $ o_vim_outputs $ o_x_dependency_paths
     $ o_x_dump_symbol_analysis $ o_x_ignore_semgrepignore_files $ o_x_ls
     $ o_x_ls_long $ o_x_mem_policy $ o_x_tr $ o_x_pro_naming
     $ o_x_group_taint_rules $ o_x_mcp $ o_x_run_taint_once)

@@ -1,0 +1,25 @@
+[
+  {
+    "check_id": "rules.dependency_aware.dependency-path-victim",
+    "dependency_paths": [
+      {
+        "nodes": [
+          {
+            "package": "top",
+            "version": "1.0.0"
+          },
+          {
+            "package": "mid",
+            "version": "1.1.0"
+          },
+          {
+            "package": "victim",
+            "version": "1.2.3"
+          }
+        ]
+      }
+    ],
+    "package": "victim",
+    "transitivity": "transitive"
+  }
+]
