@@ -1,6 +1,5 @@
-# If this test starts segfaulting instead of failing gracefully, check both
-# that the legacy PCRE recursion limit is still in place and that the runtime
-# is still configuring the expected C FFI stack size.
+# If this test starts segfaulting or hanging instead of failing gracefully,
+# check that the PCRE2 depth limit (Pcre2_.depth_limit) is still in place.
 rules:
 - id: aliengrep-recursion-limit
   languages:

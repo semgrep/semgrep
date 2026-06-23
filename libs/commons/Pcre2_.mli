@@ -44,6 +44,11 @@ type error = Pcre2.error =
   | InternalError of string
 [@@deriving show]
 
+(* The PCRE2 backtracking depth limit applied to every regexp compiled
+   through this module. Exposed so tests can calibrate against it rather
+   than hardcoding a matching constant. See the .ml for the rationale. *)
+val depth_limit : int
+
 (* Extract the pattern in PCRE syntax *)
 val pcre_pattern : t -> string
 
