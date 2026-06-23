@@ -226,10 +226,8 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
    * alt: let s = value_to_string v in
    * to convert anything in a string before using regexps on it
    *)
-  let regexp = Pcre_.regexp ~flags:[ `ANCHORED ] re in
-  Xpattern_match_regexp.regexp_matcher ~base_offset
-    Xpattern_match_regexp.pcre_regex_functions str file regexp
-[@@alert "-deprecated"]
+  let regexp = Pcre2_.regexp ~flags:[ `ANCHORED ] re in
+  Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
 
 let rec eval env code =
   match code.G.e with
