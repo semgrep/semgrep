@@ -7,7 +7,7 @@
 
    alcotest
    logs
-   pcre
+   pcre2
  )
  (preprocess
    (pps
