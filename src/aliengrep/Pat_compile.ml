@@ -13,13 +13,12 @@
 (*
    Compile a pattern into a regexp.
 
-   PCRE pattern reference:
-     https://www.pcre.org/original/doc/html/pcrepattern.html
+   PCRE2 pattern reference:
+     https://www.pcre.org/current/doc/html/pcre2pattern.html
 
    Dig into the test outputs to see what the generated PCRE code looks like
    e.g. cat ~/semgrep/_build/default/tests/_build/_tests/semgrep-core/aliengrep.014.output
 *)
-[@@@alert "-deprecated"]
 
 module Log = Log_aliengrep.Log
 open Printf
@@ -34,8 +33,8 @@ type metavariable = { kind : metavariable_kind; bare_name : string }
 [@@deriving show, eq]
 
 type t = {
-  pcre : Pcre_.t;
-      [@printer fun fmt (x : Pcre_.t) -> Format.fprintf fmt "{|%s|}" x.pattern]
+  pcre : Pcre2_.t;
+      [@printer fun fmt (x : Pcre2_.t) -> Format.fprintf fmt "{|%s|}" x.pattern]
   (*
      List of the PCRE capturing groups that we care about for extracting
      metavariable values.
@@ -55,7 +54,7 @@ type t = {
 
      Try this in utop:
 
-#require "pcre";;
+#require "pcre2";;
 
 let pat = {|
 (?(DEFINE) (?<word> [a-z]+))
@@ -64,8 +63,8 @@ let pat = {|
 |}
 ;;
 
-let rex = Pcre_.regexp ~flags:[`EXTENDED] pat in
-Pcre_.extract_all ~rex {|xx ab ab xx|};;
+let rex = Pcre2_.regexp ~flags:[`EXTENDED] pat in
+Pcre2_.extract_all ~rex {|xx ab ab xx|};;
 - : string array array = [|[|"ab ab"; ""; ""; "ab"|]|]
 
      Note that you'd get more matches if the word pattern was inlined
@@ -144,25 +143,39 @@ let end_of_line_pat = {|(?:\z|(?=\r?\n))|}
    ellipsis. It uses lazy quantifiers so as to favor shorter matches over
    longer matches ('?' -> '??', '*' -> '*?', '+' -> '+?').
 
-   Warning from PCRE: "All subroutine calls, whether recursive or not,
-   are always treated as atomic groups"
+   The (?&node_name) subroutine calls are wrapped in (?>...) atomic groups.
+   In PCRE 8.x, subroutine calls were always treated as atomic groups
+   ("All subroutine calls, whether recursive or not, are always treated
+   as atomic groups"), but pcre2compat(3) item 10 documents that PCRE2
+   release 10.30 changed this to match Perl: "Subroutine calls (whether
+   recursive or not) were treated as atomic groups up to PCRE2 release
+   10.23, but from release 10.30 this changed, and backtracking into
+   subroutine calls is now supported, as in Perl."
 
-   Because of this limitation and because we need backtracking when matching
-   an ellipsis followed by a specific node, this pattern must remain inline.
+   Without the explicit (?>...), lazy quantifiers wrapping these calls
+   could backtrack INTO the call, allowing ml_node to switch
+   alternatives (e.g., from ml_bracket to other) on parent failure. For
+   patterns like `location ... { .... internal; .... }`, this lets the
+   inner `....`-loop grow across `}` and `{` boundaries via nested
+   ml_bracket consumption, producing huge cross-block matches that
+   PCRE 8.x's atomic semantics correctly prevented. The explicit
+   (?>...) restores the old PCRE 8.x atomic-subroutine fence.
+
+   See: https://pcre.org/current/doc/html/pcre2compat.html
 *)
 let ellipsis_pat_of_spacing_param ?(with_whitespace_padding = false)
     ~excluded_brace sp =
   let exclude_char =
     match excluded_brace with
     | None -> ""
-    | Some c -> sprintf {|(?!%s)|} (Pcre.quote (String.make 1 c))
+    | Some c -> sprintf {|(?!%s)|} (Pcre2.quote (String.make 1 c))
   in
   if with_whitespace_padding then
-    sprintf {|(?: %s %s (?: (?&%s) %s)*? )??|} sp.whitespace_pat exclude_char
-      sp.node_name sp.whitespace_pat
+    sprintf {|(?: %s %s (?: (?>(?&%s)) %s)*? )??|} sp.whitespace_pat
+      exclude_char sp.node_name sp.whitespace_pat
   else
-    sprintf {|(?: %s (?&%s) (?: %s %s (?&%s))*? )??|} exclude_char sp.node_name
-      sp.whitespace_pat exclude_char sp.node_name
+    sprintf {|(?: %s (?>(?&%s)) (?: %s %s (?>(?&%s)))*? )??|} exclude_char
+      sp.node_name sp.whitespace_pat exclude_char sp.node_name
 
 let ellipsis_pat ~excluded_brace param =
   ellipsis_pat_of_spacing_param ~excluded_brace param.ellipsis
@@ -455,12 +468,12 @@ let compile conf pattern_ast =
   let pcre_pattern, metavariable_groups = to_regexp conf pattern_ast in
   (* `EXTENDED = literal whitespace and comments are ignored *)
   let pcre =
-    try Pcre_.regexp ~flags:[ `EXTENDED ] pcre_pattern with
+    try Pcre2_.regexp ~flags:[ `EXTENDED ] pcre_pattern with
     | exn ->
         (* bug *)
         let e = Exception.catch exn in
         Log.err (fun m ->
-            m "Failed to compile PCRE pattern:\n%s\n" pcre_pattern);
+            m "Failed to compile PCRE2 pattern:\n%s\n" pcre_pattern);
         Exception.reraise e
   in
   { pcre; metavariable_groups }
