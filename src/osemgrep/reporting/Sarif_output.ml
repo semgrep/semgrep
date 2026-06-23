@@ -431,9 +431,34 @@ let result (ctx : Out.format_context) show_dataflow_traces
     if show_dataflow_traces then sarif_codeflow cli_match else None
   in
   let properties =
-    match Exposure.of_cli_match_opt cli_match with
-    | None -> []
-    | Some exposure -> [ ("exposure", `String (Exposure.string_of exposure)) ]
+    let exposure_props =
+      match Exposure.of_cli_match_opt cli_match with
+      | None -> []
+      | Some exposure -> [ ("exposure", `String (Exposure.string_of exposure)) ]
+    in
+    (* SARIF has no native concept of transitive dependency chains, so we
+     * surface the dependency paths (how a transitive dep was introduced) in
+     * the free-form properties bag, alongside "exposure". Each path is ordered
+     * from the direct introducer (node 0) to the matched dependency (last). *)
+    let dependency_path_props =
+      match cli_match.extra.sca_info with
+      | Some
+          {
+            dependency_match = { dependency_paths = Some (_ :: _ as paths); _ };
+            _;
+          } ->
+          let json_of_node (n : Out.dependency_child) =
+            `Assoc
+              [ ("package", `String n.package); ("version", `String n.version) ]
+          in
+          let json_of_path (p : Out.dependency_path) =
+            `List (List.map json_of_node p.nodes)
+          in
+          (* SARIF property bag keys are camelCase by convention *)
+          [ ("dependencyPaths", `List (List.map json_of_path paths)) ]
+      | _ -> []
+    in
+    exposure_props @ dependency_path_props
   in
   (* coupling: if you modify which fields are gated by ctx.is_logged_in update
    * also https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#sarif
