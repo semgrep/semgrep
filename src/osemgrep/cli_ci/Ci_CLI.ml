@@ -338,8 +338,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       pro_lang pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
       scan_unknown_extensions secrets secrets_timeout semgrepignore_filename
       text text_outputs timeout _timeout_interfileTODO timeout_threshold use_git
-      _use_semgrepignore_v2 version_check vim vim_outputs x_mem_policy x_tr
-      x_pro_naming x_mcp x_run_taint_once =
+      _use_semgrepignore_v2 version_check vim vim_outputs _x_dependency_paths
+      x_mem_policy x_tr x_pro_naming x_mcp x_run_taint_once =
     (* this is just handled by psemgrep for now *)
     ignore x_pro_naming;
     ignore x_run_taint_once;
@@ -501,8 +501,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_semgrepignore_filename $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
     $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_use_git
     $ SC.o_use_semgrepignore_v2 $ SC.o_version_check $ SC.o_vim
-    $ SC.o_vim_outputs $ SC.o_x_mem_policy $ SC.o_x_tr $ SC.o_x_pro_naming
-    $ SC.o_x_mcp $ SC.o_x_run_taint_once)
+    $ SC.o_vim_outputs $ SC.o_x_dependency_paths $ SC.o_x_mem_policy $ SC.o_x_tr
+    $ SC.o_x_pro_naming $ SC.o_x_mcp $ SC.o_x_run_taint_once)
 
 (*************************************************************************)
 (* Turn argv into conf *)

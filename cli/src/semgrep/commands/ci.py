@@ -337,6 +337,7 @@ def ci(
     x_eio: bool,
     x_parmap: bool,
     enable_transitive_reachability: Optional[bool],
+    x_dependency_paths: bool,
     x_pro_naming: bool,
     x_run_taint_once: bool,
     validation_mode: RuleValidationMode,
@@ -920,6 +921,9 @@ def ci(
                 if scan_handler
                 else enable_transitive_reachability
             ),
+            # flag-only: emitting dependency paths is controlled by the CLI flag,
+            # not by any platform/deployment setting
+            "x_dependency_paths": x_dependency_paths,
             "x_pro_naming": x_pro_naming,
             "x_run_taint_once": x_run_taint_once,
             "dump_rule_partitions_params": dump_rule_partitions_params,
