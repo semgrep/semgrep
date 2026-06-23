@@ -69,6 +69,7 @@ from semgrep.core_runner import CoreRunner
 from semgrep.dependency_aware_rule import dependencies_range_match_any
 from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.dependency_aware_rule import SubprojectDependencyIndex
+from semgrep.dependency_path import DependencyParentIndex
 from semgrep.engine import EngineType
 from semgrep.error import InvalidScanningRootError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -837,6 +838,7 @@ def adjust_matches_for_sca_rules(
     write_to_tr_cache: bool = True,
     rpc_session: Optional[RpcSession] = None,
     enable_transitive_reachability: Optional[bool] = False,
+    x_dependency_paths: bool = False,
 ) -> None:
     """
     Generates SCA findings based on the dependency-aware rules and the resolved subprojects.
@@ -869,6 +871,20 @@ def adjust_matches_for_sca_rules(
             dependency_index[ecosystem].append((subproject, idx))
             num_dependencies += idx.num_deps
 
+    # The reverse dependency graph used for dependency paths is built once per
+    # scan (and reused across every reachability rule below) only when the
+    # feature is on -- this is the single place the flag gates the work. Keyed
+    # by subproject identity; a present entry tells the generators to emit paths.
+    parent_indexes: Dict[int, DependencyParentIndex] = (
+        {
+            id(subproject): DependencyParentIndex.from_dependencies(idx.deps)
+            for entries in dependency_index.values()
+            for subproject, idx in entries
+        }
+        if x_dependency_paths
+        else {}
+    )
+
     for rule in dependency_aware_rules:
         if rule.should_run_on_semgrep_core:
             # If we have a reachability rule (contains a pattern)
@@ -887,6 +903,7 @@ def adjust_matches_for_sca_rules(
                 rule_matches_by_rule.get(rule, []),
                 rule,
                 dependency_index,
+                parent_indexes=parent_indexes,
             )
 
             rule_matches_by_rule[rule] = dep_rule_matches
@@ -905,6 +922,7 @@ def adjust_matches_for_sca_rules(
                 enable_transitive_reachability=enable_transitive_reachability,
                 write_to_tr_cache=write_to_tr_cache,
                 rpc_session=rpc_session,
+                parent_indexes=parent_indexes,
             )
 
             rule_matches_by_rule[rule].extend(dep_rule_matches)
@@ -923,6 +941,7 @@ def adjust_matches_for_sca_rules(
                 enable_transitive_reachability=False,
                 write_to_tr_cache=write_to_tr_cache,
                 rpc_session=rpc_session,
+                parent_indexes=parent_indexes,
             )
 
             rule_matches_by_rule[rule] = dep_rule_matches
@@ -1034,6 +1053,7 @@ def run_rules(
     write_to_tr_cache: bool = True,
     fips_mode: bool,
     enable_transitive_reachability: Optional[bool] = None,
+    x_dependency_paths: bool = False,
     x_parmap: bool = False,
     run_symbol_analysis: bool = False,
     rpc_session: Optional[RpcSession] = None,
@@ -1158,6 +1178,7 @@ def run_rules(
             output_extra=output_extra,
             write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
+            x_dependency_paths=x_dependency_paths,
             fips_mode=fips_mode,
             rpc_session=rpc_session,
         )
@@ -1289,6 +1310,7 @@ def run_scan(
     x_ls: bool = False,
     x_ls_long: bool = False,
     enable_transitive_reachability: Optional[bool] = None,
+    x_dependency_paths: bool = False,
     x_parmap: bool = False,
     x_pro_naming: bool = False,
     x_run_taint_once: bool = True,
@@ -1575,6 +1597,7 @@ def run_scan(
             fips_mode=fips_mode,
             write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
+            x_dependency_paths=x_dependency_paths,
             x_parmap=x_parmap,
             run_symbol_analysis=run_symbol_analysis,
             rpc_session=rpc_session,

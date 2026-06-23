@@ -504,6 +504,14 @@ _scan_options: List[Callable] = [
         default=None,
     ),
     optgroup.option(
+        "--x-dependency-paths",
+        "x_dependency_paths",
+        is_flag=True,
+        default=False,
+        help="(experimental) Include the full dependency path(s) for transitive "
+        "supply-chain findings in --json and --sarif output.",
+    ),
+    optgroup.option(
         "--x-eio",
         "x_eio",
         is_flag=True,
@@ -820,6 +828,7 @@ def scan(
     x_ls: bool,
     x_ls_long: bool,
     enable_transitive_reachability: Optional[bool],
+    x_dependency_paths: bool,
     x_eio: bool,
     x_parmap: bool,
     x_pro_naming: bool,
@@ -1187,6 +1196,7 @@ def scan(
                         x_ls=x_ls,
                         x_ls_long=x_ls_long,
                         enable_transitive_reachability=enable_transitive_reachability,
+                        x_dependency_paths=x_dependency_paths,
                         x_parmap=x_parmap,
                         x_pro_naming=x_pro_naming,
                         x_run_taint_once=x_run_taint_once,

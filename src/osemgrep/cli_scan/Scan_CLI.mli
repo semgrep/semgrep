@@ -146,6 +146,7 @@ val o_vim_outputs : string list Cmdliner.Term.t
 val o_x_ignore_semgrepignore_files : bool Cmdliner.Term.t
 val o_x_mem_policy : string option Cmdliner.Term.t
 val o_x_tr : bool option Cmdliner.Term.t
+val o_x_dependency_paths : bool Cmdliner.Term.t
 val o_x_pro_naming : bool Cmdliner.Term.t
 val o_x_group_taint_rules : bool Cmdliner.Term.t
 val o_x_mcp : bool Cmdliner.Term.t
