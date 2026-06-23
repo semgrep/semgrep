@@ -635,8 +635,8 @@ and map_assign_rhs_minimizing_tmps env lval rhs eorig =
       let rhs_exp = map_assign_rhs env ~ret:`Tmp rhs in
       add_instr env (mk_i (Assign (lval, rhs_exp)) eorig)
 
-and map_assign env ~g_expr lhs tok rhs : exp =
-  let eorig = SameAs g_expr in
+and map_assign ?eorig env ~g_expr lhs tok rhs : exp =
+  let eorig = Option.value eorig ~default:(SameAs g_expr) in
   match lhs.G.e with
   | G.N _
   | G.DotAccess _
@@ -674,7 +674,7 @@ and map_assign env ~g_expr lhs tok rhs : exp =
               }
             in
             let lval_i = { base = Var tmp; rev_offset = [ offset_i ] } in
-            map_assign env ~g_expr lhs_i tok1
+            map_assign ~eorig:(related_exp lhs_i) env ~g_expr lhs_i tok1
               (`IL { e = Fetch lval_i; eorig = related_exp lhs_i }))
       in
       (* (E1, ..., En) *)
