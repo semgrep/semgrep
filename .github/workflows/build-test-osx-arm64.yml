@@ -24,18 +24,10 @@ jobs:
         run: opam exec -- make
       - name: Test semgrep-core
         run: opam exec -- make test
-      - name: Make artifact for ./bin/semgrep-core
-        run: |
-          mkdir artifacts
-          cp -LR ./bin/semgrep-core artifacts/
-          tar czf artifacts.tgz artifacts
-          # so that we can untar later and not get a message
-          # about existing artifacts/ directory
-          rm -rf artifacts
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
-          path: artifacts.tgz
+          path: ./bin/semgrep-core
 name: build-test-osx-arm64
 on:
   workflow_call: null

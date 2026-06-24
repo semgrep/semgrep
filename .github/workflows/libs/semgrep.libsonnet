@@ -287,17 +287,18 @@ local build_wheel_steps(arch, copy_semgrep_pro=false, root='.') =
   local run_in_root(step) = if root == '.' then step else step { 'working-directory': root };
   [
     actions.setup_python_step(),
-    {
-      name: 'Untar artifacts',
-      run: |||
-        tar xvfz artifacts.tgz
-      |||,
-    },
   ] +
   (if !copy_semgrep_pro then [{
      name: 'Remove pro binary',
      run: '(rm artifacts/semgrep-core-proprietary%s && rm artifacts/pro-installed-by.txt) || true' % bin_ext(arch),
    }] else []) +
+  // actions/download-artifact does not preserve the executable bit (the
+  // tar-based flow we replaced did), so restore it before the binary is
+  // executed or packed into the wheel.
+  (if is_windows_arch(arch) then [] else [{
+     name: 'Restore executable bit on artifacts',
+     run: 'chmod +x artifacts/semgrep-core*',
+   }]) +
   [
     {
       name: 'Copy artifacts to wheel',
@@ -305,7 +306,7 @@ local build_wheel_steps(arch, copy_semgrep_pro=false, root='.') =
     },
     {
       name: 'Clean up old artifacts',
-      run: 'rm -rf artifacts artifacts.tgz',
+      run: 'rm -rf artifacts',
     },
   ] +
   (if copy_semgrep_pro then [{
@@ -317,21 +318,8 @@ local build_wheel_steps(arch, copy_semgrep_pro=false, root='.') =
       name: 'Build wheel',
       run: './scripts/build-wheels.sh',
     }),
-    actions.make_artifact_step(in_root('cli/dist')),
-    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
+    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro), in_root('cli/dist')),
   ];
-
-local unpack_wheel_steps = [
-
-  {
-    name: 'Unpack artifact',
-    run: 'tar xzvf artifacts.tgz',
-  },
-  {
-    name: 'Unpack wheel',
-    run: 'mkdir -p dist && cp ./artifacts/dist/*.whl dist/',
-  },
-];
 
 // Only retags the SMS image, we have to do this via ecr
 local retag_sms_docker_image_step(version, tag, dry_run=false) = {
@@ -366,8 +354,7 @@ local trigger_build_sms_docker_image_step(tag, use_nightly_repo='false') = {
 local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // caching is hard and why complicate things
   actions.setup_python_step(cache=false),
-  actions.download_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
-] + unpack_wheel_steps + [
+  actions.download_artifact_step(wheel_name(arch, pro=copy_semgrep_pro), path='dist'),
   {
     name: 'install package',
     run: 'uv venv && uv pip install dist/*.whl',
@@ -413,7 +400,6 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   build_test_steps: build_test_steps,
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
-  unpack_wheel_steps: unpack_wheel_steps,
   retag_sms_docker_image_step: retag_sms_docker_image_step,
   trigger_build_sms_docker_image_step: trigger_build_sms_docker_image_step,
   wheel_name: wheel_name,
