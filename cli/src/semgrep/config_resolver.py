@@ -909,7 +909,7 @@ def parse_config_string(
     #
     # We check if it's JSON or not because JSON parsing on the Python side is
     # much faster than YAML parsing.
-    is_json = contents.lstrip().startswith("{")
+    is_json = re.match(r"\s*\{", contents) is not None
     # Needed so we can reconstruct error messages with accurate line numbers.
     # Only populated for YAML since we use the jsonschema validator even if we
     # start with yaml, since that's much faster
