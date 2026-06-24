@@ -128,6 +128,10 @@ local download_x86_artifacts =
 local install_x86_artifacts = {
   name: 'Install artifacts',
   run: |||
+    # upload-artifact does not preserve the executable bit
+    # (https://github.com/actions/upload-artifact#permission-loss),
+    # so restore it before installing semgrep-core.
+    chmod +x artifacts/*
     #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
     sudo cp artifacts/* /usr/bin
   |||,
