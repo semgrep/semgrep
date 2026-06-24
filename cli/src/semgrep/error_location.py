@@ -39,18 +39,23 @@ class SourceTracker:
     building error messages from Spans
     """
 
-    # sources are a class variable to share state
-    sources: Dict[SourceFileHash, List[str]] = {}
+    # sources are a class variable to share state.
+    # Stored as the raw string and only split into lines on first access.
+    sources: Dict[SourceFileHash, Union[str, List[str]]] = {}
 
     @classmethod
     def add_source(cls, source: str) -> SourceFileHash:
         file_hash = cls._src_to_hash(source)
-        cls.sources[file_hash] = source.splitlines()
+        cls.sources[file_hash] = source
         return file_hash
 
     @classmethod
     def source(cls, source_hash: SourceFileHash) -> List[str]:
-        return cls.sources[source_hash]
+        value = cls.sources[source_hash]
+        if isinstance(value, str):
+            value = value.splitlines()
+            cls.sources[source_hash] = value
+        return value
 
     @staticmethod
     def _src_to_hash(contents: Union[str, bytes]) -> SourceFileHash:
