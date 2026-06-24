@@ -248,22 +248,10 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   // Artifact management
   // ---------------------------------------------------------
 
-  // works with upload_artifact_step() below by relying on an artifacts.tgz
-  make_artifact_step(path): {
-    name: 'Make artifact for %s' % path,
-    run: |||
-      mkdir artifacts
-      cp -LR %s artifacts/
-      tar czf artifacts.tgz artifacts
-      # so that we can untar later and not get a message
-      # about existing artifacts/ directory
-      rm -rf artifacts
-    ||| % path,
-  },
-  upload_artifact_step: function(artifact_name, path='artifacts.tgz') {
+  upload_artifact_step: function(artifact_name, path) {
     uses: uses.actions.upload_artifact,
     with: {
-      path: path,
+      path: if std.isArray(path) then std.join('\n', path) else path,
       name: artifact_name,
     },
   },

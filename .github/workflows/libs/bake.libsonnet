@@ -30,10 +30,10 @@ local bake_out(target) = '/tmp/bake-out/%s' % target;
 
 // Upload one `type=local` bake target's exported files as the three per-arch
 // GHA artifacts (<name>-linux-amd64/arm64/x86), mirroring docker.libsonnet.
-local upload_artifact_steps(artifact) =
+local upload_artifact_steps(artifact, subdir=null) =
+  local rel = if subdir == null then '' else '/%s' % subdir;
   std.flattenArrays(std.map(function(arch) [
-    actions.make_artifact_step('%s/linux_%s/*' % [bake_out(artifact.target), arch_to_docker_arch[arch]]),
-    actions.upload_artifact_step('%s-linux-%s' % [artifact.name, arch]),
+    actions.upload_artifact_step('%s-linux-%s' % [artifact.name, arch], '%s/linux_%s%s/*' % [bake_out(artifact.target), arch_to_docker_arch[arch], rel]),
   ], archs));
 
 // The git/CI context passed to docker-bake.hcl as bake variables (env vars of
@@ -126,6 +126,6 @@ local digest_step(digest_image) = {
           },
         ] +
         (if digest_image != null then [digest_step(digest_image)] else []) +
-        std.flattenArrays(std.map(upload_artifact_steps, artifacts)),
+        std.flattenArrays(std.map(function(a) upload_artifact_steps(a, std.get(a, 'subdir', null)), artifacts)),
     },
 }

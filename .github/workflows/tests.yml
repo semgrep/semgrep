@@ -16,9 +16,9 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
+          path: artifacts
       - name: Install artifacts
         run: |
-          tar xf artifacts.tgz
           #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Install Python dependencies
@@ -66,9 +66,9 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
+          path: artifacts
       - name: Install artifacts
         run: |
-          tar xf artifacts.tgz
           #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Run pytest
@@ -193,9 +193,9 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
+          path: artifacts
       - name: Install artifacts
         run: |
-          tar xf artifacts.tgz
           #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Install semgrep

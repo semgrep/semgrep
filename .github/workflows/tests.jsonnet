@@ -123,12 +123,11 @@ local fetch_submodules_step = {
 };
 
 local download_x86_artifacts =
-  actions.download_artifact_step(core_x86.export.artifact_name);
+  actions.download_artifact_step(core_x86.export.artifact_name, path='artifacts');
 
 local install_x86_artifacts = {
   name: 'Install artifacts',
   run: |||
-    tar xf artifacts.tgz
     #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
     sudo cp artifacts/* /usr/bin
   |||,

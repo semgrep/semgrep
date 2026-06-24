@@ -434,8 +434,7 @@ local job(
               ] + std.flattenArrays(
                 std.map(function(arch)
                   [
-                    actions.make_artifact_step('/tmp/binaries/linux_%s/*' % arch_to_docker_arch[arch]),
-                    actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch]),
+                    actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch], '/tmp/binaries/linux_%s/*' % arch_to_docker_arch[arch]),
                   ], archs)
               )
 
