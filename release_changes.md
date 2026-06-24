@@ -1,25 +1,15 @@
-## [1.167.0](https://github.com/semgrep/semgrep/releases/tag/v1.167.0) - 2026-06-17
+## [1.168.0](https://github.com/semgrep/semgrep/releases/tag/v1.168.0) - 2026-06-24
 
 ### ### Added
 
-- Added support for more operators for folding for constant propagation, including subtraction, division, bit ops, bit shifts, comparisons, and more. (const-folding)
-- Added a `nosemgrep_disabled` field to the scan configuration so the platform can disable `nosemgrep` inline ignore comments org-wide for a scan. (APPEX-1122)
-- Semgrep now skips binary files (images, archives, compiled executables,
-  etc.) during scanning by default, detected via matching file extensions
-  to known file-format magic bytes Pass `--no-exclude-binary-files` to
-  scan binary files as before. (ENGINE-2708)
+- Added an experimental `--x-dependency-paths` flag to `scan` and `ci` that includes the full dependency path(s) for transitive supply-chain findings in `--json` and `--sarif` output. (SC-3547)
 
-### ### Fixed
+### ### Changed
 
-- `semgrep ci` with `--sarif` now correctly populates the output's `ignores`
-  field with nosemgrep-suppressed findings, in accordance with other output
-  formatters. (gh-6651)
+- Malicious supply chain rules are now labeled "Malicious" instead of "Basic" in the scan analysis summary table. (SC-3504)
 
 ### ### Infra/Release Changes
 
-- Updated the `ocaml-tree-sitter-core` submodule to the latest upstream `main`, providing
-
-  * improved thread-safety
-  * bumps the tree-sitter CLI option used from 0.20.6 to 0.20.8.
-
-  (ocaml-tree-sitter-core-bump)
+- semgrep-core no longer depends on libpcre 8.x; libpcre2 10.x is now the sole regex engine. (drop-libpcre)
+- Aliengrep (generic mode) now uses the maintained libpcre2 10.x regular-expression library instead of the deprecated libpcre 8.x. Matching behavior is unchanged. (aliengrep-pcre2)
+- The `metavariable-regex` and `metavariable-comparison` (`re.match()`) runtimes now use the maintained libpcre2 10.x library instead of the deprecated libpcre 8.x. Matching behavior is unchanged. (eval-generic-pcre2)
