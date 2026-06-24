@@ -131,10 +131,11 @@ For more information see https://semgrep.dev
     (visitors (= 20260520))
     ; regexps
     (re ( >= 1.14.0))
-    (conf-libpcre (= 2))
-    (pcre (>= 8.0.5))
     ; we're currently pinning pcre2 to semgrep/pcre2.git
     pcre2
+    ; commons uses the `hex` library; declare explicitly so the opam solver
+    ; doesn't drop it in favor of the unrelated `ohex` package
+    hex
     ; obackward, pinned to semgrep/obackward.git
     obackward
     ; misc
@@ -266,7 +267,8 @@ a few other projects developed at r2c.
     (logs (>= "0.7.0" ))
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
-    (pcre (>= "7.5.0" ))
+    ; hex provides the `Hex` library used by commons/Hex_.ml
+    hex
     ; we're currently "vendoring" pcre2 in libs/pcre2
     ; so no need to get opam to install it
     ;(pcre2 (>= "7.5.3" ))

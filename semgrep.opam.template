@@ -35,7 +35,6 @@ pin-depends: [
 (* Needed for alpine linux docker image. These used to get pulled in *)
 (* automatically in alpine 3.21 but in >3.22 they dont *)
 depexts: [
-    ["pcre-static"] {os-distribution = "alpine"}
     ["pcre2-static"] {os-distribution = "alpine"}
     ["gmp-static"] {os-distribution = "alpine"}
 ]

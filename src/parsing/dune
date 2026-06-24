@@ -5,8 +5,6 @@
  (name semgrep_parsing)
  (wrapped false)
  (libraries
-   pcre
-
    base
    commons
    git_wrapper

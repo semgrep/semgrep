@@ -60,9 +60,10 @@ let ab = "abababababababababababababababababababababababab!"
    See
    https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS
 
-   These are the expectations using PCRE. Other regexp libraries differ
-   in where they succeed or blow up.
-   To test a regexp with NodeJS, you can do this:
+   These are the expectations using PCRE2 (with our wrapper's match/depth
+   limits; see Pcre2_.match_limit and Pcre2_.depth_limit). Other regexp
+   libraries differ in where they succeed or blow up. To test a regexp with
+   NodeJS, you can do this:
 
    $ js
    > console.log(/^(a+)*$/.test('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!'));
@@ -70,7 +71,7 @@ let ab = "abababababababababababababababababababababababab!"
 *)
 let pattern_expectations =
   [
-    (* pattern, input, PCRE result, NodeJS result, prediction *)
+    (* pattern, input, PCRE2 result, NodeJS result, prediction *)
     ("", aa, Succeeds, Succeeds, Succeeds);
     ("a+$", aa, Succeeds, Succeeds, Succeeds);
     ("(a+)+", aa, Succeeds, Succeeds, Succeeds);
@@ -135,8 +136,8 @@ let print_expectations () =
   let fn = ref 0 in
   let tn = ref 0 in
   pattern_expectations
-  |> List.iter (fun (pat, _input, pcre_res, js_res, prediction) ->
-      let actual = worse_of pcre_res js_res in
+  |> List.iter (fun (pat, _input, pcre2_res, js_res, prediction) ->
+      let actual = worse_of pcre2_res js_res in
       let count =
         match (actual, prediction) with
         | Blows_up, Blows_up -> tp
@@ -150,14 +151,17 @@ let print_expectations () =
   printf "Confusion matrix:\n  TP: %i\n  FP: %i\n  FN: %i\n  TN: %i\n%!" !tp !fp
     !fn !tn
 
-let test_pcre_pattern_explosion ~pat ~input expected =
+let test_pcre2_pattern_explosion ~pat ~input expected =
+  let rex = Pcre2_.regexp pat in
   let res =
-    try
-      (* nosemgrep: not-using-our-pcre-wrappers *)
-      Pcre.pmatch ~pat input |> ignore;
-      Succeeds
-    with
-    | Pcre.Error Pcre.MatchLimit -> Blows_up
+    match Pcre2_.pmatch ~rex input with
+    | Ok _ -> Succeeds
+    | Error MatchLimit
+    | Error DepthLimit ->
+        Blows_up
+    | Error err ->
+        Alcotest.failf "unexpected PCRE2 error on %S: %s" pat
+          (Pcre2_.show_error err)
   in
   printf "pattern: '%s' %s\n%!" pat (string_of_result res);
   Alcotest.(check string)
@@ -165,11 +169,11 @@ let test_pcre_pattern_explosion ~pat ~input expected =
     (string_of_result expected)
     (string_of_result res)
 
-let test_pcre_pattern_explosions () =
+let test_pcre2_pattern_explosions () =
   print_expectations ();
   List.iter
-    (fun (pat, input, pcre_expected, _, _) ->
-      test_pcre_pattern_explosion ~pat ~input pcre_expected)
+    (fun (pat, input, pcre2_expected, _, _) ->
+      test_pcre2_pattern_explosion ~pat ~input pcre2_expected)
     pattern_expectations
 
 let test_vulnerability_prediction () =
@@ -198,6 +202,6 @@ let test_vulnerability_prediction () =
 let tests =
   [
     t "unescape" test_unescape;
-    t "pcre pattern explosion" test_pcre_pattern_explosions;
+    t "pcre2 pattern explosion" test_pcre2_pattern_explosions;
     t "vulnerability prediction" test_vulnerability_prediction;
   ]

@@ -130,7 +130,7 @@ let metavariables_and_strings_of_pattern (env : env) (pat : Xpattern.t) :
       in
       Some (pred (StringsAndMvars (ids, mvars)))
   (* TODO? do we need to prefilter aliengrep rules? they are supposed to be
-     compiled in effective Pcre_.t (see Pat_compile.t) regexps *)
+     compiled in effective Pcre2_.t (see Pat_compile.t) regexps *)
   | Aliengrep _ -> None
 
 let metavariables_and_strings_of_condition (env : env) (x : Rule.metavar_cond) :

@@ -3,7 +3,6 @@
  (name semgrep_engine)
  (wrapped false)
  (libraries
-   pcre
    alcotest
    calendar
 

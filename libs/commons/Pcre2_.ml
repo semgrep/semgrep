@@ -33,8 +33,7 @@
 
 open Printf
 
-(* we reuse the one in Pcre_.ml, no need to differentiate *)
-let src = Pcre_.src [@@alert "-deprecated"]
+let src = Logs.Src.create "commons.pcre"
 
 module Log = (val Logs.src_log src : Logs.LOG)
 

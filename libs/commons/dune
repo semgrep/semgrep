@@ -23,7 +23,6 @@
    cmdliner
    bos
    re
-   pcre
    pcre2
    digestif.ocaml
    sexplib

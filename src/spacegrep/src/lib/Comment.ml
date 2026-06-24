@@ -14,11 +14,6 @@
    Strip comments and the like as a preprocessing phase.
 *)
 
-(* Suppresses warnings about PCRE; there appear to be some issues when moving
-   this to use PCRE2 on some versions, e.g., 10.34 (Debian stable as of
-   2024-04-18). *)
-[@@@alert "-deprecated"]
-
 open Printf
 
 type comment_syntax = End_of_line of string | Multiline of string * string
@@ -43,15 +38,15 @@ let whiteout_ascii s =
 let replace_end_of_line_comment ~start src =
   (* match from first occurrence of 'start' in the line until the
      end of line or end of input *)
-  let rex = sprintf "%s[^\n]*\n?" (Pcre.quote start) |> Pcre_.regexp in
-  Pcre_.substitute ~rex ~subst:whiteout_ascii src
+  let rex = sprintf "%s[^\n]*\n?" (Pcre2_.quote start) |> Pcre2_.regexp in
+  Pcre2_.substitute ~rex ~subst:whiteout_ascii src
 
 let replace_multiline_comment ~start ~end_ src =
   let rex =
-    sprintf "%s.*?%s" (Pcre.quote start) (Pcre.quote end_)
-    |> Pcre_.regexp ~flags:[ `DOTALL ]
+    sprintf "%s.*?%s" (Pcre2_.quote start) (Pcre2_.quote end_)
+    |> Pcre2_.regexp ~flags:[ `DOTALL ]
   in
-  Pcre_.substitute ~rex ~subst:whiteout_ascii src
+  Pcre2_.substitute ~rex ~subst:whiteout_ascii src
 
 (* Apply comment filters from left to right *)
 let remove_comments_from_string style src =
