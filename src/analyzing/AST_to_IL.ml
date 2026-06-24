@@ -1839,8 +1839,12 @@ and map_type_opt_with_pre_stmts env opt_ty =
  * use 'expr_with_pre_stmts' or other '*_pre_stmts*' functions. Just so that
  * we don't forget about 'env.stmts'! *)
 
+(* Languages whose switch/case/match construct does NOT fall through, i.e. each
+ * case body implicitly breaks at its end (no C-style fallthrough). All other
+ * languages are assumed to fall through. *)
 and no_switch_fallthrough : Lang.t -> bool = function
   | Go
+  | Python
   | Ruby
   | Rust
   | Scala ->
