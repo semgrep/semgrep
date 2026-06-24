@@ -15,12 +15,13 @@ local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
 local uses = import 'uses.libsonnet';
 
-// The artifacts we publish are per-arch. x86 reuses the amd64 binaries (same
-// content, historical artifact name). coupling: docker.libsonnet uses the same
-// mapping for its own artifact uploads.
-local archs = ['amd64', 'arm64', 'x86'];
+// The artifacts we publish are per-arch. The build is two-platform
+// (linux/amd64 + linux/arm64); we publish the amd64 output under the historical
+// `x86` artifact name.
+// coupling: docker.libsonnet uses the same mapping for its own
+// artifact uploads.
+local archs = ['arm64', 'x86'];
 local arch_to_docker_arch = {
-  amd64: 'amd64',
   arm64: 'arm64',
   x86: 'amd64',
 };
@@ -28,8 +29,8 @@ local arch_to_docker_arch = {
 // Where docker-bake.hcl writes `type=local` outputs on the runner.
 local bake_out(target) = '/tmp/bake-out/%s' % target;
 
-// Upload one `type=local` bake target's exported files as the three per-arch
-// GHA artifacts (<name>-linux-amd64/arm64/x86), mirroring docker.libsonnet.
+// Upload one `type=local` bake target's exported files as the per-arch GHA
+// artifacts (<name>-linux-arm64/x86), mirroring docker.libsonnet.
 local upload_artifact_steps(artifact, subdir=null) =
   local rel = if subdir == null then '' else '/%s' % subdir;
   std.flattenArrays(std.map(function(arch) [
