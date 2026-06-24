@@ -1,4 +1,0 @@
-Semgrep now skips binary files (images, archives, compiled executables,
-etc.) during scanning by default, detected via matching file extensions
-to known file-format magic bytes Pass `--no-exclude-binary-files` to
-scan binary files as before.
