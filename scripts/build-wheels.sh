@@ -10,12 +10,10 @@
 set -ex
 
 # Invoke `uv` to build the wheel, which invokes the build backend (`setup.py`)
-cd cli
-uv sync --locked
-uv build --wheel
+uv build --wheel --directory=cli
 
 # Do some sanity checks on the built packages. These checks are done as part of
 # uploading to pypi (in the gh-action-pypi-publish action), but we only run that
 # job on actual releases. Checking here will catch malformed packages on PR
 # rather than on release.
-uv tool run twine check dist/*.whl
+uv tool run twine check cli/dist/*.whl
