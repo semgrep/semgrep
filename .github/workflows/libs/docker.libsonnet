@@ -16,17 +16,11 @@ local gha = import 'gha.libsonnet';
 //       same job. Maybe also use it in the release script.
 
 local default_platforms = 'linux/amd64,linux/arm64';
-local archs = ['amd64', 'arm64', 'x86'];
+local archs = ['amd64', 'arm64'];
 local ecr_repo = '338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary';
 
 local digest_output_template = '${{ steps.build-%s-docker-image.outputs.digest }}';
 
-// Needed to find the binaries when making the artifact
-local arch_to_docker_arch = {
-  amd64: 'amd64',
-  arm64: 'arm64',
-  x86: 'amd64',
-};
 // utils
 
 // Useful for copying files out of a docker container
@@ -434,7 +428,7 @@ local job(
               ] + std.flattenArrays(
                 std.map(function(arch)
                   [
-                    actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch], '/tmp/binaries/linux_%s/*' % arch_to_docker_arch[arch]),
+                    actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch], '/tmp/binaries/linux_%s/*' % arch),
                   ], archs)
               )
 
