@@ -1,0 +1,1 @@
+semgrep-core no longer depends on libpcre 8.x; libpcre2 10.x is now the sole regex engine.

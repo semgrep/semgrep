@@ -55,9 +55,8 @@ depends: [
   "ppx_sexp_conv" {>= "v0.17.1"}
   "visitors" {= "20260520"}
   "re" {>= "1.14.0"}
-  "conf-libpcre" {= "2"}
-  "pcre" {>= "8.0.5"}
   "pcre2"
+  "hex"
   "obackward"
   "ocamlgraph" {>= "2.2.0"}
   "parmap" {>= "1.2.5"}
@@ -146,7 +145,6 @@ pin-depends: [
 (* Needed for alpine linux docker image. These used to get pulled in *)
 (* automatically in alpine 3.21 but in >3.22 they dont *)
 depexts: [
-    ["pcre-static"] {os-distribution = "alpine"}
     ["pcre2-static"] {os-distribution = "alpine"}
     ["gmp-static"] {os-distribution = "alpine"}
 ]

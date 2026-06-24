@@ -66,7 +66,6 @@ depends: [
   "conf-libcurl" {= "2"}
   "conf-libdw" {= "1"}
   "conf-libev" {= "4-13"}
-  "conf-libpcre" {= "2"}
   "conf-libpcre2-8" {= "2"}
   "conf-pkg-config" {= "4"}
   "conf-unwind" {= "0"}
@@ -85,7 +84,6 @@ depends: [
   "domain-name" {= "0.5.0"}
   "duff" {= "0.5"}
   "dune" {= "3.23.1"}
-  "dune-compiledb" {= "0.6.0"}
   "dune-configurator" {= "3.23.1"}
   "duration" {= "0.3.1"}
   "easy-format" {= "1.3.4"}
@@ -98,7 +96,6 @@ depends: [
   "eqaf" {= "0.10"}
   "ethernet" {= "3.2.0"}
   "ezcurl" {= "0.2.4"}
-  "ezjsonm" {= "1.3.0"}
   "faraday" {= "0.8.2"}
   "fileutils" {= "0.6.6"}
   "fmt" {= "0.11.0"}
@@ -127,7 +124,6 @@ depends: [
   "ipaddr-cstruct" {= "5.6.2"}
   "ipaddr-sexp" {= "5.6.2"}
   "jane-street-headers" {= "v0.17.0"}
-  "jsonm" {= "1.0.2"}
   "jsonrpc" {= "1.23.1"}
   "jst-config" {= "v0.17.0"}
   "kdf" {= "1.0.0"}
@@ -185,7 +181,6 @@ depends: [
   "parmap" {= "1.2.5"}
   "parsexp" {= "v0.17.0"}
   "pbrt" {= "3.1.1"}
-  "pcre" {= "8.0.5"}
   "pcre2" {= "dev"}
   "pecu" {= "0.7"}
   "ppx_assert" {= "v0.17.0"}
@@ -271,7 +266,6 @@ build: [
   ]
 ]
 depexts: [
-  ["pcre-static"] {os-distribution = "alpine"}
   ["pcre2-static"] {os-distribution = "alpine"}
   ["gmp-static"] {os-distribution = "alpine"}
 ]

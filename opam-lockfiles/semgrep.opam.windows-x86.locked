@@ -64,7 +64,6 @@ depends: [
   "conf-gmp" {= "5"}
   "conf-gmp-powm-sec" {= "4"}
   "conf-libcurl" {= "2"}
-  "conf-libpcre" {= "2"}
   "conf-libpcre2-8" {= "2"}
   "conf-mingw-w64-curl-i686" {= "1"}
   "conf-mingw-w64-curl-x86_64" {= "1"}
@@ -72,8 +71,6 @@ depends: [
   "conf-mingw-w64-gcc-x86_64" {= "1"}
   "conf-mingw-w64-gmp-i686" {= "1"}
   "conf-mingw-w64-gmp-x86_64" {= "1"}
-  "conf-mingw-w64-pcre-i686" {= "1"}
-  "conf-mingw-w64-pcre-x86_64" {= "1"}
   "conf-mingw-w64-pcre2-i686" {= "1"}
   "conf-mingw-w64-pcre2-x86_64" {= "1"}
   "conf-pkg-config" {= "4"}
@@ -92,7 +89,6 @@ depends: [
   "domain-name" {= "0.5.0"}
   "duff" {= "0.5"}
   "dune" {= "3.21.1"}
-  "dune-compiledb" {= "0.6.0"}
   "dune-configurator" {= "3.21.1"}
   "duration" {= "0.2.1"}
   "easy-format" {= "1.3.4"}
@@ -104,7 +100,6 @@ depends: [
   "eqaf" {= "0.10"}
   "ethernet" {= "3.2.0"}
   "ezcurl" {= "0.2.4"}
-  "ezjsonm" {= "1.3.0"}
   "faraday" {= "0.8.2"}
   "fileutils" {= "0.6.6"}
   "flexdll" {= "0.44"}
@@ -133,7 +128,6 @@ depends: [
   "ipaddr-cstruct" {= "5.6.2"}
   "ipaddr-sexp" {= "5.6.2"}
   "jane-street-headers" {= "v0.17.0"}
-  "jsonm" {= "1.0.2"}
   "jsonrpc" {= "1.23.1"}
   "jst-config" {= "v0.17.0"}
   "kdf" {= "1.0.0"}
@@ -193,7 +187,6 @@ depends: [
   "parmap" {= "1.2.5"}
   "parsexp" {= "v0.17.0"}
   "pbrt" {= "3.1.1"}
-  "pcre" {= "8.0.5"}
   "pcre2" {= "dev"}
   "pecu" {= "0.7"}
   "ppx_assert" {= "v0.17.0"}
@@ -279,7 +272,6 @@ build: [
   ]
 ]
 depexts: [
-  ["pcre-static"] {os-distribution = "alpine"}
   ["pcre2-static"] {os-distribution = "alpine"}
   ["gmp-static"] {os-distribution = "alpine"}
 ]
