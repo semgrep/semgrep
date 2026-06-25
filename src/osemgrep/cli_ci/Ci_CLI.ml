@@ -283,6 +283,13 @@ let o_x_dump_subprojects_and_exit : string Term.t =
   in
   Arg.value (Arg.opt Arg.string "" info)
 
+let o_x_cache_rules : bool Term.t =
+  let info =
+    Arg.info [ "x-cache-rules" ] ~docs:CLI_common.experimental_section_title
+      ~doc:{|Internal flag.|}
+  in
+  Arg.value (Arg.flag info)
+
 let o_x_computed_dependencies_dir : string Term.t =
   let info =
     Arg.info
@@ -512,13 +519,14 @@ let cmdline_term : conf Term.t =
   let combine scan_conf audit_on code dry_run fake_backend log_backend secrets
       subdir supply_chain suppress_errors _internal_ci_scan_results
       _x_dump_n_rule_partitions _x_dump_rule_partitions_dir
-      _x_dump_rule_partitions_strategy _x_computed_dependencies_dir
-      _x_dump_scan_config_path _x_dump_subprojects_and_exit
-      x_merge_partial_results_dir x_merge_partial_results_output
-      _x_partial_config _x_partial_output x_upload_partial_results
-      x_upload_partial_results_scan_id _x_use_saved_scan_config_path
-      x_validate_partial_results_actual x_validate_partial_results_expected
-      _enable_mal_deps _x_partial_scan_rule_ids =
+      _x_dump_rule_partitions_strategy _x_cache_rules
+      _x_computed_dependencies_dir _x_dump_scan_config_path
+      _x_dump_subprojects_and_exit x_merge_partial_results_dir
+      x_merge_partial_results_output _x_partial_config _x_partial_output
+      x_upload_partial_results x_upload_partial_results_scan_id
+      _x_use_saved_scan_config_path x_validate_partial_results_actual
+      x_validate_partial_results_expected _enable_mal_deps
+      _x_partial_scan_rule_ids =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -560,12 +568,12 @@ let cmdline_term : conf Term.t =
     $ o_fake_backend $ o_log_backend $ SC.o_secrets $ o_subdir $ o_supply_chain
     $ o_suppress_errors $ o_internal_ci_scan_results
     $ o_x_dump_n_rule_partitions $ o_x_dump_rule_partitions_dir
-    $ o_x_dump_rule_partitions_strategy $ o_x_computed_dependencies_dir
-    $ o_x_dump_scan_config_path $ o_x_dump_subprojects_and_exit
-    $ o_x_merge_partial_results_dir $ o_x_merge_partial_results_output
-    $ o_x_partial_config $ o_x_partial_output $ o_x_upload_partial_results
-    $ o_x_upload_partial_results_scan_id $ o_x_use_saved_scan_config_path
-    $ o_x_validate_partial_results_actual
+    $ o_x_dump_rule_partitions_strategy $ o_x_cache_rules
+    $ o_x_computed_dependencies_dir $ o_x_dump_scan_config_path
+    $ o_x_dump_subprojects_and_exit $ o_x_merge_partial_results_dir
+    $ o_x_merge_partial_results_output $ o_x_partial_config $ o_x_partial_output
+    $ o_x_upload_partial_results $ o_x_upload_partial_results_scan_id
+    $ o_x_use_saved_scan_config_path $ o_x_validate_partial_results_actual
     $ o_x_validate_partial_results_expected $ o_enable_mal_deps
     $ o_x_partial_scan_rule_id)
 
