@@ -36,6 +36,7 @@ from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import telemetry
 from semgrep.app.project_config import ProjectConfig
+from semgrep.app.scan_config_rules_cache import SCAN_CONFIG_RULES_CACHE
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -104,6 +105,7 @@ class ScanHandler:
         dump_scan_config_path: Path | None = None,
         load_saved_scan_config_path: Path | None = None,
         partial_scan_rule_ids: Tuple[str, ...] = (),
+        cache_rules: bool = False,
     ) -> None:
         """
         When dry_run is True, semgrep ci would get the config from the app,
@@ -123,6 +125,7 @@ class ScanHandler:
         :param load_saved_scan_config_path: Path to a scan config previously dumped with
             dump_scan_config_path. If provided, loads scan config from
             the path without reaching out to the app.
+        :param cache_rules: Reuse scan config rules across semgrep ci invocations.
         """
         state = get_state()
         self.local_id = str(state.local_scan_id)
@@ -149,6 +152,7 @@ class ScanHandler:
 
         self.dump_scan_config_path = dump_scan_config_path
         self.load_saved_scan_config_path = load_saved_scan_config_path
+        self.cache_rules = cache_rules
 
     @property
     def scan_id(self) -> Optional[int]:
@@ -360,6 +364,11 @@ class ScanHandler:
             return [p.to_json() for p in self.scan_response.info.enabled_products]
         return []
 
+    def _has_secrets_enabled(self, scan_info: out.ScanInfo) -> bool:
+        return any(
+            product.to_json() == "secrets" for product in scan_info.enabled_products
+        )
+
     @property
     def historical_config(self) -> out.HistoricalConfiguration:
         config = None
@@ -525,7 +534,11 @@ class ScanHandler:
             poll_timeout = min(poll_timeout_seconds, remaining_seconds)
             try:
                 return self._poll_for_config_v2(
-                    scan_request_id, scan_info, poll_timeout
+                    scan_request_id,
+                    scan_info,
+                    poll_timeout,
+                    project_metadata,
+                    project_config,
                 )
             except _ConfigPollTimeout as e:
                 last_timeout_exc = e
@@ -555,6 +568,8 @@ class ScanHandler:
         scan_request_id: str,
         scan_info: out.ScanInfo,
         timeout_seconds: float,
+        project_metadata: Optional[out.ProjectMetadata] = None,
+        project_config: Optional[ProjectConfig] = None,
     ) -> out.ScanResponse:
         """
         Poll GET /api/cli/v2/scans/{scan_request_id}/config until Success, Failure,
@@ -575,6 +590,11 @@ class ScanHandler:
         minimum_poll_interval_seconds = 1
         maximum_poll_interval_seconds = 60
 
+        # Secrets validator-eligible rules must come directly from the platform,
+        # so use the normal uncached config fetch if Secrets is enabled by the
+        # platform.
+        cache_rules = self.cache_rules and not self._has_secrets_enabled(scan_info)
+
         poll_attempt = 0
         while datetime.now().replace(tzinfo=None) < deadline:
             poll_attempt += 1
@@ -582,8 +602,19 @@ class ScanHandler:
 
             logger.debug("Polling for scan config")
 
+            cached_rules = SCAN_CONFIG_RULES_CACHE.get_cached_rules(
+                self.scan_metadata,
+                state.env.semgrep_url,
+                scan_info.deployment_id,
+                project_metadata,
+                project_config,
+                cache_rules=cache_rules,
+            )
             config_response = state.app_session.get(
                 f"{state.env.semgrep_url}/api/cli/v2/scans/{scan_request_id}/config",
+                params={
+                    "include_rules": "false" if cached_rules else "true",
+                },
                 timeout=state.env.upload_findings_timeout,
             )
 
@@ -609,6 +640,36 @@ class ScanHandler:
                     raise Exception(
                         f"Config status is Success but config or engine_params is missing"
                     )
+
+                rules = (
+                    cached_rules
+                    if cached_rules is not None
+                    else get_config_response.config.rules
+                )
+                if cached_rules is None:
+                    logger.verbose(
+                        "Downloaded scan config rules from %s/api/cli/v2/scans/%s/config",
+                        state.env.semgrep_url,
+                        scan_request_id,
+                    )
+                else:
+                    logger.verbose(
+                        "Fetched scan config without rules from "
+                        "%s/api/cli/v2/scans/%s/config because cached scan config "
+                        "rules are available",
+                        state.env.semgrep_url,
+                        scan_request_id,
+                    )
+                get_config_response.config.rules = rules
+                SCAN_CONFIG_RULES_CACHE.write_cached_rules(
+                    rules,
+                    self.scan_metadata,
+                    state.env.semgrep_url,
+                    scan_info.deployment_id,
+                    project_metadata,
+                    project_config,
+                    cache_rules=cache_rules,
+                )
 
                 return out.ScanResponse(
                     info=scan_info,
