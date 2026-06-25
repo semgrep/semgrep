@@ -2137,6 +2137,43 @@ def test_fail_start_scan(run_semgrep: RunSemgrep, mocker, git_tmp_path_with_comm
 
 
 @pytest.mark.osemfail
+@pytest.mark.parametrize(
+    ("options", "expected_cache_rules"),
+    [
+        ([], False),
+        (["--x-cache-rules"], True),
+        (["--secrets", "--x-cache-rules"], False),
+    ],
+)
+def test_x_cache_rules_passed_to_scan_handler(
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+    options,
+    expected_cache_rules,
+):
+    mock_scan_handler = mocker.Mock()
+    mock_scan_handler.always_suppress_errors = False
+    mock_scan_handler.start_scan.side_effect = Exception("Timeout")
+    scan_handler_cls = mocker.patch(
+        "semgrep.commands.ci.ScanHandler",
+        return_value=mock_scan_handler,
+    )
+
+    run_semgrep(
+        subcommand="ci",
+        options=[*options, "--no-suppress-errors", "--oss-only"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,
+    )
+
+    assert scan_handler_cls.call_args.kwargs["cache_rules"] is expected_cache_rules
+
+
+@pytest.mark.osemfail
 def test_fail_start_scan_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
 ):
