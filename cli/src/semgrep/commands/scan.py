@@ -975,11 +975,14 @@ def scan(
             )
 
         if pattern is not None and lang is None:
-            abort("-e/--pattern and -l/--lang must both be specified")
+            ctx = click.get_current_context()
+            raise click.UsageError("-e/--pattern and -l/--lang must both be specified", ctx=ctx)
 
         if config and "auto" in config and metrics == MetricsState.OFF:
-            abort(
-                "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
+            ctx = click.get_current_context()
+            raise click.UsageError(
+                "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config.",
+                ctx=ctx,
             )
 
         # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
@@ -1026,7 +1029,8 @@ def scan(
 
         if test:
             if len(outputs) > 0:
-                abort("The --test option doesn't support additional outputs to files.")
+                ctx = click.get_current_context()
+                raise click.UsageError("The --test option doesn't support additional outputs to files.", ctx=ctx)
             # the test code (which isn't a "test" per se but is actually
             # machinery to evaluate semgrep performance) uses
             # managed_output internally
