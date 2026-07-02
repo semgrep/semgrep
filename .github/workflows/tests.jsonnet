@@ -303,7 +303,6 @@ local benchmarks_lite_job = {
 
 local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yml',
-  secrets: 'inherit',
 };
 
 local right_ref_and_right_event =
@@ -344,18 +343,14 @@ local ignore_md = {
     'benchmarks-lite': benchmarks_lite_job,
     // Docker stuff
     'build-test-docker': build_test_docker_job,
-    // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
-      secrets: 'inherit',
     },
     'build-test-osx-x86': {
       uses: './.github/workflows/build-test-osx-x86.yml',
-      secrets: 'inherit',
     },
     'build-test-osx-arm64': {
       uses: './.github/workflows/build-test-osx-arm64.yml',
-      secrets: 'inherit',
     },
   },
   export:: {
