@@ -173,5 +173,5 @@ markers = [
 asyncio_mode = "auto"
 
 [tool.uv]
-exclude-newer = "1 week"
+exclude-newer = "1 week"  # nosemgrep: uv-missing-dependency-cooldown -- "1 week" == 7-day cooldown (SEC-1765); rule only matches "N days"
 required-version = ">=0.10.0"
