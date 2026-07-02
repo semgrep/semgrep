@@ -1,1 +1,0 @@
-Updated the ocaml-tree-sitter-core dependency to the latest `main`, which now fails loudly on a parser/runtime ABI mismatch instead of crashing or producing undefined behavior.
