@@ -59,7 +59,7 @@
       "gh-action-pypi-publish": "ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e"
     },
     "semgrep": {
-      "claude-taskmaster": "2290a9c0e1d68b75534eb93ad8fa5ba4f2556d12",
+      "claude-taskmaster": "e65485b0defbd6ef6c59adcdc91a1c3d9893c215",
       "github-api-commit-action": "455b1aaa1455b8c1d7ef123c4cb918a1a4709a5d",
       "mfw": "8cda23522e5edf50b0ed3ba87933d5fffb90bf45",
       "setup-ocaml": "a739c5405d73c42ef15a9dc995efc0f87396cc36"
