@@ -1690,8 +1690,7 @@
                                                      (TyN
                                                         (Id (("bool", _),
                                                            { id_resolved =
-                                                             ref ((Some (
-                                                             LocalVar, _)));
+                                                             ref (None);
                                                              id_resolved_alternatives =
                                                              ref ([]);
                                                              id_type =
@@ -1717,8 +1716,7 @@
                                    (Some { t =
                                            (TyN
                                               (Id (("bool", _),
-                                                 { id_resolved =
-                                                   ref ((Some (LocalVar, _)));
+                                                 { id_resolved = ref (None);
                                                    id_resolved_alternatives =
                                                    ref ([]);
                                                    id_type = ref (None);

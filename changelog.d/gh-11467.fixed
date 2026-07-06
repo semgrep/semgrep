@@ -1,0 +1,1 @@
+Rust taint mode no longer loses taint across a self-shadowing `let x = x;` (or `let x: T = x;`) binding. Previously the naming pass declared the shadowed variable twice, which made the right-hand side `x` resolve to a fresh, never-tainted binding instead of the prior one.
