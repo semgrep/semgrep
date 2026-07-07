@@ -921,6 +921,7 @@ let svalue env = function
   | G.Sym e -> Printf.sprintf "sym(%s)" (expr env e)
   | G.Cst t -> Printf.sprintf "cst(%s)" (ctype t)
   | G.Lit l -> Printf.sprintf "lit(%s)" (literal env l)
+  | G.Unknown -> "BOTTOM"
 
 (*****************************************************************************)
 (* Entry points *)

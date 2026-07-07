@@ -5,7 +5,8 @@
            (Id (("foo", _),
               { id_resolved = ref (None);
                 id_resolved_alternatives = ref ([]); id_type = ref (None);
-                id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+                id_svalue = ref (Unknown); id_flags = ref (0); id_info_id = _
+                }
               )));
         e_id = 0; e_range = None; is_implicit_return = false;
         facts = <opaque> },
@@ -58,7 +59,7 @@
                       (Id (("bar", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -79,7 +80,7 @@
                  (Id (("foo", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -91,7 +92,7 @@
                       (Id (("bar", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -102,7 +103,7 @@
                        (Id (("baz", _),
                           { id_resolved = ref (None);
                             id_resolved_alternatives = ref ([]);
-                            id_type = ref (None); id_svalue = ref (None);
+                            id_type = ref (None); id_svalue = ref (Unknown);
                             id_flags = ref (0); id_info_id = _ }
                           )));
                     e_id = 0; e_range = None; is_implicit_return = false;
@@ -123,7 +124,7 @@
                  (Id (("foo", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -142,7 +143,7 @@
                  (Id (("isthis", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -154,7 +155,7 @@
                       (Id (("obj", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -165,7 +166,7 @@
                        (Id (("c", _),
                           { id_resolved = ref (None);
                             id_resolved_alternatives = ref ([]);
-                            id_type = ref (None); id_svalue = ref (None);
+                            id_type = ref (None); id_svalue = ref (Unknown);
                             id_flags = ref (0); id_info_id = _ }
                           )));
                     e_id = 0; e_range = None; is_implicit_return = false;
@@ -186,7 +187,7 @@
                  (Id (("bar", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -205,7 +206,7 @@
                  (Id (("named", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -231,7 +232,7 @@
                  (Id (("named", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -261,7 +262,7 @@
                  (Id (("named", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -287,7 +288,7 @@
                  (Id (("named", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -310,7 +311,7 @@
                  (Id (("closure", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -329,8 +330,8 @@
                                { id_resolved = ref ((Some (Parameter, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                })
                            ],
                          _);
@@ -360,7 +361,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -396,7 +397,7 @@
                       pinfo =
                       { id_resolved = ref ((Some (Parameter, _)));
                         id_resolved_alternatives = ref ([]);
-                        id_type = ref (None); id_svalue = ref (None);
+                        id_type = ref (None); id_svalue = ref (Unknown);
                         id_flags = ref (0); id_info_id = _ }
                       });
                  (Param
@@ -408,7 +409,7 @@
                                     { id_resolved = ref (None);
                                       id_resolved_alternatives = ref ([]);
                                       id_type = ref (None);
-                                      id_svalue = ref (None);
+                                      id_svalue = ref (Unknown);
                                       id_flags = ref (0); id_info_id = _ }
                                     )));
                               t_attrs =
@@ -417,7 +418,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )),
                                   (_, [], _)));
@@ -426,7 +427,7 @@
                                       { id_resolved = ref (None);
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )),
                                    (_, [], _)));
@@ -435,7 +436,7 @@
                                       { id_resolved = ref (None);
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )),
                                    (_, [], _)))
@@ -447,15 +448,17 @@
                           (Id (("inout", _),
                              { id_resolved = ref (None);
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )),
                           (_, [], _)));
                         (NamedAttr (_,
                            (Id (("@escaping", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )),
                            (_, [], _)));
@@ -463,7 +466,8 @@
                            (Id (("@autoclosure", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )),
                            (_, [], _)))
@@ -478,7 +482,7 @@
                                            { id_resolved = ref (None);
                                              id_resolved_alternatives =
                                              ref ([]); id_type = ref (None);
-                                             id_svalue = ref (None);
+                                             id_svalue = ref (Unknown);
                                              id_flags = ref (0);
                                              id_info_id = _ }
                                            )));
@@ -488,7 +492,7 @@
                                             { id_resolved = ref (None);
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             )),
@@ -499,7 +503,7 @@
                                                id_resolved_alternatives =
                                                ref ([]);
                                                id_type = ref (None);
-                                               id_svalue = ref (None);
+                                               id_svalue = ref (Unknown);
                                                id_flags = ref (0);
                                                id_info_id = _ }
                                              )),
@@ -510,14 +514,14 @@
                                                id_resolved_alternatives =
                                                ref ([]);
                                                id_type = ref (None);
-                                               id_svalue = ref (None);
+                                               id_svalue = ref (Unknown);
                                                id_flags = ref (0);
                                                id_info_id = _ }
                                              )),
                                           (_, [], _)))
                                        ]
                                      }));
-                        id_svalue = ref (None); id_flags = ref (0);
+                        id_svalue = ref (Unknown); id_flags = ref (0);
                         id_info_id = _ }
                       })
                  ],
@@ -528,8 +532,9 @@
                          (Id (("Int", _),
                             { id_resolved = ref (None);
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )));
                       t_attrs = [] });
               fbody =
@@ -551,7 +556,7 @@
                                              ref ((Some (Parameter, _)));
                                              id_resolved_alternatives =
                                              ref ([]); id_type = ref (None);
-                                             id_svalue = ref (None);
+                                             id_svalue = ref (Unknown);
                                              id_flags = ref (0);
                                              id_info_id = _ }
                                            }));
@@ -565,7 +570,7 @@
                                               ref ((Some (Parameter, _)));
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             }));
@@ -585,7 +590,7 @@
                                               ref ((Some (Parameter, _)));
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             }))
@@ -625,7 +630,7 @@
                       pinfo =
                       { id_resolved = ref ((Some (Parameter, _)));
                         id_resolved_alternatives = ref ([]);
-                        id_type = ref (None); id_svalue = ref (None);
+                        id_type = ref (None); id_svalue = ref (Unknown);
                         id_flags = ref (0); id_info_id = _ }
                       });
                  (Param
@@ -644,7 +649,8 @@
                                                        id_resolved_alternatives =
                                                        ref ([]);
                                                        id_type = ref (None);
-                                                       id_svalue = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
                                                        id_flags = ref (0);
                                                        id_info_id = _ }
                                                      )));
@@ -655,7 +661,7 @@
                                          ref ((Some (Parameter, _)));
                                          id_resolved_alternatives = ref ([]);
                                          id_type = ref (None);
-                                         id_svalue = ref (None);
+                                         id_svalue = ref (Unknown);
                                          id_flags = ref (0); id_info_id = _ }
                                        })
                                    ],
@@ -665,7 +671,7 @@
                                          { id_resolved = ref (None);
                                            id_resolved_alternatives =
                                            ref ([]); id_type = ref (None);
-                                           id_svalue = ref (None);
+                                           id_svalue = ref (Unknown);
                                            id_flags = ref (0); id_info_id = _
                                            }
                                          )));
@@ -677,7 +683,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )),
                                   (_, [], _)));
@@ -686,7 +692,7 @@
                                       { id_resolved = ref (None);
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )),
                                    (_, [], _)));
@@ -695,7 +701,7 @@
                                       { id_resolved = ref (None);
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )),
                                    (_, [], _)))
@@ -707,15 +713,17 @@
                           (Id (("inout", _),
                              { id_resolved = ref (None);
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )),
                           (_, [], _)));
                         (NamedAttr (_,
                            (Id (("@escaping", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )),
                            (_, [], _)));
@@ -723,7 +731,8 @@
                            (Id (("@autoclosure", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )),
                            (_, [], _)))
@@ -747,7 +756,7 @@
                                                               id_type =
                                                               ref (None);
                                                               id_svalue =
-                                                              ref (None);
+                                                              ref (Unknown);
                                                               id_flags =
                                                               ref (0);
                                                               id_info_id = _
@@ -761,7 +770,7 @@
                                                 id_resolved_alternatives =
                                                 ref ([]);
                                                 id_type = ref (None);
-                                                id_svalue = ref (None);
+                                                id_svalue = ref (Unknown);
                                                 id_flags = ref (0);
                                                 id_info_id = _ }
                                               })
@@ -773,7 +782,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -785,7 +794,7 @@
                                             { id_resolved = ref (None);
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             )),
@@ -796,7 +805,7 @@
                                                id_resolved_alternatives =
                                                ref ([]);
                                                id_type = ref (None);
-                                               id_svalue = ref (None);
+                                               id_svalue = ref (Unknown);
                                                id_flags = ref (0);
                                                id_info_id = _ }
                                              )),
@@ -807,14 +816,14 @@
                                                id_resolved_alternatives =
                                                ref ([]);
                                                id_type = ref (None);
-                                               id_svalue = ref (None);
+                                               id_svalue = ref (Unknown);
                                                id_flags = ref (0);
                                                id_info_id = _ }
                                              )),
                                           (_, [], _)))
                                        ]
                                      }));
-                        id_svalue = ref (None); id_flags = ref (0);
+                        id_svalue = ref (Unknown); id_flags = ref (0);
                         id_info_id = _ }
                       })
                  ],
@@ -839,7 +848,7 @@
                                              ref ((Some (Parameter, _)));
                                              id_resolved_alternatives =
                                              ref ([]); id_type = ref (None);
-                                             id_svalue = ref (None);
+                                             id_svalue = ref (Unknown);
                                              id_flags = ref (0);
                                              id_info_id = _ }
                                            }));
@@ -853,7 +862,7 @@
                                               ref ((Some (Parameter, _)));
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             }));
@@ -873,7 +882,7 @@
                                               ref ((Some (Parameter, _)));
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             }))
@@ -908,7 +917,7 @@
                  (Id (("doubleclosure", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -927,8 +936,8 @@
                                { id_resolved = ref ((Some (Parameter, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                })
                            ],
                          _);
@@ -958,7 +967,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -986,8 +995,8 @@
                                 { id_resolved = ref ((Some (Parameter, _)));
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 })
                             ],
                           _);
@@ -1017,7 +1026,7 @@
                                                    id_resolved_alternatives =
                                                    ref ([]);
                                                    id_type = ref (None);
-                                                   id_svalue = ref (None);
+                                                   id_svalue = ref (Unknown);
                                                    id_flags = ref (0);
                                                    id_info_id = _ }
                                                  )));
@@ -1049,7 +1058,7 @@
                  (Id (("mixedargs", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -1072,8 +1081,8 @@
                                 { id_resolved = ref ((Some (Parameter, _)));
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 })
                             ],
                           _);
@@ -1103,7 +1112,7 @@
                                                    id_resolved_alternatives =
                                                    ref ([]);
                                                    id_type = ref (None);
-                                                   id_svalue = ref (None);
+                                                   id_svalue = ref (Unknown);
                                                    id_flags = ref (0);
                                                    id_info_id = _ }
                                                  )));
@@ -1137,7 +1146,7 @@
                         (Id (("Int", _),
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )));
                      e_id = 0; e_range = None; is_implicit_return = false;
@@ -1172,7 +1181,7 @@
                                                  id_resolved_alternatives =
                                                  ref ([]);
                                                  id_type = ref (None);
-                                                 id_svalue = ref (None);
+                                                 id_svalue = ref (Unknown);
                                                  id_flags = ref (0);
                                                  id_info_id = _ }
                                                )));
@@ -1183,14 +1192,14 @@
                            name_info =
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            }));
                    t_attrs = [] }
                  ));
               t_attrs = [] },
             { id_resolved = ref (None); id_resolved_alternatives = ref ([]);
-              id_type = ref (None); id_svalue = ref (None);
+              id_type = ref (None); id_svalue = ref (Unknown);
               id_flags = ref (0); id_info_id = _ },
             (_, [], _)));
          e_id = 0; e_range = None; is_implicit_return = false;
@@ -1213,7 +1222,7 @@
                                   { id_resolved = ref (None);
                                     id_resolved_alternatives = ref ([]);
                                     id_type = ref (None);
-                                    id_svalue = ref (None);
+                                    id_svalue = ref (Unknown);
                                     id_flags = ref (0); id_info_id = _ }
                                   )));
                             e_id = 0; e_range = None;
@@ -1224,7 +1233,7 @@
                                    { id_resolved = ref (None);
                                      id_resolved_alternatives = ref ([]);
                                      id_type = ref (None);
-                                     id_svalue = ref (None);
+                                     id_svalue = ref (Unknown);
                                      id_flags = ref (0); id_info_id = _ }
                                    )));
                              e_id = 0; e_range = None;
@@ -1255,7 +1264,7 @@
                       (Id (("Dictionary", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    t_attrs = [] },
@@ -1266,7 +1275,8 @@
                            (Id (("Int", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )));
                         t_attrs = [] });
@@ -1286,7 +1296,8 @@
                                                        id_resolved_alternatives =
                                                        ref ([]);
                                                        id_type = ref (None);
-                                                       id_svalue = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
                                                        id_flags = ref (0);
                                                        id_info_id = _ }
                                                      )));
@@ -1298,7 +1309,7 @@
                                  { id_resolved = ref (None);
                                    id_resolved_alternatives = ref ([]);
                                    id_type = ref (None);
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (0); id_info_id = _ }
                                  }));
                          t_attrs = [] })
@@ -1307,7 +1318,7 @@
                  ));
               t_attrs = [] },
             { id_resolved = ref (None); id_resolved_alternatives = ref ([]);
-              id_type = ref (None); id_svalue = ref (None);
+              id_type = ref (None); id_svalue = ref (Unknown);
               id_flags = ref (0); id_info_id = _ },
             (_, [], _)));
          e_id = 0; e_range = None; is_implicit_return = false;
@@ -1323,7 +1334,7 @@
                  (Id (("UserType", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -1335,7 +1346,7 @@
                       (Id (("bar", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -1364,7 +1375,7 @@
                                           { id_resolved = ref (None);
                                             id_resolved_alternatives =
                                             ref ([]); id_type = ref (None);
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -1375,12 +1386,12 @@
                       name_info =
                       { id_resolved = ref (None);
                         id_resolved_alternatives = ref ([]);
-                        id_type = ref (None); id_svalue = ref (None);
+                        id_type = ref (None); id_svalue = ref (Unknown);
                         id_flags = ref (0); id_info_id = _ }
                       }));
               t_attrs = [] },
             { id_resolved = ref (None); id_resolved_alternatives = ref ([]);
-              id_type = ref (None); id_svalue = ref (None);
+              id_type = ref (None); id_svalue = ref (Unknown);
               id_flags = ref (0); id_info_id = _ },
             (_,
              [(Arg
@@ -1389,7 +1400,7 @@
                       (Id (("bar", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -1413,7 +1424,7 @@
                         (Id (("Int", _),
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )));
                      e_id = 0; e_range = None; is_implicit_return = false;
@@ -1437,8 +1448,8 @@
                                { id_resolved = ref ((Some (Parameter, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                })
                            ],
                          _);
@@ -1467,7 +1478,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -1509,7 +1520,7 @@
                                                  id_resolved_alternatives =
                                                  ref ([]);
                                                  id_type = ref (None);
-                                                 id_svalue = ref (None);
+                                                 id_svalue = ref (Unknown);
                                                  id_flags = ref (0);
                                                  id_info_id = _ }
                                                )));
@@ -1520,14 +1531,14 @@
                            name_info =
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            }));
                    t_attrs = [] }
                  ));
               t_attrs = [] },
             { id_resolved = ref (None); id_resolved_alternatives = ref ([]);
-              id_type = ref (None); id_svalue = ref (None);
+              id_type = ref (None); id_svalue = ref (Unknown);
               id_flags = ref (0); id_info_id = _ },
             (_,
              [(Arg
@@ -1543,8 +1554,8 @@
                                { id_resolved = ref ((Some (Parameter, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                })
                            ],
                          _);
@@ -1573,7 +1584,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -1606,7 +1617,7 @@
                (Id (("foo", _),
                   { id_resolved = ref (None);
                     id_resolved_alternatives = ref ([]);
-                    id_type = ref (None); id_svalue = ref (None);
+                    id_type = ref (None); id_svalue = ref (Unknown);
                     id_flags = ref (0); id_info_id = _ }
                   )))
             ));
@@ -1623,7 +1634,7 @@
                  (Id (("Int", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -1633,7 +1644,7 @@
                (Id (("foo", _),
                   { id_resolved = ref (None);
                     id_resolved_alternatives = ref ([]);
-                    id_type = ref (None); id_svalue = ref (None);
+                    id_type = ref (None); id_svalue = ref (Unknown);
                     id_flags = ref (0); id_info_id = _ }
                   )))
             ));
@@ -1654,7 +1665,7 @@
                       (Id (("Thing", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -1673,7 +1684,7 @@
                                     { id_resolved = ref (None);
                                       id_resolved_alternatives = ref ([]);
                                       id_type = ref (None);
-                                      id_svalue = ref (None);
+                                      id_svalue = ref (Unknown);
                                       id_flags = ref (0); id_info_id = _ }
                                     )));
                               e_id = 0; e_range = None;
@@ -1691,7 +1702,7 @@
                                         { id_resolved = ref (None);
                                           id_resolved_alternatives = ref ([]);
                                           id_type = ref (None);
-                                          id_svalue = ref (None);
+                                          id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
                                         )))
@@ -1731,7 +1742,8 @@
                                                      id_resolved_alternatives =
                                                      ref ([]);
                                                      id_type = ref (None);
-                                                     id_svalue = ref (None);
+                                                     id_svalue =
+                                                     ref (Unknown);
                                                      id_flags = ref (0);
                                                      id_info_id = _ }
                                                    )));
@@ -1745,7 +1757,8 @@
                                                       id_resolved_alternatives =
                                                       ref ([]);
                                                       id_type = ref (None);
-                                                      id_svalue = ref (None);
+                                                      id_svalue =
+                                                      ref (Unknown);
                                                       id_flags = ref (0);
                                                       id_info_id = _ }
                                                     )));
@@ -1757,8 +1770,8 @@
                                { id_resolved = ref (None);
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                }));
                        t_attrs = [] })
                    ]
@@ -1770,7 +1783,7 @@
                (Id (("foo", _),
                   { id_resolved = ref (None);
                     id_resolved_alternatives = ref ([]);
-                    id_type = ref (None); id_svalue = ref (None);
+                    id_type = ref (None); id_svalue = ref (Unknown);
                     id_flags = ref (0); id_info_id = _ }
                   )))
             ));
@@ -1790,7 +1803,7 @@
                         (Id (("Int", _),
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )));
                      e_id = 0; e_range = None; is_implicit_return = false;
@@ -1835,7 +1848,7 @@
                                                           id_type =
                                                           ref (None);
                                                           id_svalue =
-                                                          ref (None);
+                                                          ref (Unknown);
                                                           id_flags = ref (0);
                                                           id_info_id = _ }
                                                         )));
@@ -1847,7 +1860,7 @@
                                     { id_resolved = ref (None);
                                       id_resolved_alternatives = ref ([]);
                                       id_type = ref (None);
-                                      id_svalue = ref (None);
+                                      id_svalue = ref (Unknown);
                                       id_flags = ref (0); id_info_id = _ }
                                     }));
                             t_attrs = [] }
@@ -1882,7 +1895,7 @@
                                   { id_resolved = ref (None);
                                     id_resolved_alternatives = ref ([]);
                                     id_type = ref (None);
-                                    id_svalue = ref (None);
+                                    id_svalue = ref (Unknown);
                                     id_flags = ref (0); id_info_id = _ }
                                   )));
                             e_id = 0; e_range = None;
@@ -1893,7 +1906,7 @@
                                    { id_resolved = ref (None);
                                      id_resolved_alternatives = ref ([]);
                                      id_type = ref (None);
-                                     id_svalue = ref (None);
+                                     id_svalue = ref (Unknown);
                                      id_flags = ref (0); id_info_id = _ }
                                    )));
                              e_id = 0; e_range = None;
@@ -1932,7 +1945,7 @@
                                   { id_resolved = ref (None);
                                     id_resolved_alternatives = ref ([]);
                                     id_type = ref (None);
-                                    id_svalue = ref (None);
+                                    id_svalue = ref (Unknown);
                                     id_flags = ref (0); id_info_id = _ }
                                   )));
                             t_attrs = [] },
@@ -1944,7 +1957,7 @@
                                        { id_resolved = ref (None);
                                          id_resolved_alternatives = ref ([]);
                                          id_type = ref (None);
-                                         id_svalue = ref (None);
+                                         id_svalue = ref (Unknown);
                                          id_flags = ref (0); id_info_id = _ }
                                        )));
                                  t_attrs = [] });
@@ -1967,7 +1980,7 @@
                                                                 id_type =
                                                                 ref (None);
                                                                 id_svalue =
-                                                                ref (None);
+                                                                ref (Unknown);
                                                                 id_flags =
                                                                 ref (0);
                                                                 id_info_id =
@@ -1982,7 +1995,7 @@
                                           { id_resolved = ref (None);
                                             id_resolved_alternatives =
                                             ref ([]); id_type = ref (None);
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           }));
@@ -2128,7 +2141,7 @@
                (Id (("foo", _),
                   { id_resolved = ref (None);
                     id_resolved_alternatives = ref ([]);
-                    id_type = ref (None); id_svalue = ref (None);
+                    id_type = ref (None); id_svalue = ref (Unknown);
                     id_flags = ref (0); id_info_id = _ }
                   )))
             ));
@@ -2160,7 +2173,7 @@
                  (Id (("/!", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -2189,7 +2202,7 @@
                       (Id (("/!", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -2213,7 +2226,7 @@
                  (Id (("Int", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               t_attrs = [] },
@@ -2234,7 +2247,7 @@
                  (Id (("Int", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               t_attrs = [] },
@@ -2255,7 +2268,7 @@
                  (Id (("Int", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               t_attrs = [] },
@@ -2589,7 +2602,7 @@
                        (Id (("Int", _),
                           { id_resolved = ref (None);
                             id_resolved_alternatives = ref ([]);
-                            id_type = ref (None); id_svalue = ref (None);
+                            id_type = ref (None); id_svalue = ref (Unknown);
                             id_flags = ref (0); id_info_id = _ }
                           )));
                     t_attrs = [] })
@@ -2609,7 +2622,7 @@
                  (Id (("!=", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -2637,7 +2650,7 @@
                  (Id (("!==", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -2745,7 +2758,7 @@
                  (Id (("<=", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -2773,7 +2786,7 @@
                  (Id ((">=", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -2962,7 +2975,7 @@
                       (Id (("foo", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -3166,7 +3179,7 @@
                                       { id_resolved = ref (None);
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 e_id = 0; e_range = None;
@@ -3194,7 +3207,7 @@
                      pinfo =
                      { id_resolved = ref ((Some (Parameter, _)));
                        id_resolved_alternatives = ref ([]);
-                       id_type = ref (None); id_svalue = ref (None);
+                       id_type = ref (None); id_svalue = ref (Unknown);
                        id_flags = ref (0); id_info_id = _ }
                      })
                  ],
@@ -3221,7 +3234,7 @@
                                         ref ((Some (Parameter, _)));
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 e_id = 0; e_range = None;
@@ -3438,7 +3451,7 @@
                       (Id (("Int", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    t_attrs = [] }
@@ -3529,7 +3542,7 @@
                       (Id (("Dictionary", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    t_attrs = [] },
@@ -3540,7 +3553,8 @@
                            (Id (("Int", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )));
                         t_attrs = [] });
@@ -3551,8 +3565,8 @@
                                { id_resolved = ref (None);
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                )));
                          t_attrs = [] })
                     ],
@@ -3574,7 +3588,8 @@
             (IdSpecial ((Self, _),
                { id_resolved = ref (None);
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
                )));
          e_id = 0; e_range = None; is_implicit_return = false;
          facts = <opaque> },
@@ -3587,7 +3602,8 @@
             (IdSpecial ((Super, _),
                { id_resolved = ref (None);
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
                )));
          e_id = 0; e_range = None; is_implicit_return = false;
          facts = <opaque> },
@@ -3617,7 +3633,7 @@
                                         { id_resolved = ref (None);
                                           id_resolved_alternatives = ref ([]);
                                           id_type = ref (None);
-                                          id_svalue = ref (None);
+                                          id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
                                         )));
@@ -3679,8 +3695,9 @@
                           (Id (("bar", _),
                              { id_resolved = ref (None);
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )));
                        e_id = 0; e_range = None; is_implicit_return = false;
                        facts = <opaque> },
@@ -3705,8 +3722,9 @@
                           (Id (("x", _),
                              { id_resolved = ref (None);
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )));
                        e_id = 0; e_range = None; is_implicit_return = false;
                        facts = <opaque> },
@@ -3715,8 +3733,9 @@
                           (Id (("y", _),
                              { id_resolved = ref (None);
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )));
                        e_id = 0; e_range = None; is_implicit_return = false;
                        facts = <opaque> },
@@ -3725,8 +3744,9 @@
                           (Id (("z", _),
                              { id_resolved = ref (None);
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )));
                        e_id = 0; e_range = None; is_implicit_return = false;
                        facts = <opaque> }
@@ -3761,7 +3781,7 @@
                       (Id (("foo", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -3785,7 +3805,7 @@
                       (Id (("x", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -3795,7 +3815,7 @@
                       (Id (("y", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -3805,7 +3825,7 @@
                       (Id (("z", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -3847,7 +3867,7 @@
                  (Id (("foo", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -3871,7 +3891,7 @@
                       (Id (("foo", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -3881,7 +3901,7 @@
                     (Id (("bar", _),
                        { id_resolved = ref (None);
                          id_resolved_alternatives = ref ([]);
-                         id_type = ref (None); id_svalue = ref (None);
+                         id_type = ref (None); id_svalue = ref (Unknown);
                          id_flags = ref (0); id_info_id = _ }
                        )))
                  ));
@@ -3906,7 +3926,7 @@
                       (Id (("foo", _),
                          { id_resolved = ref (None);
                            id_resolved_alternatives = ref ([]);
-                           id_type = ref (None); id_svalue = ref (None);
+                           id_type = ref (None); id_svalue = ref (Unknown);
                            id_flags = ref (0); id_info_id = _ }
                          )));
                    e_id = 0; e_range = None; is_implicit_return = false;
@@ -3934,7 +3954,7 @@
                         (Id (("foo", _),
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )));
                      e_id = 0; e_range = None; is_implicit_return = false;
@@ -3944,8 +3964,9 @@
                          (Id (("bar", _),
                             { id_resolved = ref (None);
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )));
                       e_id = 0; e_range = None; is_implicit_return = false;
                       facts = <opaque> }
@@ -3971,7 +3992,7 @@
                  (IdSpecial ((Self, _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -3993,7 +4014,7 @@
                  (Id (("foo", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -4016,7 +4037,7 @@
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
                       id_type = ref (None);
-                      id_svalue = ref ((Some (Lit (Int ((Some 5L), _)))));
+                      id_svalue = ref ((Lit (Int ((Some 5L), _))));
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -4026,7 +4047,7 @@
                (Id (("bar", _),
                   { id_resolved = ref (None);
                     id_resolved_alternatives = ref ([]);
-                    id_type = ref (None); id_svalue = ref (None);
+                    id_type = ref (None); id_svalue = ref (Unknown);
                     id_flags = ref (0); id_info_id = _ }
                   )))
             ));
@@ -4041,7 +4062,8 @@
             (Id (("async", _),
                { id_resolved = ref (None);
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
                )));
          e_id = 0; e_range = None; is_implicit_return = false;
          facts = <opaque> },
@@ -4108,7 +4130,7 @@
                  (Id (("<=", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -4136,7 +4158,7 @@
                  (Id ((">=", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -4204,7 +4226,7 @@
                  (Id (("!=", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -4232,7 +4254,7 @@
                  (Id (("!==", _),
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     )));
               e_id = 0; e_range = None; is_implicit_return = false;
@@ -4332,8 +4354,8 @@
              (Id (("+", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = []; tparams = None },
         (FuncDef
@@ -4347,8 +4369,8 @@
              (Id (("*", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = []; tparams = None },
         (FuncDef
@@ -4362,8 +4384,8 @@
              (Id (("==", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = []; tparams = None },
         (FuncDef
@@ -4377,8 +4399,8 @@
              (Id (("/", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = []; tparams = None },
         (FuncDef
@@ -4392,8 +4414,8 @@
              (Id ((">>=", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = []; tparams = None },
         (FuncDef

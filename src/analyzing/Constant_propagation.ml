@@ -162,7 +162,9 @@ let add_constant_env ident (sid, svalue) (env : Eval.env) =
       Log.debug (fun m ->
           m ~tags "adding constant in env %s" (H.str_of_ident ident));
       Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
-  | NotCst -> ()
+  | NotCst
+  | Unknown ->
+      ()
 
 let is_assigned_just_once stats var =
   let id_str, sid = var in

@@ -14,7 +14,7 @@
                                         { id_resolved = ref (None);
                                           id_resolved_alternatives = ref ([]);
                                           id_type = ref (None);
-                                          id_svalue = ref (None);
+                                          id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
                                         )));
@@ -40,7 +40,7 @@
                                                           t_attrs = [] }
                                                         ));
                                                      t_attrs = [] }));
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )))
                                 ));
@@ -88,8 +88,9 @@
                           (PatId (("direction", _),
                              { id_resolved = ref ((Some (Global, _)));
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              ))
                           ],
                         _))
@@ -110,7 +111,7 @@
                                     { id_resolved = ref ((Some (Global, _)));
                                       id_resolved_alternatives = ref ([]);
                                       id_type = ref (None);
-                                      id_svalue = ref (None);
+                                      id_svalue = ref (Unknown);
                                       id_flags = ref (4); id_info_id = _ }
                                     )));
                               e_id = 0; e_range = None;
@@ -127,7 +128,7 @@
                                                 id_resolved_alternatives =
                                                 ref ([]);
                                                 id_type = ref (None);
-                                                id_svalue = ref (None);
+                                                id_svalue = ref (Unknown);
                                                 id_flags = ref (0);
                                                 id_info_id = _ }
                                               )));
@@ -155,7 +156,7 @@
                                                                 }
                                                               ));
                                                            t_attrs = [] }));
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             )))
@@ -173,7 +174,7 @@
                                                 id_resolved_alternatives =
                                                 ref ([]);
                                                 id_type = ref (None);
-                                                id_svalue = ref (None);
+                                                id_svalue = ref (Unknown);
                                                 id_flags = ref (0);
                                                 id_info_id = _ }
                                               )));
@@ -243,7 +244,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -306,7 +307,7 @@
                                      { id_resolved = ref ((Some (Global, _)));
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )))
                                 ]
@@ -330,7 +331,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -364,7 +365,7 @@
                         (Id (("Click", _),
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )),
                         [(PatKeyVal (
@@ -372,8 +373,8 @@
                                { id_resolved = ref ((Some (Global, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                )),
                             (PatTuple
                                (_,
@@ -381,14 +382,14 @@
                                     { id_resolved = ref ((Some (Global, _)));
                                       id_resolved_alternatives = ref ([]);
                                       id_type = ref (None);
-                                      id_svalue = ref (None);
+                                      id_svalue = ref (Unknown);
                                       id_flags = ref (0); id_info_id = _ }
                                     ));
                                   (PatId (("y", _),
                                      { id_resolved = ref ((Some (Global, _)));
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      ))
                                   ],
@@ -413,7 +414,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -427,7 +428,7 @@
                                             ref ((Some (Global, _)));
                                             id_resolved_alternatives =
                                             ref ([]); id_type = ref (None);
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -442,7 +443,7 @@
                                              ref ((Some (Global, _)));
                                              id_resolved_alternatives =
                                              ref ([]); id_type = ref (None);
-                                             id_svalue = ref (None);
+                                             id_svalue = ref (Unknown);
                                              id_flags = ref (0);
                                              id_info_id = _ }
                                            )));
@@ -468,7 +469,8 @@
                            (Id (("KeyPress", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )),
                            [(PatKeyVal (
@@ -476,7 +478,7 @@
                                   { id_resolved = ref ((Some (Global, _)));
                                     id_resolved_alternatives = ref ([]);
                                     id_type = ref (None);
-                                    id_svalue = ref (None);
+                                    id_svalue = ref (Unknown);
                                     id_flags = ref (0); id_info_id = _ }
                                   )),
                                (OtherPat (("PatInterpolatedString", _),
@@ -513,7 +515,8 @@
                            (Id (("Quit", _),
                               { id_resolved = ref (None);
                                 id_resolved_alternatives = ref ([]);
-                                id_type = ref (None); id_svalue = ref (None);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
                                 id_flags = ref (0); id_info_id = _ }
                               )),
                            []))
@@ -537,7 +540,7 @@
                                           { id_resolved = ref (None);
                                             id_resolved_alternatives =
                                             ref ([]); id_type = ref (None);
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -563,7 +566,7 @@
                                                             t_attrs = [] }
                                                           ));
                                                        t_attrs = [] }));
-                                          id_svalue = ref (None);
+                                          id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
                                         )))
@@ -586,7 +589,7 @@
                         (Id (("KeyPress", _),
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )),
                         [(PatKeyVal (
@@ -594,8 +597,8 @@
                                { id_resolved = ref ((Some (Global, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                )),
                             (OtherPat (("PatInterpolatedString", _),
                                [(E
@@ -646,7 +649,7 @@
                                           { id_resolved = ref (None);
                                             id_resolved_alternatives =
                                             ref ([]); id_type = ref (None);
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -672,7 +675,7 @@
                                                             t_attrs = [] }
                                                           ));
                                                        t_attrs = [] }));
-                                          id_svalue = ref (None);
+                                          id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
                                         )))
@@ -695,7 +698,7 @@
                         (Id (("KeyPress", _),
                            { id_resolved = ref (None);
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )),
                         []))
@@ -726,7 +729,7 @@
                                  { id_resolved = ref (None);
                                    id_resolved_alternatives = ref ([]);
                                    id_type = ref (None);
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (0); id_info_id = _ }
                                  }))
                           ]
@@ -748,7 +751,7 @@
                     [(PatId (("other_event", _),
                         { id_resolved = ref ((Some (Global, _)));
                           id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
+                          id_type = ref (None); id_svalue = ref (Unknown);
                           id_flags = ref (0); id_info_id = _ }
                         ))
                       ],
@@ -768,7 +771,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -804,7 +807,8 @@
                                                        id_resolved_alternatives =
                                                        ref ([]);
                                                        id_type = ref (None);
-                                                       id_svalue = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
                                                        id_flags = ref (0);
                                                        id_info_id = _ }
                                                      )));

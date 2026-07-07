@@ -41,7 +41,7 @@ val update_svalue : IL.cfg -> mapping -> unit
 
 (* deep-scan hook *)
 val hook_constness_of_function :
-  (AST_generic.expr -> AST_generic.svalue option) option Hook.t
+  (AST_generic.expr -> AST_generic.svalue) option Hook.t
 
 (* pro-scan hook *)
 val hook_transfer_of_assume :

@@ -53,15 +53,13 @@ let propagated_value_string_of_mval mval =
   match any with
   | G.E { e = N (Id (_, id_info)); _ } -> (
       match !(id_info.id_svalue) with
-      | Some (Lit x) ->
+      | Lit x ->
           let any = G.E (G.L x |> G.e) in
           Some (metavar_string_of_any any)
-      | Some (Sym x) ->
+      | Sym x ->
           let any = G.E x in
           Some (metavar_string_of_any any)
-      | Some (Cst _) -> None
-      | Some NotCst -> None
-      | None -> None)
+      | _ -> None)
   | __else__ -> None
 
 (*****************************************************************************)

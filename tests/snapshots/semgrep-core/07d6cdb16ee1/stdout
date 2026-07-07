@@ -5,7 +5,8 @@
             (Id (("foo", _),
                { id_resolved = ref ((Some (Global, _)));
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
                )));
          attrs = []; tparams = None },
        (VarDef
@@ -22,8 +23,8 @@
                                 { id_resolved = ref ((Some (Parameter, _)));
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 })
                             ],
                           _);

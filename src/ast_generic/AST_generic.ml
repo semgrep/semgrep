@@ -674,8 +674,7 @@ and id_info = {
    * meaning the same variable might have different id_svalue value
    * depending where it is used.
    *)
-  id_svalue : svalue option ref; [@hash.ignore] [@equal fun _a _b -> true]
-  (* ^^^ THINK: Drop option? *)
+  id_svalue : svalue ref; [@hash.ignore] [@equal fun _a _b -> true]
   (* See module 'IdFlags'. Previously we compared 'id_flags' with 'IdFlags.equal'
    * but, once we added the 'final' flag which is only set at definition site,
    * the same identifier can now have different flags. In fact we did not really
@@ -944,6 +943,7 @@ and const_type = Cbool | Cint | Cstr | Cany
  * for constant and symbolic propagation, but having a single one is more
  * efficient (time- and memory-wise). *)
 and svalue =
+  | Unknown
   | Lit of literal
   | Cst of const_type
   | Sym of expr
@@ -2333,7 +2333,7 @@ let empty_id_info ?(fake = false) ?(case_insensitive = false)
     id_resolved = ref None;
     id_resolved_alternatives = ref [];
     id_type = ref None;
-    id_svalue = ref None;
+    id_svalue = ref Unknown;
     id_flags =
       ref (IdFlags.make ~fake ~case_insensitive ~final:false ~static:false);
     id_info_id = id;

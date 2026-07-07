@@ -63,18 +63,19 @@ let eq (c1 : G.svalue) (c2 : G.svalue) : bool =
        * it may not be safe to use them interchangeably. (TBH I'm not sure if/when
        * it's safe so I'm erring on the side of caution!) *)
       phys_equal e1 e2
-  | G.NotCst, G.NotCst -> true
-  | G.Lit _, _
-  | G.Cst _, _
-  | G.Sym _, _
-  | G.NotCst, _ ->
-      false
+  | G.NotCst, G.NotCst
+  | G.Unknown, G.Unknown ->
+      true
+  | _ -> false
 
 let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
 
 (* aka merge *)
 let union c1 c2 =
   match (c1, c2) with
+  | c, G.Unknown
+  | G.Unknown, c ->
+      c (* unknown is bot *)
   | _any, G.NotCst
   | G.NotCst, _any ->
       G.NotCst
@@ -118,6 +119,9 @@ let refine (c1 : G.svalue) (c2 : G.svalue) : G.svalue =
   | _ when eq c1 c2 -> c1
   | c, G.NotCst
   | G.NotCst, c ->
+      c
+  | G.Unknown, c
+  | c, G.Unknown ->
       c
   | G.Lit _, _
   | G.Cst _, G.Cst _
@@ -335,12 +339,14 @@ and eval_lval env lval =
       let opt_c =
         Dataflow_var_env.VarMap.find_opt (IL.str_of_name x) env.vars
       in
-      match (!(x.id_info.id_svalue), opt_c) with
-      | None, None -> G.NotCst
-      | Some c, None
-      | None, Some c ->
-          c
-      | Some c1, Some c2 -> refine c1 c2)
+      match opt_c with
+      | None -> (
+          (* No dataflow fact for this var on this path. If it also has no
+           * static svalue, then in a must-analysis it is not a known constant. *)
+          match !(x.id_info.id_svalue) with
+          | G.Unknown -> G.NotCst
+          | c -> c)
+      | Some c -> refine !(x.id_info.id_svalue) c)
   | ___else___ -> G.NotCst
 
 and eval_op env wop args =

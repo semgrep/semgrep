@@ -243,10 +243,10 @@ and type_of_name lang = function
   | IdSpecial (_, id_info) -> (resolved_type_of_id_info lang id_info, None)
 
 and resolved_type_of_svalue lang = function
-  | Some (G.Lit lit) -> type_of_lit lang lit
-  | Some (Cst Cbool) -> Type.Builtin Type.Bool
-  | Some (Cst Cint) -> Type.Builtin Type.Int
-  | Some (Cst Cstr) -> Type.Builtin Type.String
+  | G.Lit lit -> type_of_lit lang lit
+  | Cst Cbool -> Type.Builtin Type.Bool
+  | Cst Cint -> Type.Builtin Type.Int
+  | Cst Cstr -> Type.Builtin Type.String
   | _else_ -> Type.NoType
 
 and resolved_type_of_id_info lang info : G.name Type.t =

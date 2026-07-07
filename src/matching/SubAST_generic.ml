@@ -120,7 +120,7 @@ let subexprs_of_args args =
 (* used for deep expression matching *)
 let subexprs_of_expr with_symbolic_propagation e =
   match e.e with
-  | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
+  | N (Id (_, { id_svalue = { contents = Sym e1 }; _ }))
     when with_symbolic_propagation ->
       [ e1 ]
   | L _
@@ -213,7 +213,7 @@ let subexprs_of_expr ?(symbolic_propagation = false) e =
 let subexprs_of_expr_implicit (with_symbolic_propagation : bool) (e : expr) :
     expr list =
   match e.e with
-  | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
+  | N (Id (_, { id_svalue = { contents = Sym e1 }; _ }))
     when with_symbolic_propagation ->
       [ e1 ]
   (* cases where we extract a subexpr *)

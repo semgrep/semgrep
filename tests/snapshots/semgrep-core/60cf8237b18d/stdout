@@ -6,8 +6,8 @@
                (("a", _),
                 { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }))
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }))
              ]
            ));
         d_attrs = [] });
@@ -21,8 +21,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -36,8 +36,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"; "c"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -50,8 +50,8 @@
                 (("this", _),
                  { id_resolved = ref ((Some ((ImportedEntity ["this"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -65,8 +65,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["this"; "a"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -80,8 +80,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "this"; "b"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -95,8 +95,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "super"; "b"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -109,8 +109,8 @@
                 (("$X", _),
                  { id_resolved = ref ((Some ((ImportedEntity ["$X"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -137,7 +137,7 @@
                      (Id (("Int", _),
                         { id_resolved = ref (None);
                           id_resolved_alternatives = ref ([]);
-                          id_type = ref (None); id_svalue = ref (None);
+                          id_type = ref (None); id_svalue = ref (Unknown);
                           id_flags = ref (0); id_info_id = _ }
                         )));
                   t_attrs = [] })
@@ -153,8 +153,8 @@
                 (("b", _),
                  { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   })
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
                 ))
               ]
             ));
@@ -168,8 +168,8 @@
                 (("b", _),
                  { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   })
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
                 ))
               ]
             ));
@@ -183,8 +183,8 @@
                 (("_", _),
                  { id_resolved = ref ((Some ((ImportedEntity ["a"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   })
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
                 ))
               ]
             ));
@@ -199,8 +199,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   })
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
                 ))
               ]
             ));
@@ -215,8 +215,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   })
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
                 ))
               ]
             ));
@@ -231,8 +231,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"; "c"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -246,8 +246,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"; "d"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -261,8 +261,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"; "e"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -276,8 +276,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"; "c"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   })
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
                 ))
               ]
             ));
@@ -292,8 +292,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"; "e"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   }))
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }))
               ]
             ));
          d_attrs = [] });
@@ -307,8 +307,8 @@
                  { id_resolved =
                    ref ((Some ((ImportedEntity ["a"; "b"; "f"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
-                   id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                   })
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ })
                 ))
               ]
             ));

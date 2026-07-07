@@ -232,7 +232,7 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
 let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
-  | G.N (G.Id ((_, _), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
+  | G.N (G.Id ((_, _), { id_svalue = { contents = G.Lit lit }; _ }))
   (* coupling: Constant_propagation.eval *)
   | G.Call
       ( { e = G.N (G.Id (("!dockerfile_expand!", _), _)); _ },
@@ -242,9 +242,7 @@ let rec eval env code =
               {
                 e =
                   G.N
-                    (G.Id
-                       ( (_, _),
-                         { id_svalue = { contents = Some (G.Lit lit) }; _ } ));
+                    (G.Id ((_, _), { id_svalue = { contents = G.Lit lit }; _ }));
                 _;
               };
           ],
@@ -258,7 +256,7 @@ let rec eval env code =
   | G.DotAccess
       ( { e = G.N (Id ((("local" | "var"), _), _)); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some (Lit lit); _ }; _ })) )
+        FN (Id (_, { id_svalue = { contents = Lit lit; _ }; _ })) )
     when env.constant_propagation ->
       value_of_lit ~code lit
   | G.Call ({ e = Special (ConcatString op, _); _ }, (_, args, _)) ->
