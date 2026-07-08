@@ -2413,6 +2413,13 @@ and m_generic_type_vs_type_t lang tok a b =
       m_generic_type_vs_type_t lang tok t1 t2
   | G.TyExpr { e = G.N name1; _ }, _ ->
       m_generic_type_vs_type_t lang tok (G.TyN name1 |> G.t) b
+  (* In some languages (e.g. Python), a qualified name in type position
+   * (`x: a.b.C`) parses as a DotAccess expr rather than a TyN. Convert it to
+   * a name so it can match the resolved name of the inferred type. *)
+  | G.TyExpr ({ e = G.DotAccess _; _ } as e1), _ -> (
+      match H.name_of_dot_access e1 with
+      | Some name1 -> m_generic_type_vs_type_t lang tok (G.TyN name1 |> G.t) b
+      | None -> fail ())
   | _, Type.N _
   | _, Type.UnresolvedName _
   | _, Type.Builtin _
