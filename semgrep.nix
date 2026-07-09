@@ -18,10 +18,21 @@ let
       };
 
       # helper to add buildinputs to an existing pkg
+      #
+      # opam-nix's per-package setup-hook only exports `opam__<pkg>__*` env
+      # vars and `OCAMLPATH`; it does not add `${pkg}/bin` to PATH. Stdenv
+      # does that automatically for nativeBuildInputs but not for buildInputs
+      # whose setup-hook is non-empty (the case here). Mirror buildInputs
+      # into nativeBuildInputs so any opam dep's executable (menhir, dune,
+      # ocaml-protoc, ...) is on PATH during the build.
       addBuildInputs =
         pkg: inputs:
         pkg.overrideAttrs (prev: {
           buildInputs = prev.buildInputs ++ inputs;
+          nativeBuildInputs =
+            prev.nativeBuildInputs
+            ++ prev.buildInputs
+            ++ inputs;
         });
 
       # convert scopes to a list of pkgs so we can explicitly add packages from
