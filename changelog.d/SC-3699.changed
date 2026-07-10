@@ -1,0 +1,3 @@
+Increased the timeout for dynamic dependency resolution subprocesses from
+600 to 900 seconds, giving large projects more time to resolve dependencies
+before timing out.
