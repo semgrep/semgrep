@@ -6,6 +6,13 @@
 
 <!-- insertion point -->
 
+## [1.169.0](https://github.com/semgrep/semgrep/releases/tag/v1.169.0) - 2026-07-08
+
+### ### Infra/Release Changes
+
+- Updated Dart parser to a more recent upstream version. (LANG-579)
+
+
 ## [1.168.0](https://github.com/semgrep/semgrep/releases/tag/v1.168.0) - 2026-06-24
 
 ### ### Added
