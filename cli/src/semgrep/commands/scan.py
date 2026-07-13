@@ -21,7 +21,6 @@ import tempfile
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -61,6 +60,7 @@ from semgrep.engine import EngineType
 from semgrep.error import mark_semgrep_error_as_reported
 from semgrep.error import SemgrepError
 from semgrep.git import get_project_url
+from semgrep.metrics import METRICS_STATE_TYPE
 from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
 from semgrep.output import OutputHandler
@@ -76,7 +76,6 @@ from semgrep.target_manager import write_pipes_to_disk
 from semgrep.types import FilteredMatches
 from semgrep.types import TargetInfoAccumulator
 from semgrep.util import abort
-from semgrep.util import is_truthy
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -114,34 +113,6 @@ def _parse_validation_mode(
 ) -> RuleValidationMode:
     return _VALIDATION_MODE_BY_NAME[value]
 
-
-class MetricsStateType(click.ParamType):
-    name = "metrics_state"
-
-    def get_metavar(self, _param: click.Parameter) -> str:
-        return "[auto|on|off]"
-
-    def convert(
-        self,
-        value: Any,
-        _param: Optional["click.Parameter"],
-        ctx: Optional["click.Context"],
-    ) -> Any:
-        if value is None:
-            return None
-        if isinstance(value, str):
-            lower = value.lower()
-            if lower == "auto":
-                return MetricsState.AUTO
-            # Support setting via old environment variable values 0/1/true/false
-            if is_truthy(value):
-                return MetricsState.ON
-            if lower == "off" or lower == "0" or lower == "false":
-                return MetricsState.OFF
-        self.fail("expected 'auto', 'on', or 'off'")
-
-
-METRICS_STATE_TYPE = MetricsStateType()
 
 # This subset of scan options is reused in ci.py
 # coupling: if you add an option below, you'll need to modify also the

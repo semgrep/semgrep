@@ -20,8 +20,10 @@ from pathlib import Path
 from typing import Any
 from typing import BinaryIO
 from typing import cast
+from typing import Optional
 
 import click
+import requests
 from rich.progress import BarColumn
 from rich.progress import DownloadColumn
 from rich.progress import Progress
@@ -34,6 +36,8 @@ from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
+from semgrep.metrics import METRICS_STATE_TYPE
+from semgrep.metrics import MetricsState
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.state import SemgrepState
@@ -82,12 +86,14 @@ def download_semgrep_pro(
 
     with state.app_session.get(url, timeout=180, stream=True) as r:
         if r.status_code == 401:
+            state.metrics.add_install_pro_error("download-401")
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again. "
                 "Or in CI, ensure your SEMGREP_APP_TOKEN variable is set correctly."
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
         if r.status_code == 403:
+            state.metrics.add_install_pro_error("download-403")
             logger.warning(
                 "Logged in deployment does not have access to Semgrep Pro Engine"
             )
@@ -156,6 +162,7 @@ def run_install_semgrep_pro() -> None:
 
     state = get_state()
     if state.app_session.token is None:
+        state.metrics.add_install_pro_error("no-api-token")
         logger.info(
             "Run `semgrep login` before running `semgrep install-semgrep-pro`. "
             "Or in non-interactive environments, ensure your SEMGREP_APP_TOKEN variable is set correctly."
@@ -192,7 +199,11 @@ def run_install_semgrep_pro() -> None:
 
     semgrep_pro_path_tmp = semgrep_pro_path.with_suffix(".tmp_download")
 
-    download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
+    try:
+        download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
+    except requests.RequestException:
+        state.metrics.add_install_pro_error("download-failed")
+        raise
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others
@@ -214,7 +225,8 @@ def run_install_semgrep_pro() -> None:
             encoding="utf-8",
             stderr=subprocess.STDOUT,
         ).rstrip()
-    except subprocess.CalledProcessError:
+    except (subprocess.SubprocessError, OSError):
+        state.metrics.add_install_pro_error("version-check-failed")
         if semgrep_pro_path_tmp.exists():
             semgrep_pro_path_tmp.unlink()
         abort(
@@ -226,6 +238,7 @@ def run_install_semgrep_pro() -> None:
         semgrep_pro_path.unlink()
     semgrep_pro_path_tmp.rename(semgrep_pro_path)
     add_semgrep_pro_version_stamp()
+    state.metrics.add_install_pro_outcome(True)
     logger.info(f"\nSuccessfully installed Semgrep Pro Engine (version {version})!")
 
 
@@ -234,9 +247,24 @@ def run_install_semgrep_pro() -> None:
     "--debug",
     is_flag=True,
 )
+@click.option(
+    "--metrics",
+    "metrics",
+    type=METRICS_STATE_TYPE,
+    envvar="SEMGREP_SEND_METRICS",
+    help="Configures how usage metrics are sent to the Semgrep server. "
+    "'auto' (the default) sends metrics only when you are logged in to semgrep.dev.",
+)
 @handle_command_errors
-def install_semgrep_pro(debug: bool) -> None:
+def install_semgrep_pro(debug: bool, metrics: Optional[MetricsState]) -> None:
     state = get_state()
     state.terminal.configure(verbose=False, debug=debug, quiet=False, force_color=False)
+    # None resolves to AUTO: metrics are sent only when logged in, which this
+    # command requires anyway. handle_command_errors sends them on exit.
+    state.metrics.configure(metrics)
 
-    run_install_semgrep_pro()
+    try:
+        run_install_semgrep_pro()
+    except BaseException:
+        state.metrics.add_install_pro_outcome(False)
+        raise

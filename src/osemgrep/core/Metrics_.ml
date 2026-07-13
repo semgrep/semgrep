@@ -176,6 +176,7 @@ let default_payload =
         isAuthenticated = false;
         integrationName = None;
         deployment_id = None;
+        installMethod = None;
       };
     performance =
       {
@@ -265,6 +266,7 @@ let default_payload =
         exit_code = None;
         errors = None;
       };
+    install_pro = { success = None; error = None };
   }
 
 let default () =

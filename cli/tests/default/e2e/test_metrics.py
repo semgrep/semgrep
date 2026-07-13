@@ -253,6 +253,8 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     payload["environment"]["version"] = _mask_digits(payload["environment"]["version"])
     payload["environment"]["isAuthenticated"] = False
     payload["environment"]["os"] = "<MASKED>"
+    # depends on how the machine running the tests installed semgrep
+    payload["environment"]["installMethod"] = "<MASKED>"
 
     payload["performance"]["maxMemoryBytes"] = _mask_digits(
         str(payload["performance"]["maxMemoryBytes"])
