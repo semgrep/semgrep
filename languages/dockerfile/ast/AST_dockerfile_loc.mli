@@ -27,6 +27,7 @@ val image_spec_loc : AST_dockerfile.image_spec -> Tok_range.t
 val env_pair_loc : AST_dockerfile.env_pair -> Tok_range.t
 val label_pair_loc : AST_dockerfile.label_pair -> Tok_range.t
 val expose_port_loc : AST_dockerfile.expose_port -> Tok_range.t
+val shell_fragment_loc : AST_dockerfile.shell_fragment -> Tok_range.t
 val str_or_ellipsis_loc : AST_dockerfile.str_or_ellipsis -> Tok_range.t
 val array_or_paths_loc : AST_dockerfile.array_or_paths -> Tok_range.t
 val healthcheck_loc : AST_dockerfile.healthcheck -> Tok_range.t

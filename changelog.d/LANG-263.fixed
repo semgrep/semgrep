@@ -1,0 +1,2 @@
+Dockerfile: Fixed parse errors on `RUN` instructions that use heredoc syntax
+(`<<EOF`, `<<-EOF`, quoted delimiters).
