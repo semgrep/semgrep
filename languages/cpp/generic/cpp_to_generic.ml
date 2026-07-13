@@ -2221,13 +2221,13 @@ and map_sequencable_for_or_type :
       []
 
 and map_ifdef_directive env = function
-  | Ifdef v1 ->
+  | Ifdef (v1, _cond) ->
       let _v1 = map_tok env v1 in
       ()
   | IfdefElse v1 ->
       let _v1 = map_tok env v1 in
       ()
-  | IfdefElseif v1 ->
+  | IfdefElseif (v1, _cond) ->
       let _v1 = map_tok env v1 in
       ()
   | IfdefEndif v1 ->

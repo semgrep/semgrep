@@ -1142,19 +1142,32 @@ and map_preproc_expression (env : env) (x : CST.preproc_expression) : expr =
    Parse_c_tree_sitter.ml
 *)
 let ifdef_token env = function
-  | `Ifdef x -> Ifdef (token env x)
+  | `Ifdef x -> Ifdef (token env x, None)
   (* TODO: ifndef *)
-  | `Ifndef x -> Ifdef (token env x)
+  | `Ifndef x -> Ifdef (token env x, None)
 
 let elifdef_token env = function
-  | `Elifdef x -> IfdefElseif (token env x)
+  | `Elifdef x -> IfdefElseif (token env x, None)
   (* TODO: elifndef *)
-  | `Elifndef x -> IfdefElseif (token env x)
+  | `Elifndef x -> IfdefElseif (token env x, None)
 
 let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
     (env : env) ((v1, v2, v3, v4, v5, v6) : item P.preproc_if_poly) =
-  (* coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
-  let rec preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
+  (* [dead_prior] is true when an earlier branch in this #if/#elif/#else
+   * chain has already been proven truthy — in that case every subsequent
+   * branch (including #else) is unreachable and its body is dropped.
+   * We still emit the [CppIfdef] directive markers so the surrounding AST
+   * shape is preserved.
+   *
+   * coupling(pro): [Preproc_eval_cpp.hook_eval].
+   * coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
+  let eval_cond e =
+    match Hook.get Preproc_eval_cpp.hook_eval with
+    | None -> Preproc_eval_cpp.Unknown
+    | Some eval -> eval e
+  in
+  let rec preproc_else_poly ~(dead_prior : bool)
+      ~(map_item : env -> item -> 'out list) (env : env)
       (x : item P.preproc_else_poly) : 'out list =
     match x with
     | `Prep_else_poly (v1, v2) ->
@@ -1162,42 +1175,55 @@ let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
           token env v1
           (* pattern #[ 	]*else *)
         in
-        let v2 = List.concat_map (map_item env) v2 in
         let dir = CppIfdef (IfdefElse v1) in
-        dir :: v2
+        if dead_prior then [ dir ]
+        else
+          let v2 = List.concat_map (map_item env) v2 in
+          dir :: v2
     | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
         let v1 =
           token env v1
           (* pattern #[ 	]*elif *)
         in
-        let _v2 = map_preproc_expression env v2 in
+        let cond_expr = map_preproc_expression env v2 in
+        let cond = eval_cond cond_expr in
         let _v3 =
           token env v3
           (* "\n" *)
         in
-        let v4 = List.concat_map (map_item env) v4 in
+        let dir = CppIfdef (IfdefElseif (v1, Some cond_expr)) in
+        let this_dead = dead_prior || cond = Preproc_eval_cpp.Falsy in
+        let v4 = if this_dead then [] else List.concat_map (map_item env) v4 in
         let v5 =
           match v5 with
-          | Some x -> preproc_else_poly ~map_item env x
+          | Some x ->
+              let dead_prior = dead_prior || cond = Preproc_eval_cpp.Truthy in
+              preproc_else_poly ~dead_prior ~map_item env x
           | None -> []
         in
-        let dir = CppIfdef (IfdefElseif v1) in
         (dir :: v4) @ v5
   in
   let v1 =
     token env v1
     (* pattern #[ 	]*if *)
   in
-  let _v2TODO = map_preproc_expression env v2 in
+  let cond_expr = map_preproc_expression env v2 in
+  let cond = eval_cond cond_expr in
   let _v3 =
     token env v3
     (* "\n" *)
   in
-  let dir1 = Ifdef v1 in
-  let v4 = List.concat_map (map_item env) v4 in
+  let dir1 = Ifdef (v1, Some cond_expr) in
+  let v4 =
+    if cond = Preproc_eval_cpp.Falsy then []
+    else List.concat_map (map_item env) v4
+  in
   let v5 =
     match v5 with
-    | Some x -> preproc_else_poly ~map_item env x
+    | Some x ->
+        preproc_else_poly
+          ~dead_prior:(cond = Preproc_eval_cpp.Truthy)
+          ~map_item env x
     | None -> []
   in
   let v6 =
@@ -1241,7 +1267,7 @@ let preproc_ifdef_poly (type item) ~(map_item : env -> item -> 'out list)
           token env v1
           (* pattern #[ 	]*elif *)
         in
-        let _v2 = map_preproc_expression env v2 in
+        let cond_expr = map_preproc_expression env v2 in
         let _v3 =
           token env v3
           (* "\n" *)
@@ -1252,7 +1278,7 @@ let preproc_ifdef_poly (type item) ~(map_item : env -> item -> 'out list)
           | Some x -> preproc_else_poly ~map_item env x
           | None -> []
         in
-        let dir = CppIfdef (IfdefElseif v1) in
+        let dir = CppIfdef (IfdefElseif (v1, Some cond_expr)) in
         (dir :: v4) @ v5
   in
   let v1 = ifdef_token env v1 in
