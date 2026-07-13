@@ -75,6 +75,7 @@ type payload = {
     extension: extension;
     mcp: mcp;
     guardian: guardian;
+    install_pro: install_pro;
 }
 
 (*****************************************************************************)
@@ -102,6 +103,11 @@ type environment = {
     ?integrationName <ocaml mutable>: string option;
     ~isAuthenticated <python default="False"> <ocaml mutable>: bool;
     ?deployment_id <ocaml mutable>: int option;
+    (* How the Semgrep CLI itself was installed, detected heuristically:
+     * "pip" | "homebrew" | "docker" | "unknown".
+     * Since Semgrep 1.169.0
+     *)
+    ?installMethod <ocaml mutable>: string option;
   }
 
 (*****************************************************************************)
@@ -337,6 +343,24 @@ type guardian = {
     ?blocking <ocaml mutable>: bool option;
     ?exit_code <ocaml mutable>: int option;
     ?errors <ocaml mutable>: string list option;
+}
+
+(*****************************************************************************)
+(* Install pro *)
+(*****************************************************************************)
+
+(* Only populated by the `semgrep install-semgrep-pro` subcommand, to track
+ * how many Pro Engine installs happen and how many succeed.
+ * Since Semgrep 1.169.0
+ *)
+type install_pro = {
+    (* whether the install completed successfully *)
+    ?success <ocaml mutable>: bool option;
+    (* closed vocabulary of failure reasons, e.g. "download-401",
+     * "download-403", "download-failed", "version-check-failed";
+     * no free-form error messages (see metrics.md)
+     *)
+    ?error <ocaml mutable>: string option;
 }
 
 (*****************************************************************************)

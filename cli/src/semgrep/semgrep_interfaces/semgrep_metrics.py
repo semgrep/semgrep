@@ -1040,6 +1040,40 @@ class Mcp:
 
 
 @dataclass
+class InstallPro:
+    """Original type: install_pro = { ... }
+    """
+
+    success: Optional[bool] = None
+    error: Optional[str] = None
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'InstallPro':
+        if isinstance(x, dict):
+            return cls(
+                success=_atd_read_bool(x['success']) if 'success' in x else None,
+                error=_atd_read_string(x['error']) if 'error' in x else None,
+            )
+        else:
+            _atd_bad_json('InstallPro', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        if self.success is not None:
+            res['success'] = _atd_write_bool(self.success)
+        if self.error is not None:
+            res['error'] = _atd_write_string(self.error)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'InstallPro':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
 class Guardian:
     """Original type: guardian = { ... }
     """
@@ -1271,6 +1305,7 @@ class Environment:
     integrationName: Optional[str] = None
     isAuthenticated: bool = field(default_factory=lambda: False)
     deployment_id: Optional[int] = None
+    installMethod: Optional[str] = None
 
     @classmethod
     def from_json(cls, x: Any) -> 'Environment':
@@ -1287,6 +1322,7 @@ class Environment:
                 integrationName=_atd_read_string(x['integrationName']) if 'integrationName' in x else None,
                 isAuthenticated=_atd_read_bool(x['isAuthenticated']) if 'isAuthenticated' in x else False,
                 deployment_id=_atd_read_int(x['deployment_id']) if 'deployment_id' in x else None,
+                installMethod=_atd_read_string(x['installMethod']) if 'installMethod' in x else None,
             )
         else:
             _atd_bad_json('Environment', x)
@@ -1307,6 +1343,8 @@ class Environment:
         res['isAuthenticated'] = _atd_write_bool(self.isAuthenticated)
         if self.deployment_id is not None:
             res['deployment_id'] = _atd_write_int(self.deployment_id)
+        if self.installMethod is not None:
+            res['installMethod'] = _atd_write_string(self.installMethod)
         return res
 
     @classmethod
@@ -1355,6 +1393,7 @@ class Payload:
     extension: Extension
     mcp: Mcp
     guardian: Guardian
+    install_pro: InstallPro
     parse_rate: List[Tuple[str, ParseStat]] = field(default_factory=lambda: [])
 
     @classmethod
@@ -1372,6 +1411,7 @@ class Payload:
                 extension=Extension.from_json(x['extension']) if 'extension' in x else _atd_missing_json_field('Payload', 'extension'),
                 mcp=Mcp.from_json(x['mcp']) if 'mcp' in x else _atd_missing_json_field('Payload', 'mcp'),
                 guardian=Guardian.from_json(x['guardian']) if 'guardian' in x else _atd_missing_json_field('Payload', 'guardian'),
+                install_pro=InstallPro.from_json(x['install_pro']) if 'install_pro' in x else _atd_missing_json_field('Payload', 'install_pro'),
                 parse_rate=_atd_read_assoc_object_into_list(ParseStat.from_json)(x['parse_rate']) if 'parse_rate' in x else [],
             )
         else:
@@ -1390,6 +1430,7 @@ class Payload:
         res['extension'] = (lambda x: x.to_json())(self.extension)
         res['mcp'] = (lambda x: x.to_json())(self.mcp)
         res['guardian'] = (lambda x: x.to_json())(self.guardian)
+        res['install_pro'] = (lambda x: x.to_json())(self.install_pro)
         res['parse_rate'] = _atd_write_assoc_list_to_object((lambda x: x.to_json()))(self.parse_rate)
         return res
 

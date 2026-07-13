@@ -18,7 +18,15 @@
    The result of parsing a 'semgrep install-semgrep-pro' command.
 *)
 
-type conf = { common : CLI_common.conf; custom_binary : string option }
+type conf = {
+  common : CLI_common.conf;
+  custom_binary : string option;
+  (* not used by the OCaml implementation: parsed only so the flag can be
+   * passed through to pysemgrep (see Pysemgrep.Fallback in
+   * Install_semgrep_pro_subcommand.ml)
+   *)
+  metrics : Metrics_.config;
+}
 [@@deriving show]
 
 (*

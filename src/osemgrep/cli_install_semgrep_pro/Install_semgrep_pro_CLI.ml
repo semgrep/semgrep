@@ -29,7 +29,15 @@ module H = Cmdliner_
 (* Types and constants *)
 (*****************************************************************************)
 
-type conf = { common : CLI_common.conf; custom_binary : string option }
+type conf = {
+  common : CLI_common.conf;
+  custom_binary : string option;
+  (* the OCaml implementation does not send metrics itself; this is parsed
+   * only so the flag reaches pysemgrep via Pysemgrep.Fallback (see
+   * Install_semgrep_pro_subcommand.ml)
+   *)
+  metrics : Metrics_.config;
+}
 [@@deriving show]
 
 (*************************************************************************)
@@ -44,13 +52,30 @@ let o_custom_binary : string option Term.t =
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+let o_metrics : Metrics_.config Term.t =
+  let info =
+    Arg.info [ "metrics" ]
+      ~env:(Cmd.Env.info "SEMGREP_SEND_METRICS")
+      ~doc:
+        {|Configures how usage metrics are sent to the Semgrep server. If
+'auto', metrics are sent only if the user is logged in, which this
+command requires anyway. If 'on', metrics are always sent. If 'off',
+metrics are disabled altogether and not sent. If absent, the
+SEMGREP_SEND_METRICS environment variable value will be used. If no
+environment variable, defaults to 'auto'.
+|}
+  in
+  Arg.value (Arg.opt Metrics_.converter Metrics_.Auto info)
+
 (*************************************************************************)
 (* Turn argv into conf *)
 (*************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine common custom_binary = { common; custom_binary } in
-  Term.(const combine $ CLI_common.o_common $ o_custom_binary)
+  let combine common custom_binary metrics =
+    { common; custom_binary; metrics }
+  in
+  Term.(const combine $ CLI_common.o_common $ o_custom_binary $ o_metrics)
 
 let doc = "Install the Semgrep Pro Engine"
 

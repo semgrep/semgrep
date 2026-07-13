@@ -57,6 +57,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Extension
 from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
 from semgrep.semgrep_interfaces.semgrep_metrics import Finding
 from semgrep.semgrep_interfaces.semgrep_metrics import Guardian
+from semgrep.semgrep_interfaces.semgrep_metrics import InstallPro
 from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
 from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
@@ -71,6 +72,7 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Value
 from semgrep.semgrep_types import get_frozen_id
 from semgrep.types import FilteredMatches
 from semgrep.types import TargetInfo
+from semgrep.util import is_truthy
 from semgrep.verbose_logging import getLogger
 
 # Used below but can't be imported normally due to a circular dependency
@@ -96,6 +98,35 @@ class MetricsState(Enum):
     AUTO = auto()
 
 
+class MetricsStateType(click.ParamType):
+    name = "metrics_state"
+
+    def get_metavar(self, _param: click.Parameter) -> str:
+        return "[auto|on|off]"
+
+    def convert(
+        self,
+        value: Any,
+        _param: Optional["click.Parameter"],
+        ctx: Optional["click.Context"],
+    ) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            lower = value.lower()
+            if lower == "auto":
+                return MetricsState.AUTO
+            # Support setting via old environment variable values 0/1/true/false
+            if is_truthy(value):
+                return MetricsState.ON
+            if lower == "off" or lower == "0" or lower == "false":
+                return MetricsState.OFF
+        self.fail("expected 'auto', 'on', or 'off'")
+
+
+METRICS_STATE_TYPE = MetricsStateType()
+
+
 class MetricsJsonEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, datetime):
@@ -108,6 +139,25 @@ class MetricsJsonEncoder(json.JSONEncoder):
             return list(sorted(obj))
 
         return super().default(obj)
+
+
+def get_install_method(package_path: Optional[str] = None) -> str:
+    """
+    Heuristically determine how the Semgrep CLI was installed:
+    "docker" | "homebrew" | "pip" | "unknown".
+
+    Docker is checked first since our docker image installs semgrep via pip
+    inside the container. Homebrew is checked before pip since the homebrew
+    formula vendors a site-packages directory under its Cellar.
+    """
+    if "SEMGREP_IN_DOCKER" in os.environ:
+        return "docker"
+    path = package_path if package_path is not None else __file__
+    if "Cellar" in path or "homebrew" in path or "linuxbrew" in path:
+        return "homebrew"
+    if "site-packages" in path or "dist-packages" in path:
+        return "pip"
+    return "unknown"
 
 
 # to be mocked to a constant function in test_metrics.py
@@ -149,6 +199,7 @@ class Metrics:
             extension=Extension(),
             mcp=Mcp(),
             guardian=Guardian(),
+            install_pro=InstallPro(),
             value=Value(features=[]),
             started_at=Datetime(datetime.now().astimezone().isoformat()),
             event_id=met.Uuid(str(get_frozen_id())),
@@ -162,6 +213,7 @@ class Metrics:
 
     def __attrs_post_init__(self) -> None:
         self.payload.environment.ci = os.getenv("CI")
+        self.payload.environment.installMethod = get_install_method()
 
     def log_exception(self, func_name: str, e: Exception) -> None:
         """Log an exception at the debug level
@@ -456,6 +508,20 @@ class Metrics:
             self.payload.errors.returnCode = exit_code
         except Exception as e:
             self.log_exception("add_exit_code", e)
+
+    def add_install_pro_outcome(self, success: bool) -> None:
+        try:
+            self.payload.install_pro.success = success
+            if not success and self.payload.install_pro.error is None:
+                self.payload.install_pro.error = "unknown"
+        except Exception as e:
+            self.log_exception("add_install_pro_outcome", e)
+
+    def add_install_pro_error(self, error: LiteralString) -> None:
+        try:
+            self.payload.install_pro.error = error
+        except Exception as e:
+            self.log_exception("add_install_pro_error", e)
 
     def add_version(self, version: str) -> None:
         try:

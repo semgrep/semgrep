@@ -21,6 +21,7 @@ These principles inform our decisions around data collection:
 $ semgrep --config=myrule.yaml  # → no metrics (loading rules from local file)
 $ semgrep --config=p/python     # → metrics enabled (fetching Registry)
 $ semgrep login && semgrep ci   # → metrics enabled (logged in to semgrep.dev)
+$ semgrep install-semgrep-pro   # → metrics enabled (requires being logged in)
 ```
 
 Semgrep does **not** enable metrics when running with only local configuration files or command-line search patterns.
@@ -79,6 +80,7 @@ Environmental data provide contextual data about Semgrep CLI’s runtime environ
 - An [anonymous user ID](#anonymous-user-id) that identifies the machine
 - IP address that triggers a run
 - Value of the CI environment variable, if set
+- How the Semgrep CLI was installed (`pip`, `homebrew`, `docker`, or `unknown`), detected heuristically from the install path and environment variables
 - Pseudoanonymized hash of the scanned project’s name
 - Pseudoanonymized hash of the rule definitions run
 - Pseduoanonymized hash of the config option.
@@ -132,6 +134,13 @@ Additional data is reported when used in conjunction with an IDE integration, su
 
 Note: For all officially supported Semgrep IDE integrations, these metrics can be disabled via settings in the IDE. By default these settings follow any global telemetry/metrics settings the user may have already set for the IDE itself.
 
+### Pro Engine installation
+
+When running `semgrep install-semgrep-pro` (which requires being logged in), additional data is reported to help us understand how many Pro Engine installations happen and how many succeed; e.g.
+
+- Whether the installation completed successfully
+- Which installation step failed, as a fixed identifier such as `download-403` or `version-check-failed` (never a free-form error message)
+
 ### Pseudoanonymization
 
 Certain identifying data (e.g. project URLs) are pseudoanonymized before being sent to the Semgrep, Inc backend.
@@ -171,6 +180,7 @@ Semgrep, Inc will:
 |             | Deployment ID                           | The ID organization associated with the logged in account                     | Understand popularity of logged in features by organization                                                | 1234                                                                                                                                                                               | Number        |
 |             | Integration name                        | If Semgrep is being called by another tool, optional name of that integration | Reproduce and debug issues specific integrations                                           | `gitlab`                                                                                                                                                                              | String         |
 |             | CI                                      | Notes if Semgrep is running in CI and the name of the provider                | Reproduce and debug issues with specific CI providers                                      | GitLabCI v0.13.12                                                                                                                                                                     | String         |
+|             | Install method                          | How the Semgrep CLI was installed, detected heuristically                     | Understand which distribution channels are used; debug channel-specific issues            | `pip`                                                                                                                                                                                 | String         |
 |             | Client IP                               | IP address that triggered a run                                               | Understand broad ruleset usage                                                             | 0.0.0.0                                                                                                                                                                               | String         |
 |             |                                         |                                                                               |                                                                                            |                                                                                                                                                                                       |                |
 | Performance |                                         |                                                                               |                                                                                            |                                                                                                                                                                                       |                |
@@ -215,6 +225,10 @@ Semgrep, Inc will:
 |         |Integration type|IDE being used|Reproduce and debug issues with specific integrations|`vscode`|String|
 |         |Autofix count|How many autofixes have been triggered through the integration|Understand the value that the integration provides to the user in helping remediate code issue|10|Number|
 |         |Ignore count|How many findings have been ignored by the user through the integration|Understand the quality and noisiness of rules|5|Number|
+
+|Pro Engine install||||||
+|         |Success|Whether `semgrep install-semgrep-pro` completed successfully|Understand how many Pro Engine installs happen and how many succeed|`true`|Boolean|
+|         |Error|Fixed identifier of the install step that failed|Debug common installation failures|`download-403`|String|
 
 ### Anonymous user ID
 

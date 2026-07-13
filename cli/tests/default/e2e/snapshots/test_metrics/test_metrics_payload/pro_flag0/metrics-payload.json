@@ -3,6 +3,7 @@
   "environment": {
     "ci": null,
     "configNamesHash": "d3e03c9938537c0a0668cec7204f37f1e9da87d03e18e8cc444dd7454b36c4d5",
+    "installMethod": "<MASKED>",
     "integrationName": "funkyintegration",
     "isAuthenticated": false,
     "isDiffScan": false,
@@ -19,6 +20,7 @@
   "event_id": "00000000-0000-0000-0000-000000000000",
   "extension": {},
   "guardian": {},
+  "install_pro": {},
   "mcp": {},
   "parse_rate": {
     "csharp": {
