@@ -1,0 +1,5 @@
+Updated the ocaml-tree-sitter-core dependency to the latest `main`.
+
+  * Fails loudly on a parser/runtime ABI mismatch
+  * Stamps every generated `parser.c` with the tree-sitter version that produced it.
+  * Changed paths where tree-sitter versions are installed
