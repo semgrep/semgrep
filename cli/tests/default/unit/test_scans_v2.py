@@ -147,6 +147,27 @@ def _get_cache_path(handler, project_metadata, project_config):
     )
 
 
+def _get_meta_path(cache_path):
+    return cache_path.with_suffix("").with_suffix(".meta.json")
+
+
+def _assert_cache_miss(handler, project_metadata, project_config):
+    assert _get_cached_rules(handler, project_metadata, project_config) is None
+
+
+def _assert_cache_hit(handler, project_metadata, project_config, rules):
+    assert _get_cached_rules(handler, project_metadata, project_config) == rules
+
+
+def _write_expired_cached_rules(
+    monkeypatch, handler, project_metadata, project_config, rules
+):
+    ttl_seconds = scan_config_rules_cache.RULES_CACHE_TTL_SECONDS
+    monkeypatch.setattr(scan_config_rules_cache, "RULES_CACHE_TTL_SECONDS", -1)
+    _write_cached_rules(handler, project_metadata, project_config, rules)
+    monkeypatch.setattr(scan_config_rules_cache, "RULES_CACHE_TTL_SECONDS", ttl_seconds)
+
+
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
 def test_start_scan_v2_success_immediate(
@@ -190,6 +211,8 @@ def test_start_scan_v2_uses_cached_rules_and_excludes_rules_from_config_get(
     handler.cache_rules = True
     _write_cached_rules(handler, project_metadata, project_config, cached_rules)
     cache_path = _get_cache_path(handler, project_metadata, project_config)
+    meta_path = _get_meta_path(cache_path)
+    meta_before = meta_path.read_text()
     mock_state.app_session.post.return_value = _make_response(
         mocker, CREATE_SCAN_RESPONSE
     )
@@ -204,6 +227,7 @@ def test_start_scan_v2_uses_cached_rules_and_excludes_rules_from_config_get(
     assert mock_state.app_session.get.call_args.kwargs["params"] == {
         "include_rules": "false"
     }
+    assert meta_path.read_text() == meta_before
     cache_verbose.assert_any_call("Using cached scan config rules from %s", cache_path)
     verbose.assert_any_call(
         "Fetched scan config without rules from "
@@ -212,6 +236,40 @@ def test_start_scan_v2_uses_cached_rules_and_excludes_rules_from_config_get(
         SEMGREP_URL,
         SCAN_REQUEST_ID,
     )
+    mock_sleep.assert_not_called()
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_start_scan_v2_refreshes_expired_rules_cache(
+    mocker, monkeypatch, mock_state, mock_sleep, handler, mock_args
+):
+    project_metadata, project_config = mock_args
+    server_rules = out.RawJson({"rules": [{"id": "server-rule"}]})
+    handler.cache_rules = True
+    _write_expired_cached_rules(
+        monkeypatch,
+        handler,
+        project_metadata,
+        project_config,
+        out.RawJson({"rules": [{"id": "cached-rule"}]}),
+    )
+    _assert_cache_miss(handler, project_metadata, project_config)
+    mock_state.app_session.post.return_value = _make_response(
+        mocker, CREATE_SCAN_RESPONSE
+    )
+    mock_state.app_session.get.return_value = _make_response(
+        mocker, _make_success_config_response(rules=server_rules.to_json())
+    )
+
+    result = handler.start_scan_v2(project_metadata, project_config)
+
+    assert result.config.rules == server_rules
+    assert mock_state.app_session.get.call_count == 1
+    assert mock_state.app_session.get.call_args.kwargs["params"] == {
+        "include_rules": "true"
+    }
+    _assert_cache_hit(handler, project_metadata, project_config, server_rules)
     mock_sleep.assert_not_called()
 
 

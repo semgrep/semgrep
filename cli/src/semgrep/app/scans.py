@@ -652,6 +652,18 @@ class ScanHandler:
                         state.env.semgrep_url,
                         scan_request_id,
                     )
+                    # Expired cache entries are treated as misses above, so
+                    # writing here refreshes them without sliding the
+                    # expiration for cache hits.
+                    SCAN_CONFIG_RULES_CACHE.write_cached_rules(
+                        rules,
+                        self.scan_metadata,
+                        state.env.semgrep_url,
+                        scan_info.deployment_id,
+                        project_metadata,
+                        project_config,
+                        cache_rules=cache_rules,
+                    )
                 else:
                     logger.verbose(
                         "Fetched scan config without rules from "
@@ -661,15 +673,6 @@ class ScanHandler:
                         scan_request_id,
                     )
                 get_config_response.config.rules = rules
-                SCAN_CONFIG_RULES_CACHE.write_cached_rules(
-                    rules,
-                    self.scan_metadata,
-                    state.env.semgrep_url,
-                    scan_info.deployment_id,
-                    project_metadata,
-                    project_config,
-                    cache_rules=cache_rules,
-                )
 
                 return out.ScanResponse(
                     info=scan_info,
