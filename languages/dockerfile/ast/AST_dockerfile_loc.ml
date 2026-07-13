@@ -55,6 +55,10 @@ let key_or_metavar_loc = function
 let docker_string_loc ((loc, _) : docker_string) = loc
 let heredoc_template_loc (x : heredoc_template) = (x.opening, x.closing)
 
+let shell_fragment_loc = function
+  | Constant_shell_fragment x -> wrap_loc x
+  | Heredoc_template x -> heredoc_template_loc x
+
 let str_or_ellipsis_loc = function
   | Str_str str -> docker_string_loc str
   | Str_template x -> heredoc_template_loc x
