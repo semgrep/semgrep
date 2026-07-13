@@ -1038,12 +1038,15 @@ and 'a sequencable =
   | MacroVar of ident * sc
 
 (* less: 'a ifdefed = 'a list wrap (* ifdef elsif else endif *) *)
+(* [expr option] payload on [Ifdef] and [IfdefElseif] holds the parsed
+ * condition for [#if]/[#elif] forms; it is [None] for the identifier-only
+ * variants ([#ifdef]/[#ifndef]/[#elifdef]/[#elifndef]), which don't carry
+ * a general expression. Downstream passes can use this to reason about
+ * which branches are statically reachable. *)
 and ifdef_directive =
-  | Ifdef of tok (* todo? of string? *)
-  (* TODO: IfIf of formula_cpp ? *)
-  (* TODO: Ifndef *)
+  | Ifdef of tok * expr option
   | IfdefElse of tok
-  | IfdefElseif of tok
+  | IfdefElseif of tok * expr option
   | IfdefEndif of tok
     (* less:
      * set in Parsing_hacks.set_ifdef_parenthize_info. It internally use
