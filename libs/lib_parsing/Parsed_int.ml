@@ -49,8 +49,10 @@ let map f (opt, t) =
   | None -> (opt, t)
   | Some i64 -> (Some (f i64), t)
 
-let is_octal_digit = function
-  | '0' .. '7' -> true
+let is_octal_digit_or_sep = function
+  | '0' .. '7'
+  | '_' ->
+      true
   | _ -> false
 
 (* OCaml's Int64.of_string_opt accepts underscores between digits (PEP 515 /
@@ -82,18 +84,33 @@ let int64_of_literal s =
 (*****************************************************************************)
 
 (* Attempt to parse a possible C octal number i.e 0[0-7]+, otherwise
- * attempt to parse the num as a non octal
+ * attempt to parse the num as a non octal.
+ *
+ * An explicit prefix ([0x], [0X], [0b], [0B], [0o], [0O]) is delegated
+ * straight to [int64_of_literal]. Leading-zero-only literals must have an
+ * all-octal (or underscore-separated) tail — anything else, like [078] or
+ * [0.5], returns [None] rather than falling through to the decimal parser.
  *)
 let c_octal_opt s =
-  (* get rid of leading 0, validate octal_num is [0-7]+, then turn it
-   * into a regular octal 0o[0-7]+
-   *)
-  let octal_num = String_.safe_sub s 1 (String.length s - 1) in
-  if
-    String.starts_with ~prefix:"0" s
-    && String.exists is_octal_digit octal_num
-    && String.length s > 1
-  then int64_of_literal ("0o" ^ octal_num)
+  let len = String.length s in
+  let has_explicit_prefix =
+    len >= 2
+    && s.[0] = '0'
+    &&
+    match s.[1] with
+    | 'x'
+    | 'X'
+    | 'b'
+    | 'B'
+    | 'o'
+    | 'O' ->
+        true
+    | _ -> false
+  in
+  if has_explicit_prefix then int64_of_literal s
+  else if len > 1 && s.[0] = '0' then
+    if String.for_all is_octal_digit_or_sep s then int64_of_literal ("0o" ^ s)
+    else None
   else int64_of_literal s
 
 let parse (s, t) = (int64_of_literal s, t)
