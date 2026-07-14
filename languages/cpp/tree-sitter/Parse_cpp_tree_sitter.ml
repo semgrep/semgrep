@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Fpath_.Operators
 open Either_
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
@@ -32,6 +31,16 @@ module Log = Log_parser_cpp.Log
  * ../generic/cpp_to_generic.ml
  *
  *)
+
+(*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+
+(* Optional source-text rewrite applied to the raw file contents before
+ * tree-sitter parses. [path] is the file the contents came from. Callers
+ * should preserve character offsets so [Tok.t] positions stay accurate. *)
+let hook_preprocess_source : (path:Fpath.t -> string -> string) option Hook.t =
+  Hook.create None
 
 (*****************************************************************************)
 (* Helpers *)
@@ -1142,32 +1151,22 @@ and map_preproc_expression (env : env) (x : CST.preproc_expression) : expr =
    Parse_c_tree_sitter.ml
 *)
 let ifdef_token env = function
-  | `Ifdef x -> Ifdef (token env x, None)
+  | `Ifdef x -> Ifdef (token env x)
   (* TODO: ifndef *)
-  | `Ifndef x -> Ifdef (token env x, None)
+  | `Ifndef x -> Ifdef (token env x)
 
 let elifdef_token env = function
-  | `Elifdef x -> IfdefElseif (token env x, None)
+  | `Elifdef x -> IfdefElseif (token env x)
   (* TODO: elifndef *)
-  | `Elifndef x -> IfdefElseif (token env x, None)
+  | `Elifndef x -> IfdefElseif (token env x)
 
 let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
     (env : env) ((v1, v2, v3, v4, v5, v6) : item P.preproc_if_poly) =
-  (* [dead_prior] is true when an earlier branch in this #if/#elif/#else
-   * chain has already been proven truthy — in that case every subsequent
-   * branch (including #else) is unreachable and its body is dropped.
-   * We still emit the [CppIfdef] directive markers so the surrounding AST
-   * shape is preserved.
+  (* Emit directive markers and item bodies verbatim. Any dead-branch
+   * pruning is done by [hook_preprocess_source] before tree-sitter runs.
    *
-   * coupling(pro): [Preproc_eval_cpp.hook_eval].
    * coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
-  let eval_cond e =
-    match Hook.get Preproc_eval_cpp.hook_eval with
-    | None -> Preproc_eval_cpp.Unknown
-    | Some eval -> eval e
-  in
-  let rec preproc_else_poly ~(dead_prior : bool)
-      ~(map_item : env -> item -> 'out list) (env : env)
+  let rec preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
       (x : item P.preproc_else_poly) : 'out list =
     match x with
     | `Prep_else_poly (v1, v2) ->
@@ -1176,29 +1175,23 @@ let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
           (* pattern #[ 	]*else *)
         in
         let dir = CppIfdef (IfdefElse v1) in
-        if dead_prior then [ dir ]
-        else
-          let v2 = List.concat_map (map_item env) v2 in
-          dir :: v2
+        let v2 = List.concat_map (map_item env) v2 in
+        dir :: v2
     | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
         let v1 =
           token env v1
           (* pattern #[ 	]*elif *)
         in
-        let cond_expr = map_preproc_expression env v2 in
-        let cond = eval_cond cond_expr in
+        let _v2 = map_preproc_expression env v2 in
         let _v3 =
           token env v3
           (* "\n" *)
         in
-        let dir = CppIfdef (IfdefElseif (v1, Some cond_expr)) in
-        let this_dead = dead_prior || cond = Preproc_eval_cpp.Falsy in
-        let v4 = if this_dead then [] else List.concat_map (map_item env) v4 in
+        let dir = CppIfdef (IfdefElseif v1) in
+        let v4 = List.concat_map (map_item env) v4 in
         let v5 =
           match v5 with
-          | Some x ->
-              let dead_prior = dead_prior || cond = Preproc_eval_cpp.Truthy in
-              preproc_else_poly ~dead_prior ~map_item env x
+          | Some x -> preproc_else_poly ~map_item env x
           | None -> []
         in
         (dir :: v4) @ v5
@@ -1207,23 +1200,16 @@ let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
     token env v1
     (* pattern #[ 	]*if *)
   in
-  let cond_expr = map_preproc_expression env v2 in
-  let cond = eval_cond cond_expr in
+  let _v2 = map_preproc_expression env v2 in
   let _v3 =
     token env v3
     (* "\n" *)
   in
-  let dir1 = Ifdef (v1, Some cond_expr) in
-  let v4 =
-    if cond = Preproc_eval_cpp.Falsy then []
-    else List.concat_map (map_item env) v4
-  in
+  let dir1 = Ifdef v1 in
+  let v4 = List.concat_map (map_item env) v4 in
   let v5 =
     match v5 with
-    | Some x ->
-        preproc_else_poly
-          ~dead_prior:(cond = Preproc_eval_cpp.Truthy)
-          ~map_item env x
+    | Some x -> preproc_else_poly ~map_item env x
     | None -> []
   in
   let v6 =
@@ -1267,7 +1253,7 @@ let preproc_ifdef_poly (type item) ~(map_item : env -> item -> 'out list)
           token env v1
           (* pattern #[ 	]*elif *)
         in
-        let cond_expr = map_preproc_expression env v2 in
+        let _v2 = map_preproc_expression env v2 in
         let _v3 =
           token env v3
           (* "\n" *)
@@ -1278,7 +1264,7 @@ let preproc_ifdef_poly (type item) ~(map_item : env -> item -> 'out list)
           | Some x -> preproc_else_poly ~map_item env x
           | None -> []
         in
-        let dir = CppIfdef (IfdefElseif (v1, Some cond_expr)) in
+        let dir = CppIfdef (IfdefElseif v1) in
         (dir :: v4) @ v5
   in
   let v1 = ifdef_token env v1 in
@@ -5927,8 +5913,32 @@ and map_variadic_parameter_declaration (env : env)
 (*****************************************************************************)
 
 let parse file =
+  let source_of_file () =
+    let raw = UFile.read_file file in
+    match Hook.get hook_preprocess_source with
+    | None -> raw
+    | Some pre ->
+        let rewritten = pre ~path:file raw in
+        (* [line_col_to_pos] below reads [file] directly to build the
+         * (line, col) -> byte-offset table. That table is used to convert
+         * positions tree-sitter reports (from the *rewritten* string) back
+         * into positions in the on-disk file. That's only sound if the hook
+         * preserves byte offsets and newlines. Enforce the length invariant
+         * so a broken hook fails loudly rather than silently drifting
+         * Tok.t positions. *)
+        if String.length rewritten <> String.length raw then
+          failwith
+            (Printf.sprintf
+               "hook_preprocess_source violated its length-preservation \
+                contract (in: %d bytes, out: %d bytes) — Tok.t positions would \
+                drift silently."
+               (String.length raw) (String.length rewritten));
+        rewritten
+  in
   H.wrap_parser
-    (fun () -> Tree_sitter_cpp.Parse.file !!file)
+    (fun () ->
+      Tree_sitter_cpp.Parse.string ~src_file:(Fpath.to_string file)
+        (source_of_file ()))
     (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_program_or_expr env cst with

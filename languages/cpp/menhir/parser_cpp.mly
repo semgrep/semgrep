@@ -1935,14 +1935,14 @@ param_define:
 
 
 cpp_ifdef_directive:
- | TIfdef     { Ifdef ($1, None) }
+ | TIfdef     { Ifdef $1 }
  | TIfdefelse { IfdefElse $1 }
- | TIfdefelif { IfdefElseif ($1, None) }
+ | TIfdefelif { IfdefElseif $1 }
  | TEndif     { IfdefEndif $1 }
 
- | TIfdefBool  { Ifdef (snd $1, None) }
- | TIfdefMisc  { Ifdef (snd $1, None) }
- | TIfdefVersion { Ifdef (snd $1, None) }
+ | TIfdefBool  { Ifdef (snd $1) }
+ | TIfdefMisc  { Ifdef (snd $1) }
+ | TIfdefVersion { Ifdef (snd $1) }
 
 (* cppext: *)
 cpp_macro_decl:
