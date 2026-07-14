@@ -12,10 +12,24 @@ let
       on = opam-nix.lib.${system};
     in
     rec {
-      patchesOverlay = final: prev: {
+      patchesOverlay =
+        final: prev:
         # If packages need added build inputs to build properly, add them here
         # Make sure to create an issue on opam-nix to upstream the fix!
-      };
+        #
+        # conf-dwarfutils (pulled in by obackward on macOS) shells out to
+        # `pkg-config libdwarf` at build time. opam-nix only knows its
+        # homebrew depext, so without wiring libdwarf onto its
+        # PKG_CONFIG_PATH here the build fails with "Package libdwarf was not
+        # found in the pkg-config search path". libdwarf.pc also carries
+        # `Requires.private: libzstd`, so zstd (for libzstd.pc) is needed too.
+        # Guarded since conf-dwarfutils is only in the dependency set on darwin.
+        pkgs.lib.optionalAttrs (prev ? conf-dwarfutils) {
+          conf-dwarfutils = prev.conf-dwarfutils.overrideAttrs (old: {
+            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.pkg-config ];
+            buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.libdwarf pkgs.zstd ];
+          });
+        };
 
       # helper to add buildinputs to an existing pkg
       #

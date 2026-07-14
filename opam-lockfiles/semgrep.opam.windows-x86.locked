@@ -274,6 +274,10 @@ build: [
 depexts: [
   ["pcre2-static"] {os-distribution = "alpine"}
   ["gmp-static"] {os-distribution = "alpine"}
+  ["zstd-static"] {os-distribution = "alpine"}
+  ["xz-static"] {os-distribution = "alpine"}
+  ["bzip2-static"] {os-distribution = "alpine"}
+  ["libunwind-static"] {os-distribution = "alpine"}
 ]
 dev-repo: "git+https://github.com/semgrep/semgrep.git"
 pin-depends: [
@@ -283,7 +287,7 @@ pin-depends: [
   ]
   [
     "obackward.dev"
-    "git+https://github.com/semgrep/obackward.git#060ebb528e88b27124b33b5cfaf8ed04b7da6e41"
+    "git+https://github.com/semgrep/obackward.git#e1c16766976b4fadd97097b96f96666e8e1cb98c"
   ]
   [
     "ocaml-variants.5.3.0"

@@ -84,6 +84,20 @@
 (* Entry point *)
 (*****************************************************************************)
 
+(* Setup obackward for nice segfaults. This must run as early as possible so
+ * that even crashes during the rest of the initialization get a backtrace.
+ * Note that obackward must stay out of library code (e.g., commons) so that
+ * other binaries linking those libraries do not pull in its C++ stubs,
+ * which previously caused linking errors.
+ *)
+let () =
+  match Backward.register () with
+  | Error e ->
+      prerr_string e;
+      prerr_newline ();
+      flush stderr
+  | Ok () -> ()
+
 (* We currently use the same binary for semgrep-core and osemgrep. See 'make
  * core' and './dune' install section. We use the argv[0] trick below to decide
  * whether the user wants the semgrep-core or osemgrep behavior. *)
