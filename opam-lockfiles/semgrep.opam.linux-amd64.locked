@@ -281,7 +281,7 @@ pin-depends: [
   ]
   [
     "ocaml-variants.5.3.0"
-    "git+https://github.com/semgrep/ocaml.git#8521d35f98c3bbd7fdcb6678bf120b334b4b6a9c"
+    "git+https://github.com/semgrep/ocaml.git#3499e5708b0637c12d24d973dd103406a32b8fe8"
   ]
   [
     "opentelemetry.dev"
