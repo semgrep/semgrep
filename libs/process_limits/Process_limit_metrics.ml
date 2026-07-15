@@ -76,10 +76,8 @@ let record_time_limit ~(info : Exception.timeout_info)
      is bad. It would also make querying really messy and difficult. *)
   let total_overrun =
     let overrun_ms =
-      if exceeded then
-        result_info.actual_duration -. info.max_duration
-        |> ms_of_s |> int_of_float
-      else 0
+      result_info.actual_duration -. info.max_duration
+      |> ms_of_s |> int_of_float
     in
     SharedCounterTable.add_and_fetch time_limit_overrun_table table_key
       overrun_ms
