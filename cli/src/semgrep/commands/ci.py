@@ -1050,7 +1050,7 @@ def ci(
                     # Not relevant for secrets.
                     _historical_dependencies,
                     _historical_dependency_parser_errors,
-                    # Usage limits currently only consider last 30 days.
+                    # Usage limits currently only consider last 90 days.
                     _executed_rule_count,
                     _missed_rule_count,
                     _historical_all_subprojects,

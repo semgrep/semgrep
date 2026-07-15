@@ -274,7 +274,7 @@ let sanity_check_contributions (contribs : Out.contribution list) : unit =
   | [] -> Logs.warn (fun m -> m "no contribution found from git log, weird")
   | x :: _xs ->
       Logs.debug (fun m ->
-          m "found %d contribs in the last 30 days, last is %s"
+          m "found %d contribs in the last 90 days, last is %s"
             (List.length contribs)
             (Out.string_of_contribution x))
 

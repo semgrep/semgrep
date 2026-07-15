@@ -32,10 +32,10 @@ let contrib_to_contrib (contrib : Git_wrapper.contribution) : Out.contribution =
     }
 
 let get_contributions () : Semgrep_output_v1_j.contribution list =
-  (* We use ~since:"last 30 days" because of our usage policy.
+  (* We use ~since:"last 90 days" because of our usage policy.
    * See https://semgrep.dev/docs/usage-limits
    *)
-  let thirty_days_ago =
-    Datetime_.time_n_days_ago ~days:30 ~time:(Datetime_.now ())
+  let ninety_days_ago =
+    Datetime_.time_n_days_ago ~days:90 ~time:(Datetime_.now ())
   in
-  Git_wrapper.logs ~since:thirty_days_ago () |> List.map contrib_to_contrib
+  Git_wrapper.logs ~since:ninety_days_ago () |> List.map contrib_to_contrib
