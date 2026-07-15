@@ -1,6 +1,0 @@
-`semgrep install-semgrep-pro` now sends usage metrics so that
-installation errors can be tracked. Metrics can be disabled with
-`--metrics off` or `SEMGREP_SEND_METRICS=off`. Metrics payloads also
-now include the method used to install the Semgrep CLI (pip, homebrew,
-docker, or unknown), detected heuristically. See metrics.md for
-more details of what exactly is sent.

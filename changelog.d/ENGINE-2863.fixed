@@ -1,4 +1,0 @@
-Fixed a crash at startup (`Fatal error: Failed to allocate signal stack for
-domain 0`) when running Semgrep on systems with musl 1.2.6 (e.g. Alpine 3.24) on
-recent Intel CPUs whose kernel-reported minimum signal-stack size exceeds musl's
-build-time SIGSTKSZ (notably AMX-capable Xeons).

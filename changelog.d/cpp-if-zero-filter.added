@@ -1,3 +1,0 @@
-Pro C/C++ scans now skip code inside statically-dead preprocessor branches
-(for example, `#if 0 ... #else ... #endif`). Patterns that would otherwise
-match against intentionally-disabled code no longer report on it.

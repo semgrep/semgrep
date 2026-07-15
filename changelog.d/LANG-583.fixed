@@ -1,4 +1,0 @@
-`metavariable-type` now supports fully qualified type names in languages
-where a qualified name in type position parses as an expression (e.g.
-Python's `types: [a.b.C]`) when the metavariable's type is determined by
-type inference, such as Pro engine cross-file type resolution.
