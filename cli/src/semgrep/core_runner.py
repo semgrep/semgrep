@@ -17,7 +17,6 @@ import json
 import logging
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -775,73 +774,6 @@ class CoreRunner:
             f"Error while matching: {reason}\n{details}{PLEASE_FILE_ISSUE_TEXT}"
         )
 
-    def _check_ddprof_preconditions(self) -> bool:
-        """
-        Checks if ddprof can be used for SMS profiling.
-        Returns True if ddprof can be used, False otherwise.
-
-        We want to add these checks because ddprof gives really weird errors
-        (e.g. exit code 2, sometimes even presents itself as other errors)
-        when it is ran without a proper setup.
-
-        The setup that ddprof needs is:
-        - We are running inside SMS
-        - DDPROF_ON, DD_ENV, DD_AGENT_HOST, and DD_SERVICE are set
-        - CAP_PERFMON is set
-        - trace is enabled
-        """
-        if not os.environ.get("SEMGREP_MANAGED_SCAN"):
-            return False
-
-        trace_enabled = self._trace
-        ddprof_on_path = shutil.which("ddprof")
-        ddprof_env_vars_set = (
-            os.environ.get("DDPROF_ON", "") != ""
-            and os.environ.get("DD_ENV", "") != ""
-            and os.environ.get("DD_AGENT_HOST", "") != ""
-            and os.environ.get("DD_SERVICE", "") != ""
-        )
-        ddprof_cap_set = False
-        # run ddprof -U 0:0 git --version and check for exitcode to make sure CAP_PERFMON is set.
-        #
-        # note: we are doing -U 0:0 because it ensures that the data of this dummy call is not sent anywhere.
-        try:
-            result = subprocess.run(
-                ["ddprof", "-U", "0:0", "git", "--version"], capture_output=True
-            )
-            if result.stdout and len(result.stdout.splitlines()) == 1:
-                ddprof_cap_set = True
-        except Exception as e:
-            logger.debug(f"Failed to check ddprof CAP_PERFMON: {e}")
-
-        ddprof = (
-            (ddprof_on_path is not None)
-            and trace_enabled
-            and ddprof_env_vars_set
-            and ddprof_cap_set
-        )
-
-        # debug message for ddprof
-        if not ddprof:
-            reasons = []
-            if ddprof_on_path is None:
-                reasons.append("ddprof is not in PATH")
-            if not trace_enabled:
-                reasons.append("trace is not enabled")
-            if not ddprof_env_vars_set:
-                reasons.append(
-                    "DDPROF_ON, DD_ENV, DD_AGENT_HOST, and DD_SERVICE are not set"
-                )
-            if not ddprof_cap_set:
-                reasons.append("CAP_PERFMON is not set")
-            if reasons:
-                logger.debug(
-                    "ddprof will not be used for SMS profiling. Reason(s): "
-                    + "; ".join(reasons)
-                    + "."
-                )
-        return ddprof
-
     def _check_pyro_caml_preconditions(self) -> bool:
         """
         Checks if pyro-caml can be used for profiling.
@@ -1034,7 +966,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     )
                 sys.exit(2)
 
-            use_ddprof = self._check_ddprof_preconditions()
             use_pyro_caml = self._check_pyro_caml_preconditions()
             if use_pyro_caml:
                 state.telemetry.setup_pyro_caml()
@@ -1045,7 +976,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 # Optional values to strings. Make sure to check against None
                 # even though mypy won't warn you.
                 *(["pyro-caml", "-vv"] if use_pyro_caml else []),
-                *(["ddprof"] if use_ddprof else []),
                 str(self._binary_path),
                 "-json",
             ]
