@@ -1,3 +1,0 @@
-Pro C/C++ `#if 0` filtering now also handles cases where the directive splits a
-syntactic unit.  For example, a function signature toggle like `#if 0 void
-foo(int i) { #else void foo(uint32_t i) { #endif`.
