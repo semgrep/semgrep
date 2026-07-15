@@ -79,6 +79,7 @@ let record_time_limit ~(info : Exception.timeout_info)
       result_info.actual_duration -. info.max_duration
       |> ms_of_s |> int_of_float
     in
+    let overrun_ms = if overrun_ms > 0 then overrun_ms else 0 in
     SharedCounterTable.add_and_fetch time_limit_overrun_table table_key
       overrun_ms
   in
