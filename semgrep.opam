@@ -120,7 +120,7 @@ pin-depends: [
         - semgrep-pro.opam.template
         - semgrep-pro.opam
   *)
-  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#3499e5708b0637c12d24d973dd103406a32b8fe8"]
+  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#73ddd5eb5badf237c370aad4622c4055e29b398e"]
   ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#4e0a44486bb518b7a24ca11286c4b03a8d51e17e"]
   ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#c4baff8d83b2e1f83f247acb11d0c9dafa5e48f7"]
   ["testo.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
