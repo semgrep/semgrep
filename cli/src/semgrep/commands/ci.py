@@ -266,13 +266,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     type=str,
     hidden=True,
 )
-@click.option(
-    "--x-cache-rules",
-    "x_cache_rules",
-    is_flag=True,
-    default=False,
-    hidden=True,
-)
 @handle_command_errors
 def ci(
     # coupling: we use the names/values of some of these args in telemetry.py for tagging traces
@@ -367,7 +360,6 @@ def ci(
     x_dump_scan_config_path: Optional[Path],
     x_use_saved_scan_config_path: Optional[Path],
     x_partial_scan_rule_ids: Tuple[str, ...],
-    x_cache_rules: bool,
 ) -> None:
     if x_dump_scan_config_path and x_use_saved_scan_config_path:
         raise click.UsageError(
@@ -506,11 +498,6 @@ def ci(
                     "platform-served rules are eligible for validators."
                 )
                 saved_scan_config_path = None
-            cache_rules = x_cache_rules
-            # Secrets validator-eligible rules must come directly from the
-            # platform, so use the normal uncached config fetch.
-            if run_secrets_flag and cache_rules:
-                cache_rules = False
 
             scan_handler = ScanHandler(
                 enable_transitive_reachability=enable_transitive_reachability,
@@ -521,7 +508,6 @@ def ci(
                 dump_scan_config_path=x_dump_scan_config_path,
                 load_saved_scan_config_path=saved_scan_config_path,
                 partial_scan_rule_ids=x_partial_scan_rule_ids,
-                cache_rules=cache_rules,
             )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")

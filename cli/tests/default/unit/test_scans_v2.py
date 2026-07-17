@@ -14,7 +14,6 @@ import uuid
 
 import pytest
 
-import semgrep.app.scan_config_rules_cache as scan_config_rules_cache
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app.scans import _ConfigPollTimeout
 from semgrep.app.scans import ScanHandler
@@ -43,39 +42,11 @@ PENDING_CONFIG_RESPONSE = {"status": "pending"}
 FAILURE_CONFIG_RESPONSE = {"status": "failure"}
 
 
-def _make_create_scan_response(enabled_products=None):
-    response = {
-        "info": {
-            "id": 42,
-            "enabled_products": enabled_products or [],
-            "deployment_id": 1,
-            "deployment_name": "test-org",
-        }
-    }
-    return response
-
-
-def _make_success_config_response(rules=None):
-    response = {
-        "status": "success",
-        "config": {"rules": rules or []},
-        "engine_params": {},
-    }
-    return response
-
-
 def _make_response(mocker, json_data, status_code=200):
     response = mocker.MagicMock()
     response.status_code = status_code
     response.json.return_value = json_data
     return response
-
-
-@pytest.fixture(autouse=True)
-def isolate_rules_cache_dir(monkeypatch, tmp_path):
-    monkeypatch.setattr(
-        scan_config_rules_cache, "RULES_CACHE_DIR", tmp_path / ".semgrep_rules"
-    )
 
 
 @pytest.fixture
@@ -107,65 +78,8 @@ def mock_args(mocker):
     project_metadata = mocker.MagicMock()
     project_metadata.to_json.return_value = {}
     project_config = mocker.MagicMock()
-    ci_config = mocker.MagicMock()
-    ci_config.to_json.return_value = {}
-    project_config.to_CiConfigFromRepo.return_value = ci_config
+    project_config.to_CiConfigFromRepo.return_value = None
     return project_metadata, project_config
-
-
-def _write_cached_rules(handler, project_metadata, project_config, rules):
-    scan_config_rules_cache.SCAN_CONFIG_RULES_CACHE.write_cached_rules(
-        rules,
-        handler.scan_metadata,
-        SEMGREP_URL,
-        1,
-        project_metadata,
-        project_config,
-        cache_rules=True,
-    )
-
-
-def _get_cached_rules(handler, project_metadata, project_config):
-    return scan_config_rules_cache.SCAN_CONFIG_RULES_CACHE.get_cached_rules(
-        handler.scan_metadata,
-        SEMGREP_URL,
-        1,
-        project_metadata,
-        project_config,
-        cache_rules=True,
-    )
-
-
-def _get_cache_path(handler, project_metadata, project_config):
-    return scan_config_rules_cache.SCAN_CONFIG_RULES_CACHE._get_cache_path(
-        handler.scan_metadata,
-        SEMGREP_URL,
-        1,
-        project_metadata,
-        project_config,
-        cache_rules=True,
-    )
-
-
-def _get_meta_path(cache_path):
-    return cache_path.with_suffix("").with_suffix(".meta.json")
-
-
-def _assert_cache_miss(handler, project_metadata, project_config):
-    assert _get_cached_rules(handler, project_metadata, project_config) is None
-
-
-def _assert_cache_hit(handler, project_metadata, project_config, rules):
-    assert _get_cached_rules(handler, project_metadata, project_config) == rules
-
-
-def _write_expired_cached_rules(
-    monkeypatch, handler, project_metadata, project_config, rules
-):
-    ttl_seconds = scan_config_rules_cache.RULES_CACHE_TTL_SECONDS
-    monkeypatch.setattr(scan_config_rules_cache, "RULES_CACHE_TTL_SECONDS", -1)
-    _write_cached_rules(handler, project_metadata, project_config, rules)
-    monkeypatch.setattr(scan_config_rules_cache, "RULES_CACHE_TTL_SECONDS", ttl_seconds)
 
 
 @pytest.mark.quick
@@ -175,7 +89,6 @@ def test_start_scan_v2_success_immediate(
 ):
     """Returns ScanResponse immediately when config is ready on the first poll."""
     project_metadata, project_config = mock_args
-    verbose = mocker.patch("semgrep.app.scans.logger.verbose")
     mock_state.app_session.post.return_value = _make_response(
         mocker, CREATE_SCAN_RESPONSE
     )
@@ -188,115 +101,6 @@ def test_start_scan_v2_success_immediate(
     assert isinstance(result, out.ScanResponse)
     assert result.info.id == 42
     assert mock_state.app_session.get.call_count == 1
-    assert mock_state.app_session.get.call_args.kwargs["params"] == {
-        "include_rules": "true"
-    }
-    verbose.assert_any_call(
-        "Downloaded scan config rules from %s/api/cli/v2/scans/%s/config",
-        SEMGREP_URL,
-        SCAN_REQUEST_ID,
-    )
-    mock_sleep.assert_not_called()
-
-
-@pytest.mark.quick
-@pytest.mark.no_semgrep_cli
-def test_start_scan_v2_uses_cached_rules_and_excludes_rules_from_config_get(
-    mocker, mock_state, mock_sleep, handler, mock_args
-):
-    project_metadata, project_config = mock_args
-    verbose = mocker.patch("semgrep.app.scans.logger.verbose")
-    cache_verbose = mocker.patch("semgrep.app.scan_config_rules_cache.logger.verbose")
-    cached_rules = out.RawJson({"rules": [{"id": "cached-rule"}]})
-    handler.cache_rules = True
-    _write_cached_rules(handler, project_metadata, project_config, cached_rules)
-    cache_path = _get_cache_path(handler, project_metadata, project_config)
-    meta_path = _get_meta_path(cache_path)
-    meta_before = meta_path.read_text()
-    mock_state.app_session.post.return_value = _make_response(
-        mocker, CREATE_SCAN_RESPONSE
-    )
-    mock_state.app_session.get.return_value = _make_response(
-        mocker, SUCCESS_CONFIG_RESPONSE
-    )
-
-    result = handler.start_scan_v2(project_metadata, project_config)
-
-    assert result.config.rules == cached_rules
-    assert mock_state.app_session.get.call_count == 1
-    assert mock_state.app_session.get.call_args.kwargs["params"] == {
-        "include_rules": "false"
-    }
-    assert meta_path.read_text() == meta_before
-    cache_verbose.assert_any_call("Using cached scan config rules from %s", cache_path)
-    verbose.assert_any_call(
-        "Fetched scan config without rules from "
-        "%s/api/cli/v2/scans/%s/config because cached scan config "
-        "rules are available",
-        SEMGREP_URL,
-        SCAN_REQUEST_ID,
-    )
-    mock_sleep.assert_not_called()
-
-
-@pytest.mark.quick
-@pytest.mark.no_semgrep_cli
-def test_start_scan_v2_refreshes_expired_rules_cache(
-    mocker, monkeypatch, mock_state, mock_sleep, handler, mock_args
-):
-    project_metadata, project_config = mock_args
-    server_rules = out.RawJson({"rules": [{"id": "server-rule"}]})
-    handler.cache_rules = True
-    _write_expired_cached_rules(
-        monkeypatch,
-        handler,
-        project_metadata,
-        project_config,
-        out.RawJson({"rules": [{"id": "cached-rule"}]}),
-    )
-    _assert_cache_miss(handler, project_metadata, project_config)
-    mock_state.app_session.post.return_value = _make_response(
-        mocker, CREATE_SCAN_RESPONSE
-    )
-    mock_state.app_session.get.return_value = _make_response(
-        mocker, _make_success_config_response(rules=server_rules.to_json())
-    )
-
-    result = handler.start_scan_v2(project_metadata, project_config)
-
-    assert result.config.rules == server_rules
-    assert mock_state.app_session.get.call_count == 1
-    assert mock_state.app_session.get.call_args.kwargs["params"] == {
-        "include_rules": "true"
-    }
-    _assert_cache_hit(handler, project_metadata, project_config, server_rules)
-    mock_sleep.assert_not_called()
-
-
-@pytest.mark.quick
-@pytest.mark.no_semgrep_cli
-def test_start_scan_v2_does_not_use_rules_cache_when_secrets_enabled_by_platform(
-    mocker, mock_state, mock_sleep, handler, mock_args
-):
-    project_metadata, project_config = mock_args
-    cached_rules = out.RawJson({"rules": [{"id": "cached-rule"}]})
-    handler.cache_rules = True
-    _write_cached_rules(handler, project_metadata, project_config, cached_rules)
-    mock_state.app_session.post.return_value = _make_response(
-        mocker, _make_create_scan_response(enabled_products=["secrets"])
-    )
-    mock_state.app_session.get.return_value = _make_response(
-        mocker, _make_success_config_response(rules=[{"id": "server-rule"}])
-    )
-
-    result = handler.start_scan_v2(project_metadata, project_config)
-
-    assert result.config.rules == out.RawJson([{"id": "server-rule"}])
-    assert mock_state.app_session.get.call_count == 1
-    assert mock_state.app_session.get.call_args.kwargs["params"] == {
-        "include_rules": "true"
-    }
-    assert _get_cached_rules(handler, project_metadata, project_config) == cached_rules
     mock_sleep.assert_not_called()
 
 
