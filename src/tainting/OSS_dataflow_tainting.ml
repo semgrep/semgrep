@@ -30,12 +30,9 @@ module Taints = T.Taint_set
 module TM = Taint_spec_match
 module TP = Taint_spec_preds
 module TRI = Taint_rule_inst
-module S = Shape_and_sig.Shape
 module Shape = OSS_taint_shape
-module Effect = Shape_and_sig.Effect
-module Effects = Shape_and_sig.Effects
-module Signature = Shape_and_sig.Signature
-module Instantiated_signature = Shape_and_sig.Instantiated_signature
+module Effect = OSS_taint_effects.Effect
+module Effects = OSS_taint_effects.Effects
 
 (* TODO: Rename things to make clear that there are "sub-matches" and there are
  * "best matches". *)
@@ -77,7 +74,7 @@ let transfer_tag = Log_tainting.transfer_tag
 type mapping = Lval_env.t D.mapping
 
 type func = {
-  taint_inst : Taint_rule_inst.t;
+  taint_inst : OSS_taint_rule_inst.t;
   fname : IL.name option;
   best_matches : TM.Best_matches.t;
       (** Best matches for the taint sources/etc, see 'Taint_spec_match'. *)
@@ -113,10 +110,12 @@ let propagate_through_indexes env =
 (* Helpers *)
 (*****************************************************************************)
 
-let record_timeout (taint_inst : Taint_rule_inst.t) opt_name timeout =
+let record_timeout (taint_inst : OSS_taint_rule_inst.t) opt_name timeout =
   match timeout with
   | `Ok -> ()
-  | `Timeout -> Taint_rule_inst.record_timeout taint_inst opt_name
+  | `Timeout ->
+      Taint_rule_inst.record_timeout ~timeouts:taint_inst.muts.timeouts
+        ~rule:taint_inst.rule opt_name
 
 let map_check_expr env check_expr xs =
   let rev_taints_and_shapes, lval_env =
@@ -184,21 +183,21 @@ let any_is_best_sink env any =
       (not tm.spec.spec.sink_at_exit)
       && TM.is_best_match env.func.best_matches tm)
 
-let orig_is_source (taint_inst : Taint_rule_inst.t) orig =
+let orig_is_source (taint_inst : OSS_taint_rule_inst.t) orig =
   taint_inst.preds.is_source (any_of_orig orig)
 
 let orig_is_best_source env orig : R.taint_source TM.t list =
   any_is_best_source env (any_of_orig orig)
 [@@profiling]
 
-let orig_is_sanitizer (taint_inst : Taint_rule_inst.t) orig =
+let orig_is_sanitizer (taint_inst : OSS_taint_rule_inst.t) orig =
   taint_inst.preds.is_sanitizer (any_of_orig orig)
 
 let orig_is_best_sanitizer env orig =
   any_is_best_sanitizer env (any_of_orig orig)
 [@@profiling]
 
-let orig_is_sink (taint_inst : Taint_rule_inst.t) orig =
+let orig_is_sink (taint_inst : OSS_taint_rule_inst.t) orig =
   taint_inst.preds.is_sink (any_of_orig orig)
 
 let orig_is_best_sink env orig = any_is_best_sink env (any_of_orig orig)
@@ -251,9 +250,6 @@ let taints_of_matches env ~incoming sources =
 
 let record_effects env new_effects =
   if not (List_.null new_effects) then
-    let new_effects =
-      env.func.taint_inst.muts.handle_effects env.func.fname new_effects
-    in
     env.effects_acc := Effects.add_list new_effects !(env.effects_acc)
 
 let unify_mvars_sets options mvars1 mvars2 =
@@ -350,15 +346,6 @@ let partition_sources_by_side_effect sources_matches =
           Right3 m)
   |> fun (only, yes, no) -> (`Only only, `Yes yes, `No no)
 
-(* We need to filter out `Control` variables since those do not propagate trough return
- * (there is just no point in doing so). *)
-let get_control_taints_to_return env =
-  Lval_env.get_control_taints env.lval_env
-  |> Taints.filter (fun ({ orig; _ } : T.taint) ->
-      match orig with
-      | T.Src _ -> true
-      | Var _ -> false)
-
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -447,7 +434,7 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
    when this information is used, later.
 *)
 let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
-    (sink : Effect.sink) : Effect.poly list =
+    (sink : Effect.sink) : Effect.t list =
   match taints_with_traces with
   | [] -> []
   | _ :: _ -> (
@@ -525,7 +512,7 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
             ])
 
 (* Produces a finding for every unifiable source-sink pair. *)
-let effects_of_tainted_sinks env taints sinks : Effect.poly list =
+let effects_of_tainted_sinks env taints sinks : Effect.t list =
   let taints =
     let control_taints = Lval_env.get_control_taints env.lval_env in
     taints |> Taints.union control_taints
@@ -545,32 +532,6 @@ let effects_of_tainted_sinks env taints sinks : Effect.poly list =
         in
         effects_of_tainted_sink env.func.taint_inst.options taints_with_traces
           sink)
-
-let effects_of_tainted_return env taints shape return_tok : Effect.poly list =
-  let control_taints = get_control_taints_to_return env in
-  if
-    Shape.taints_and_shape_are_relevant taints shape
-    || not (Taints.is_empty control_taints)
-  then
-    [
-      Effect.ToReturn
-        { data_taints = taints; data_shape = shape; control_taints; return_tok };
-    ]
-  else []
-
-(* If a 'fun_exp' has no known taint signature, then it should have a polymorphic
- * shape and we record its effects with an "effect variable" (that's kind of what
- * 'ToSinkInCall' does). *)
-let effects_of_call_func_arg fun_exp fun_shape args_taints =
-  match fun_shape with
-  | S.Arg fun_arg ->
-      [ Effect.ToSinkInCall { callee = fun_exp; arg = fun_arg; args_taints } ]
-  | __else__ ->
-      Log.debug (fun m ->
-          m "Function (?) %s has shape %s"
-            (Display_IL.string_of_exp fun_exp)
-            (S.show_shape fun_shape));
-      []
 
 (*****************************************************************************)
 (* Miscellaneous *)
@@ -867,7 +828,7 @@ let find_lval_taint_sources env incoming_taints lval =
   (taints_to_return, lval_env)
 
 let rec check_tainted_lval env (lval : IL.lval) :
-    Taints.t * S.shape * [ `Sub of Taints.t * S.shape ] * Lval_env.t =
+    Taints.t * Shape.shape * [ `Sub of Taints.t * Shape.shape ] * Lval_env.t =
   let new_taints, lval_in_env, lval_shape, sub, lval_env =
     check_tainted_lval_aux env lval
   in
@@ -956,8 +917,8 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
 and check_tainted_lval_aux env (lval : IL.lval) :
     Taints.t
     * Xtaint.t_or_sanitized
-    * S.shape
-    * [ `Sub of Taints.t * S.shape ]
+    * Shape.shape
+    * [ `Sub of Taints.t * Shape.shape ]
     * Lval_env.t =
   (* Recursively checks an l-value bottom-up.
    *
@@ -1021,13 +982,13 @@ and check_tainted_lval_aux env (lval : IL.lval) :
         match sub_in_env with
         | `Sanitized ->
             (* See NOTE [lval/sanitized] *)
-            (`Sanitized, S.Bot)
+            (`Sanitized, Shape.Bot)
         | (`Clean | `None | `Tainted _) as sub_xtaint ->
             let xtaint', shape =
               (* THINK: Should we just use 'Sig.find_in_shape' directly here ?
                        We have the 'sub_shape' available. *)
               match Lval_env.find_lval lval_env lval with
-              | None -> (`None, S.Bot)
+              | None -> (`None, Shape.Bot)
               | Some (Cell (xtaint', shape)) -> (xtaint', shape)
             in
             let xtaint' =
@@ -1130,7 +1091,7 @@ and check_tainted_lval_offset env offset =
 
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
-and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
+and check_tainted_expr env exp : Taints.t * Shape.shape * Lval_env.t =
   let check env = check_tainted_expr env in
   let check_subexpr exp =
     match exp.e with
@@ -1138,20 +1099,20 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
     (* TODO: 'Fetch' is handled specially, this case should not never be taken.  *)
     | Literal _
     | FixmeExp (_, _, None) ->
-        (Taints.empty, S.Bot, env.lval_env)
+        (Taints.empty, Shape.Bot, env.lval_env)
     | FixmeExp (_, _, Some e) ->
         let taints, shape, lval_env = check env e in
         let taints =
           taints |> Taints.union (Shape.gather_all_taints_in_shape shape)
         in
-        (taints, S.Bot, lval_env)
+        (taints, Shape.Bot, lval_env)
     | Composite ((CTuple | CArray | CList), (_, es, _)) ->
         let taints_and_shapes, lval_env = map_check_expr env check es in
         let tuple_shape = Shape.tuple_like_obj taints_and_shapes in
         (Taints.empty, tuple_shape, lval_env)
     | Composite ((CSet | Constructor _ | Regexp), (_, es, _)) ->
         let taints, lval_env = union_map_taints_and_vars env check es in
-        (taints, S.Bot, lval_env)
+        (taints, Shape.Bot, lval_env)
     | Operator ((op, _), es) ->
         let args_taints, all_args_taints, lval_env =
           check_function_call_arguments env es
@@ -1222,7 +1183,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
           | G.RSA ->
               all_args_taints
         in
-        (op_taints, S.Bot, lval_env)
+        (op_taints, Shape.Bot, lval_env)
     | RecordOrDict fields ->
         (* TODO: Construct a proper record/dict shape here. *)
         let (lval_env, taints), taints_and_shapes =
@@ -1314,7 +1275,8 @@ and check_function_call_arguments env args =
   let all_args_taints = List.fold_left Taints.union Taints.empty rev_taints in
   (args_taints, all_args_taints, lval_env)
 
-and check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
+and check_tainted_var env (var : IL.name) : Taints.t * Shape.shape * Lval_env.t
+    =
   let taints, shape, _sub, lval_env =
     check_tainted_lval env (LV.lval_of_var var)
   in
@@ -1333,7 +1295,7 @@ and check_args_and_prop_their_taints env args =
       Taints.empty
     else all_args_taints
   in
-  (all_args_taints, S.Bot, lval_env)
+  (all_args_taints, Shape.Bot, lval_env)
 
 let check_function_call_callee env e =
   match e.e with
@@ -1383,7 +1345,7 @@ let check_tainted_call env corig e args =
     all_args_taints
     |> Taints.union (gather_all_taints_in_args_taints args_taints)
   in
-  let e_obj, e_taints, e_shape, lval_env =
+  let e_obj, e_taints, _e_shape, lval_env =
     check_function_call_callee { env with lval_env } e
   in
   (* NOTE(sink_has_focus):
@@ -1416,14 +1378,12 @@ let check_tainted_call env corig e args =
          * `obj.x = arg`, if we encounter `obj.getX()` we interpret it as
          * `obj.x`. *)
         let call_taints = Taints.union call_taints getter_taints in
-        (call_taints, S.Bot, lval_env)
+        (call_taints, Shape.Bot, lval_env)
     | None ->
         (* We have no taint signature and it's neither a get/set method. *)
         if not (propagate_through_functions env) then
-          (Taints.empty, S.Bot, lval_env)
-        else (
-          effects_of_call_func_arg e e_shape args_taints
-          |> record_effects { env with lval_env };
+          (Taints.empty, Shape.Bot, lval_env)
+        else
           (* If this is a method call, `o.method(...)`, then we fetch the
            * taint of the callee object `o`. This is a conservative worst-case
            * asumption that any taint in `o` can be tainting the call's effect. *)
@@ -1432,7 +1392,7 @@ let check_tainted_call env corig e args =
             | `Fun -> call_taints
             | `Obj obj_taints -> call_taints |> Taints.union obj_taints
           in
-          (call_taints, S.Bot, lval_env))
+          (call_taints, Shape.Bot, lval_env)
   in
   (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
   let all_call_taints =
@@ -1448,7 +1408,7 @@ let check_tainted_call env corig e args =
 
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the effect too (by side effect). *)
-let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
+let check_tainted_instr env instr : Taints.t * Shape.shape * Lval_env.t =
   let check_instr = function
     | Assign (_, e) ->
         let taints, shape, lval_env = check_tainted_expr env e in
@@ -1497,7 +1457,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
 
 (* Test whether a `return' is tainted, and if it is also a sink,
  * report the effect too (by side effect). *)
-let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
+let check_tainted_return env tok e : Taints.t * Shape.shape * Lval_env.t =
   let sinks =
     any_is_best_sink env (G.Tk tok) @ orig_is_best_sink env e.eorig
     |> List.filter (TM.is_best_match env.func.best_matches)
@@ -1535,32 +1495,6 @@ let check_tainted_case env scrutinee pattern : Lval_env.t =
     (fun env arg ->
       env |> Lval_env.add_lval { base = Var arg; rev_offset = [] } taints)
     lval_env bound_vars
-
-let check_tainted_control_at_exit node env =
-  match node.F.n with
-  (* This is only for implicit returns, we could handle 'NReturn' here too
-   * but we would be generating duplicate effects. *)
-  | NReturn _ -> ()
-  | __else__ ->
-      if node.IL.at_exit then
-        let return_tok =
-          (* Getting a token from an arbitrary node could be expensive
-           * (see 'AST_generic_helpers.range_of_tokens'). We just use a
-           * fake one but use the function's name if available to make
-           * it unique. If it were not unique, the effects cache in
-           * 'Deep_tainting' would consider all `ToReturn`s with the
-           * same control taint as being the same, given that
-           * `Taint.compare_source` does not compare the length of the
-           * call trace. And that could cause some calls to be missing
-           * in the call trace of a finding. *)
-          match env.func.fname with
-          | None -> G.fake "return"
-          | Some name -> G.fake (IL.str_of_name name ^ "/return")
-        in
-        let effects =
-          effects_of_tainted_return env Taints.empty Bot return_tok
-        in
-        record_effects env effects
 
 (*****************************************************************************)
 (* Transfer *)
@@ -1601,9 +1535,7 @@ let rec transfer : env -> fun_cfg:Fun_CFG.t -> Lval_env.t D.transfn =
         lval_env'
     | NReturn (tok, e) ->
         (* TODO: Move most of this to check_tainted_return. *)
-        let taints, shape, lval_env' = check_tainted_return env tok e in
-        let effects = effects_of_tainted_return env taints shape tok in
-        record_effects env effects;
+        let _taints, _shape, lval_env' = check_tainted_return env tok e in
         lval_env'
     | NCase (scrutinee, pattern) -> check_tainted_case env scrutinee pattern
     (* Do nothing here - pattern bindings are handled in NCase *)
@@ -1623,7 +1555,6 @@ let rec transfer : env -> fun_cfg:Fun_CFG.t -> Lval_env.t D.transfn =
     check_for_lambdas { env with lval_env = out' } node
   in
   env.effects_acc := Effects.union effects_lambdas !(env.effects_acc);
-  check_tainted_control_at_exit node { env with lval_env = out' };
   (* In Pro: check taints at exit *)
   Log.debug (fun m ->
       m ~tags:transfer_tag
@@ -1795,15 +1726,8 @@ and fixpoint_lambda func lambdas lambda_name lambda_cfg in_env :
     fixpoint_aux func ~lambdas ~enter_lval_env:in_env
       ~in_lambda:(Some lambda_name) lambda_cfg
   in
-  let effects =
-    effects
-    |> Effects.filter (function
-      | ToSink _
-      | ToLval _
-      | ToSinkInCall _ ->
-          true
-      | ToReturn _ -> false)
-  in
+  (* CE's only effect is 'ToSink', and a 'ToSink' found inside a
+     lambda is still a real sink hit for the enclosing function. *)
   let out_env = mapping.(lambda_cfg.cfg.exit).Dataflow_core.out_env in
   let needed_vars = Taint_lambdas.live_vars_needed_for_taint lambdas in
   let out_env' =
@@ -1848,7 +1772,7 @@ and fixpoint_aux func ~lambdas ~enter_lval_env ~in_lambda fun_cfg =
 (*****************************************************************************)
 
 and (fixpoint :
-      Taint_rule_inst.t ->
+      OSS_taint_rule_inst.t ->
       ?in_env:Lval_env.t ->
       ?name:IL.name ->
       Fun_CFG.t ->

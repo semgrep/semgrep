@@ -29,7 +29,7 @@
    no alias analysis involved!
  *)
 
-open Shape_and_sig.Shape
+open OSS_taint_shape
 
 type t
 type env = t
