@@ -14,7 +14,6 @@
  *)
 open Common
 module PM = Core_match
-module Effect = Shape_and_sig.Effect
 
 type overlap = float
 

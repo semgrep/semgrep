@@ -10,9 +10,19 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(** Operations on taint shapes (shape types are defined in 'Taint_types'). *)
+(** Taint shapes: types and operations on them. *)
 
-open Shape_and_sig.Shape
+type shape = Bot | Obj of obj  (** _|_, or an "object"/struct-like thing. *)
+and cell = Cell of Xtaint.t * shape
+
+and obj
+(** A mapping from a 'Taint.offset' to a shape 'cell'. Abstract: nothing
+    outside this module needs to know its concrete representation, they only
+    ever get an 'obj' from pattern-matching on 'Obj' and pass it back into
+    this module's own operations. *)
+
+val equal_cell : cell -> cell -> bool
+val show_cell : cell -> string
 
 val taints_and_shape_are_relevant : Taint.taints -> shape -> bool
 (** [true] iff the union of [taints] and [gather_all_taints_in_shape shape]

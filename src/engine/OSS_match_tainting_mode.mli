@@ -11,12 +11,12 @@
    LICENSE for more details.
 *)
 val check_fundef :
-  Taint_rule_inst.t ->
+  OSS_taint_rule_inst.t ->
   IL.name option (** entity being analyzed *) ->
   AST_to_IL.ctx ->
   ?glob_env:OSS_taint_lval_env.t ->
   AST_generic.function_definition ->
-  Fun_CFG.t * Shape_and_sig.Effects.t * OSS_dataflow_tainting.mapping
+  Fun_CFG.t * OSS_taint_effects.Effects.t * OSS_dataflow_tainting.mapping
 (** Check a function definition using a [Dataflow_tainting.config] (which can
     be obtained with [taint_config_of_rule]). Findings are passed on-the-fly
     to the [handle_findings] callback in the dataflow config.

@@ -16,13 +16,13 @@ open Common
 module G = AST_generic
 module H = AST_generic_helpers
 module T = Taint
-module Effects = Shape_and_sig.Effects
+module Effects = OSS_taint_effects.Effects
 module Log = Log_tainting.Log
 module Lval_env = OSS_taint_lval_env
 
 (** Analyze [stmts] (which should assign to [name]) under [env] to determine
     what taint flows into [name]. *)
-let check_var_def (taint_inst : Taint_rule_inst.t) env (name : IL.name)
+let check_var_def (taint_inst : OSS_taint_rule_inst.t) env (name : IL.name)
     (stmts : IL.stmt list) =
   let lval : IL.lval = { base = Var name; rev_offset = [] } in
   let cfg, lambdas = CFG_build.cfg_of_stmts stmts in
@@ -50,15 +50,15 @@ let stmts_of_param_default (name : IL.name) (pd : IL.param_default) :
     IL.stmt list =
   pd.dinit @ [ mk_assign_stmt name pd.dexp ]
 
-let stmts_of_global_expr (taint_inst : Taint_rule_inst.t) id ii (expr : G.expr)
-    : IL.stmt list =
+let stmts_of_global_expr (taint_inst : OSS_taint_rule_inst.t) id ii
+    (expr : G.expr) : IL.stmt list =
   let assign =
     G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
     |> G.e |> G.exprstmt
   in
   AST_to_IL.stmt taint_inst.file.lang assign
 
-let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii
+let add_to_env_aux (taint_inst : OSS_taint_rule_inst.t) env id ii
     (opt_stmts : IL.stmt list option) =
   let var = AST_to_IL.var_of_id_info id ii in
   let var_type =
