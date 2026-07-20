@@ -70,12 +70,11 @@ val preds_of_rule :
 val taint_config_of_rule :
   per_file_formula_cache:Formula_cache.t ->
   file:Taint_rule_inst.file ->
-  muts:Taint_rule_inst.mutable_state ->
   Match_env.xconfig ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
-  Taint_rule_inst.t * raw_spec_matches * Matching_explanation.t list
-(** Convenience: calls {!preds_of_rule} and builds a {!Taint_rule_inst.t}. *)
+  Taint_rule_inst.config * raw_spec_matches * Matching_explanation.t list
+(** Convenience: calls {!preds_of_rule} and builds a {!Taint_rule_inst.config}. *)
 
 (* Exposed for Pro *)
 
