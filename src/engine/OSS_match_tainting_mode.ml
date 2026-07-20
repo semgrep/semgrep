@@ -27,9 +27,8 @@ module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Sets.String_set
 module Log = Log_tainting.Log
-module Effect = Shape_and_sig.Effect
-module Effects = Shape_and_sig.Effects
-module Signature = Shape_and_sig.Signature
+module Effect = OSS_taint_effects.Effect
+module Effects = OSS_taint_effects.Effects
 module QProf = Core_quick_profiling
 
 (*****************************************************************************)
@@ -170,7 +169,7 @@ let taints_satisfy_sink_requires taints requires =
             (T.Taint_set.elements taints)
             precond)
 
-let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
+let matches_of_effect (options : Rule_options.t) (effect_ : Effect.t) =
   let match_on =
     (* TEMPORARY HACK to support both taint_match_on (DEPRECATED) and
      * taint_focus_on (preferred name by SR). *)
@@ -180,35 +179,31 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
         `Source
     | `Sink, `Sink -> `Sink
   in
-  match effect_ with
-  | ToLval _
-  | ToReturn _
-  | ToSinkInCall _ ->
-      []
-  | ToSink { taints_with_trace; sink = { pm = sink_pm; _ } as sink; merged_env }
-    -> (
-      if
-        not
-          (taints_satisfy_sink_requires
-             (List.map (fun t -> t.Effect.taint) taints_with_trace)
-             sink.Effect.requires)
-      then []
-      else
-        let preferred_label = preferred_label_of_sink sink in
-        let taint_sources =
-          sources_of_taints ?preferred_label taints_with_trace
-        in
-        match match_on with
-        | `Sink ->
-            (* The old behavior used to be that, for sinks with a `requires`, we would
+  let (Effect.ToSink
+         { taints_with_trace; sink = { pm = sink_pm; _ } as sink; merged_env })
+      =
+    effect_
+  in
+  if
+    not
+      (taints_satisfy_sink_requires
+         (List.map (fun t -> t.Effect.taint) taints_with_trace)
+         sink.Effect.requires)
+  then []
+  else
+    let preferred_label = preferred_label_of_sink sink in
+    let taint_sources = sources_of_taints ?preferred_label taints_with_trace in
+    match match_on with
+    | `Sink ->
+        (* The old behavior used to be that, for sinks with a `requires`, we would
                generate a finding per every single taint source going in. Later deduplication
                would deal with it.
                We will instead choose to consolidate all sources into a single finding. We can
                do some postprocessing to report only relevant sources later on, but for now we
                will lazily (again) defer that computation to later.
             *)
-            let traces = List.map trace_of_source taint_sources in
-            (* We always report the finding on the sink that gets tainted, the call trace
+        let traces = List.map trace_of_source taint_sources in
+        (* We always report the finding on the sink that gets tainted, the call trace
                 * must be used to explain how exactly the taint gets there. At some point
                 * we experimented with reporting the match on the `sink`'s function call that
                 * leads to the actual sink. E.g.:
@@ -223,40 +218,40 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
                 * for the injection bug... but most users seem to be confused about this. They
                 * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
             *)
-            let taint_trace =
-              match traces with
-              | [] ->
-                  (* When a taint-labeled rule has sinks with requires like `not A` it may be
+        let taint_trace =
+          match traces with
+          | [] ->
+              (* When a taint-labeled rule has sinks with requires like `not A` it may be
                     possible (and it has been reported) to obtain a taint finding with an empty
                     list of taint traces. Presumably because 'sources_of_taints' removes all the
                     taints that do not correspond with actual taint sources.
 
                     See CODE-8531. *)
-                  Log.err (fun m ->
-                      m "Rule %s produced a taint finding with no taint trace"
-                        (Rule_ID.to_string sink_pm.rule_id.id));
-                  None
-              | _ :: _ -> Some (lazy_safe traces)
+              Log.err (fun m ->
+                  m "Rule %s produced a taint finding with no taint trace"
+                    (Rule_ID.to_string sink_pm.rule_id.id));
+              None
+          | _ :: _ -> Some (lazy_safe traces)
+        in
+        [ { sink_pm with env = merged_env; taint_trace } ]
+    | `Source ->
+        taint_sources
+        |> List.map (fun source ->
+            let src, tokens, sink_trace = source in
+            let src_pm, _ = T.pm_of_trace src.T.call_trace in
+            let trace =
+              {
+                Taint_trace.source_trace =
+                  convert_taint_call_trace src.T.call_trace;
+                tokens;
+                sink_trace = convert_taint_call_trace sink_trace;
+              }
             in
-            [ { sink_pm with env = merged_env; taint_trace } ]
-        | `Source ->
-            taint_sources
-            |> List.map (fun source ->
-                let src, tokens, sink_trace = source in
-                let src_pm, _ = T.pm_of_trace src.T.call_trace in
-                let trace =
-                  {
-                    Taint_trace.source_trace =
-                      convert_taint_call_trace src.T.call_trace;
-                    tokens;
-                    sink_trace = convert_taint_call_trace sink_trace;
-                  }
-                in
-                {
-                  src_pm with
-                  env = merged_env;
-                  taint_trace = Some (lazy_safe [ trace ]);
-                }))
+            {
+              src_pm with
+              env = merged_env;
+              taint_trace = Some (lazy_safe [ trace ]);
+            })
 
 let matches_of_effects options effects =
   Effects.fold
@@ -279,7 +274,7 @@ let dedup_matches matches =
 (* Main entry points *)
 (*****************************************************************************)
 
-let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
+let check_fundef (taint_inst : OSS_taint_rule_inst.t) name ctx ?glob_env fdef =
   let fdef = AST_to_IL.function_definition taint_inst.file.lang ~ctx fdef in
   let fcfg = CFG_build.cfg_of_fdef fdef in
   let in_env, env_effects =
@@ -292,8 +287,8 @@ let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
   (fcfg, effects, mapping)
 
 let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
-    (muts : Taint_rule_inst.mutable_state) (rule : R.taint_rule) ~matches_hook
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
+    (muts : OSS_taint_rule_inst.mutable_state) (rule : R.taint_rule)
+    ~matches_hook (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   Log.info (fun m ->
       m
         "Match_tainting_mode (OSS):\n\
@@ -315,11 +310,12 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
   in
   (* TODO: 'debug_taint' should just be part of 'res'
    * (i.e., add a "debugging" field to 'Report.match_result'). *)
-  let (taint_inst, _TODO_debug_taint, expls), match_time =
+  let (config, _TODO_debug_taint, expls), match_time =
     Common.with_time (fun () ->
         Match_taint_spec.taint_config_of_rule ~per_file_formula_cache ~file
-          ~muts xconf (ast, []) rule)
+          xconf (ast, []) rule)
   in
+  let taint_inst = Taint_rule_inst.of_config config ~muts in
   let tainting_stats = ref QProf.Tainting_stats.zero in
   let (matches, errors), all_taint_time =
     Common.with_time (fun () ->
@@ -486,7 +482,7 @@ let check_rules ~matches_hook
         failwith "taint-mode and generic/regex matching are incompatible"
   in
   let file_inst = Taint_rule_inst.mk_file ~lang ~path:file in
-  let muts = Taint_rule_inst.fresh_muts ~handle_effects:None in
+  let muts = OSS_taint_rule_inst.fresh_muts () in
 
   let res =
     rules
@@ -519,6 +515,7 @@ let check_rules ~matches_hook
                   ~matches_hook xconf xtarget)))
   in
   let to_errors =
-    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst muts
+    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+      muts.timeouts
   in
   (res, to_errors)
