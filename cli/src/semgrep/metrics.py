@@ -509,6 +509,12 @@ class Metrics:
         except Exception as e:
             self.log_exception("add_exit_code", e)
 
+    def add_deployment_id(self, deployment_id: Optional[int]) -> None:
+        try:
+            self.payload.environment.deployment_id = deployment_id
+        except Exception as e:
+            self.log_exception("add_deployment_id", e)
+
     def add_install_pro_outcome(self, success: bool) -> None:
         try:
             self.payload.install_pro.success = success
@@ -517,11 +523,17 @@ class Metrics:
         except Exception as e:
             self.log_exception("add_install_pro_outcome", e)
 
-    def add_install_pro_error(self, error: LiteralString) -> None:
+    def stage_install_pro_error(self, error: LiteralString) -> None:
         try:
             self.payload.install_pro.error = error
         except Exception as e:
-            self.log_exception("add_install_pro_error", e)
+            self.log_exception("stage_install_pro_error", e)
+
+    def clear_install_pro_error(self) -> None:
+        try:
+            self.payload.install_pro.error = None
+        except Exception as e:
+            self.log_exception("clear_install_pro_error", e)
 
     def add_version(self, version: str) -> None:
         try:
