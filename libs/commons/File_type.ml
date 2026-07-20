@@ -274,7 +274,9 @@ let file_type_of_file file =
   | "yml"
   | "yaml" ->
       Config Yaml
-  | "tf" -> Config Terraform
+  | "tf"
+  | "tofu" ->
+      Config Terraform
   | "toml" -> Config Toml
   (* sometimes people use foo.Dockerfile *)
   | "Dockerfile"
