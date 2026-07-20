@@ -19,6 +19,7 @@
 import subprocess
 
 import pytest
+import requests
 from click.testing import CliRunner
 
 from semgrep.cli import cli
@@ -114,7 +115,7 @@ def test_add_install_pro_fields() -> None:
     assert metrics.payload.install_pro.success is None
     assert metrics.payload.install_pro.error is None
 
-    metrics.add_install_pro_error("download-401")
+    metrics.stage_install_pro_error("download-401")
     metrics.add_install_pro_outcome(False)
 
     assert metrics.payload.install_pro.success is False
@@ -122,6 +123,17 @@ def test_add_install_pro_fields() -> None:
     as_json = metrics.as_json()
     assert '"success": false' in as_json
     assert '"download-401"' in as_json
+
+
+@pytest.mark.quick
+def test_clear_install_pro_error() -> None:
+    metrics = Metrics()
+
+    metrics.stage_install_pro_error("final-install-failed")
+    assert metrics.payload.install_pro.error == "final-install-failed"
+
+    metrics.clear_install_pro_error()
+    assert metrics.payload.install_pro.error is None
 
 
 ##############################################################################
@@ -158,6 +170,23 @@ def test_run_install_success_records_outcome(fake_state, mocker) -> None:
 
     assert fake_state.metrics.payload.install_pro.success is True
     assert fake_state.metrics.payload.install_pro.error is None
+
+
+@pytest.mark.quick
+def test_run_install_records_deployment_id(fake_state, mocker) -> None:
+    mocker.patch.object(install, "get_deployment_id", return_value=1234)
+    mocker.patch.object(
+        install,
+        "download_semgrep_pro",
+        side_effect=lambda _state, _platform, dest: dest.write_bytes(b"binary"),
+    )
+    mocker.patch.object(install, "sub_check_output", return_value="1.2.3\n")
+    mocker.patch("os.chmod")
+
+    install.run_install_semgrep_pro()
+
+    assert fake_state.metrics.payload.environment.deployment_id == 1234
+    assert '"deployment_id": 1234' in fake_state.metrics.as_json()
 
 
 @pytest.mark.quick
@@ -291,9 +320,12 @@ def test_install_command_sends_failure_metrics(
 def test_install_command_unexpected_exception_records_unknown(
     monkeypatch, mock_install_steps, post_metrics_mock, mocker
 ) -> None:
+    # An exception raised before any step reason is staged (here, while
+    # determining the install path) has nothing to attribute it to, so the
+    # outcome falls back to "unknown".
     monkeypatch.setenv("SEMGREP_APP_TOKEN", FAKE_TOKEN)
     mocker.patch.object(
-        install, "download_semgrep_pro", side_effect=RuntimeError("boom")
+        install, "determine_semgrep_pro_path", side_effect=RuntimeError("boom")
     )
 
     result = CliRunner().invoke(cli, ["install-semgrep-pro"])
@@ -306,16 +338,24 @@ def test_install_command_unexpected_exception_records_unknown(
 
 
 @pytest.mark.quick
-def test_install_command_download_error_keeps_specific_reason(
-    monkeypatch, mock_install_steps, post_metrics_mock, mocker
+@pytest.mark.parametrize(
+    "exception",
+    [
+        # a requests failure, the previously-handled case
+        requests.ConnectionError("connection reset"),
+        # any other exception is now attributed to the download step too,
+        # rather than falling back to "unknown"
+        RuntimeError("boom"),
+    ],
+)
+def test_install_command_download_error_records_download_reason(
+    monkeypatch, mock_install_steps, post_metrics_mock, mocker, exception
 ) -> None:
-    import requests
-
     monkeypatch.setenv("SEMGREP_APP_TOKEN", FAKE_TOKEN)
     mocker.patch.object(
         install,
         "download_semgrep_pro",
-        side_effect=requests.ConnectionError("connection reset"),
+        side_effect=exception,
     )
 
     result = CliRunner().invoke(cli, ["install-semgrep-pro"])
@@ -323,7 +363,6 @@ def test_install_command_download_error_keeps_specific_reason(
     assert result.exit_code == 2
     payload = post_metrics_mock.call_args.args[0].payload
     assert payload.install_pro.success is False
-    # "unknown" must not be appended when a specific reason was recorded
     assert payload.install_pro.error == "download-failed"
 
 
