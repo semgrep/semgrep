@@ -18,11 +18,11 @@ type mapping = OSS_taint_lval_env.t Dataflow_core.mapping
     to their corresponding property, we cache the results here. *)
 
 val fixpoint :
-  Taint_rule_inst.t ->
+  OSS_taint_rule_inst.t ->
   ?in_env:OSS_taint_lval_env.t ->
   ?name:IL.name ->
   Fun_CFG.t ->
-  Shape_and_sig.Effects.t * mapping
+  OSS_taint_effects.Effects.t * mapping
 (** Main entry point, [fixpoint taint_inst cfg] returns a mapping (effectively a set)
     containing all the tainted variables in [cfg]. Besides, if it infers any taint
     'findings', it will invoke [config.handle_findings] which can perform any
