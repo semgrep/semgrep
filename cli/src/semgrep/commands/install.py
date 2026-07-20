@@ -23,7 +23,6 @@ from typing import cast
 from typing import Optional
 
 import click
-import requests
 from rich.progress import BarColumn
 from rich.progress import DownloadColumn
 from rich.progress import Progress
@@ -32,6 +31,7 @@ from rich.progress import TimeRemainingColumn
 from rich.progress import TransferSpeedColumn
 
 from semgrep import __VERSION__
+from semgrep.app.auth import get_deployment_id
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.error import FATAL_EXIT_CODE
@@ -86,14 +86,14 @@ def download_semgrep_pro(
 
     with state.app_session.get(url, timeout=180, stream=True) as r:
         if r.status_code == 401:
-            state.metrics.add_install_pro_error("download-401")
+            state.metrics.stage_install_pro_error("download-401")
             logger.info(
                 "API token not valid. Try to run `semgrep logout` and `semgrep login` again. "
                 "Or in CI, ensure your SEMGREP_APP_TOKEN variable is set correctly."
             )
             sys.exit(INVALID_API_KEY_EXIT_CODE)
         if r.status_code == 403:
-            state.metrics.add_install_pro_error("download-403")
+            state.metrics.stage_install_pro_error("download-403")
             logger.warning(
                 "Logged in deployment does not have access to Semgrep Pro Engine"
             )
@@ -162,12 +162,18 @@ def run_install_semgrep_pro() -> None:
 
     state = get_state()
     if state.app_session.token is None:
-        state.metrics.add_install_pro_error("no-api-token")
+        state.metrics.stage_install_pro_error("no-api-token")
         logger.info(
             "Run `semgrep login` before running `semgrep install-semgrep-pro`. "
             "Or in non-interactive environments, ensure your SEMGREP_APP_TOKEN variable is set correctly."
         )
         sys.exit(INVALID_API_KEY_EXIT_CODE)
+
+    # Register deployment ID in metrics so that we can see which deployments are using which install methods. This
+    # requires another network round-trip, but it should be tiny compared to actually downloading the massive binary.
+    state.metrics.stage_install_pro_error("deployment-id-failed")
+    deployment_id = get_deployment_id()
+    state.metrics.add_deployment_id(deployment_id)
 
     logger.debug(f"platform is {sys.platform}")
     # TODO: cleanup and use consistent arch name like in pro-release.jsonnet
@@ -199,15 +205,13 @@ def run_install_semgrep_pro() -> None:
 
     semgrep_pro_path_tmp = semgrep_pro_path.with_suffix(".tmp_download")
 
-    try:
-        download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
-    except requests.RequestException:
-        state.metrics.add_install_pro_error("download-failed")
-        raise
+    state.metrics.stage_install_pro_error("download-failed")
+    download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others
     #        execute it should not be a problem.
+    state.metrics.stage_install_pro_error("chmod-failed")
     # nosemgrep: tests.precommit_dogfooding.python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
     os.chmod(
         semgrep_pro_path_tmp,
@@ -218,6 +222,7 @@ def run_install_semgrep_pro() -> None:
     )
 
     # Get Pro version, it serves as a simple check that the binary works
+    state.metrics.stage_install_pro_error("version-check-failed")
     try:
         version = sub_check_output(
             [str(semgrep_pro_path_tmp), "-pro_version"],
@@ -226,7 +231,6 @@ def run_install_semgrep_pro() -> None:
             stderr=subprocess.STDOUT,
         ).rstrip()
     except (subprocess.SubprocessError, OSError):
-        state.metrics.add_install_pro_error("version-check-failed")
         if semgrep_pro_path_tmp.exists():
             semgrep_pro_path_tmp.unlink()
         abort(
@@ -234,10 +238,13 @@ def run_install_semgrep_pro() -> None:
         )
 
     # Version check worked so we now install the binary
+    state.metrics.stage_install_pro_error("final-install-failed")
     if semgrep_pro_path.exists():
         semgrep_pro_path.unlink()
     semgrep_pro_path_tmp.rename(semgrep_pro_path)
     add_semgrep_pro_version_stamp()
+    # Everything succeeded, so discard the reason staged for the final step.
+    state.metrics.clear_install_pro_error()
     state.metrics.add_install_pro_outcome(True)
     logger.info(f"\nSuccessfully installed Semgrep Pro Engine (version {version})!")
 
