@@ -745,7 +745,7 @@ let preds_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file) xconf
   (preds, stats, raw_spec_matches, expls)
 
 let taint_config_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file)
-    ~(muts : Taint_rule_inst.mutable_state) xconf ast_and_errors rule =
+    xconf ast_and_errors rule =
   let preds, stats, raw_spec_matches, expls =
     preds_of_rule ~per_file_formula_cache ~file xconf ast_and_errors rule
   in
@@ -754,7 +754,6 @@ let taint_config_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file)
   ( Taint_rule_inst.
       {
         file;
-        muts;
         rule = fst rule.id;
         options;
         track_control = rule_needs_to_track_control_taint rule;

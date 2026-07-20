@@ -19,10 +19,202 @@ module G = AST_generic
 module R = Rule
 module T = Taint
 module Taints = T.Taint_set
-open Shape_and_sig.Shape
-module Fields = Shape_and_sig.Fields
-module Effects = Shape_and_sig.Effects
-module Signature = Shape_and_sig.Signature
+
+(*****************************************************************************)
+(* Taint shapes *)
+(*****************************************************************************)
+
+module Fields = struct
+  module F = Map.Make (struct
+    type t = T.offset
+
+    (* In taint shapes we consider 'Ofld' and 'Ostr' to be the same, given that
+       in some languages like JS/TS you can treat records as if they were dicts
+       with string keys. *)
+    let compare (o1 : t) (o2 : t) =
+      match (o1, o2) with
+      | Ofld fld1, Ofld fld2 -> String.compare (fst fld1.ident) (fst fld2.ident)
+      | Ostr str1, Ostr str2 -> String.compare str1 str2
+      | Ofld fld1, Ostr str2 -> String.compare (fst fld1.ident) str2
+      | Ostr str1, Ofld fld2 -> String.compare str1 (fst fld2.ident)
+      | Oint i1, Oint i2 -> Int.compare i1 i2
+      | Oany, Oany -> 0
+      | (Ofld _ | Ostr _), (Oint _ | Oany) -> -1
+      | Oint _, Oany -> -1
+      | Oany, (Ofld _ | Ostr _ | Oint _) -> 1
+      | Oint _, (Ofld _ | Ostr _) -> 1
+  end)
+
+  include F
+
+  (* At present Map.filter_map does not guarantee physical equality when
+     the map ends up being the same because nothing really changed. *)
+  let filter_map f fields =
+    let changed = ref false in
+    let fields' =
+      fields
+      |> filter_map (fun o cell ->
+          let opt_cell' = f o cell in
+          (match opt_cell' with
+          | Some cell' when phys_equal cell' cell -> ()
+          | None
+          | Some _ ->
+              changed := true);
+          opt_cell')
+    in
+    if !changed then fields' else fields
+end
+
+(** A shape approximates an object or data structure, and tracks the taint
+   associated with its fields and indexes.
+
+   Taint shapes are a bit like types. Right now this is mainly to support
+   field- and index-sensitivity, but shapes also provide a good foundation to
+   later add alias analysis.  This is somewhat inspired by
+
+       "Polymorphic type, region and effect inference"
+       by Jean-Pierre Talpin and Pierre Jouvelot
+
+   History
+   -------
+   Previously, we had a flat environment from l-values to their taint, and we had
+   to "reconstruct" the shape of objects when needed. For example, to check if a
+   variable was a struct, we looked for l-values in the environment that were an
+   "extension" of that variable. By recording shapes explicitly, implementing
+   field-sensitivity becomes more natural.
+
+   Example
+   -------
+   For example, a record expression `{ a: "taint", b: "safe" }` would have
+   the shape `Obj { .a -> Cell({"taint"}, _|_) }`, recording that the field `a`
+   is tainted by the string literal `"taint"`. A field like '.a' (the dot '.'
+   indicates that it's a field) or an index like '[0]' will always have a 'cell'
+   shape, because they denote l-values. The first argument of a 'Cell' is its
+   xtaint or "taint status" (see 'Xtaint.t'). For each field and index, we track
+   its xtaint individually (field- and index-sensitivity). Field '.a' in
+   `Obj { .a -> Cell({"taint"}, _|_) }` has the the taint set {"taint"} attached.
+   The second argument of 'Cell' is the shape of the objects stored in that cell.
+   The shape of field '.a' is '_|_' ("bottom") which is given to primitive types,
+   or whenever we "don't care" (or to act as "to-do" as well).
+
+   NOTE: Shapes are more advanced in the Pro version.
+ *)
+type shape =
+  | Bot  (** _|_, don't know or don't care *)
+  | Obj of obj
+      (** An "object" or struct-like thing.
+
+         Tuples or lists are also represented by 'Obj' shapes! We just treat
+         constant indexes as if they were fields, and use 'Oany' to capture the
+         non-constant indexes.
+        *)
+
+and cell =
+  | Cell of Xtaint.t * shape
+      (** A cell or "reference" represents the "storage" of a value, like
+          a variable in C.
+
+          A cell may be explicitly tainted ('`Tainted'), not explicitly tainted
+          ('`None' / "0"),  or explicitly clean ('`Clean' / "C").
+
+          A cell that is not explicitly tainted inherits any taints from "parent"
+          refs. A cell that is explicitly clean it is clean regardless.
+
+          For example, given a variable `x` and the following statements:
+
+              x.a := "taint";
+              x.a.u := "clean";
+
+          We could assign the following shape to `x`:
+
+              Cell(`None, Obj {
+                      .a -> Cell({"taint"}, Obj {
+                              .u -> Cell(`Clean, _|_)
+                              })
+                      })
+
+          We have that `x` itself has no taint directly assigned to it, but `x.a` is
+          tainted (by the string `"taint"`). Other fields like `x.b` are not tainted.
+          When it comes to `x.a`, we have that `x.a.u` has been explicitly marked clean,
+          so `x.a.u` will be considered clean despite `x.a` being tainted. Any other field
+          of `x.a` such as `x.a.v` will inherit the same taint as `x.a`.
+
+          INVARIANT(cell): To keep shapes minimal:
+            1. If the xtaint is '`None', then the shape is not 'Bot' and we can reach
+               another 'cell' whose xtaint is either '`Tainted' or '`Clean'.
+            2. If the xtaint is '`Clean', then the shape is 'Bot'.
+               (If we add aliasing we may need to revisit this, and instead just mark
+                every reachable 'cell' as clean too.)
+
+          TODO: We can attach "region ids" to refs and assign taints to regions rather than
+            to refs directly, then we can have alias analysis.
+        *)
+
+and obj = cell Fields.t
+(**
+      This a mapping from a 'Taint.offset' to a shape 'cell'. Kept abstract in
+      the .mli -- nothing outside this module needs to know it's a
+      'Fields.t', they only ever get an 'obj' from pattern-matching on 'Obj'
+      and pass it back into this module's own operations.
+
+      If an 'Obj' shape tracks an 'Oany' offset (an arbitrary index,
+      see 'Taint.offset'), then the taint and shape given to 'Oany' would
+      also be the taint and shape given to any field that is not being
+      explicitly tracked. If there is no 'Oany' in the 'Obj' shape, then a
+      field that is not explicitly tracked would just have an arbitrary or
+      "don't care" shape, and the taint that it inherits from its "parent"
+      'cell's.
+
+      THINK: Instead of 'Oany' maybe have an explicit field ?
+
+      For example, given the assignment `x = { a: "taint", b: "safe" }`,
+      the shape of `x` would be `Cell(`None, Obj { .a -> Cell({"taint"}, _|_) })`.
+      The field `b` is omitted in the shape, and if we ask for it's taint and
+      shape we would get the empty taint set (because `x`'s outermost 'Cell'
+      has no taint), and the shape '_|_' because, given that we are not
+      tracking `b`, it means we don't care about it's shape. In a shape like
+      `{ [*] -> Cell({"taint"}, _|_) }}` where `[*]` denotes 'Oany', the taint
+      and shape  of any concrete index would be given by the taint and shape
+      of '[*]'.
+    *)
+
+(*************************************)
+(* Equality *)
+(*************************************)
+(* TODO: Should we just define these in terms of `compare_*` ? *)
+
+let rec equal_cell cell1 cell2 =
+  let (Cell (taints1, shape1)) = cell1 in
+  let (Cell (taints2, shape2)) = cell2 in
+  Xtaint.equal taints1 taints2 && equal_shape shape1 shape2
+
+and equal_shape shape1 shape2 =
+  match (shape1, shape2) with
+  | Bot, Bot -> true
+  | Obj obj1, Obj obj2 -> equal_obj obj1 obj2
+  | Bot, Obj _
+  | Obj _, Bot ->
+      false
+
+and equal_obj obj1 obj2 = Fields.equal equal_cell obj1 obj2
+
+(*************************************)
+(* Pretty-printing *)
+(*************************************)
+
+let rec show_cell cell =
+  let (Cell (xtaint, shape)) = cell in
+  spf "cell<%s>(%s)" (Xtaint.show xtaint) (show_shape shape)
+
+and show_shape = function
+  | Bot -> "_|_"
+  | Obj obj -> spf "obj {|%s|}" (show_obj obj)
+
+and show_obj obj =
+  obj |> Fields.to_seq
+  |> Seq.map (fun (o, o_cell) ->
+      spf "%s: %s" (T.show_offset o) (show_cell o_cell))
+  |> List.of_seq |> String.concat "; "
 
 (*********************************************************)
 (* Helpers *)
@@ -47,11 +239,6 @@ let internal_UNSAFE_find_offset_in_obj o obj =
             m "Already tracking too many fields, will not track %s"
               (T.show_offset o));
         (Oany, obj))
-
-let debug_offset offset =
-  match offset with
-  | [] -> "<NO OFFSET>"
-  | _ :: _ -> offset |> List.map T.show_offset |> String.concat ""
 
 (*********************************************************)
 (* Misc *)
@@ -174,54 +361,6 @@ and unify_shape shape1 shape2 =
       (* 'Bot' acts like a do-not-care. *)
       shape
   | Obj obj1, Obj obj2 -> Obj (unify_obj obj1 obj2)
-  | ( Fun { params = params1; effects = effects1 },
-      Fun { params = params2; effects = effects2 } ) ->
-      if Signature.equal_params params1 params2 then
-        Fun { params = params1; effects = Effects.union effects1 effects2 }
-      else (
-        (* TODO: We could actually handle this. *)
-        Log.warn (fun m ->
-            m
-              "Trying to unify two fun shapes with different parameters: %s ~ \
-               %s"
-              (Signature.show_params params1)
-              (Signature.show_params params2));
-        shape1)
-  | Arg arg1, Arg arg2 ->
-      if T.equal_arg arg1 arg2 then shape1
-      else (
-        (* TODO: We do not handle this right now, we would need to record and
-         *   solve constraints. It can happen with code like e.g.
-         *
-         *     def foo(a, b):
-         *       tup = (a,)
-         *       tup[0] = b
-         *       return tup
-         *
-         * Then the consequence would be that the signature of `foo` would ignore
-         * the shape of `b`.
-         *)
-        Log.warn (fun m ->
-            m "Trying to unify two different arg shapes: %s ~ %s"
-              (T.show_arg arg1) (T.show_arg arg2));
-        shape1)
-  (* 'Arg' acts like a shape variable. *)
-  | Arg _, (Obj _ as obj)
-  | (Obj _ as obj), Arg _ ->
-      obj
-  | Arg _, (Fun _ as func)
-  | (Fun _ as func), Arg _ ->
-      func
-  | Obj _, Fun _
-  | Fun _, Obj _ ->
-      (* This could be caused by bugs in Semgrep, or by an if-then-else in a
-       * dynamic language like Python where the same variable has different types
-       * in each branch, or by unsafe casts in C/C++ perhaps. *)
-      Log.err (fun m ->
-          m "Trying to unify incompatible shapes: %s ~ %s" (show_shape shape1)
-            (show_shape shape2));
-      (* Not sure what to do here, so we just pick one arbitrary shape. *)
-      shape1
 
 and unify_obj obj1 obj2 =
   (* THINK: Apply taint_MAX_OBJ_FIELDS limit ? *)
@@ -274,9 +413,7 @@ let record_or_dict_like_obj taints_and_shapes : shape =
            | `Spread shape -> (
                match shape with
                | Obj obj' -> unify_obj obj obj'
-               | Bot
-               | Arg _
-               | Fun _ ->
+               | Bot ->
                    Log.err (fun m ->
                        m
                          "record_or_dict_like_obj: expected Obj shape but \
@@ -306,23 +443,6 @@ let rec gather_all_taints_in_cell_acc acc cell =
 and gather_all_taints_in_shape_acc acc = function
   | Bot -> acc
   | Obj obj -> gather_all_taints_in_obj_acc acc obj
-  | Arg arg ->
-      let taint =
-        {
-          T.orig = Var (Taint_in_shape_var (T.lval_of_arg arg));
-          rev_tokens = [];
-        }
-      in
-      Taints.add taint acc
-  | Fun _ ->
-      (* Consider a third-party/opaque function to which we pass a record that
-       * contains a function object. Should be gather the taints in the function
-       * shape? In principle, no, since taints within a function shape aren't
-       * reachable until the function gets called...
-       *
-       * TODO: We could perhaps consider gathering the concrete taint sources
-       * that may be reachable if the function ever gets called? *)
-      acc
 
 and gather_all_taints_in_obj_acc acc obj =
   Fields.fold
@@ -356,18 +476,6 @@ and find_in_shape_w_carry ~taints offset shape =
   (* offset <> [] *)
   | Bot -> not_found
   | Obj obj -> find_in_obj_w_carry ~taints offset obj
-  | Arg _ ->
-      (* TODO: Here we should "refine" the arg shape, it should be an Obj shape. *)
-      Log.debug (fun m ->
-          m "Could not find offset %s in polymorphic shape %s"
-            (debug_offset offset) (show_shape shape));
-      not_found
-  | Fun _ ->
-      (* This is an error, we just don't want to crash here. *)
-      Log.err (fun m ->
-          m "Could not find offset %s in function shape %s"
-            (debug_offset offset) (show_shape shape));
-      not_found
 
 and find_in_obj_w_carry ~taints (offset : T.offset list) obj =
   let not_found = `Not_found (taints, Obj obj, offset) in
@@ -440,32 +548,25 @@ let rec update_offset_in_cell ~f offset cell =
   | `None, Bot -> None
   | `Tainted taints, Bot when Taints.is_empty taints -> None
   (* Restore INVARIANT(cell).2 *)
-  | `Clean, (Obj _ | Arg _ | Fun _) ->
+  | `Clean, Obj _ ->
       (* If we are tainting an offset of this cell, the cell cannot be
          considered clean anymore. *)
       Some (Cell (`None, shape'))
   | `Clean, Bot
-  | `None, (Obj _ | Arg _ | Fun _)
-  | `Tainted _, (Bot | Obj _ | Arg _ | Fun _) ->
+  | `None, Obj _
+  | `Tainted _, (Bot | Obj _) ->
       if phys_equal xtaint' xtaint && phys_equal shape' shape then Some cell
       else Some (Cell (xtaint', shape'))
 
 and update_offset_in_shape ~f offset shape =
   match shape with
-  | Bot
-  | Arg _ ->
+  | Bot ->
       let shape = Obj Fields.empty in
       update_offset_in_shape ~f offset shape
   | Obj obj -> (
       match update_offset_in_obj ~f offset obj with
       | None -> Bot
       | Some obj' -> if phys_equal obj' obj then shape else Obj obj')
-  | Fun _ ->
-      (* This is an error, we just don't want to crash here. *)
-      Log.err (fun m ->
-          m "Could not update offset %s in function shape %s"
-            (debug_offset offset) (show_shape shape));
-      shape
 
 and update_offset_in_obj ~f offset obj =
   let obj' =
@@ -554,17 +655,10 @@ let rec clean_cell (offset : T.offset list) cell =
 
 and clean_shape offset shape =
   match shape with
-  | Bot
-  | Arg _ ->
+  | Bot ->
       let shape = Obj Fields.empty in
       clean_shape offset shape
   | Obj obj -> Obj (clean_obj offset obj)
-  | Fun _ ->
-      (* This is an error, we just don't want to crash here. *)
-      Log.err (fun m ->
-          m "Could not update offset %s in function shape %s"
-            (debug_offset offset) (show_shape shape));
-      shape
 
 and clean_obj offset obj =
   match offset with
@@ -591,10 +685,7 @@ let rec internal_UNSAFE_map_xtaint_cell f cell =
 
 and internal_UNSAFE_map_xtaint_shape f shape =
   match shape with
-  | Bot
-  | Arg _
-  | Fun _ ->
-      shape
+  | Bot -> shape
   | Obj obj ->
       let obj' = internal_UNSAFE_map_xtaint_obj f obj in
       if phys_equal obj' obj then shape else Obj obj'
@@ -634,10 +725,6 @@ let rec enum_in_cell cell : (T.offset list * Taints.t) Seq.t =
 and enum_in_shape = function
   | Bot -> Seq.empty
   | Obj obj -> enum_in_obj obj
-  | Arg _ ->
-      (* TODO: First need to record taint shapes in 'ToLval'.  *)
-      Seq.empty
-  | Fun _ -> Seq.empty
 
 and enum_in_obj obj =
   obj |> Fields.to_seq
