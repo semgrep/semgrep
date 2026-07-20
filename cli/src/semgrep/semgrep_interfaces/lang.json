@@ -830,6 +830,7 @@
     "maturity": "ga",
     "exts": [
       ".tf",
+      ".tofu",
       ".hcl",
       ".tfvars"
     ],
