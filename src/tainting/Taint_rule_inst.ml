@@ -30,11 +30,6 @@
 open Common
 module E = Core_error
 
-type effects_handler =
-  IL.name option (** name of the function definition ('None' if anonymous) *) ->
-  Shape_and_sig.Effect.poly list ->
-  Shape_and_sig.Effect.poly list
-
 type java_props_cache = (string * AST_generic.SId.t, IL.name) Hashtbl.t
 
 type file_timeout_var_stats = {
@@ -50,35 +45,9 @@ type file = {
   path : Fpath.t;  (** File under analysis, for Deep Semgrep. *)
 }
 
-(* components of a taint rule that are mutable (and thus can't be passed
-   cross-thread during parallel taint signature inference. *)
-type mutable_state = {
-  handle_effects : effects_handler;
-      (** Use 'handle_effects' to e.g. apply hash-consing (see 'Deep_tainting'), or
-          to do some side-effect if needed.
-
-          old: In the past one had to use 'handle_effects' to record taint
-          effects by side-effect (no pun intended), however this is not needed
-          now because 'Dataflow_tainting.fixpoint' already returns the set of
-          taint effects.
-
-          SAFETY: Since [handle_effects] closes over a mutable effects cache,
-          it has to be considered "mutable" itself. *)
-  java_props_cache : java_props_cache;
-      (** Pro should be autogenerating definitions for these getters/setters,
-          but that seems to hurt performance and it's still unclear why, so
-          instead we give taint access to Pro typing info through a hook
-          ('hook_find_attribute_in_class') and look for the property
-          corresponding to the getter/setter.
-
-          On very large files, allocating a new name every time could have a
-          perf impact, so we cache them. *)
-  timeouts : file_timeout_stats;
-}
-
-type t = {
+type 'muts t = {
   file : file;
-  muts : mutable_state;
+  muts : 'muts;
   rule : Rule_ID.t;
   options : Rule_options.t;
   track_control : bool;
@@ -92,32 +61,53 @@ type t = {
             these stats from the matches later.
         *)
 }
-(** Taint rule instantiated for a given file.
+(** Taint rule instantiated for a given file, generic in the shape of the
+    mutable state ['muts]. Kept fully opaque in ['muts] -- OSS and Pro each
+    define their own concrete 'mutable_state' ('OSS_taint_rule_inst.mutable_state',
+    'Pro_taint_rule_inst.mutable_state') and plug it in here, so a future
+    OSS/Pro divergence in what mutable state looks like needs no change in
+    this module.
 
     For a source to taint a sink, the bindings of both source and sink must be
     unifiable. See 'Dataflow_tainting.unify_meta_envs'. *)
 
-let default_effect_handler _fun_name new_effects = new_effects
+type config = {
+  file : file;
+  rule : Rule_ID.t;
+  options : Rule_options.t;
+  track_control : bool;
+  preds : Taint_spec_preds.t;
+  stats : Taint_coverage_stats.file_rule_stats;
+}
+(** The effect-free configuration of a taint rule instance, as produced by
+    'Match_taint_spec.taint_config_of_rule'. A caller combines this with a
+    (fresh or cached) mutable state via 'of_config' to obtain a full 't'. *)
+
 let mk_file ~lang ~path = { lang; path }
 
-let fresh_muts ~handle_effects =
+let of_config (c : config) ~muts : 'muts t =
   {
-    handle_effects = handle_effects ||| default_effect_handler;
-    java_props_cache = Hashtbl.create 30;
-    timeouts = Hashtbl.create 2;
+    file = c.file;
+    muts;
+    rule = c.rule;
+    options = c.options;
+    track_control = c.track_control;
+    preds = c.preds;
+    stats = c.stats;
   }
 
-let record_timeout t opt_name =
-  match Hashtbl.find_opt t.muts.timeouts opt_name with
+let record_timeout ~(timeouts : file_timeout_stats) ~(rule : Rule_ID.t) opt_name
+    =
+  match Hashtbl.find_opt timeouts opt_name with
   | None ->
-      Hashtbl.add t.muts.timeouts opt_name
-        { first_rule = t.rule; num_rules = 1 };
+      Hashtbl.add timeouts opt_name { first_rule = rule; num_rules = 1 };
       ()
   | Some stats ->
       stats.num_rules <- stats.num_rules + 1;
       ()
 
-let check_timeouts_and_warn ~interfile file caches : E.ErrorSet.t =
+let check_timeouts_and_warn ~interfile file (timeouts : file_timeout_stats) :
+    E.ErrorSet.t =
   Hashtbl.fold
     (fun opt_name stats errors_acc ->
       (* TODO: Hash 'opt_name' and show it *)
@@ -135,4 +125,4 @@ let check_timeouts_and_warn ~interfile file caches : E.ErrorSet.t =
       Logs.warn (fun m -> m "%s" msg);
       let err = E.mk_error ~msg ~loc Semgrep_output_v1_t.FixpointTimeout in
       errors_acc |> E.ErrorSet.add err)
-    caches.timeouts E.ErrorSet.empty
+    timeouts E.ErrorSet.empty
