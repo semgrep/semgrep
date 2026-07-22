@@ -43,7 +43,7 @@ class VisibilityState(str, Enum):
 class VisibilityStateType(click.ParamType):
     name = "visibility_state"
 
-    def get_metavar(self, _param: click.Parameter) -> str:
+    def get_metavar(self, param: click.Parameter, ctx: click.Context) -> str:
         return "[org_private|unlisted|public]"
 
     def convert(
