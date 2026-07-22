@@ -101,7 +101,7 @@ class MetricsState(Enum):
 class MetricsStateType(click.ParamType):
     name = "metrics_state"
 
-    def get_metavar(self, _param: click.Parameter) -> str:
+    def get_metavar(self, param: click.Parameter, ctx: click.Context) -> str:
         return "[auto|on|off]"
 
     def convert(
