@@ -213,7 +213,7 @@ class SemgrepRunner:
         self._env = env if env is not None else {}
         self._mix_stderr = mix_stderr
         if self._use_click_runner:
-            self._runner = CliRunner(env=env, mix_stderr=mix_stderr)
+            self._runner = CliRunner(env=env)
 
     def invoke(
         self,
@@ -238,8 +238,11 @@ class SemgrepRunner:
                 f"[click] semgrep command args: {' '.join(arg_list)}", file=sys.stderr
             )
             result = self._runner.invoke(python_cli, arg_list, input=input, env=env)
-            stderr = result.stderr if not self._mix_stderr else ""
-            return Result(result.exit_code, result.stdout, stderr)
+            # `result.output` interleaves stdout and stderr; when not mixing,
+            # keep the two streams separate.
+            if self._mix_stderr:
+                return Result(result.exit_code, result.output, "")
+            return Result(result.exit_code, result.stdout, result.stderr)
         else:
             # TODO: do we need to support 'input' i.e. passing a string
             # to the program's stdin?
