@@ -1951,6 +1951,53 @@ def test_generic_secrets_output(
     assert "generic secrets rule message" not in result.raw_stdout
 
 
+SECRETS_ONLY_CONFIG = dedent(
+    """
+    rules:
+    - id: secret-rule-example
+      pattern: $X == $X
+      message: "secret rule message"
+      languages: [python]
+      severity: ERROR
+      metadata:
+        product: secrets
+    """
+)
+
+
+@pytest.mark.parametrize("scan_config", [SECRETS_ONLY_CONFIG], ids=["secrets_only"])
+@pytest.mark.osemfail
+def test_secrets_only_hides_code_scan_status(
+    git_tmp_path_with_commit,
+    run_semgrep: RunSemgrep,
+    mocker,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """When the Code product is not enabled, `semgrep ci` should not claim
+    "0 Code rules" and should say code scanning is not enabled rather than print
+    an empty code table (ENGINE-2878)."""
+    mocker.patch.object(ScanHandler, "enabled_products", ["secrets"])
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        options=["--oss-only"],
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    assert "with 0 Code rules" not in result.stderr
+    assert "Code scanning is not enabled." in result.stderr
+    assert "No code rules to run." not in result.stderr
+
+
 @pytest.mark.osemfail
 def test_semgrep_managed_scan_id(run_semgrep: RunSemgrep, requests_mock):
     MANAGED_SCAN_ID = "12321"
@@ -3186,6 +3233,7 @@ def test_finding_suppressed_when_baseline_scan_fails(
         *,
         with_code_rules: bool = True,
         with_supply_chain: bool = False,
+        code_enabled: Optional[bool] = None,
         write_to_tr_cache: bool = True,
         fips_mode: bool,
         enable_transitive_reachability: Optional[bool] = None,
@@ -3219,6 +3267,7 @@ def test_finding_suppressed_when_baseline_scan_fails(
             disable_secrets_validation,
             with_code_rules=with_code_rules,
             with_supply_chain=with_supply_chain,
+            code_enabled=code_enabled,
             write_to_tr_cache=write_to_tr_cache,
             fips_mode=fips_mode,
             enable_transitive_reachability=enable_transitive_reachability,
@@ -3380,6 +3429,7 @@ def test_baseline_scan_failures_suppress_per_rule_and_whole_file(
         *,
         with_code_rules: bool = True,
         with_supply_chain: bool = False,
+        code_enabled: Optional[bool] = None,
         write_to_tr_cache: bool = True,
         fips_mode: bool,
         enable_transitive_reachability: Optional[bool] = None,
@@ -3413,6 +3463,7 @@ def test_baseline_scan_failures_suppress_per_rule_and_whole_file(
             disable_secrets_validation,
             with_code_rules=with_code_rules,
             with_supply_chain=with_supply_chain,
+            code_enabled=code_enabled,
             write_to_tr_cache=write_to_tr_cache,
             fips_mode=fips_mode,
             enable_transitive_reachability=enable_transitive_reachability,
