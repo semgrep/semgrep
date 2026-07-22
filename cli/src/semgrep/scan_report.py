@@ -152,14 +152,21 @@ def _print_scan_plan_header(
 
     # TODO code_rule_count currently double counts pro_rules.
     code_rule_count = sast_rule_count - secrets_rule_count
-    summary_line += f" with {unit_str(code_rule_count, 'Code rule')}"
-
-    if secrets_rule_count:
-        summary_line += f", {unit_str(secrets_rule_count, 'Secrets rule')}"
-
     sca_rule_count = len(sca_plan.rules)
-    if sca_rule_count:
-        summary_line += f", {unit_str(sca_rule_count, 'Supply Chain rule')}"
+
+    # Only mention products that have rules to run, so e.g. a secrets-only
+    # scan doesn't advertise "0 Code rules".
+    rule_count_parts = [
+        unit_str(count, unit)
+        for count, unit in (
+            (code_rule_count, "Code rule"),
+            (secrets_rule_count, "Secrets rule"),
+            (sca_rule_count, "Supply Chain rule"),
+        )
+        if count
+    ]
+    if rule_count_parts:
+        summary_line += f" with {', '.join(rule_count_parts)}"
 
     console.print(summary_line + ":")
 
@@ -379,6 +386,9 @@ def print_scan_status(
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
+    # Whether the Code product is enabled for this scan. True/False when known
+    # (e.g. from the platform in `semgrep ci`), None when it can't be determined.
+    code_enabled: Optional[bool] = None,
     # Used for recording phase data
     target_accumulator: Optional[TargetAccumulator] = None,
 ) -> int:
@@ -467,6 +477,7 @@ def print_scan_status(
     # NOTE: There's some funky behavior with handling the rule counts
     # in which some functions require rule counts calculated in different ways.
     alt_sast_rule_count = sast_plan.rule_count_for_product(out.Product(out.SAST()))
+    has_code_rules = alt_sast_rule_count > 0
 
     secrets_rule_count = sast_plan.rule_count_for_product(out.Product(out.Secrets()))
     has_secret_rules = secrets_rule_count > 0
@@ -500,11 +511,19 @@ def print_scan_status(
     else:
         console.print(Title("Code Rules", order=2))
 
-    _print_sast_table(
-        sast_plan=sast_plan,
-        product=out.Product(out.SAST()),
-        rule_count=alt_sast_rule_count,
-    )
+    # When there are no code rules to run, say so explicitly (and why, when we
+    # know) rather than printing a confusing empty table, so it's clear code
+    # analysis isn't silently broken (ENGINE-2878).
+    if has_code_rules:
+        _print_sast_table(
+            sast_plan=sast_plan,
+            product=out.Product(out.SAST()),
+            rule_count=alt_sast_rule_count,
+        )
+    elif code_enabled is False:
+        console.print("Code scanning is not enabled.")
+    else:
+        console.print("No code rules to run.")
 
     # TODO: after launch this should no longer be conditional.
     if has_secret_rules:
