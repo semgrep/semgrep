@@ -12,7 +12,7 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 0 Code rules:
+  Scanning 1 file tracked by git:
   Nothing to scan.
 
 
