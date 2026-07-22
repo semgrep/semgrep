@@ -1050,6 +1050,7 @@ def run_rules(
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
+    code_enabled: Optional[bool] = None,
     write_to_tr_cache: bool = True,
     fips_mode: bool,
     enable_transitive_reachability: Optional[bool] = None,
@@ -1119,6 +1120,7 @@ def run_rules(
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
+        code_enabled=code_enabled,
         target_accumulator=target_accumulator,
     )
 
@@ -1327,6 +1329,7 @@ def run_scan(
     x_mem_policy: Optional[MemoryPolicy] = None,
     x_dump_subprojects_and_exit: Path | None = None,
     x_computed_dependencies_dir: Path | None = None,
+    code_enabled: Optional[bool] = None,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1594,6 +1597,7 @@ def run_scan(
             disable_secrets_validation,
             with_code_rules=configs_obj.with_code_rules,
             with_supply_chain=configs_obj.with_supply_chain,
+            code_enabled=code_enabled,
             fips_mode=fips_mode,
             write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,

@@ -941,6 +941,9 @@ def ci(
             **({"x_mem_policy": x_mem_policy} if x_mem_policy else {}),
             "x_dump_subprojects_and_exit": x_dump_subprojects_and_exit,
             "x_computed_dependencies_dir": x_computed_dependencies_dir,
+            "code_enabled": (
+                "sast" in scan_handler.enabled_products if scan_handler else None
+            ),
         }
 
         try:

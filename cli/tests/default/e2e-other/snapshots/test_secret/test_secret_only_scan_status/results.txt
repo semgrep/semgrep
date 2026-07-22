@@ -3,20 +3,20 @@
 === end of exit code
 
 === stdout - plain
-{
-  "engine_requested": "OSS",
-  "errors": [],
-  "paths": {
-    "scanned": [
-      "targets/dependency_aware/nuget/packages.lock.json"
-    ]
-  },
-  "profiling_results": [],
-  "results": [],
-  "skipped_rules": [],
-  "time": "<masked in tests>",
-  "version": "0.42"
-}
+
+
+┌───────────────────────────────┐
+│ 1 Unvalidated Secrets Finding │
+└───────────────────────────────┘
+
+    targets/basic.py
+   ❯❯❱ rules.basic-test.secret
+          ❰❰ Blocking ❱❱
+          Basic test
+
+            2┆ print(1*****)
+
+
 === end of stdout - plain
 
 === stderr - plain
@@ -25,20 +25,26 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git:
-  Nothing to scan.
+  Scanning 1 file tracked by git with 1 Secrets rule:
+
+
+  CODE RULES
+  No code rules to run.
+
+  SECRETS RULES
+  Scanning 1 file.
 
 
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
 ✅ Scan completed successfully.
- • Findings: 0 (0 blocking)
+ • Findings: 1 (1 blocking)
  • Rules run: 1
  • Targets scanned: 1
  • Parsed lines: ~100.0%
  • No ignore information available
-Ran 1 rule on 1 file: 0 findings.
+Ran 1 rule on 1 file: 1 finding.
 
 === end of stderr - plain
 

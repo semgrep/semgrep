@@ -40,7 +40,7 @@
 
 
   CODE RULES
-  Nothing to scan.
+  No code rules to run.
 
   SUPPLY CHAIN RULES
 
