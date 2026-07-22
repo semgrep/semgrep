@@ -1,0 +1,5 @@
+Improved the `Scan Status` output when no code rules will run (e.g. a
+Secrets-only or Supply-Chain-only scan). The summary line no longer reports a
+confusing "0 Code rules", and the "Code Rules" section now states explicitly
+either that code scanning is not enabled or that there are no code rules to run,
+instead of printing an empty table.
