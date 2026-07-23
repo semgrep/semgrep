@@ -76,6 +76,7 @@ let operator (env : env) (x : CST.operator) =
   | `AMP tok -> (Left Op_BAND, token2 env tok)
   | `LTEQGT tok -> (Left Op_CMP, token2 env tok)
   | `EQEQ tok -> (Left Op_EQ, token2 env tok)
+  | `BANGEQ tok -> (Left Op_NEQ, token2 env tok)
   | `EQEQEQ tok -> (Left Op_EQQ, token2 env tok)
   | `EQTILDE tok -> (Left Op_MATCH, token2 env tok)
   | `GT tok -> (Left Op_GT, token2 env tok)
@@ -1578,7 +1579,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
           let v1 = token2 env v1 in
           let v2 =
             match v2 with
-            | Some x -> Some (statement env x)
+            | Some (_lb, x) -> Some (statement env x)
             | None -> None
           in
           let _v3 =
@@ -1594,23 +1595,28 @@ and primary (env : env) (x : CST.primary) : AST.expr =
           in
           let _v7 = token2 env v7 in
           S (Case (v1, { case_guard = v2; case_whens = v5; case_else = v6 }))
-      | `Case_match (v1, v2, v3, v4, v5, v6) ->
+      | `Case_match (v1, v2, v3, v4, v5, v6, v7) ->
           let v1 = (* "case" *) token2 env v1 in
-          let v2 = statement env v2 in
-          let _v3 =
-            match v3 with
+          let _v2 =
+            match v2 with
+            | Some _tok -> ()
+            | None -> ()
+          in
+          let v3 = statement env v3 in
+          let _v4 =
+            match v4 with
             | Some x -> terminator env x
             | None -> ()
           in
-          let v4 = List.map (in_clause env) v4 in
-          let v5 =
-            match v5 with
+          let v5 = List.map (in_clause env) v5 in
+          let v6 =
+            match v6 with
             | Some x -> Some (else_ env x)
             | None -> None
           in
-          let _v6 = (* "end" *) token2 env v6 in
+          let _v7 = (* "end" *) token2 env v7 in
           S
-            (Case (v1, { case_guard = Some v2; case_whens = v4; case_else = v5 }))
+            (Case (v1, { case_guard = Some v3; case_whens = v5; case_else = v6 }))
       | `Ret (v1, v2) ->
           let v1 = token2 env v1 in
           let v2 =
@@ -2288,7 +2294,7 @@ and lhs (env : env) (x : CST.lhs) : AST.expr =
   | `False x -> Literal (Bool (false_ env x))
   | `Nil x -> Literal (Nil (nil env x))
   | `Scope_resol x -> ScopedId (scope_resolution env x)
-  | `Elem_ref (v1, v2, v3, v4) ->
+  | `Elem_ref (v1, v2, v3, v4, v5) ->
       let v1 = primary env v1 in
       let v2 = token2 env v2 in
       let v3 =
@@ -2297,13 +2303,19 @@ and lhs (env : env) (x : CST.lhs) : AST.expr =
         | None -> []
       in
       let v4 = token2 env v4 in
+      let v5 =
+        match v5 with
+        | None -> None
+        | Some (`Blk x) -> Some (block env x)
+        | Some (`Do_blk x) -> Some (do_block env x)
+      in
       let e =
         (* THINK: Why do we need a DotAccess here rather than just `v1' ?
          *   And why a Call rather than an ArrayAccess ?
          *)
         DotAccess (v1, v2, MethodOperator (Op_AREF, v2))
       in
-      Call (e, (v2, v3, v4), None)
+      Call (e, (v2, v3, v4), v5)
   | `Call_ x -> call_ env x
 
 and method_name (env : env) (x : CST.method_name) : AST.method_name =
