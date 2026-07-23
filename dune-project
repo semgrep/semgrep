@@ -91,9 +91,9 @@ For more information see https://semgrep.dev
     ; that is resolved until filing an issue on this
     ; alt: only choose an old uring if the tsan option is enabled?
     (uring (and (= :os linux) (= 0.9)))
-    ; unit testing (note that testo is pinned in semgrep.opam.template)
-    testo
-    testo-lwt
+    ; unit testing
+    (testo (= 0.5.0))
+    (testo-lwt (= 0.5.0))
     (alcotest (>= 1.9.1))
     (alcotest-lwt (>= 1.9.1))
     (calendar (>= 3.0.0))

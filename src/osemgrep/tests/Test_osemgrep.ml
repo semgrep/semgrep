@@ -39,7 +39,7 @@ let t = Testo.create ?skipped:Testutil.skip_on_windows
 (* no need for a token to access public rules in the registry *)
 let test_scan_config_registry_no_token () =
   t __FUNCTION__
-    ~broken:
+    ~flaky:
       "Flakey: Rule fetching isn't mocked; sometimes causes request timeouts."
     (* Ensure that we are somewhere with a new settings file so we don't reuse
        them across tests *)
@@ -61,7 +61,7 @@ let test_scan_config_registry_no_token () =
 let test_scan_config_registry_with_invalid_token () : Testo.t =
   t ~checked_output:(Testo.stderr ()) __FUNCTION__
     ~normalize:[ Testo.mask_not_substrings [ "Saved access token" ] ]
-    ~broken:
+    ~flaky:
       "Flakey: Rule fetching isn't mocked; sometimes causes request timeouts."
     (Testutil_login.with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token
