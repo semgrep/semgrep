@@ -340,8 +340,6 @@ class StreamingSemgrepCore:
                     contact us.
 
                        Error: semgrep-core exited with unexpected output
-
-                       {self._stderr}
                     """,
                 )
 
@@ -464,7 +462,12 @@ class StreamingSemgrepCore:
         # Raise any exceptions from processing stdout/err
         for r in results:
             if isinstance(r, Exception):
-                raise SemgrepError(f"Error while running rules: {r}")
+                # wait until after we have finished gathering stderr before
+                # sticking it in the error. Previously we had it in the "You are
+                # seeing this because the engine was killed." but that relied on
+                # the async io reader to have read before we got to that point,
+                # which in practice never happened
+                raise SemgrepError(f"Error while running rules: {r}\n{self._stderr}")
 
     async def _stream_exec_subprocess(self) -> int:
         """
