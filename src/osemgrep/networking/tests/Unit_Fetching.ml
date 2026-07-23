@@ -36,14 +36,14 @@ let real_fetch_tests =
   (* It seems like the intention of these tests were to test network flakeyness
    * by repetition.
    *)
-  let broken = "networking isn't mocked + testing flakeyness" in
+  let flaky = "networking isn't mocked + testing flakeyness" in
   Testo.categorize "fetch tests"
     [
-      t ~broken "fetch ocaml rules 1" fetch_ocaml_rules;
-      t ~broken "fetch ocaml rules 2" fetch_ocaml_rules;
-      t ~broken "fetch ocaml rules 3" fetch_ocaml_rules;
-      t ~broken "fetch ocaml rules 4" fetch_ocaml_rules;
-      t ~broken "fetch ocaml rules 5" fetch_ocaml_rules;
+      t ~flaky "fetch ocaml rules 1" fetch_ocaml_rules;
+      t ~flaky "fetch ocaml rules 2" fetch_ocaml_rules;
+      t ~flaky "fetch ocaml rules 3" fetch_ocaml_rules;
+      t ~flaky "fetch ocaml rules 4" fetch_ocaml_rules;
+      t ~flaky "fetch ocaml rules 5" fetch_ocaml_rules;
     ]
 
 let tests = Testo.categorize_suites "OSemgrep Fetch" [ real_fetch_tests ]

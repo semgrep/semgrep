@@ -227,10 +227,10 @@ depends: [
   "system-mingw" {= "1"}
   "tcpip" {= "9.0.1"}
   "terminal_size" {= "0.2.0"}
-  "testo" {= "dev"}
-  "testo-diff" {= "dev"}
-  "testo-lwt" {= "dev"}
-  "testo-util" {= "dev"}
+  "testo" {= "0.5.0"}
+  "testo-diff" {= "0.5.0"}
+  "testo-lwt" {= "0.5.0"}
+  "testo-util" {= "0.5.0"}
   "thread-local-storage" {= "0.2"}
   "thread-table" {= "1.0.0"}
   "time_now" {= "v0.17.0"}
@@ -324,22 +324,6 @@ pin-depends: [
   [
     "semgrep-interfaces.dev"
     "git+https://github.com/semgrep/semgrep-interfaces.git#7e509db48c700cae49fe0372e2aa0410fa86d867"
-  ]
-  [
-    "testo.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
-  ]
-  [
-    "testo-diff.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
-  ]
-  [
-    "testo-lwt.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
-  ]
-  [
-    "testo-util.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
   ]
   [
     "tree-sitter.dev"
