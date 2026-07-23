@@ -1,0 +1,400 @@
+[{ s =
+   (Switch (_,
+      (Some (Cond
+               { e =
+                 (N
+                    (Id (("foo", _),
+                       { id_resolved = ref (None);
+                         id_resolved_alternatives = ref ([]);
+                         id_type = ref (None); id_svalue = ref (Unknown);
+                         id_flags = ref (0); id_info_id = _ }
+                       )));
+                 e_id = 0; e_range = None; is_implicit_return = false;
+                 facts = <opaque> })),
+      [(CasesAndBody
+          ([(Case (_,
+               (OtherPat (("expr", _),
+                  [(E
+                      { e =
+                        (N
+                           (Id (("bar", _),
+                              { id_resolved = ref ((Some (Global, _)));
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
+                                id_flags = ref (0); id_info_id = _ }
+                              )));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                    ]
+                  ))
+               ))
+             ],
+           { s = (Block (_, [], _)); s_range = None }))
+        ]
+      ));
+   s_range = None };
+  { s =
+    (Switch (_,
+       (Some (Cond
+                { e =
+                  (N
+                     (Id (("foo", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> })),
+       [(CasesAndBody
+           ([(Case (_,
+                (OtherPat (("expr", _),
+                   [(E
+                       { e =
+                         (N
+                            (Id (("bar", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                     ]
+                   ))
+                ))
+              ],
+            { s = (Block (_, [], _)); s_range = None }))
+         ]
+       ));
+    s_range = None };
+  { s =
+    (Switch (_,
+       (Some (Cond
+                { e =
+                  (N
+                     (Id (("foo", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> })),
+       [(CasesAndBody
+           ([(Case (_,
+                (OtherPat (("expr", _),
+                   [(E
+                       { e =
+                         (N
+                            (Id (("bar", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                     ]
+                   ))
+                ))
+              ],
+            { s = (Block (_, [], _)); s_range = None }))
+         ]
+       ));
+    s_range = None };
+  { s =
+    (Switch (_,
+       (Some (Cond
+                { e =
+                  (N
+                     (Id (("foo", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> })),
+       [(CasesAndBody
+           ([(Case (_,
+                (OtherPat (("expr", _),
+                   [(E
+                       { e =
+                         (N
+                            (Id (("bar", _),
+                               { id_resolved = ref ((Some (Global, _)));
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                     ]
+                   ))
+                ))
+              ],
+            { s =
+              (Block
+                 (_,
+                  [{ s =
+                     (ExprStmt (
+                        { e = (L (Null _)); e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        _));
+                     s_range = None }
+                    ],
+                  _));
+              s_range = None }))
+         ]
+       ));
+    s_range = None };
+  { s =
+    (Switch (_,
+       (Some (Cond
+                { e =
+                  (N
+                     (Id (("expr", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> })),
+       [(CasesAndBody
+           ([(Case (_, (PatLiteral (Int ((Some 5L), _)))))],
+            { s =
+              (Block
+                 (_,
+                  [{ s =
+                     (ExprStmt (
+                        { e = (L (Bool (true, _))); e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        _));
+                     s_range = None }
+                    ],
+                  _));
+              s_range = None }));
+         (CasesAndBody
+            ([(Default _)],
+             { s =
+               (Block
+                  (_,
+                   [{ s =
+                      (ExprStmt (
+                         { e = (L (Bool (false, _))); e_id = 0;
+                           e_range = None; is_implicit_return = false;
+                           facts = <opaque> },
+                         _));
+                      s_range = None }
+                     ],
+                   _));
+               s_range = None }))
+         ]
+       ));
+    s_range = None };
+  { s =
+    (Switch (_,
+       (Some (Cond
+                { e =
+                  (N
+                     (Id (("expr", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> })),
+       [(CasesAndBody
+           ([(Case (_, (PatLiteral (Int ((Some 5L), _)))))],
+            { s =
+              (Block
+                 (_,
+                  [{ s =
+                     (ExprStmt (
+                        { e = (L (Bool (true, _))); e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        _));
+                     s_range = None }
+                    ],
+                  _));
+              s_range = None }));
+         (CasesAndBody
+            ([(Default _)],
+             { s =
+               (Block
+                  (_,
+                   [{ s =
+                      (ExprStmt (
+                         { e = (L (Bool (false, _))); e_id = 0;
+                           e_range = None; is_implicit_return = false;
+                           facts = <opaque> },
+                         _));
+                      s_range = None }
+                     ],
+                   _));
+               s_range = None }))
+         ]
+       ));
+    s_range = None };
+  { s =
+    (Switch (_,
+       (Some (Cond
+                { e =
+                  (N
+                     (Id (("expr", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> })),
+       [(CasesAndBody
+           ([(Case (_,
+                (PatWhen (
+                   (PatId (("x", _),
+                      { id_resolved = ref ((Some (Global, _)));
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (Unknown);
+                        id_flags = ref (0); id_info_id = _ }
+                      )),
+                   { e =
+                     (Call (
+                        { e = (Special ((Op Not), _)); e_id = 0;
+                          e_range = None; is_implicit_return = false;
+                          facts = <opaque> },
+                        (_,
+                         [(Arg
+                             { e =
+                               (Call (
+                                  { e = (Special ((Op Lt), _)); e_id = 0;
+                                    e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> },
+                                  (_,
+                                   [(Arg
+                                       { e =
+                                         (N
+                                            (Id (("x", _),
+                                               { id_resolved =
+                                                 ref ((Some (Global, _)));
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> });
+                                     (Arg
+                                        { e = (L (Int ((Some 0L), _)));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> })
+                                     ],
+                                   _)
+                                  ));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> })
+                           ],
+                         _)
+                        ));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> }
+                   ))
+                ))
+              ],
+            { s =
+              (Block
+                 (_,
+                  [{ s =
+                     (ExprStmt (
+                        { e = (L (Bool (true, _))); e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        _));
+                     s_range = None }
+                    ],
+                  _));
+              s_range = None }));
+         (CasesAndBody
+            ([(Case (_,
+                 (PatWhen (
+                    (PatId (("x", _),
+                       { id_resolved = ref ((Some (Global, _)));
+                         id_resolved_alternatives = ref ([]);
+                         id_type = ref (None); id_svalue = ref (Unknown);
+                         id_flags = ref (0); id_info_id = _ }
+                       )),
+                    { e =
+                      (Call (
+                         { e = (Special ((Op Lt), _)); e_id = 0;
+                           e_range = None; is_implicit_return = false;
+                           facts = <opaque> },
+                         (_,
+                          [(Arg
+                              { e =
+                                (N
+                                   (Id (("x", _),
+                                      { id_resolved =
+                                        ref ((Some (Global, _)));
+                                        id_resolved_alternatives = ref ([]);
+                                        id_type = ref (None);
+                                        id_svalue = ref (Unknown);
+                                        id_flags = ref (0); id_info_id = _ }
+                                      )));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                });
+                            (Arg
+                               { e = (L (Int ((Some 0L), _))); e_id = 0;
+                                 e_range = None; is_implicit_return = false;
+                                 facts = <opaque> })
+                            ],
+                          _)
+                         ));
+                      e_id = 0; e_range = None; is_implicit_return = false;
+                      facts = <opaque> }
+                    ))
+                 ))
+               ],
+             { s =
+               (Block
+                  (_,
+                   [{ s =
+                      (ExprStmt (
+                         { e = (L (Bool (true, _))); e_id = 0;
+                           e_range = None; is_implicit_return = false;
+                           facts = <opaque> },
+                         _));
+                      s_range = None }
+                     ],
+                   _));
+               s_range = None }));
+         (CasesAndBody
+            ([(Default _)],
+             { s =
+               (Block
+                  (_,
+                   [{ s =
+                      (ExprStmt (
+                         { e = (L (Bool (false, _))); e_id = 0;
+                           e_range = None; is_implicit_return = false;
+                           facts = <opaque> },
+                         _));
+                      s_range = None }
+                     ],
+                   _));
+               s_range = None }))
+         ]
+       ));
+    s_range = None }
+  ]
