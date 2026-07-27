@@ -36,7 +36,7 @@ class TestGetTargets:
                 explicit_targets=[],
                 force_novcs_project=False,
                 exclude_minified_files=False,
-                exclude_binary_files=False,
+                # include_binary_files is optional (defaults to false); omitted here.
             ),
         )
 

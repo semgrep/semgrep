@@ -923,7 +923,9 @@ class TargetManager:
                 # shouldn't be needed since we provide the scanning roots:
                 explicit_targets=[],
                 force_novcs_project=self.force_novcs_project,
-                exclude_binary_files=self.exclude_binary_files,
+                # coupling: wire field is include_binary_files; TargetManager
+                # keeps the exclude_binary_files spelling, so invert here.
+                include_binary_files=not self.exclude_binary_files,
                 exclude_minified_files=False,
                 include_=(list(self.includes) or None),
                 force_project_root=(
