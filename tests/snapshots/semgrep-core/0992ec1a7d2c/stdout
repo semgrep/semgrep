@@ -1,0 +1,145 @@
+[{ s =
+   (DirectiveStmt
+      { d =
+        (Pragma (("solidity", _),
+           [(Tk _);
+             (E
+                { e =
+                  (Call (
+                     { e = (Special ((Op BitXor), _)); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> },
+                     (_,
+                      [(Arg
+                          { e = (L (String (_, ("0.8.24", _), _))); e_id = 0;
+                            e_range = None; is_implicit_return = false;
+                            facts = <opaque> })
+                        ],
+                      _)
+                     ));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+             (Tk _)]
+           ));
+        d_attrs = [] });
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("C", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (ClassDef
+           { ckind = (Object, _); cextends = []; cimplements = [];
+             cmixins = []; cparams = (_, [], _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("f", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          attrs = [(KeywordAttr (Public, _))]; tparams = None
+                          },
+                        (FuncDef
+                           { fkind = (Function, _); fparams = (_, [], _);
+                             frettype = None;
+                             fbody =
+                             (FBStmt
+                                { s =
+                                  (Block
+                                     (_,
+                                      [{ s =
+                                         (OtherStmtWithStmt (
+                                            (OSWS_Block ("Assembly", _)), 
+                                            [],
+                                            { s =
+                                              (Block
+                                                 (_,
+                                                  [{ s =
+                                                     (DefStmt
+                                                        ({ name =
+                                                           (EN
+                                                              (Id (("x", _),
+                                                                 { id_resolved =
+                                                                   ref ((Some (
+                                                                   LocalVar,
+                                                                   _)));
+                                                                   id_resolved_alternatives =
+                                                                   ref (
+                                                                   []);
+                                                                   id_type =
+                                                                   ref ((Some 
+                                                                   { t =
+                                                                    (TyN
+                                                                    (Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (Unknown);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                    t_attrs =
+                                                                    [] }));
+                                                                   id_svalue =
+                                                                   ref (Unknown);
+                                                                   id_flags =
+                                                                   ref (0);
+                                                                   id_info_id =
+                                                                   _ }
+                                                                 )));
+                                                           attrs = [];
+                                                           tparams = None },
+                                                         (VarDef
+                                                            { vinit =
+                                                              (Some { e =
+                                                                    (L
+                                                                    (Int
+                                                                    ((Some 1L),
+                                                                    _)));
+                                                                    e_id = 0;
+                                                                    e_range =
+                                                                    None;
+                                                                    is_implicit_return =
+                                                                    false;
+                                                                    facts =
+                                                                    <opaque>
+                                                                    });
+                                                              vtype = None;
+                                                              vtok = None })));
+                                                     s_range = None }
+                                                    ],
+                                                  _));
+                                              s_range = None }
+                                            ));
+                                         s_range = None }
+                                        ],
+                                      _));
+                                  s_range = None })
+                             })));
+                    s_range = None })
+                ],
+              _)
+             })));
+    s_range = None }
+  ]

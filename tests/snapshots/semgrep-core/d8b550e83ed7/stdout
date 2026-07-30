@@ -1,0 +1,113 @@
+[{ s =
+   (DirectiveStmt
+      { d =
+        (Pragma (("solidity", _),
+           [(Tk _);
+             (E
+                { e =
+                  (Call (
+                     { e = (Special ((Op BitXor), _)); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> },
+                     (_,
+                      [(Arg
+                          { e = (L (String (_, ("0.8.24", _), _))); e_id = 0;
+                            e_range = None; is_implicit_return = false;
+                            facts = <opaque> })
+                        ],
+                      _)
+                     ));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+             (Tk _)]
+           ));
+        d_attrs = [] });
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("C", _),
+                { id_resolved = ref (None);
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (ClassDef
+           { ckind = (Object, _); cextends = []; cimplements = [];
+             cmixins = []; cparams = (_, [], _);
+             cbody =
+             (_,
+              [(F
+                  { s =
+                    (DefStmt
+                       ({ name =
+                          (EN
+                             (Id (("balances", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          attrs = []; tparams = None },
+                        (VarDef
+                           { vinit = None;
+                             vtype =
+                             (Some { t =
+                                     (TyApply (
+                                        { t =
+                                          (TyN
+                                             (Id (("mapping", _),
+                                                { id_resolved = ref (None);
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (Unknown);
+                                                  id_flags = ref (0);
+                                                  id_info_id = _ }
+                                                )));
+                                          t_attrs = [] },
+                                        (_,
+                                         [(TA
+                                             { t =
+                                               (TyN
+                                                  (Id (("address", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               t_attrs = [] });
+                                           (TA
+                                              { t =
+                                                (TyN
+                                                   (Id (("uint256", _),
+                                                      { id_resolved =
+                                                        ref (None);
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (Unknown);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      )));
+                                                t_attrs = [] })
+                                           ],
+                                         _)
+                                        ));
+                                     t_attrs = [] });
+                             vtok = (Some _) })));
+                    s_range = None })
+                ],
+              _)
+             })));
+    s_range = None }
+  ]
