@@ -1,0 +1,3 @@
+Fixed fully-qualified name resolution for Rust symbols imported via a braced
+grouped `use` with a nested path (e.g. `use a::b::C`). It was wrongly being
+resolved as b::a::C.
