@@ -3876,7 +3876,7 @@ and map_use_clause (env : env) (x : CST.use_clause) use : G.directive list =
 and prepend_module_name (scope : G.dotted_ident) (modname : G.module_name) :
     G.module_name =
   match modname with
-  | DottedName modname -> G.DottedName (modname @ scope)
+  | DottedName modname -> G.DottedName (scope @ modname)
   | _ -> modname
 
 and prepend_scope (dir : G.directive) (scope : G.dotted_ident option) :
