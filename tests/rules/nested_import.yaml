@@ -1,0 +1,21 @@
+rules:
+  - id: ssc-rust-limitation-5
+    languages:
+      - rust
+    severity: ERROR
+    message: RUST limitation 5
+    pattern-either:
+      - pattern: hashconsing::HConsed::new(...)
+      - pattern: hashconsing::hashing::HConsedBuilder::new(...)
+      - pattern: alpha::beta::Widget::new(...)
+      - pattern: alpha::beta::gamma::Gadget::new(...)
+      - pattern: outer::inner::Thing::new(...)
+      - pattern: root::one::First::new(...)
+      - pattern: root::two::Second::new(...)
+      - pattern: pkg::sub::Real::new(...)
+      - pattern: deep::a::b::c::d::Buried::new(...)
+      # Trap patterns: these match the reversed FQN produced by the old buggy
+      # `modname @ scope` behavior. They must never fire under the fix.
+      - pattern: mid::pkgx::Gizmo::new(...)
+    metadata:
+      category: security

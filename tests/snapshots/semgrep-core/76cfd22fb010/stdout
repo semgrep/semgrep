@@ -1400,11 +1400,11 @@
   { s =
     (DirectiveStmt
        { d =
-         (ImportFrom (_, (DottedName [("dot", _); ("three", _)]),
+         (ImportFrom (_, (DottedName [("three", _); ("dot", _)]),
             [(Direct
                 (("one", _),
                  { id_resolved =
-                   ref ((Some ((ImportedEntity ["dot"; "three"; "one"]), _)));
+                   ref ((Some ((ImportedEntity ["three"; "dot"; "one"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
                    id_svalue = ref (Unknown); id_flags = ref (0);
                    id_info_id = _ }))
@@ -1415,11 +1415,11 @@
   { s =
     (DirectiveStmt
        { d =
-         (ImportFrom (_, (DottedName [("dot", _); ("three", _)]),
+         (ImportFrom (_, (DottedName [("three", _); ("dot", _)]),
             [(Direct
                 (("four", _),
                  { id_resolved =
-                   ref ((Some ((ImportedEntity ["dot"; "three"; "four"]), _)));
+                   ref ((Some ((ImportedEntity ["three"; "dot"; "four"]), _)));
                    id_resolved_alternatives = ref ([]); id_type = ref (None);
                    id_svalue = ref (Unknown); id_flags = ref (0);
                    id_info_id = _ }))
@@ -1429,7 +1429,7 @@
     s_range = None };
   { s =
     (DirectiveStmt
-       { d = (ImportAll (_, (DottedName [("some", _); ("my", _)]), _));
+       { d = (ImportAll (_, (DottedName [("my", _); ("some", _)]), _));
          d_attrs = [] });
     s_range = None };
   { s =
