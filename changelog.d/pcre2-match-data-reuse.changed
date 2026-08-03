@@ -1,0 +1,2 @@
+Improved performance in highly parallel scans with many target files, running
+on systems using the musl libc implementation.
