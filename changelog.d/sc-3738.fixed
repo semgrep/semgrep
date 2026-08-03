@@ -1,5 +1,0 @@
-Fixed lockfileless Gradle dependency resolution failing with "Parsing
-dependency output failed (Resolve_gradle.gradle_resolved_dependency)". The
-github-dependency-graph-gradle-plugin used during resolution was fetched
-unpinned, and its 1.4.2 release renamed keys in its JSON output. The plugin is
-now pinned to 1.4.1.
