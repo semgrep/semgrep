@@ -747,6 +747,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
       contributions = Some contributions;
       (* TODO: Figure out correct value for this. *)
       dependencies = None;
+      (* TODO: populate once osemgrep performs dependency resolution. *)
+      skipped_subprojects = None;
       metadata = None;
     }
   in
@@ -809,6 +811,8 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
                complete["dependencies"] = lockfile_dependencies_json
       *)
       dependencies = Some [];
+      (* TODO: populate once osemgrep performs dependency resolution. *)
+      skipped_subprojects = None;
       (* ??? *)
       task_id = None;
       final_attempt = None;
