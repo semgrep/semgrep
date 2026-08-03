@@ -1,3 +1,0 @@
-Fixed a source of rare, nondeterministic crashes and incorrect results caused
-by an OCaml compiler bug. Semgrep now builds against a compiler fork that
-backports the upstream fix.

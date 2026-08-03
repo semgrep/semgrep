@@ -1,3 +1,0 @@
-Fixed excessive heap growth after explicit major garbage collections. Semgrep
-now builds against an OCaml compiler that improves garbage collection duty
-cycle pacing.
