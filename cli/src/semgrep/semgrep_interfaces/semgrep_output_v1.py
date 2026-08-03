@@ -9263,6 +9263,52 @@ class SubprojectResolutionPlan:
 
 
 @dataclass
+class SkippedSubproject:
+    """Original type: skipped_subproject = { ... }
+
+    A subproject that was deliberately not resolved, and so contributed no
+    entries to ``ci_scan_dependencies``.
+
+    This is deliberately not ``unresolved_subproject``: that type embeds the
+    recursive ``dependency_source`` variant, which serializes to awkward
+    nested JSON.
+
+    :param root_dir: usually the directory of the manifest file
+    :param dependency_sources: The files that would have been used to resolve
+    this subproject, one entry per file. Each entry is tagged as a lockfile or
+    a manifest so that it can be matched against the corresponding field of
+    ``found_dependency``. A subproject with several lockfiles (MultiLockfile),
+    or one with both a manifest and a lockfile, produces several entries.
+    """
+
+    root_dir: Fpath
+    dependency_sources: List[DependencySourceFile]
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'SkippedSubproject':
+        if isinstance(x, dict):
+            return cls(
+                root_dir=Fpath.from_json(x['root_dir']) if 'root_dir' in x else _atd_missing_json_field('SkippedSubproject', 'root_dir'),
+                dependency_sources=_atd_read_list(DependencySourceFile.from_json)(x['dependency_sources']) if 'dependency_sources' in x else _atd_missing_json_field('SkippedSubproject', 'dependency_sources'),
+            )
+        else:
+            _atd_bad_json('SkippedSubproject', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res['root_dir'] = (lambda x: x.to_json())(self.root_dir)
+        res['dependency_sources'] = _atd_write_list((lambda x: x.to_json()))(self.dependency_sources)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'SkippedSubproject':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
 class SkippedRule:
     """Original type: skipped_rule = { ... }
 
@@ -12466,6 +12512,11 @@ class CiScanResults:
     :param contributions: since semgrep 1.34.0
     :param dependencies: since semgrep 1.38.0. This data was originally sent
     to /complete, but we want to start sending it to /results
+    :param skipped_subprojects: since semgrep 1.173.0. Subprojects whose
+    dependencies were not resolved, and so are absent from ``dependencies``.
+    The app should NOT treat the dependencies of these subprojects as removed.
+    Absent (rather than empty) when sent by a CLI too old to report this,
+    which is not the same as a scan where nothing was skipped.
     :param metadata: filled in by the backend to associate scan results with
     the driving scan
     """
@@ -12479,6 +12530,7 @@ class CiScanResults:
     skipped_paths: List[Fpath] = field(default_factory=lambda: [])
     contributions: Optional[Contributions] = None
     dependencies: Optional[CiScanDependencies] = None
+    skipped_subprojects: Optional[List[SkippedSubproject]] = None
     metadata: Optional[CiScanMetadata] = None
 
     @classmethod
@@ -12494,6 +12546,7 @@ class CiScanResults:
                 skipped_paths=_atd_read_list(Fpath.from_json)(x['skipped_paths']) if 'skipped_paths' in x else [],
                 contributions=Contributions.from_json(x['contributions']) if 'contributions' in x else None,
                 dependencies=CiScanDependencies.from_json(x['dependencies']) if 'dependencies' in x else None,
+                skipped_subprojects=_atd_read_list(SkippedSubproject.from_json)(x['skipped_subprojects']) if 'skipped_subprojects' in x else None,
                 metadata=CiScanMetadata.from_json(x['metadata']) if 'metadata' in x else None,
             )
         else:
@@ -12512,6 +12565,8 @@ class CiScanResults:
             res['contributions'] = (lambda x: x.to_json())(self.contributions)
         if self.dependencies is not None:
             res['dependencies'] = (lambda x: x.to_json())(self.dependencies)
+        if self.skipped_subprojects is not None:
+            res['skipped_subprojects'] = _atd_write_list((lambda x: x.to_json()))(self.skipped_subprojects)
         if self.metadata is not None:
             res['metadata'] = (lambda x: x.to_json())(self.metadata)
         return res
@@ -12635,12 +12690,16 @@ class CiScanComplete:
 
     Sent by the CLI to /complete
 
+    :param skipped_subprojects: since semgrep 1.173.0. See the
+    identically-named field in ``ci_scan_results``. Sent to both endpoints for
+    the same reason ``dependencies`` is.
     :param task_id: since 1.31.0
     """
 
     exit_code: int
     stats: CiScanCompleteStats
     dependencies: Optional[CiScanDependencies] = None
+    skipped_subprojects: Optional[List[SkippedSubproject]] = None
     dependency_parser_errors: Optional[List[DependencyParserError]] = None
     task_id: Optional[str] = None
     final_attempt: Optional[bool] = None
@@ -12652,6 +12711,7 @@ class CiScanComplete:
                 exit_code=_atd_read_int(x['exit_code']) if 'exit_code' in x else _atd_missing_json_field('CiScanComplete', 'exit_code'),
                 stats=CiScanCompleteStats.from_json(x['stats']) if 'stats' in x else _atd_missing_json_field('CiScanComplete', 'stats'),
                 dependencies=CiScanDependencies.from_json(x['dependencies']) if 'dependencies' in x else None,
+                skipped_subprojects=_atd_read_list(SkippedSubproject.from_json)(x['skipped_subprojects']) if 'skipped_subprojects' in x else None,
                 dependency_parser_errors=_atd_read_list(DependencyParserError.from_json)(x['dependency_parser_errors']) if 'dependency_parser_errors' in x else None,
                 task_id=_atd_read_string(x['task_id']) if 'task_id' in x else None,
                 final_attempt=_atd_read_bool(x['final_attempt']) if 'final_attempt' in x else None,
@@ -12665,6 +12725,8 @@ class CiScanComplete:
         res['stats'] = (lambda x: x.to_json())(self.stats)
         if self.dependencies is not None:
             res['dependencies'] = (lambda x: x.to_json())(self.dependencies)
+        if self.skipped_subprojects is not None:
+            res['skipped_subprojects'] = _atd_write_list((lambda x: x.to_json()))(self.skipped_subprojects)
         if self.dependency_parser_errors is not None:
             res['dependency_parser_errors'] = _atd_write_list((lambda x: x.to_json()))(self.dependency_parser_errors)
         if self.task_id is not None:
