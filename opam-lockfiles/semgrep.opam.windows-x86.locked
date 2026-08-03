@@ -311,7 +311,7 @@ pin-depends: [
   ]
   [
     "pcre2.dev"
-    "git+https://github.com/semgrep/pcre2-ocaml.git#4e0a44486bb518b7a24ca11286c4b03a8d51e17e"
+    "git+https://github.com/semgrep/pcre2-ocaml.git#e88c082341e4ff278eed892c17032df83b26e585"
   ]
   [
     "pyro-caml-instruments.dev"
