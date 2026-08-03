@@ -6,7 +6,7 @@
 
 <!-- insertion point -->
 
-## [1.171.0](https://github.com/semgrep/semgrep/releases/tag/v1.171.0) - 2026-07-22
+## [1.172.0](https://github.com/semgrep/semgrep/releases/tag/v1.172.0) - 2026-07-28
 
 ### ### Added
 
@@ -14,10 +14,12 @@
 
 ### ### Changed
 
+- Updated the Ruby parser to tree-sitter-ruby v0.23.1, improving support for `!=`, case/when expressions with line breaks, and element references that take a block. (LANG-206)
 - The window for collecting git contributor information during `semgrep ci` has been extended from the last 30 days to the last 90 days, to match the updated usage policy. (contributor-window-90-days)
 
 ### ### Fixed
 
+- Semgrep will now print richer error messages on segfaults when `--debug` is NOT passed, matching the segfault error output when `--debug` is passed (engine-segv)
 - Fixed a source of rare, nondeterministic crashes and incorrect results caused
   by an OCaml compiler bug. Semgrep now builds against a compiler fork that
   backports the upstream fix. (ocaml_codegen_fix)
