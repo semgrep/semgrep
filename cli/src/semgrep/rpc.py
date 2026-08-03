@@ -22,8 +22,12 @@
 from __future__ import annotations
 
 import logging
+import signal
 import subprocess
+import sys
+import threading
 from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
 from types import TracebackType
 from typing import IO
@@ -60,9 +64,129 @@ ENCODING = "utf-8"
 # indicative of a real problem.
 SUBPROC_TIMEOUT_S = 1
 
+# Maximum amount of the RPC subprocess's stderr we retain and surface when it
+# dies without responding. We keep only the *tail* (the most recent output,
+# where a crash message lands), so this also bounds memory: see _StderrTail.
+STDERR_TAIL_BYTES = 4096
+
 ##############################################################################
 # Helpers
 ##############################################################################
+
+
+class _StderrTail:
+    """Drains a subprocess's stderr in a daemon thread, keeping only the last
+    STDERR_TAIL_BYTES. Bounds memory (no temp file), and the dedicated reader
+    is what keeps stderr=PIPE from deadlocking while we block on stdout.
+
+    If `tee` is given, each chunk is also written through to it. Under debug that
+    keeps semgrep-core's stderr streaming live (not just surfaced on a crash),
+    while we still retain a bounded tail for the death diagnostic.
+    """
+
+    def __init__(self, stream: IO[bytes], tee: Optional[IO[bytes]] = None) -> None:
+        self._buf = bytearray()
+        self._trimmed = False
+        self._tee = tee
+        self._lock = threading.Lock()
+        self._thread = threading.Thread(target=self._drain, args=(stream,), daemon=True)
+        self._thread.start()
+
+    def _drain(self, stream: IO[bytes]) -> None:
+        try:
+            for chunk in iter(lambda: stream.read(4096), b""):
+                with self._lock:
+                    self._buf += chunk
+                    if len(self._buf) > STDERR_TAIL_BYTES:
+                        del self._buf[:-STDERR_TAIL_BYTES]
+                        self._trimmed = True
+                # Tee outside the lock: no blocking I/O while holding it.
+                self._tee_chunk(chunk)
+        except (OSError, ValueError):
+            # Stream closed underneath us; nothing more to capture.
+            pass
+
+    def _tee_chunk(self, chunk: bytes) -> None:
+        if self._tee is None:
+            return
+        try:
+            self._tee.write(chunk)
+            self._tee.flush()
+        except (OSError, ValueError):
+            # Live passthrough is best-effort; a failure must not stop draining.
+            self._tee = None
+
+    def tail(self) -> str:
+        # Let the child's final stderr flush before we snapshot.
+        self._thread.join(timeout=0.5)
+        with self._lock:
+            data = bytes(self._buf)
+            trimmed = self._trimmed
+        text = data.decode(ENCODING, errors="replace")
+        # If we trimmed, the first line is a partial fragment; drop it.
+        if trimmed and "\n" in text:
+            text = text.split("\n", 1)[1]
+        return text.strip()
+
+
+def _stderr_capture_enabled() -> bool:
+    """Whether to capture semgrep-core stderr for the crash diagnostic. Only
+    under debug logging: that stderr can carry request-derived data (matched
+    source, etc.), so it must stay out of default logs."""
+    from semgrep.state import get_state
+
+    return get_state().terminal.log_level == logging.DEBUG
+
+
+def _capture_stderr(
+    stream: Optional[IO[bytes]], enabled: bool
+) -> Optional[_StderrTail]:
+    """Attach a stderr drainer when capture is enabled (see
+    _stderr_capture_enabled). Capture only happens under debug, so we also tee
+    the stream to our stderr to keep semgrep-core's logs streaming live."""
+    if not (enabled and stream is not None):
+        return None
+    return _StderrTail(stream, tee=getattr(sys.stderr, "buffer", None))
+
+
+def _describe_exit(returncode: Optional[int]) -> str:
+    """Describe a subprocess exit status. States the fact only -- no guesses
+    about the cause (e.g. "likely OOM"), which tend to anchor debugging on the
+    wrong thing. The signal name plus the captured stderr are enough to go on.
+    """
+    if returncode is None:
+        return "did not exit (still running)"
+    if returncode < 0:
+        signum = -returncode
+        try:
+            name = signal.Signals(signum).name
+        except ValueError:
+            name = f"signal {signum}"
+        return f"was killed by signal {signum} ({name})"
+    if returncode == 0:
+        return "exited cleanly (code 0)"
+    return f"exited with code {returncode}"
+
+
+def _stderr_suffix(stderr_tail: Optional[_StderrTail]) -> str:
+    """The captured-stderr block to append to a failure message, or "" if none."""
+    tail = stderr_tail.tail() if stderr_tail is not None else ""
+    if not tail:
+        return ""
+    return f"\n--- semgrep-core stderr (last {STDERR_TAIL_BYTES} bytes) ---\n{tail}"
+
+
+def _diagnose_death(
+    returncode: Optional[int], stderr_tail: Optional[_StderrTail]
+) -> None:
+    """Log a single, correlated ERROR explaining why the RPC subprocess failed
+    to return a response. Call only when the process exited on its own (a
+    process we killed ourselves is not a 'death' to diagnose -- say so plainly
+    at the kill site instead)."""
+    logger.error(
+        f"RPC subprocess failed: semgrep-core {_describe_exit(returncode)}."
+        + _stderr_suffix(stderr_tail)
+    )
 
 
 # Read `size` bytes from `io`. Returns fewer bytes if we hit EOF.
@@ -96,11 +220,24 @@ def _really_read(io: IO[bytes], size: int) -> str:
 def _read_packet(io: IO[bytes]) -> Optional[str]:
     # Unlike `read`, `readline` is guaranteed to return a full line unless there
     # is an EOF
-    size_str = io.readline().decode(ENCODING).strip()
+    raw = io.readline()
+    if raw == b"":
+        # EOF: subprocess closed stdout without responding, almost always
+        # because it died. Silent here; the caller diagnoses via _diagnose_death.
+        return None
+    # errors="replace" so non-UTF-8 garbage on stdout reaches the isdigit check
+    # below (a clean protocol error) rather than raising UnicodeDecodeError.
+    size_str = raw.decode(ENCODING, errors="replace").strip()
     if not size_str.isdigit():
-        # Avoid horrific log spew if we somehow got a really long line
-        truncated = size_str[:50]
-        logger.verbose(f"RPC input error: Expected a number, got '{truncated}'")
+        # Non-digit line: something wrote non-packet data to semgrep-core's
+        # stdout. That's a protocol violation distinct from the subprocess
+        # dying, so report it as its own error.
+        got = f"'{size_str[:50]}'" if size_str else "a blank line"
+        logger.error(
+            "RPC protocol error: expected a numeric length header from "
+            f"semgrep-core, got {got} (something wrote non-packet data to its "
+            "stdout)"
+        )
         return None
     size = int(size_str)
     return _really_read(io, size)
@@ -191,7 +328,7 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
     cmd = _cmd()
 
     state = get_state()
-    emit_stderr = state.terminal.log_level == logging.DEBUG
+    capture_stderr = _stderr_capture_enabled()
     if state.telemetry.enabled:
         cmd.append("-trace")
         if state.telemetry.trace_endpoint is not None:
@@ -202,9 +339,13 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         cmd,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        stderr=None if emit_stderr else subprocess.DEVNULL,
+        stderr=subprocess.PIPE if capture_stderr else subprocess.DEVNULL,
         text=False,
     ) as proc:
+        stderr_tail = _capture_stderr(proc.stderr, capture_stderr)
+        # Whether the subprocess sent us a well-formed response packet. If it
+        # did not, the finally block diagnoses why (crash/signal + stderr).
+        got_response = False
         try:
             # These need to be local variables because otherwise mypy doesn't
             # trust the results of the None checks.
@@ -217,19 +358,26 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
                 logger.error(f"RPC subprocess missing stdout or stdin channel")
                 return None
             call_str = _wrap_call_with_trace_context(call).to_json_string().strip()
-            _write_packet(proc_stdin, call_str)
-            proc_stdin.close()
+            try:
+                _write_packet(proc_stdin, call_str)
+                proc_stdin.close()
+            except BrokenPipeError:
+                # The subprocess died before reading its request. Degrade to
+                # None; the finally block diagnoses the death.
+                return None
 
             ret_str = _read_packet(proc_stdout)
             if ret_str is None:
-                # No need to log here. _read_packet logs anyway if if returns
-                # None.
+                # No need to log here; the finally block diagnoses the failure.
                 return None
             ret = _parse_function_result(ret_str)
             if ret is None:
                 # No need to log here, it's handled in the error case of
                 # _parse_function_return
                 return None
+            # We got a well-formed response packet -- whatever it contains, the
+            # subprocess responded and did not die on us.
+            got_response = True
             # Any request can return an error
             if isinstance(ret.value, out.RetError):
                 err: str = ret.value.value
@@ -246,11 +394,24 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
         finally:
             try:
                 proc.wait(timeout=SUBPROC_TIMEOUT_S)
-                if proc.returncode != 0:
-                    logger.error(f"RPC subprocess exited with code {proc.returncode}")
             except subprocess.TimeoutExpired:
-                logger.error(f"RPC subprocess did not exit cleanly. Killing it.")
+                # We killed it, so don't frame the resulting signal exit code as
+                # an external death below -- say plainly that we timed it out.
                 proc.kill()
+                proc.wait()
+                logger.error(
+                    f"RPC subprocess did not exit within {SUBPROC_TIMEOUT_S}s; "
+                    "killed it." + _stderr_suffix(stderr_tail)
+                )
+            else:
+                # The process exited on its own.
+                if not got_response:
+                    _diagnose_death(proc.returncode, stderr_tail)
+                elif proc.returncode not in (0, None):
+                    logger.warning(
+                        f"RPC subprocess {_describe_exit(proc.returncode)} after "
+                        "returning a response."
+                    )
 
 
 ##############################################################################
@@ -283,9 +444,22 @@ class RpcSession:
             format = rpc.call(out.FunctionCall(formatter_args), out.RetFormatter)
 
     :param process: The semgrep process to send RPC calls to.
+    :param stderr_tail: Bounded capture of the process's stderr, used to
+        diagnose a crash. None when stderr streams live (debug mode).
     """
 
     process: subprocess.Popen
+    stderr_tail: Optional[_StderrTail]
+    # One-shot latch (a mutable cell on a frozen dataclass): a dead session hit
+    # by many calls is diagnosed once, not once per call. compare=False keeps it
+    # out of equality/hashing.
+    _diagnosed: List[bool] = field(default_factory=list, compare=False, repr=False)
+
+    def _diagnose_death_once(self) -> None:
+        if self._diagnosed:
+            return
+        self._diagnosed.append(True)
+        _diagnose_death(self.process.returncode, self.stderr_tail)
 
     @staticmethod
     def start() -> RpcSession:
@@ -296,7 +470,7 @@ class RpcSession:
 
         state = get_state()
 
-        emit_stderr = state.terminal.log_level == logging.DEBUG
+        capture_stderr = _stderr_capture_enabled()
 
         cmd = _cmd()
         if state.telemetry.enabled:
@@ -309,10 +483,11 @@ class RpcSession:
             cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=None if emit_stderr else subprocess.DEVNULL,
+            stderr=subprocess.PIPE if capture_stderr else subprocess.DEVNULL,
             text=False,
         )
-        return RpcSession(server)
+        stderr_tail = _capture_stderr(server.stderr, capture_stderr)
+        return RpcSession(process=server, stderr_tail=stderr_tail)
 
     def __enter__(self) -> RpcSession:
         return self
@@ -330,9 +505,20 @@ class RpcSession:
             try:
                 self.process.wait(timeout=SUBPROC_TIMEOUT_S)
             except subprocess.TimeoutExpired:
-                logger.error("RPC subprocess did not exit cleanly. Killing it.")
                 self.process.kill()
+                self.process.wait()
+                logger.error(
+                    f"RPC subprocess did not exit within {SUBPROC_TIMEOUT_S}s; "
+                    "killed it."
+                )
+            else:
+                # Exited on its own: report an abnormal exit (with stderr, in
+                # debug) that would otherwise pass silently. The latch avoids
+                # repeating a death a call already diagnosed.
+                if self.process.returncode not in (0, None):
+                    self._diagnose_death_once()
         finally:
+            # Popen.__exit__ closes the streams, which ends the drain thread.
             self.process.__exit__(type, value, traceback)
 
     @telemetry.trace()
@@ -361,12 +547,40 @@ class RpcSession:
             logger.error(f"RPC subprocess missing stdout or stdin channel")
             return None
 
+        # If the server already died (e.g. a crash on a previous call), don't
+        # write to a closed pipe -- diagnose the death instead.
+        if self.process.poll() is not None:
+            self._diagnose_death_once()
+            return None
+
         call_str = _wrap_call_with_trace_context(call).to_json_string().strip()
-        _write_packet(proc_stdin, call_str)
+        try:
+            _write_packet(proc_stdin, call_str)
+        except BrokenPipeError:
+            # The server died around write time. Reap it first so we can name
+            # the signal rather than reporting "still running".
+            try:
+                self.process.wait(timeout=SUBPROC_TIMEOUT_S)
+            except subprocess.TimeoutExpired:
+                pass
+            self._diagnose_death_once()
+            return None
 
         ret_str = _read_packet(proc_stdout)
         if ret_str is None:
-            logger.verbose(f"Unable to read RPC response")
+            # A None read is either the server dying (EOF) or a protocol error
+            # already logged by _read_packet. On EOF the process may not be
+            # reapable yet (stdout close and exit aren't atomic), so wait briefly
+            # -- as the BrokenPipe path does -- before deciding. A live process
+            # (protocol error) times out and falls through to the verbose line.
+            try:
+                self.process.wait(timeout=SUBPROC_TIMEOUT_S)
+            except subprocess.TimeoutExpired:
+                pass
+            if self.process.poll() is not None:
+                self._diagnose_death_once()
+            else:
+                logger.verbose("Unable to read RPC response")
             return None
         ret = _parse_function_result(ret_str)
         if ret is None:
