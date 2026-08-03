@@ -1608,6 +1608,27 @@ type subproject_resolution_plan =
   subprojects: single_subproject_plan list
 }
 
+(**
+  A subproject that was deliberately not resolved, and so contributed no
+  entries to [ci_scan_dependencies].
+  
+  This is deliberately not [unresolved_subproject]: that type embeds the
+  recursive [dependency_source] variant, which serializes to awkward nested
+  JSON.
+*)
+type skipped_subproject = Semgrep_output_v1_t.skipped_subproject = {
+  root_dir: fpath (** usually the directory of the manifest file *);
+  dependency_sources: dependency_source_file list
+    (**
+      The files that would have been used to resolve this subproject, one
+      entry per file. Each entry is tagged as a lockfile or a manifest so
+      that it can be matched against the corresponding field of
+      [found_dependency]. A subproject with several lockfiles
+      (MultiLockfile), or one with both a manifest and a lockfile, produces
+      several entries.
+    *)
+}
+
 type skipped_rule = Semgrep_output_v1_t.skipped_rule = {
   rule_id: rule_id;
   details: string;
@@ -2378,6 +2399,14 @@ type ci_scan_results = Semgrep_output_v1_t.ci_scan_results = {
       since semgrep 1.38.0. This data was originally sent to /complete, but
       we want to start sending it to /results
     *);
+  skipped_subprojects: skipped_subproject list option
+    (**
+      since semgrep 1.173.0. Subprojects whose dependencies were not
+      resolved, and so are absent from [dependencies]. The app should NOT
+      treat the dependencies of these subprojects as removed. Absent (rather
+      than empty) when sent by a CLI too old to report this, which is not the
+      same as a scan where nothing was skipped.
+    *);
   metadata: ci_scan_metadata option
     (**
       filled in by the backend to associate scan results with the driving
@@ -2427,6 +2456,12 @@ type ci_scan_complete = Semgrep_output_v1_t.ci_scan_complete = {
   exit_code: int;
   stats: ci_scan_complete_stats;
   dependencies: ci_scan_dependencies option;
+  skipped_subprojects: skipped_subproject list option
+    (**
+      since semgrep 1.173.0. See the identically-named field in
+      [ci_scan_results]. Sent to both endpoints for the same reason
+      [dependencies] is.
+    *);
   dependency_parser_errors: dependency_parser_error list option;
   task_id: string option (** since 1.31.0 *);
   final_attempt: bool option
@@ -5113,6 +5148,26 @@ val read_subproject_resolution_plan :
 val subproject_resolution_plan_of_string :
   string -> subproject_resolution_plan
   (** Deserialize JSON data of type {!type:subproject_resolution_plan}. *)
+
+val write_skipped_subproject :
+  Buffer.t -> skipped_subproject -> unit
+  (** Output a JSON value of type {!type:skipped_subproject}. *)
+
+val string_of_skipped_subproject :
+  ?len:int -> skipped_subproject -> string
+  (** Serialize a value of type {!type:skipped_subproject}
+      into a JSON string.
+      @param len specifies the initial length
+                 of the buffer used internally.
+                 Default: 1024. *)
+
+val read_skipped_subproject :
+  Yojson.Safe.lexer_state -> Lexing.lexbuf -> skipped_subproject
+  (** Input JSON data of type {!type:skipped_subproject}. *)
+
+val skipped_subproject_of_string :
+  string -> skipped_subproject
+  (** Deserialize JSON data of type {!type:skipped_subproject}. *)
 
 val write_skipped_rule :
   Buffer.t -> skipped_rule -> unit

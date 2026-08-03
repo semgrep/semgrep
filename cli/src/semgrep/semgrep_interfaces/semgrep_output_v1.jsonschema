@@ -1968,6 +1968,11 @@
           "description": "since semgrep 1.38.0. This data was originally sent to /complete, but we want to start sending it to /results",
           "$ref": "#/definitions/ci_scan_dependencies"
         },
+        "skipped_subprojects": {
+          "description": "since semgrep 1.173.0. Subprojects whose dependencies were not resolved, and so are absent from {{dependencies}} . The app should NOT treat the dependencies of these subprojects as removed. Absent (rather than empty) when sent by a CLI too old to report this, which is not the same as a scan where nothing was skipped.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/skipped_subproject" }
+        },
         "metadata": {
           "description": "filled in by the backend to associate scan results with the driving scan",
           "$ref": "#/definitions/ci_scan_metadata"
@@ -2048,6 +2053,11 @@
         "exit_code": { "type": "integer" },
         "stats": { "$ref": "#/definitions/ci_scan_complete_stats" },
         "dependencies": { "$ref": "#/definitions/ci_scan_dependencies" },
+        "skipped_subprojects": {
+          "description": "since semgrep 1.173.0. See the identically-named field in {{ci_scan_results}} . Sent to both endpoints for the same reason {{dependencies}} is.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/skipped_subproject" }
+        },
         "dependency_parser_errors": {
           "type": "array",
           "items": { "$ref": "#/definitions/dependency_parser_error" }
@@ -2131,6 +2141,22 @@
       "additionalProperties": {
         "type": "array",
         "items": { "$ref": "#/definitions/found_dependency" }
+      }
+    },
+    "skipped_subproject": {
+      "description": "A subproject that was deliberately not resolved, and so contributed no entries to {{ci_scan_dependencies}} .\n\nThis is deliberately not {{unresolved_subproject}} : that type embeds the recursive {{dependency_source}} variant, which serializes to awkward nested JSON.",
+      "type": "object",
+      "required": [ "root_dir", "dependency_sources" ],
+      "properties": {
+        "root_dir": {
+          "description": "usually the directory of the manifest file",
+          "$ref": "#/definitions/fpath"
+        },
+        "dependency_sources": {
+          "description": "The files that would have been used to resolve this subproject, one entry per file. Each entry is tagged as a lockfile or a manifest so that it can be matched against the corresponding field of {{found_dependency}} . A subproject with several lockfiles (MultiLockfile), or one with both a manifest and a lockfile, produces several entries.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/dependency_source_file" }
+        }
       }
     },
     "dependency_parser_error": {
