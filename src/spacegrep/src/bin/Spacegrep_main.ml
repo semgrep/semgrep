@@ -215,11 +215,11 @@ let run config =
   let patterns_or_errors =
     let pattern_files = Find_files.list config.pattern_files in
     (match config.pattern with
-    | None -> []
-    | Some pat_str -> [ Src_file.of_string pat_str ])
+      | None -> []
+      | Some pat_str -> [ Src_file.of_string pat_str ])
     @ List.map Src_file.of_file pattern_files
     |> List.map (fun pat_src ->
-           (pat_src, parse_pattern config.comment_style pat_src))
+        (pat_src, parse_pattern config.comment_style pat_src))
   in
   let patterns, errors =
     let rev_patterns, rev_errors =
@@ -506,15 +506,13 @@ let man =
     `P "semgrep, spacecat";
   ]
 
-let info name = Term.info ~doc ~man name
+let info name = Cmd.info ~doc ~man name
 
 let parse_command_line name =
-  match Term.eval (cmdline_term, info name) with
-  | `Error _ -> exit 1
-  | `Version
-  | `Help ->
-      exit 0
-  | `Ok config -> config
+  match Cmd.eval_value (Cmd.v (info name) cmdline_term) with
+  | Ok (`Ok config) -> config
+  | Ok (`Version | `Help) -> exit 0
+  | Error _ -> exit 1
 
 (*
    Entry point for calling the command 'spacegrep' directly.

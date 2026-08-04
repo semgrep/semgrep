@@ -59,7 +59,7 @@ let
       (old: {
         nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.makeBinaryWrapper ];
         # add ${semgrep}/bin to PATH so semgrep can find its ocaml binaries
-        buildCommand = old.buildCommand + ''
+        postInstall = (old.postInstall or "") + ''
           wrapProgram $out/bin/semgrep \
             --prefix PATH : ${pkgs.lib.makeBinPath [ semgrep ]}
           wrapProgram $out/bin/pysemgrep \

@@ -125,7 +125,7 @@ let opt_add_data_to_span data sc =
 let add_data data (tracing_opt : config option) =
   tracing_opt
   |> Option.iter (fun tracing ->
-         tracing.top_level_scope |> opt_add_data_to_span data)
+      tracing.top_level_scope |> opt_add_data_to_span data)
 
 let add_global_attribute = Otel.Globals.add_global_attribute
 let record_exn = Otel.Scope.record_exception

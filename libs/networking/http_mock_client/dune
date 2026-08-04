@@ -5,6 +5,7 @@
   (libraries
    commons
     cohttp-lwt
+    cohttp-lwt-unix
     networking.http_helpers
   )
   (preprocess

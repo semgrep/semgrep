@@ -56,6 +56,17 @@ let snapshot_ast (lang : Lang.t) =
          the input program is interpreted. *)
       true
 
+(* Golden AST output may live next to a fixture as [foo.ast.expect] (same
+   sidecar convention as maturity tests: replace the source extension). When
+   absent, fall back to Testo's default hash-based snapshot under
+   [tests/snapshots/semgrep-core/]. *)
+let checked_output_for_snapshot file =
+  let ast_expect_path file = Fpath.set_ext "ast.expect" (Fpath.v file) in
+  let expect_path = ast_expect_path file in
+  if Sys_.Fpath.exists expect_path then
+    Testo.stdout ~expected_stdout_path:expect_path ()
+  else Testo.stdout ()
+
 (*
    Strict parsing: errors due to missing (inserted) tokens are not tolerated
    in these tests.
@@ -63,64 +74,62 @@ let snapshot_ast (lang : Lang.t) =
 let parsing_tests_for_lang ?expected_outcome files lang =
   files
   |> List.map (fun file ->
-         let checked_output =
-           (* Due to a bug in Testo, we can't approve the output of
+      let checked_output =
+        (* Due to a bug in Testo, we can't approve the output of
               a test that fails due to an exception.
               TODO: fix it (I thought I already did but I guess I didn't)
            *)
-           if snapshot_ast lang && Option.is_none expected_outcome then
-             Some (Testo.stdout ())
-           else None
-         in
-         Testo.create ?checked_output ?expected_outcome
-           ~tags:(Test_tags.tags_of_lang lang) (Filename.basename file)
-           (fun () ->
-             let ast =
-               Parse_target.parse_and_resolve_name_strict lang (Fpath.v file)
-             in
-             print_string (AST_generic.show_program ast)))
+        if snapshot_ast lang && Option.is_none expected_outcome then
+          Some (checked_output_for_snapshot file)
+        else None
+      in
+      Testo.create ?checked_output ?expected_outcome
+        ~tags:(Test_tags.tags_of_lang lang) (Filename.basename file) (fun () ->
+          let ast =
+            Parse_target.parse_and_resolve_name_strict lang (Fpath.v file)
+          in
+          print_string (AST_generic.show_program ast)))
 
 (* Parsing is expected to succeed with only tolerable parsing errors
    (assumed to be "missing token" nodes inserted by tree-sitter) *)
 let missing_tokens_tests_for_lang files lang =
   files
   |> List.map (fun file ->
-         Testo.create ~tags:(Test_tags.tags_of_lang lang)
-           (Filename.basename file) (fun () ->
-             let { Parsing_result2.errors; tolerated_errors; _ } =
-               Parse_target.parse_and_resolve_name lang (Fpath.v file)
-             in
-             (match errors with
-             | [] -> ()
-             | _ ->
-                 Alcotest.fail
-                   ("parsing errors: " ^ Parsing_result2.format_errors errors));
-             match tolerated_errors with
-             | [] -> Alcotest.fail "no 'missing token' errors. Was it fixed?"
-             | _ :: _ ->
-                 print_endline
-                   ("tolerated errors: "
-                   ^ Parsing_result2.format_errors tolerated_errors)))
+      Testo.create ~tags:(Test_tags.tags_of_lang lang) (Filename.basename file)
+        (fun () ->
+          let { Parsing_result2.errors; tolerated_errors; _ } =
+            Parse_target.parse_and_resolve_name lang (Fpath.v file)
+          in
+          (match errors with
+          | [] -> ()
+          | _ ->
+              Alcotest.fail
+                ("parsing errors: " ^ Parsing_result2.format_errors errors));
+          match tolerated_errors with
+          | [] -> Alcotest.fail "no 'missing token' errors. Was it fixed?"
+          | _ :: _ ->
+              print_endline
+                ("tolerated errors: "
+                ^ Parsing_result2.format_errors tolerated_errors)))
 
 (* Parsing is expected to fail with at least one parsing error. *)
 let partial_parsing_tests_for_lang files lang =
   files
   |> List.map (fun file ->
-         Testo.create ~tags:(Test_tags.tags_of_lang lang)
-           ~expected_outcome:
-             (Should_fail
-                "tree-sitter parsing error is expected: skipped tokens or \
-                 missing tokens") (Filename.basename file) (fun () ->
-             let { Parsing_result2.errors; tolerated_errors; _ } =
-               Parse_target.parse_and_resolve_name lang (Fpath.v file)
-             in
-             let all_errors = errors @ tolerated_errors in
-             match all_errors with
-             | [] -> ()
-             | _ ->
-                 Alcotest.fail
-                   ("parsing errors: "
-                   ^ Parsing_result2.format_errors all_errors)))
+      Testo.create ~tags:(Test_tags.tags_of_lang lang)
+        ~expected_outcome:
+          (Should_fail
+             "tree-sitter parsing error is expected: skipped tokens or missing \
+              tokens") (Filename.basename file) (fun () ->
+          let { Parsing_result2.errors; tolerated_errors; _ } =
+            Parse_target.parse_and_resolve_name lang (Fpath.v file)
+          in
+          let all_errors = errors @ tolerated_errors in
+          match all_errors with
+          | [] -> ()
+          | _ ->
+              Alcotest.fail
+                ("parsing errors: " ^ Parsing_result2.format_errors all_errors)))
 
 let parsing_tests_for_lang error_tolerance files lang =
   match error_tolerance with
@@ -158,17 +167,23 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
       failwith
         (spf "Unrecognized extension for file %s for lang %s" !!file slang)
   in
-  (* Get all files then check extensions *)
+  (* Get all files then check extensions. Markdown files are documentation
+     about the test corpus (e.g. a coverage README), not test inputs, so we
+     skip them rather than treat them as parse targets. *)
   let pattern = dir / "**" / "*" in
-  let files = Common2.glob pattern in
+  let files =
+    Common2.glob pattern
+    |> List_.exclude (fun file ->
+        Fpath.has_ext ".md" file || Fpath.has_ext "ast.expect" file)
+  in
   if files =*= [] then
     failwith (spf "Empty set of parsing tests for %s at %s" slang !!pattern);
   List.iter check_ext files;
   let file_strings = List.map Fpath.to_string files in
   let tests = parsing_tests_for_lang error_tolerance file_strings lang in
   (match subcategory with
-  | None -> tests
-  | Some cat -> Testo.categorize cat tests)
+    | None -> tests
+    | Some cat -> Testo.categorize cat tests)
   |> Testo.categorize slang
 
 (* Note that here we also use tree-sitter to parse; certain files were not
@@ -177,7 +192,7 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
 let lang_parsing_tests langs_with_error_tolerance : Testo.t list =
   langs_with_error_tolerance
   |> List.map (fun (lang, error_tolerance) ->
-         pack_parsing_tests_for_lang ~error_tolerance lang)
+      pack_parsing_tests_for_lang ~error_tolerance lang)
   |> Testo.categorize_suites "lang parsing"
 
 (* It's important that our parsers generate classic parsing errors
@@ -193,18 +208,18 @@ let parsing_error_tests () =
   Testo.categorize "Parsing error detection"
     (Common2.glob (dir / "*")
     |> List.map (fun file ->
-           t ~tags:(tags_of_file file) (Fpath.basename file) (fun () ->
-               try
-                 let lang = Lang.lang_of_filename_exn file in
-                 let res = Parse_target.just_parse_with_lang lang file in
-                 if res.skipped_tokens =*= [] then
-                   Alcotest.fail
-                     "it should raise a standard parsing error exn or return \
-                      partial errors "
-               with
-               | Parsing_error.Lexical_error _
-               | Parsing_error.Syntax_error _ ->
-                   ())))
+        t ~tags:(tags_of_file file) (Fpath.basename file) (fun () ->
+            try
+              let lang = Lang.lang_of_filename_exn file in
+              let res = Parse_target.just_parse_with_lang lang file in
+              if res.skipped_tokens =*= [] then
+                Alcotest.fail
+                  "it should raise a standard parsing error exn or return \
+                   partial errors "
+            with
+            | Parsing_error.Lexical_error _
+            | Parsing_error.Syntax_error _ ->
+                ())))
 
 let parsing_rules_tests () =
   let dir = tests_path / "rule_formats" in
@@ -217,14 +232,13 @@ let parsing_rules_tests () =
      in
      tests
      |> List.map (fun file ->
-            t (Fpath.basename file) (fun () ->
-                let res = Parse_rule.parse file in
-                match res with
-                | Ok _ -> ()
-                | Error err ->
-                    failwith
-                      (spf "error %s while parsing %s" (Rule_error.show err)
-                         !!file))))
+         t (Fpath.basename file) (fun () ->
+             let res = Parse_rule.parse file in
+             match res with
+             | Ok _ -> ()
+             | Error err ->
+                 failwith
+                   (spf "error %s while parsing %s" (Rule_error.show err) !!file))))
 
 (*****************************************************************************)
 (* Tests *)
@@ -270,6 +284,9 @@ let langs_with_error_tolerance =
     (Lang.Cpp, Strict);
     (Lang.Php, Strict);
     (Lang.Python, Strict);
+    (* t-strings (PEP 750, 3.14) are not yet supported by the bundled
+       tree-sitter-python grammar. See tests/parsing_todo/python/. *)
+    (Lang.Python, Todo);
     (Lang.Ocaml, Strict);
     (* recursive descent parser *)
     (Lang.Scala, Strict);

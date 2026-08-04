@@ -94,6 +94,18 @@ val segments : t -> string list
    to the leading '/'. *)
 val relative_segments : t -> string list
 
+(* The final segment of the path. For a directory path (ending in '/'), this
+   is the empty string. *)
+val last_segment : t -> string
+
+(* Does [path] denote a directory, i.e. end with a trailing slash? *)
+val is_dir_path : t -> bool
+
+(* For a directory path '/a/b/', the final non-empty segment ('b'). Returns
+   [""] when the path is not a directory path or has no non-empty segment
+   before the trailing slash. *)
+val dir_segment : t -> string
+
 (* Append a segment to a path.
    ".." and "." are not supported by this operation.
    Raises Invalid_argument.

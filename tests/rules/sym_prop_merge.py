@@ -9,7 +9,7 @@ def test2():
     x = bar()
     while cond:
         y = 42
-    #todoruleid: test
+    #proruleid: test
     foo(x)
 
 def test3():

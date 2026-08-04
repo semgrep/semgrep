@@ -127,6 +127,7 @@ else
             "-lbase_stubs"
             "-locaml_intrinsics_kernel_stubs"
             "-lbigstringaf_stubs"
+            "-lobackward_stubs"
             "-lca_certs_stubs"
             "-lcamlstrnat"
             "-lcheckseum_c_stubs"
@@ -143,7 +144,6 @@ else
             "-lmurmur3_stubs"
             "-lparmap_stubs"
             "-lpbrt_stubs"
-            "-lpcre_stubs"
             "-lpcre2_stubs"
             "-lptime_clock_stubs"
             "-lstdc++"
@@ -164,7 +164,6 @@ else
 
             "$(pkg-config gmp --variable libdir)/libgmp.a"
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"
-            "$(pkg-config libpcre --variable libdir)/libpcre.a"
             "$(pkg-config libpcre2-8 --variable libdir)/libpcre2-8.a"
             "$(brew --prefix dwarfutils)/lib/libdwarf.a"
             "$(brew --prefix zstd)/lib/libzstd.a")

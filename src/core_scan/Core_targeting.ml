@@ -48,16 +48,16 @@ let group_rules_by_target_language (rules : Rule.t list) :
   let tbl = Hashtbl.create 100 in
   rules
   |> List.iter (fun (rule : Rule.t) ->
-         let pattern_lang = rule.target_analyzer in
-         let target_langs = Analyzer.flatten pattern_lang in
-         target_langs
-         |> List.iter (fun lang ->
-                let rules =
-                  match Hashtbl.find_opt tbl lang with
-                  | None -> []
-                  | Some rules -> rules
-                in
-                Hashtbl.replace tbl lang (rule :: rules)));
+      let pattern_lang = rule.target_analyzer in
+      let target_langs = Analyzer.flatten pattern_lang in
+      target_langs
+      |> List.iter (fun lang ->
+          let rules =
+            match Hashtbl.find_opt tbl lang with
+            | None -> []
+            | Some rules -> rules
+          in
+          Hashtbl.replace tbl lang (rule :: rules)));
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
 (* If Javascript is one of the rule languages, we should also run on
@@ -69,19 +69,18 @@ let add_typescript_to_javascript_rules_hack (rules : Rule.t list) : Rule.t list
     =
   rules
   |> List.map (fun r ->
-         match r.Rule.target_analyzer with
-         | LRegex
-         | LSpacegrep
-         | LAliengrep ->
-             r
-         | L (l, ls) ->
-             let lset = Set_.of_list ls in
-             let lset =
-               if l =*= Lang.Js || Set_.mem Lang.Js lset then
-                 Set_.add Lang.Ts lset
-               else lset
-             in
-             { r with Rule.target_analyzer = L (l, lset |> Set_.elements) })
+      match r.Rule.target_analyzer with
+      | LRegex
+      | LSpacegrep
+      | LAliengrep ->
+          r
+      | L (l, ls) ->
+          let lset = Set_.of_list ls in
+          let lset =
+            if l =*= Lang.Js || Set_.mem Lang.Js lset then Set_.add Lang.Ts lset
+            else lset
+          in
+          { r with Rule.target_analyzer = L (l, lset |> Set_.elements) })
 
 let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
     (targets : Fppath.t list) : Lang_job.t list =
@@ -89,30 +88,27 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
   let extract_languages = detect_extract_languages rules in
   rules |> group_rules_by_target_language
   |> List.filter_map (fun (analyzer, rules) ->
-         let targets =
-           targets
-           |> List.filter (fun (fppath : Fppath.t) ->
-                  (* bypass normal analyzer detection for explicit targets with
+      let targets =
+        targets
+        |> List.filter (fun (fppath : Fppath.t) ->
+            (* bypass normal analyzer detection for explicit targets with
                      '--scan-unknown-extensions' *)
-                  let bypass_language_detection =
-                    conf.always_select_explicit_targets
-                    && Find_targets.Explicit_targets.mem conf.explicit_targets
-                         fppath.fpath
-                  in
-                  bypass_language_detection
-                  || Filter_target.filter_target_for_analyzer analyzer
-                       fppath.fpath)
-         in
-         if
-           List_.null targets
-           && not (Analyzer.Set.mem analyzer extract_languages)
-         then None
-         else Some ({ analyzer; targets; rules } : Lang_job.t))
+            let bypass_language_detection =
+              conf.always_select_explicit_targets
+              && Find_targets.Explicit_targets.mem conf.explicit_targets
+                   fppath.fpath
+            in
+            bypass_language_detection
+            || Filter_target.filter_target_for_analyzer analyzer fppath.fpath)
+      in
+      if List_.null targets && not (Analyzer.Set.mem analyzer extract_languages)
+      then None
+      else Some ({ analyzer; targets; rules } : Lang_job.t))
 
 let targets_of_lang_job (x : Lang_job.t) : Target.t list =
   x.targets
   |> List.map (fun (path : Fppath.t) : Target.t ->
-         Target.mk_target x.analyzer path)
+      Target.mk_target x.analyzer path)
 
 let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
     Target.t list * Rule.t list =

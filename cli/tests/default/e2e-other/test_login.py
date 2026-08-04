@@ -172,4 +172,4 @@ def test_login_and_use_registry(tmp_path, mocker, requests_mock):
     )
     assert result.exit_code == 7
     assert mocked_config.called
-    assert "remote-registry_0 was not a mapping" in result.output
+    assert "remote-registry was not a mapping" in result.output

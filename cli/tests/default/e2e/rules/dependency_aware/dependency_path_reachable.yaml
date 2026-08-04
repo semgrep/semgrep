@@ -1,0 +1,13 @@
+rules:
+  - id: dependency-path-victim-reachable
+    patterns:
+      - pattern: require("victim")
+    r2c-internal-project-depends-on:
+      namespace: npm
+      package: victim
+      version: "== 1.2.3"
+    message: vulnerable victim is reachable (introduced transitively via parent)
+    languages: [js]
+    severity: WARNING
+    metadata:
+      sca-kind: reachable

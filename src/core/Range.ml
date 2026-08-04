@@ -82,16 +82,13 @@ let range_of_token_locations (start_loc : Tok.location) (end_loc : Tok.location)
   let end_ = end_loc.pos.bytepos + String.length end_loc.str - 1 in
   { start; end_ }
 
-let rf_mtx = Mutex.create ()
-let rf_ht = Hashtbl.create 101
-
-(* SAFETY: All accesses to [rf_ht] must occur while holding [rf_mtx]. *)
-let read_file_memoed = SharedMemo.make_with_state rf_mtx rf_ht UFile.read_file
+let rf_cache = SharedMemo.create ()
+let read_file_memoed = SharedMemo.make_with_state rf_cache UFile.read_file
 
 let () =
   (* nosemgrep: forbid-tmp *)
   UTmp.register_temp_file_cleanup_hook (fun file ->
-      Mutex.protect rf_mtx (fun () -> Hashtbl.remove rf_ht file))
+      SharedMemo.remove rf_cache file)
 
 let content_at_range file r =
   let str = read_file_memoed file in

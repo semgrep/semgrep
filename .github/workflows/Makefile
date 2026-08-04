@@ -10,7 +10,7 @@ LIBS = \
 	libs/useslockfile.json
 
 OBJS = \
-  semgrep.yml lint.yml \
+  lint.yml \
   build-test-core-x86.yml \
   build-test-osx-x86.yml build-test-osx-arm64.yml \
   tests.yml \

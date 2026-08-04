@@ -33,8 +33,7 @@
 
 open Printf
 
-(* we reuse the one in Pcre_.ml, no need to differentiate *)
-let src = Pcre_.src [@@alert "-deprecated"]
+let src = Logs.Src.create "commons.pcre"
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
@@ -87,9 +86,18 @@ let extra_flag = `UTF
 *)
 let match_limit = 1_000_000
 
-(* TODO: 1_000_000 is probably too high for PCRE2 depth too; leave it as-is
-   until we derive a justified limit from PCRE2's depth/stack behavior. *)
-let depth_limit = 1_000_000
+(* PCRE2's depth limit constrains the depth of nested backtracking. Unlike
+   PCRE 8.x recursion (which is C-stack heavy), the PCRE2 interpreter uses
+   the heap, so this is not a 1:1 stack-frame analog -- but the limit still
+   indirectly bounds heap allocation and bounds runtime on adversarial input.
+   We mirror Pcre_.recursion_limit's 10_000 value (set in #5887 to avoid
+   segfaults on aliengrep's deeply-recursive generated patterns) so the
+   safety contract is consistent across the two wrappers. As with the old
+   Pcre_ wrapper, this is a single global limit applied to every caller, not
+   just aliengrep. The depth limit is not honoured by JIT, but we don't
+   enable JIT, so this limit is real for our callers.
+   See pcre2_set_depth_limit(3). *)
+let depth_limit = 10_000
 
 let regexp ?iflags ?(flags = []) ?chtables pat =
   (* pcre doesn't mind if a flag is duplicated so we just append extra flags *)

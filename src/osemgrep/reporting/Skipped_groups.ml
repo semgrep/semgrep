@@ -45,15 +45,15 @@ type t = {
 let errors_to_skipped (errors : Out.core_error list) : Out.skipped_target list =
   errors
   |> List.filter_map (fun Out.{ location; message; rule_id; _ } ->
-         let* loc = location in
-         Some
-           Out.
-             {
-               path = loc.path;
-               reason = Analysis_failed_parser_or_internal_error;
-               details = Some message;
-               rule_id;
-             })
+      let* loc = location in
+      Some
+        Out.
+          {
+            path = loc.path;
+            reason = Analysis_failed_parser_or_internal_error;
+            details = Some message;
+            rule_id;
+          })
 
 (*****************************************************************************)
 (* Entry point *)
@@ -63,27 +63,27 @@ let group (skipped : Out.skipped_target list) : t =
   let groups =
     skipped
     |> Assoc.group_by (fun (skipped : Out.skipped_target) ->
-           match skipped.reason with
-           | Gitignore_patterns_match
-           | Semgrepignore_patterns_match ->
-               `Semgrepignore
-           | Too_big
-           | Exceeded_size_limit ->
-               `Size
-           | Cli_include_flags_do_not_match -> `Include
-           | Cli_exclude_flags_match -> `Exclude
-           | Analysis_failed_parser_or_internal_error -> `Error
-           | Always_skipped -> `Always
-           | Excluded_by_config
-           | Wrong_language
-           | Minified
-           | Binary
-           | Dotfile
-           | Nonexistent_file
-           | Irrelevant_rule
-           | Too_many_matches
-           | Insufficient_permissions ->
-               `Other)
+        match skipped.reason with
+        | Gitignore_patterns_match
+        | Semgrepignore_patterns_match ->
+            `Semgrepignore
+        | Too_big
+        | Exceeded_size_limit ->
+            `Size
+        | Cli_include_flags_do_not_match -> `Include
+        | Cli_exclude_flags_match -> `Exclude
+        | Analysis_failed_parser_or_internal_error -> `Error
+        | Always_skipped -> `Always
+        | Excluded_by_config
+        | Wrong_language
+        | Minified
+        | Binary
+        | Dotfile
+        | Nonexistent_file
+        | Irrelevant_rule
+        | Too_many_matches
+        | Insufficient_permissions ->
+            `Other)
   in
   {
     ignored = List.assoc_opt `Semgrepignore groups ||| [];

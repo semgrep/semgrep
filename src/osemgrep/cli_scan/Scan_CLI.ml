@@ -377,7 +377,8 @@ let o_max_memory_mb : int Term.t =
         {|Maximum system memory in MiB to use during the interfile pre-processing
 phase, or when running a rule on a single file. If set to 0, will
 not have memory limit. Defaults to 0. For CI scans that use the Pro Engine,
-defaults to 5000 MiB.
+defaults to either 90 percent of the container's available memory; or 8 GiB
+if querying the available system memory is not feasible.
 |}
   in
   Arg.value (Arg.opt Arg.int default info)
@@ -495,7 +496,19 @@ list of rule ids, list of skipped files).
 A zero or negative value disables this filter. Defaults to %d|}
            default)
   in
+  Arg.value (Arg.opt Arg.int default info)
 
+let o_max_match_context_size : int Term.t =
+  let default = default.output_conf.max_match_context_size in
+  let info =
+    Arg.info
+      [ "max-match-context-size" ]
+      ~doc:
+        (spf
+           {|Maximum number of characters of source code to include as context surrounding the match in output. Prevents enormous output for minified files.
+0 means unlimited. Defaults to %d|}
+           default)
+  in
   Arg.value (Arg.opt Arg.int default info)
 
 let o_dataflow_traces : bool Term.t =
@@ -708,6 +721,19 @@ let o_x_tr : bool option Term.t =
   in
   Arg.value (Arg.vflag None [ enable; disable ])
 
+(* Parsed but unused here: osemgrep falls back to pysemgrep (Pysemgrep.Fallback)
+ * which receives the original argv and computes the dependency paths in
+ * dependency_aware_rule.py. We only need cmdliner to accept the flag. *)
+let o_x_dependency_paths : bool Term.t =
+  let info =
+    Arg.info [ "x-dependency-paths" ]
+      ~docs:CLI_common.experimental_section_title
+      ~doc:
+        "(experimental) Include the full dependency path(s) for transitive \
+         supply-chain findings in --json and --sarif output."
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Run Secrets Post Processors                                  *)
 (* ------------------------------------------------------------------ *)
@@ -910,6 +936,15 @@ let o_exclude_rule_ids : string list Term.t =
       ~doc:{|Skip any rule with the given id. Can add multiple times.|}
   in
   Arg.value (Arg.opt_all Arg.string [] info)
+
+let o_exclude_binary_files : bool Term.t =
+  H.negatable_flag [ "exclude-binary-files" ]
+    ~neg_options:[ "no-exclude-binary-files" ]
+    ~default:default.targeting_conf.exclude_binary_files
+    ~doc:
+      {|Skip binary files. These are files that contain magic bytes at the start
+       that correspond to their file extension. Enabled by default;
+       use --no-exclude-binary-files to scan binary files. |}
 
 let o_exclude_minified_files : bool Term.t =
   H.negatable_flag
@@ -1153,33 +1188,33 @@ let replace_target_roots_by_regular_files_where_needed ~(experimental : bool)
   let target_roots =
     target_roots
     |> List.map (fun str ->
-           match str with
-           | "-" ->
-               imply_always_select_explicit_targets := true;
-               if experimental then
-                 (* consumes stdin, preventing command-line forwarding to
+        match str with
+        | "-" ->
+            imply_always_select_explicit_targets := true;
+            if experimental then
+              (* consumes stdin, preventing command-line forwarding to
                     pysemgrep or another osemgrep! *)
-                 UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
-               else
-                 (* remove this hack when no longer forward the command line
+              UTmp.replace_stdin_by_regular_file ~prefix:"osemgrep-stdin-" ()
+            else
+              (* remove this hack when no longer forward the command line
                     to another program *)
-                 Fpath.v "/dev/stdin"
-           | str ->
-               let orig_path = Fpath.v str in
-               if
-                 experimental
-                 && Skip_target.filter_file_access_permissions orig_path
-                    |> Result.is_ok
-               then (
-                 match
-                   UTmp.replace_named_pipe_by_regular_file_if_needed
-                     ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
-                 with
-                 | None -> orig_path
-                 | Some new_path ->
-                     imply_always_select_explicit_targets := true;
-                     new_path)
-               else orig_path)
+              Fpath.v "/dev/stdin"
+        | str ->
+            let orig_path = Fpath.v str in
+            if
+              experimental
+              && Skip_target.filter_file_access_permissions orig_path
+                 |> Result.is_ok
+            then (
+              match
+                UTmp.replace_named_pipe_by_regular_file_if_needed
+                  ~prefix:"osemgrep-named-pipe-" (Fpath.v str)
+              with
+              | None -> orig_path
+              | Some new_path ->
+                  imply_always_select_explicit_targets := true;
+                  new_path)
+            else orig_path)
     |> List.map Scanning_root.of_fpath
   in
   if !imply_always_select_explicit_targets then
@@ -1317,8 +1352,8 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
   if
     oss
     && ((match x_tr with
-        | Some true -> true
-        | _ -> false)
+          | Some true -> true
+          | _ -> false)
        || allow_local_builds)
   then Error.abort "Cannot run SCA scan with OSS engine (--oss specified).";
   if
@@ -1473,11 +1508,12 @@ let cmdline_term ~allow_empty_config : conf Term.t =
   let combine allow_local_builds allow_untrusted_validators autofix
       baseline_commit common config dataflow_traces dryrun dump_ast
       dump_command_for_core dump_engine_path emacs emacs_outputs error exclude_
-      exclude_minified_files exclude_rule_ids files_with_matches force_color
-      gitlab_sast gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
-      _historical_secrets include_ incremental_output json json_outputs
-      junit_xml junit_xml_outputs lang matching_explanations max_chars_per_line
-      max_lines_per_finding max_log_list_entries max_memory_mb max_target_bytes
+      exclude_minified_files exclude_binary_files exclude_rule_ids
+      files_with_matches force_color gitlab_sast gitlab_sast_outputs
+      gitlab_secrets gitlab_secrets_outputs _historical_secrets include_
+      incremental_output json json_outputs junit_xml junit_xml_outputs lang
+      matching_explanations max_chars_per_line max_lines_per_finding
+      max_log_list_entries max_match_context_size max_memory_mb max_target_bytes
       metrics num_jobs no_secrets_validation nosem novcs optimizations oss
       output pattern pro project_root pro_intrafile pro_lang pro_path_sensitive
       remote replacement rewrite_rule_ids sarif sarif_outputs
@@ -1485,9 +1521,10 @@ let cmdline_term ~allow_empty_config : conf Term.t =
       severity show_supported_languages strict target_roots test
       test_ignore_todo text text_outputs time_flag timeout
       _timeout_interfileTODO timeout_threshold use_git _use_semgrepignore_v2
-      validate version version_check vim vim_outputs _x_dump_symbol_analysis
-      x_ignore_semgrepignore_files x_ls x_ls_long x_mem_policy x_tr x_pro_naming
-      x_group_taint_rules x_mcp x_run_taint_once =
+      validate version version_check vim vim_outputs _x_dependency_paths
+      _x_dump_symbol_analysis x_ignore_semgrepignore_files x_ls x_ls_long
+      x_mem_policy x_tr x_pro_naming x_group_taint_rules x_mcp x_run_taint_once
+      =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
@@ -1540,6 +1577,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
           | Some (Info | Debug) -> true
           | _else_ -> false);
         max_log_list_entries;
+        max_match_context_size;
         output_mcp_scan_results = x_mcp;
       }
     in
@@ -1623,6 +1661,7 @@ let cmdline_term ~allow_empty_config : conf Term.t =
         extra_gitignore_patterns_to_exclude_git_untracked_files = [];
         semgrepignore_filename;
         exclude_minified_files;
+        exclude_binary_files;
         par_conf = Parallelism_config.default;
         num_jobs =
           Some (Core_scan_config.finalize_num_jobs core_runner_conf.num_jobs);
@@ -1720,24 +1759,25 @@ let cmdline_term ~allow_empty_config : conf Term.t =
     $ o_autofix $ o_baseline_commit $ CLI_common.o_common $ o_config
     $ o_dataflow_traces $ o_dryrun $ o_dump_ast $ o_dump_command_for_core
     $ o_dump_engine_path $ o_emacs $ o_emacs_outputs $ o_error $ o_exclude
-    $ o_exclude_minified_files $ o_exclude_rule_ids $ o_files_with_matches
-    $ o_force_color $ o_gitlab_sast $ o_gitlab_sast_outputs $ o_gitlab_secrets
-    $ o_gitlab_secrets_outputs $ o_historical_secrets $ o_include
-    $ o_incremental_output $ o_json $ o_json_outputs $ o_junit_xml
-    $ o_junit_xml_outputs $ o_lang $ o_matching_explanations
-    $ o_max_chars_per_line $ o_max_lines_per_finding $ o_max_log_list_entries
-    $ o_max_memory_mb $ o_max_target_bytes $ o_metrics $ o_num_jobs
-    $ o_no_secrets_validation $ o_nosem $ o_novcs $ o_optimizations $ o_oss
-    $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
-    $ o_pro_languages $ o_pro_path_sensitive $ o_remote $ o_replacement
-    $ o_rewrite_rule_ids $ o_sarif $ o_sarif_outputs $ o_scan_unknown_extensions
-    $ o_secrets $ o_secrets_timeout $ o_semgrepignore_filename $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_use_git
-    $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
-    $ o_vim_outputs $ o_x_dump_symbol_analysis $ o_x_ignore_semgrepignore_files
-    $ o_x_ls $ o_x_ls_long $ o_x_mem_policy $ o_x_tr $ o_x_pro_naming
+    $ o_exclude_minified_files $ o_exclude_binary_files $ o_exclude_rule_ids
+    $ o_files_with_matches $ o_force_color $ o_gitlab_sast
+    $ o_gitlab_sast_outputs $ o_gitlab_secrets $ o_gitlab_secrets_outputs
+    $ o_historical_secrets $ o_include $ o_incremental_output $ o_json
+    $ o_json_outputs $ o_junit_xml $ o_junit_xml_outputs $ o_lang
+    $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
+    $ o_max_log_list_entries $ o_max_match_context_size $ o_max_memory_mb
+    $ o_max_target_bytes $ o_metrics $ o_num_jobs $ o_no_secrets_validation
+    $ o_nosem $ o_novcs $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
+    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_pro_path_sensitive
+    $ o_remote $ o_replacement $ o_rewrite_rule_ids $ o_sarif $ o_sarif_outputs
+    $ o_scan_unknown_extensions $ o_secrets $ o_secrets_timeout
+    $ o_semgrepignore_filename $ o_severity $ o_show_supported_languages
+    $ o_strict $ o_target_roots $ o_test $ Test_CLI.o_test_ignore_todo $ o_text
+    $ o_text_outputs $ o_time $ o_timeout $ o_timeout_interfile
+    $ o_timeout_threshold $ o_use_git $ o_use_semgrepignore_v2 $ o_validate
+    $ o_version $ o_version_check $ o_vim $ o_vim_outputs $ o_x_dependency_paths
+    $ o_x_dump_symbol_analysis $ o_x_ignore_semgrepignore_files $ o_x_ls
+    $ o_x_ls_long $ o_x_mem_policy $ o_x_tr $ o_x_pro_naming
     $ o_x_group_taint_rules $ o_x_mcp $ o_x_run_taint_once)
 
 let doc = "run semgrep rules on files"

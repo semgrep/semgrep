@@ -36,6 +36,13 @@ type client_result = (server_response, string) result
  * not blow up on the smallest stuff, instead of returning a proper error. So
  * now we have a proper error type. That Cohttp should have done for us. *)
 
+val scrub_uri : Uri.t -> string
+(** [scrub_uri uri] renders [uri] safely for log output by returning only its
+    host component (falling back to ["<no-host>"] if absent). Userinfo, path,
+    query, and fragment are excluded, since those are the parts where secrets
+    typically end up after metavariable substitution or client-side request
+    construction. *)
+
 val call_client :
   ?body:Cohttp_lwt.Body.t ->
   ?headers:(string * string) list ->

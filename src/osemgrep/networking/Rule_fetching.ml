@@ -219,13 +219,13 @@ let parse_yaml_for_jsonnet (file : Fpath.t) : AST_jsonnet.program =
    *)
   AST_generic_to_jsonnet.program gen
 
-let mk_import_callback base str =
+let mk_import_callback ~sandbox base str =
   match str with
   | s when s =~ ".*\\.y[a]?ml$" ->
       (* On the fly conversion from yaml to jsonnet. We can do
        * 'local x = import "foo.yml";'!
        *)
-      let final_path = Fpath.v base / str in
+      let final_path = sandbox (Fpath.v base // Fpath.v str) in
       Some (parse_yaml_for_jsonnet final_path)
   | s ->
       let url_opt =
@@ -249,27 +249,25 @@ let mk_import_callback base str =
       in
       url_opt
       |> Option.map (fun url ->
-             (* similar to load_rules_from_url() but here we
-              * must return some AST_jsonnet, not rules (yet).
-              *
-              * TODO: ask for JSON in headers which improves performance
-              * because Yaml rule parsing is slower than Json rule parsing.
-              *
-              * TODO: fix token_opt parameter. Currently we don't pass it.
-              * import_callback either needs an additional parameter, or
-              * parse_rule should take an import_callback as a parameter.
-              *)
-             let contents =
-               fetch_content_from_registry_url ~token_opt:None url
-             in
-             (* TODO: this assumes every URLs are for yaml, but maybe we could
-              * also import URLs to jsonnet files or gist! or look at the
-              * header mimetype when downloading the URL to decide how to
-              * convert it further?
-              *)
-             UTmp.with_temp_file ~contents ~suffix:".yaml" (fun file ->
-                 (* LATER: adjust locations so refer to registry URL *)
-                 parse_yaml_for_jsonnet file))
+          (* similar to load_rules_from_url() but here we
+           * must return some AST_jsonnet, not rules (yet).
+           *
+           * TODO: ask for JSON in headers which improves performance
+           * because Yaml rule parsing is slower than Json rule parsing.
+           *
+           * TODO: fix token_opt parameter. Currently we don't pass it.
+           * import_callback either needs an additional parameter, or
+           * parse_rule should take an import_callback as a parameter.
+           *)
+          let contents = fetch_content_from_registry_url ~token_opt:None url in
+          (* TODO: this assumes every URLs are for yaml, but maybe we could
+           * also import URLs to jsonnet files or gist! or look at the
+           * header mimetype when downloading the URL to decide how to
+           * convert it further?
+           *)
+          UTmp.with_temp_file ~contents ~suffix:".yaml" (fun file ->
+              (* LATER: adjust locations so refer to registry URL *)
+              parse_yaml_for_jsonnet file))
 [@@profiling]
 
 (* Performs modification to metadata for non-registry/app originating rules.
@@ -458,8 +456,7 @@ let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt kind :
       List_files.list dir
       |> List.filter Rule_file.is_valid_rule_filename
       |> List.map (fun file ->
-             load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
-               file)
+          load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file) file)
       |> Result_.partition Fun.id
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
@@ -570,8 +567,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt kind :
       List_files.list dir
       |> List.filter Rule_file.is_valid_rule_filename
       |> List.map (fun file ->
-             load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
-               file)
+          load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file) file)
       |> Result_.partition Fun.id |> Lwt.return
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
@@ -690,29 +686,20 @@ let langs_of_pattern (pat, analyzer_opt) : Analyzer.t list =
        * TODO? use Analyzer.assoc instead?
        *)
       let all_langs =
-        Lang.assoc
-        |> List.map (fun (_k, l) -> l)
-        |> List_.deduplicate
-        (* TODO: we currently get a segfault with the Dart parser
-         * (for example on a pattern like ': string (* filename *)'), so we
-         * skip Dart for now (which anyway is not really supported).
-         *)
-        |> List_.exclude (fun x -> x =*= Lang.Dart)
+        Lang.assoc |> List.map (fun (_k, l) -> l) |> List_.deduplicate
       in
       all_langs
       |> List.filter_map (fun l ->
-             match
-               let analyzer =
-                 Analyzer.of_lang l |> analyzer_compatible_with_pat
-               in
-               Logs.debug (fun m ->
-                   m "language %s valid for the pattern" (Lang.show l));
-               analyzer
-             with
-             | Ok analyzer -> Some analyzer
-             | Error _
-             | (exception Failure _) ->
-                 None)
+          match
+            let analyzer = Analyzer.of_lang l |> analyzer_compatible_with_pat in
+            Logs.debug (fun m ->
+                m "language %s valid for the pattern" (Lang.show l));
+            analyzer
+          with
+          | Ok analyzer -> Some analyzer
+          | Error _
+          | (exception Failure _) ->
+              None)
 
 let rules_and_origin_of_rule rule =
   { rules = [ rule ]; invalid_rules = []; origin = CLI_argument }
@@ -726,10 +713,10 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_
         let%lwt pairs_list =
           xs
           |> Lwt_list.map_p (fun str ->
-                 let in_docker = !Semgrep_envvars.v.in_docker in
-                 let config = Rules_config.parse_config_string ~in_docker str in
-                 rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
-                   config)
+              let in_docker = !Semgrep_envvars.v.in_docker in
+              let config = Rules_config.parse_config_string ~in_docker str in
+              rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+                config)
         in
         let rules_and_origins_nested, errors_nested =
           Common2.unzip pairs_list
@@ -763,15 +750,15 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_
         let rules_and_origins =
           valid_langs
           |> List.map (fun analyzer ->
-                 let xpat =
-                   match Parse_rule.parse_fake_xpattern analyzer pat with
-                   | Ok xpat -> xpat
-                   (* TODO: this shouldn't be any worse than the status quo but
+              let xpat =
+                match Parse_rule.parse_fake_xpattern analyzer pat with
+                | Ok xpat -> xpat
+                (* TODO: this shouldn't be any worse than the status quo but
                       this should be more robust *)
-                   | Error e -> failwith (Rule_error.string_of_error e)
-                 in
-                 let rule = Rule.rule_of_xpattern ?fix analyzer xpat in
-                 rules_and_origin_of_rule rule)
+                | Error e -> failwith (Rule_error.string_of_error e)
+              in
+              let rule = Rule.rule_of_xpattern ?fix analyzer xpat in
+              rules_and_origin_of_rule rule)
         in
         (* In run_scan.py, in the pattern case, we would do this:
            if real_config_errors and strict:

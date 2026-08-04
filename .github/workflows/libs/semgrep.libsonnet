@@ -9,39 +9,22 @@ local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
 
 local github_bot = {
-  get_token_steps: [
-    {
-      name: 'Get JWT for semgrep-ci GitHub App',
-      id: 'jwt',
-      uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
-      env: {
-        EXPIRATION: 600,  // in seconds
-        ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
-        PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
-      },
-    },
-    // We are using the standard github-recommended method for short-live
-    // authentification.
-    // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
-    {
-      name: 'Get token for semgrep-ci GitHub App',
-      id: 'token',
-      env: {
-        SEMGREP_CI_APP_INSTALLATION_ID: '${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}',
-        JWT: '${{ steps.jwt.outputs.jwt }}',
-      },
-      run: |||
-        TOKEN="$(curl -X POST \
-        -H "Authorization: Bearer $JWT" \
-        -H "Accept: application/vnd.github.v3+json" \
-        "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
-        jq -r .token)"
-        echo "::add-mask::$TOKEN"
-        echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      |||,
-    },
-  ],
-  // Token computed in get_token_steps to be used in the caller
+  // If `repositories` is null, the token is scoped to all repos in the
+  // `semgrep` org that the app is installed on. Pass a list of repo names
+  // (e.g. ['semgrep', 'semgrep-proprietary']) to scope the token down.
+  get_token_step(repositories=null): {
+    name: 'Get token for semgrep-ci GitHub App',
+    id: 'token',
+    uses: uses.actions.create_github_app_token,
+    with: {
+      'client-id': '${{ secrets.SEMGREP_CI_CLIENT_ID }}',
+      'private-key': '${{ secrets.SEMGREP_CI_APP_KEY }}',
+      owner: 'semgrep',
+    } + (if repositories != null
+         then { repositories: std.join(', ', repositories) }
+         else {}),
+  },
+  // Token computed in get_token_step to be used in the caller
   token_ref: '${{ steps.token.outputs.token }}',
 };
 
@@ -159,21 +142,43 @@ local slack = {
 //
 // coupling: if you modify the compiler pin sha you will need to bump this
 // prefix (or similar) to invalidate the cache
-local opam_cache_version = 'v5';
+local opam_cache_version = 'v6';
+
+// We pin the upstream opam-repository to a commit rather than
+// tracking its HEAD.
+// coupling: bump opam_cache_version above when changing this so the cached
+// opam root (which embeds the repository) is invalidated.
+// coupling: keep this in sync with OPAM_REPOSITORY_PIN in OSS/Makefile.
+local opam_repository_pin = '78d29aba187e8362b8ab86c189790c0af9153d4b';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
-// TODO upstream the changes in austin's custom setup-ocaml action,
-// or move the project to the semgrep org
 // coupling: default is above opam_switch
-local opam_setup = function(opam_switch=opam_switch_default) {
+//
+// 'checkout_path' is the path the repository was checked out into, relative to
+// the workspace root (e.g. 'semgrep-proprietary' when a workflow checks the
+// repo out into a subdir). It must match the 'path' passed to the checkout
+// step, otherwise the lockfile globs below won't match and the cache prefix
+// silently collapses to a static value (poisoning the cache across switches).
+// Defaults to '' for the common case of checking out at the workspace root.
+local opam_setup = function(opam_switch=opam_switch_default, checkout_path='') {
+  // normalize to a glob prefix: '' -> '', 'foo' -> 'foo/'
+  local p = if checkout_path == '' then '' else checkout_path + '/',
   uses: uses.semgrep.setup_ocaml,
   with: {
     'ocaml-compiler': opam_switch,
     'opam-pin': false,
+    // Pin the opam-repository to a known-good commit for reproducible
+    // resolution (see opam_repository_pin above).
+    'opam-repositories': |||
+      default: https://github.com/ocaml/opam-repository.git#%s
+    ||| % opam_repository_pin,
     // Save the cache post run instead of after installing the compiler
     'save-opam-post-run': true,
-    'cache-prefix': opam_cache_version,
+    // cache by lockfiles instead of `.opam` files; this is useful since we might
+    // not update a `.opam` file; if we don't update a `a.opam` file but update
+    // `a.opam.locked`, we'd have a poisoned cache.
+    'cache-prefix': "%s-${{ hashFiles('%sopam-lockfiles/*.locked', '%sOSS/opam-lockfiles/*.locked') }}" % [opam_cache_version, p, p],
   },
 };
 
@@ -251,7 +256,7 @@ local build_bundle_steps =
     },
   ];
 
-local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', build_bundle=false, extra_env={}) =
+local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', build_bundle=false, extra_env={}, test_target='test') =
   [
     opam_setup(opam_switch),
     {
@@ -267,64 +272,54 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', bui
   + [
     {
       name: 'Test %s' % name,
-      run: 'opam exec -- make test',
+      run: 'opam exec -- make %s' % test_target,
     },
   ];
 
 local is_windows_arch(arch) = std.findSubstr('windows', arch) != [];
 local bin_ext(arch) = if is_windows_arch(arch) then '.exe' else '';
-local archive_ext(arch) = if is_windows_arch(arch) then '.tgz' else '.zip';
 local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' else ''];
 
 //TODO always want to include semgrep pro ...
-local build_wheel_steps(arch, copy_semgrep_pro=false) =
+local build_wheel_steps(arch, copy_semgrep_pro=false, root='.') =
+  local in_root(p) = if root == '.' then p else '%s/%s' % [root, p];
+  local bin_dir = in_root('cli/src/semgrep/bin');
+  local run_in_root(step) = if root == '.' then step else step { 'working-directory': root };
   [
     actions.setup_python_step(),
-    {
-      name: 'Untar artifacts',
-      run: |||
-        tar xvfz artifacts.tgz
-      |||,
-    },
   ] +
   (if !copy_semgrep_pro then [{
      name: 'Remove pro binary',
      run: '(rm artifacts/semgrep-core-proprietary%s && rm artifacts/pro-installed-by.txt) || true' % bin_ext(arch),
    }] else []) +
+  // actions/download-artifact does not preserve the executable bit (the
+  // tar-based flow we replaced did), so restore it before the binary is
+  // executed or packed into the wheel.
+  (if is_windows_arch(arch) then [] else [{
+     name: 'Restore executable bit on artifacts',
+     run: 'chmod +x artifacts/semgrep-core*',
+   }]) +
   [
     {
       name: 'Copy artifacts to wheel',
-      run: 'cp -LR artifacts/* cli/src/semgrep/bin',
+      run: 'cp -LR artifacts/* %s' % bin_dir,
     },
     {
       name: 'Clean up old artifacts',
-      run: 'rm -rf artifacts artifacts.tgz',
+      run: 'rm -rf artifacts',
     },
   ] +
   (if copy_semgrep_pro then [{
      name: 'Create pro-installed-by.txt',
-     run: 'test -f cli/src/semgrep/bin/pro-installed-by.txt || cli/src/semgrep/bin/semgrep-core-proprietary%s -pro_version > cli/src/semgrep/bin/pro-installed-by.txt' % bin_ext(arch),
+     run: 'test -f %(bin)s/pro-installed-by.txt || %(bin)s/semgrep-core-proprietary%(ext)s -pro_version > %(bin)s/pro-installed-by.txt' % { bin: bin_dir, ext: bin_ext(arch) },
    }] else []) +
   [
-    {
+    run_in_root({
       name: 'Build wheel',
       run: './scripts/build-wheels.sh',
-    },
-    actions.make_artifact_step('cli/dist%s' % archive_ext(arch)),
-    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
+    }),
+    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro), in_root('cli/dist')),
   ];
-
-local unpack_wheel_steps = [
-
-  {
-    name: 'Unpack artifact',
-    run: 'tar xzvf artifacts.tgz',
-  },
-  {
-    name: 'Unpack wheel',
-    run: 'tar --wildcards -xzf ./artifacts/dist.tgz "*.whl" || unzip ./artifacts/dist.zip "*.whl"',
-  },
-];
 
 // Only retags the SMS image, we have to do this via ecr
 local retag_sms_docker_image_step(version, tag, dry_run=false) = {
@@ -359,8 +354,7 @@ local trigger_build_sms_docker_image_step(tag, use_nightly_repo='false') = {
 local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // caching is hard and why complicate things
   actions.setup_python_step(cache=false),
-  actions.download_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
-] + unpack_wheel_steps + [
+  actions.download_artifact_step(wheel_name(arch, pro=copy_semgrep_pro), path='dist'),
   {
     name: 'install package',
     run: 'uv venv && uv pip install dist/*.whl',
@@ -406,7 +400,6 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   build_test_steps: build_test_steps,
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
-  unpack_wheel_steps: unpack_wheel_steps,
   retag_sms_docker_image_step: retag_sms_docker_image_step,
   trigger_build_sms_docker_image_step: trigger_build_sms_docker_image_step,
   wheel_name: wheel_name,

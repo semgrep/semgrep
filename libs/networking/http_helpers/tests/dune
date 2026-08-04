@@ -8,6 +8,7 @@
     commons
     lwt
     lwt_platform
+    cohttp-lwt-unix
     networking
     networking.http_mock_client
     networking.http_helpers

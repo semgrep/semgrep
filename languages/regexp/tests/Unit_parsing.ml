@@ -31,27 +31,27 @@ let test_valid_files dialect rel_path () =
   let files = Common2.glob (dir / "*.regexp") in
   files
   |> List.iter (fun file ->
-         try
-           let _ = Parse.parse ~conf:(Dialect.conf dialect) file in
-           ()
-         with
-         | exn ->
-             Alcotest.failf "it should correctly parse %a (exn = %s)" Fpath.pp
-               file (Common.exn_to_s exn))
+      try
+        let _ = Parse.parse ~conf:(Dialect.conf dialect) file in
+        ()
+      with
+      | exn ->
+          Alcotest.failf "it should correctly parse %a (exn = %s)" Fpath.pp file
+            (Common.exn_to_s exn))
 
 let test_invalid_files dialect rel_path () =
   let dir = tests_path // rel_path in
   let files = Common2.glob (dir / "*.regexp") in
   files
   |> List.iter (fun file ->
-         try
-           let _ast = Parse.file ~conf:(Dialect.conf dialect) file in
-           Alcotest.failf "it should have thrown a Parse_error %a" Fpath.pp file
-         with
-         | Parsing_error.Syntax_error _ -> ()
-         | exn ->
-             Alcotest.failf "throwing wrong exn %s on %a" (Common.exn_to_s exn)
-               Fpath.pp file)
+      try
+        let _ast = Parse.file ~conf:(Dialect.conf dialect) file in
+        Alcotest.failf "it should have thrown a Parse_error %a" Fpath.pp file
+      with
+      | Parsing_error.Syntax_error _ -> ()
+      | exn ->
+          Alcotest.failf "throwing wrong exn %s on %a" (Common.exn_to_s exn)
+            Fpath.pp file)
 
 let tests =
   Testo.categorize_suites "regexp parsing"

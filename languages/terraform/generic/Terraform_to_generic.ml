@@ -55,10 +55,10 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
   let labels_id =
     blabels
     |> List.map (function
-         | LblStr x -> G.L (G.String (fb x)) |> G.e
-         | LblId id ->
-             let n = H2.name_of_id id in
-             G.N n |> G.e)
+      | LblStr x -> G.L (G.String (fb x)) |> G.e
+      | LblId id ->
+          let n = H2.name_of_id id in
+          G.N n |> G.e)
   in
 
   let n = H2.name_of_id id in
@@ -93,14 +93,14 @@ and map_block ({ btype = _kind, tk; blabels; bbody = lb, body, rb } : block) :
 let program (xs : config) : G.program =
   xs
   |> List.map (function
-       (* TODO? this should never happen in terraform files at the toplevel *)
-       | Argument e ->
-           let def = map_argument e in
-           G.DefStmt def |> G.s
-       | BlockEllipsis t -> G.exprstmt (G.Ellipsis t |> G.e)
-       | Block blk ->
-           let e = map_block blk in
-           G.exprstmt e)
+    (* TODO? this should never happen in terraform files at the toplevel *)
+    | Argument e ->
+        let def = map_argument e in
+        G.DefStmt def |> G.s
+    | BlockEllipsis t -> G.exprstmt (G.Ellipsis t |> G.e)
+    | Block blk ->
+        let e = map_block blk in
+        G.exprstmt e)
 
 let any (x : any) : G.any =
   match x with

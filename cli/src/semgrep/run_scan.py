@@ -69,10 +69,12 @@ from semgrep.core_runner import CoreRunner
 from semgrep.dependency_aware_rule import dependencies_range_match_any
 from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.dependency_aware_rule import SubprojectDependencyIndex
+from semgrep.dependency_path import DependencyParentIndex
 from semgrep.engine import EngineType
 from semgrep.error import InvalidScanningRootError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import select_real_errors
+from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
@@ -89,6 +91,7 @@ from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc import RpcSession
 from semgrep.rpc_call import dump_rule_partitions
 from semgrep.rule import Rule
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_match import RuleMatches
 from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_interfaces.semgrep_metrics import Any_ as AnySecretsOrigin
@@ -207,6 +210,37 @@ def sanity_check_resolved_config(
             """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config""",
             code=MISSING_CONFIG_EXIT_CODE,
         )
+
+
+def _raise_skipped_rule_validation_errors(
+    errors: Sequence[SemgrepError],
+    validation_mode: RuleValidationMode,
+) -> None:
+    """Preserve config-loading error semantics when pre-validation was skipped.
+
+    When `validation_mode` is NONE we skip the Python-side schema check; rule
+    schema errors then surface from the scan subprocess as RuleParseError.
+    Convert those back into the config-style error before regular scan error
+    handling so the historical missing-config exit code and error wording are
+    preserved (matters in particular for the `semgrep ci` App-rules path).
+    """
+    if validation_mode is not RuleValidationMode.NONE:
+        return
+
+    rule_errors = [
+        error
+        for error in errors
+        if isinstance(error, SemgrepCoreError)
+        and isinstance(error.core.error_type.value, out.RuleParseError)
+    ]
+    if not rule_errors:
+        return
+
+    message = "\n".join(str(error) for error in rule_errors)
+    raise SemgrepError(
+        f"Invalid rule schema\n{message}",
+        code=MISSING_CONFIG_EXIT_CODE,
+    )
 
 
 ##############################################################################
@@ -343,18 +377,59 @@ def baseline_handler_opt(
     return baseline_handler
 
 
+def _baseline_scan_failure_suppression_sets(
+    baseline_errors: Sequence[SemgrepError],
+) -> Tuple[Set[Path], Set[Tuple[Path, str]]]:
+    """Paths where baseline scan failures make ``(rule, path)`` comparisons unreliable."""
+    """Return two sets:
+    - file_wide_paths: paths where the baseline scan failed without a specific rule
+    - rule_scoped_path_and_rule: (path, rule_id) pairs where the baseline scan failed for that rule on that file
+    """
+    file_wide_paths: Set[Path] = set()
+    rule_scoped_path_and_rule: Set[Tuple[Path, str]] = set()
+    for err in baseline_errors:
+        if not isinstance(err, SemgrepCoreError) or not err.is_scan_failure():
+            continue
+        loc = err.core.location
+        if not loc or not loc.path or not (path_val := loc.path.value):
+            continue
+        path = Path(path_val)
+        if (rule_id := err.core.rule_id) and rule_id.value:
+            rule_scoped_path_and_rule.add((path, rule_id.value))
+        else:
+            file_wide_paths.add(path)
+    return file_wide_paths, rule_scoped_path_and_rule
+
+
 @telemetry.trace()
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
     file_renames: Dict[str, Path],
+    baseline_errors: Sequence[SemgrepError],
 ) -> RuleMatchMap:
     """
-    Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule
+    Remove the matches in head_matches_by_rule that also occur in baseline_matches_by_rule.
+
+    Additionally drops head matches when the baseline scan could not produce
+    reliable data for the comparison:
+
+    - If a baseline scan failure has **no** ``rule_id`` (e.g. engine error tied
+      only to the file), every finding on that path is suppressed as "cannot
+      prove new".
+    - If the failure **has** a ``rule_id`` (e.g. per-rule timeout), only findings
+      for that rule on that path are suppressed; other rules on the same file
+      are unchanged.
     """
     logger.verbose("Removing matches that exist in baseline scan")
     kept_matches_by_rule: RuleMatchMap = {}
     num_removed = 0
+    num_suppressed_file_wide = 0
+    num_suppressed_rule_scoped = 0
+    (
+        file_wide_paths,
+        rule_scoped_path_and_rule,
+    ) = _baseline_scan_failure_suppression_sets(baseline_errors)
 
     for rule, matches in head_matches_by_rule.items():
         if len(matches) == 0:
@@ -362,17 +437,40 @@ def remove_matches_in_baseline(
         baseline_matches = {
             match.ci_unique_key for match in baseline_matches_by_rule.get(rule, [])
         }
-        kept_matches_by_rule[rule] = [
-            match
-            for match in matches
-            if match.get_path_changed_ci_unique_key(file_renames)
-            not in baseline_matches
-        ]
-        num_removed += len(matches) - len(kept_matches_by_rule[rule])
+        kept = []
+        for match in matches:
+            if match.path in file_wide_paths:
+                num_suppressed_file_wide += 1
+            elif (match.path, rule.id) in rule_scoped_path_and_rule:
+                num_suppressed_rule_scoped += 1
+            elif match.get_path_changed_ci_unique_key(file_renames) in baseline_matches:
+                num_removed += 1
+            else:
+                kept.append(match)
+        kept_matches_by_rule[rule] = kept
 
     logger.verbose(
         f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
     )
+    n_suppressed = num_suppressed_file_wide + num_suppressed_rule_scoped
+    if n_suppressed > 0:
+        parts = []
+        if num_suppressed_file_wide:
+            parts.append(
+                f"{unit_str(num_suppressed_file_wide, 'finding')} on file(s) where "
+                "the baseline scan failed without a specific rule"
+            )
+        if num_suppressed_rule_scoped:
+            parts.append(
+                f"{unit_str(num_suppressed_rule_scoped, 'finding')} where the "
+                "baseline scan failed for that rule on that file"
+            )
+        detail = "; ".join(parts)
+        logger.info(
+            f"Suppressed {unit_str(n_suppressed, 'finding')} from being reported as "
+            f"new because baseline data was incomplete ({detail}). Re-run with a "
+            "higher --timeout to evaluate them."
+        )
     return kept_matches_by_rule
 
 
@@ -391,6 +489,7 @@ def baseline_run(
     output_extra: OutputExtra,
     include: Sequence[str],
     exclude: Mapping[out.Product, Sequence[str]],
+    exclude_binary_files: bool,
     max_target_bytes: int,
     respect_git_ignore: bool,
     skip_unknown_extensions: bool,
@@ -501,6 +600,7 @@ def baseline_run(
                     scanning_root_strings=baseline_scanning_root_strings,
                     includes=include,
                     excludes=exclude,
+                    exclude_binary_files=exclude_binary_files,
                     max_target_bytes=max_target_bytes,
                     # only target the paths that had a match, ignoring symlinks
                     # and non-existent files
@@ -547,6 +647,7 @@ def baseline_run(
                     rule_matches_by_rule,
                     baseline_rule_matches_by_rule,
                     baseline_handler.status.renamed,
+                    baseline_errors=baseline_semgrep_errors,
                 )
                 output_handler.handle_semgrep_errors(baseline_semgrep_errors)
         except Exception as e:
@@ -737,6 +838,7 @@ def adjust_matches_for_sca_rules(
     write_to_tr_cache: bool = True,
     rpc_session: Optional[RpcSession] = None,
     enable_transitive_reachability: Optional[bool] = False,
+    x_dependency_paths: bool = False,
 ) -> None:
     """
     Generates SCA findings based on the dependency-aware rules and the resolved subprojects.
@@ -769,6 +871,20 @@ def adjust_matches_for_sca_rules(
             dependency_index[ecosystem].append((subproject, idx))
             num_dependencies += idx.num_deps
 
+    # The reverse dependency graph used for dependency paths is built once per
+    # scan (and reused across every reachability rule below) only when the
+    # feature is on -- this is the single place the flag gates the work. Keyed
+    # by subproject identity; a present entry tells the generators to emit paths.
+    parent_indexes: Dict[int, DependencyParentIndex] = (
+        {
+            id(subproject): DependencyParentIndex.from_dependencies(idx.deps)
+            for entries in dependency_index.values()
+            for subproject, idx in entries
+        }
+        if x_dependency_paths
+        else {}
+    )
+
     for rule in dependency_aware_rules:
         if rule.should_run_on_semgrep_core:
             # If we have a reachability rule (contains a pattern)
@@ -786,7 +902,8 @@ def adjust_matches_for_sca_rules(
             ) = generate_reachable_sca_findings(
                 rule_matches_by_rule.get(rule, []),
                 rule,
-                resolved_subprojects,
+                dependency_index,
+                parent_indexes=parent_indexes,
             )
 
             rule_matches_by_rule[rule] = dep_rule_matches
@@ -805,6 +922,7 @@ def adjust_matches_for_sca_rules(
                 enable_transitive_reachability=enable_transitive_reachability,
                 write_to_tr_cache=write_to_tr_cache,
                 rpc_session=rpc_session,
+                parent_indexes=parent_indexes,
             )
 
             rule_matches_by_rule[rule].extend(dep_rule_matches)
@@ -823,6 +941,7 @@ def adjust_matches_for_sca_rules(
                 enable_transitive_reachability=False,
                 write_to_tr_cache=write_to_tr_cache,
                 rpc_session=rpc_session,
+                parent_indexes=parent_indexes,
             )
 
             rule_matches_by_rule[rule] = dep_rule_matches
@@ -931,9 +1050,11 @@ def run_rules(
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
+    code_enabled: Optional[bool] = None,
     write_to_tr_cache: bool = True,
     fips_mode: bool,
     enable_transitive_reachability: Optional[bool] = None,
+    x_dependency_paths: bool = False,
     x_parmap: bool = False,
     run_symbol_analysis: bool = False,
     rpc_session: Optional[RpcSession] = None,
@@ -999,6 +1120,7 @@ def run_rules(
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
+        code_enabled=code_enabled,
         target_accumulator=target_accumulator,
     )
 
@@ -1058,6 +1180,7 @@ def run_rules(
             output_extra=output_extra,
             write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
+            x_dependency_paths=x_dependency_paths,
             fips_mode=fips_mode,
             rpc_session=rpc_session,
         )
@@ -1151,11 +1274,13 @@ def run_scan(
     # not set a default at this level.
     config_strs: Optional[Sequence[str]],
     rules_string: Optional[str] = None,
+    validation_mode: RuleValidationMode = RuleValidationMode.FULL,
     no_rewrite_rule_ids: bool = False,
     jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
     exclude: Optional[Mapping[Product, Sequence[str]]] = None,
     exclude_rule: Optional[Sequence[str]] = None,
+    exclude_binary_files: bool = True,
     strict: bool = False,
     autofix: AutofixBehavior = AutofixBehavior.IGNORE,
     replacement: Optional[str] = None,
@@ -1187,10 +1312,10 @@ def run_scan(
     x_ls: bool = False,
     x_ls_long: bool = False,
     enable_transitive_reachability: Optional[bool] = None,
+    x_dependency_paths: bool = False,
     x_parmap: bool = False,
     x_pro_naming: bool = False,
     x_run_taint_once: bool = True,
-    x_no_python_schema_validation: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     allow_local_builds: bool = False,
@@ -1204,6 +1329,7 @@ def run_scan(
     x_mem_policy: Optional[MemoryPolicy] = None,
     x_dump_subprojects_and_exit: Path | None = None,
     x_computed_dependencies_dir: Path | None = None,
+    code_enabled: Optional[bool] = None,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1256,7 +1382,7 @@ def run_scan(
             elif rules_string is not None:
                 configs_obj, config_errors = Config.from_rules_string(
                     rules_string,
-                    no_python_schema_validation=x_no_python_schema_validation,
+                    validation_mode=validation_mode,
                 )
             elif config_strs is not None:
                 if replacement:
@@ -1266,7 +1392,7 @@ def run_scan(
                 configs_obj, config_errors = Config.from_config_list(
                     config_strs or [],
                     project_url,
-                    no_python_schema_validation=x_no_python_schema_validation,
+                    validation_mode=validation_mode,
                 )
 
         progress.remove_task(task_id)
@@ -1353,6 +1479,7 @@ def run_scan(
             scanning_root_strings=scanning_root_strings,
             includes=include,
             excludes=exclude,
+            exclude_binary_files=exclude_binary_files,
             force_novcs_project=force_novcs_project,
             force_project_root=force_project_root,
             max_target_bytes=max_target_bytes,
@@ -1470,15 +1597,21 @@ def run_scan(
             disable_secrets_validation,
             with_code_rules=configs_obj.with_code_rules,
             with_supply_chain=configs_obj.with_supply_chain,
+            code_enabled=code_enabled,
             fips_mode=fips_mode,
             write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
+            x_dependency_paths=x_dependency_paths,
             x_parmap=x_parmap,
             run_symbol_analysis=run_symbol_analysis,
             rpc_session=rpc_session,
         )
         profiler.save("core_time", core_start_time)
         semgrep_errors: List[SemgrepError] = config_errors + scan_errors
+        _raise_skipped_rule_validation_errors(
+            scan_errors,
+            validation_mode,
+        )
         output_handler.handle_semgrep_errors(semgrep_errors)
 
         # ---------------------------------
@@ -1497,6 +1630,7 @@ def run_scan(
                 output_extra=output_extra,
                 include=include,
                 exclude=exclude,
+                exclude_binary_files=exclude_binary_files,
                 max_target_bytes=max_target_bytes,
                 respect_git_ignore=respect_git_ignore,
                 skip_unknown_extensions=skip_unknown_extensions,
@@ -1602,7 +1736,9 @@ def run_scan_and_return_json(
         output_settings = OutputSettings(output_format=OutputFormat.JSON)
 
     StringIO()
-    output_handler = OutputHandler(output_settings)
+    output_handler = OutputHandler(
+        output_settings, disable_nosem=kwargs.get("disable_nosem", False)
+    )
     (
         filtered_matches_by_rule,
         _,

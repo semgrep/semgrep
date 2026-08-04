@@ -1,0 +1,21 @@
+rules:
+  - id: test
+    severity: WARNING
+    languages:
+      - java
+    message: test
+    patterns:
+      - pattern: return $X;
+      - metavariable-comparison:
+          comparison: $X == 4
+          metavariable: $X
+  - id: test-negative
+    severity: WARNING
+    languages:
+      - java
+    message: test
+    patterns:
+      - pattern: return $X;
+      - metavariable-comparison:
+          comparison: $X == 3
+          metavariable: $X

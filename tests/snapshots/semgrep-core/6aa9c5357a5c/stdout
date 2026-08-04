@@ -5,7 +5,8 @@
             (Id (("t", _),
                { id_resolved = ref (None);
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
                )));
          attrs = [(OtherAttribute (("opaque", _), []))]; tparams = None },
        (TypeDef
@@ -16,7 +17,7 @@
                     (Id (("Int", _),
                        { id_resolved = ref (None);
                          id_resolved_alternatives = ref ([]);
-                         id_type = ref (None); id_svalue = ref (None);
+                         id_type = ref (None); id_svalue = ref (Unknown);
                          id_flags = ref (0); id_info_id = _ }
                        )));
                  t_attrs = [] })
@@ -29,8 +30,8 @@
              (Id (("foo", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = [(OtherAttribute (("opaque", _), []))]; tparams = None },
         (FuncDef

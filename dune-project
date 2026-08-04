@@ -91,9 +91,9 @@ For more information see https://semgrep.dev
     ; that is resolved until filing an issue on this
     ; alt: only choose an old uring if the tsan option is enabled?
     (uring (and (= :os linux) (= 0.9)))
-    ; unit testing (note that testo is pinned in semgrep.opam.template)
-    testo
-    testo-lwt
+    ; unit testing
+    (testo (= 0.5.0))
+    (testo-lwt (= 0.5.0))
     (alcotest (>= 1.9.1))
     (alcotest-lwt (>= 1.9.1))
     (calendar (>= 3.0.0))
@@ -117,10 +117,9 @@ For more information see https://semgrep.dev
     (xmlm (>= 1.4.0))
     (sarif (>= 0.3.1 ))
     ; CLI
-    (cmdliner (>= 1.3.0))
+    (cmdliner (>= 2.0.0))
     ; PPX
-    ; some ppx libs below don't support 0.36.0 yet
-    (ppxlib (= 0.35.0))
+    (ppxlib (= 0.37.0))
     (ppx_blob (>= 0.9.0))
     (ppx_deriving (>= 6.0.3 ))
     (ppx_deriving_yojson (>= 3.9.1))
@@ -128,16 +127,15 @@ For more information see https://semgrep.dev
     (ppx_hash (>= v0.17.0))
     ; https://github.com/janestreet/ppx_inline_test/issues/52
     (ppx_inline_test (>= v0.17.0))
-    ; https://github.com/janestreet/ppx_sexp_conv/issues/43
-    (ppx_sexp_conv ( = v0.17.0))
-    ; clean-room visitors runtime + upstream PPX (replaces upstream visitors package)
-    visitors-cleanroom
+    (ppx_sexp_conv (>= v0.17.1))
+    (visitors (= 20260520))
     ; regexps
     (re ( >= 1.14.0))
-    (conf-libpcre (= 2))
-    (pcre (>= 8.0.5))
     ; we're currently pinning pcre2 to semgrep/pcre2.git
     pcre2
+    ; commons uses the `hex` library; declare explicitly so the opam solver
+    ; doesn't drop it in favor of the unrelated `ohex` package
+    hex
     ; obackward, pinned to semgrep/obackward.git
     obackward
     ; misc
@@ -160,6 +158,9 @@ For more information see https://semgrep.dev
     opentelemetry-client-ocurl
     opentelemetry-client-cohttp-eio
     opentelemetry-logs
+    ; trace 0.11 removed the Otrace.trace_id type that our pinned
+    ; opentelemetry-trace still uses; pin until we bump the opentelemetry SHA
+    (trace (< 0.11))
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
@@ -170,15 +171,14 @@ For more information see https://semgrep.dev
     ; web stuff
     (uri (>= 4.4.0))
     (uuidm (>= 0.9.10))
-    (cohttp (>= 6.1.1))
-    (cohttp-lwt-unix (>= 6.1.1))
-    (cohttp-eio (>= 6.1.1))
+    (cohttp (>= 6.2.1))
+    (cohttp-lwt-unix (>= 6.2.1))
+    (cohttp-eio (>= 6.2.1))
     (tls-lwt (>= 2.0.3)) ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     (emile (>= 1.1))
     (digestif (>= 1.3.0))
     ; concurrency
     (lwt (>= 5.9.2))
-    ; needs bumping once we move to ppxlib 0.36.0
     (lwt_ppx (>= 5.9.1))
     (conf-libev (and (<> :os win32) (= 4-13))) ; for lwt, to get better FD perf
     ;TODO: this is for secrets and should be in ../dune-project but doing so
@@ -263,11 +263,12 @@ a few other projects developed at r2c.
     (ocaml (>= "4.13.0"))
     (ANSITerminal (>= "0.8.4"))
     (alcotest (>= "1.5.0"))
-    (cmdliner (>= "1.1.1" ))
+    (cmdliner (>= "2.0.0"))
     (logs (>= "0.7.0" ))
     (yojson (>= "1.7.0"))
     (re (>= "1.10.4"))
-    (pcre (>= "7.5.0" ))
+    ; hex provides the `Hex` library used by commons/Hex_.ml
+    hex
     ; we're currently "vendoring" pcre2 in libs/pcre2
     ; so no need to get opam to install it
     ;(pcre2 (>= "7.5.3" ))
@@ -296,6 +297,10 @@ a few other projects developed at r2c.
 (package (name glob)
   (synopsis "XXX")
   (description "XXX")
+)
+(package (name fast_json)
+  (synopsis "Fast JSON parser emitting a Yojson.Safe-shaped tree with location info")
+  (description "Experimental hand-rolled JSON parser that produces a tree with the same shape as Yojson.Safe.t but with Tok.t location annotations on every value and object key.")
 )
 (package (name networking)
   (synopsis "XXX")

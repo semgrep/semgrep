@@ -42,6 +42,12 @@ module Make (M : S) : Cohttp_lwt.S.Client = struct
   type 'a io = 'a Lwt.t
   type body = Cohttp_lwt.Body.t
 
+  (* Cohttp_lwt.S.Client requires an IO module (since cohttp 6.2.0). The mock
+     [call] short-circuits before any real IO happens, but the module type
+     still requires [IO] to be present; reuse the real Lwt/Unix implementation
+     so the mock behaves correctly if anything reaches into it. *)
+  module IO = Cohttp_lwt_unix.Private.IO
+
   let map_context (x : 'a with_context) (f : 'a -> 'b) ?ctx = x ?ctx |> f
 
   let mock_response_of_request (req : Cohttp.Request.t) (body : Body.t) =
@@ -304,12 +310,11 @@ let trim_front s =
 let parse_headers headers =
   headers
   |> List.map (fun header ->
-         let i = String.index header ':' in
-         let before, after =
-           ( Str.first_chars header i,
-             Str.string_after header (i + 1) |> trim_front )
-         in
-         (before, after))
+      let i = String.index header ':' in
+      let before, after =
+        (Str.first_chars header i, Str.string_after header (i + 1) |> trim_front)
+      in
+      (before, after))
   |> Cohttp.Header.of_list
 
 let take_while p xs =

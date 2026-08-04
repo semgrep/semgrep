@@ -1,0 +1,7 @@
+{
+  "name": "dependency-path-deep-fixture",
+  "version": "1.0.0",
+  "dependencies": {
+    "top": "^1.0.0"
+  }
+}

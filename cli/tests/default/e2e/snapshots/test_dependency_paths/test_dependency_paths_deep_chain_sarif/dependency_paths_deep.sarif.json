@@ -1,0 +1,21 @@
+[
+  {
+    "dependencyPaths": [
+      [
+        {
+          "package": "top",
+          "version": "1.0.0"
+        },
+        {
+          "package": "mid",
+          "version": "1.1.0"
+        },
+        {
+          "package": "victim",
+          "version": "1.2.3"
+        }
+      ]
+    ],
+    "ruleId": "rules.dependency_aware.dependency-path-victim"
+  }
+]

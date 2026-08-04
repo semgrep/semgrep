@@ -4,6 +4,7 @@
  (wrapped false)
  (libraries
    logs
+   unix
    commons
    collections
    parser_jsonnet.tree_sitter

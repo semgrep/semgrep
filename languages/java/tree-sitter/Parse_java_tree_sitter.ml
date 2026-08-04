@@ -276,8 +276,8 @@ let rec expression (env : env) (x : CST.expression) =
         | `HATEQ tok -> (Right G.BitXor, token env tok) (* "^=" *)
         | `PERCEQ tok -> (Right G.Mod, token env tok) (* "%=" *)
         | `LTLTEQ tok -> (Right G.LSL, token env tok) (* "<<=" *)
-        | `GTGTEQ tok -> (Right G.LSR, token env tok) (* ">>=" *)
-        | `GTGTGTEQ tok -> (Right G.ASR, token env tok)
+        | `GTGTEQ tok -> (Right G.ASR, token env tok) (* ">>=" *)
+        | `GTGTGTEQ tok -> (Right G.LSR, token env tok)
         (* ">>>=" *)
       in
       let v3 = expression env v3 in
@@ -483,7 +483,7 @@ and binary_expression (env : env) (x : CST.binary_expression) =
         (* ">>" *)
       in
       let v3 = expression env v3 in
-      Infix (v1, (G.LSR, v2), v3)
+      Infix (v1, (G.ASR, v2), v3)
   | `Exp_GTGTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 =
@@ -491,7 +491,7 @@ and binary_expression (env : env) (x : CST.binary_expression) =
         (* ">>>" *)
       in
       let v3 = expression env v3 in
-      Infix (v1, (G.ASR, v2), v3)
+      Infix (v1, (G.LSR, v2), v3)
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   match x with

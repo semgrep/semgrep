@@ -14,6 +14,7 @@
 import pytest
 
 from semgrep.util import is_semgrep_url
+from semgrep.util import redact_credentials
 
 
 class TestIsSemgrepUrl:
@@ -58,3 +59,77 @@ class TestIsSemgrepUrl:
         # URLs that don't match the custom domain should return False
         assert is_semgrep_url("https://bad.actor.com/rules.yaml", custom_url) is False
         assert is_semgrep_url("https://example.com", custom_url) is False
+
+
+class TestRedactCredentials:
+    @pytest.mark.quick
+    def test_url_embedded_credentials(self):
+        s = "git fetch https://gitlab-ci-token:glpat-XXXXXXXX@gitlab.example.com/foo.git main"
+        out = redact_credentials(s)
+        assert "glpat-XXXXXXXX" not in out
+        assert "gitlab-ci-token" not in out
+        assert "<REDACTED>" in out
+        # The non-secret parts of the URL should remain intact for debugging.
+        assert "gitlab.example.com/foo.git" in out
+        assert "git fetch" in out
+
+    @pytest.mark.quick
+    def test_authorization_header(self):
+        s = "headers = {'Authorization': 'Bearer abcdef.secret-token-123'}"
+        out = redact_credentials(s)
+        assert "abcdef.secret-token-123" not in out
+        assert "<REDACTED>" in out
+
+    @pytest.mark.quick
+    def test_authorization_header_basic(self):
+        s = "Authorization: Basic dXNlcjpwYXNz"
+        out = redact_credentials(s)
+        assert "dXNlcjpwYXNz" not in out
+        assert "<REDACTED>" in out
+
+    @pytest.mark.quick
+    def test_no_credentials_passthrough(self):
+        s = "no secrets here, just a plain message"
+        assert redact_credentials(s) == s
+
+    @pytest.mark.quick
+    def test_url_without_credentials_passthrough(self):
+        s = "fetched from https://example.com/foo"
+        assert redact_credentials(s) == s
+
+    @pytest.mark.quick
+    def test_multiple_secrets_in_one_string(self):
+        s = (
+            "git fetch https://user1:secret1@host1/x and "
+            "https://user2:secret2@host2/y"
+        )
+        out = redact_credentials(s)
+        assert "secret1" not in out
+        assert "secret2" not in out
+        assert out.count("<REDACTED>") == 2
+
+    @pytest.mark.quick
+    def test_non_https_scheme(self):
+        s = "fetched via ftp://user:secret@ftp.example.com/path"
+        out = redact_credentials(s)
+        assert "secret" not in out
+        assert "<REDACTED>" in out
+        assert "ftp.example.com/path" in out
+
+    @pytest.mark.quick
+    def test_url_with_port_and_query(self):
+        s = "git+https://user:t0kEn@host.example.com:8443/path?ref=main"
+        out = redact_credentials(s)
+        assert "t0kEn" not in out
+        assert "<REDACTED>" in out
+        # Path, port, and query should be preserved.
+        assert "host.example.com:8443/path?ref=main" in out
+
+    @pytest.mark.quick
+    def test_bare_token_as_username(self):
+        # No `:password` (GitHub PATs, some GitLab configs).
+        s = "git fetch https://glpat-XXXX@gitlab.example.com/foo.git"
+        out = redact_credentials(s)
+        assert "glpat-XXXX" not in out
+        assert "<REDACTED>" in out
+        assert "gitlab.example.com/foo.git" in out

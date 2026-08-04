@@ -21,12 +21,11 @@ let cleanup (t : t) : unit =
      (* nosemgrep: forbid-fs *)
      Sys.readdir !!t
      |> Array.iter (fun name ->
-            let path = !!(t / name) in
-            try Sys.remove path with
-            | Sys_error err ->
-                (* nosemgrep: no-logs-in-library *)
-                Logs.warn (fun m ->
-                    m "Disk_cache: can't remove %s: %s" path err))
+         let path = !!(t / name) in
+         try Sys.remove path with
+         | Sys_error err ->
+             (* nosemgrep: no-logs-in-library *)
+             Logs.warn (fun m -> m "Disk_cache: can't remove %s: %s" path err))
    with
   | Sys_error err ->
       (* nosemgrep: no-logs-in-library *)
@@ -104,7 +103,7 @@ module Make (V : DISK_CACHEABLE) : S with type value = V.t = struct
     UUnix.stat path
     |> Result.map (fun (stats : Unix.stats) -> stats.st_size)
     |> Result.map_error (fun (err, _, _) ->
-           IO { path; reason = Unix.error_message err })
+        IO { path; reason = Unix.error_message err })
 
   let write t k v : (handle, error) result =
     let hashname = Digest.string k |> Digest.to_hex in

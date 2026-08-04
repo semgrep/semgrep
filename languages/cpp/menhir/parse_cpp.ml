@@ -48,39 +48,39 @@ let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
 let commentized xs =
   xs
   |> List.filter_map (function
-       | T.TComment_Pp (cppkind, ii) ->
-           if !Flag_cpp.filter_classic_passed then
-             match cppkind with
-             | Token_cpp.CppOther -> (
-                 let s = Tok.content_of_tok ii in
-                 match s with
-                 | s when s =~ "KERN_.*" -> None
-                 | s when s =~ "__.*" -> None
-                 | _ -> Some ii)
-             | Token_cpp.CppDirective
-             | Token_cpp.CppAttr
-             | Token_cpp.CppMacro ->
-                 None
-             | Token_cpp.CppMacroExpanded
-             | Token_cpp.CppPassingNormal
-             | Token_cpp.CppPassingCosWouldGetError ->
-                 raise Todo
-           else Some ii
-       | T.TAny_Action ii -> Some ii
-       | _ -> None)
+    | T.TComment_Pp (cppkind, ii) ->
+        if !Flag_cpp.filter_classic_passed then
+          match cppkind with
+          | Token_cpp.CppOther -> (
+              let s = Tok.content_of_tok ii in
+              match s with
+              | s when s =~ "KERN_.*" -> None
+              | s when s =~ "__.*" -> None
+              | _ -> Some ii)
+          | Token_cpp.CppDirective
+          | Token_cpp.CppAttr
+          | Token_cpp.CppMacro ->
+              None
+          | Token_cpp.CppMacroExpanded
+          | Token_cpp.CppPassingNormal
+          | Token_cpp.CppPassingCosWouldGetError ->
+              raise Todo
+        else Some ii
+    | T.TAny_Action ii -> Some ii
+    | _ -> None)
 
 let count_lines_commentized xs =
   let line = ref (-1) in
   let count = ref 0 in
   commentized xs
   |> List.iter (function
-       | Tok.OriginTok pinfo
-       | Tok.ExpandedTok (_, (pinfo, _)) ->
-           let newline = pinfo.Loc.pos.line in
-           if newline <> !line then (
-             line := newline;
-             incr count)
-       | _ -> ());
+    | Tok.OriginTok pinfo
+    | Tok.ExpandedTok (_, (pinfo, _)) ->
+        let newline = pinfo.Loc.pos.line in
+        if newline <> !line then (
+          line := newline;
+          incr count)
+    | _ -> ());
   !count
 
 (* See also problematic_lines and parsing_stat.ml *)
@@ -151,7 +151,7 @@ let parse_fuzzy file =
       let toks =
         toks_orig
         |> List_.exclude (fun x ->
-               Token_helpers_cpp.is_comment x || Token_helpers_cpp.is_eof x)
+            Token_helpers_cpp.is_comment x || Token_helpers_cpp.is_eof x)
       in
       let extended = toks |> List.map Token_views_cpp.mk_token_extended in
       Parsing_hacks_cpp.find_template_inf_sup extended;

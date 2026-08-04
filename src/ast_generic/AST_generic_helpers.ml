@@ -257,14 +257,14 @@ exception NotAnExpr
 (* sgrep: this is to treat pattern metavars as expr metavars *)
 let rec pattern_to_expr p =
   (match p with
-  | PatId (id, info) -> N (Id (id, info))
-  | PatTuple (t1, xs, t2) ->
-      Container (Tuple, (t1, xs |> List.map pattern_to_expr, t2))
-  | PatLiteral l -> L l
-  | PatList (t1, xs, t2) ->
-      Container (List, (t1, xs |> List.map pattern_to_expr, t2))
-  | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
-  | _ -> raise NotAnExpr)
+    | PatId (id, info) -> N (Id (id, info))
+    | PatTuple (t1, xs, t2) ->
+        Container (Tuple, (t1, xs |> List.map pattern_to_expr, t2))
+    | PatLiteral l -> L l
+    | PatList (t1, xs, t2) ->
+        Container (List, (t1, xs |> List.map pattern_to_expr, t2))
+    | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
+    | _ -> raise NotAnExpr)
   |> G.e
 
 (* Primarily for usage in converting an Assign into a DefStmt. We fail to
@@ -312,7 +312,7 @@ let is_boolean_operator = function
   | Plus (* unary too *) | Minus (* unary too *)
   | Mult | Div | Mod
   | Pow | FloorDiv | MatMult (* Python *)
-  | LSL | LSR | ASR (* L = logic, A = Arithmetic, SL = shift left *)
+  | LSL | LSR | ASR
   | BitOr | BitXor | BitAnd | BitNot | BitClear (* unary *)
   | Range | Nullish | NotNullPostfix | Elvis | Length
   | RangeInclusive
@@ -400,8 +400,8 @@ let funcbody_to_stmt = function
 let has_keyword_attr kwd attrs =
   attrs
   |> List.exists (function
-       | KeywordAttr (kwd2, _) -> kwd =*= kwd2
-       | _ -> false)
+    | KeywordAttr (kwd2, _) -> kwd =*= kwd2
+    | _ -> false)
 
 let id_of_name = function
   | G.Id (id, id_info) -> (id, id_info)
@@ -422,6 +422,19 @@ let name_is_global = function
   | Macro
   | EnumConstant ->
       false
+
+let definition_is_func (_, defkind) =
+  match defkind with
+  | G.FuncDef _ -> true
+  | __else__ -> false
+
+let entity_is_local ent =
+  match ent with
+  | { G.name = G.EN (G.Id (_, id_info)); _ } -> (
+      match !(id_info.id_resolved) with
+      | Some (G.LocalVar, _) -> true
+      | _ -> false)
+  | __else__ -> false
 
 (* just used in cpp_to_generic.ml for now, could be moved there *)
 let parameter_to_catch_exn_opt p =
@@ -459,7 +472,7 @@ let abstract_for_comparison_visitor =
     method! visit_id_info env ii =
       (* TODO: false positive? *)
       (* nosemgrep: no-ref-declarations-at-top-scope *)
-      super#visit_id_info env { ii with AST_generic.id_svalue = ref None }
+      super#visit_id_info env { ii with AST_generic.id_svalue = ref G.Unknown }
   end
 
 let abstract_for_comparison_any x =
@@ -486,12 +499,12 @@ let ac_matching_nf op args =
   let rec nf args1 =
     args1
     |> List.map (function
-         | Arg e -> e
-         | ArgKwd _
-         | ArgKwdOptional _
-         | ArgType _
-         | OtherArg _ ->
-             raise_notrace Exit)
+      | Arg e -> e
+      | ArgKwd _
+      | ArgKwdOptional _
+      | ArgType _
+      | OtherArg _ ->
+          raise_notrace Exit)
     |> List.map nf_one |> List_.flatten
   and nf_one e =
     match e.e with

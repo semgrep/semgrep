@@ -41,12 +41,6 @@ PENDING_CONFIG_RESPONSE = {"status": "pending"}
 
 FAILURE_CONFIG_RESPONSE = {"status": "failure"}
 
-V1_SCAN_RESPONSE = {
-    **CREATE_SCAN_RESPONSE,
-    "config": {"rules": []},
-    "engine_params": {},
-}
-
 
 def _make_response(mocker, json_data, status_code=200):
     response = mocker.MagicMock()
@@ -62,6 +56,9 @@ def mock_state(mocker):
     state.env.semgrep_url = SEMGREP_URL
     state.env.sms_scan_id = None
     state.env.upload_findings_timeout = 30
+    state.env.v2_poll_timeout_seconds = 45
+    state.env.v2_post_max_attempts = 3
+    state.env.v2_overall_timeout_minutes = 3
     mocker.patch("semgrep.app.scans.get_state", return_value=state)
     return state
 
@@ -73,7 +70,7 @@ def mock_sleep(mocker):
 
 @pytest.fixture
 def handler(mock_state):
-    return ScanHandler(enable_transitive_reachability=None, use_scan_v2=True)
+    return ScanHandler(enable_transitive_reachability=None)
 
 
 @pytest.fixture
@@ -153,8 +150,8 @@ def test_start_scan_v2_config_failure(
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
-def test_start_scan_defaults_to_v2(mocker, mock_state, mock_sleep, mock_args):
-    """start_scan calls the v2 endpoint by default (use_scan_v2 defaults to True)."""
+def test_start_scan_uses_v2(mocker, mock_state, mock_sleep, mock_args):
+    """start_scan always uses the v2 endpoint."""
     project_metadata, project_config = mock_args
     handler = ScanHandler(enable_transitive_reachability=None)
     mock_state.app_session.post.return_value = _make_response(
@@ -172,21 +169,6 @@ def test_start_scan_defaults_to_v2(mocker, mock_state, mock_sleep, mock_args):
     get_url = mock_state.app_session.get.call_args[0][0]
     assert "/api/cli/v2/scans/" in get_url
     assert get_url.endswith("/config")
-
-
-@pytest.mark.quick
-@pytest.mark.no_semgrep_cli
-def test_start_scan_uses_v1_when_disabled(mocker, mock_state, mock_args):
-    """start_scan calls the v1 endpoint when use_scan_v2=False."""
-    project_metadata, project_config = mock_args
-    handler = ScanHandler(enable_transitive_reachability=None, use_scan_v2=False)
-    mock_state.app_session.post.return_value = _make_response(mocker, V1_SCAN_RESPONSE)
-
-    handler.start_scan(project_metadata, project_config)
-
-    post_url = mock_state.app_session.post.call_args[0][0]
-    assert post_url == f"{SEMGREP_URL}/api/cli/scans"
-    mock_state.app_session.get.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -281,3 +263,50 @@ def test_poll_for_config_v2_raises_config_poll_timeout_when_expired(
         handler._poll_for_config_v2(SCAN_REQUEST_ID, scan_info, timeout_seconds=0)
 
     mock_state.app_session.get.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# partial_scan_rule_ids tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_partial_scan_rule_ids_default_absent(mock_state):
+    """Without --x-partial-scan-rule-id, scan_metadata.partial_scan_rule_ids is None
+    and the field is omitted from the serialized JSON body."""
+    handler = ScanHandler(enable_transitive_reachability=None)
+    assert handler.scan_metadata.partial_scan_rule_ids is None
+    assert "partial_scan_rule_ids" not in handler.scan_metadata.to_json()
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_partial_scan_rule_ids_populated(mock_state):
+    """When the flag is passed (one or more values), scan_metadata.partial_scan_rule_ids
+    is wrapped as a list of RuleId and serializes as a list of strings."""
+    handler = ScanHandler(
+        enable_transitive_reachability=None,
+        partial_scan_rule_ids=("rules.foo", "rules.bar"),
+    )
+    assert handler.scan_metadata.partial_scan_rule_ids == [
+        out.RuleId("rules.foo"),
+        out.RuleId("rules.bar"),
+    ]
+    assert handler.scan_metadata.to_json()["partial_scan_rule_ids"] == [
+        "rules.foo",
+        "rules.bar",
+    ]
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_partial_scan_rule_ids_empty_tuple_is_absent(mock_state):
+    """An empty tuple (the Click default when the flag isn't passed) is treated
+    the same as omitted: field stays None and is not serialized."""
+    handler = ScanHandler(
+        enable_transitive_reachability=None,
+        partial_scan_rule_ids=(),
+    )
+    assert handler.scan_metadata.partial_scan_rule_ids is None
+    assert "partial_scan_rule_ids" not in handler.scan_metadata.to_json()

@@ -240,8 +240,10 @@ cli/src/semgrep/semgrep_interfaces/**/Language
 cli/src/semgrep/semgrep_interfaces/**/before.txt
 cli/src/semgrep/semgrep_interfaces/**/after.txt
 
+# ignore files created by the schema validation tests
 cli/src/semgrep/semgrep_interfaces/**/*.ast.json
 
+# ignore files created by the typecheck test
 cli/src/semgrep/semgrep_interfaces/**/typecheck
 
 # From cli/tests/default/e2e/targets/dependency_aware/gradle-no-lockfile/.gitignore

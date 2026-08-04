@@ -38,10 +38,13 @@ let name_tests : (string * Lang.t * Fpath.t * success) list =
     ("jsx", Js, "foo.jsx", OK);
     ("typescript", Ts, "foo.ts", OK);
     ("typescript .d.ts", Ts, "foo.d.ts", XFAIL);
+    ("terraform", Terraform, "main.tf", OK);
+    (* OpenTofu shares Terraform's HCL grammar and must be detected as such. *)
+    ("opentofu", Terraform, "main.tofu", OK);
     ("spaces", Ruby, " a b  c.rb", OK);
   ]
   |> List.map (fun (name, (lang : Lang.t), path, expect) ->
-         (name, lang, Fpath.v path, expect))
+      (name, lang, Fpath.v path, expect))
 
 let contents_tests : (string * Lang.t * string * string * exec * success) list =
   [

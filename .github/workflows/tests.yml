@@ -5,7 +5,7 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
@@ -13,12 +13,16 @@ jobs:
           enable-cache: auto
           python-version: "3.10"
           version: 0.10.9
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
+          path: artifacts
       - name: Install artifacts
         run: |
-          tar xf artifacts.tgz
+          # upload-artifact does not preserve the executable bit
+          # (https://github.com/actions/upload-artifact#permission-loss),
+          # so restore it before installing semgrep-core.
+          chmod +x artifacts/*
           #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Install Python dependencies
@@ -31,28 +35,24 @@ jobs:
           uv run python3 ../perf/run-benchmarks --dummy
         working-directory: cli
   build-test-core-x86:
-    secrets: inherit
     uses: ./.github/workflows/build-test-core-x86.yml
   build-test-docker:
-    secrets: inherit
     uses: ./.github/workflows/build-test-docker.yml
   build-test-osx-arm64:
-    secrets: inherit
     uses: ./.github/workflows/build-test-osx-arm64.yml
   build-test-osx-x86:
-    secrets: inherit
     uses: ./.github/workflows/build-test-osx-x86.yml
   test-cli:
     name: test semgrep-cli
     needs:
       - build-test-core-x86
     permissions:
-      contents: write
+      contents: read
       id-token: write
       pull-requests: write
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
@@ -63,12 +63,16 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --locked
         working-directory: cli
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
+          path: artifacts
       - name: Install artifacts
         run: |
-          tar xf artifacts.tgz
+          # upload-artifact does not preserve the executable bit
+          # (https://github.com/actions/upload-artifact#permission-loss),
+          # so restore it before installing semgrep-core.
+          chmod +x artifacts/*
           #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Run pytest
@@ -146,14 +150,16 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           submodules: true
       - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
-          cache-prefix: v5
+          cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
           ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda
           opam-pin: false
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git#78d29aba187e8362b8ab86c189790c0af9153d4b
           save-opam-post-run: true
       - name: Build semgrep-core
         run: |
@@ -180,7 +186,7 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
@@ -188,12 +194,16 @@ jobs:
           enable-cache: auto
           python-version: "3.12"
           version: 0.10.9
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
+          path: artifacts
       - name: Install artifacts
         run: |
-          tar xf artifacts.tgz
+          # upload-artifact does not preserve the executable bit
+          # (https://github.com/actions/upload-artifact#permission-loss),
+          # so restore it before installing semgrep-core.
+          chmod +x artifacts/*
           #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
           sudo cp artifacts/* /usr/bin
       - name: Install semgrep
@@ -235,14 +245,16 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           submodules: true
       - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
-          cache-prefix: v5
+          cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
           ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda
           opam-pin: false
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git#78d29aba187e8362b8ab86c189790c0af9153d4b
           save-opam-post-run: true
       - name: Install dependencies
         run: opam exec -- make install-deps

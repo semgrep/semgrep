@@ -29,9 +29,13 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import pytest
 from requests.exceptions import ConnectionError
@@ -44,17 +48,32 @@ from tests.default.e2e.test_baseline import _git_commit
 from tests.default.e2e.test_baseline import _git_merge
 from tests.fixtures import RunSemgrep
 
+import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semdep.parsers.util import DependencyParserError
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import OutputFormat
+from semgrep.core_runner import CoreRunner
+from semgrep.engine import EngineType
+from semgrep.error import SemgrepCoreError
+from semgrep.error import SemgrepError
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
 from semgrep.meta import GitMeta
 from semgrep.metrics import Metrics
+from semgrep.output import OutputHandler
+from semgrep.output_extra import OutputExtra
+from semgrep.rpc import RpcSession
+from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatchMap
 from semgrep.settings import generate_anonymous_user_id
+from semgrep.subproject import DependencyResolutionConfig
+from semgrep.symbol_analysis import SubprojectSymbolAnalysis
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SECRETS_PRODUCT
+from semgrep.target_manager import TargetManager
+from semgrep.target_mode import TargetModeConfig
 
 ##############################################################################
 # Constants
@@ -1734,6 +1753,165 @@ def test_nosem(
     )
 
 
+@pytest.mark.osemfail
+@pytest.mark.parametrize(
+    ("nosem_flag", "config_nosemgrep_disabled", "expected_disable_nosem"),
+    [
+        # No flag passed: the app's nosemgrep_disabled config drives behavior.
+        (None, True, True),
+        (None, False, False),
+        # An explicit flag always wins; the config value is ignored.
+        ("--enable-nosem", True, False),
+        ("--disable-nosem", False, True),
+    ],
+)
+def test_nosem_config_precedence(
+    git_tmp_path_with_commit,
+    mocker,
+    nosem_flag,
+    config_nosemgrep_disabled,
+    expected_disable_nosem,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """`semgrep ci` honors nosemgrep_disabled from the scan config only when
+    neither --enable-nosem nor --disable-nosem was passed; an explicit flag
+    always wins over the config value."""
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    # Simulate the org-wide setting the app sends in the scan config.
+    mocker.patch.object(ScanHandler, "nosemgrep_disabled", config_nosemgrep_disabled)
+
+    # Capture the resolved run_scan args, then short-circuit so we don't need a
+    # real scan to assert how nosemgrep handling was resolved.
+    captured: Dict = {}
+
+    def fake_run_scan(**kwargs):
+        captured.update(kwargs)
+        raise SemgrepError("stop after capturing args", code=2)
+
+    mocker.patch.object(semgrep.run_scan, "run_scan", side_effect=fake_run_scan)
+
+    options = ["--no-suppress-errors", "--oss-only"]
+    if nosem_flag:
+        options.append(nosem_flag)
+
+    run_semgrep(
+        subcommand="ci",
+        options=options,
+        target_name=None,
+        strict=False,
+        assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    assert captured["disable_nosem"] is expected_disable_nosem
+
+
+# Regression for ENGINE-1824: `semgrep ci --sarif-output` must preserve
+# nosemgrep-suppressed findings in the SARIF file with `suppressions`
+# entries, not drop them entirely. The bucketing in commands/ci.py must
+# exclude suppressed matches only from the blocking/nonblocking exit-code
+# counters, while still routing them to OutputHandler so the SARIF
+# formatter (keep_ignores()=True) can emit them.
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail  # osemgrep does not write --sarif-output files
+def test_ci_sarif_output_preserves_nosemgrep_suppressions(
+    git_tmp_path_with_commit,
+    mock_autofix,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    sarif_path = "out.sarif"
+    run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--enable-nosem",
+            "--sarif-output",
+            sarif_path,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    sarif = json.loads(Path(sarif_path).read_text())
+    results = sarif["runs"][0]["results"]
+    suppressed = [r for r in results if r.get("suppressions")]
+    # foo.py contains several `# nosemgrep` annotations; the SARIF file
+    # must retain those matches with `suppressions` entries rather than
+    # dropping them as the pre-fix ci.py path did.
+    assert len(suppressed) > 0, results
+    for r in suppressed:
+        assert r["suppressions"] == [{"kind": "inSource"}], r
+
+
+# Regression: --sarif-output must not zero out `CiScanResults.ignores`
+# on upload. Previously the JSON path populated it but the SARIF path
+# did not.
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "extra_options,expect_in_sarif_file",
+    [
+        ([], False),
+        (["--sarif-output", "out.sarif"], True),
+    ],
+    ids=["no-sarif", "sarif-output"],
+)
+@pytest.mark.osemfail  # osemgrep does not write --sarif-output files
+def test_ci_upload_ignores_field_populated_under_sarif(
+    git_tmp_path_with_commit,
+    mock_autofix,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+    extra_options,
+    expect_in_sarif_file,
+):
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--enable-nosem",
+            *extra_options,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    uploaded = upload_results_mock.last_request.json()
+    assert len(uploaded["ignores"]) > 0, uploaded
+
+    if expect_in_sarif_file:
+        sarif = json.loads(Path("out.sarif").read_text())
+        suppressed = [r for r in sarif["runs"][0]["results"] if r.get("suppressions")]
+        assert len(suppressed) > 0, sarif["runs"][0]["results"]
+
+
 @pytest.mark.parametrize(
     "scan_config",
     [GENERIC_SECRETS_AND_REAL_RULE],
@@ -1773,10 +1951,71 @@ def test_generic_secrets_output(
     assert "generic secrets rule message" not in result.raw_stdout
 
 
+SECRETS_ONLY_CONFIG = dedent(
+    """
+    rules:
+    - id: secret-rule-example
+      pattern: $X == $X
+      message: "secret rule message"
+      languages: [python]
+      severity: ERROR
+      metadata:
+        product: secrets
+    """
+)
+
+
+@pytest.mark.parametrize("scan_config", [SECRETS_ONLY_CONFIG], ids=["secrets_only"])
+@pytest.mark.osemfail
+def test_secrets_only_hides_code_scan_status(
+    git_tmp_path_with_commit,
+    run_semgrep: RunSemgrep,
+    mocker,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """When the Code product is not enabled, `semgrep ci` should not claim
+    "0 Code rules" and should say code scanning is not enabled rather than print
+    an empty code table (ENGINE-2878)."""
+    mocker.patch.object(ScanHandler, "enabled_products", ["secrets"])
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        options=["--oss-only"],
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    assert "with 0 Code rules" not in result.stderr
+    assert "Code scanning is not enabled." in result.stderr
+    assert "No code rules to run." not in result.stderr
+
+
 @pytest.mark.osemfail
 def test_semgrep_managed_scan_id(run_semgrep: RunSemgrep, requests_mock):
     MANAGED_SCAN_ID = "12321"
-    scan_create = requests_mock.post("https://semgrep.dev/api/cli/scans")
+    scan_create = requests_mock.post(
+        "https://semgrep.dev/api/cli/v2/scans",
+        json={
+            "info": {
+                "id": 12345,
+                "enabled_products": [],
+                "deployment_id": 1,
+                "deployment_name": "test",
+            }
+        },
+    )
+    requests_mock.get(
+        re.compile(r"/api/cli/v2/scans/[^/]+/config"),
+        json={"status": "success", "config": {"rules": []}, "engine_params": {}},
+    )
     run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", "--oss-only"],
@@ -1842,7 +2081,7 @@ def test_fail_auth_invalid_key(
     """
     Test that an invalid api key returns exit code 13, even when errors are supressed
     """
-    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=401)
+    requests_mock.post("https://semgrep.dev/api/cli/v2/scans", status_code=401)
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
         subcommand="ci",
@@ -1864,7 +2103,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
     Test that an invalid api key returns exit code 13, even when errors are supressed
     """
     scan_create = requests_mock.post(
-        "https://semgrep.dev/api/cli/scans", status_code=401
+        "https://semgrep.dev/api/cli/v2/scans", status_code=401
     )
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
@@ -1878,7 +2117,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
 
     assert fail_open.called
     assert fail_open.last_request.json() == {
-        "url": "https://semgrep.dev/api/cli/scans",
+        "url": "https://semgrep.dev/api/cli/v2/scans",
         "method": "POST",
         "status_code": 401,
         "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
@@ -1894,7 +2133,7 @@ def test_fail_auth_invalid_response(
     """
     Test that and invalid api key returns exit code 13
     """
-    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
+    requests_mock.post("https://semgrep.dev/api/cli/v2/scans", status_code=500)
     run_semgrep(
         subcommand="ci",
         options=["--no-suppress-errors", "--oss-only"],
@@ -1913,7 +2152,7 @@ def test_fail_auth_invalid_response_can_be_supressed(
     """
     Test that failure to authenticate with --suppres-errors returns exit code 0
     """
-    requests_mock.post("https://semgrep.dev/api/cli/scans", status_code=500)
+    requests_mock.post("https://semgrep.dev/api/cli/v2/scans", status_code=500)
     mock_send = mocker.spy(ErrorHandler, "send")
     run_semgrep(
         subcommand="ci",
@@ -1973,7 +2212,7 @@ def test_fail_open_works_when_backend_is_down(
     Test that an invalid api key returns exit code 13, even when errors are supressed
     """
     scan_create = requests_mock.post(
-        "https://semgrep.dev/api/cli/scans", exc=ConnectionError
+        "https://semgrep.dev/api/cli/v2/scans", exc=ConnectionError
     )
     fail_open = requests_mock.post("https://fail-open.prod.semgrep.dev/failure")
     run_semgrep(
@@ -1987,7 +2226,7 @@ def test_fail_open_works_when_backend_is_down(
 
     assert fail_open.called
     assert fail_open.last_request.json() == {
-        "url": "https://semgrep.dev/api/cli/scans",
+        "url": "https://semgrep.dev/api/cli/v2/scans",
         "method": "POST",
         "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
         "error": str_containing("requests.exceptions.ConnectionError"),
@@ -2919,6 +3158,405 @@ def test_existing_reachable_finding_deduplication(
     )
     findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 0
+
+
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+            rules:
+              - id: x-equals-two
+                pattern: $X = 2
+                message: "x is 2"
+                languages: [python]
+                severity: ERROR
+                metadata:
+                  source: https://semgrep.dev/r/x-equals-two
+            """
+        ).lstrip()
+    ],
+    ids=["config"],
+)
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_finding_suppressed_when_baseline_scan_fails(
+    git_tmp_path_with_commit,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """When the baseline scan fails on a file (per-rule timeout, OOM, ...),
+    tip findings on that file must not be classified as new.
+    """
+    repo_copy_base, _, base_commit = git_tmp_path_with_commit
+
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    # base_commit's foo.py is `x = 1` (from git_tmp_path_with_commit). We
+    # commit a change that introduces a tip-only match for our rule.
+    pyfile = repo_copy_base / "foo.py"
+    pyfile.write_text("x = 2\n")
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "introduce finding"],
+        check=True,
+        capture_output=True,
+    )
+
+    # Simulate a baseline-only per-file timeout on foo.py (same ``SemgrepCoreError``
+    # shape as a real ``--timeout=`` miss). Head and baseline both call ``run_rules``;
+    # only ``baseline_run`` passes ``DependencyResolutionConfig`` with
+    # ``is_baseline_scan=True`` (see ``run_scan.baseline_run``). We run the real engine
+    # first, then append the synthetic error only for that baseline call so the head
+    # scan is unchanged.
+    real_run_rules = semgrep.run_scan.run_rules
+
+    def run_rules_except_append_baseline_timeout_on_foo(
+        filtered_rules: List[Rule],
+        target_manager: TargetManager,
+        target_mode_config: TargetModeConfig,
+        core_runner: CoreRunner,
+        output_handler: OutputHandler,
+        dump_command_for_core: bool,
+        time_flag: bool,
+        matching_explanations: bool,
+        engine_type: EngineType,
+        strict: bool,
+        dependency_resolution_config: DependencyResolutionConfig,
+        run_secrets: bool = False,
+        disable_secrets_validation: bool = False,
+        *,
+        with_code_rules: bool = True,
+        with_supply_chain: bool = False,
+        code_enabled: Optional[bool] = None,
+        write_to_tr_cache: bool = True,
+        fips_mode: bool,
+        enable_transitive_reachability: Optional[bool] = None,
+        x_dependency_paths: bool = False,
+        x_parmap: bool = False,
+        run_symbol_analysis: bool = False,
+        rpc_session: Optional[RpcSession] = None,
+    ) -> Tuple[
+        RuleMatchMap,
+        List[SemgrepError],
+        OutputExtra,
+        Dict[str, List[out.FoundDependency]],
+        List[DependencyParserError],
+        int,
+        List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
+        Optional[Sequence[SubprojectSymbolAnalysis]],
+    ]:
+        result = real_run_rules(
+            filtered_rules,
+            target_manager,
+            target_mode_config,
+            core_runner,
+            output_handler,
+            dump_command_for_core,
+            time_flag,
+            matching_explanations,
+            engine_type,
+            strict,
+            dependency_resolution_config,
+            run_secrets,
+            disable_secrets_validation,
+            with_code_rules=with_code_rules,
+            with_supply_chain=with_supply_chain,
+            code_enabled=code_enabled,
+            write_to_tr_cache=write_to_tr_cache,
+            fips_mode=fips_mode,
+            enable_transitive_reachability=enable_transitive_reachability,
+            x_dependency_paths=x_dependency_paths,
+            x_parmap=x_parmap,
+            run_symbol_analysis=run_symbol_analysis,
+            rpc_session=rpc_session,
+        )
+        # Head scan and any other caller: leave the return value alone.
+        if not dependency_resolution_config.is_baseline_scan:
+            return result
+        (
+            matches,
+            errors,
+            output_extra,
+            deps,
+            dep_parser_errors,
+            executed_rule_count,
+            all_subprojects,
+            sca_symbol_analysis,
+        ) = result
+        baseline_err = SemgrepCoreError(
+            code=2,
+            level=out.ErrorSeverity(out.Error_()),
+            spans=None,
+            core=out.CoreError(
+                error_type=out.ErrorType(out.Timeout()),
+                severity=out.ErrorSeverity(out.Error_()),
+                location=out.Location(
+                    path=out.Fpath("foo.py"),
+                    start=out.Position(line=1, col=1, offset=0),
+                    end=out.Position(line=1, col=1, offset=0),
+                ),
+                message="timeout (test)",
+                details=None,
+            ),
+        )
+        return (
+            matches,
+            list(errors) + [baseline_err],
+            output_extra,
+            deps,
+            dep_parser_errors,
+            executed_rule_count,
+            all_subprojects,
+            sca_symbol_analysis,
+        )
+
+    mocker.patch(
+        "semgrep.run_scan.run_rules",
+        side_effect=run_rules_except_append_baseline_timeout_on_foo,
+    )
+
+    run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--baseline-commit",
+            base_commit,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    findings_json = upload_results_mock.last_request.json()
+    assert len(findings_json["findings"]) == 0
+
+
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+            rules:
+              - id: rule-a
+                pattern: $X = 2
+                message: "a"
+                languages: [python]
+                severity: ERROR
+                metadata:
+                  source: https://semgrep.dev/r/rule-a
+              - id: rule-b
+                pattern: $X = 3
+                message: "b"
+                languages: [python]
+                severity: ERROR
+                metadata:
+                  source: https://semgrep.dev/r/rule-b
+            """
+        ).lstrip()
+    ],
+    ids=["config"],
+)
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_baseline_scan_failures_suppress_per_rule_and_whole_file(
+    git_tmp_path_with_commit,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    """Baseline scan failures suppress new-findings classification selectively.
+
+    - ``Timeout`` for **rule-a** on ``f1.py`` only → suppress **rule-a** on ``f1.py``.
+    - Scan failure on ``f2.py`` without ``rule_id`` → suppress **all** rules on ``f2``.
+    - **rule-b** on ``f1.py`` remains: no baseline error for rule-b on that path.
+    """
+    repo_copy_base, _, _ = git_tmp_path_with_commit
+
+    start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    f1 = repo_copy_base / "f1.py"
+    f2 = repo_copy_base / "f2.py"
+    f1.write_text("# clean\n")
+    f2.write_text("# clean\n")
+    subprocess.run(["git", "add", "f1.py", "f2.py"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add f1 f2"],
+        check=True,
+        capture_output=True,
+    )
+    baseline_before_violations = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    f1.write_text("x = 2\nx = 3\n")
+    f2.write_text("y = 2\ny = 3\n")
+    subprocess.run(["git", "add", "f1.py", "f2.py"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "violations on f1 and f2"],
+        check=True,
+        capture_output=True,
+    )
+
+    real_run_rules = semgrep.run_scan.run_rules
+
+    def run_rules_append_synthetic_baseline_failures(
+        filtered_rules: List[Rule],
+        target_manager: TargetManager,
+        target_mode_config: TargetModeConfig,
+        core_runner: CoreRunner,
+        output_handler: OutputHandler,
+        dump_command_for_core: bool,
+        time_flag: bool,
+        matching_explanations: bool,
+        engine_type: EngineType,
+        strict: bool,
+        dependency_resolution_config: DependencyResolutionConfig,
+        run_secrets: bool = False,
+        disable_secrets_validation: bool = False,
+        *,
+        with_code_rules: bool = True,
+        with_supply_chain: bool = False,
+        code_enabled: Optional[bool] = None,
+        write_to_tr_cache: bool = True,
+        fips_mode: bool,
+        enable_transitive_reachability: Optional[bool] = None,
+        x_dependency_paths: bool = False,
+        x_parmap: bool = False,
+        run_symbol_analysis: bool = False,
+        rpc_session: Optional[RpcSession] = None,
+    ) -> Tuple[
+        RuleMatchMap,
+        List[SemgrepError],
+        OutputExtra,
+        Dict[str, List[out.FoundDependency]],
+        List[DependencyParserError],
+        int,
+        List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
+        Optional[Sequence[SubprojectSymbolAnalysis]],
+    ]:
+        result = real_run_rules(
+            filtered_rules,
+            target_manager,
+            target_mode_config,
+            core_runner,
+            output_handler,
+            dump_command_for_core,
+            time_flag,
+            matching_explanations,
+            engine_type,
+            strict,
+            dependency_resolution_config,
+            run_secrets,
+            disable_secrets_validation,
+            with_code_rules=with_code_rules,
+            with_supply_chain=with_supply_chain,
+            code_enabled=code_enabled,
+            write_to_tr_cache=write_to_tr_cache,
+            fips_mode=fips_mode,
+            enable_transitive_reachability=enable_transitive_reachability,
+            x_dependency_paths=x_dependency_paths,
+            x_parmap=x_parmap,
+            run_symbol_analysis=run_symbol_analysis,
+            rpc_session=rpc_session,
+        )
+        if not dependency_resolution_config.is_baseline_scan:
+            return result
+        (
+            matches,
+            errors,
+            output_extra,
+            deps,
+            dep_parser_errors,
+            executed_rule_count,
+            all_subprojects,
+            sca_symbol_analysis,
+        ) = result
+        loc_f1 = out.Location(
+            path=out.Fpath("f1.py"),
+            start=out.Position(line=1, col=1, offset=0),
+            end=out.Position(line=1, col=1, offset=0),
+        )
+        loc_f2 = out.Location(
+            path=out.Fpath("f2.py"),
+            start=out.Position(line=1, col=1, offset=0),
+            end=out.Position(line=1, col=1, offset=0),
+        )
+        err_rule_a_on_f1 = SemgrepCoreError(
+            code=2,
+            level=out.ErrorSeverity(out.Error_()),
+            spans=None,
+            core=out.CoreError(
+                error_type=out.ErrorType(out.Timeout()),
+                severity=out.ErrorSeverity(out.Error_()),
+                location=loc_f1,
+                message="timeout rule-a on f1 (test)",
+                details=None,
+                rule_id=out.RuleId("rule-a"),
+            ),
+        )
+        err_unscoped_on_f2 = SemgrepCoreError(
+            code=2,
+            level=out.ErrorSeverity(out.Error_()),
+            spans=None,
+            core=out.CoreError(
+                error_type=out.ErrorType(out.Timeout()),
+                severity=out.ErrorSeverity(out.Error_()),
+                location=loc_f2,
+                message="timeout file f2 no rule (test)",
+                details=None,
+                rule_id=None,
+            ),
+        )
+        extra: List[SemgrepError] = [err_rule_a_on_f1, err_unscoped_on_f2]
+        return (
+            matches,
+            list(errors) + extra,
+            output_extra,
+            deps,
+            dep_parser_errors,
+            executed_rule_count,
+            all_subprojects,
+            sca_symbol_analysis,
+        )
+
+    mocker.patch(
+        "semgrep.run_scan.run_rules",
+        side_effect=run_rules_append_synthetic_baseline_failures,
+    )
+
+    run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--baseline-commit",
+            baseline_before_violations,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    findings = upload_results_mock.last_request.json()["findings"]
+    rule_ids = {f["check_id"] for f in findings}
+    # rule-a on f1 and everything on f2 should be suppressed; rule-b on f1 should stay.
+    assert rule_ids == {"rule-b"}
+    assert len(findings) == 1
 
 
 @pytest.mark.parametrize("always_suppress_errors", [True, False], indirect=True)

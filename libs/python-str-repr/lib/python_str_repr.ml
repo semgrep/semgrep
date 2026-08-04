@@ -10,13 +10,12 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(** From {[Py_UNICODE_ISPRINTABLE]} documentation:
-    Return [true] or [false] depending on whether [uchar] is a printable character.
-    Nonprintable characters are those characters defined in the Unicode
-    character database as "Other" or "Separator", excepting the ASCII space
-    (0x20) which is considered printable.  (Note that printable characters in
-    this context are those which should not be escaped when Python's {[repr]}
-    is invoked on a string.) *)
+(** From [Py_UNICODE_ISPRINTABLE] documentation: Return [true] or [false]
+    depending on whether [uchar] is a printable character. Nonprintable
+    characters are those characters defined in the Unicode character database as
+    "Other" or "Separator", excepting the ASCII space (0x20) which is considered
+    printable. (Note that printable characters in this context are those which
+    should not be escaped when Python's [repr] is invoked on a string.) *)
 let py_unicode_isprintable ?unicode_version uchar =
   (* {[    if char == ord(" ") or category[0] not in ("C", "Z"):
            flags |= PRINTABLE_MASK]} *)
@@ -24,10 +23,10 @@ let py_unicode_isprintable ?unicode_version uchar =
   ||
   let age = Uucp.Age.age uchar in
   (match (age, unicode_version) with
-  | `Unassigned, _ -> false
-  | `Version _, None -> true
-  | `Version (major, minor), Some (major', minor') ->
-      major < major' || (major = major' && minor <= minor'))
+    | `Unassigned, _ -> false
+    | `Version _, None -> true
+    | `Version (major, minor), Some (major', minor') ->
+        major < major' || (major = major' && minor <= minor'))
   &&
   let gc = Uucp.Gc.general_category uchar in
   (* Not those categories starting with 'C' or 'Z' *)
@@ -37,7 +36,7 @@ let py_unicode_isprintable ?unicode_version uchar =
   | `Pe | `Pf | `Pi | `Po | `Ps | `Sc | `Sk | `Sm | `So ->
       true
 
-(** This function is based on {[unicode_repr()]} from
+(** This function is based on [unicode_repr()] from
     cpython:Objects/unicodeobject.c. *)
 let repr ?unicode_version s =
   (* Compute preliminary output size and count number of quote characters *)
@@ -45,7 +44,7 @@ let repr ?unicode_version s =
     let folder (osize, squote, dquote) _pos c =
       let c =
         (* NOTE: we replace bad utf-8 sequences with [Uutf.u_rep]. This is
-         * similar to in python calling {[bytes.decode(.., errors='replace')]}.
+         * similar to in python calling [bytes.decode(.., errors='replace')].
          * We could implement other strategies... *)
         match c with
         | `Uchar c -> c

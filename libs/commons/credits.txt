@@ -1,2 +1,5 @@
 Thanks to
- - Richard Jones for his Dumper.ml module (public domain?)
+ - Richard Jones for his Dumper.ml module, distributed under the
+   GNU LGPL with the OCaml linking exception. Upstream homepage:
+   http://merjis.com/developers/dumper (archived at
+   https://web.archive.org/web/20101101234304/http://merjis.com/developers/dumper)

@@ -33,33 +33,31 @@ let filter_mini_rules_relevant_to_file_using_regexp ~interfile rules lang file =
   let str = UFile.Legacy.read_file file in
   rules
   |> List.filter (fun rule ->
-         let pat = rule.R.pattern in
-         let xs =
-           Analyze_pattern.extract_specific_strings ~lang ~interfile pat
-         in
+      let pat = rule.R.pattern in
+      let xs = Analyze_pattern.extract_specific_strings ~lang ~interfile pat in
 
-         (* pr2_gen xs; *)
-         let match_ =
-           (* we could avoid running multiple regexps on the same file
-            * by first orring them and do the and only of the or succeed,
-            * but probably not worth the opti.
+      (* pr2_gen xs; *)
+      let match_ =
+        (* we could avoid running multiple regexps on the same file
+           by first orring them and do the and only of the or succeed,
+           but probably not worth the opti.
          let t = xs |> List.map (fun x -> regexp_matching_str x) |> Re.alt in
          let re = compile_regexp t in
          run_regexp re str
-            *)
-           (* Note that right now we do a for_all but it mighe be incorrect
-            * at some point if the pattern contains DisjExpr for example, in
-            * which case we will need extract_specific_strings to directly
-            * extract a complex regexp instead handling itself disjunction.
-            *)
-           xs
-           |> Analyze_pattern.String_set.for_all (fun x ->
-                  let re = Pcre2_.matching_exact_string x in
-                  Pcre2_.unanchored_match re str)
-         in
+         *)
+        (* Note that right now we do a for_all but it mighe be incorrect
+           at some point if the pattern contains DisjExpr for example, in
+           which case we will need extract_specific_strings to directly
+           extract a complex regexp instead handling itself disjunction.
+        *)
+        xs
+        |> Analyze_pattern.String_set.for_all (fun x ->
+            let re = Pcre2_.matching_exact_string x in
+            Pcre2_.unanchored_match re str)
+      in
 
-         if not match_ then
-           Log.info (fun m ->
-               m "filtering out rule %s" (Rule_ID.to_string rule.id));
-         match_)
+      if not match_ then
+        Log.info (fun m ->
+            m "filtering out rule %s" (Rule_ID.to_string rule.id));
+      match_)
 [@@profiling "Mini_rules.filter"]

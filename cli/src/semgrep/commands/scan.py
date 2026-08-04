@@ -21,7 +21,6 @@ import tempfile
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -51,6 +50,7 @@ from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
+from semgrep.constants import DEFAULT_MAX_MATCH_CONTEXT_SIZE
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MemoryPolicy
@@ -60,11 +60,13 @@ from semgrep.engine import EngineType
 from semgrep.error import mark_semgrep_error_as_reported
 from semgrep.error import SemgrepError
 from semgrep.git import get_project_url
+from semgrep.metrics import METRICS_STATE_TYPE
 from semgrep.metrics import MetricsState
 from semgrep.notifications import possibly_notify_user
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_match import RuleMatchMap
 from semgrep.run_scan import AutofixBehavior
 from semgrep.semgrep_core import SemgrepCore
@@ -74,7 +76,6 @@ from semgrep.target_manager import write_pipes_to_disk
 from semgrep.types import FilteredMatches
 from semgrep.types import TargetInfoAccumulator
 from semgrep.util import abort
-from semgrep.util import is_truthy
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -100,33 +101,18 @@ def validate_mem_policy(
         )
 
 
-class MetricsStateType(click.ParamType):
-    name = "metrics_state"
-
-    def get_metavar(self, _param: click.Parameter) -> str:
-        return "[auto|on|off]"
-
-    def convert(
-        self,
-        value: Any,
-        _param: Optional["click.Parameter"],
-        ctx: Optional["click.Context"],
-    ) -> Any:
-        if value is None:
-            return None
-        if isinstance(value, str):
-            lower = value.lower()
-            if lower == "auto":
-                return MetricsState.AUTO
-            # Support setting via old environment variable values 0/1/true/false
-            if is_truthy(value):
-                return MetricsState.ON
-            if lower == "off" or lower == "0" or lower == "false":
-                return MetricsState.OFF
-        self.fail("expected 'auto', 'on', or 'off'")
+_VALIDATION_MODE_BY_NAME = {
+    "none": RuleValidationMode.NONE,
+    "core-only": RuleValidationMode.CORE_ONLY,
+    "full": RuleValidationMode.FULL,
+}
 
 
-METRICS_STATE_TYPE = MetricsStateType()
+def _parse_validation_mode(
+    _ctx: click.Context, _param: click.Parameter, value: str
+) -> RuleValidationMode:
+    return _VALIDATION_MODE_BY_NAME[value]
+
 
 # This subset of scan options is reused in ci.py
 # coupling: if you add an option below, you'll need to modify also the
@@ -173,6 +159,11 @@ _scan_options: List[Callable] = [
         "--exclude-rule",
         multiple=True,
         default=[],
+    ),
+    optgroup.option(
+        "--exclude-binary-files/--no-exclude-binary-files",
+        is_flag=True,
+        default=True,
     ),
     optgroup.option(
         "--include",
@@ -271,6 +262,14 @@ _scan_options: List[Callable] = [
         "--max-log-list-entries",
         type=int,
         default=DEFAULT_MAX_LOG_LIST_ENTRIES,
+    ),
+    optgroup.option(
+        "--max-match-context-size",
+        type=int,
+        default=DEFAULT_MAX_MATCH_CONTEXT_SIZE,
+        help="Maximum number of characters of source code to include as context "
+        "for a match in the output. Prevents very long lines (e.g., minified "
+        "JavaScript) from producing enormous output. Set to 0 for unlimited.",
     ),
     optgroup.option(
         "--dataflow-traces",
@@ -476,6 +475,14 @@ _scan_options: List[Callable] = [
         default=None,
     ),
     optgroup.option(
+        "--x-dependency-paths",
+        "x_dependency_paths",
+        is_flag=True,
+        default=False,
+        help="(experimental) Include the full dependency path(s) for transitive "
+        "supply-chain findings in --json and --sarif output.",
+    ),
+    optgroup.option(
         "--x-eio",
         "x_eio",
         is_flag=True,
@@ -508,10 +515,25 @@ _scan_options: List[Callable] = [
         default=False,
     ),
     optgroup.option(
+        "--x-rule-validation",
+        "validation_mode",
+        type=click.Choice(list(_VALIDATION_MODE_BY_NAME.keys())),
+        default="full",
+        callback=_parse_validation_mode,
+        help="Control rule pre-validation. 'full' (default) runs Python "
+        "jsonschema + semgrep-core RPC validation. 'core-only' runs only the "
+        "RPC validation. 'none' skips both; rule errors surface from the scan "
+        "subprocess instead.",
+    ),
+    optgroup.option(
+        # Deprecated; superseded by --x-rule-validation. Kept as a hidden
+        # no-op so existing scripts don't break; a warning is logged in the
+        # command body and the flag will be removed in a future release.
         "--x-no-python-schema-validation",
         "x_no_python_schema_validation",
         is_flag=True,
         default=False,
+        hidden=True,
     ),
     optgroup.option(
         "--x-dump-symbol-analysis",
@@ -723,6 +745,7 @@ def scan(
     error_on_findings: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
+    exclude_binary_files: bool,
     force_color: bool,
     force_novcs_project: bool,
     force_project_root: Optional[str],
@@ -733,6 +756,7 @@ def scan(
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_log_list_entries: int,
+    max_match_context_size: int,
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
@@ -775,10 +799,12 @@ def scan(
     x_ls: bool,
     x_ls_long: bool,
     enable_transitive_reachability: Optional[bool],
+    x_dependency_paths: bool,
     x_eio: bool,
     x_parmap: bool,
     x_pro_naming: bool,
     x_run_taint_once: bool,
+    validation_mode: RuleValidationMode,
     x_no_python_schema_validation: bool,
     x_semgrepignore_filename: Optional[str],
     x_simple_profiling: bool,
@@ -815,6 +841,17 @@ def scan(
                     + "This flag will be removed in a future version of Semgrep.",
                 )
             )
+
+    if x_no_python_schema_validation:
+        logger.warning(
+            with_color(
+                Colors.yellow,
+                "WARN: --x-no-python-schema-validation is deprecated and now "
+                "a no-op. Use --x-rule-validation=core-only for the previous "
+                "behavior. This flag will be removed in a future version of "
+                "Semgrep.",
+            )
+        )
 
     # 2025-04-14: Feel free to remove these messages after a while.
     # This was a temporary flag for the Semgrepignore v1->v2 transition.
@@ -952,6 +989,7 @@ def scan(
             output_per_line_max_chars_limit=max_chars_per_line,
             dataflow_traces=dataflow_traces,
             max_log_list_entries=max_log_list_entries,
+            max_match_context_size=max_match_context_size,
             # those are not set in ci.py as they are scan-specific flags
             error_on_findings=error_on_findings,
             strict=strict,
@@ -999,7 +1037,9 @@ def scan(
 
             scanning_roots = write_pipes_to_disk(scanning_roots, Path(pipes_dir))
 
-            output_handler = OutputHandler(output_settings)
+            output_handler = OutputHandler(
+                output_settings, disable_nosem=(not enable_nosem)
+            )
             return_data: Optional[ScanResult] = None
 
             if validate:
@@ -1021,7 +1061,7 @@ def scan(
                             config or [],
                             get_project_url(),
                             force_jsonschema=True,
-                            no_python_schema_validation=x_no_python_schema_validation,
+                            validation_mode=validation_mode,
                         )
 
                     # Run `semgrep-core -check_rules` on the config files. This
@@ -1102,6 +1142,7 @@ def scan(
                         include=include,
                         exclude={product: (exclude or ()) for product in ALL_PRODUCTS},
                         exclude_rule=exclude_rule,
+                        exclude_binary_files=exclude_binary_files,
                         max_target_bytes=max_target_bytes,
                         replacement=replacement,
                         strict=strict,
@@ -1129,10 +1170,11 @@ def scan(
                         x_ls=x_ls,
                         x_ls_long=x_ls_long,
                         enable_transitive_reachability=enable_transitive_reachability,
+                        x_dependency_paths=x_dependency_paths,
                         x_parmap=x_parmap,
                         x_pro_naming=x_pro_naming,
                         x_run_taint_once=x_run_taint_once,
-                        x_no_python_schema_validation=x_no_python_schema_validation,
+                        validation_mode=validation_mode,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,

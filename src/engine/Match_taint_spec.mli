@@ -19,7 +19,7 @@ type propagator_match = {
   to_ : Range.t;  (** The range matched by the [to] metavariable. *)
   spec : Rule.taint_propagator;
 }
-(** Taint will flow from [from] to [to_] through the axiliary variable [id]. *)
+(** Taint will flow from [from] to [to_] through the auxiliary variable [id]. *)
 
 type raw_spec_matches = {
   raw_sources : (Range_with_metavars.t * Rule.taint_source) list;
@@ -53,14 +53,28 @@ val hook_mk_taint_spec_match_preds :
 
   NOTE: It could be a private function, but it is also used by Deep Semgrep.
  *)
-val taint_config_of_rule :
+val preds_of_rule :
   per_file_formula_cache:Formula_cache.t ->
   file:Taint_rule_inst.file ->
-  muts:Taint_rule_inst.mutable_state ->
   Match_env.xconfig ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
-  Taint_rule_inst.t * raw_spec_matches * Matching_explanation.t list
+  Taint_spec_preds.t
+  * Taint_coverage_stats.file_rule_stats
+  * raw_spec_matches
+  * Matching_explanation.t list
+(** Produce preds, stats, raw spec matches and explanations for a taint
+    rule on a file.  Handles both [Formula] and [Ranges] spec entries
+    internally. *)
+
+val taint_config_of_rule :
+  per_file_formula_cache:Formula_cache.t ->
+  file:Taint_rule_inst.file ->
+  Match_env.xconfig ->
+  AST_generic.program * Tok.location list ->
+  Rule.taint_rule ->
+  Taint_rule_inst.config * raw_spec_matches * Matching_explanation.t list
+(** Convenience: calls {!preds_of_rule} and builds a {!Taint_rule_inst.config}. *)
 
 (* Exposed for Pro *)
 

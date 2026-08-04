@@ -5,6 +5,9 @@
    (:include flags.sexp))
   )
  (libraries
+  ; nice backtraces on segfaults; keep this out of library code so that
+  ; only the final binaries link it
+  obackward
   pyro-caml-instruments
   semgrep.core_cli
   semgrep.osemgrep_cli

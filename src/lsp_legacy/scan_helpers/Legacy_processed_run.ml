@@ -43,18 +43,18 @@ let filter_clean_lines git_ref matches =
   let in_git, not_in_git =
     matches_by_file
     |> List.partition (fun (file_path, _) ->
-           (* If the git_ref is set here, we might be comparing a tracked file
+        (* If the git_ref is set here, we might be comparing a tracked file
               with some sort of temporary file *)
-           Option.is_some git_ref || Git_wrapper.is_tracked_by_git file_path)
+        Option.is_some git_ref || Git_wrapper.is_tracked_by_git file_path)
   in
   let git_ref = Option.value ~default:"HEAD" git_ref in
   let in_git_matches =
     in_git
     |> List.concat_map (fun (f, matches) ->
-           match Git_wrapper.dirty_lines_of_file_exn ~git_ref f with
-           | None -> matches
-           | Some dirty_lines ->
-               List.filter (fun m -> match_in_dirty_lines m dirty_lines) matches)
+        match Git_wrapper.dirty_lines_of_file_exn ~git_ref f with
+        | None -> matches
+        | Some dirty_lines ->
+            List.filter (fun m -> match_in_dirty_lines m dirty_lines) matches)
   in
   let not_in_git_matches = not_in_git |> List.concat_map snd in
   in_git_matches @ not_in_git_matches
@@ -72,7 +72,7 @@ let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true) ?git_ref
   let matches =
     result.results
     |> List.filter (fun (m : OutJ.cli_match) ->
-           not (List.mem m.extra.fingerprint skipped_fingerprints))
+        not (List.mem m.extra.fingerprint skipped_fingerprints))
   in
   (* Filter dirty lines *)
   if only_git_dirty then filter_clean_lines git_ref matches else matches

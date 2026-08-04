@@ -3,6 +3,7 @@
  (name networking_http_helpers)
  (wrapped false)
   (libraries
+    commons
     lwt
     uri
     cohttp-lwt

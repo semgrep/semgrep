@@ -61,6 +61,14 @@ endif
 
 -include cygwin-env.mk
 
+# On macOS we point lwt's discover (and flags.sh's static linking) at the
+# brew-installed libraries via LIBRARY_PATH=$(HOMEBREW_PREFIX)/lib. GitHub-hosted
+# macOS runners export HOMEBREW_PREFIX in the environment, but some other runners
+# (e.g. Depot's macOS images) do not.
+ifeq ($(shell uname -s),Darwin)
+  HOMEBREW_PREFIX ?= $(shell brew --prefix 2>/dev/null)
+endif
+
 ###############################################################################
 # Build (and clean) targets
 ###############################################################################
@@ -178,6 +186,18 @@ core-test:
 	./test --help 2>&1 >/dev/null
 	./scripts/run-core-test
 
+# Smoke subset of the OCaml test suite: only the tests tagged 'smoke' in
+# src/tests/Test.ml. Used on slower CI platforms (e.g. osx x86) to catch
+# platform-specific breakage without running the full suite. We bypass
+# run-core-test (and its extra inline/expect runs) to keep this lean.
+# coupling: the root Makefile's test-osx-smoke target.
+.PHONY: core-test-smoke
+core-test-smoke:
+	./scripts/make-symlinks
+	$(MAKE) build-core-test
+	./test --help 2>&1 >/dev/null
+	./test --max-inline-log-bytes=100_000 -t smoke
+
 # Please keep this standalone target.
 # We want to rebuild the tests without re-running all of them.
 # This is for working on one or a few specific test cases.
@@ -244,6 +264,37 @@ install-deps-for-semgrep-core:
 	&& ./scripts/install-tree-sitter-lib
 	./scripts/build-static-libcurl.sh
 	$(MAKE) install-opam-deps
+
+# Pin the upstream opam-repository to a known-good commit.
+# coupling: keep this commit in sync with opam_repository_pin in
+# .github/workflows/libs/semgrep.libsonnet
+#
+OPAM_REPOSITORY_PIN = git+https://github.com/ocaml/opam-repository.git\#78d29aba187e8362b8ab86c189790c0af9153d4b
+
+# Extra flags forwarded to 'opam init' by 'opam-init'. The Dockerfiles pass
+# '--disable-sandboxing' since containers can't use the bubblewrap sandbox.
+OPAM_INIT_FLAGS ?=
+
+pin-opam-repo:
+	opam repository remove default --all-switches --yes
+	opam repository add default $(OPAM_REPOSITORY_PIN) --all-switches --set-default --yes
+
+# Initialize opam and pin to a commit of ocaml/opam-repository.
+opam-init:
+	opam init --bare --yes $(OPAM_INIT_FLAGS)
+	$(MAKE) pin-opam-repo
+
+# Create the opam switch, then install our fork of the compiler. Run
+# 'make opam-init' first to pin the opam-repository (the Dockerfiles do this).
+switch:
+	opam switch create 5.3.0 ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
+	$(MAKE) pin-ocaml-fork
+
+switch-tsan:
+	opam switch create 5.3.0-tsan ocaml-variants.5.3.0+options ocaml-option-tsan -y -v
+	$(MAKE) pin-ocaml-fork-tsan
+	# For some reason tsan on x86 linux fails unless we preemptively install dune
+	opam install dune -y
 
 pin-ocaml-fork:
 	# the fork without TSan is pinned via our `semgrep.opam.template` file + `semgrep.opam`
@@ -384,6 +435,7 @@ setup:
 	./scripts/make-symlinks
 	./scripts/check-bash-version
 	./scripts/pick-lockfile.sh semgrep.opam
+	$(MAKE) pin-opam-repo
 	LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" $(MAKE) install-deps-for-semgrep-core
 
 # Install optional development dependencies in addition to build dependencies.

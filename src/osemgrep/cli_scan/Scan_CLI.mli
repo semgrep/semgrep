@@ -93,6 +93,7 @@ val o_dump_command_for_core : bool Cmdliner.Term.t
 val o_emacs : bool Cmdliner.Term.t
 val o_emacs_outputs : string list Cmdliner.Term.t
 val o_exclude_minified_files : bool Cmdliner.Term.t
+val o_exclude_binary_files : bool Cmdliner.Term.t
 val o_exclude_rule_ids : string list Cmdliner.Term.t
 val o_files_with_matches : bool Cmdliner.Term.t
 val o_force_color : bool Cmdliner.Term.t
@@ -110,6 +111,7 @@ val o_matching_explanations : bool Cmdliner.Term.t
 val o_max_chars_per_line : int Cmdliner.Term.t
 val o_max_lines_per_finding : int Cmdliner.Term.t
 val o_max_log_list_entries : int Cmdliner.Term.t
+val o_max_match_context_size : int Cmdliner.Term.t
 val o_max_memory_mb : int Cmdliner.Term.t
 val o_max_target_bytes : int Cmdliner.Term.t
 val o_metrics : Metrics_.config Cmdliner.Term.t
@@ -144,6 +146,7 @@ val o_vim_outputs : string list Cmdliner.Term.t
 val o_x_ignore_semgrepignore_files : bool Cmdliner.Term.t
 val o_x_mem_policy : string option Cmdliner.Term.t
 val o_x_tr : bool option Cmdliner.Term.t
+val o_x_dependency_paths : bool Cmdliner.Term.t
 val o_x_pro_naming : bool Cmdliner.Term.t
 val o_x_group_taint_rules : bool Cmdliner.Term.t
 val o_x_mcp : bool Cmdliner.Term.t

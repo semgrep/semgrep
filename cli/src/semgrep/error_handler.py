@@ -22,6 +22,7 @@ from attr import field
 
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import OK_EXIT_CODE
+from semgrep.util import redact_credentials
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -57,12 +58,15 @@ class ErrorHandler:
     def capture_error(self, e: Optional[BaseException] = None) -> None:
         import traceback
 
+        # The traceback is POSTed to the fail-open endpoint; scrub before store.
         if sys.exc_info()[0] is not None:
-            self.payload["error"] = "".join(traceback.format_exc())
+            self.payload["error"] = redact_credentials("".join(traceback.format_exc()))
         elif e is not None:
             exc_type = e.__class__
             tb = e.__traceback__
-            self.payload["error"] = "".join(traceback.format_exception(exc_type, e, tb))
+            self.payload["error"] = redact_credentials(
+                "".join(traceback.format_exception(exc_type, e, tb))
+            )
 
     @property
     def is_enabled(self) -> bool:

@@ -5,7 +5,8 @@
             (Id (("RolesBasicEnum", _),
                { id_resolved = ref (None);
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (2); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (2);
+                 id_info_id = _ }
                )));
          attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
        (ClassDef
@@ -22,8 +23,8 @@
                                { id_resolved = ref ((Some (EnclosedVar, _)));
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                )));
                          attrs = []; tparams = None },
                        (VarDef { vinit = None; vtype = None; vtok = None })));
@@ -37,8 +38,8 @@
                                 { id_resolved = ref ((Some (EnclosedVar, _)));
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = []; tparams = None },
                         (VarDef { vinit = None; vtype = None; vtok = None })));
@@ -52,8 +53,8 @@
                                 { id_resolved = ref ((Some (EnclosedVar, _)));
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = []; tparams = None },
                         (VarDef { vinit = None; vtype = None; vtok = None })));

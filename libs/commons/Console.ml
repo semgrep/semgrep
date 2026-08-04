@@ -253,7 +253,7 @@ let table (h1, heading) entries : string =
       let prf fmt = Printf.bprintf buf fmt in
       lines
       |> List.iteri (fun idx line ->
-             prf "%s%s\n" (if idx =|= 1 then " " else "  ") line);
+          prf "%s%s\n" (if idx =|= 1 then " " else "  ") line);
       prf "\n")
 
 (* old: was Fmt_.pp_tables before *)

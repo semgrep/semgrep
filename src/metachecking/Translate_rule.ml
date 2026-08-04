@@ -119,7 +119,12 @@ and translate_taint_source
       source_control;
       source_requires;
     } : [> `O of (string * Yaml.value) list ] =
-  let (`O source_f) = translate_formula source_formula in
+  let (`O source_f) =
+    match source_formula with
+    | Rule.Formula f -> translate_formula f
+    | Rule.Ranges _ ->
+        failwith "cannot translate ranges-based taint source to YAML"
+  in
   let label_obj =
     if label = Rule.default_source_label then []
     else [ ("label", `String label) ]
@@ -159,7 +164,12 @@ and translate_taint_sink
       sink_at_exit;
       sink_has_focus = _;
     } : [> `O of (string * Yaml.value) list ] =
-  let (`O sink_f) = translate_formula sink_formula in
+  let (`O sink_f) =
+    match sink_formula with
+    | Rule.Formula f -> translate_formula f
+    | Rule.Ranges _ ->
+        failwith "cannot translate ranges-based taint sink to YAML"
+  in
   let exact_obj = if sink_exact then [] else [ ("exact", `Bool false) ] in
   let at_exit_obj = if sink_at_exit then [ ("at-exit", `Bool true) ] else [] in
   let requires_obj =
@@ -173,7 +183,7 @@ and translate_taint_sink
             `A
               (mvars_w_preconds
               |> List.map (fun ((mvar, _tok), { range; _ }) ->
-                     `O [ (mvar, `String (range_to_string range)) ])) );
+                  `O [ (mvar, `String (range_to_string range)) ])) );
         ]
   in
   `O (List_.flatten [ sink_f; exact_obj; requires_obj; at_exit_obj ])
@@ -186,7 +196,12 @@ and translate_taint_sanitizer
       sanitizer_by_side_effect;
       not_conflicting;
     } : [> `O of (string * Yaml.value) list ] =
-  let (`O san_f) = translate_formula sanitizer_formula in
+  let (`O san_f) =
+    match sanitizer_formula with
+    | Rule.Formula f -> translate_formula f
+    | Rule.Ranges _ ->
+        failwith "cannot translate ranges-based taint sanitizer to YAML"
+  in
   let side_effect_obj =
     if sanitizer_by_side_effect then [ ("by-side-effect", `Bool true) ] else []
   in
@@ -362,34 +377,27 @@ let translate_files fparser xs =
   let formulas_by_file =
     xs
     |> List.map (fun file ->
-           Logs.info (fun m -> m "translate_files: processing %s" !!file);
-           let formulas =
-             match fparser file with
-             | Ok rules ->
-                 rules
-                 |> List.map (fun rule ->
-                        match rule.mode with
-                        | `Search formula
-                        | `Extract { formula; _ } ->
-                            [
-                              ( "match",
-                                (formula |> translate_formula :> Yaml.value) );
-                            ]
-                        | `Taint spec ->
-                            [
-                              ( "taint",
-                                (translate_taint_spec spec :> Yaml.value) );
-                            ]
-                        | `SCA _ ->
-                            failwith "sca rules not currently translated"
-                        | `Join _ ->
-                            failwith "join rules not currently translated"
-                        | `Steps _ ->
-                            failwith "step rules not currently handled")
-             | Error e ->
-                 failwith ("parsing failure: " ^ Rule_error.string_of_error e)
-           in
-           (file, formulas))
+        Logs.info (fun m -> m "translate_files: processing %s" !!file);
+        let formulas =
+          match fparser file with
+          | Ok rules ->
+              rules
+              |> List.map (fun rule ->
+                  match rule.mode with
+                  | `Search formula
+                  | `Extract { formula; _ } ->
+                      [
+                        ("match", (formula |> translate_formula :> Yaml.value));
+                      ]
+                  | `Taint spec ->
+                      [ ("taint", (translate_taint_spec spec :> Yaml.value)) ]
+                  | `SCA _ -> failwith "sca rules not currently translated"
+                  | `Join _ -> failwith "join rules not currently translated"
+                  | `Steps _ -> failwith "step rules not currently handled")
+          | Error e ->
+              failwith ("parsing failure: " ^ Rule_error.string_of_error e)
+        in
+        (file, formulas))
   in
   List.iter
     (fun (file, formulas) ->

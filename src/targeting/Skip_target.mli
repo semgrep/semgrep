@@ -24,6 +24,12 @@ val is_big :
     equal to [max_target_bytes] or [max_target_bytes = -1], and [Error
     skipped_target] if it is larger. *)
 
+val is_binary : Fpath.t -> (Fpath.t, Semgrep_output_v1_t.skipped_target) result
+(** [is_binary path] returns [Ok path] if the file is not binary, and [Error
+    skipped_target] if it is. Source-like files (per [File_type]) are never
+    considered binary; other files are classified by matching magic numbers at
+    the start of the file. *)
+
 val exclude_big_files :
   int -> Fpath.t list -> Fpath.t list * Semgrep_output_v1_t.skipped_target list
 (** [exclude_big_files max_target_bytes paths] will exclude files larger that

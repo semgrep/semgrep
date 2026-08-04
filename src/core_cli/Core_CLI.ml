@@ -60,7 +60,15 @@ let trace_endpoint = ref None
 (* ------------------------------------------------------------------------- *)
 
 (* -rules *)
-let rule_source = ref None
+let rule_source : Core_scan_config.rule_source option ref = ref None
+
+let add_rule_file file =
+  match !rule_source with
+  | None -> rule_source := Some (Core_scan_config.Rule_files [ file ])
+  | Some (Core_scan_config.Rule_files files) ->
+      rule_source := Some (Core_scan_config.Rule_files (files @ [ file ]))
+  | Some (Core_scan_config.Rules _) ->
+      failwith "internal error: cannot combine preparsed rules with rule files"
 
 (* -targets (takes the list of files in a file given by pysemgrep) *)
 let target_file : Fpath.t option ref = ref None
@@ -243,11 +251,11 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
           let matches =
             res.processed_matches
             |> List.filter_map (fun processed_match ->
-                   match Core_json_output.match_to_match processed_match with
-                   | Error (e : Core_error.t) ->
-                       UConsole.eprint (Core_error.string_of_error e);
-                       None
-                   | Ok (match_ : Out.core_match) -> Some match_)
+                match Core_json_output.match_to_match processed_match with
+                | Error (e : Core_error.t) ->
+                    UConsole.eprint (Core_error.string_of_error e);
+                    None
+                | Ok (match_ : Out.core_match) -> Some match_)
           in
           let matches = Core_json_output.dedup_and_sort matches in
           matches |> List.iter Core_text_output.print_match;
@@ -259,18 +267,13 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
                 m "some files were skipped or only partially analyzed");
             res.errors
             |> List.iter (fun err ->
-                   Logs.warn (fun m -> m "%s" (E.string_of_error err))))
+                Logs.warn (fun m -> m "%s" (E.string_of_error err))))
       | Error exn -> Exception.reraise exn)
   | NoOutput -> ()
 
 (*****************************************************************************)
 (* Config *)
 (*****************************************************************************)
-
-(* Coupling: these need to be kept in sync with tracing.py *)
-let default_trace_endpoint = Uri.of_string "https://telemetry.semgrep.dev"
-let default_dev_endpoint = Uri.of_string "https://telemetry.dev2.semgrep.dev"
-let default_local_endpoint = Uri.of_string "http://localhost:4318"
 
 let mk_config ?rules () : Core_scan_config.t =
   {
@@ -305,18 +308,15 @@ let mk_config ?rules () : Core_scan_config.t =
       (let env = Sys.getenv_opt "SEMGREP_DEPLOYMENT_ENV" in
        match (!trace, !trace_endpoint) with
        | true, Some url ->
-           let endpoint =
-             match url with
-             (* coupling: cli/src/semgrep/telemetry.py _OTEL_ENDPOINT_ALIASES *)
-             | "semgrep-prod" -> default_trace_endpoint
-             | "semgrep-dev" -> default_dev_endpoint
-             | "semgrep-local" -> default_local_endpoint
-             | _ -> Uri.of_string url
-           in
+           let endpoint = Trace_endpoints.resolve url in
            Some { endpoint; top_level_scope = None; env }
        | true, None ->
            Some
-             { endpoint = default_trace_endpoint; top_level_scope = None; env }
+             {
+               endpoint = Trace_endpoints.default_trace_endpoint;
+               top_level_scope = None;
+               env;
+             }
        | false, Some _ ->
            Logs.warn (fun m ->
                m
@@ -477,7 +477,7 @@ let reset_options () =
 let options (actions : unit -> Arg_.cmdline_actions) =
   [
     ( "-rules",
-      Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
+      Arg.String (fun s -> add_rule_file (Fpath.v s)),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-targets",
       Arg.String (fun s -> target_file := Some (Fpath.v s)),
@@ -643,9 +643,7 @@ let register_unix_exn_printers () =
 let register_exception_printers () =
   register_stdlib_exn_printers ();
   register_unix_exn_printers ();
-  Pcre2_.register_exception_printer ();
-  Pcre_.register_exception_printer ()
-[@@alert "-deprecated"]
+  Pcre2_.register_exception_printer ()
 
 (*****************************************************************************)
 (* Run a scan *)
@@ -658,8 +656,8 @@ let run (config : Core_scan_config.t) : unit =
 (* We want to only run the Parmap runtime iff --x-parmap is set.
  * coupling: Pro_CLI.ml
  *)
-let maybe_with_eio (f : Core_scan_config.t -> 'a) : 'a =
-  let config = mk_config () in
+let maybe_with_eio ?rules (f : Core_scan_config.t -> 'a) : 'a =
+  let config = mk_config ?rules () in
   Core_profiling.profiling := config.report_time;
   let num_jobs : Core_scan_config.num_jobs =
     if !Profiling.profile =*= Profiling.ProfAll then (

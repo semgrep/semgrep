@@ -245,6 +245,14 @@ pytestmark = pytest.mark.kinda_slow
             "rules/dependency_aware/swift-sca.yaml",
             "dependency_aware/swiftpm_missing_version",
         ),
+        # In the analysis table, check that basic/malicious are distinguished
+        # Two SCA rules on one target -- one "Basic" (upgrade-only) and one
+        # "Malicious" -- to exercise the SCA analysis-type labels in the plan
+        # table (see table_by_sca_analysis() in core_targets_plan.py).
+        (
+            "rules/dependency_aware/basic-and-malicious.yaml",
+            "dependency_aware/basic_and_malicious",
+        ),
     ],
 )
 @pytest.mark.osemfail
@@ -554,6 +562,10 @@ LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
         "targets/dependency_aware/osv_parsing/yarn/empty.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/cache-compressionlevel.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/multiple-constraints.v1/yarn.lock",
+        # SC-3479: Yarn Berry uses YAML's explicit-key form (`? "..."`) for
+        # entries whose comma-joined descriptor list is too long to fit inline;
+        # common with `patch:` protocol packages.
+        "targets/dependency_aware/yarn_explicit_key_patch.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/pipfile/empty/Pipfile.lock",
         "targets/dependency_aware/osv_parsing/pipfile/one-package/Pipfile.lock",
         "targets/dependency_aware/osv_parsing/pipfile/no-version/Pipfile.lock",

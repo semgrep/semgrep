@@ -68,12 +68,12 @@ let save_token_async ?ident token =
   let settings = Semgrep_settings.load () in
   Semgrep_App.deployment_config_async token
   |> Lwt.map (function
-       | None -> Error "Login token is not valid. Please try again."
-       | Some deployment_config
-         when Semgrep_settings.save
-                Semgrep_settings.{ settings with api_token = Some token } ->
-           Ok deployment_config
-       | _ -> Error "Failed to save token. Please try again.")
+    | None -> Error "Login token is not valid. Please try again."
+    | Some deployment_config
+      when Semgrep_settings.save
+             Semgrep_settings.{ settings with api_token = Some token } ->
+        Ok deployment_config
+    | _ -> Error "Failed to save token. Please try again.")
 
 (* coupling(eio-port): if you change this you must change the lwt version *)
 let save_token_eio ?ident token =

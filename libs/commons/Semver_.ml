@@ -19,3 +19,4 @@ type t = Semver.t
 let pp fmt x = Format.pp_print_string fmt (Semver.to_string x)
 let compare = Semver.compare
 let show = Semver.to_string
+let equal a b = Semver.compare a b = 0

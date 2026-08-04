@@ -177,10 +177,10 @@ let stop_otel () =
   *)
   Otel.Collector.get_backend ()
   |> Option.iter (fun backend ->
-         Log.info (fun m -> m "Stopping tracing");
-         let module Backend = (val backend : Otel.Collector.BACKEND) in
-         Otel.Collector.remove_backend ~on_done:Fun.id ();
-         Backend.cleanup ~on_done:Fun.id ())
+      Log.info (fun m -> m "Stopping tracing");
+      let module Backend = (val backend : Otel.Collector.BACKEND) in
+      Otel.Collector.remove_backend ~on_done:Fun.id ();
+      Backend.cleanup ~on_done:Fun.id ())
 
 (* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
 let setup_otel ?eio_sw_base trace_endpoint =
@@ -238,8 +238,8 @@ let restart_otel () =
   Otel.Rand_bytes.rand_bytes_16 := mk_rand_bytes_16 new_random_state;
   Domain.DLS.get active_endpoint
   |> Option.iter (fun endpoint ->
-         Log.info (fun m -> m "Restarting tracing");
-         setup_otel endpoint)
+      Log.info (fun m -> m "Restarting tracing");
+      setup_otel endpoint)
 
 (* Otel SOMETIMES segfaults if the traced process forks while the collector is running. So we
    need to stop the backends before forking, then continue after forking is

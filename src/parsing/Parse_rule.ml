@@ -154,7 +154,7 @@ let parse_fix_regex (env : env) (key : key) fields =
 let make_glob ~rule_name ~is_include source_pattern : Rule.glob =
   let source = Glob.Match.string_loc ~source_kind:None source_pattern in
   let legacy_rule_filtering = true in
-  let { compiled_pattern; is_affected_by_middle_slash_option } :
+  let { compiled_pattern; is_affected_by_middle_slash_option; _ } :
       Parse_gitignore.parse_pattern_result =
     (* This takes care of modifying the pattern depending on whether
        it is anchored or not. For example, 'a/b' is treated as
@@ -311,7 +311,8 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       |> Result.map (Option.value ~default:R.default_source_label)
     in
     let/ source_requires = take_opt dict env parse_taint_requires "requires" in
-    let/ source_formula = f env dict in
+    let/ raw_source_formula = f env dict in
+    let source_formula = R.Formula raw_source_formula in
     Ok
       {
         R.source_id;
@@ -331,7 +332,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
     match source with
     | Left value ->
         let/ formula = Parse_rule_formula.parse_rule_xpattern env value in
-        let source_formula = R.f (R.P formula) in
+        let source_formula = R.Formula (R.f (R.P formula)) in
         Ok
           {
             Rule.source_id;
@@ -401,7 +402,8 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
         (if is_old then "not_conflicting" else "not-conflicting")
       |> Result.map (Option.value ~default:false)
     in
-    let/ sanitizer_formula = f env dict in
+    let/ raw_sanitizer_formula = f env dict in
+    let sanitizer_formula = R.Formula raw_sanitizer_formula in
     Ok
       Rule.
         {
@@ -420,7 +422,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     match sanitizer with
     | Left value ->
         let/ xpattern = Parse_rule_formula.parse_rule_xpattern env value in
-        let sanitizer_formula = R.P xpattern |> R.f in
+        let sanitizer_formula = R.Formula (R.P xpattern |> R.f) in
         Ok
           {
             sanitizer_id;
@@ -490,7 +492,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
               (* If not a string, then we assume it must be a "multi-requires". *)
               parse_taint_sink_mvar_requires env key value
               |> Result.map (fun mvars_w_preconds ->
-                     Some (Rule.MultiReq mvars_w_preconds)))
+                  Some (Rule.MultiReq mvars_w_preconds)))
     in
     let/ sink_at_exit =
       take_opt dict env parse_bool "at-exit"
@@ -500,8 +502,9 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
       take_opt dict env parse_bool "exact"
       |> Result.map (Option.value ~default:true)
     in
-    let/ sink_formula = f env dict in
-    let sink_has_focus = Rule.is_formula_with_focus sink_formula in
+    let/ raw_sink_formula = f env dict in
+    let sink_has_focus = Rule.is_formula_with_focus raw_sink_formula in
+    let sink_formula = Rule.Formula raw_sink_formula in
     Ok
       Rule.
         {
@@ -521,8 +524,9 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     match sink with
     | Left value ->
         let/ xpattern = Parse_rule_formula.parse_rule_xpattern env value in
-        let sink_formula = R.P xpattern |> R.f in
-        let sink_has_focus = Rule.is_formula_with_focus sink_formula in
+        let raw_sink_formula = R.P xpattern |> R.f in
+        let sink_has_focus = Rule.is_formula_with_focus raw_sink_formula in
+        let sink_formula = Rule.Formula raw_sink_formula in
         Ok
           Rule.
             {
@@ -1226,8 +1230,50 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
       dependency_formula = dep_formula_opt;
     }
 
-let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
-    (file : Fpath.t) (ast : AST_generic.program) :
+(* Below this many rules, the overhead of spawning
+   domains for parallel validation outweighs the benefit.
+ *)
+let min_rules_for_parallel_validation = 128
+
+let parse_one_rule_with_recovery ~error_recovery ?rewrite_rule_ids (i : int)
+    (rule : G.expr) :
+    ((Rule.t, Rule_error.invalid_rule) Either.t, Rule_error.t) result =
+  match parse_one_rule ~rewrite_rule_ids i rule with
+  | Ok rule -> Ok (Either.Left rule)
+  | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
+    when error_recovery || Rule_error.is_skippable_error kind ->
+      let s = Rule_error.string_of_invalid_rule_kind kind in
+      Log.warn (fun m ->
+          m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
+      Ok (Either.Right err)
+  | Error err -> Error err
+
+let parse_rules ?par_conf ?num_jobs ~error_recovery ?rewrite_rule_ids
+    (rules : G.expr list) :
+    ((Rule.t, Rule_error.invalid_rule) Either.t list, Rule_error.t) result =
+  let parse_one i rule =
+    parse_one_rule_with_recovery ~error_recovery ?rewrite_rule_ids i rule
+  in
+  let results =
+    match (par_conf, num_jobs) with
+    | Some (Parallelism_config.Eio_executor conf), Some n
+      when n > 1
+           && List.compare_length_with rules min_rules_for_parallel_validation
+              >= 0 ->
+        Log.debug (fun m -> m "Validating rules across %d domains" n);
+        rules
+        |> List.mapi (fun i rule -> (i, rule))
+        |> Concurrent.map ~conf ~domain_count:n (fun (i, rule) ->
+            parse_one i rule)
+        |> List.map (function
+          | Ok inner -> inner
+          | Error ((_i, _rule), exn) -> Exception.catch_and_reraise exn)
+    | _ -> List.mapi parse_one rules
+  in
+  Base.Result.all results
+
+let parse_generic_ast ?(error_recovery = false) ?par_conf ?num_jobs
+    ?rewrite_rule_ids (file : Fpath.t) (ast : AST_generic.program) :
     (Rule_error.rules_and_invalid, Rule_error.t) result =
   let res =
     let/ rules =
@@ -1270,19 +1316,7 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
       (* yaml_to_generic should always return a ExprStmt *)
     in
     let/ xs =
-      rules
-      |> List.mapi (fun i rule ->
-             match parse_one_rule ~rewrite_rule_ids i rule with
-             | Ok rule -> Ok (Either.Left rule)
-             | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
-               when error_recovery || Rule_error.is_skippable_error kind ->
-                 let s = Rule_error.string_of_invalid_rule_kind kind in
-                 Log.warn (fun m ->
-                     m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid)
-                       s);
-                 Ok (Either.Right err)
-             | Error err -> Error err)
-      |> Base.Result.all
+      parse_rules ?par_conf ?num_jobs ~error_recovery ?rewrite_rule_ids rules
     in
     Ok (Either_.partition (fun x -> x) xs)
   in
@@ -1317,46 +1351,32 @@ let parse_yaml_rule_file ~is_target (file : Fpath.t) =
       Error (Rule_error.mk_error (InvalidYaml (s, t)))
 [@@trace]
 
-let parse_file ?error_recovery ?rewrite_rule_ids file :
+let parse_file ?error_recovery ?par_conf ?num_jobs ?rewrite_rule_ids file :
     (Rule.rules * Rule_error.invalid_rule list, Rule_error.t) result =
   let/ ast =
     (* coupling: Rule_file.is_valid_rule_filename *)
     match FT.file_type_of_file file with
     | FT.Config FT.Json ->
-        (* in a parsing-rule context, we don't want the parsed strings by
-         * Parse_json.parse_program to remain escaped. For example with this
-         * JSON rule:
-         * { "rules": [ {
-         *       "id": "x",
-         *       "message": "",
-         *       "languages": ["python"],
-         *       "severity": "WARNING",
-         *       "pattern": "\"hello\""
-         *     }
-         *   ]
-         * }
-         * we want the pattern in the generic AST of the rule to contain the
-         * string '"hello"', without the antislash, otherwise
-         * Parse_python.parse_any will fail parsing it.
+        (* We use [Fast_json], a hand-written RFC 8259 parser, instead of
+         * the legacy [Parse_json + Json_to_generic ~unescape_strings:true]
+         * chain. The reason the legacy path needed [~unescape_strings:true]
+         * at all is that [Parse_json] piggy-backs on the JS parser, which
+         * leaves most JSON escapes literal in the AST: a JSON pattern field
+         * containing a backslash-escaped quote arrives in the AST with the
+         * backslashes still present, and [unescape_strings:true] then runs
+         * each string through Yojson to do the actual JSON unescape at
+         * AST-rewrite time. [Fast_json] performs full JSON unescaping
+         * inline during parse, so by the time we get [generic] the embedded
+         * pattern string is already in its final unescaped form, ready for
+         * the downstream pattern parser.
          *
-         * Note that we didn't have this problem before when we were using
-         * Yojson to parse a JSON rule, because Yojson correctly unescaped
-         * and returned the "final string".
-         *
-         * Note that this is handled correctly by Yaml_to_generic.parse_rule
-         * below.
-         *)
-        (* Tracing here rather than at the definition site of these functions to
-         * avoid excessive tracing when parsing JSON targets. *)
-        let json =
-          let%trace _span = "Parse_json.parse_program" in
-          Parse_json.parse_program file
-        in
-        let generic =
-          let%trace _span = "Json_to_generic.program" in
-          Json_to_generic.program ~unescape_strings:true json
-        in
-        Ok generic
+         * This swap is rule-file-specific (see [Fast_json.ml] preamble for
+         * scope and intentional differences from the legacy path). It is
+         * NOT safe to use [Fast_json] for parsing JSON patterns or JSON
+         * targets as a drop-in replacement; those paths still use
+         * [Parse_json + Json_to_generic]. *)
+        let%trace _span = "Fast_json.parse_program" in
+        Ok (Fast_json.parse_program file)
     | FT.Config FT.Jsonnet ->
         (* old: via external jsonnet program
            Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
@@ -1387,16 +1407,20 @@ let parse_file ?error_recovery ?rewrite_rule_ids file :
               !!file);
         parse_yaml_rule_file ~is_target:true file
   in
-  parse_generic_ast ?error_recovery ?rewrite_rule_ids file ast
+  parse_generic_ast ?error_recovery ?par_conf ?num_jobs ?rewrite_rule_ids file
+    ast
 [@@trace]
 
 (*****************************************************************************)
 (* Main Entry point *)
 (*****************************************************************************)
 
-let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) :
+let parse_and_filter_invalid_rules ?par_conf ?num_jobs ?rewrite_rule_ids
+    (file : Fpath.t) :
     (Rule.rules * Rule_error.invalid_rule list, Rule_error.t) result =
-  let/ rules, errors = parse_file ~error_recovery:true ?rewrite_rule_ids file in
+  let/ rules, errors =
+    parse_file ~error_recovery:true ?par_conf ?num_jobs ?rewrite_rule_ids file
+  in
   Log.debug (fun m ->
       m "Parse_rule.parse_and_filter_invalid_rules(%s) = " !!file);
   rules |> List.iter (fun r -> Log.debug (fun m -> m "%s" (Rule.show r)));
@@ -1424,8 +1448,11 @@ let parse_fake_xpattern analyzer str =
 (* Useful for tests *)
 (*****************************************************************************)
 
-let parse (file : Fpath.t) : (Rule.rules, Rule_error.t) result =
-  let/ xs, _skipped = parse_file ~error_recovery:false file in
+let parse ?par_conf ?num_jobs (file : Fpath.t) :
+    (Rule.rules, Rule_error.t) result =
+  let/ xs, _skipped =
+    parse_file ~error_recovery:false ?par_conf ?num_jobs file
+  in
   (* The skipped rules include Apex rules and other rules that are always
      skippable. *)
   Ok xs

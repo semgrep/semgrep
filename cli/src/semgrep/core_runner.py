@@ -17,16 +17,19 @@ import json
 import logging
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 from datetime import datetime
+from itertools import accumulate
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Coroutine
 from typing import Dict
+from typing import IO
+from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -78,6 +81,29 @@ from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+# Sharding pays an extra fixed cost when core has only one worker, so keep
+# small scans and runs without explicit --jobs on the historical single-file
+# path.
+RULE_FILE_SHARD_MIN_RULES = 128
+
+
+def _shard_count(rules: int, jobs: Optional[int]) -> int:
+    if rules < RULE_FILE_SHARD_MIN_RULES:
+        return 1
+    if jobs is None or jobs <= 1:
+        return 1
+    return min(rules, jobs)
+
+
+def _shard_rules(rules: Sequence[Rule], shard_count: int) -> Iterable[Sequence[Rule]]:
+    base_size, remainder = divmod(len(rules), shard_count)
+    shard_sizes = [
+        base_size + (1 if shard_index < remainder else 0)
+        for shard_index in range(shard_count)
+    ]
+    offsets = [0, *accumulate(shard_sizes)]
+    return [rules[start:end] for start, end in pairwise(offsets)]
 
 
 # Size in bytes of the input buffer for reading analysis outputs.
@@ -242,10 +268,6 @@ class StreamingSemgrepCore:
         self._progress_bar_task_id: Optional[TaskID] = None
         self._engine_type: EngineType = engine_type
 
-        # Map from file name to contents, to be checked before the real
-        # file system when servicing requests from semgrep-core.
-        self.vfs_map: Dict[str, bytes] = {}
-
     @property
     def stdout(self) -> str:
         # stdout of semgrep-core sans "." and extra target counts
@@ -318,8 +340,6 @@ class StreamingSemgrepCore:
                     contact us.
 
                        Error: semgrep-core exited with unexpected output
-
-                       {self._stderr}
                     """,
                 )
 
@@ -426,24 +446,6 @@ class StreamingSemgrepCore:
             line = line_bytes.decode("utf-8", "replace")
             stderr_lines.append(line)
 
-    def _handle_read_file(self, fname: str) -> Tuple[bytes, int]:
-        """
-        Handler for semgrep_analyze 'read_file' callback.
-        """
-        try:
-            if fname in self.vfs_map:
-                contents = self.vfs_map[fname]
-                logger.debug(f"read_file: in memory {fname}: {len(contents)} bytes")
-                return (contents, 0)
-            with open(fname, "rb") as in_file:
-                contents = in_file.read()
-                logger.debug(f"read_file: disk read {fname}: {len(contents)} bytes")
-                return (contents, 0)
-        except BaseException as e:  # noqa: B036
-            logger.debug(f"read_file: reading {fname}: exn: {e!r}")
-            exnClass = type(e).__name__
-            return (f"{fname}: {exnClass}: {e}".encode(), 1)
-
     async def _handle_process_outputs(
         self, stdout: asyncio.StreamReader, stderr: Optional[asyncio.StreamReader]
     ) -> None:
@@ -460,7 +462,12 @@ class StreamingSemgrepCore:
         # Raise any exceptions from processing stdout/err
         for r in results:
             if isinstance(r, Exception):
-                raise SemgrepError(f"Error while running rules: {r}")
+                # wait until after we have finished gathering stderr before
+                # sticking it in the error. Previously we had it in the "You are
+                # seeing this because the engine was killed." but that relied on
+                # the async io reader to have read before we got to that point,
+                # which in practice never happened
+                raise SemgrepError(f"Error while running rules: {r}\n{self._stderr}")
 
     async def _stream_exec_subprocess(self) -> int:
         """
@@ -770,73 +777,6 @@ class CoreRunner:
             f"Error while matching: {reason}\n{details}{PLEASE_FILE_ISSUE_TEXT}"
         )
 
-    def _check_ddprof_preconditions(self) -> bool:
-        """
-        Checks if ddprof can be used for SMS profiling.
-        Returns True if ddprof can be used, False otherwise.
-
-        We want to add these checks because ddprof gives really weird errors
-        (e.g. exit code 2, sometimes even presents itself as other errors)
-        when it is ran without a proper setup.
-
-        The setup that ddprof needs is:
-        - We are running inside SMS
-        - DDPROF_ON, DD_ENV, DD_AGENT_HOST, and DD_SERVICE are set
-        - CAP_PERFMON is set
-        - trace is enabled
-        """
-        if not os.environ.get("SEMGREP_MANAGED_SCAN"):
-            return False
-
-        trace_enabled = self._trace
-        ddprof_on_path = shutil.which("ddprof")
-        ddprof_env_vars_set = (
-            os.environ.get("DDPROF_ON", "") != ""
-            and os.environ.get("DD_ENV", "") != ""
-            and os.environ.get("DD_AGENT_HOST", "") != ""
-            and os.environ.get("DD_SERVICE", "") != ""
-        )
-        ddprof_cap_set = False
-        # run ddprof -U 0:0 git --version and check for exitcode to make sure CAP_PERFMON is set.
-        #
-        # note: we are doing -U 0:0 because it ensures that the data of this dummy call is not sent anywhere.
-        try:
-            result = subprocess.run(
-                ["ddprof", "-U", "0:0", "git", "--version"], capture_output=True
-            )
-            if result.stdout and len(result.stdout.splitlines()) == 1:
-                ddprof_cap_set = True
-        except Exception as e:
-            logger.debug(f"Failed to check ddprof CAP_PERFMON: {e}")
-
-        ddprof = (
-            (ddprof_on_path is not None)
-            and trace_enabled
-            and ddprof_env_vars_set
-            and ddprof_cap_set
-        )
-
-        # debug message for ddprof
-        if not ddprof:
-            reasons = []
-            if ddprof_on_path is None:
-                reasons.append("ddprof is not in PATH")
-            if not trace_enabled:
-                reasons.append("trace is not enabled")
-            if not ddprof_env_vars_set:
-                reasons.append(
-                    "DDPROF_ON, DD_ENV, DD_AGENT_HOST, and DD_SERVICE are not set"
-                )
-            if not ddprof_cap_set:
-                reasons.append("CAP_PERFMON is not set")
-            if reasons:
-                logger.debug(
-                    "ddprof will not be used for SMS profiling. Reason(s): "
-                    + "; ".join(reasons)
-                    + "."
-                )
-        return ddprof
-
     def _check_pyro_caml_preconditions(self) -> bool:
         """
         Checks if pyro-caml can be used for profiling.
@@ -986,18 +926,21 @@ class CoreRunner:
 
         parsing_data: ParsingData = ParsingData()
 
-        # Create an exit stack context manager to properly handle closing
-        # either the temp files for an actual run or else the dump files for
-        # a future direct run of semgrep-core. This method of file management
-        # is OS-agnostic and should be portable across POSIX and Windows
-        # systems. It also ensures that NamedTemporaryFile objects will delete
-        # their corresponding temp files after closing streams to them.
         exit_stack = contextlib.ExitStack()
-        rule_file = exit_stack.enter_context(
-            (state.env.user_data_folder / "semgrep_rules.json").open("w+")
-            if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w+", suffix=".json")
-        )
+
+        # Rule sharding
+        def f_for_shard(shard: int) -> IO[str]:
+            f: IO[str]
+            if dump_command_for_core:
+                fn = f"semgrep_rules_{shard}.json"
+                f = (state.env.user_data_folder / fn).open("w")
+            else:
+                f = tempfile.NamedTemporaryFile("w+", suffix=".json", encoding="utf-8")
+            return exit_stack.enter_context(f)
+
+        num_shards = _shard_count(len(rules), self._jobs)
+        rule_files = [f_for_shard(i) for i in range(num_shards)]
+
         # A historical scan does not create a targeting file since targeting is
         # performed directly by core.
         if not target_mode_config.is_historical_scan:
@@ -1026,7 +969,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     )
                 sys.exit(2)
 
-            use_ddprof = self._check_ddprof_preconditions()
             use_pyro_caml = self._check_pyro_caml_preconditions()
             if use_pyro_caml:
                 state.telemetry.setup_pyro_caml()
@@ -1037,18 +979,35 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 # Optional values to strings. Make sure to check against None
                 # even though mypy won't warn you.
                 *(["pyro-caml", "-vv"] if use_pyro_caml else []),
-                *(["ddprof"] if use_ddprof else []),
                 str(self._binary_path),
                 "-json",
             ]
 
+            def dumps(rules: Iterable[Rule]) -> str:
+                # Compact JSON on the hot path; pretty-printed only when the
+                # caller has opted into --matching-explanations, which exposes
+                # `loc` blocks pointing into this file. Pretty-printing keeps
+                # the reported line/col numbers human-meaningful (and snapshot
+                # tests stable).
+                return json.dumps(
+                    {"rules": [rule._raw for rule in rules]},
+                    # TODO: sort object key order on the OCaml side so we can
+                    # drop sort_keys here. (See core_output.py where
+                    # match.extra.metadata, emitted by semgrep-core in input
+                    # order, replaces inner dicts via dict.update.)
+                    sort_keys=True,
+                    indent=2 if matching_explanations else None,
+                    separators=None if matching_explanations else (",", ":"),
+                )
+
             # adding rules option
-            rule_file_contents = json.dumps(
-                {"rules": [rule._raw for rule in rules]}, indent=2, sort_keys=True
-            )
-            rule_file.write(rule_file_contents)
-            rule_file.flush()
-            cmd.extend(["-rules", rule_file.name])
+
+            logger.debug(f"Passing rules to semgrep-core in {num_shards} shards")
+            for file, rule_shard in zip(rule_files, _shard_rules(rules, num_shards)):
+                blob = dumps(rule_shard)
+                file.write(blob)
+                file.flush()
+                cmd.extend(["-rules", file.name])
 
             # Turn on simple profiling. See Profiling.ml and simple_profiling.py
             if enabled_simple_profiling:
@@ -1104,17 +1063,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 cmd.append("-json_time")
             if not self._respect_rule_paths:
                 cmd.append("-disable_rule_paths")
-
-            # Create a map to feed to semgrep-core as an alternative to
-            # having it actually read the files.
-            vfs_map: Dict[str, bytes] = {
-                rule_file.name: rule_file_contents.encode("UTF-8"),
-                **(
-                    {target_file.name: target_file_contents.encode("UTF-8")}
-                    if not target_mode_config.is_historical_scan
-                    else {}
-                ),
-            }
 
             if self._optimizations != "none":
                 cmd.append("-fast")
@@ -1220,7 +1168,6 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 engine_type=engine,
                 capture_stderr=self._capture_stderr,
             )
-            runner.vfs_map = vfs_map
             returncode = runner.execute()
             # Process output
             output_json = self._extract_core_output(
@@ -1410,11 +1357,13 @@ Exception raised: `{e}`
         if self._binary_path is None:
             raise SemgrepError("semgrep engine not found.")
 
+        # The metacheck pack is Semgrep-bundled (not user input), so its
+        # loading is always fully validated regardless of how the user asked
+        # us to validate their own rules.
         metachecks = Config.from_config_list(
             ["p/semgrep-rule-lints"],
             None,
             force_jsonschema=True,
-            no_python_schema_validation=no_python_schema_validation,
         )[0].get_rules(True)
 
         parsed_errors = []
@@ -1447,6 +1396,8 @@ Exception raised: `{e}`
                 metacheck_path,
                 rules_path,
             ]
+            if self._jobs is not None:
+                cmd.extend(["-j", str(self._jobs)])
 
             total = 3
 

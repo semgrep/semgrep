@@ -30,7 +30,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 
 @pytest.fixture
 def eqeq_rule() -> Rule:
-    config, config_errors = parse_config_string(
+    result = parse_config_string(
         "testfile",
         dedent(
             """
@@ -44,12 +44,12 @@ def eqeq_rule() -> Rule:
         ),
         None,
     )
-    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+    return result.rules[0]
 
 
 @pytest.fixture
 def double_eqeq_rule() -> Rule:
-    config, config_errors = parse_config_string(
+    result = parse_config_string(
         "testfile",
         dedent(
             """
@@ -65,12 +65,12 @@ def double_eqeq_rule() -> Rule:
         ),
         None,
     )
-    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+    return result.rules[0]
 
 
 @pytest.fixture
 def lockfile_only_rule() -> Rule:
-    config, config_errors = parse_config_string(
+    result = parse_config_string(
         "testfile",
         dedent(
             """
@@ -87,7 +87,7 @@ def lockfile_only_rule() -> Rule:
         ),
         None,
     )
-    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+    return result.rules[0]
 
 
 @pytest.fixture

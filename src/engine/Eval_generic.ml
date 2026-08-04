@@ -226,15 +226,13 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
    * alt: let s = value_to_string v in
    * to convert anything in a string before using regexps on it
    *)
-  let regexp = Pcre_.regexp ~flags:[ `ANCHORED ] re in
-  Xpattern_match_regexp.regexp_matcher ~base_offset
-    Xpattern_match_regexp.pcre_regex_functions str file regexp
-[@@alert "-deprecated"]
+  let regexp = Pcre2_.regexp ~flags:[ `ANCHORED ] re in
+  Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
 
 let rec eval env code =
   match code.G.e with
   | G.L x -> value_of_lit ~code x
-  | G.N (G.Id ((_, _), { id_svalue = { contents = Some (G.Lit lit) }; _ }))
+  | G.N (G.Id ((_, _), { id_svalue = { contents = G.Lit lit }; _ }))
   (* coupling: Constant_propagation.eval *)
   | G.Call
       ( { e = G.N (G.Id (("!dockerfile_expand!", _), _)); _ },
@@ -244,9 +242,7 @@ let rec eval env code =
               {
                 e =
                   G.N
-                    (G.Id
-                       ( (_, _),
-                         { id_svalue = { contents = Some (G.Lit lit) }; _ } ));
+                    (G.Id ((_, _), { id_svalue = { contents = G.Lit lit }; _ }));
                 _;
               };
           ],
@@ -260,7 +256,7 @@ let rec eval env code =
   | G.DotAccess
       ( { e = G.N (Id ((("local" | "var"), _), _)); _ },
         _,
-        FN (Id (_, { id_svalue = { contents = Some (Lit lit); _ }; _ })) )
+        FN (Id (_, { id_svalue = { contents = Lit lit; _ }; _ })) )
     when env.constant_propagation ->
       value_of_lit ~code lit
   | G.Call ({ e = Special (ConcatString op, _); _ }, (_, args, _)) ->
@@ -285,8 +281,8 @@ let rec eval env code =
       let values =
         args
         |> List.map (function
-             | G.Arg e -> eval env e
-             | _ -> raise (NotHandled code))
+          | G.Arg e -> eval env e
+          | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
@@ -439,6 +435,10 @@ and eval_op op values code =
   | G.BitAnd, [ Int i1; Int i2 ] -> Int (Int64.logand i1 i2)
   | G.BitOr, [ Int i1; Int i2 ] -> Int (Int64.logor i1 i2)
   | G.BitXor, [ Int i1; Int i2 ] -> Int (Int64.logxor i1 i2)
+  | G.LSL, [ Int i1; Int i2 ] -> Int (Int64.shift_left i1 (Int64.to_int i2))
+  | G.ASR, [ Int i1; Int i2 ] -> Int (Int64.shift_right i1 (Int64.to_int i2))
+  | G.LSR, [ Int i1; Int i2 ] ->
+      Int (Int64.shift_right_logical i1 (Int64.to_int i2))
   | G.Eq, [ Int v1; Float v2 ] -> Bool (Int64.to_float v1 =*= v2)
   | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 =*= Int64.to_float v2)
   (* TODO? dangerous use of polymorphic =*= ? *)
@@ -531,35 +531,34 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
   let mvars =
     bindings
     |> List.filter_map (fun (mvar, mval) ->
-           let try_bind_to_exp e =
-             try
-               Some
-                 ( mvar,
-                   eval
-                     { mvars = Hashtbl.create 0; constant_propagation; file }
-                     e )
-             with
-             | NotHandled _
-             | NotInEnv _ ->
-                 (* These are expressions like `x` or `os.getenv("FOO")` that cannot
-                  * be evaluated. Previously we just filtered out all these cases, but
-                  * in some cases it's interesting to make comparisons based on the
-                  * string representation of these expressions. For example, given
-                  * $X and $Y binding to two code variables we may want to check
-                  * whether both code variables have the same name (even if they are
-                  *  in fact different variables). So, if we can obtain such a
-                  * string representation, we add it to the environment here. *)
-                 string_of_binding mvar mval
-           in
-           match mval with
-           (* this way we can leverage the constant propagation analysis
-            * in metavariable-comparison: too! This simplifies some rules.
-            *)
-           | MV.Id (i, Some id_info) ->
-               try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
-           | MV.E e -> try_bind_to_exp e
-           | MV.Text (s, _, _) -> Some (mvar, String s)
-           | x -> string_of_binding mvar x)
+        let try_bind_to_exp e =
+          try
+            Some
+              ( mvar,
+                eval { mvars = Hashtbl.create 0; constant_propagation; file } e
+              )
+          with
+          | NotHandled _
+          | NotInEnv _ ->
+              (* These are expressions like `x` or `os.getenv("FOO")` that cannot
+               * be evaluated. Previously we just filtered out all these cases, but
+               * in some cases it's interesting to make comparisons based on the
+               * string representation of these expressions. For example, given
+               * $X and $Y binding to two code variables we may want to check
+               * whether both code variables have the same name (even if they are
+               *  in fact different variables). So, if we can obtain such a
+               * string representation, we add it to the environment here. *)
+              string_of_binding mvar mval
+        in
+        match mval with
+        (* this way we can leverage the constant propagation analysis
+         * in metavariable-comparison: too! This simplifies some rules.
+         *)
+        | MV.Id (i, Some id_info) ->
+            try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
+        | MV.E e -> try_bind_to_exp e
+        | MV.Text (s, _, _) -> Some (mvar, String s)
+        | x -> string_of_binding mvar x)
     |> Hashtbl_.hash_of_list
   in
 

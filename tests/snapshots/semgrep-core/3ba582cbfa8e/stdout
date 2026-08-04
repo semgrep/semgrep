@@ -8,8 +8,8 @@
              (Id (("field_Mutation_createAccount_args", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = []; tparams = None },
         (FuncDef
@@ -27,7 +27,7 @@
                                        { id_resolved = ref (None);
                                          id_resolved_alternatives = ref ([]);
                                          id_type = ref (None);
-                                         id_svalue = ref (None);
+                                         id_svalue = ref (Unknown);
                                          id_flags = ref (0); id_info_id = _ }
                                        )));
                                  t_attrs = [] }
@@ -37,7 +37,7 @@
                     pinfo =
                     { id_resolved = ref (None);
                       id_resolved_alternatives = ref ([]);
-                      id_type = ref (None); id_svalue = ref (None);
+                      id_type = ref (None); id_svalue = ref (Unknown);
                       id_flags = ref (0); id_info_id = _ }
                     });
                 (Param
@@ -54,7 +54,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      }));
                              t_attrs = [] });
@@ -76,12 +76,12 @@
                                             { id_resolved = ref (None);
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             }));
                                     t_attrs = [] }));
-                       id_svalue = ref (None); id_flags = ref (0);
+                       id_svalue = ref (Unknown); id_flags = ref (0);
                        id_info_id = _ }
                      });
                 (Param
@@ -95,7 +95,7 @@
                                         { id_resolved = ref (None);
                                           id_resolved_alternatives = ref ([]);
                                           id_type = ref (None);
-                                          id_svalue = ref (None);
+                                          id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
                                         )));
@@ -109,7 +109,7 @@
                                                id_resolved_alternatives =
                                                ref ([]);
                                                id_type = ref (None);
-                                               id_svalue = ref (None);
+                                               id_svalue = ref (Unknown);
                                                id_flags = ref (0);
                                                id_info_id = _ }
                                              )));
@@ -137,7 +137,7 @@
                                                  id_resolved_alternatives =
                                                  ref ([]);
                                                  id_type = ref (None);
-                                                 id_svalue = ref (None);
+                                                 id_svalue = ref (Unknown);
                                                  id_flags = ref (0);
                                                  id_info_id = _ }
                                                )));
@@ -152,7 +152,8 @@
                                                       id_resolved_alternatives =
                                                       ref ([]);
                                                       id_type = ref (None);
-                                                      id_svalue = ref (None);
+                                                      id_svalue =
+                                                      ref (Unknown);
                                                       id_flags = ref (0);
                                                       id_info_id = _ }
                                                     )));
@@ -166,7 +167,7 @@
                                         _)
                                        ));
                                     t_attrs = [] }));
-                       id_svalue = ref (None); id_flags = ref (0);
+                       id_svalue = ref (Unknown); id_flags = ref (0);
                        id_info_id = _ }
                      })
                 ],
@@ -183,7 +184,7 @@
                                        { id_resolved = ref (None);
                                          id_resolved_alternatives = ref ([]);
                                          id_type = ref (None);
-                                         id_svalue = ref (None);
+                                         id_svalue = ref (Unknown);
                                          id_flags = ref (0); id_info_id = _ }
                                        )));
                                  t_attrs = [] },
@@ -195,7 +196,7 @@
                                             { id_resolved = ref (None);
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             )));
@@ -215,7 +216,7 @@
                                    { id_resolved = ref (None);
                                      id_resolved_alternatives = ref ([]);
                                      id_type = ref (None);
-                                     id_svalue = ref (None);
+                                     id_svalue = ref (Unknown);
                                      id_flags = ref (0); id_info_id = _ }
                                    )));
                              t_attrs = [] }
@@ -246,13 +247,13 @@
                                                             id_type =
                                                             ref (None);
                                                             id_svalue =
-                                                            ref (None);
+                                                            ref (Unknown);
                                                             id_flags =
                                                             ref (0);
                                                             id_info_id = _ }
                                                           )));
                                                     t_attrs = [] }));
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                attrs = [(KeywordAttr (Var, _))];
@@ -267,7 +268,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -301,7 +302,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -322,7 +323,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -343,7 +344,7 @@
                                                              _)
                                                             ));
                                                          t_attrs = [] }));
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -363,7 +364,8 @@
                                                       id_resolved_alternatives =
                                                       ref ([]);
                                                       id_type = ref (None);
-                                                      id_svalue = ref (None);
+                                                      id_svalue =
+                                                      ref (Unknown);
                                                       id_flags = ref (0);
                                                       id_info_id = _ }
                                                     )));
@@ -380,7 +382,7 @@
                                                            id_type =
                                                            ref (None);
                                                            id_svalue =
-                                                           ref (None);
+                                                           ref (Unknown);
                                                            id_flags = ref (0);
                                                            id_info_id = _ }
                                                          )));
@@ -398,7 +400,7 @@
                                        { id_resolved = ref (None);
                                          id_resolved_alternatives = ref ([]);
                                          id_type = ref (None);
-                                         id_svalue = ref (None);
+                                         id_svalue = ref (Unknown);
                                          id_flags = ref (0); id_info_id = _ },
                                        (_, [], _)));
                                     e_id = 0; e_range = None;
@@ -439,14 +441,14 @@
                                                                id_type =
                                                                ref (None);
                                                                id_svalue =
-                                                               ref (None);
+                                                               ref (Unknown);
                                                                id_flags =
                                                                ref (0);
                                                                id_info_id = _
                                                                }
                                                              }));
                                                      t_attrs = [] }));
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 attrs = [(KeywordAttr (Var, _))];
@@ -469,7 +471,8 @@
                                                      id_resolved_alternatives =
                                                      ref ([]);
                                                      id_type = ref (None);
-                                                     id_svalue = ref (None);
+                                                     id_svalue =
+                                                     ref (Unknown);
                                                      id_flags = ref (0);
                                                      id_info_id = _ }
                                                    }));
@@ -496,7 +499,7 @@
                                                           id_type =
                                                           ref (None);
                                                           id_svalue =
-                                                          ref (None);
+                                                          ref (Unknown);
                                                           id_flags = ref (0);
                                                           id_info_id = _ }
                                                         )));
@@ -513,7 +516,7 @@
                                                            id_type =
                                                            ref (None);
                                                            id_svalue =
-                                                           ref (None);
+                                                           ref (Unknown);
                                                            id_flags = ref (0);
                                                            id_info_id = _ }
                                                          )));
@@ -552,7 +555,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -574,7 +577,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -594,7 +597,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                         id_svalue =
-                                                        ref (None);
+                                                        ref (Unknown);
                                                         id_flags = ref (0);
                                                         id_info_id = _ }
                                                       )));
@@ -630,7 +633,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -656,7 +659,7 @@
                                                                 id_type =
                                                                 ref (None);
                                                                 id_svalue =
-                                                                ref (None);
+                                                                ref (Unknown);
                                                                 id_flags =
                                                                 ref (0);
                                                                 id_info_id =
@@ -685,7 +688,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -724,7 +727,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -776,7 +779,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -784,7 +787,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -814,7 +817,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -853,7 +856,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -949,7 +952,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -957,7 +960,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -996,7 +999,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1004,7 +1007,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1041,7 +1044,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1081,7 +1084,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1109,7 +1112,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref ((Some (
+                                                                    ref ((
                                                                     Sym
                                                                     { e =
                                                                     (Call (
@@ -1128,7 +1131,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1167,7 +1170,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1220,7 +1223,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1228,7 +1231,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1259,7 +1262,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1298,7 +1301,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1342,7 +1345,7 @@
                                                                     false;
                                                                     facts =
                                                                     <opaque>
-                                                                    })));
+                                                                    }));
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1368,7 +1371,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1438,7 +1441,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1446,7 +1449,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1471,7 +1474,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1512,7 +1515,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1551,7 +1554,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1559,7 +1562,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1623,7 +1626,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1645,7 +1648,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1666,12 +1669,12 @@
                                                                  ));
                                                               t_attrs = [] }));
                                                  id_svalue =
-                                                 ref ((Some (Sym
-                                                               { e =
-                                                                 (New (_,
-                                                                    { t =
-                                                                    (TyApply (
-                                                                    { t =
+                                                 ref ((Sym
+                                                         { e =
+                                                           (New (_,
+                                                              { t =
+                                                                (TyApply (
+                                                                   { t =
                                                                     (TyN
                                                                     (Id (
                                                                     ("map", _),
@@ -1683,14 +1686,14 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
                                                                     _ })));
                                                                     t_attrs =
                                                                     [] },
-                                                                    (_,
+                                                                   (_,
                                                                     [(TA
                                                                     { t =
                                                                     (TyN
@@ -1705,7 +1708,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1721,32 +1724,28 @@
                                                                     ));
                                                                     t_attrs =
                                                                     [] })], _)
-                                                                    ));
-                                                                    t_attrs =
-                                                                    [] },
-                                                                    { id_resolved =
-                                                                    ref (None);
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref (None);
-                                                                    id_svalue =
-                                                                    ref (None);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ },
-                                                                    (
-                                                                    _, [], _)
-                                                                    ));
-                                                                 e_id = 0;
-                                                                 e_range =
-                                                                 None;
-                                                                 is_implicit_return =
-                                                                 false;
-                                                                 facts =
-                                                                 <opaque> })));
+                                                                   ));
+                                                                t_attrs = []
+                                                                },
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ },
+                                                              (_, [], _)));
+                                                           e_id = 0;
+                                                           e_range = None;
+                                                           is_implicit_return =
+                                                           false;
+                                                           facts = <opaque> }));
                                                  id_flags = ref (0);
                                                  id_info_id = _ }
                                                )));
@@ -1797,14 +1796,14 @@
                                                                    id_type =
                                                                    ref (None);
                                                                    id_svalue =
-                                                                   ref (None);
+                                                                   ref (Unknown);
                                                                    id_flags =
                                                                    ref (0);
                                                                    id_info_id =
                                                                    _ }
                                                                  }));
                                                          t_attrs = [] }));
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -1835,13 +1834,13 @@
                                                              id_type =
                                                              ref (None);
                                                              id_svalue =
-                                                             ref (None);
+                                                             ref (Unknown);
                                                              id_flags =
                                                              ref (0);
                                                              id_info_id = _ }
                                                            )));
                                                      t_attrs = [] }));
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 attrs = [(KeywordAttr (Var, _))];
@@ -1856,7 +1855,7 @@
                                                    id_resolved_alternatives =
                                                    ref ([]);
                                                    id_type = ref (None);
-                                                   id_svalue = ref (None);
+                                                   id_svalue = ref (Unknown);
                                                    id_flags = ref (0);
                                                    id_info_id = _ }
                                                  )));
@@ -1883,7 +1882,7 @@
                                                           id_type =
                                                           ref (None);
                                                           id_svalue =
-                                                          ref (None);
+                                                          ref (Unknown);
                                                           id_flags = ref (0);
                                                           id_info_id = _ }
                                                         )));
@@ -1900,7 +1899,7 @@
                                                            id_type =
                                                            ref (None);
                                                            id_svalue =
-                                                           ref (None);
+                                                           ref (Unknown);
                                                            id_flags = ref (0);
                                                            id_info_id = _ }
                                                          )));
@@ -1939,7 +1938,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1961,7 +1960,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -1981,7 +1980,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                         id_svalue =
-                                                        ref (None);
+                                                        ref (Unknown);
                                                         id_flags = ref (0);
                                                         id_info_id = _ }
                                                       )));
@@ -2019,7 +2018,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -2045,7 +2044,7 @@
                                                                 id_type =
                                                                 ref (None);
                                                                 id_svalue =
-                                                                ref (None);
+                                                                ref (Unknown);
                                                                 id_flags =
                                                                 ref (0);
                                                                 id_info_id =
@@ -2074,7 +2073,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2113,7 +2112,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2165,7 +2164,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2173,7 +2172,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2203,7 +2202,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2242,7 +2241,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2326,7 +2325,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2334,7 +2333,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2373,7 +2372,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2381,7 +2380,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2418,7 +2417,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2458,7 +2457,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2486,7 +2485,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref ((Some (
+                                                                    ref ((
                                                                     Sym
                                                                     { e =
                                                                     (Call (
@@ -2505,7 +2504,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2544,7 +2543,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2597,7 +2596,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2605,7 +2604,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2636,7 +2635,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2675,7 +2674,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2719,7 +2718,7 @@
                                                                     false;
                                                                     facts =
                                                                     <opaque>
-                                                                    })));
+                                                                    }));
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2745,7 +2744,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2815,7 +2814,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2823,7 +2822,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2848,7 +2847,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2889,7 +2888,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2928,7 +2927,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -2936,7 +2935,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3000,7 +2999,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3022,7 +3021,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3042,7 +3041,7 @@
                                                                   _)
                                                                  ));
                                                               t_attrs = [] }));
-                                                 id_svalue = ref (None);
+                                                 id_svalue = ref (Unknown);
                                                  id_flags = ref (0);
                                                  id_info_id = _ }
                                                )));
@@ -3083,14 +3082,14 @@
                                                                  id_type =
                                                                  ref (None);
                                                                  id_svalue =
-                                                                 ref (None);
+                                                                 ref (Unknown);
                                                                  id_flags =
                                                                  ref (0);
                                                                  id_info_id =
                                                                  _ }
                                                                )));
                                                          t_attrs = [] }));
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -3121,13 +3120,13 @@
                                                              id_type =
                                                              ref (None);
                                                              id_svalue =
-                                                             ref (None);
+                                                             ref (Unknown);
                                                              id_flags =
                                                              ref (0);
                                                              id_info_id = _ }
                                                            )));
                                                      t_attrs = [] }));
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 attrs = [(KeywordAttr (Var, _))];
@@ -3142,7 +3141,7 @@
                                                    id_resolved_alternatives =
                                                    ref ([]);
                                                    id_type = ref (None);
-                                                   id_svalue = ref (None);
+                                                   id_svalue = ref (Unknown);
                                                    id_flags = ref (0);
                                                    id_info_id = _ }
                                                  )));
@@ -3169,7 +3168,7 @@
                                                           id_type =
                                                           ref (None);
                                                           id_svalue =
-                                                          ref (None);
+                                                          ref (Unknown);
                                                           id_flags = ref (0);
                                                           id_info_id = _ }
                                                         )));
@@ -3186,7 +3185,7 @@
                                                            id_type =
                                                            ref (None);
                                                            id_svalue =
-                                                           ref (None);
+                                                           ref (Unknown);
                                                            id_flags = ref (0);
                                                            id_info_id = _ }
                                                          )));
@@ -3225,7 +3224,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3247,7 +3246,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3267,7 +3266,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                         id_svalue =
-                                                        ref (None);
+                                                        ref (Unknown);
                                                         id_flags = ref (0);
                                                         id_info_id = _ }
                                                       )));
@@ -3303,7 +3302,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -3329,7 +3328,7 @@
                                                                 id_type =
                                                                 ref (None);
                                                                 id_svalue =
-                                                                ref (None);
+                                                                ref (Unknown);
                                                                 id_flags =
                                                                 ref (0);
                                                                 id_info_id =
@@ -3358,7 +3357,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3397,7 +3396,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3449,7 +3448,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3457,7 +3456,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3487,7 +3486,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3526,7 +3525,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3610,7 +3609,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3618,7 +3617,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3657,7 +3656,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3665,7 +3664,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3702,7 +3701,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3742,7 +3741,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3770,7 +3769,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref ((Some (
+                                                                    ref ((
                                                                     Sym
                                                                     { e =
                                                                     (Call (
@@ -3789,7 +3788,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3828,7 +3827,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3881,7 +3880,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3889,7 +3888,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3920,7 +3919,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -3959,7 +3958,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4003,7 +4002,7 @@
                                                                     false;
                                                                     facts =
                                                                     <opaque>
-                                                                    })));
+                                                                    }));
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4029,7 +4028,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4099,7 +4098,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4107,7 +4106,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4132,7 +4131,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4173,7 +4172,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4212,7 +4211,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4220,7 +4219,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4284,7 +4283,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4306,7 +4305,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4326,7 +4325,7 @@
                                                                   _)
                                                                  ));
                                                               t_attrs = [] }));
-                                                 id_svalue = ref (None);
+                                                 id_svalue = ref (Unknown);
                                                  id_flags = ref (0);
                                                  id_info_id = _ }
                                                )));
@@ -4365,14 +4364,14 @@
                                                                  id_type =
                                                                  ref (None);
                                                                  id_svalue =
-                                                                 ref (None);
+                                                                 ref (Unknown);
                                                                  id_flags =
                                                                  ref (0);
                                                                  id_info_id =
                                                                  _ }
                                                                )));
                                                          t_attrs = [] }));
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -4418,7 +4417,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4427,7 +4426,7 @@
                                                           t_attrs = [] }
                                                         ));
                                                      t_attrs = [] }));
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 attrs = [(KeywordAttr (Var, _))];
@@ -4455,7 +4454,7 @@
                                                           id_type =
                                                           ref (None);
                                                           id_svalue =
-                                                          ref (None);
+                                                          ref (Unknown);
                                                           id_flags = ref (0);
                                                           id_info_id = _ }
                                                         }));
@@ -4484,7 +4483,7 @@
                                                           id_type =
                                                           ref (None);
                                                           id_svalue =
-                                                          ref (None);
+                                                          ref (Unknown);
                                                           id_flags = ref (0);
                                                           id_info_id = _ }
                                                         )));
@@ -4501,7 +4500,7 @@
                                                            id_type =
                                                            ref (None);
                                                            id_svalue =
-                                                           ref (None);
+                                                           ref (Unknown);
                                                            id_flags = ref (0);
                                                            id_info_id = _ }
                                                          )));
@@ -4540,7 +4539,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4562,7 +4561,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4582,7 +4581,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                         id_svalue =
-                                                        ref (None);
+                                                        ref (Unknown);
                                                         id_flags = ref (0);
                                                         id_info_id = _ }
                                                       )));
@@ -4620,7 +4619,7 @@
                                                   id_resolved_alternatives =
                                                   ref ([]);
                                                   id_type = ref (None);
-                                                  id_svalue = ref (None);
+                                                  id_svalue = ref (Unknown);
                                                   id_flags = ref (0);
                                                   id_info_id = _ }
                                                 )));
@@ -4646,7 +4645,7 @@
                                                                 id_type =
                                                                 ref (None);
                                                                 id_svalue =
-                                                                ref (None);
+                                                                ref (Unknown);
                                                                 id_flags =
                                                                 ref (0);
                                                                 id_info_id =
@@ -4675,7 +4674,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4714,7 +4713,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4766,7 +4765,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4774,7 +4773,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4804,7 +4803,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4843,7 +4842,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4941,7 +4940,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4951,7 +4950,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4990,7 +4989,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -4998,7 +4997,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5035,7 +5034,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5075,7 +5074,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5103,7 +5102,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref ((Some (
+                                                                    ref ((
                                                                     Sym
                                                                     { e =
                                                                     (Call (
@@ -5122,7 +5121,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5161,7 +5160,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5214,7 +5213,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5222,7 +5221,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5253,7 +5252,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5292,7 +5291,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5336,7 +5335,7 @@
                                                                     false;
                                                                     facts =
                                                                     <opaque>
-                                                                    })));
+                                                                    }));
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5362,7 +5361,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5432,7 +5431,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5440,7 +5439,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5465,7 +5464,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5506,7 +5505,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5545,7 +5544,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5553,7 +5552,7 @@
                                                                     t_attrs =
                                                                     [] }));
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5617,7 +5616,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5639,7 +5638,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5659,7 +5658,7 @@
                                                                   _)
                                                                  ));
                                                               t_attrs = [] }));
-                                                 id_svalue = ref (None);
+                                                 id_svalue = ref (Unknown);
                                                  id_flags = ref (0);
                                                  id_info_id = _ }
                                                )));
@@ -5714,7 +5713,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5722,7 +5721,7 @@
                                                               t_attrs = [] }
                                                             ));
                                                          t_attrs = [] }));
-                                            id_svalue = ref (None);
+                                            id_svalue = ref (Unknown);
                                             id_flags = ref (0);
                                             id_info_id = _ }
                                           )));
@@ -5761,7 +5760,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5784,7 +5783,7 @@
                                                                     id_type =
                                                                     ref (None);
                                                                     id_svalue =
-                                                                    ref (None);
+                                                                    ref (Unknown);
                                                                     id_flags =
                                                                     ref (0);
                                                                     id_info_id =
@@ -5803,7 +5802,7 @@
                                                                     ));
                                                                  t_attrs = []
                                                                  }));
-                                                    id_svalue = ref (None);
+                                                    id_svalue = ref (Unknown);
                                                     id_flags = ref (0);
                                                     id_info_id = _ }
                                                   )));
@@ -5817,7 +5816,8 @@
                                                      id_resolved_alternatives =
                                                      ref ([]);
                                                      id_type = ref (None);
-                                                     id_svalue = ref (None);
+                                                     id_svalue =
+                                                     ref (Unknown);
                                                      id_flags = ref (0);
                                                      id_info_id = _ }
                                                    )));

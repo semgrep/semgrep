@@ -23,6 +23,7 @@ from semdep.matchers.base import ExactManifestOnlyMatcher
 from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
+from semdep.matchers.sbt import SbtMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
 from semdep.subproject_matchers import MATCHERS
 from semgrep.types import fake_targets_of_paths
@@ -205,14 +206,10 @@ class TestPatternManifestStaticLockfileMatcher:
         assert isinstance(subproject.dependency_source.value, out.ManifestOnly)
 
 
-class TestExactManifestOnlyMatcher:
+class TestSbtMatcher:
     @pytest.mark.quick
-    def test_is_match_sbt(self):
-        matcher = ExactManifestOnlyMatcher(
-            manifest_kind=out.ManifestKind(out.BuildSbt()),
-            manifest_name="build.sbt",
-            ecosystem=out.Ecosystem(out.Maven()),
-        )
+    def test_is_match(self):
+        matcher = SbtMatcher()
 
         # Should match build.sbt files
         assert matcher.is_match(Path("build.sbt")) is True
@@ -226,6 +223,63 @@ class TestExactManifestOnlyMatcher:
         assert matcher.is_match(Path("build.sb")) is False
         assert matcher.is_match(Path("build.sbt.bak")) is False
 
+    @pytest.mark.quick
+    def test_make_subprojects_single(self):
+        """A single root build.sbt creates one subproject."""
+        matcher = SbtMatcher()
+        source_files = frozenset([Path("build.sbt"), Path("project/plugins.sbt")])
+        subprojects, used_files = matcher.make_subprojects(
+            fake_targets_of_paths(source_files)
+        )
+
+        assert len(subprojects) == 1
+        assert used_files == {Path("build.sbt")}
+        assert subprojects[0].root_dir == out.Fpath(".")
+        assert isinstance(subprojects[0].dependency_source.value, out.ManifestOnly)
+
+    @pytest.mark.quick
+    def test_make_subprojects_filters_nested(self):
+        """Nested build.sbt files under a root build.sbt are not separate subprojects."""
+        matcher = SbtMatcher()
+        source_files = frozenset(
+            [
+                Path("build.sbt"),
+                Path("module-a/build.sbt"),
+                Path("module-b/build.sbt"),
+            ]
+        )
+        subprojects, used_files = matcher.make_subprojects(
+            fake_targets_of_paths(source_files)
+        )
+
+        # Only root build.sbt should create a subproject
+        assert len(subprojects) == 1
+        assert subprojects[0].root_dir == out.Fpath(".")
+        # All build.sbt files should be consumed
+        assert used_files == source_files
+
+    @pytest.mark.quick
+    def test_make_subprojects_independent_roots(self):
+        """Two independent SBT projects (not nested) each get a subproject."""
+        matcher = SbtMatcher()
+        source_files = frozenset(
+            [
+                Path("project-a/build.sbt"),
+                Path("project-b/build.sbt"),
+            ]
+        )
+        subprojects, used_files = matcher.make_subprojects(
+            fake_targets_of_paths(source_files)
+        )
+
+        assert len(subprojects) == 2
+        assert used_files == source_files
+        root_dirs = {s.root_dir for s in subprojects}
+        assert out.Fpath("project-a") in root_dirs
+        assert out.Fpath("project-b") in root_dirs
+
+
+class TestExactManifestOnlyMatcher:
     @pytest.mark.quick
     def test_is_match_setup_py(self):
         matcher = ExactManifestOnlyMatcher(
@@ -241,64 +295,6 @@ class TestExactManifestOnlyMatcher:
         # Should not match other files
         assert matcher.is_match(Path("setup.cfg")) is False
         assert matcher.is_match(Path("requirements.txt")) is False
-
-    @pytest.mark.quick
-    @pytest.mark.parametrize(
-        ["source_files", "expected_subprojects", "unused_files"],
-        [
-            (
-                [
-                    Path("build.sbt"),
-                    Path("project/plugins.sbt"),
-                ],
-                [
-                    out.Subproject(
-                        root_dir=out.Fpath("."),
-                        dependency_source=out.DependencySource(
-                            out.ManifestOnly(
-                                out.Manifest(
-                                    out.ManifestKind(out.BuildSbt()),
-                                    out.Fpath("build.sbt"),
-                                )
-                            )
-                        ),
-                        ecosystem=out.Ecosystem(value=out.Maven()),
-                    ),
-                ],
-                [
-                    Path("project/plugins.sbt"),
-                ],
-            ),
-        ],
-    )
-    @pytest.mark.quick
-    def test_make_subprojects(
-        self,
-        source_files: List[Path],
-        expected_subprojects: List[out.Subproject],
-        unused_files: List[Path],
-    ):
-        matcher = ExactManifestOnlyMatcher(
-            manifest_kind=out.ManifestKind(out.BuildSbt()),
-            manifest_name="build.sbt",
-            ecosystem=out.Ecosystem(out.Maven()),
-        )
-
-        source_files_set = frozenset(source_files)
-
-        # when we make subprojects from the provided source files
-        subprojects, used_files = matcher.make_subprojects(
-            fake_targets_of_paths(source_files_set)
-        )
-
-        # expect all files to be used except those in unused_files
-        assert used_files == (source_files_set - set(unused_files))
-
-        # and expect the returned subprojects to match, ignoring order
-        expected = set(expected_subprojects)
-        assert len(subprojects) == len(expected_subprojects)
-        for subproject in subprojects:
-            assert subproject in expected
 
 
 class TestRequirementsLockfileMatcher:

@@ -5,7 +5,8 @@
             (Id (("Direction", _),
                { id_resolved = ref (None);
                  id_resolved_alternatives = ref ([]); id_type = ref (None);
-                 id_svalue = ref (None); id_flags = ref (0); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
                )));
          attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
        (ClassDef
@@ -22,8 +23,8 @@
                                { id_resolved = ref (None);
                                  id_resolved_alternatives = ref ([]);
                                  id_type = ref (None);
-                                 id_svalue = ref (None); id_flags = ref (0);
-                                 id_info_id = _ }
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
                                )));
                          attrs = []; tparams = None },
                        (EnumEntryDef { ee_args = None; ee_body = None })));
@@ -37,8 +38,8 @@
                                 { id_resolved = ref (None);
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = []; tparams = None },
                         (EnumEntryDef { ee_args = None; ee_body = None })));
@@ -52,8 +53,8 @@
                                 { id_resolved = ref (None);
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = []; tparams = None },
                         (EnumEntryDef { ee_args = None; ee_body = None })));
@@ -67,8 +68,8 @@
                                 { id_resolved = ref (None);
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = []; tparams = None },
                         (EnumEntryDef { ee_args = None; ee_body = None })));
@@ -84,8 +85,8 @@
              (Id (("Color", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
         (ClassDef
@@ -102,7 +103,7 @@
                                   { id_resolved = ref (None);
                                     id_resolved_alternatives = ref ([]);
                                     id_type = ref (None);
-                                    id_svalue = ref (None);
+                                    id_svalue = ref (Unknown);
                                     id_flags = ref (0); id_info_id = _ }
                                   )));
                             t_attrs = [] });
@@ -117,12 +118,12 @@
                                          { id_resolved = ref (None);
                                            id_resolved_alternatives =
                                            ref ([]); id_type = ref (None);
-                                           id_svalue = ref (None);
+                                           id_svalue = ref (Unknown);
                                            id_flags = ref (0); id_info_id = _
                                            }
                                          )));
                                    t_attrs = [] }));
-                      id_svalue = ref (None); id_flags = ref (0);
+                      id_svalue = ref (Unknown); id_flags = ref (0);
                       id_info_id = _ }
                     })
                 ],
@@ -138,8 +139,8 @@
                                 { id_resolved = ref (None);
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = []; tparams = None },
                         (EnumEntryDef
@@ -163,7 +164,7 @@
                                  { id_resolved = ref (None);
                                    id_resolved_alternatives = ref ([]);
                                    id_type = ref (None);
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (0); id_info_id = _ }
                                  )));
                            attrs = []; tparams = None },
@@ -188,7 +189,7 @@
                                  { id_resolved = ref (None);
                                    id_resolved_alternatives = ref ([]);
                                    id_type = ref (None);
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (0); id_info_id = _ }
                                  )));
                            attrs = []; tparams = None },
@@ -215,8 +216,8 @@
              (Id (("ProtocolState", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = [(KeywordAttr (EnumClass, _))]; tparams = None },
         (ClassDef
@@ -233,8 +234,8 @@
                                 { id_resolved = ref (None);
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = []; tparams = None },
                         (EnumEntryDef
@@ -253,7 +254,7 @@
                                                         ref ([]);
                                                         id_type = ref (None);
                                                         id_svalue =
-                                                        ref (None);
+                                                        ref (Unknown);
                                                         id_flags = ref (0);
                                                         id_info_id = _ }
                                                       )));
@@ -278,7 +279,7 @@
                                                                 id_type =
                                                                 ref (None);
                                                                 id_svalue =
-                                                                ref (None);
+                                                                ref (Unknown);
                                                                 id_flags =
                                                                 ref (0);
                                                                 id_info_id =
@@ -304,7 +305,7 @@
                                  { id_resolved = ref (None);
                                    id_resolved_alternatives = ref ([]);
                                    id_type = ref (None);
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (0); id_info_id = _ }
                                  )));
                            attrs = []; tparams = None },
@@ -324,7 +325,7 @@
                                                          ref ([]);
                                                          id_type = ref (None);
                                                          id_svalue =
-                                                         ref (None);
+                                                         ref (Unknown);
                                                          id_flags = ref (0);
                                                          id_info_id = _ }
                                                        )));
@@ -350,7 +351,7 @@
                                                                  id_type =
                                                                  ref (None);
                                                                  id_svalue =
-                                                                 ref (None);
+                                                                 ref (Unknown);
                                                                  id_flags =
                                                                  ref (0);
                                                                  id_info_id =
@@ -376,7 +377,7 @@
                                  { id_resolved = ref (None);
                                    id_resolved_alternatives = ref ([]);
                                    id_type = ref (None);
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (0); id_info_id = _ }
                                  )));
                            attrs = [(KeywordAttr (Abstract, _))];
@@ -390,7 +391,7 @@
                                             { id_resolved = ref (None);
                                               id_resolved_alternatives =
                                               ref ([]); id_type = ref (None);
-                                              id_svalue = ref (None);
+                                              id_svalue = ref (Unknown);
                                               id_flags = ref (0);
                                               id_info_id = _ }
                                             )));

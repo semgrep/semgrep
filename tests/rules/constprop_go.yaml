@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    languages:
+      - go
+    message: Test integer constant folding in Go
+    pattern: sink(112)
+    severity: WARNING
+  - id: test-sccp
+    languages:
+      - go
+    message: Test SCCP dead-branch elimination in Go
+    pattern: sink("yes")
+    severity: WARNING

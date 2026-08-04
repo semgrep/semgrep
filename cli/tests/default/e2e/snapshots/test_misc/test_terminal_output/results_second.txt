@@ -33,7 +33,7 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 24 files tracked by git with 4 Code rules:
+  Scanning 23 files tracked by git with 4 Code rules:
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────
@@ -87,7 +87,7 @@ Ran 4 rules on 14 files: 2 findings.
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 24 files tracked by git with 4 Code rules:
+  Scanning 23 files tracked by git with 4 Code rules:
 
   Language   Rules   Files          Origin   Rules
  ──────────────────────────        ────────────────

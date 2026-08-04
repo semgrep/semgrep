@@ -407,10 +407,10 @@ let image_tag (env : env) ((v1, v2) : CST.image_tag) : tok * docker_string =
         let fragments =
           fragments
           |> List.map (fun x ->
-                 match x with
-                 | `Imm_tok_pat_bcfc287 tok ->
-                     Unquoted (str env tok (* pattern [^@\s\$]+ *))
-                 | `Imme_expa x -> expansion env x)
+              match x with
+              | `Imm_tok_pat_bcfc287 tok ->
+                  Unquoted (str env tok (* pattern [^@\s\$]+ *))
+              | `Imme_expa x -> expansion env x)
           |> collapse_unquoted_fragments
         in
         let loc = Tok_range.of_list docker_string_fragment_loc fragments in
@@ -433,10 +433,10 @@ let image_digest (env : env) ((v1, v2) : CST.image_digest) : tok * docker_string
         let fragments =
           fragments
           |> List.map (fun x ->
-                 match x with
-                 | `Imm_tok_pat_d2727a0 tok ->
-                     Unquoted (str env tok (* pattern [a-zA-Z0-9:]+ *))
-                 | `Imme_expa x -> expansion env x)
+              match x with
+              | `Imm_tok_pat_d2727a0 tok ->
+                  Unquoted (str env tok (* pattern [a-zA-Z0-9:]+ *))
+              | `Imme_expa x -> expansion env x)
           |> collapse_unquoted_fragments
         in
         let loc = Tok_range.of_list docker_string_fragment_loc fragments in
@@ -453,10 +453,10 @@ let image_name (env : env) ((x, xs) : CST.image_name) =
   let fragments =
     xs
     |> List.map (fun x ->
-           match x with
-           | `Imm_tok_pat_2b37705 tok ->
-               Unquoted (str env tok (* pattern [^@:\s\$]+ *))
-           | `Imme_expa x -> expansion env x)
+        match x with
+        | `Imm_tok_pat_2b37705 tok ->
+            Unquoted (str env tok (* pattern [^@:\s\$]+ *))
+        | `Imme_expa x -> expansion env x)
   in
   let fragments = first_fragment :: fragments |> collapse_unquoted_fragments in
   let loc = Tok_range.of_list docker_string_fragment_loc fragments in
@@ -471,10 +471,10 @@ let image_alias (env : env) ((x, xs) : CST.image_alias) : docker_string =
   let other_fragments =
     xs
     |> List.map (fun x ->
-           match x with
-           | `Imm_tok_pat_9a14b5c tok ->
-               Unquoted (str env tok (* pattern [-a-zA-Z0-9_]+ *))
-           | `Imme_expa x -> expansion env x)
+        match x with
+        | `Imm_tok_pat_9a14b5c tok ->
+            Unquoted (str env tok (* pattern [-a-zA-Z0-9_]+ *))
+        | `Imme_expa x -> expansion env x)
   in
   let fragments =
     first_fragment :: other_fragments |> collapse_unquoted_fragments
@@ -584,9 +584,9 @@ let assemble_heredoc_template (env : env) (opening : Token.t)
   let fragments =
     v2
     |> List.map (fun (v1, v2) ->
-           let v1 = (* heredoc_line *) token env v1 in
-           let v2 = (* "\n" *) token env v2 in
-           Tok.combine_toks v1 [ v2 ])
+        let v1 = (* heredoc_line *) token env v1 in
+        let v2 = (* "\n" *) token env v2 in
+        Tok.combine_toks v1 [ v2 ])
   in
   let body : string wrap =
     match fragments with
@@ -629,7 +629,7 @@ let reattach_heredoc_bodies env
   (* Assume that 'List.filter_map' proceeds from left-to-right *)
   src_paths
   |> List.filter_map (fun ((v1 : CST.path_with_heredoc), _blank) ->
-         path_with_heredoc_or_ellipsis env v1 take_heredoc_body)
+      path_with_heredoc_or_ellipsis env v1 take_heredoc_body)
 
 let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) :
     docker_string =
@@ -715,27 +715,49 @@ let single_quoted_string (env : env) ((v1, v2, v3) : CST.single_quoted_string) :
   let loc = (open_, close) in
   Single_quoted (loc, (open_, contents, close))
 
-let shell_fragment (env : env) (xs : CST.shell_fragment) : tok =
+type shell_fragment_part =
+  | Shell_tok of tok
+  | Shell_heredoc_marker of CST.heredoc_marker
+
+let shell_fragment_parts (env : env) (xs : CST.shell_fragment) :
+    shell_fragment_part list =
   List.filter_map
     (fun x ->
       match x with
-      | `Here_marker_pat_ea34a52 (_v1, _v2) ->
-          (* TODO:
-             R.Case (
-               "Here_marker_pat_ea34a52",
-               let v1 = (* heredoc_marker *) token env v1 in
-               let v2 = map_pat_ea34a52 env v2 in
-               R.Tuple [v1; v2]
-             )
-          *)
-          None
+      | `Here_marker_pat_ea34a52 (v1, _v2) -> Some (Shell_heredoc_marker v1)
       | `Pat_b1120d3 tok
       | `Pat_f8ab07f tok
       | `Pat_eda9032 tok
       | `Pat_a667757 tok ->
-          Some (token env tok))
+          Some (Shell_tok (token env tok)))
     xs
+
+let shell_fragment (env : env) (xs : CST.shell_fragment) : tok =
+  shell_fragment_parts env xs
+  |> List.filter_map (function
+    | Shell_tok tok -> Some tok
+    | Shell_heredoc_marker _ -> None)
   |> unsafe_concat_tokens |> snd
+
+let shell_fragments_from_parts env (parts : shell_fragment_part list)
+    (heredoc_bodies : CST.heredoc_block list) : shell_fragment list =
+  let queue = ref heredoc_bodies in
+  let take_heredoc_body () =
+    match !queue with
+    | [] -> None
+    | x :: xs ->
+        queue := xs;
+        Some x
+  in
+  parts
+  |> List.filter_map (function
+    | Shell_tok tok ->
+        Some (Constant_shell_fragment (Tok.content_of_tok tok, tok))
+    | Shell_heredoc_marker opening -> (
+        match take_heredoc_body () with
+        | Some body ->
+            Some (Heredoc_template (assemble_heredoc_template env opening body))
+        | None -> None))
 
 let image_spec (env : env) ((v1, v2, v3) : CST.image_spec) : image_spec =
   let name = image_name env v1 in
@@ -903,7 +925,7 @@ let shell_command (env : env) (x : CST.shell_command) =
       let more_frags =
         v2
         |> List.map (fun (v1, v2) ->
-               (* Keep the line continuation so as to preserve the original
+            (* Keep the line continuation so as to preserve the original
                   locations when parsing the shell command.
 
                   Warning: dockerfile line continuation character may be different
@@ -911,17 +933,17 @@ let shell_command (env : env) (x : CST.shell_command) =
                   the shell code to preserve locations, we must ensure that
                   we inject a backslash, not whatever dockerfile is using.
                *)
-               let dockerfile_line_cont =
-                 (* dockerfile's line continuation character without \n *)
-                 token env v1
-               in
-               let shell_line_cont =
-                 (* we would omit this if it weren't for preserving
+            let dockerfile_line_cont =
+              (* dockerfile's line continuation character without \n *)
+              token env v1
+            in
+            let shell_line_cont =
+              (* we would omit this if it weren't for preserving
                     line numbers *)
-                 Tok.rewrap_str "\\\n" dockerfile_line_cont
-               in
-               let shell_frag = shell_fragment env v2 in
-               [ shell_line_cont; shell_frag ])
+              Tok.rewrap_str "\\\n" dockerfile_line_cont
+            in
+            let shell_frag = shell_fragment env v2 in
+            [ shell_line_cont; shell_frag ])
         |> List_.flatten
       in
       let raw_shell_code = concat_shell_fragments first_frag more_frags in
@@ -937,6 +959,33 @@ let shell_command (env : env) (x : CST.shell_command) =
           | Bash None -> Other_shell_command (Sh, raw_shell_code))
       | (Cmd | Powershell | Other _) as shell ->
           Other_shell_command (shell, raw_shell_code))
+
+let shell_command_parts env (v1, v2) : shell_fragment_part list =
+  let parts = shell_fragment_parts env v1 in
+  let more_parts =
+    v2
+    |> List.concat_map (fun (_line_cont, frag) -> shell_fragment_parts env frag)
+  in
+  parts @ more_parts
+
+let shell_command_with_heredocs env (x : CST.shell_command)
+    (heredoc_bodies : CST.heredoc_block list) : command =
+  match x with
+  | `Semg_ellips tok -> Command_semgrep_ellipsis (token env tok)
+  | `Shell_frag_rep_requ_line_cont_shell_frag (v1, v2) ->
+      let parts = shell_command_parts env (v1, v2) in
+      let has_heredoc_marker =
+        List.exists
+          (function
+            | Shell_heredoc_marker _ -> true
+            | Shell_tok _ -> false)
+          parts
+      in
+      if has_heredoc_marker || heredoc_bodies <> [] then
+        let fragments = shell_fragments_from_parts env parts heredoc_bodies in
+        let loc = Tok_range.of_list shell_fragment_loc fragments in
+        Shell_command_template (loc, fragments)
+      else shell_command env x
 
 let command (env : env) (x : CST.anon_choice_json_str_array_0106ace) =
   match x with
@@ -989,6 +1038,30 @@ let runlike_instruction (env : env) name params cmd =
       params
   in
   let cmd = command env cmd in
+  let _, end_ = command_loc cmd in
+  let loc = (wrap_tok name, end_) in
+  (loc, name, params, cmd)
+
+let run_instruction (env : env) (v1, v2, v3, heredoc_bodies) =
+  let name =
+    str env v1
+    (* RUN *)
+  in
+  let params =
+    List.map
+      (fun x ->
+        match x with
+        | `Param x -> Param (param env x)
+        | `Mount_param x -> mount_param env x)
+      v2
+  in
+  let cmd =
+    match v3 with
+    | `Json_str_array x ->
+        let loc, ar = json_string_array env x in
+        Argv (loc, ar)
+    | `Shell_cmd x -> shell_command_with_heredocs env x heredoc_bodies
+  in
   let _, end_ = command_loc cmd in
   let loc = (wrap_tok name, end_) in
   (loc, name, params, cmd)
@@ -1050,11 +1123,8 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | None -> (None, loc)
           in
           (env, From (loc, name, param, image_spec, alias))
-      | `Run_inst (v1, v2, v3, _v4TODO) ->
-          (* TODO: heredocs *)
-          let loc, name, params, cmd =
-            runlike_instruction (env : env) v1 v2 v3
-          in
+      | `Run_inst (v1, v2, v3, v4) ->
+          let loc, name, params, cmd = run_instruction env (v1, v2, v3, v4) in
           (env, Run (loc, name, params, cmd))
       | `Cmd_inst (v1, v2) ->
           let loc, name, params, cmd =

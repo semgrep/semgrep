@@ -237,26 +237,24 @@ let find_template_commentize groups =
   let rec aux xs =
     xs
     |> List.iter (function
-         | TV.Braces (_, xs, _) -> aux xs
-         | TV.Parens (_, xs, _) -> aux xs
-         | TV.Angle (_, _xs, _) as angle ->
-             (* let's commentize everything *)
-             [ angle ]
-             |> TV.iter_token_multi (fun tok ->
-                    change_tok tok
-                      (TComment_Cpp
-                         (Token_cpp.CplusplusTemplate, TH.info_of_tok tok.t)))
-         | TV.Tok tok -> (
-             (* todo? should also pass the static_cast<...> which normally
-              * expect some TInf_Template after. Right mow I manage
-              * that by having some extra rules in the grammar
-              *)
-             match tok.t with
-             | Ttemplate _ ->
-                 change_tok tok
-                   (TComment_Cpp
-                      (Token_cpp.CplusplusTemplate, TH.info_of_tok tok.t))
-             | _ -> ()))
+      | TV.Braces (_, xs, _) -> aux xs
+      | TV.Parens (_, xs, _) -> aux xs
+      | TV.Angle (_, _xs, _) as angle ->
+          (* let's commentize everything *)
+          [ angle ]
+          |> TV.iter_token_multi (fun tok ->
+              change_tok tok
+                (TComment_Cpp (Token_cpp.CplusplusTemplate, TH.info_of_tok tok.t)))
+      | TV.Tok tok -> (
+          (* todo? should also pass the static_cast<...> which normally
+           * expect some TInf_Template after. Right mow I manage
+           * that by having some extra rules in the grammar
+           *)
+          match tok.t with
+          | Ttemplate _ ->
+              change_tok tok
+                (TComment_Cpp (Token_cpp.CplusplusTemplate, TH.info_of_tok tok.t))
+          | _ -> ()))
   in
   aux groups
 
@@ -277,17 +275,15 @@ let find_qualifier_commentize xs =
     | ({ t = TIdent _ } as t1) :: ({ t = TColCol _ } as t2) :: xs ->
         [ t1; t2 ]
         |> List.iter (fun tok ->
-               change_tok tok
-                 (TComment_Cpp
-                    (Token_cpp.CplusplusQualifier, TH.info_of_tok tok.t)));
+            change_tok tok
+              (TComment_Cpp (Token_cpp.CplusplusQualifier, TH.info_of_tok tok.t)));
         aux xs
     (* need also to pass the top :: *)
     | ({ t = TColCol _ } as t2) :: xs ->
         [ t2 ]
         |> List.iter (fun tok ->
-               change_tok tok
-                 (TComment_Cpp
-                    (Token_cpp.CplusplusQualifier, TH.info_of_tok tok.t)));
+            change_tok tok
+              (TComment_Cpp (Token_cpp.CplusplusQualifier, TH.info_of_tok tok.t)));
         aux xs
     (* recurse *)
     | _ :: xs -> aux xs

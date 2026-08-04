@@ -529,9 +529,9 @@ let really_search param src pat doc =
       | Fail -> matches)
   |> List.rev
   |> List.filter (fun match_ ->
-         match Hashtbl.find_opt end_loc_tbl (snd match_.region) with
-         | None -> assert false
-         | Some selected_match -> phys_eq match_ selected_match)
+      match Hashtbl.find_opt end_loc_tbl (snd match_.region) with
+      | None -> assert false
+      | Some selected_match -> phys_eq match_ selected_match)
 
 let search param src pat doc =
   let case_sensitive = param.case_sensitive in

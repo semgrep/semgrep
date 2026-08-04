@@ -16,14 +16,13 @@
    This doesn't use ocamllex because we need to support character sets
    defined dynamically (e.g. from a config file).
 *)
-[@@@alert "-deprecated"]
 
 module Log = Log_aliengrep.Log
 open Printf
 
 type compiled_conf = {
   conf : Conf.t;
-  pcre : Pcre_.t; (* holds the source pattern and the compiled regexp *)
+  pcre : Pcre2_.t; (* holds the source pattern and the compiled regexp *)
 }
 
 type token =
@@ -82,11 +81,13 @@ let compile conf =
       ]
   in
   let pcre =
-    try Pcre_.regexp pat with
+    try Pcre2_.regexp pat with
     | exn ->
         let e = Exception.catch exn in
         Log.err (fun m ->
-            m "cannot compile PCRE pattern used to parse aliengrep patterns: %s"
+            m
+              "cannot compile PCRE2 pattern used to parse aliengrep patterns: \
+               %s"
               pat);
         Exception.reraise e
   in
@@ -98,44 +99,44 @@ let char_of_string str =
   else str.[0]
 
 let read_string ?(source_name = "<pattern>") conf str =
-  match Pcre_.full_split ~rex:conf.pcre str with
+  match Pcre2_.full_split ~rex:conf.pcre str with
   | Error pcre_err ->
       pattern_error source_name
-        (sprintf "PCRE error while parsing aliengrep pattern: %s; pattern: %s"
-           (Pcre_.show_error pcre_err)
+        (sprintf "PCRE2 error while parsing aliengrep pattern: %s; pattern: %s"
+           (Pcre2_.show_error pcre_err)
            conf.pcre.pattern)
   | Ok res ->
       res
       |> List.filter_map (function
-           | Pcre.Delim _
-           | Pcre.NoGroup ->
-               None
-           | Pcre.Text txt ->
-               pattern_error source_name
-                 (sprintf
-                    "Internal error while parsing aliengrep pattern: Text node \
-                     %S; pattern: %s"
-                    txt conf.pcre.pattern)
-           | Pcre.Group (_, "") ->
-               (* no capture *)
-               None
-           | Pcre.Group (num, capture) ->
-               Some
-                 (match num with
-                 | 1 -> LONG_ELLIPSIS
-                 | 2 -> ELLIPSIS
-                 | 3 -> METAVAR capture
-                 | 4 -> METAVAR_ELLIPSIS capture
-                 | 5 -> LONG_METAVAR_ELLIPSIS capture
-                 | 6 -> WORD capture
-                 | 7 ->
-                     let opening_brace = char_of_string capture in
-                     let expected_closing_brace =
-                       try List.assoc opening_brace conf.conf.brackets with
-                       | Not_found -> assert false
-                     in
-                     OPEN (opening_brace, expected_closing_brace)
-                 | 8 -> CLOSE (char_of_string capture)
-                 | 9 -> NEWLINE
-                 | 10 -> OTHER capture
-                 | _ -> assert false))
+        | Pcre2.Delim _
+        | Pcre2.NoGroup ->
+            None
+        | Pcre2.Text txt ->
+            pattern_error source_name
+              (sprintf
+                 "Internal error while parsing aliengrep pattern: Text node \
+                  %S; pattern: %s"
+                 txt conf.pcre.pattern)
+        | Pcre2.Group (_, "") ->
+            (* no capture *)
+            None
+        | Pcre2.Group (num, capture) ->
+            Some
+              (match num with
+              | 1 -> LONG_ELLIPSIS
+              | 2 -> ELLIPSIS
+              | 3 -> METAVAR capture
+              | 4 -> METAVAR_ELLIPSIS capture
+              | 5 -> LONG_METAVAR_ELLIPSIS capture
+              | 6 -> WORD capture
+              | 7 ->
+                  let opening_brace = char_of_string capture in
+                  let expected_closing_brace =
+                    try List.assoc opening_brace conf.conf.brackets with
+                    | Not_found -> assert false
+                  in
+                  OPEN (opening_brace, expected_closing_brace)
+              | 8 -> CLOSE (char_of_string capture)
+              | 9 -> NEWLINE
+              | 10 -> OTHER capture
+              | _ -> assert false))

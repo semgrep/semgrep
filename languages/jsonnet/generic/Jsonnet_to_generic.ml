@@ -220,7 +220,11 @@ and map_binary_op _env v =
   | Div -> G.Div
   | Mod -> G.Mod
   | LSL -> G.LSL
-  | LSR -> G.LSR
+  (* DO NOT 'fix' this looks-like-a-typo mapping. The Jsonnet internal AST's
+   * [LSR] is the source-level `>>` operator, which is arithmetic /
+   * sign-extending per the Jsonnet spec and the evaluator. See
+   * Eval_jsonnet_common.ml (uses Int64.shift_right). *)
+  | LSR -> G.ASR
   | Lt -> G.Lt
   | LtE -> G.LtE
   | Gt -> G.Gt

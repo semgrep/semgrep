@@ -31,30 +31,29 @@ let generate_ograph_generic g label fnode (buf : Format.formatter) =
   let nodes = g#nodes in
   nodes
   |> Int_map.iter (fun k node ->
-         let str, border_color, inner_color = fnode (k, node) in
-         let color =
-           match inner_color with
-           | None -> (
-               match border_color with
-               | None -> ""
-               | Some x -> spf ", style=\"setlinewidth(3)\", color = %s" x)
-           | Some x -> (
-               match border_color with
-               | None ->
-                   spf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
-               | Some x' ->
-                   spf
-                     ", style=\"setlinewidth(3),filled\", fillcolor = %s, \
-                      color = %s"
-                     x x')
-         in
-         (* so can see if nodes without arcs were created *)
-         Format.fprintf buf "%d [label=\"%s   [%d]\"%s];\n" k str k color);
+      let str, border_color, inner_color = fnode (k, node) in
+      let color =
+        match inner_color with
+        | None -> (
+            match border_color with
+            | None -> ""
+            | Some x -> spf ", style=\"setlinewidth(3)\", color = %s" x)
+        | Some x -> (
+            match border_color with
+            | None -> spf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
+            | Some x' ->
+                spf
+                  ", style=\"setlinewidth(3),filled\", fillcolor = %s, color = \
+                   %s"
+                  x x')
+      in
+      (* so can see if nodes without arcs were created *)
+      Format.fprintf buf "%d [label=\"%s   [%d]\"%s];\n" k str k color);
 
   nodes
   |> Int_map.iter (fun k _node ->
-         let succ = g#successors k in
-         Set_.iter (fun (j, _edge) -> Format.fprintf buf "%d -> %d;\n" k j) succ);
+      let succ = g#successors k in
+      Set_.iter (fun (j, _edge) -> Format.fprintf buf "%d -> %d;\n" k j) succ);
   Format.fprintf buf "}\n"
 
 let generate_ograph_xxx g filename =
@@ -65,13 +64,13 @@ let generate_ograph_xxx g filename =
       let nodes = g#nodes in
       nodes
       |> Int_map.iter (fun k (_node, s) ->
-             (* so can see if nodes without arcs were created *)
-             xpr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
+          (* so can see if nodes without arcs were created *)
+          xpr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
 
       nodes
       |> Int_map.iter (fun k _node ->
-             let succ = g#successors k in
-             Set_.iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)) succ);
+          let succ = g#successors k in
+          Set_.iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)) succ);
       xpr "}\n");
   ()
 
@@ -79,18 +78,16 @@ let generate_ograph_xxx g filename =
 (* Visualization *)
 (*****************************************************************************)
 
-(* TODO: switch from cmd_to_list to UCmd.status_of_run with
- * properly built Cmd.
- *)
 let launch_png_cmd filename =
-  UCmd.cmd_to_list (spf "dot -Tpng %s -o %s.png" filename filename) |> ignore;
-  UCmd.cmd_to_list (spf "open %s.png" filename) |> ignore;
+  UCmd.status_of_run (Name "dot", [ "-Tpng"; filename; "-o"; filename ^ ".png" ])
+  |> ignore;
+  UCmd.status_of_run (Name "open", [ filename ^ ".png" ]) |> ignore;
   ()
 
 let launch_gv_cmd filename =
-  UCmd.cmd_to_list ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;")
+  UCmd.status_of_run (Name "dot", [ filename; "-Tps"; "-o"; filename ^ ".ps" ])
   |> ignore;
-  UCmd.cmd_to_list ("gv " ^ filename ^ ".ps") |> ignore;
+  UCmd.status_of_run (Name "gv", [ filename ^ ".ps" ]) |> ignore;
   (* weird: I needed this when I launch the program with '&' via eshell,
    * otherwise 'gv' did not get the chance to be launched
    * Unix.sleep 1;

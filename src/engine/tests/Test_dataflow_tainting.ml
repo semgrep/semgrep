@@ -43,10 +43,10 @@ let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
 let pr2_prop_matches (file : Fpath.t) prop_matches : unit =
   prop_matches
   |> List.iter (fun (prop_match : Match_taint_spec.propagator_match) ->
-         let prop_str = show_rwm file prop_match.rwm in
-         let from_str = show_range file prop_match.from in
-         let to_str = show_range file prop_match.to_ in
-         UCommon.pr2 (spf "%s : %s -> %s" prop_str from_str to_str))
+      let prop_str = show_rwm file prop_match.rwm in
+      let from_str = show_range file prop_match.from in
+      let to_str = show_range file prop_match.to_ in
+      UCommon.pr2 (spf "%s : %s -> %s" prop_str from_str to_str))
 
 let test_tainting taint_inst def =
   UCommon.pr2 "\nDataflow";
@@ -77,9 +77,9 @@ let test_dfg_tainting rules_file file =
   let rules =
     rules
     |> List.filter (fun r ->
-           match r.Rule.target_analyzer with
-           | Analyzer.L (x, xs) -> List.mem lang (x :: xs)
-           | _ -> false)
+        match r.Rule.target_analyzer with
+        | Analyzer.L (x, xs) -> List.mem lang (x :: xs)
+        | _ -> false)
   in
   let _search_rules, taint_rules, _extract_rules, _join_rules =
     Rule.partition_rules rules
@@ -94,11 +94,12 @@ let test_dfg_tainting rules_file file =
   *)
   let tbl = Formula_cache.mk_specialized_formula_cache [] in
   let file_inst = Taint_rule_inst.mk_file ~lang ~path:file in
-  let muts = Taint_rule_inst.fresh_muts ~handle_effects:None in
-  let taint_inst, spec_matches, _exps =
+  let muts = OSS_taint_rule_inst.fresh_muts () in
+  let config, spec_matches, _exps =
     Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl
-      ~file:file_inst ~muts xconf (ast, []) rule
+      ~file:file_inst xconf (ast, []) rule
   in
+  let taint_inst = Taint_rule_inst.of_config config ~muts in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
   pr2_ranges file (spec_matches.raw_sources |> List.map fst);
@@ -124,7 +125,8 @@ let test_dfg_tainting rules_file file =
   (* Check each function definition. *)
   v#visit_program () ast;
   let _errors =
-    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst muts
+    Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst
+      muts.timeouts
   in
   ()
 

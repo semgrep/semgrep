@@ -204,3 +204,59 @@ def test_send_nominal_with_trace(
         json=expected_payload,
         timeout=3,
     )
+
+
+@pytest.mark.quick
+def test_capture_error_redacts_url_credentials(
+    error_handler, mocker: MockerFixture
+) -> None:
+    sensitive_traceback = (
+        "Traceback (most recent call last):\n"
+        "  File 'foo.py'\n"
+        "Failed to run 'git fetch "
+        "https://gitlab-ci-token:glpat-XXXXXXXX@gitlab.example.com/foo.git'\n"
+    )
+    mocker.patch("traceback.format_exc", return_value=sensitive_traceback)
+
+    try:
+        raise ValueError()
+    except Exception:
+        error_handler.capture_error()
+
+    captured = error_handler.payload["error"]
+    assert "glpat-XXXXXXXX" not in captured
+    assert "gitlab-ci-token" not in captured
+    assert "<REDACTED>" in captured
+
+
+@pytest.mark.quick
+def test_capture_error_real_chained_exception_from_git(
+    error_handler, mocker: MockerFixture
+) -> None:
+    """Exercises the real flow (CalledProcessError → SemgrepError →
+    format_exc), so it catches regressions of `from None`."""
+    import subprocess
+
+    from semgrep.git import git_check_output
+
+    url = "https://gitlab-ci-token:glpat-LEAK_ME@gitlab.example.com/foo.git"
+    mocker.patch(
+        "subprocess.check_output",
+        side_effect=subprocess.CalledProcessError(
+            returncode=128,
+            cmd=["git", "fetch", url, "main"],
+            stderr="fatal: could not read from remote\n",
+        ),
+    )
+
+    try:
+        git_check_output(["git", "fetch", url, "main"])
+    except Exception:
+        error_handler.capture_error()
+
+    captured = error_handler.payload["error"]
+    assert "glpat-LEAK_ME" not in captured
+    assert "gitlab-ci-token" not in captured
+    assert "<REDACTED>" in captured
+    # The non-secret context that aids debugging should still be there.
+    assert "gitlab.example.com" in captured

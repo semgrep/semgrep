@@ -9,11 +9,12 @@
     },
     "actions": {
       "cache": "v4",
-      "checkout": "v4",
-      "download-artifact": "v4",
+      "checkout": "v6",
+      "create-github-app-token": "v3",
+      "download-artifact": "v7",
       "setup-go": "v5",
       "setup-python": "v5",
-      "upload-artifact": "v4"
+      "upload-artifact": "v7"
     },
     "anthropics":{
       "claude-code-action": "v1"
@@ -32,6 +33,7 @@
       "increment-semantic-version": "1.1.0"
     },
     "depot": {
+      "bake-action": "v1.13.0",
       "build-push-action": "v1.9.0",
       "setup-action": "v1"
     },
@@ -45,23 +47,28 @@
       "submodule-branch-check-action": "v1"
     },
     "marocchino": {
-      "sticky-pull-request-comment": "v2"
+      "sticky-pull-request-comment": "v2.9.4"
+    },
+    "peter-evans": {
+      "create-pull-request": "v8"
     },
     "pre-commit": {
       "action": "v3.0.0"
     },
     "pypa": {
-      "gh-action-pypi-publish": "v1.13.0"
+      "gh-action-pypi-publish": "v1.14.0"
     },
     "semgrep": {
       "setup-ocaml": "latest",
-      "claude-taskmaster": "v0.1.6"
+      "claude-taskmaster": "v0.1.9",
+      "github-api-commit-action": "v1.1.0",
+      "mfw": "v0.3.8"
     },
     "slackapi": {
       "slack-github-action": "v1.23.0"
     },
     "softprops": {
-      "action-gh-release": "v2"
+      "action-gh-release": "v2.6.1"
     },
     "tibdex": {
       "github-app-token": "v2"

@@ -48,14 +48,14 @@ let mk_specialized_formula_cache (rules : R.taint_rule list) =
   let flat_formulas =
     rules
     |> List.concat_map (fun (rule : R.taint_mode R.rule_info) ->
-           let (`Taint (spec : R.taint_spec)) = rule.R.mode in
-           R.formulas_of_mode (`Taint spec))
+        let (`Taint (spec : R.taint_spec)) = rule.R.mode in
+        R.formulas_of_mode (`Taint spec))
   in
   flat_formulas
   |> List.iter (fun formula ->
-         match Formula_tbl.find_opt count_tbl formula with
-         | None -> Formula_tbl.add count_tbl formula (None, 1)
-         | Some (_, x) -> Formula_tbl.replace count_tbl formula (None, 1 + x));
+      match Formula_tbl.find_opt count_tbl formula with
+      | None -> Formula_tbl.add count_tbl formula (None, 1)
+      | Some (_, x) -> Formula_tbl.replace count_tbl formula (None, 1 + x));
   (* We return the table with pairs of (None, count) itself.
      When we try to cache a find, we will first check whether decreasing this
      counter results in 0. Then, there are no more uses, and the result is no

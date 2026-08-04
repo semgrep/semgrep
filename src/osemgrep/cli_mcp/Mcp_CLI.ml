@@ -25,11 +25,28 @@ module H = Cmdliner_
 (* Types and constants *)
 (*****************************************************************************)
 
-type conf = { common : CLI_common.conf; session_id : string } [@@deriving show]
+type conf = { common : CLI_common.conf; pro : bool; session_id : string }
+[@@deriving show]
 
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
+
+(* coupling: similar to Scan_CLI.o_pro, but we don't need the whole
+scan config here so we can just use a simple flag.
+
+we also don't really use this flag after this point as we have already checked for pro
+in the entrypoint.py file.
+
+in the entrypoint.py file, if the pro flag is passed, we run osemgrep-pro, which
+will set up the pro hooks, including hook_run_mcp. if the pro flag is not passed,
+we run osemgrep, which will not set up the pro hooks, and we will throw an error
+in run_conf in Mcp_subcommand.ml (right after calling parse_argv).
+ *)
+let o_pro : bool Term.t =
+  let open Cmdliner in
+  let doc = "Use the Pro Engine (required)" in
+  Arg.(value & flag & info [ "pro" ] ~doc)
 
 let o_session_id : string Term.t =
   let open Cmdliner in
@@ -37,8 +54,8 @@ let o_session_id : string Term.t =
   Arg.(required & opt (some string) None & info [ "session-id" ] ~doc)
 
 let cmdline_term : conf Term.t =
-  let combine common session_id = { common; session_id } in
-  Term.(const combine $ CLI_common.o_common $ o_session_id)
+  let combine common pro session_id = { common; pro; session_id } in
+  Term.(const combine $ CLI_common.o_common $ o_pro $ o_session_id)
 
 let doc = "(experimental) MCP server mode!!"
 

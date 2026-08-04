@@ -101,13 +101,13 @@ let id_mvars_of_formula ~interfile f =
   let id_mvars = ref Analyze_pattern.MvarSet.empty in
   f
   |> Visit_rule.visit_xpatterns (fun xp ~inside:_ ->
-         match xp with
-         | { pat = Sem (pat, lang); _ } ->
-             id_mvars :=
-               Analyze_pattern.(
-                 extract_mvars_in_id_position ~lang ~interfile pat
-                 |> MvarSet.union !id_mvars)
-         | __else__ -> ());
+      match xp with
+      | { pat = Sem (pat, lang); _ } ->
+          id_mvars :=
+            Analyze_pattern.(
+              extract_mvars_in_id_position ~lang ~interfile pat
+              |> MvarSet.union !id_mvars)
+      | __else__ -> ());
   !id_mvars
 
 let metavariables_and_strings_of_pattern (env : env) (pat : Xpattern.t) :
@@ -130,7 +130,7 @@ let metavariables_and_strings_of_pattern (env : env) (pat : Xpattern.t) :
       in
       Some (pred (StringsAndMvars (ids, mvars)))
   (* TODO? do we need to prefilter aliengrep rules? they are supposed to be
-     compiled in effective Pcre_.t (see Pat_compile.t) regexps *)
+     compiled in effective Pcre2_.t (see Pat_compile.t) regexps *)
   | Aliengrep _ -> None
 
 let metavariables_and_strings_of_condition (env : env) (x : Rule.metavar_cond) :
@@ -278,14 +278,48 @@ let prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
        file) that leads to sink. *)
     None
   else
+    (* If there are any sources or sinks that are ranges-based as opposed to formula-based,
+       we want to not only keep the formula based sources or sinks, but to overall produce
+       an empty list for our sources or sinks.
+       This will signal that we would like the formula to be unconstrained in sources or
+       sinks.
+       Otherwise, we might incorrectly constrain based off of only the formula, which is
+       incorrect, as matches for range-based rules can occur anywhere.
+     *)
+    let have_source_with_ranges =
+      List.exists
+        (fun (src : Rule.taint_source) ->
+          match src.source_formula with
+          | Rule.Ranges _ -> true
+          | Rule.Formula _ -> false)
+        source_patterns
+    in
+    let have_sink_with_ranges =
+      List.exists
+        (fun (sink : Rule.taint_sink) ->
+          match sink.sink_formula with
+          | Rule.Ranges _ -> true
+          | Rule.Formula _ -> false)
+        sink_patterns
+    in
     (* We must be able to match some source _and_ some sink. *)
     let sources =
-      source_patterns
-      |> List.map (fun (src : Rule.taint_source) -> src.source_formula)
+      if have_source_with_ranges then []
+      else
+        source_patterns
+        |> List.filter_map (fun (src : Rule.taint_source) ->
+            match src.source_formula with
+            | Rule.Formula f -> Some f
+            | Rule.Ranges _ -> None)
     in
     let sinks =
-      sink_patterns
-      |> List.map (fun (sink : Rule.taint_sink) -> sink.sink_formula)
+      if have_sink_with_ranges then []
+      else
+        sink_patterns
+        |> List.filter_map (fun (sink : Rule.taint_sink) ->
+            match sink.sink_formula with
+            | Rule.Formula f -> Some f
+            | Rule.Ranges _ -> None)
     in
     (* Note that this formula would likely not yield any meaningful result
        if executed by search-mode, but it works for the purpose of this
@@ -295,8 +329,17 @@ let prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
         And (rule_tok, [ f (Or (rule_tok, sources)); f (Or (rule_tok, sinks)) ])
         |> f)
 
-let generate_prefilter_internal ~interfile
-    ({ id = rule_id, _; _ } as r : Rule.t) =
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+(* Public entry point.  Not memoized — callers that want memoization
+   should construct it at the right scope (typically per-scan, with
+   eager prefill).  See [Match_env.make_prefilter] for the canonical
+   pattern.  Module-scope memoization here is unsafe because two
+   unrelated scans in the same process (LSP reload, test runner) can
+   reuse the same [Rule_ID.t] for different rule bodies. *)
+let generate_prefilter ~interfile ({ id = rule_id, _; _ } as r : Rule.t) =
   try
     match r.mode with
     | `Search f
@@ -318,15 +361,6 @@ let generate_prefilter_internal ~interfile
       Log.err (fun m ->
           m "Stack overflow when generating prefilter for %a" Rule_ID.pp rule_id);
       None
-
-(*****************************************************************************)
-(* Entry points *)
-(*****************************************************************************)
-
-(* Memoized prefilter generation *)
-let generate_prefilter ~interfile =
-  let key_fn = fun ({ id = key, _; _ } : Rule.t) -> key in
-  SharedMemo.make_with_key_fn key_fn (generate_prefilter_internal ~interfile)
 
 (* Alias for the lower-level function to match the mli *)
 let generate_prefilter_from_formula = prefilter_of_formula

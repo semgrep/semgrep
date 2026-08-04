@@ -10,23 +10,17 @@ pin-depends: [
         - semgrep-pro.opam.template
         - semgrep-pro.opam
   *)
-  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#8521d35f98c3bbd7fdcb6678bf120b334b4b6a9c"]
+  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#aaaacf27f74fd87eb5b9887fb9995bee4cedb979"]
   ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#4e0a44486bb518b7a24ca11286c4b03a8d51e17e"]
-  ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#abb14bfa9ce2bb983f425f091b0cffe44fdb6848"]
-  ["testo.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
-  ["testo-util.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
-  ["testo-diff.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
-  ["testo-lwt.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
-  ["obackward.dev" "git+https://github.com/semgrep/obackward.git#060ebb528e88b27124b33b5cfaf8ed04b7da6e41"]
+  ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#c4baff8d83b2e1f83f247acb11d0c9dafa5e48f7"]
+  ["obackward.dev" "git+https://github.com/semgrep/obackward.git#e1c16766976b4fadd97097b96f96666e8e1cb98c"]
   (* coupling: update the submodule in cli/src/semgrep too *)
   ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#7e509db48c700cae49fe0372e2aa0410fa86d867"]
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
-  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
-  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#af9d3a1aaf188a6d55c76f29a06cf2808f65e000"]
-  (* clean-room visitors runtime + upstream PPX *)
-  ["visitors-cleanroom.dev" "git+https://github.com/semgrep/semgrep-ocaml-visitors.git#772e36fb4899651856d38478bc796da2cd85968d"]
+  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
+  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
   ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
@@ -37,7 +31,14 @@ pin-depends: [
 (* Needed for alpine linux docker image. These used to get pulled in *)
 (* automatically in alpine 3.21 but in >3.22 they dont *)
 depexts: [
-    ["pcre-static"] {os-distribution = "alpine"}
     ["pcre2-static"] {os-distribution = "alpine"}
     ["gmp-static"] {os-distribution = "alpine"}
+    (* obackward statically links libdwarf/libunwind (and comprmarsh links *)
+    (* libzstd); the fully-static alpine build needs the .a archives. The *)
+    (* obackward opam package no longer declares these as depexts, so we *)
+    (* require them here on the package that actually links them. *)
+    ["zstd-static"] {os-distribution = "alpine"}
+    ["xz-static"] {os-distribution = "alpine"}
+    ["bzip2-static"] {os-distribution = "alpine"}
+    ["libunwind-static"] {os-distribution = "alpine"}
 ]

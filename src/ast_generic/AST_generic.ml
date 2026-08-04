@@ -223,6 +223,34 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 *)
 let pp_hidden fmt _ = Format.fprintf fmt "_"
 
+let windows_float_exponent_re =
+  Lazy_safe.from_fun (fun () -> Pcre2_.regexp {|e[-+]0[0-9][0-9]+|})
+
+(* Windows' C runtime prints float exponents with a minimum of three digits
+   (e.g. "1.5e-010") whereas Unix uses two ("1.5e-10"). Normalize to Unix snapshots format. *)
+let normalize_windows_float_exponent s =
+  Pcre2_.substitute
+    ~rex:(Lazy_safe.force windows_float_exponent_re)
+    ~subst:(fun matched ->
+      (* [matched] looks like "e+013" or "e-010". *)
+      let sign = matched.[1] in
+      let digits = Str.string_after matched 2 in
+      Printf.sprintf "e%c%02d" sign (int_of_string digits))
+    s
+
+(* Type alias so [literal.Float] can use a custom [show] printer.
+   Match [@@deriving show] for [float] so AST
+   snapshots stay stable, but normalize three-digit exponents on Windows. *)
+type ast_float =
+  (float
+  [@printer
+    fun fmt f ->
+      if Sys.unix then Format.fprintf fmt "%F" f
+      else
+        let s = Printf.sprintf "%F" f in
+        Format.pp_print_string fmt (normalize_windows_float_exponent s)])
+[@@deriving eq, ord, hash, sexp, show { with_path = false }]
+
 (*****************************************************************************)
 (* Token (leaf) *)
 (*****************************************************************************)
@@ -469,6 +497,7 @@ class virtual ['self] iter_parent =
     method visit_id_info_id_t _env _ = ()
     method visit_resolved_name _env _ = ()
     method visit_tok _env _ = ()
+    method visit_ast_float _env _ = ()
 
     method visit_parsed_int env pi =
       Parsed_int.visit
@@ -542,6 +571,7 @@ class virtual ['self] map_parent =
     method visit_id_info_id_t _env x = x
     method visit_resolved_name _env x = x
     method visit_tok _env x = x
+    method visit_ast_float _env f = f
     method visit_parsed_int env pi = Parsed_int.map_tok (self#visit_tok env) pi
   end
 
@@ -644,8 +674,7 @@ and id_info = {
    * meaning the same variable might have different id_svalue value
    * depending where it is used.
    *)
-  id_svalue : svalue option ref; [@hash.ignore] [@equal fun _a _b -> true]
-  (* ^^^ THINK: Drop option? *)
+  id_svalue : svalue ref; [@hash.ignore] [@equal fun _a _b -> true]
   (* See module 'IdFlags'. Previously we compared 'id_flags' with 'IdFlags.equal'
    * but, once we added the 'final' flag which is only set at definition site,
    * the same identifier can now have different flags. In fact we did not really
@@ -873,7 +902,7 @@ and literal =
   (* See explanation for @name where the visitors are generated at the end of
      * this long recursive type. *)
   | Int of (Parsed_int.t[@name "parsed_int"])
-  | Float of float option wrap
+  | Float of ast_float option wrap
   | Char of string wrap
   (* String literals:
      The token includes the quotes (if any) but the string value excludes them.
@@ -914,6 +943,7 @@ and const_type = Cbool | Cint | Cstr | Cany
  * for constant and symbolic propagation, but having a single one is more
  * efficient (time- and memory-wise). *)
 and svalue =
+  | Unknown
   | Lit of literal
   | Cst of const_type
   | Sym of expr
@@ -1060,9 +1090,9 @@ and operator =
   | Pow (* ** binary op; for unary see HashSplat above *)
   | FloorDiv
   | MatMult (* Python *)
-  | LSL
-  | LSR
-  | ASR (* L = logic, A = Arithmetic, SL = shift left *)
+  | LSL (* << logical shift left *)
+  | LSR (* >>> logical shift right, zero-fill *)
+  | ASR (* >>  arithmetic shift right, sign-preserving *)
   | BitOr
   | BitXor
   | BitAnd
@@ -2303,7 +2333,7 @@ let empty_id_info ?(fake = false) ?(case_insensitive = false)
     id_resolved = ref None;
     id_resolved_alternatives = ref [];
     id_type = ref None;
-    id_svalue = ref None;
+    id_svalue = ref Unknown;
     id_flags =
       ref (IdFlags.make ~fake ~case_insensitive ~final:false ~static:false);
     id_info_id = id;
@@ -2315,6 +2345,13 @@ let basic_id_info ?(fake = false) resolved =
   id_info
 
 let is_case_insensitive info = IdFlags.is_case_insensitive !(info.id_flags)
+
+(** [true] when the definition is a function/method whose entity is marked as
+    compiler-synthesised (fake). *)
+let is_fake_funcdef : definition -> bool = function
+  | { name = EN (Id (_, id_info)); _ }, FuncDef _ ->
+      IdFlags.is_fake !(id_info.id_flags)
+  | _ -> false
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
 
@@ -2378,13 +2415,13 @@ let interpolated (lquote, xs, rquote) =
           ( lquote,
             xs_with_fused_literals
             |> List.map (function
-                 | Either_.Left3 x ->
-                     Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
-                 | Either_.Right3 (lbrace, eopt, rbrace) ->
-                     let special = Special (InterpolatedElement, lbrace) |> e in
-                     let args = eopt |> Option.to_list |> List.map arg in
-                     Arg (Call (special, (lbrace, args, rbrace)) |> e)
-                 | Either_.Middle3 e -> Arg e),
+              | Either_.Left3 x ->
+                  Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
+              | Either_.Right3 (lbrace, eopt, rbrace) ->
+                  let special = Special (InterpolatedElement, lbrace) |> e in
+                  let args = eopt |> Option.to_list |> List.map arg in
+                  Arg (Call (special, (lbrace, args, rbrace)) |> e)
+              | Either_.Middle3 e -> Arg e),
             rquote ) )
       |> e
 

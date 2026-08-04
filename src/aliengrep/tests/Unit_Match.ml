@@ -19,7 +19,6 @@
    used to build values.
 *)
 [@@@warning "-37"]
-[@@@alert "-deprecated"]
 
 open Printf
 open Match
@@ -190,19 +189,22 @@ let test_explicit_brackets () =
   check slconf {|(...)|} {|([)]|} [ Num_matches 0 ];
   check slconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
 
-(* If this starts segfaulting again instead of returning RecursionLimit, check
-   both that the legacy PCRE recursion limit is still set in Pcre_.regexp and
-   that the OCaml runtime is still configuring the expected C FFI stack size. *)
+(* If this starts segfaulting again instead of returning DepthLimit, check
+   that Pcre2_.depth_limit is still set. PCRE2 uses heap rather than the C
+   stack for backtracking, so segfaults are unlikely, but a missing depth
+   limit can still let pathological aliengrep patterns chew through memory.
+   We nest just past Pcre2_.depth_limit so the test stays calibrated to the
+   limit automatically if it ever changes. *)
 let test_recursion_limit () =
   let pat = Pat_compile.from_string slconf {|(...)|} in
-  let nesting = 10_100 in
+  let nesting = Pcre2_.depth_limit + 100 in
   let target = String.make nesting '(' ^ "x" ^ String.make nesting ')' in
-  (match Pcre_.exec_all ~rex:pat.pcre target with
-  | Error Pcre.RecursionLimit -> ()
+  (match Pcre2_.exec_all ~rex:pat.pcre target with
+  | Error Pcre2.DepthLimit -> ()
   | Error err ->
-      Alcotest.failf "expected RecursionLimit, got %s" (Pcre_.show_error err)
+      Alcotest.failf "expected DepthLimit, got %s" (Pcre2_.show_error err)
   | Ok matches ->
-      Alcotest.failf "expected RecursionLimit, got %d matches"
+      Alcotest.failf "expected DepthLimit, got %d matches"
         (Array.length matches));
   let matches = Match.search pat target in
   Alcotest.(check int)
@@ -292,6 +294,40 @@ let test_ellipsis_metavariable () =
   (* back-references require exact whitespace match, unfortunately *)
   check slconf {|[$...A $...A]|} "[a b a  b]" [ Num_matches 0 ]
 
+(* Regression test for the PCRE -> PCRE2 migration: ensures capture-group
+   numbering inside (?(DEFINE)...) is consistent between Pat_compile.compile
+   (which builds metavariable_groups counting from 1) and PCRE2's runtime
+   numbering. Pat_compile's `define` helper calls new_capturing_group ()
+   once per DEFINE block; if PCRE2 ever counted DEFINE wrappers differently
+   from the named group inside, the metavariable index ID exposed at
+   Match.loc_of_substring would silently point at the wrong substring. *)
+let test_define_capture_numbering () =
+  (* Two distinct metavariables -> distinct capture groups. *)
+  check slconf {|$A : $B|} {|x : y|}
+    [
+      Num_matches 1;
+      Match_value {|x : y|};
+      Capture_value (mv Metavariable "A", "x");
+      Capture_value (mv Metavariable "B", "y");
+    ];
+  (* Same metavariable used twice -- exercises the \g{N} backreference
+     path in Pat_compile.capture for the Metavariable case. *)
+  check slconf {|$A : $A|} {|x : x|}
+    [
+      Num_matches 1;
+      Match_value {|x : x|};
+      Capture_value (mv Metavariable "A", "x");
+    ];
+  check slconf {|$A : $A|} {|x : y|} [ Num_matches 0 ];
+  (* Same with ellipsis-metavariable -- exercises the Metavariable_ellipsis
+     branch of Pat_compile.capture. *)
+  check slconf {|$...A : $...A|} {|a b : a b|}
+    [
+      Num_matches 1;
+      Match_value {|a b : a b|};
+      Capture_value (mv Metavariable_ellipsis "A", "a b");
+    ]
+
 (* Demonstrate the use of long ellipsis to match multiple lines
    in single-line mode. *)
 let test_skip_lines () =
@@ -368,6 +404,7 @@ let tests =
       t "custom brackets" test_custom_brackets;
       t "backreferences" test_backreferences;
       t "ellipsis metavariable" test_ellipsis_metavariable;
+      t "define capture numbering" test_define_capture_numbering;
       t "skip lines" test_skip_lines;
       t "left-anchored ellipses" test_left_anchored_ellipses;
       t "right-anchored ellipses" test_right_anchored_ellipses;

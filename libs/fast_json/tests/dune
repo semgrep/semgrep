@@ -1,0 +1,13 @@
+(library
+ (public_name fast_json.tests)
+ (name fast_json_tests)
+ (wrapped false)
+ (libraries
+   fast_json
+   lib_parsing
+   ast_generic
+   yojson
+   alcotest
+   testo
+ )
+)

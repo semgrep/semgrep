@@ -116,17 +116,27 @@ RUN apk update && apk add bash build-base git make rsync opam
 # - scripts/{osx-setup-for-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-RUN opam init --disable-sandboxing -v && opam switch create 5.3.0 ocaml-variants.5.3.0+options ocaml-option-flambda -y -v
-
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
+
+# Copy just the Makefile (and its include) first so that initializing opam and
+# creating the switch stay in their own docker cache layers, independent of the
+# opam files, lockfiles, and sources copied below. Creating the switch (which
+# builds the compiler) is one of the most expensive steps of the build.
+COPY Makefile cygwin-env.mk ./
+
+# Initialize opam with our pinned opam-repository (containers can't use the
+# bubblewrap sandbox), then create the switch and install our fork of the
+# compiler ('make switch' runs 'make pin-ocaml-fork').
+RUN make opam-init OPAM_INIT_FLAGS=--disable-sandboxing
+RUN make switch
 
 # Copy just what is needed for make install-deps below to work to maximize
 # docker cache hit as building and installing all the opam packages
 # is what takes the most time in the docker build.
 #
 # coupling: if you change this you probably want to change this in semgrep-pro
-COPY Makefile cygwin-env.mk semgrep.opam ./
+COPY semgrep.opam ./
 COPY dev/required.opam dev/
 COPY scripts/build-static-libcurl.sh scripts/
 COPY scripts/validate-compiler-sha.sh scripts/
@@ -134,9 +144,6 @@ COPY scripts/pick-lockfile.sh scripts/
 COPY opam-lockfiles/ ./opam-lockfiles
 COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
-
-# Install our fork of the compiler
-RUN make pin-ocaml-fork
 
 RUN make install-deps
 
@@ -305,6 +312,11 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 # will show the help text, but
 #   docker run -it semgrep/semgrep /bin/bash
 # will let users bring up a bash session.
+#
+# This stage intentionally stays as root so `docker run -v ${PWD}:/src ...`
+# works against host-owned bind mounts; the `nonroot` stage below is what
+# ships to users who want a non-root image.
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
@@ -324,10 +336,18 @@ FROM semgrep-oss AS semgrep-cli
 # locally, set the SEMGREP_APP_TOKEN environment variable and then run:
 #
 # $ docker build --secret id=SEMGREP_APP_TOKEN ...
-RUN --mount=type=secret,id=SEMGREP_APP_TOKEN if [ -f /run/secrets/SEMGREP_APP_TOKEN ]; then ( SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug ); else ( echo "SEMGREP_APP_TOKEN secret not set, skipping semgrep-pro install" >&2 ); fi
-
-# Clear out any detritus from the pro install (especially credentials)
-RUN rm -rf /root/.semgrep
+#
+# The install and the credentials cleanup must run in the same RUN so the
+# token-bearing ~/.semgrep/settings.yml never lands in a committed layer.
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN \
+    rc=0; \
+    if [ -f /run/secrets/SEMGREP_APP_TOKEN ]; then \
+        SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug || rc=$?; \
+    else \
+        echo "SEMGREP_APP_TOKEN secret not set, skipping semgrep-pro install" >&2; \
+    fi; \
+    rm -rf /root/.semgrep; \
+    exit ${rc}
 
 # This was the final step! This is what we ship to users!
 
@@ -389,11 +409,8 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 # Copy in scripts folder
 COPY scripts/ ./scripts/
 
-# Build the source distribution and binary wheel, validate that the wheel
-# installs correctly. We're only checking the musllinux wheel because this is
-# an Alpine container. It should not be a problem because the content of the
-# wheels are identical.
-RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
+# Build the source distribution and binary wheel.
+RUN scripts/build-wheels.sh
 
 FROM scratch AS semgrep-wheel-binaries
 

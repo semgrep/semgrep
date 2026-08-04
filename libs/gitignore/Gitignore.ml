@@ -101,39 +101,6 @@ type gitignore_filename = {
 let default_gitignore_filename =
   { source_kind = "gitignore"; filename = ".gitignore"; format = Gitignore }
 
-(*
-   A project usually contains a single toplevel .gitignore, but each subdir
-   of this project can also contain a "refining" .gitignore that
-   takes precedence. Here we cache all those .gitignore. The cache
-   also support non-standard ignore files (e.g., .semgrepignore).
-
-   See also Gitignores_cache.create() and Gitignores_cache.load()
-*)
-type gitignores_cache = {
-  project_root : Fpath.t;
-  (* List of gitignore-like files to look for in each of the project's
-     source folders. *)
-  gitignore_filenames : gitignore_filename list;
-  (* TODO? why we use a cache? Why not loading all those .gitiginore at once?*)
-  cache : (string, level option) Hashtbl.t;
-}
-
-(*
-   This represents the full gitignore filtering inputs, assuming
-   the sources of gitignore patterns were already parsed and are provided
-   as levels. The actual sources of gitignore patterns and levels
-   are not specified here, allowing nonstandard sources (e.g.,
-   .semgrepignore files).
-
-   See also Gitignore_filter.create() and Gitignore_filter.select().
-*)
-type filter = {
-  project_root : Fpath.t;
-  higher_priority_levels : level list;
-  gitignore_file_cache : gitignores_cache;
-  lower_priority_levels : level list;
-}
-
 (* Final result of a gitignore filter (clearer than a bool) *)
 type status = Not_ignored | Ignored [@@deriving show]
 

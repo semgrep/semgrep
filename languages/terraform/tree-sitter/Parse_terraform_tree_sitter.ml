@@ -56,7 +56,8 @@ let pattern_of_ids ids =
 
 (* val parse_number_literal : string * Parse_info.t -> AST_generic.literal *)
 let parse_number_literal (s, t) =
-  match Parsed_int.parse_c_octal (s, t) with
+  (* HCL/Terraform has no C-style octal: a leading zero is decimal. *)
+  match Parsed_int.parse (s, t) with
   | (Some _, _) as pi -> G.Int pi
   | pi -> (
       match float_of_string_opt s with

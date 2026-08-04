@@ -171,8 +171,8 @@ let rec expr env (x : expr) =
           ( v1,
             xs
             |> List.map (fun x ->
-                   let x = expr env x in
-                   G.Arg x),
+                let x = expr env x in
+                G.Arg x),
             v3 ) )
       |> G.e
   | ConcatenatedString xs ->
@@ -182,8 +182,8 @@ let rec expr env (x : expr) =
           fb
             (xs
             |> List.map (fun x ->
-                   let x = expr env x in
-                   G.Arg x)) )
+                let x = expr env x in
+                G.Arg x)) )
       |> G.e
   | TypedMetavar (v1, v2, v3) ->
       let v1 = name env v1 in
@@ -243,11 +243,11 @@ let rec expr env (x : expr) =
         if
           v
           |> List.for_all (function
-               | KeyVal _
-               (* semgrep-ext: ... should not count *)
-               | Key (Ellipsis _) ->
-                   true
-               | _ -> false)
+            | KeyVal _
+            (* semgrep-ext: ... should not count *)
+            | Key (Ellipsis _) ->
+                true
+            | _ -> false)
           || v =*= []
         then G.Dict
         else G.Set
@@ -277,7 +277,7 @@ let rec expr env (x : expr) =
           let anyops =
             v2
             |> List.map (function arith, tok ->
-                   G.E (G.Special (G.Op arith, tok) |> G.e))
+                G.E (G.Special (G.Op arith, tok) |> G.e))
           in
           let anys = anyops @ (v3 |> List.map (fun e -> G.E e)) in
           G.OtherExpr (("CmpOps", unsafe_fake ""), anys) |> G.e)
@@ -395,7 +395,8 @@ and operator = function
   | Pow -> G.Pow
   | FloorDiv -> G.FloorDiv
   | LShift -> G.LSL
-  | RShift -> G.LSR
+  | RShift ->
+      G.ASR (* Python ints are signed arbitrary-precision; >> is arithmetic *)
   | BitOr -> G.BitOr
   | BitXor -> G.BitXor
   | BitAnd -> G.BitAnd
@@ -448,14 +449,14 @@ and subscript env e1 (t1, e2, t2) : G.expr_kind =
   if
     e2
     |> List.for_all (function
-         | Index _ -> true
-         | _ -> false)
+      | Index _ -> true
+      | _ -> false)
   then
     let indices =
       e2
       |> List.filter_map (function
-           | Index v1 -> Some v1
-           | Slice _ -> None)
+        | Index v1 -> Some v1
+        | Slice _ -> None)
     in
     let v = bracket (list (expr env)) (t1, indices, t2) in
     let container = G.Container (G.Tuple, v) |> G.e in
@@ -487,24 +488,24 @@ and parameters env xs : G.parameter list =
   in
   xs
   |> List.map (function
-       | ParamDefault ((param_pat, topt), e) ->
-           let topt = option (type_ env) topt in
-           let e = expr env e in
-           param_of_param_pattern ~topt ~eopt:(Some e) param_pat
-       | ParamPattern (param_pat, topt) ->
-           let topt = option (type_ env) topt in
-           param_of_param_pattern ~topt ~eopt:None param_pat
-       | ParamStar (t, (n, topt)) ->
-           let n = name env n in
-           let topt = option (type_ env) topt in
-           G.ParamRest (t, { (G.param_of_id n) with G.ptype = topt })
-       | ParamPow (t, (n, topt)) ->
-           let n = name env n in
-           let topt = option (type_ env) topt in
-           G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
-       | ParamEllipsis tok -> G.ParamEllipsis tok
-       | ParamSingleStar tok -> G.OtherParam (("SingleStar", tok), [])
-       | ParamSlash tok -> G.OtherParam (("SlashParam", tok), []))
+    | ParamDefault ((param_pat, topt), e) ->
+        let topt = option (type_ env) topt in
+        let e = expr env e in
+        param_of_param_pattern ~topt ~eopt:(Some e) param_pat
+    | ParamPattern (param_pat, topt) ->
+        let topt = option (type_ env) topt in
+        param_of_param_pattern ~topt ~eopt:None param_pat
+    | ParamStar (t, (n, topt)) ->
+        let n = name env n in
+        let topt = option (type_ env) topt in
+        G.ParamRest (t, { (G.param_of_id n) with G.ptype = topt })
+    | ParamPow (t, (n, topt)) ->
+        let n = name env n in
+        let topt = option (type_ env) topt in
+        G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
+    | ParamEllipsis tok -> G.ParamEllipsis tok
+    | ParamSingleStar tok -> G.OtherParam (("SingleStar", tok), [])
+    | ParamSlash tok -> G.OtherParam (("SlashParam", tok), []))
 
 and type_ env v =
   match v with
@@ -610,6 +611,12 @@ and type_parameter env = function
       G.OtherTypeParam
         (("OtherTypeParam", unsafe_fake "OtherTypeParam"), [ G.T t ])
 
+and type_parameters_bracket env = function
+  | None -> None
+  | Some (l, types, r) ->
+      let tparams = List.map (type_parameter env) types in
+      Some (l, tparams, r)
+
 and type_alias_def env (_tok, v1, v2) =
   let v2 = type_ env v2 in
   let def = G.TypeDef { tbody = G.AliasType v2 } in
@@ -650,7 +657,7 @@ and type_alias_def env (_tok, v1, v2) =
 
 and stmt_aux env x =
   match x with
-  | FunctionDef (t, v1, v2, v3, v4, v5) ->
+  | FunctionDef (t, v1, tparams, v2, v3, v4, v5) ->
       let fkind =
         match env.context with
         | InClass -> G.Method
@@ -658,11 +665,12 @@ and stmt_aux env x =
       in
       let env = { env with context = InFunctionOrMethod } in
       let v1 = name env v1
+      and tparams = type_parameters_bracket env tparams
       and v2 = parameters env v2
       and v3 = option (type_ env) v3
       and v4 = list_stmt1 env v4
       and v5 = list (decorator env) v5 in
-      let ent = G.basic_entity v1 ~attrs:v5 in
+      let ent = { (G.basic_entity v1 ~attrs:v5) with tparams } in
       let def =
         {
           G.fparams = fb v2;
@@ -672,13 +680,14 @@ and stmt_aux env x =
         }
       in
       [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
-  | ClassDef (v0, v1, v2, v3, v4) ->
+  | ClassDef (v0, v1, tparams, v2, v3, v4) ->
       let env = { env with context = InClass } in
       let v1 = name env v1
+      and tparams = type_parameters_bracket env tparams
       and v2 = list (type_parent env) v2
       and v3 = list_stmt env v3
       and v4 = list (decorator env) v4 in
-      let ent = G.basic_entity v1 ~attrs:v4 in
+      let ent = { (G.basic_entity v1 ~attrs:v4) with tparams } in
       let def =
         {
           G.ckind = (G.Class, v0);
@@ -897,8 +906,8 @@ and stmt_aux env x =
       let v1 = list (name env) v1 in
       v1
       |> List.map (fun x ->
-             let ent = G.basic_entity x in
-             G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
+          let ent = G.basic_entity x in
+          G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
   | ExprStmt v1 ->
       let v1 = expr env v1 in
       [ G.exprstmt v1 ]

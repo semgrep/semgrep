@@ -96,13 +96,14 @@ let visibility_modifier (env : env) (x : CST.visibility_modifier) =
 
 let scope_identifier (env : env) (x : CST.scope_identifier) =
   (match x with
-  | `Self tok ->
-      (* "self" *) G.N (G.IdSpecial ((Self, token env tok), G.empty_id_info ()))
-  | `Parent tok ->
-      (* "parent" *)
-      G.N (G.IdSpecial ((Parent, token env tok), G.empty_id_info ()))
-  (* Q: Add IdSpecial? *)
-  | `Static tok -> (* "static" *) G.N (G.Id (str env tok, G.empty_id_info ())))
+    | `Self tok ->
+        (* "self" *)
+        G.N (G.IdSpecial ((Self, token env tok), G.empty_id_info ()))
+    | `Parent tok ->
+        (* "parent" *)
+        G.N (G.IdSpecial ((Parent, token env tok), G.empty_id_info ()))
+    (* Q: Add IdSpecial? *)
+    | `Static tok -> (* "static" *) G.N (G.Id (str env tok, G.empty_id_info ())))
   |> G.e
 
 let null (env : env) (x : CST.null) =
@@ -827,8 +828,9 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v1 = expression env v1 in
       let v2 = (* ">>" *) token env v2 in
       let v3 = expression env v3 in
+      (* Hack int is signed 64-bit; >> is arithmetic *)
       G.Call
-        ( G.Special (G.Op G.LSR, v2) |> G.e,
+        ( G.Special (G.Op G.ASR, v2) |> G.e,
           Tok.unsafe_fake_bracket [ G.Arg v1; G.Arg v3 ] )
       |> G.e
   | `Exp_PLUS_exp (v1, v2, v3) ->
@@ -935,7 +937,8 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       G.AssignOp (v1, (op, v2), v3) |> G.e
   | `Exp_GTGTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2, op = (* ">>=" *) (token env v2, G.LSR) in
+      (* Hack int is signed 64-bit; >>= is arithmetic *)
+      let v2, op = (* ">>=" *) (token env v2, G.ASR) in
       let v3 = expression env v3 in
       G.AssignOp (v1, (op, v2), v3) |> G.e
   | `Exp_PLUSEQ_exp (v1, v2, v3) ->

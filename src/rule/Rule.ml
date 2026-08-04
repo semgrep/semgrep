@@ -204,7 +204,7 @@ type precondition =
   | PAnd of precondition list
   | POr of precondition list
   | PNot of precondition
-[@@deriving show, ord]
+[@@deriving show, ord, eq]
 
 let rec show_precondition (p : precondition) : string =
   match p with
@@ -221,18 +221,32 @@ type precondition_with_range = {
   range : (Tok.location * Tok.location) option;
       (** Range used to extract the actual text of the precondition for rule translation. *)
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 type sink_requires =
   | UniReq of precondition_with_range
   | MultiReq of (Mvar.t wrap * precondition_with_range) list  (** non-empty *)
-[@@deriving show]
+[@@deriving show, eq]
 
-type by_side_effect = Only | Yes | No [@@deriving show]
+type by_side_effect = Only | Yes | No [@@deriving show, eq]
 
-type taint_spec_id = string [@@deriving show]
+type taint_spec_id = string [@@deriving show, eq]
 (** A unique identifier for a taint spec pattern (source, sink, sanitizer, or
     propagator). See e.g. 'Parse_rule.parse_taint_source'. *)
+
+type byte_range = { start : int; end_ : int } [@@deriving show, eq]
+(** A byte-range in a file: [(start_bytepos, end_bytepos)].
+    Isomorphic to [Range.t] but defined here to avoid a dependency on
+    [semgrep.core] from [semgrep.rule]. *)
+
+(** A formula field in a taint spec entry (source, sink, sanitizer).
+    Either a normal pattern formula, or a list of precomputed file/range
+    pairs that bypass formula evaluation (used by the taint_ranges
+    experiment).  taint_propagator is excluded — see note below. *)
+type taint_formula =
+  | Formula of formula
+  | Ranges of (Fpath.t * byte_range) list
+[@@deriving show, eq]
 
 (* The sources/sanitizers/sinks used to be a simple 'formula list',
  * but with taint labels things are bit more complicated.
@@ -246,7 +260,7 @@ type taint_spec = {
 
 and taint_source = {
   source_id : taint_spec_id;
-  source_formula : formula;
+  source_formula : taint_formula;
   source_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `source(...)`, then the
         `ok` inside `source(sink(ok))` is considered tainted, and `sink(ok)` is
@@ -281,7 +295,7 @@ and taint_source = {
  *)
 and taint_sanitizer = {
   sanitizer_id : taint_spec_id;
-  sanitizer_formula : formula;
+  sanitizer_formula : taint_formula;
   sanitizer_exact : bool;
       (** If 'false' (the default), if the formula were e.g. `sanitize(...)`, then
         the `tainted` inside `sanitize(sink(tainted))` is considered sanitized,
@@ -307,7 +321,7 @@ and taint_sanitizer = {
 
 and taint_sink = {
   sink_id : taint_spec_id;
-  sink_formula : formula;
+  sink_formula : taint_formula;
   sink_exact : bool;
       (** If 'true' (the default), if the formula were e.g. `sink(...)`, then the
         `tainted` inside `sink(if tainted then ok1 else ok2)` is not considered a
@@ -359,7 +373,7 @@ and taint_propagator = {
          received.
       *)
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 let default_source_label = "__SOURCE__"
 let default_source_requires = PBool true
@@ -433,7 +447,7 @@ and extract_transform = NoTransform | Unquote | ConcatJsonArray
     - either treat them as separate files; or
     - concatentate them together
 *)
-and extract_reduction = Separate | Concat [@@deriving show]
+and extract_reduction = Separate | Concat [@@deriving show, eq]
 
 (*****************************************************************************)
 (* secrets mode (Pro-only) *)
@@ -459,7 +473,7 @@ and extract_reduction = Separate | Concat [@@deriving show]
  *)
 
 type header = { name : string; value : string } [@@deriving show, eq]
-type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show]
+type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show, eq]
 
 (* Used to request additional auth headers are computed and added automatically,
  * e.g., because they depend on other headers and/or body
@@ -481,7 +495,7 @@ type auth =
       service : string;
       region : string;
     }
-[@@deriving show]
+[@@deriving show, eq]
 
 type aws_request = {
   secret_access_key : string;
@@ -489,7 +503,7 @@ type aws_request = {
   region : string;
   session_token : string option;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (* why is url : string? metavariables (i.e http://$X) are present at parsing; which
  * if parsed with Uri.of_string translates it to http://%24x
@@ -501,11 +515,11 @@ type request = {
   body : string option;
   auth : auth option;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (* Used to match on the returned response of some request *)
 type response = { return_code : Parsed_int.t; regex : string option }
-[@@deriving show]
+[@@deriving show, eq]
 
 type http_match_clause = {
   status_code : Parsed_int.t option;
@@ -513,7 +527,7 @@ type http_match_clause = {
   headers : header list;
   content : (formula * Analyzer.t) option;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 type http_matcher = {
   match_conditions : http_match_clause list;
@@ -523,12 +537,12 @@ type http_matcher = {
   metadata : JSON.t option;
   message : string option;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 type validator =
   | HTTP of { request : request; response : http_matcher list }
   | AWS of { request : aws_request; response : http_matcher list }
-[@@deriving show]
+[@@deriving show, eq]
 
 (*****************************************************************************)
 (* Paths *)
@@ -545,6 +559,10 @@ type glob = {
 }
 [@@deriving show]
 
+(* compiled_pattern is abstract and has no equal; equality of source_pattern
+   is sufficient since the same source compiles to an equivalent pattern. *)
+let equal_glob a b = String.equal a.source_pattern b.source_pattern
+
 (* TODO? should we provide a pattern-filename: Xpattern to combine
  * with other Xpattern instead of adhoc paths: extra field in the rule?
  * TODO? should we remove this field and opt for a more powerful and general
@@ -560,7 +578,7 @@ type path_filter = {
   (* List of file path patterns we want to exclude. *)
   exclude : glob list;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (*****************************************************************************)
 (* Misc *)
@@ -583,18 +601,18 @@ type fix_regexp = {
 (*****************************************************************************)
 
 (* Polymorphic variants used to improve type checking of rules (see below) *)
-type search_mode = [ `Search of formula ] [@@deriving show]
-type taint_mode = [ `Taint of taint_spec ] [@@deriving show]
-type extract_mode = [ `Extract of extract ] [@@deriving show]
+type search_mode = [ `Search of formula ] [@@deriving show, eq]
+type taint_mode = [ `Taint of taint_spec ] [@@deriving show, eq]
+type extract_mode = [ `Extract of extract ] [@@deriving show, eq]
 
 (* a.k.a parity rules, that is for SCA rules without a pattern *)
-type sca_mode = [ `SCA of sca_dependency_formula ] [@@deriving show]
+type sca_mode = [ `SCA of sca_dependency_formula ] [@@deriving show, eq]
 
 (* Steps mode includes rules that use search_mode and taint_mode.
  * Later, if we keep it, we might want to make all rules have steps,
  * but for the experiment this is easier to remove.
  *)
-type steps_mode = [ `Steps of step list ] [@@deriving show]
+type steps_mode = [ `Steps of step list ] [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Steps mode (Pro-only) *)
@@ -606,7 +624,7 @@ and step = {
   step_paths : path_filter option;
 }
 
-and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
+and mode_for_step = [ search_mode | taint_mode ] [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Join mode (parsing support only)*)
@@ -615,16 +633,16 @@ and mode_for_step = [ search_mode | taint_mode ] [@@deriving show]
    been implemented to allow for RPC validation of join mode files. *)
 (*****************************************************************************)
 
-type join_mode = [ `Join of join ] [@@deriving show]
+type join_mode = [ `Join of join ] [@@deriving show, eq]
 
 and join = { refs : join_ref list; rules : join_inline list; on : string list }
-[@@deriving show]
+[@@deriving show, eq]
 
 and join_ref = { rule : string; as_ : string option; renames : rename list }
-[@@deriving show]
+[@@deriving show, eq]
 
-and join_inline = step [@@deriving show]
-and rename = { from_ : string; to_ : string } [@@deriving show]
+and join_inline = step [@@deriving show, eq]
+and rename = { from_ : string; to_ : string } [@@deriving show, eq]
 
 (*****************************************************************************)
 (* The rule *)
@@ -750,7 +768,7 @@ type 'mode rule_info = {
   min_version : Semver_.t option;
   max_version : Semver_.t option;
 }
-[@@deriving show]
+[@@deriving show, eq]
 
 (* Step mode includes rules that use search_mode and taint_mode *)
 (* Later, if we keep it, we might want to make all rules have steps,
@@ -758,14 +776,14 @@ type 'mode rule_info = {
 
 type mode =
   [ search_mode | taint_mode | extract_mode | steps_mode | sca_mode | join_mode ]
-[@@deriving show]
+[@@deriving show, eq]
 
 (* the general type *)
-type rule = mode rule_info [@@deriving show]
+type rule = mode rule_info [@@deriving show, eq]
 
 (* aliases *)
-type t = rule [@@deriving show]
-type rules = rule list [@@deriving show]
+type t = rule [@@deriving show, eq]
+type rules = rule list [@@deriving show, eq]
 type hrules = (Rule_ID.t, t) Hashtbl.t
 
 (* If you know your function accepts only a certain kind of rule,
@@ -869,12 +887,27 @@ let rec formulas_of_mode (mode : mode) : formula list =
   | `Search formula -> [ formula ]
   | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
     ->
-      List.map (fun src -> src.source_formula) sources
+      List.filter_map
+        (fun src ->
+          match src.source_formula with
+          | Formula f -> Some f
+          | Ranges _ -> None)
+        sources
       @ (match sanitizers with
         | None -> []
         | Some (_, sanitizers) ->
-            List.map (fun sanitizer -> sanitizer.sanitizer_formula) sanitizers)
-      @ List.map (fun sink -> sink.sink_formula) sinks
+            List.filter_map
+              (fun s ->
+                match s.sanitizer_formula with
+                | Formula f -> Some f
+                | Ranges _ -> None)
+              sanitizers)
+      @ List.filter_map
+          (fun sink ->
+            match sink.sink_formula with
+            | Formula f -> Some f
+            | Ranges _ -> None)
+          sinks
       @ List.map (fun prop -> prop.propagator_formula) propagators
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Steps steps ->
@@ -901,16 +934,16 @@ let selector_and_analyzer_of_analyzer (analyzer : Analyzer.t) :
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
   |> Either_.partition (fun e ->
-         match e.f with
-         (* positives *)
-         | P _
-         | And _
-         | Inside _
-         | Anywhere _
-         | Or _ ->
-             Left e
-         (* negatives *)
-         | Not (tok, f) -> Right (tok, f))
+      match e.f with
+      (* positives *)
+      | P _
+      | And _
+      | Inside _
+      | Anywhere _
+      | Or _ ->
+          Left e
+      (* negatives *)
+      | Not (tok, f) -> Right (tok, f))
 
 (* create a fake rule when we only have a pattern and language.
  * This is used when someone calls `semgrep -e print -l python`

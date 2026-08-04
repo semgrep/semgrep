@@ -20,7 +20,7 @@ local uses = import 'libs/uses.libsonnet';
 local job = {
   'runs-on': 'ubuntu-latest',
   permissions: gha.write_permissions,
-  steps: semgrep.github_bot.get_token_steps + [
+  steps: [semgrep.github_bot.get_token_step(['semgrep', 'semgrep-proprietary'])] + [
     {
       name: 'Checkout OSS',
       uses: uses.actions.checkout,

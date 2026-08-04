@@ -24,8 +24,7 @@ def create_validator_rule(
     error_action: str = "monitor",
     action: str = "monitor",
 ) -> Rule:
-    # TODO: do something with the config errors?
-    config, config_errors = parse_config_string(
+    result = parse_config_string(
         "testfile",
         dedent(
             f"""
@@ -68,12 +67,12 @@ def create_validator_rule(
         ),
         None,
     )
-    return Rule.from_yamltree(config["testfile"].value["rules"].value[0])
+    return result.rules[0]
 
 
 @pytest.mark.quick
 def test_rule_full_hash_equivalency():
-    config, config_errors = parse_config_string(
+    result = parse_config_string(
         "testfile",
         dedent(
             """
@@ -99,9 +98,7 @@ def test_rule_full_hash_equivalency():
         ),
         None,
     )
-    rule1, rule2, rule3 = (
-        Rule.from_yamltree(tree) for tree in config["testfile"].value["rules"].value
-    )
+    rule1, rule2, rule3 = result.rules
     assert rule1.full_hash == rule2.full_hash
     assert rule1.full_hash != rule3.full_hash
     assert rule2.full_hash != rule3.full_hash

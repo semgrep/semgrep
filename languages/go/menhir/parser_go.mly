@@ -627,7 +627,8 @@ expr:
 |   expr "&" expr     { mk_bin $1 BitAnd $2 $3 }
 |   expr LANDNOT expr  { mk_bin $1 BitNot (* BitAndNot aka BitClear *) $2 $3 }
 |   expr LLSH expr     { mk_bin $1 LSL $2 $3 }
-|   expr LRSH expr     { mk_bin $1 LSR $2 $3 }
+(* signed >>: ASR by default; see AST_generic.operator *)
+|   expr LRSH expr     { mk_bin $1 ASR $2 $3 }
 
 (* old: was in expression, to give better error message, but better here *)
 |   expr "<-" expr    { Send ($1, $2, $3) }
@@ -925,7 +926,8 @@ expr_no_dots:
 |   expr "&" expr     { mk_bin $1 BitAnd $2 $3 }
 |   expr LANDNOT expr  { mk_bin $1 BitNot (* BitAndNot aka BitClear *) $2 $3 }
 |   expr LLSH expr     { mk_bin $1 LSL $2 $3 }
-|   expr LRSH expr     { mk_bin $1 LSR $2 $3 }
+(* signed >>: ASR by default; see AST_generic.operator *)
+|   expr LRSH expr     { mk_bin $1 ASR $2 $3 }
 |   expr "<-" expr    { Send ($1, $2, $3) }
 
 

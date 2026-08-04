@@ -1,0 +1,10 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/invalid-paths-list.yaml:7
+7 |   - '*.py'
+  |   ^
+
+each paths should be a dictionary
+
+[ERROR] Rule parse error in rule arg-reassign:
+ each paths should be a dictionary

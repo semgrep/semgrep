@@ -282,7 +282,8 @@ and simple_statement (env : env) (x : CST.simple_statement) : simple =
         | `SLASHEQ tok -> (G.Div, token env tok) (* "/=" *)
         | `PERCEQ tok -> (G.Mod, token env tok) (* "%=" *)
         | `LTLTEQ tok -> (G.LSL, token env tok) (* "<<=" *)
-        | `GTGTEQ tok -> (G.LSR, token env tok) (* ">>=" *)
+        (* signed >>=: ASR by default; see AST_generic.operator *)
+        | `GTGTEQ tok -> (G.ASR, token env tok) (* ">>=" *)
         | `AMPEQ tok -> (G.BitAnd, token env tok) (* "&=" *)
         | `AMPHATEQ tok -> (G.BitClear, token env tok) (* "&^=" *)
         | `PLUSEQ tok -> (G.Plus, token env tok) (* "+=" *)
@@ -326,7 +327,8 @@ and binary_expression (env : env) (x : CST.binary_expression) =
         | `SLASH tok -> (G.Div, token env tok) (* "/" *)
         | `PERC tok -> (G.Mod, token env tok) (* "%" *)
         | `LTLT tok -> (G.LSL, token env tok) (* "<<" *)
-        | `GTGT tok -> (G.LSR, token env tok) (* ">>" *)
+        (* signed >>: ASR by default; see AST_generic.operator *)
+        | `GTGT tok -> (G.ASR, token env tok) (* ">>" *)
         | `AMP tok -> (G.BitAnd, token env tok) (* "&" *)
         | `AMPHAT tok -> (G.BitClear, token env tok)
         (* "&^" *)
@@ -579,7 +581,7 @@ and parameter_declaration env (v1, v2) =
   | Some x ->
       field_name_list env x
       |> List.map (fun id ->
-             ParamClassic { pname = Some id; ptype = v2; pdots = None })
+          ParamClassic { pname = Some id; ptype = v2; pdots = None })
   | None -> [ ParamClassic { pname = None; ptype = v2; pdots = None } ]
 
 and anon_choice_param_decl_18823e5 (env : env)

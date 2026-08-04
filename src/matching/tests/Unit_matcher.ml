@@ -125,26 +125,24 @@ let tests ~any_gen_of_string =
         in
         triples
         |> List.iter (fun (spattern, scode, should_match) ->
-               try
-                 let pattern = any_gen_of_string spattern in
-                 let code = any_gen_of_string scode in
-                 let lang = Lang.Python in
-                 let config = Rule_options.default in
-                 let env =
-                   Matching_generic.environment_of_any lang config code
-                 in
-                 let matches_with_env =
-                   Match_patterns.match_any_any pattern code env
-                 in
-                 if should_match then
-                   Alcotest.(check bool)
-                     (spf "pattern:|%s| should match |%s" spattern scode)
-                     true (matches_with_env <> [])
-                 else
-                   Alcotest.(check bool)
-                     (spf "pattern:|%s| should not match |%s" spattern scode)
-                     true (matches_with_env =*= [])
-               with
-               | Parsing.Parse_error ->
-                   failwith (spf "problem parsing %s or %s" spattern scode)));
+            try
+              let pattern = any_gen_of_string spattern in
+              let code = any_gen_of_string scode in
+              let lang = Lang.Python in
+              let config = Rule_options.default in
+              let env = Matching_generic.environment_of_any lang config code in
+              let matches_with_env =
+                Match_patterns.match_any_any pattern code env
+              in
+              if should_match then
+                Alcotest.(check bool)
+                  (spf "pattern:|%s| should match |%s" spattern scode)
+                  true (matches_with_env <> [])
+              else
+                Alcotest.(check bool)
+                  (spf "pattern:|%s| should not match |%s" spattern scode)
+                  true (matches_with_env =*= [])
+            with
+            | Parsing.Parse_error ->
+                failwith (spf "problem parsing %s or %s" spattern scode)));
   ]

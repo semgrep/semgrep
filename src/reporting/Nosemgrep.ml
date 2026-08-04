@@ -90,19 +90,19 @@ let recognise_and_collect ~rex (line_num, line) =
   | Ok arr ->
       Array.to_list arr
       |> List.concat_map (fun subst ->
-             match Pcre2_.get_named_substring_and_ofs rex "ids" subst with
-             | Ok (Some (s, (begin_ofs, _end_ofs))) ->
-                 (* TODO: This will associate each ID with the range of the entire ID list.
+          match Pcre2_.get_named_substring_and_ofs rex "ids" subst with
+          | Ok (Some (s, (begin_ofs, _end_ofs))) ->
+              (* TODO: This will associate each ID with the range of the entire ID list.
                     Fix later.
                  *)
-                 String.split_on_char ',' s
-                 |> List.map (fun id ->
-                        (line_num, Common2.strip ' ' id, begin_ofs))
-                 |> List.map Option.some
-             | Ok None
-             | Error _ ->
-                 (* TODO: log something? *)
-                 [ None ])
+              String.split_on_char ',' s
+              |> List.map (fun id ->
+                  (line_num, Common2.strip ' ' id, begin_ofs))
+              |> List.map Option.some
+          | Ok None
+          | Error _ ->
+              (* TODO: log something? *)
+              [ None ])
       |> Option.some
 
 (*
@@ -175,10 +175,10 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
       let ids =
         ids |> List.filter_map Fun.id
         |> List.map (fun (line_num, s, col) ->
-               (* [String.split_on_char] can **not** return an empty list. *)
-               ( line_num,
-                 List.hd (String.split_on_char ' ' s) (* nosemgrep: list-hd *),
-                 col ))
+            (* [String.split_on_char] can **not** return an empty list. *)
+            ( line_num,
+              List.hd (String.split_on_char ' ' s) (* nosemgrep: list-hd *),
+              col ))
       in
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
       let nosem_matches (id : string) : bool =
@@ -296,4 +296,4 @@ let produce_ignored (match_ : Core_result.processed_match) :
 let filter_ignored ~keep_ignored (matches : Out.core_match list) =
   matches
   |> List.filter (fun (m : Out.core_match) ->
-         keep_ignored || not m.extra.is_ignored)
+      keep_ignored || not m.extra.is_ignored)

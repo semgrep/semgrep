@@ -89,8 +89,8 @@ let add_arc_from_opt (starti_opt, nodei) g =
 let add_arc_opt_to_opt (starti_opt, nodei_opt) g =
   starti_opt
   |> Option.iter (fun starti ->
-         nodei_opt
-         |> Option.iter (fun nodei -> g#add_arc ((starti, nodei), F.Direct)))
+      nodei_opt
+      |> Option.iter (fun nodei -> g#add_arc ((starti, nodei), F.Direct)))
 
 let key_of_label ((str, _tok), sid) : label_key = (str, sid)
 
@@ -100,21 +100,21 @@ let add_pending_goto state gotoi label =
 let label_node state labels nodei =
   labels
   |> List.iter (fun label ->
-         Hashtbl.add state.labels (key_of_label label) nodei)
+      Hashtbl.add state.labels (key_of_label label) nodei)
 
 let resolve_gotos state =
   !(state.gotos)
   |> List.iter (fun (srci, label_key) ->
-         match Hashtbl.find_opt state.labels label_key with
-         | None ->
-             let loc_str =
-               match state.opt_tok with
-               | None -> ""
-               | Some tok -> spf " (%s)" (Tok.stringpos_of_tok tok)
-             in
-             Log.warn (fun m ->
-                 m ~tags "Could not resolve label: %s%s" (fst label_key) loc_str)
-         | Some dsti -> state.g |> add_arc (srci, dsti));
+      match Hashtbl.find_opt state.labels label_key with
+      | None ->
+          let loc_str =
+            match state.opt_tok with
+            | None -> ""
+            | Some tok -> spf " (%s)" (Tok.stringpos_of_tok tok)
+          in
+          Log.warn (fun m ->
+              m ~tags "Could not resolve label: %s%s" (fst label_key) loc_str)
+      | Some dsti -> state.g |> add_arc (srci, dsti));
   state.gotos := []
 
 (*****************************************************************************)
@@ -336,8 +336,6 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
   | NestedDef (entity, def_kind) ->
       (match (entity.name, def_kind) with
       | EN name, FuncDef fdef ->
-          (* TODO: Right now this is just lambdas, but we should handle here
-            all nested funct-defs. *)
           let lambda_cfg = cfg_of_fdef fdef in
           state.lambdas_cfgs :=
             Fun_CFG.record_lambda !(state.lambdas_cfgs) name lambda_cfg
@@ -502,7 +500,20 @@ and cfg_of_stmts ?tok (xs : stmt list) : IL.cfg * Fun_CFG.lambdas_cfgs =
    * connect last stmt to the exit node
    *)
   g |> add_arc_from_opt (last_node_opt, exiti);
-  let cfg = CFG.make g enteri exiti in
+  let cfg =
+    let cfg = CFG.make g enteri exiti in
+    let nested =
+      (* Nested definitions should always be analyzed (among other reasons due to
+        compatibility with Semgrep CE), so we consider them reachable. *)
+      cfg.graph#nodes |> Int_map.to_seq
+      |> Seq.filter (fun (_nodei, node) ->
+          match node.n with
+          | NNestedDef _ -> true
+          | __else__ -> false)
+      |> Seq.map fst |> CFG.NodeiSet.of_seq
+    in
+    { cfg with reachable = cfg.reachable |> CFG.NodeiSet.union nested }
+  in
   (cfg, !(state.lambdas_cfgs))
 
 and cfg_of_fdef fdef =

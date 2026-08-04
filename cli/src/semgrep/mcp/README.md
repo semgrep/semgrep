@@ -22,7 +22,7 @@
   </a>
 </p>
 
-# Semgrep MCP Server
+# Semgrep Guardian
 
 <!-- Seems these probably don't work for the moment, after the port -->
 <!-- [![Add MCP Server semgrep to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-light.svg)](https://lmstudio.ai/install-mcp?name=semgrep&config=eyJ1cmwiOiJodHRwczovL21jcC5zZW1ncmVwLmFpL21jcCIsImhlYWRlcnMiOnsiQXV0aG9yaXphdGlvbiI6IkJlYXJlciA8WU9VUl9IRl9UT0tFTj4ifX0%3D)
@@ -35,7 +35,7 @@
 [![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-uv-24bfa5?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=semgrep&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22semgrep-mcp%22%5D%7D&quality=insiders)
 [![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-docker-24bfa5?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=semgrep&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%20%22-i%22%2C%20%22--rm%22%2C%20%22ghcr.io%2Fsemgrep%2Fmcp%22%2C%20%22-t%22%2C%20%22stdio%22%5D%7D&quality=insiders) -->
 
-A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) to scan code for security vulnerabilities. Secure your vibe coding! 🔒
+[Semgrep](https://semgrep.dev) Guardian integrates natively with AI coding agents like Claude Code and Cursor to catch security issues before they ship. It bundles the Semgrep [MCP server](https://modelcontextprotocol.io/docs/getting-started/intro), Hooks, and Skills into a single install, and scans every file an agent generates using Semgrep Code, Supply Chain, and Secrets. When findings are detected, the agent is prompted to regenerate code until Semgrep returns clean results or you choose to dismiss them.
 
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is a standardized API for LLMs, Agents, and IDEs like Claude Code, Cursor, VS Code, Windsurf, or anything that supports MCP, to get specialized help, get context, and harness the power of tools. Semgrep is a fast, deterministic static analysis tool that semantically understands many [languages](https://semgrep.dev/docs/supported-languages) and comes with over [10,000 rules](https://semgrep.dev/registry). 🛠️
 
@@ -46,7 +46,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
 
 ## Contents
 
-- [Semgrep MCP Server](#semgrep-mcp-server)
+- [Semgrep Guardian](#semgrep-guardian)
   - [Getting started](#getting-started)
     - [Demo Video](#demo-video)
     - [Claude Code](#claude-code)
@@ -65,6 +65,7 @@ A Model Context Protocol (MCP) server for using [Semgrep](https://semgrep.dev) t
     - [Cursor](#cursor-integration)
     - [VS Code / Copilot](#vs-code--copilot)
     - [Windsurf](#windsurf)
+    - [Kiro](#kiro)
     - [Custom clients](#custom-clients)
       - [Example Python streamable HTTP client](#example-python-streamable-http-client)
   - [Contributing, community, and running from source](#contributing-community-and-running-from-source)
@@ -314,6 +315,30 @@ See [VS Code docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers) 
 5. Restart Windsurf to apply hook configuration.
 
 See [Windsurf docs](https://docs.windsurf.com/windsurf/mcp) for more info.
+
+### Kiro
+
+Runs Semgrep locally using the CLI. Clicking the box below opens directly in Kiro to add the server — it does not open a new browser tab:
+
+[![Add to Kiro](https://kiro.dev/images/add-to-kiro.svg)](https://kiro.dev/launch/mcp/add?name=semgrep&config=%7B%22command%22%3A%22semgrep%22%2C%22args%22%3A%5B%22mcp%22%5D%2C%22env%22%3A%7B%22SEMGREP_APP_TOKEN%22%3A%22%24%7BSEMGREP_TOKEN%7D%22%7D%7D)
+
+Alternatively, follow the [Kiro MCP docs](https://kiro.dev/docs/mcp/) and add this file to your `.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "semgrep": {
+      "command": "semgrep",
+      "args": ["mcp"],
+      "env": {
+        "SEMGREP_APP_TOKEN": "${SEMGREP_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+See [Kiro docs](https://kiro.dev/docs/mcp/) for more info.
 
 ### Custom clients
 

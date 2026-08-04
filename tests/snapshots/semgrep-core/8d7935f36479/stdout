@@ -1,0 +1,9 @@
+Test name: without git > .png file without magic bytes is kept
+--- Files not added to git ---
+notes.png
+--- begin input files ---
+--- end input files ---
+--- Errors ---
+--- Selected targets ---
+selected notes.png
+--- Skipped targets ---

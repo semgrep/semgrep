@@ -12,11 +12,12 @@
                                     { id_resolved = ref (None);
                                       id_resolved_alternatives = ref ([]);
                                       id_type = ref (None);
-                                      id_svalue = ref (None);
+                                      id_svalue = ref (Unknown);
                                       id_flags = ref (0); id_info_id = _ }
                                     )));
                               t_attrs = [] }));
-                 id_svalue = ref (None); id_flags = ref (4); id_info_id = _ }
+                 id_svalue = ref (Unknown); id_flags = ref (4);
+                 id_info_id = _ }
                )));
          attrs = [(KeywordAttr (Const, _))]; tparams = None },
        (VarDef
@@ -39,12 +40,12 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                t_attrs = [] }));
-                  id_svalue = ref (None); id_flags = ref (4); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (4);
+                  id_info_id = _ }
                 )));
           attrs = [(KeywordAttr (Const, _))]; tparams = None },
         (VarDef
@@ -60,8 +61,8 @@
              (Id (("A", _),
                 { id_resolved = ref (None);
                   id_resolved_alternatives = ref ([]); id_type = ref (None);
-                  id_svalue = ref (None); id_flags = ref (0); id_info_id = _
-                  }
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
                 )));
           attrs = []; tparams = None },
         (ClassDef
@@ -78,8 +79,8 @@
                                 { id_resolved = ref (None);
                                   id_resolved_alternatives = ref ([]);
                                   id_type = ref (None);
-                                  id_svalue = ref (None); id_flags = ref (0);
-                                  id_info_id = _ }
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
                                 )));
                           attrs = [(KeywordAttr (Inline, _))]; tparams = None
                           },
@@ -112,12 +113,12 @@
                                                         ref ([]);
                                                         id_type = ref (None);
                                                         id_svalue =
-                                                        ref (None);
+                                                        ref (Unknown);
                                                         id_flags = ref (0);
                                                         id_info_id = _ }
                                                       )));
                                                 t_attrs = [] }));
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (4); id_info_id = _ }
                                  )));
                            attrs =
@@ -141,7 +142,7 @@
                                  { id_resolved = ref (None);
                                    id_resolved_alternatives = ref ([]);
                                    id_type = ref (None);
-                                   id_svalue = ref (None);
+                                   id_svalue = ref (Unknown);
                                    id_flags = ref (0); id_info_id = _ }
                                  )));
                            attrs =
@@ -159,13 +160,13 @@
                                                          ref ([]);
                                                          id_type = ref (None);
                                                          id_svalue =
-                                                         ref (None);
+                                                         ref (Unknown);
                                                          id_flags = ref (0);
                                                          id_info_id = _ }
                                                        )));
                                                  t_attrs = [] }));
                                     id_svalue =
-                                    ref ((Some (Lit (Int ((Some 3L), _)))));
+                                    ref ((Lit (Int ((Some 3L), _))));
                                     id_flags = ref (0); id_info_id = _ }
                                   )),
                                (_, [], _)))

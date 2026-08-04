@@ -66,10 +66,10 @@ let return_type_of_results results =
         (G.TyTuple
            (xs
            |> List.map (function
-                | G.Param { G.ptype = Some t; _ } -> t
-                | G.Param { G.ptype = None; _ } -> raise Impossible
-                | G.ParamEllipsis t -> G.TyEllipsis t |> G.t
-                | _ -> raise Impossible)
+             | G.Param { G.ptype = Some t; _ } -> t
+             | G.Param { G.ptype = None; _ } -> raise Impossible
+             | G.ParamEllipsis t -> G.TyEllipsis t |> G.t
+             | _ -> raise Impossible)
            |> fb)
         |> G.t)
 
@@ -254,99 +254,99 @@ let top_func () =
     | ArgDots _ -> raise Impossible
   and expr e =
     (match e with
-    | DotAccessEllipsis (v1, v2) ->
-        let v1 = expr v1 in
-        G.DotAccessEllipsis (v1, v2)
-    | BasicLit v1 ->
-        let v1 = literal v1 in
-        G.L v1
-    | Id v1 ->
-        let v1 = ident v1 in
-        G.N (G.Id (v1, G.empty_id_info ()))
-    | Selector (v1, v2, v3) ->
-        let v1 = expr v1 and v2 = tok v2 and v3 = ident v3 in
-        G.DotAccess (v1, v2, G.FN (Id (v3, G.empty_id_info ())))
-    | Index (v1, v2) ->
-        let v1 = expr v1 and v2 = bracket index v2 in
-        G.ArrayAccess (v1, v2)
-    (* It's much better to trans these calls to new/ref(new), as:
-     * x : *tau =  new(tau)
-     * x :  tau = make(tau)
-     * and other sem(grep)antic information is useful for future analysis.
-     *)
-    | Call (Id ("new", t), None, (l, [ ty ], r)) ->
-        G.Ref (fake t "new", gen_new ty (l, [], r) t "new" |> G.e)
-    | Call (Id ("make", t), None, (l, ty :: args, r)) ->
-        gen_new ty (l, args, r) t "make"
-    | Call v1 ->
-        let e, args = call_expr v1 in
-        G.Call (e, args)
-    | Cast (t, (l, e, r)) ->
-        let t = type_ t and e = expr e in
-        (* for semgrep and autofix to get the right range by including
-         * 'r' in the range.
-         * alt: change G.Cast to take a bracket
-         *)
-        AST_generic_helpers.set_e_range l r e;
-        G.Cast (t, l, e)
-    | Deref (v1, v2) ->
-        let v1 = tok v1 and v2 = expr v2 in
-        G.DeRef (v1, v2)
-    | Ref (v1, v2) ->
-        let v1 = tok v1 and v2 = expr v2 in
-        G.Ref (v1, v2)
-    | Unary (v1, v2) ->
-        let v1, tok = wrap arithmetic_operator v1 and v2 = expr v2 in
-        G.Call (G.Special (G.Op v1, tok) |> G.e, fb [ G.arg v2 ])
-    | Binary (v1, v2, v3) ->
-        let v1 = expr v1
-        and v2, tok = wrap arithmetic_operator v2
-        and v3 = expr v3 in
-        G.Call
-          (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
-    | CompositeLit (v1, v2) ->
-        let v1 = type_ v1
-        and l, v2, r = bracket (list init_for_composite_lit) v2 in
-        G.New (fake l "new", v1, G.empty_id_info (), (l, v2, r))
-    | Slice (v1, (t1, v2, t2)) ->
-        let e = expr v1 in
-        let v1, v2, v3 = v2 in
-        let v1 = option expr v1
-        and v2 = option expr v2
-        and v3 = option expr v3 in
-        G.SliceAccess (e, (t1, (v1, v2, v3), t2))
-    | TypeAssert (v1, (lp, v2, rp)) ->
-        let v1 = expr v1 and v2 = type_ v2 in
-        G.Call
-          ( G.Special (G.Instanceof, fake lp "instanceof") |> G.e,
-            (lp, [ G.Arg v1; G.ArgType v2 ], rp) )
-    | Ellipsis v1 ->
-        let v1 = tok v1 in
-        G.Ellipsis v1
-    | DeepEllipsis v1 ->
-        let v1 = bracket expr v1 in
-        G.DeepEllipsis v1
-    | TypedMetavar (v1, v2, v3) ->
-        let v1 = ident v1 in
-        let v3 = type_ v3 in
-        G.TypedMetavar (v1, v2, v3)
-    | FuncLit (v1, v2) ->
-        let ftok, params, ret = func_type v1 and v2 = stmt v2 in
-        G.Lambda (mk_func_def (G.LambdaKind, ftok) params ret (G.FBStmt v2))
-    | Receive (v1, v2) ->
-        let v1 = tok v1 and v2 = expr v2 in
-        G.OtherExpr (("Receive", v1), [ G.E v2 ])
-    | Send (v1, v2, v3) ->
-        let v1 = expr v1 and v2 = tok v2 and v3 = expr v3 in
-        G.OtherExpr (("Send", v2), [ G.E v1; G.E v3 ])
-    | TypeSwitchExpr (v1, v2) ->
-        let _v1 = expr v1 and v2 = tok v2 in
-        error v2 "TypeSwitchExpr should be handled in Switch statement"
-    | ParenType v1 ->
-        let v1 = type_ v1 in
-        error
-          (AST_generic_helpers.info_of_any (G.T v1))
-          ("ParenType should disappear" ^ Dumper.dump v1))
+      | DotAccessEllipsis (v1, v2) ->
+          let v1 = expr v1 in
+          G.DotAccessEllipsis (v1, v2)
+      | BasicLit v1 ->
+          let v1 = literal v1 in
+          G.L v1
+      | Id v1 ->
+          let v1 = ident v1 in
+          G.N (G.Id (v1, G.empty_id_info ()))
+      | Selector (v1, v2, v3) ->
+          let v1 = expr v1 and v2 = tok v2 and v3 = ident v3 in
+          G.DotAccess (v1, v2, G.FN (Id (v3, G.empty_id_info ())))
+      | Index (v1, v2) ->
+          let v1 = expr v1 and v2 = bracket index v2 in
+          G.ArrayAccess (v1, v2)
+      (* It's much better to trans these calls to new/ref(new), as:
+       * x : *tau =  new(tau)
+       * x :  tau = make(tau)
+       * and other sem(grep)antic information is useful for future analysis.
+       *)
+      | Call (Id ("new", t), None, (l, [ ty ], r)) ->
+          G.Ref (fake t "new", gen_new ty (l, [], r) t "new" |> G.e)
+      | Call (Id ("make", t), None, (l, ty :: args, r)) ->
+          gen_new ty (l, args, r) t "make"
+      | Call v1 ->
+          let e, args = call_expr v1 in
+          G.Call (e, args)
+      | Cast (t, (l, e, r)) ->
+          let t = type_ t and e = expr e in
+          (* for semgrep and autofix to get the right range by including
+           * 'r' in the range.
+           * alt: change G.Cast to take a bracket
+           *)
+          AST_generic_helpers.set_e_range l r e;
+          G.Cast (t, l, e)
+      | Deref (v1, v2) ->
+          let v1 = tok v1 and v2 = expr v2 in
+          G.DeRef (v1, v2)
+      | Ref (v1, v2) ->
+          let v1 = tok v1 and v2 = expr v2 in
+          G.Ref (v1, v2)
+      | Unary (v1, v2) ->
+          let v1, tok = wrap arithmetic_operator v1 and v2 = expr v2 in
+          G.Call (G.Special (G.Op v1, tok) |> G.e, fb [ G.arg v2 ])
+      | Binary (v1, v2, v3) ->
+          let v1 = expr v1
+          and v2, tok = wrap arithmetic_operator v2
+          and v3 = expr v3 in
+          G.Call
+            (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
+      | CompositeLit (v1, v2) ->
+          let v1 = type_ v1
+          and l, v2, r = bracket (list init_for_composite_lit) v2 in
+          G.New (fake l "new", v1, G.empty_id_info (), (l, v2, r))
+      | Slice (v1, (t1, v2, t2)) ->
+          let e = expr v1 in
+          let v1, v2, v3 = v2 in
+          let v1 = option expr v1
+          and v2 = option expr v2
+          and v3 = option expr v3 in
+          G.SliceAccess (e, (t1, (v1, v2, v3), t2))
+      | TypeAssert (v1, (lp, v2, rp)) ->
+          let v1 = expr v1 and v2 = type_ v2 in
+          G.Call
+            ( G.Special (G.Instanceof, fake lp "instanceof") |> G.e,
+              (lp, [ G.Arg v1; G.ArgType v2 ], rp) )
+      | Ellipsis v1 ->
+          let v1 = tok v1 in
+          G.Ellipsis v1
+      | DeepEllipsis v1 ->
+          let v1 = bracket expr v1 in
+          G.DeepEllipsis v1
+      | TypedMetavar (v1, v2, v3) ->
+          let v1 = ident v1 in
+          let v3 = type_ v3 in
+          G.TypedMetavar (v1, v2, v3)
+      | FuncLit (v1, v2) ->
+          let ftok, params, ret = func_type v1 and v2 = stmt v2 in
+          G.Lambda (mk_func_def (G.LambdaKind, ftok) params ret (G.FBStmt v2))
+      | Receive (v1, v2) ->
+          let v1 = tok v1 and v2 = expr v2 in
+          G.OtherExpr (("Receive", v1), [ G.E v2 ])
+      | Send (v1, v2, v3) ->
+          let v1 = expr v1 and v2 = tok v2 and v3 = expr v3 in
+          G.OtherExpr (("Send", v2), [ G.E v1; G.E v3 ])
+      | TypeSwitchExpr (v1, v2) ->
+          let _v1 = expr v1 and v2 = tok v2 in
+          error v2 "TypeSwitchExpr should be handled in Switch statement"
+      | ParenType v1 ->
+          let v1 = type_ v1 in
+          error
+            (AST_generic_helpers.info_of_any (G.T v1))
+            ("ParenType should disappear" ^ Dumper.dump v1))
     |> G.e
   and literal = function
     | Int v1 -> G.Int v1
@@ -586,8 +586,8 @@ let top_func () =
         let v1 =
           v1
           |> List.map (function
-               | Left e -> e
-               | Right _ -> error tok "TODO: Case Assign with Type?")
+            | Left e -> e
+            | Right _ -> error tok "TODO: Case Assign with Type?")
         in
         [
           G.CaseEqualExpr

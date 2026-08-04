@@ -96,26 +96,29 @@ let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
   let entries = CapFS.read_dir_entries (Fpath.v d) in
   entries
   |> List_.find_some_opt (fun file2 ->
-         let path2 = Filename.concat d !!file2 in
-         (* Config files have a single .yaml extension (assumption),
-          * but test files may have multiple extensions, e.g.
-          * ".test.yaml" (YAML test files), ".sites-available.conf",
-          * ... *)
-         match Filename_.dbe_of_filename_many_ext_opt !!file2 with
-         | None -> None
-         | Some (_, b2, ext2) ->
-             if
-               b = b2 && ext <> ext2
-               (* .yaml.j2 are Jinja2 templates to generate Semgrep files *)
-               && ext2 <> "yaml.j2"
-               (* those are autofix test files that should be skipped *)
-               && (not (ext2 =~ ".*fixed"))
-               (* ugly: jsonnet exclusion below because of some .jsonnet and
-                * .yaml ambiguities in tests/rules
-                *)
-               && ext2 <> "jsonnet"
-             then Some (Fpath.v path2)
-             else None)
+      let path2 = Filename.concat d !!file2 in
+      (* Config files have a single .yaml extension (assumption),
+       * but test files may have multiple extensions, e.g.
+       * ".test.yaml" (YAML test files), ".sites-available.conf",
+       * ... *)
+      match Filename_.dbe_of_filename_many_ext_opt !!file2 with
+      | None -> None
+      | Some (_, b2, ext2) ->
+          if
+            b = b2 && ext <> ext2
+            (* .yaml.j2 are Jinja2 templates to generate Semgrep files *)
+            && ext2 <> "yaml.j2"
+            (* those are autofix test files that should be skipped *)
+            && (not (ext2 =~ ".*fixed"))
+            (* ugly: jsonnet exclusion below because of some .jsonnet and
+             * .yaml ambiguities in tests/rules
+             *)
+            && ext2 <> "jsonnet"
+            (* golden-output sidecars (e.g. foo.taint_sig.expect,
+             * foo.pp_il.expect) are never runnable targets *)
+            && not (String.ends_with ~suffix:".expect" ext2)
+          then Some (Fpath.v path2)
+          else None)
 
 let find_target_of_yaml_file (file : Fpath.t) : Fpath.t =
   match find_target_of_yaml_file_opt file with
@@ -158,18 +161,18 @@ let check_profiling (rule_file : Fpath.t) (target : Fpath.t)
   | Some profiling ->
       profiling.p_rule_times
       |> List.iter (fun (rule_time : Core_profiling.rule_profiling) ->
-             if not (rule_time.rule_match_time >= 0.) then
-               (* match_time could be 0.0 if the rule contains no pattern or
+          if not (rule_time.rule_match_time >= 0.) then
+            (* match_time could be 0.0 if the rule contains no pattern or
                   if the rules are skipped. Otherwise it's positive.
                *)
-               failwith
-                 (spf "invalid value for match time: %g (rule: %s, target: %s)"
-                    rule_time.rule_match_time !!rule_file !!target);
-             if not (rule_time.rule_parse_time >= 0.) then
-               (* same for parse time *)
-               failwith
-                 (spf "invalid value for parse time: %g (rule: %s, target: %s)"
-                    rule_time.rule_parse_time !!rule_file !!target))
+            failwith
+              (spf "invalid value for match time: %g (rule: %s, target: %s)"
+                 rule_time.rule_match_time !!rule_file !!target);
+          if not (rule_time.rule_parse_time >= 0.) then
+            (* same for parse time *)
+            failwith
+              (spf "invalid value for parse time: %g (rule: %s, target: %s)"
+                 rule_time.rule_parse_time !!rule_file !!target))
 
 let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
     unit =
@@ -262,7 +265,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         let actual_errors = res.matches |> List.map TCM.location_of_pm in
         actual_errors
         |> List.iter (fun (_, line) ->
-               Logs.debug (fun m -> m "match at line: %d" line));
+            Logs.debug (fun m -> m "match at line: %d" line));
         match
           TCM.compare_actual_to_expected ~to_location:Fun.id actual_errors
             expected_error_lines
@@ -296,18 +299,23 @@ let find_rule_files roots =
 (* Entry point *)
 (*****************************************************************************)
 
-(* TODO: do not filter_map, instead fail when we can't parse a rule
- * (or wait that we switch to osemgrep test for our own test infra in which
- * case this whole file will be deleted)
- *)
+type collected_tests = {
+  valid_test_triples :
+    (Fpath.t (* rule file *) * Fpath.t (* target file *) * Analyzer.t) list;
+  invalid_rule_files : Fpath.t list;
+}
+
 let collect_tests ?(get_analyzer = single_analyzer_from_rules)
-    (xs : Fpath.t list) =
-  xs |> find_rule_files
-  |> List.filter_map (fun rule_file ->
-         let* _rules, target, analyzer =
-           read_rules_file ~get_analyzer rule_file
-         in
-         Some (rule_file, target, analyzer))
+    (xs : Fpath.t list) : collected_tests =
+  let all_rule_files = xs |> find_rule_files in
+  let valid_test_triples, invalid_rule_files =
+    all_rule_files
+    |> List.partition_map (fun rule_file ->
+        match read_rules_file ~get_analyzer rule_file with
+        | None -> Right rule_file
+        | Some (_rules, target, analyzer) -> Left (rule_file, target, analyzer))
+  in
+  { valid_test_triples; invalid_rule_files }
 
 let make_tests ?fail_callback ?get_analyzer ?prepend_lang (xs : Fpath.t list) :
     Testo.t list =

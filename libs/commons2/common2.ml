@@ -229,7 +229,7 @@ let glob pattern =
   let files = UFile.Legacy.dir_contents dir in
   files
   |> List.filter_map (fun s ->
-         if Re.execp regex s then Some (Fpath.v s) else None)
+      if Re.execp regex s then Some (Fpath.v s) else None)
 
 let unix_diff file1 file2 =
   let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
@@ -419,12 +419,12 @@ let diff_set_eff xs1 xs2 =
   let honly_in_h2 = Hashtbl.create 101 in
   h1
   |> Hashtbl.iter (fun k _ ->
-         if Hashtbl.mem h2 k then Hashtbl.replace hcommon k true
-         else Hashtbl.add honly_in_h1 k true);
+      if Hashtbl.mem h2 k then Hashtbl.replace hcommon k true
+      else Hashtbl.add honly_in_h1 k true);
   h2
   |> Hashtbl.iter (fun k _ ->
-         if Hashtbl.mem h1 k then Hashtbl.replace hcommon k true
-         else Hashtbl.add honly_in_h2 k true);
+      if Hashtbl.mem h1 k then Hashtbl.replace hcommon k true
+      else Hashtbl.add honly_in_h2 k true);
   ( Hashtbl_.hashset_to_list hcommon,
     Hashtbl_.hashset_to_list honly_in_h1,
     Hashtbl_.hashset_to_list honly_in_h2 )
@@ -466,32 +466,30 @@ let regression_testing_vs newscore bestscore =
   in
   allres
   |> List.iter (fun res ->
-         match
-           (Hashtbl.find_opt newscore res, Hashtbl.find_opt bestscore res)
-         with
-         | None, None -> raise Common.Impossible
-         | Some x, None ->
-             Printf.printf "new test file appeared: %s\n" res;
-             Hashtbl.add newbestscore res x
-         | None, Some _x -> Printf.printf "old test file disappeared: %s\n" res
-         | Some newone, Some bestone -> (
-             match (newone, bestone) with
-             | Ok, Ok -> Hashtbl.add newbestscore res Ok
-             | Pb x, Ok ->
-                 Printf.printf
-                   "PBBBBBBBB: a test file does not work anymore!!! : %s\n" res;
-                 Printf.printf "Error : %s\n" x;
-                 Hashtbl.add newbestscore res Ok
-             | Ok, Pb _x ->
-                 Printf.printf "Great: a test file now works: %s\n" res;
-                 Hashtbl.add newbestscore res Ok
-             | Pb x, Pb y ->
-                 Hashtbl.add newbestscore res (Pb x);
-                 if not (x = y) then (
-                   Printf.printf "Semipb: still error but not same error : %s\n"
-                     res;
-                   Printf.printf "%s\n" (chop ("Old error: " ^ y));
-                   Printf.printf "New error: %s\n" x)));
+      match (Hashtbl.find_opt newscore res, Hashtbl.find_opt bestscore res) with
+      | None, None -> raise Common.Impossible
+      | Some x, None ->
+          Printf.printf "new test file appeared: %s\n" res;
+          Hashtbl.add newbestscore res x
+      | None, Some _x -> Printf.printf "old test file disappeared: %s\n" res
+      | Some newone, Some bestone -> (
+          match (newone, bestone) with
+          | Ok, Ok -> Hashtbl.add newbestscore res Ok
+          | Pb x, Ok ->
+              Printf.printf
+                "PBBBBBBBB: a test file does not work anymore!!! : %s\n" res;
+              Printf.printf "Error : %s\n" x;
+              Hashtbl.add newbestscore res Ok
+          | Ok, Pb _x ->
+              Printf.printf "Great: a test file now works: %s\n" res;
+              Hashtbl.add newbestscore res Ok
+          | Pb x, Pb y ->
+              Hashtbl.add newbestscore res (Pb x);
+              if not (x = y) then (
+                Printf.printf "Semipb: still error but not same error : %s\n"
+                  res;
+                Printf.printf "%s\n" (chop ("Old error: " ^ y));
+                Printf.printf "New error: %s\n" x)));
   flush Stdlib.stdout;
   flush Stdlib.stderr;
   newbestscore
@@ -546,7 +544,7 @@ let print_total_score score =
 let print_score score =
   score |> Hashtbl_.hash_to_list
   |> List.iter (fun (k, v) ->
-         pr2 (Printf.sprintf "%s --> %s" k (string_of_score_result v)));
+      pr2 (Printf.sprintf "%s --> %s" k (string_of_score_result v)));
   print_total_score score;
   ()
 

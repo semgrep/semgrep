@@ -19,6 +19,18 @@ type timeout_config = {
   sigalrm_timeout : bool;
 }
 
+(* The per-rule "boilerplate" wrapper used by [check] (and passed to
+ * [*_match_tainting_mode.check_rules]): it runs each rule's computation under
+ * the configured timeout, returns a dummy result carrying a Timeout error when
+ * the rule times out, and raises [File_timeout] once too many rules time out.
+ * Exposed so Run_taint_once can reuse it. *)
+val per_rule_boilerplate_fn :
+  timeout_config option ->
+  Fpath.t ->
+  Rule.t ->
+  (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
+  Core_profiling.rule_profiling Core_result.match_result
+
 (* Matches many rules against one target. This function is called from
  * Test_engine.ml, Test_subcommand.ml, and of course Core_scan.ml
  * (and also Match_extract_mode.ml now).

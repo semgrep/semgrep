@@ -251,32 +251,36 @@ type state_mode =
 let default_state = INITIAL
 
 let _mode_stack =
-  ref [default_state]
+  Domain.DLS.new_key (Fun.const [default_state])
 (* todo: now that I have yyback, maybe I should revisit this code. *)
-let _pending_tokens =
-  ref ([]: Parser_php.token list)
+let _pending_tokens : Parser_php.token list Domain.DLS.key=
+  Domain.DLS.new_key(Fun.const [])
 
 (* The logic to modify _last_non_whitespace_like_token is in the
  * caller of the lexer, that is in Parse_php.tokens.
  * Used for XHP.
  *)
-let _last_non_whitespace_like_token =
-  ref (None: Parser_php.token option)
+let _last_non_whitespace_like_token : Parser_php.token option Domain.DLS.key =
+  Domain.DLS.new_key (Fun.const None)
+
 let reset () =
-  _mode_stack := [default_state];
-    _pending_tokens := [];
-   _last_non_whitespace_like_token := None;
+  Domain.DLS.set _mode_stack [default_state];
+  Domain.DLS.set _pending_tokens [];
+  Domain.DLS.set _last_non_whitespace_like_token None;
   ()
 
 let rec current_mode () =
-  match !_mode_stack with
+  match Domain.DLS.get _mode_stack with
   | top :: _ -> top
   | [] ->
       error("mode_stack is empty, defaulting to INITIAL");
       reset();
       current_mode ()
-let push_mode mode = Stack_.push mode _mode_stack
-let pop_mode () = ignore(Stack_.pop _mode_stack)
+let push_mode mode =
+  Domain.DLS.set _mode_stack (mode :: Domain.DLS.get _mode_stack)
+let pop_mode () =
+  let ms = Domain.DLS.get _mode_stack in
+  Domain.DLS.set _mode_stack (List_.tl_exn "unexpected empty mode stack" ms)
 
 (* What is the semantic of BEGIN() in flex ? start from scratch with empty
  * stack ?
@@ -310,7 +314,7 @@ let set_mode mode =
  *)
 
 let push_token tok =
-  _pending_tokens := tok::!_pending_tokens
+  Domain.DLS.set _pending_tokens (tok :: Domain.DLS.get _pending_tokens)
 
 
 (* ugly: in code like 'function foo( (function(string):string) $callback){}'
@@ -320,7 +324,7 @@ let push_token tok =
  * lead to some grammar ambiguities or require other parsing hacks anyway.
 *)
 let lang_ext t lexbuf =
-    match !_last_non_whitespace_like_token with
+    match Domain.DLS.get _last_non_whitespace_like_token with
     | Some (T_FUNCTION _) ->
       let s = tok lexbuf in
       (* just keep the open parenthesis *)

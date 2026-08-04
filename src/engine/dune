@@ -3,12 +3,12 @@
  (name semgrep_engine)
  (wrapped false)
  (libraries
-   pcre
    alcotest
    calendar
 
    commons
    telemetry
+   parallelism
    pfff-lang_GENERIC-analyze
 
    parser_regexp

@@ -49,6 +49,13 @@ end)
 let hook_constness_of_function = Hook.create None
 let hook_transfer_of_assume = Hook.create None
 
+(* When set, this replaces the default flow-sensitive fixpoint with an
+ * alternative implementation (e.g. a more precise one). The default (unset)
+ * is the classic must-analysis fixpoint defined below. *)
+let hook_fixpoint_with_env :
+    (Lang.t -> G.svalue Var_env.t -> Fun_CFG.t -> mapping) option Hook.t =
+  Hook.create None
+
 (*****************************************************************************)
 (* Constness *)
 (*****************************************************************************)
@@ -57,11 +64,17 @@ let eval_format env args =
   let cs = List.map (Eval.eval env) args in
   if
     cs
+    |> List.exists (function
+      | G.Unknown -> true
+      | _ -> false)
+  then G.Unknown
+  else if
+    cs
     |> List.for_all (function
-         | G.Lit _
-         | G.Cst _ ->
-             true
-         | _ -> false)
+      | G.Lit _
+      | G.Cst _ ->
+          true
+      | _ -> false)
   then G.Cst G.Cstr
   else G.NotCst
 
@@ -69,24 +82,27 @@ let eval_builtin_func lang env func args =
   let args = List.map IL_helpers.exp_of_arg args in
   match func with
   | { e = _; eorig = SameAs eorig } -> (
-      let* gname = H.name_of_dot_access eorig in
+      let gname = H.name_of_dot_access eorig in
       match (lang, gname) with
       | ( Lang.Java,
-          G.IdQualified
-            {
-              name_last = ("format", _), _;
-              name_middle =
-                Some
-                  (QDots
-                     ( [ (("String", _), _) ]
-                     | [
-                         (("java", _), _); (("lang", _), _); (("String", _), _);
-                       ] ));
-              _;
-            } ) ->
-          Some (eval_format env args)
-      | __else__ -> None)
-  | __else__ -> None
+          Some
+            (G.IdQualified
+               {
+                 name_last = ("format", _), _;
+                 name_middle =
+                   Some
+                     (QDots
+                        ( [ (("String", _), _) ]
+                        | [
+                            (("java", _), _);
+                            (("lang", _), _);
+                            (("String", _), _);
+                          ] ));
+                 _;
+               }) ) ->
+          eval_format env args
+      | __else__ -> G.Unknown)
+  | __else__ -> G.Unknown
 
 let result_of_function_call_constant lang f args =
   match (lang, f, args) with
@@ -108,18 +124,18 @@ let result_of_function_call_constant lang f args =
         _;
       },
       [ (G.Lit (G.String _) | G.Cst G.Cstr) ] ) ->
-      Some (G.Cst G.Cstr)
+      G.Cst G.Cstr
   (* Pro/Interfile: Look up inferred constness of the function *)
   | _lang, { e = Fetch _; eorig = SameAs eorig }, _args -> (
       match Hook.get hook_constness_of_function with
       | Some constness_of_func -> (
           match constness_of_func eorig with
-          | Some G.NotCst
-          | None ->
-              None
-          | Some svalue -> Some svalue)
-      | None -> None)
-  | __else__ -> None
+          | G.NotCst
+          | G.Unknown ->
+              G.Unknown
+          | svalue -> svalue)
+      | None -> G.Unknown)
+  | __else__ -> G.Unknown
 
 (*****************************************************************************)
 (* Symbolic evaluation *)
@@ -178,7 +194,9 @@ let sym_prop eorig =
 
 let eval_or_sym_prop env exp =
   match Eval.eval env exp with
-  | G.NotCst -> sym_prop exp.eorig
+  | G.NotCst
+  | G.Unknown ->
+      sym_prop exp.eorig
   | c -> c
 
 let no_cycles_in_svalue (id_info : G.id_info) svalue =
@@ -197,7 +215,7 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
         method! visit_id_info env ii =
           ok := !ok && !ff ii;
           (match !(ii.id_svalue) with
-          | Some (Sym e) when !ok ->
+          | Sym e when !ok ->
               (* Following `id_svalue`s can explode in pathological cases,
                * see 'tests/rules/sym_prop_explosion.js', so we need to
                * set a bound. *)
@@ -206,9 +224,7 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
                 incr i;
                 self#visit_expr env e)
               else ok := false
-          | None
-          | Some _ ->
-              ());
+          | _ -> ());
           if not !ok then raise Exit
       end
     in
@@ -235,16 +251,13 @@ let no_cycles_in_svalue (id_info : G.id_info) svalue =
            * id_svalue ref, that tells us it's the same variable occurrence. *)
           not (phys_equal id_info.id_svalue ii.id_svalue))
         (G.E e)
-  | G.NotCst
-  | G.Cst _
-  | G.Lit _ ->
-      true
+  | _ -> true
 
 let set_svalue_ref id_info c' =
   if no_cycles_in_svalue id_info c' then
     match !(id_info.id_svalue) with
-    | None -> id_info.id_svalue := Some c'
-    | Some c -> id_info.id_svalue := Some (Eval.refine c c')
+    | G.Unknown -> id_info.id_svalue := c'
+    | c -> id_info.id_svalue := Eval.refine c c'
   else
     Log.debug (fun m ->
         m ~tags "Cycle check failed for %s := ..." (G.show_id_info id_info))
@@ -323,20 +336,12 @@ let transfer_of_assume (assume : bool) (cond : IL.exp_kind)
   | None -> inp
   | Some hook -> hook assume cond inp
 
-let rec transfer :
-    lang:Lang.t ->
-    enter_env:G.svalue Var_env.t ->
-    fun_cfg:Fun_CFG.t ->
-    G.svalue Var_env.transfn =
- fun ~lang ~enter_env ~fun_cfg
-     (* the transfer function to update the mapping at node index ni *)
-       mapping ni ->
-  let flow = fun_cfg.cfg in
-
-  let node = Int_map.find ni flow.graph#nodes in
-
-  let inp' = input_env ~enter_env ~flow mapping ni in
-
+(* Per-node transfer: given the already-joined input env [inp'], compute the
+ * output env for [node]. Factored out so that alternative fixpoints (see
+ * [hook_fixpoint_with_env]) can reuse the exact same per-node semantics while
+ * supplying their own input-env join strategy. *)
+let rec transfer_node ~lang ~(fun_cfg : Fun_CFG.t) (node : F.node)
+    (inp' : G.svalue Var_env.t) : G.svalue Var_env.t =
   let out' =
     match node.F.n with
     | Enter
@@ -373,18 +378,18 @@ let rec transfer :
                 args
             in
             match result_of_function_call_constant lang func args_val with
-            | Some svalue -> VarMap.add (IL.str_of_name var) svalue inp'
-            | None -> (
+            | G.Unknown -> (
                 match eval_builtin_func lang eval_env func args with
-                | None
-                | Some NotCst ->
+                | G.Unknown
+                | G.NotCst ->
                     (* symbolic propagation *)
                     (* Call to an arbitrary function, we are intraprocedural so we cannot
                      * propagate actual constants in this case, but we can propagate the
                      * call itself as a symbolic expression. *)
                     let ccall = sym_prop corig in
                     update_env_with inp' var ccall
-                | Some cexp -> update_env_with inp' var cexp))
+                | cexp -> update_env_with inp' var cexp)
+            | svalue -> VarMap.add (IL.str_of_name var) svalue inp')
         | New ({ base = Var var; rev_offset = [] }, _ty, _ii, _args) ->
             update_env_with inp' var (sym_prop instr.iorig)
         | AssignCall
@@ -435,8 +440,20 @@ let rec transfer :
             | None -> inp'
             | Some lvar -> VarMap.remove (IL.str_of_name lvar) inp'))
   in
-  let out' = do_lambdas lang fun_cfg.lambdas out' node in
-  { D.in_env = inp'; out_env = out' }
+  do_lambdas lang fun_cfg.lambdas out' node
+
+and transfer :
+    lang:Lang.t ->
+    enter_env:G.svalue Var_env.t ->
+    fun_cfg:Fun_CFG.t ->
+    G.svalue Var_env.transfn =
+ fun ~lang ~enter_env ~fun_cfg
+     (* the transfer function to update the mapping at node index ni *)
+       mapping ni ->
+  let flow = fun_cfg.cfg in
+  let node = Int_map.find ni flow.graph#nodes in
+  let inp' = input_env ~enter_env ~flow mapping ni in
+  { D.in_env = inp'; out_env = transfer_node ~lang ~fun_cfg node inp' }
 
 and do_lambdas lang lambdas in_env node =
   (* In svalue-analysis we only need to visit lambdas at definition site,
@@ -480,18 +497,22 @@ and do_lambdas lang lambdas in_env node =
   | __else__ -> in_env
 
 and fixpoint_with_env lang enter_env fun_cfg =
-  let flow = fun_cfg.cfg in
-  let mapping, timeout =
-    DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
-      ~eq_env:(Var_env.eq_env Eval.eq)
-      ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
-      ~trans:(transfer ~lang ~enter_env ~fun_cfg)
-        (* svalue is a forward analysis! *)
-      ~forward:true ~flow
-  in
-  if timeout =*= `Timeout then
-    Log.warn (fun m -> m "Fixpoint timeout while performing svalue-propagation");
-  mapping
+  match Hook.get hook_fixpoint_with_env with
+  | Some fixpoint_with_env' -> fixpoint_with_env' lang enter_env fun_cfg
+  | None ->
+      let flow = fun_cfg.cfg in
+      let mapping, timeout =
+        DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
+          ~eq_env:(Var_env.eq_env Eval.eq)
+          ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
+          ~trans:(transfer ~lang ~enter_env ~fun_cfg)
+            (* svalue is a forward analysis! *)
+          ~forward:true ~flow
+      in
+      if timeout =*= `Timeout then
+        Log.warn (fun m ->
+            m "Fixpoint timeout while performing svalue-propagation");
+      mapping
 
 (*****************************************************************************)
 (* Entry point *)
@@ -505,19 +526,17 @@ and (fixpoint : Lang.t -> Fun_CFG.t -> mapping) =
 and update_svalue (flow : F.cfg) mapping =
   flow.graph#nodes
   |> Int_map.iter (fun ni _ ->
-         let ni_info = mapping.(ni) in
+      let ni_info = mapping.(ni) in
 
-         let node = Int_map.find ni flow.graph#nodes in
+      let node = Int_map.find ni flow.graph#nodes in
 
-         (* Update RHS svalue according to the input env. *)
-         LV.rlvals_of_node node.n
-         |> List.iter (function
-              | { base = Var var; _ } -> (
-                  match
-                    VarMap.find_opt (IL.str_of_name var) ni_info.D.in_env
-                  with
-                  | None -> ()
-                  | Some c -> set_svalue_ref var.id_info c)
-              | ___else___ -> ())
-         (* Should not update the LHS svalue since in x = E, x is a "ref",
-          * and it should not be substituted for the value it holds. *))
+      (* Update RHS svalue according to the input env. *)
+      LV.rlvals_of_node node.n
+      |> List.iter (function
+        | { base = Var var; _ } -> (
+            match VarMap.find_opt (IL.str_of_name var) ni_info.D.in_env with
+            | None -> ()
+            | Some c -> set_svalue_ref var.id_info c)
+        | ___else___ -> ())
+      (* Should not update the LHS svalue since in x = E, x is a "ref",
+       * and it should not be substituted for the value it holds. *))

@@ -11,9 +11,8 @@
    LICENSE for more details.
 *)
 (*
-   PCRE-related code used both for parsing patterns and for scanning targets.
+   PCRE2-related code used both for parsing patterns and for scanning targets.
 *)
-[@@@alert "-deprecated"]
 
 open Printf
 
@@ -56,11 +55,11 @@ let char_class_of_list ?(contents_only = false) chars =
   if not contents_only then Buffer.add_char buf '[';
   identify_char_ranges chars
   |> List.iter (function
-       | Single c -> escape_char buf c
-       | Range (first, last) ->
-           escape_char buf first;
-           Buffer.add_char buf '-';
-           escape_char buf last);
+    | Single c -> escape_char buf c
+    | Range (first, last) ->
+        escape_char buf first;
+        Buffer.add_char buf '-';
+        escape_char buf last);
   if not contents_only then Buffer.add_char buf ']';
   Buffer.contents buf
 
@@ -69,7 +68,7 @@ let char_class_of_list ?(contents_only = false) chars =
    the extended mode in addition to other special characters.
 *)
 let quote =
-  let rex = Pcre_.regexp "[[:space:]#]" in
+  let rex = Pcre2_.regexp "[[:space:]#]" in
   let subst str =
     assert (String.length str = 1);
     (* escape all characters so that it works regardless of whether they're
@@ -79,4 +78,4 @@ let quote =
     | '\t' -> {|\t|}
     | c (* other whitespace or '#' *) -> sprintf {|\x%02X|} (Char.code c)
   in
-  fun str -> Pcre_.quote str |> Pcre_.substitute ~rex ~subst
+  fun str -> Pcre2_.quote str |> Pcre2_.substitute ~rex ~subst

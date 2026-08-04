@@ -281,8 +281,8 @@ let rec annotation (env : env) ((v1, v2, v3) : CST.annotation) : attribute =
         let all_args =
           arg_lists
           |> List.map (fun al ->
-                 let _l, args, _r = arguments env al in
-                 args)
+              let _l, args, _r = arguments env al in
+              args)
           |> List_.flatten
         in
         fb all_args
@@ -1751,10 +1751,10 @@ and definition (env : env) (x : CST.definition) : stmt list =
       let attrs = [ KeywordAttr (Const, Tok.unsafe_fake_tok "val") ] in
       val_or_var_def env attrs false pat_or_ids ascription_opt init
       |> List.map (fun s ->
-             match s.s with
-             | DefStmt (ent, def) ->
-                 DefStmt ({ ent with name = EN (H2.name_of_id id) }, def) |> G.s
-             | _ -> s)
+          match s.s with
+          | DefStmt (ent, def) ->
+              DefStmt ({ ent with name = EN (H2.name_of_id id) }, def) |> G.s
+          | _ -> s)
   | `Choice_given_defi x -> definition_kind env x
 
 and definition_kind (env : env) x : stmt list =
@@ -2651,7 +2651,7 @@ and compilation_unit (env : env) ((_shebang, v2) : CST.compilation_unit) : any =
       let rest_stmts =
         List.concat_map (fun (_semi, tld) -> top_level_definition env tld) rest
       in
-      Pr (first_stmts @ rest_stmts)
+      Pr (Scala_to_generic.merge_chained_packages (first_stmts @ rest_stmts))
 
 (*****************************************************************************)
 (* Entry point *)

@@ -1,4 +1,4 @@
-local y = import '../libs/local.libsonnet';
+local y = import 'libs/local.libsonnet';
 
 {
   bar: y.foo,

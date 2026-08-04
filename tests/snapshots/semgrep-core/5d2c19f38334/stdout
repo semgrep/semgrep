@@ -9,7 +9,7 @@
                        ((PatId (("x", _),
                            { id_resolved = ref ((Some (Global, _)));
                              id_resolved_alternatives = ref ([]);
-                             id_type = ref (None); id_svalue = ref (None);
+                             id_type = ref (None); id_svalue = ref (Unknown);
                              id_flags = ref (0); id_info_id = _ }
                            )),
                         _,
@@ -50,8 +50,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -88,8 +89,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -126,8 +128,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -168,8 +171,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -203,7 +207,7 @@
                                                             t_attrs = [] }
                                                           ));
                                                        t_attrs = [] }));
-                                          id_svalue = ref (None);
+                                          id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
                                         )))
@@ -253,8 +257,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -269,7 +274,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -322,8 +327,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -338,7 +344,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -391,8 +397,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -407,7 +414,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -460,8 +467,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -476,7 +484,7 @@
                                      { id_resolved = ref (None);
                                        id_resolved_alternatives = ref ([]);
                                        id_type = ref (None);
-                                       id_svalue = ref (None);
+                                       id_svalue = ref (Unknown);
                                        id_flags = ref (0); id_info_id = _ }
                                      )));
                                e_id = 0; e_range = None;
@@ -529,8 +537,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -571,8 +580,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -613,8 +623,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -624,8 +635,9 @@
                          ((PatId (("x", _),
                              { id_resolved = ref ((Some (Global, _)));
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )),
                           _,
                           { e = (L (Int ((Some 6L), _))); e_id = 0;
@@ -640,7 +652,7 @@
                                       { id_resolved = ref (None);
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 e_id = 0; e_range = None;
@@ -694,8 +706,9 @@
                         ((PatId (("x", _),
                             { id_resolved = ref ((Some (Global, _)));
                               id_resolved_alternatives = ref ([]);
-                              id_type = ref (None); id_svalue = ref (None);
-                              id_flags = ref (0); id_info_id = _ }
+                              id_type = ref (None);
+                              id_svalue = ref (Unknown); id_flags = ref (0);
+                              id_info_id = _ }
                             )),
                          _,
                          { e = (L (Int ((Some 5L), _))); e_id = 0;
@@ -705,8 +718,9 @@
                          ((PatId (("x", _),
                              { id_resolved = ref ((Some (Global, _)));
                                id_resolved_alternatives = ref ([]);
-                               id_type = ref (None); id_svalue = ref (None);
-                               id_flags = ref (0); id_info_id = _ }
+                               id_type = ref (None);
+                               id_svalue = ref (Unknown); id_flags = ref (0);
+                               id_info_id = _ }
                              )),
                           _,
                           { e = (L (Int ((Some 6L), _))); e_id = 0;
@@ -721,7 +735,7 @@
                                       { id_resolved = ref (None);
                                         id_resolved_alternatives = ref ([]);
                                         id_type = ref (None);
-                                        id_svalue = ref (None);
+                                        id_svalue = ref (Unknown);
                                         id_flags = ref (0); id_info_id = _ }
                                       )));
                                 e_id = 0; e_range = None;

@@ -7,14 +7,16 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           submodules: true
       - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
-          cache-prefix: v5
+          cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
           ocaml-compiler: ocaml-variants.5.3.0+options,ocaml-option-flambda
           opam-pin: false
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git#78d29aba187e8362b8ab86c189790c0af9153d4b
           save-opam-post-run: true
       - name: Install dependencies
         run: opam exec -- make install-deps
@@ -22,18 +24,10 @@ jobs:
         run: opam exec -- make
       - name: Test semgrep-core
         run: opam exec -- make test
-      - name: Make artifact for ./bin/semgrep-core
-        run: |
-          mkdir artifacts
-          cp -LR ./bin/semgrep-core artifacts/
-          tar czf artifacts.tgz artifacts
-          # so that we can untar later and not get a message
-          # about existing artifacts/ directory
-          rm -rf artifacts
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
-          path: artifacts.tgz
+          path: ./bin/semgrep-core
 name: build-test-osx-arm64
 on:
   workflow_call: null

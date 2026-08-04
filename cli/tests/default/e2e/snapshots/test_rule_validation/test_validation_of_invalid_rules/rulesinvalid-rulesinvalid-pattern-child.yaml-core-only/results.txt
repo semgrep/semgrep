@@ -1,0 +1,10 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/invalid-pattern-child.yaml:10
+10 |     - pattern-not: $Z == $Z
+   |       ^^^^^^^^^^^
+
+you cannot negate in an Or; you can only negate inside an And
+
+[ERROR] Rule parse error in rule blah:
+ you cannot negate in an Or; you can only negate inside an And

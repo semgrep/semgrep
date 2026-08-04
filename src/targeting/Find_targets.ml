@@ -214,6 +214,8 @@ type conf = {
   force_novcs_project : bool;
   (* osemgrep-only option, exclude scanning minified files, default false *)
   exclude_minified_files : bool;
+  (* exclude scanning binary files, default true *)
+  exclude_binary_files : bool;
   baseline_commit : string option;
   par_conf : Parallelism_config.t;
   num_jobs : int option;
@@ -241,6 +243,7 @@ let default_conf : conf =
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
     exclude_minified_files = false;
+    exclude_binary_files = true;
     baseline_commit = None;
     par_conf = Parallelism_config.default;
     num_jobs = None;
@@ -307,7 +310,7 @@ let apply_include_filter status selection_events include_filter ppath =
 (* Note that include_filter applies only to the paths of regular files. They're
  * applied last, after the exclude/gitignore/semgrepignore filters.
  *)
-let filter_path (ign : Gitignore.filter)
+let filter_path (ign : Gitignore_filter.t)
     (include_filter : Include_filter.t option) (fppath : Fppath.t) :
     filter_result =
   let { fpath; ppath } : Fppath.t = fppath in
@@ -344,7 +347,7 @@ let filter_path (ign : Gitignore.filter)
    paths returned must correspond to existing regular files!
 *)
 let filter_paths (par_conf : Parallelism_config.t) (num_jobs : int option)
-    ((ign, include_filter) : Gitignore.filter * Include_filter.t option)
+    ((ign, include_filter) : Gitignore_filter.t * Include_filter.t option)
     (target_files : Fppath.t list) : Fppath_set.t * Out.skipped_target list =
   let%trace sp = "Find_targets.filter_paths" in
   let (selected_paths : Fppath.t list ref) = ref [] in
@@ -364,24 +367,24 @@ let filter_paths (par_conf : Parallelism_config.t) (num_jobs : int option)
   target_files
   |> map_filter_path (fun x -> (x, filter_path ign include_filter x))
   |> List.iter (fun (res : (Fppath.t * filter_result, Fppath.t * exn) result) ->
-         match res with
-         | Ok (fppath, Keep) -> (
-             (* This section is similar to what we have in
+      match res with
+      | Ok (fppath, Keep) -> (
+          (* This section is similar to what we have in
                 'walk_skip_and_collect' but the rest is sufficiently different
                 that sharing code makes things complicated
                 (e.g. no dir access filtering for git targets) *)
-             match Skip_target.filter_file_access_permissions fppath.fpath with
-             | Ok _path -> add fppath
-             | Error skipped -> skip skipped)
-         (* shouldn't happen if we work on the output of 'git ls-files *)
-         | Ok (_, Dir) -> ()
-         | Ok (_, Skip x) -> skip x
-         | Ok (fppath, Ignore_silently) ->
-             Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath))
-         | Error (fppath, e) ->
-             Log.debug (fun m ->
-                 m "Exception while filtering path %s:%s" !!(fppath.fpath)
-                   (Printexc.to_string e)));
+          match Skip_target.filter_file_access_permissions fppath.fpath with
+          | Ok _path -> add fppath
+          | Error skipped -> skip skipped)
+      (* shouldn't happen if we work on the output of 'git ls-files *)
+      | Ok (_, Dir) -> ()
+      | Ok (_, Skip x) -> skip x
+      | Ok (fppath, Ignore_silently) ->
+          Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath))
+      | Error (fppath, e) ->
+          Log.debug (fun m ->
+              m "Exception while filtering path %s:%s" !!(fppath.fpath)
+                (Printexc.to_string e)));
 
   Tracing.add_data_to_span sp
     [
@@ -412,6 +415,16 @@ let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
   Log.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
   (selected_fppaths, skipped_size @ skipped_minified)
 
+let filter_binary paths =
+  let selected_ffpaths, skipped_binary =
+    Result_.partition
+      (fun (fppath : Fppath.t) ->
+        Result.map (fun _ -> fppath) (Skip_target.is_binary fppath.fpath))
+      paths
+  in
+  Log.debug (fun m -> m "skipped_binary: %d" (List.length skipped_binary));
+  (selected_ffpaths, skipped_binary)
+
 (*************************************************************************)
 (* Finding by walking *)
 (*************************************************************************)
@@ -428,8 +441,10 @@ let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
  * python: was called Target.files_from_filesystem ()
  *
  * pre: the scan_root must be a path to a directory
+ *
+ * TODO: contemplate porting this to use `FPpath.walk_dirs`.
  *)
-let walk_skip_and_collect (ign : Gitignore.filter)
+let walk_skip_and_collect (ign : Gitignore_filter.t)
     (include_filter : Include_filter.t option) (scan_root : Fppath.t) :
     Fppath.t list * Out.skipped_target list =
   Log.info (fun m ->
@@ -458,23 +473,23 @@ let walk_skip_and_collect (ign : Gitignore.filter)
         (* TODO: factorize code with filter_paths? *)
         entries
         |> List.iter (fun name ->
-               let fpath =
-                 (* if scan_root was "." we want to display paths as "foo/bar"
-                  * and not "./foo/bar"
-                  *)
-                 if Fpath.is_current_dir dir.fpath then name
-                 else Fpath.(dir.fpath / !!name)
-               in
-               let ppath = Ppath.add_seg dir.ppath !!name in
-               let fppath : Fppath.t = { fpath; ppath } in
-               match filter_path ign include_filter fppath with
-               | Keep -> (
-                   match Skip_target.filter_file_access_permissions fpath with
-                   | Ok _path -> add fppath
-                   | Error skipped -> skip skipped)
-               | Skip skipped -> skip skipped
-               | Dir -> aux fppath
-               | Ignore_silently -> ())
+            let fpath =
+              (* if scan_root was "." we want to display paths as "foo/bar"
+               * and not "./foo/bar"
+               *)
+              if Fpath.is_current_dir dir.fpath then name
+              else Fpath.(dir.fpath / !!name)
+            in
+            let ppath = Ppath.add_seg dir.ppath !!name in
+            let fppath : Fppath.t = { fpath; ppath } in
+            match filter_path ign include_filter fppath with
+            | Keep -> (
+                match Skip_target.filter_file_access_permissions fpath with
+                | Ok _path -> add fppath
+                | Error skipped -> skip skipped)
+            | Skip skipped -> skip skipped
+            | Dir -> aux fppath
+            | Ignore_silently -> ())
   in
   aux scan_root;
   (* Let's not worry about file order here until we have to.
@@ -657,40 +672,40 @@ let group_scanning_roots_by_project (conf : conf)
   let groups =
     scanning_roots
     |> List.filter (fun sc_root ->
-           let fpath = Scanning_root.to_fpath sc_root in
-           if UFile.is_dir_or_reg ~follow_symlinks:true fpath then true
-           else (
-             (* nosemgrep: no-logs-in-library *)
-             Logs.err (fun m -> m "Invalid scanning root: %s" !!fpath);
-             Stack_.push
-               ({
-                  (* TODO: introduce a more specific error type? *)
-                  typ = SemgrepError;
-                  msg = spf "Invalid scanning root: %s" !!fpath;
-                  loc = None;
-                  rule_id = None;
-                  details = None;
-                }
-                 : Core_error.t)
-               errors;
-             false))
+        let fpath = Scanning_root.to_fpath sc_root in
+        if UFile.is_dir_or_reg ~follow_symlinks:true fpath then true
+        else (
+          (* nosemgrep: no-logs-in-library *)
+          Logs.err (fun m -> m "Invalid scanning root: %s" !!fpath);
+          Stack_.push
+            ({
+               (* TODO: introduce a more specific error type? *)
+               typ = SemgrepError;
+               msg = spf "Invalid scanning root: %s" !!fpath;
+               loc = None;
+               rule_id = None;
+               details = None;
+             }
+              : Core_error.t)
+            errors;
+          false))
     |> List.filter_map (fun (sc_root : Scanning_root.t) ->
-           match
-             Project.find_any_project_root ~fallback_root:None
-               ~force_novcs:conf.force_novcs_project ~force_root
-               (Scanning_root.to_fpath sc_root)
-           with
-           | Ok x -> Some x
-           | Error msg ->
-               (* nosemgrep: no-logs-in-library *)
-               Logs.warn (fun m -> m "%s" msg);
-               None)
+        match
+          Project.find_any_project_root ~fallback_root:None
+            ~force_novcs:conf.force_novcs_project ~force_root
+            (Scanning_root.to_fpath sc_root)
+        with
+        | Ok x -> Some x
+        | Error msg ->
+            (* nosemgrep: no-logs-in-library *)
+            Logs.warn (fun m -> m "%s" msg);
+            None)
     (* Using a realpath (physical path) in Project.t ensures we group
        correctly even if the scanning_roots went through different symlink
        paths. *)
     |> Assoc.group_assoc_bykey_eff
     |> List.map (fun (project, scanning_roots) ->
-           Project.{ project; scanning_roots })
+        Project.{ project; scanning_roots })
   in
   (groups, List.rev !errors)
 
@@ -703,7 +718,7 @@ let group_scanning_roots_by_project (conf : conf)
 *)
 
 let setup_path_filters conf (project_roots : Project.scanning_roots) :
-    Gitignore.filter * Include_filter.t option =
+    Gitignore_filter.t * Include_filter.t option =
   let Project.{ project = { kind; root = project_root }; scanning_roots = _ } =
     project_roots
   in
@@ -811,7 +826,7 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
     project_roots.scanning_roots
     |> List.map Project.fppath_of_scanning_root_info
     |> List.filter (fun (sc_root : Fppath.t) ->
-           UFile.is_reg ~follow_symlinks:true sc_root.fpath)
+        UFile.is_reg ~follow_symlinks:true sc_root.fpath)
   in
   let skipped_targets =
     let regular_files_to_add =
@@ -821,7 +836,7 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
     in
     skipped_targets
     |> List.filter (fun (skipped : Out.skipped_target) ->
-           not (Fpath_.Fpath_set.mem skipped.path regular_files_to_add))
+        not (Fpath_.Fpath_set.mem skipped.path regular_files_to_add))
   in
   let selected_targets =
     Fppath_set.union selected_targets (Fppath_set.of_list regular_files_to_add)
@@ -921,7 +936,7 @@ let get_targets (conf : conf) (scanning_roots : Scanning_root.t list) :
   |> List.map (get_targets_for_project conf)
   |> List_.split
   |> fun (path_set_list, skipped_paths_list) ->
-  let paths, skipped_size_minified =
+  let paths, skipped_size_minified_binary =
     let path_set =
       List.fold_left Fppath_set.union Fppath_set.empty path_set_list
     in
@@ -941,15 +956,23 @@ let get_targets (conf : conf) (scanning_roots : Scanning_root.t list) :
         ~exclude_minified_files:conf.exclude_minified_files
         ~max_target_bytes:conf.max_target_bytes paths_to_check
     in
-    (selected_paths_to_check @ exempt_paths, skipped_size_minified)
+
+    (* Filter out binary files *)
+    let selected_paths_to_check, skipped_binary =
+      if conf.exclude_binary_files then filter_binary selected_paths_to_check
+      else (selected_paths_to_check, [])
+    in
+
+    ( selected_paths_to_check @ exempt_paths,
+      skipped_size_minified @ skipped_binary )
   in
   let sorted_skipped_targets =
     let skipped_paths_list =
-      List_.flatten skipped_paths_list @ skipped_size_minified
+      List_.flatten skipped_paths_list @ skipped_size_minified_binary
     in
     skipped_paths_list
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
-           Fpath.compare a.path b.path)
+        Fpath.compare a.path b.path)
   in
   (paths, errors, sorted_skipped_targets)
 [@@profiling]

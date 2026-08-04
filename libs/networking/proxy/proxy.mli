@@ -40,4 +40,7 @@ val settings_from_env : unit -> settings
     HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, NO_PROXY, PROXY_USER, PROXY_PASSWORD *)
 
 val configure_proxy : settings -> unit
-(** Configures the HTTP client to use the specified proxy settings *)
+(** Configures the LWT HTTP client to use the specified proxy settings *)
+
+val configure_proxy_eio : settings -> unit
+(** Configures the EIO HTTP client to use the specified proxy settings *)

@@ -35,4 +35,3 @@ let parse_string ?(deprecated_absolute_dotslash = false) str =
   let lexbuf = Lexing.from_string str in
   let pat = Parser.segments Lexer.token lexbuf in
   if deprecated_absolute_dotslash then normalize_pattern pat else pat
-[@@profiling "Glob.Parse.parse_string"]

@@ -108,14 +108,14 @@ let get_config_filenames original_config =
     let configs = Common2.glob (original_config / "**") in
     configs
     |> List.filter_map (fun fpath ->
-           if
-             is_config_suffix fpath
-             && (not (String.starts_with ~prefix:"." (Fpath.basename fpath)))
-             && not
-                  (String.starts_with ~prefix:"."
-                     (Fpath.basename (Fpath.parent fpath)))
-           then Some fpath
-           else None)
+        if
+          is_config_suffix fpath
+          && (not (String.starts_with ~prefix:"." (Fpath.basename fpath)))
+          && not
+               (String.starts_with ~prefix:"."
+                  (Fpath.basename (Fpath.parent fpath)))
+        then Some fpath
+        else None)
 
 (* alt: hannes:
    let get_all_files path =

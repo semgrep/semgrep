@@ -1,0 +1,20 @@
+Configuration is invalid - found 2 configuration error(s), and 0 rule(s).
+semgrep error: Invalid rule schema
+  --> rules/invalid-rules/invalid-pattern.yaml:9
+9 |   pattern: print..);
+  |            ^^^^^^^^^
+
+Invalid pattern for Python:
+--- pattern ---
+print..);
+--- end pattern ---
+Pattern error: Stdlib.Parsing.Parse_error
+
+
+[ERROR] Pattern parse error in rule print:
+ Invalid pattern for Python:
+--- pattern ---
+print..);
+--- end pattern ---
+Pattern error: Stdlib.Parsing.Parse_error
+

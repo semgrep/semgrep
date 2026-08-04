@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Fpath_.Operators
 open Either_
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
@@ -32,6 +31,16 @@ module Log = Log_parser_cpp.Log
  * ../generic/cpp_to_generic.ml
  *
  *)
+
+(*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+
+(* Optional source-text rewrite applied to the raw file contents before
+ * tree-sitter parses. [path] is the file the contents came from. Callers
+ * should preserve character offsets so [Tok.t] positions stay accurate. *)
+let hook_preprocess_source : (path:Fpath.t -> string -> string) option Hook.t =
+  Hook.create None
 
 (*****************************************************************************)
 (* Helpers *)
@@ -1153,7 +1162,10 @@ let elifdef_token env = function
 
 let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
     (env : env) ((v1, v2, v3, v4, v5, v6) : item P.preproc_if_poly) =
-  (* coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
+  (* Emit directive markers and item bodies verbatim. Any dead-branch
+   * pruning is done by [hook_preprocess_source] before tree-sitter runs.
+   *
+   * coupling: This is a copy-paste of `map_preproc_else_poly` below. *)
   let rec preproc_else_poly ~(map_item : env -> item -> 'out list) (env : env)
       (x : item P.preproc_else_poly) : 'out list =
     match x with
@@ -1162,8 +1174,8 @@ let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
           token env v1
           (* pattern #[ 	]*else *)
         in
-        let v2 = List.concat_map (map_item env) v2 in
         let dir = CppIfdef (IfdefElse v1) in
+        let v2 = List.concat_map (map_item env) v2 in
         dir :: v2
     | `Prep_elif_poly (v1, v2, v3, v4, v5) ->
         let v1 =
@@ -1175,20 +1187,20 @@ let preproc_if_poly (type item) ~(map_item : env -> item -> 'out list)
           token env v3
           (* "\n" *)
         in
+        let dir = CppIfdef (IfdefElseif v1) in
         let v4 = List.concat_map (map_item env) v4 in
         let v5 =
           match v5 with
           | Some x -> preproc_else_poly ~map_item env x
           | None -> []
         in
-        let dir = CppIfdef (IfdefElseif v1) in
         (dir :: v4) @ v5
   in
   let v1 =
     token env v1
     (* pattern #[ 	]*if *)
   in
-  let _v2TODO = map_preproc_expression env v2 in
+  let _v2 = map_preproc_expression env v2 in
   let _v3 =
     token env v3
     (* "\n" *)
@@ -3188,8 +3200,8 @@ and map_declaration_specifiers (env : env)
     let tqs, other =
       specs1 @ specs2
       |> Either_.partition (function
-           | TQ x -> Left x
-           | (A _ | M _ | ST _) as x -> Right x)
+        | TQ x -> Left x
+        | (A _ | M _ | ST _) as x -> Right x)
     in
     let tqs2, tc = t in
     ((tqs @ tqs2, tc), other)
@@ -3639,7 +3651,7 @@ and map_field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration)
   let xs =
     v2
     |> List.map (fun ({ dn; dt }, v_init) ->
-           make_onedecl ~v_name:dn ~v_init ~v_type:(dt t) ~v_specs:specs)
+        make_onedecl ~v_name:dn ~v_init ~v_type:(dt t) ~v_specs:specs)
   in
   F (DeclList (xs, v4))
 
@@ -5656,8 +5668,8 @@ and map_type_definition (env : env)
   let xs =
     v4
     |> List.map (fun { dn; dt } ->
-           let id = HPfff.id_of_dname_for_typedef dn in
-           TypedefDecl (v2, dt v3, id))
+        let id = HPfff.id_of_dname_for_typedef dn in
+        TypedefDecl (v2, dt v3, id))
   in
   (xs, v6)
 
@@ -5901,8 +5913,32 @@ and map_variadic_parameter_declaration (env : env)
 (*****************************************************************************)
 
 let parse file =
+  let source_of_file () =
+    let raw = UFile.read_file file in
+    match Hook.get hook_preprocess_source with
+    | None -> raw
+    | Some pre ->
+        let rewritten = pre ~path:file raw in
+        (* [line_col_to_pos] below reads [file] directly to build the
+         * (line, col) -> byte-offset table. That table is used to convert
+         * positions tree-sitter reports (from the *rewritten* string) back
+         * into positions in the on-disk file. That's only sound if the hook
+         * preserves byte offsets and newlines. Enforce the length invariant
+         * so a broken hook fails loudly rather than silently drifting
+         * Tok.t positions. *)
+        if String.length rewritten <> String.length raw then
+          failwith
+            (Printf.sprintf
+               "hook_preprocess_source violated its length-preservation \
+                contract (in: %d bytes, out: %d bytes) — Tok.t positions would \
+                drift silently."
+               (String.length raw) (String.length rewritten));
+        rewritten
+  in
   H.wrap_parser
-    (fun () -> Tree_sitter_cpp.Parse.file !!file)
+    (fun () ->
+      Tree_sitter_cpp.Parse.string ~src_file:(Fpath.to_string file)
+        (source_of_file ()))
     (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_program_or_expr env cst with

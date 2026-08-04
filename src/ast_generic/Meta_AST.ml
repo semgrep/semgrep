@@ -200,7 +200,7 @@ and vof_id_info
       id_info_id;
     } =
   let bnds = [] in
-  let arg = OCaml.vof_ref (OCaml.vof_option vof_svalue) v3 in
+  let arg = OCaml.vof_ref vof_svalue v3 in
   let bnd = ("id_svalue", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_ref (OCaml.vof_option vof_type_) v_id_type in
@@ -500,6 +500,7 @@ and vof_svalue = function
       OCaml.VSum ("Cst", [ v1 ])
   | Sym v1 -> vof_sym v1
   | NotCst -> OCaml.VSum ("NotCst", [])
+  | Unknown -> OCaml.VSum ("Unknown", [])
 
 and vof_sym v1 =
   (* Do NOT go into symbolic values in production, see "CAREFUL" note in

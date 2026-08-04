@@ -50,8 +50,8 @@ let get_and_check_multi_lwt ?(parallel = false) urls (f : string -> unit) =
   Lwt_platform.run
     (urls
     |> iter_fn (fun url ->
-           let%lwt resp = get_and_check_lwt url in
-           Lwt.return (f resp)))
+        let%lwt resp = get_and_check_lwt url in
+        Lwt.return (f resp)))
 
 let post_and_check_multi_lwt ?(parallel = false)
     (url_body_pairs : (string * string) list) (f : string -> unit) =
@@ -61,8 +61,8 @@ let post_and_check_multi_lwt ?(parallel = false)
   Lwt_platform.run
     (url_body_pairs
     |> iter_fn (fun (url, body) ->
-           let%lwt resp = post_and_check_lwt url body in
-           Lwt.return (f resp)))
+        let%lwt resp = post_and_check_lwt url body in
+        Lwt.return (f resp)))
 
 (*****************************************************************************)
 (* Code *)

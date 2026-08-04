@@ -270,6 +270,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let expr = map_expression env v1 in
       let op = (* ">>" *) token env v2 in
       let expr2 = map_expression env v3 in
+      (* TODO: verify Circom >> semantics over prime field elements *)
       G.opcall (LSR, op) [ expr; expr2 ]
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let expr = map_expression env v1 in
@@ -493,6 +494,7 @@ and map_assignment_expression (env : env)
     | `PERCEQ tok -> (* "%=" *) (Mod, token env tok)
     | `BAREQ tok -> (* "|=" *) (BitOr, token env tok)
     | `HATEQ tok -> (* "^=" *) (BitXor, token env tok)
+    (* TODO: verify Circom >>= semantics over prime field elements *)
     | `GTGTEQ tok -> (* ">>=" *) (LSR, token env tok)
     | `LTLTEQ tok -> (* "<<=" *) (LSL, token env tok)
     | `EQEQEQ tok -> (* "===" *) (PhysEq, token env tok)

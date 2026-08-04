@@ -32,6 +32,7 @@ from typing import TypeVar
 from typing import Union
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 
 import click
 
@@ -90,6 +91,44 @@ def is_semgrep_url(url: str, configured_url: Optional[str] = None) -> bool:
         return False
     except ValueError:
         return False
+
+
+_REDACTED = "<REDACTED>"
+
+# Permissive: finds any scheme://... substring; structural decisions made
+# by _strip_url_userinfo via urllib.parse.
+_URL_CANDIDATE_RE = re.compile(r"[a-zA-Z][a-zA-Z0-9+.\-]*://[^\s'\"]+")
+
+# Optional quote on each side covers raw HTTP, dict reprs, JSON, and key=value.
+_AUTH_HEADER_RE = re.compile(r"(?i)(authorization['\"]?\s*[:=]\s*['\"]?)[^'\"\r\n]+")
+
+
+def _strip_url_userinfo(url: str) -> str:
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+    if not parts.scheme or not parts.netloc or "@" not in parts.netloc:
+        return url
+    host_part = parts.netloc.rsplit("@", 1)[-1]
+    new_netloc = f"{_REDACTED}@{host_part}"
+    return urlunsplit(
+        (parts.scheme, new_netloc, parts.path, parts.query, parts.fragment)
+    )
+
+
+def redact_credentials(s: str) -> str:
+    """Strip URL userinfo and Authorization-header values from [s]. Misses
+    other secret shapes (X-API-Key, ?private_token=..., Cookie:, ...) — not
+    a general-purpose scrubber. Prefer keeping secrets out of [s] upstream.
+    """
+
+    def _replace_url(match: "re.Match[str]") -> str:
+        return _strip_url_userinfo(match.group(0))
+
+    s = _URL_CANDIDATE_RE.sub(_replace_url, s)
+    s = _AUTH_HEADER_RE.sub(rf"\1{_REDACTED}", s)
+    return s
 
 
 def is_rules(rules: str) -> bool:

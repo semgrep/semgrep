@@ -146,6 +146,7 @@ class NormalizedOutputSettings(NamedTuple):
     dataflow_traces: bool
     # alt: put that in terminal.py, which can then be accessed globally
     max_log_list_entries: int
+    max_match_context_size: int
 
     def get_outputs(self) -> Iterator[Tuple[Optional[str], OutputFormat]]:
         return self.outputs.items().__iter__()
@@ -170,6 +171,7 @@ class OutputSettings(NamedTuple):
     timeout_threshold: int = 0
     dataflow_traces: bool = False
     max_log_list_entries: int = 0
+    max_match_context_size: int = 0
 
     def normalize(self) -> NormalizedOutputSettings:
         normalized_outputs: Dict[Optional[str], OutputFormat] = {}
@@ -197,6 +199,7 @@ class OutputSettings(NamedTuple):
             timeout_threshold=self.timeout_threshold,
             dataflow_traces=self.dataflow_traces,
             max_log_list_entries=self.max_log_list_entries,
+            max_match_context_size=self.max_match_context_size,
         )
 
 
@@ -219,8 +222,10 @@ class OutputHandler:
     def __init__(
         self,
         output_settings: OutputSettings,
+        disable_nosem: bool = False,
     ):
         self.settings: NormalizedOutputSettings = output_settings.normalize()
+        self.disable_nosem = disable_nosem
 
         self.rule_matches: List[RuleMatch] = []
         self.all_targets: Set[TargetInfo] = set()
@@ -394,6 +399,16 @@ class OutputHandler:
             )
         )
 
+    def _matches_for_display(self) -> List[RuleMatch]:
+        # nosemgrep-suppressed matches are kept in self.rule_matches so that
+        # formatters that opt in (e.g. SARIF) can still see them. Strip them
+        # here for any consumer that just wants the user-visible matches.
+        # --disable-nosem bypasses the filter: the user explicitly opted out
+        # of nosemgrep, so suppression should not apply anywhere.
+        if self.disable_nosem:
+            return self.rule_matches
+        return [m for m in self.rule_matches if not m.match.extra.is_ignored]
+
     # TODO: why run_scan.scan() calls output() to set the fields why
     # run_scan.run_scan_and_return_json() modify directly the fields instead?
     def output(
@@ -453,7 +468,8 @@ class OutputHandler:
 
         final_error = None
         any_findings_not_ignored = any(
-            not rm.match.extra.is_ignored for rm in self.rule_matches
+            self.disable_nosem or not rm.match.extra.is_ignored
+            for rm in self.rule_matches
         )
 
         if self.final_error:
@@ -495,7 +511,7 @@ class OutputHandler:
 
         if self.filtered_rules:
             fingerprint_matches, regular_matches = partition(
-                self.rule_matches,
+                self._matches_for_display(),
                 lambda m: m.severity
                 in [
                     out.MatchSeverity(out.Inventory()),
@@ -674,6 +690,7 @@ class OutputHandler:
                 "per_line_max_chars_limit"
             ] = self.settings.output_per_line_max_chars_limit
             extra["dataflow_traces"] = self.settings.dataflow_traces
+        extra["max_match_context_size"] = self.settings.max_match_context_size
         if output_format == OutputFormat.SARIF:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 
@@ -716,9 +733,18 @@ class OutputHandler:
 
         state = get_state()
         formatter = self._formatters[output_destination]
+        # If this formatter doesn't want suppressed matches, strip them. The
+        # global filter_ignored in run_scan.py keeps them whenever any
+        # registered formatter requests them (e.g. SARIF), so without this
+        # they would leak into formatters that don't (e.g. text on stdout).
+        matches_for_formatter = (
+            self.rule_matches
+            if formatter.keep_ignores()
+            else self._matches_for_display()
+        )
         output = formatter.output(  # the rules are used only by the SARIF formatter
             self.rules,
-            self.rule_matches,
+            matches_for_formatter,
             self.semgrep_structured_errors,
             cli_output_extra,
             extra,

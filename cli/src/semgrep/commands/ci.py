@@ -64,6 +64,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.run_scan import AutofixBehavior
@@ -256,12 +257,14 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     hidden=True,
 )
 @click.option(
-    "--x-use-scan-v2/--x-no-scan-v2",
-    "use_scan_v2",
-    default=True,
-    envvar="SEMGREP_USE_SCAN_V2",
+    # Used by Semgrep Managed Scanning to run fast supply-chain incident scans
+    # restricted to a small set of rules. The backend uses this list to filter
+    # the generated scan config. May be repeated.
+    "--x-partial-scan-rule-id",
+    "x_partial_scan_rule_ids",
+    multiple=True,
+    type=str,
     hidden=True,
-    help="Use v2 /scans endpoint (default). Pass --x-no-scan-v2 to fall back to v1.",
 )
 @handle_command_errors
 def ci(
@@ -282,6 +285,7 @@ def ci(
     enable_version_check: bool,
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
+    exclude_binary_files: bool,
     suppress_errors: bool,
     force_color: bool,
     include: Optional[Tuple[str, ...]],
@@ -290,6 +294,7 @@ def ci(
     max_chars_per_line: int,
     max_lines_per_finding: int,
     max_log_list_entries: int,
+    max_match_context_size: int,
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
@@ -332,10 +337,12 @@ def ci(
     x_eio: bool,
     x_parmap: bool,
     enable_transitive_reachability: Optional[bool],
+    x_dependency_paths: bool,
     x_pro_naming: bool,
     x_run_taint_once: bool,
-    x_semgrepignore_filename: Optional[str],
+    validation_mode: RuleValidationMode,
     x_no_python_schema_validation: bool,
+    x_semgrepignore_filename: Optional[str],
     x_simple_profiling: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
@@ -347,12 +354,12 @@ def ci(
     x_group_taint_rules: bool,
     x_dump_symbol_analysis: bool,
     enable_mal_deps: bool,
-    use_scan_v2: bool,
     x_mem_policy: Optional[MemoryPolicy],
     x_dump_subprojects_and_exit: Optional[Path],
     x_computed_dependencies_dir: Optional[Path],
     x_dump_scan_config_path: Optional[Path],
     x_use_saved_scan_config_path: Optional[Path],
+    x_partial_scan_rule_ids: Tuple[str, ...],
 ) -> None:
     if x_dump_scan_config_path and x_use_saved_scan_config_path:
         raise click.UsageError(
@@ -413,6 +420,14 @@ def ci(
                     + "This flag will be removed in a future version of Semgrep."
                 )
 
+        if x_no_python_schema_validation:
+            logger.warning(
+                "WARN: --x-no-python-schema-validation is deprecated and now "
+                "a no-op. Use --x-rule-validation=core-only for the previous "
+                "behavior. This flag will be removed in a future version of "
+                "Semgrep."
+            )
+
         if config and partial_config:
             logger.info(
                 "The `--config` and `--x-partial-config` flags are mutually exclusive. They serve different purposes."
@@ -470,15 +485,29 @@ def ci(
             if partial_output:
                 dry_run = True
 
+            # When --secrets is set, every rule eligible for validators must
+            # come directly from the appsec platform. A saved scan
+            # config is a JSON file on a filesystem, and rules could
+            # be substituted, so we discard the saved path and let
+            # ScanHandler re-fetch from the app.
+            saved_scan_config_path = x_use_saved_scan_config_path
+            if run_secrets_flag and saved_scan_config_path:
+                logger.warning(
+                    f"Ignoring saved scan config at {saved_scan_config_path} "
+                    "because --secrets is set. Re-fetching from app so only "
+                    "platform-served rules are eligible for validators."
+                )
+                saved_scan_config_path = None
+
             scan_handler = ScanHandler(
                 enable_transitive_reachability=enable_transitive_reachability,
                 dry_run=dry_run,
                 partial_output=partial_output,
                 dump_scan_id_path=dump_scan_id_path,
                 enable_mal_deps=enable_mal_deps,
-                use_scan_v2=use_scan_v2,
                 dump_scan_config_path=x_dump_scan_config_path,
-                load_saved_scan_config_path=x_use_saved_scan_config_path,
+                load_saved_scan_config_path=saved_scan_config_path,
+                partial_scan_rule_ids=x_partial_scan_rule_ids,
             )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
@@ -533,6 +562,7 @@ def ci(
                         contributions=contributions,
                         engine_requested=engine_type,
                         progress_bar=progress_bar,
+                        disable_nosem=(not enable_nosem),
                     )
                     sys.exit(0)
 
@@ -633,11 +663,49 @@ def ci(
                     )
                     sys.exit(MISSING_CONFIG_EXIT_CODE)
 
-                # Partial config overrides the config we get from the app,
-                # but we still need to communicate with the app to get other
-                # configs such as products, deployment ID, etc.
+                # start_scan above has populated scan_handler.scan_response
+                # with everything beyond rules: enabled_products, deployment_id,
+                # deployment_name, scan_id, ignore_patterns, fips_mode,
+                # symbol_analysis. Here we only override the rules string. The
+                # allowlist below is built from scan_handler.rules (the
+                # network-served set), so start_scan must always run, even when
+                # partial_config is set.
                 if partial_config:
-                    config = (str(partial_config),)
+                    # For security, only allow rules that are actually
+                    # downloaded from the app. The partial config can only
+                    # select which subset of network-served rules to run.
+                    # It cannot supply the rule content (pattern, message,
+                    # metadata, etc.). A malicious user could otherwise
+                    # craft a partial config with a legitimate rule ID but
+                    # attacker-controlled body and bypass the allowlist.
+                    rules_from_network_json = json.loads(scan_handler.rules)
+                    network_rules_by_id = {
+                        rule["id"]: rule for rule in rules_from_network_json["rules"]
+                    }
+                    try:
+                        with partial_config.open() as f:
+                            partial_config_json = json.load(f)
+                    except FileNotFoundError:
+                        logger.warning(
+                            f"Partial config file not found: {partial_config}"
+                        )
+                        scan_handler.report_failure(MISSING_CONFIG_EXIT_CODE)
+                        sys.exit(MISSING_CONFIG_EXIT_CODE)
+                    partial_config_rules = partial_config_json.get("rules")
+                    if partial_config_rules is None:
+                        logger.warning(
+                            f"Partial config missing 'rules' key: {partial_config}"
+                        )
+                        scan_handler.report_failure(MISSING_CONFIG_EXIT_CODE)
+                        sys.exit(MISSING_CONFIG_EXIT_CODE)
+                    safe_partial_config_json = {
+                        "rules": [
+                            network_rules_by_id[rule["id"]]
+                            for rule in partial_config_rules
+                            if rule["id"] in network_rules_by_id
+                        ]
+                    }
+                    rules_string = json.dumps(safe_partial_config_json)
                 else:
                     rules_string = scan_handler.rules
 
@@ -684,7 +752,7 @@ def ci(
             dataflow_traces = engine_type.has_dataflow_traces
 
         if max_memory is None:
-            max_memory = engine_type.default_max_memory
+            max_memory = engine_type.default_max_memory()
 
         if interfile_timeout is None:
             interfile_timeout = engine_type.default_interfile_timeout
@@ -727,8 +795,22 @@ def ci(
             output_per_line_max_chars_limit=max_chars_per_line,
             dataflow_traces=dataflow_traces,
             max_log_list_entries=max_log_list_entries,
+            max_match_context_size=max_match_context_size,
         )
-        output_handler = OutputHandler(output_settings)
+        # Resolve nosemgrep handling. An explicit --enable-nosem/--disable-nosem
+        # on the command line always wins, so the config value is ignored. When
+        # neither flag was passed, honor the org-wide nosemgrep_disabled setting
+        # the app sent in the scan config.
+        nosem_flag_passed = (
+            ctx.get_parameter_source("enable_nosem")
+            != click.core.ParameterSource.DEFAULT
+        )
+        if not nosem_flag_passed and scan_handler and scan_handler.nosemgrep_disabled:
+            enable_nosem = False
+
+        output_handler = OutputHandler(
+            output_settings, disable_nosem=(not enable_nosem)
+        )
 
         per_product_excludes = {
             product: [*exclude] if exclude else [] for product in ALL_PRODUCTS
@@ -772,6 +854,17 @@ def ci(
             if scan_handler and scan_handler.autofix
             else AutofixBehavior.IGNORE
         )
+
+        # rules_string is assigned only from ScanHandler.rules, i.e.
+        # ScanResponse.config.rules returned by the App start-scan flow.
+        # For that path, skip all CLI-side rule pre-validation; the scan
+        # subprocess parses the same rules before matching, so doing it here
+        # would just validate the cloud rules twice.
+        if rules_string is not None:
+            effective_validation_mode = RuleValidationMode.NONE
+        else:
+            effective_validation_mode = validation_mode
+
         # Base arguments for actually running the scan. This is done here so we can
         # re-use this in the event we need to perform a second scan. Currently the
         # only case for this is a separate "historical" scan, where we scan the git
@@ -789,12 +882,14 @@ def ci(
             "lang": None,
             "rules_string": rules_string,
             "config_strs": config,
+            "validation_mode": effective_validation_mode,
             "no_rewrite_rule_ids": (not rewrite_rule_ids),
             "dump_command_for_core": dump_command_for_core,
             "jobs": jobs,
             "include": include,
             "exclude": per_product_excludes,
             "exclude_rule": exclude_rule,
+            "exclude_binary_files": exclude_binary_files,
             "max_target_bytes": max_target_bytes,
             "autofix": autofix_behavior,
             "write_to_tr_cache": not dry_run,
@@ -826,6 +921,9 @@ def ci(
                 if scan_handler
                 else enable_transitive_reachability
             ),
+            # flag-only: emitting dependency paths is controlled by the CLI flag,
+            # not by any platform/deployment setting
+            "x_dependency_paths": x_dependency_paths,
             "x_pro_naming": x_pro_naming,
             "x_run_taint_once": x_run_taint_once,
             "dump_rule_partitions_params": dump_rule_partitions_params,
@@ -843,6 +941,9 @@ def ci(
             **({"x_mem_policy": x_mem_policy} if x_mem_policy else {}),
             "x_dump_subprojects_and_exit": x_dump_subprojects_and_exit,
             "x_computed_dependencies_dir": x_computed_dependencies_dir,
+            "code_enabled": (
+                "sast" in scan_handler.enabled_products if scan_handler else None
+            ),
         }
 
         try:
@@ -938,7 +1039,7 @@ def ci(
                     # Not relevant for secrets.
                     _historical_dependencies,
                     _historical_dependency_parser_errors,
-                    # Usage limits currently only consider last 30 days.
+                    # Usage limits currently only consider last 90 days.
                     _executed_rule_count,
                     _missed_rule_count,
                     _historical_all_subprojects,
@@ -983,7 +1084,6 @@ def ci(
         non_cai_matches_by_rule: RuleMatchMap = defaultdict(list)
         blocking_matches: List[RuleMatch] = []
         nonblocking_matches: List[RuleMatch] = []
-        cai_matches: List[RuleMatch] = []
 
         # Remove the prev scan matches by the rules that are in the current scan
         # Done before the next loop to avoid interfering with ignore logic
@@ -1004,16 +1104,22 @@ def ci(
                 ]
 
             for match in matches:
-                applicable_result_list = (
-                    cai_matches
-                    if "r2c-internal-cai" in rule.id
-                    else blocking_matches
-                    if match.is_blocking
-                    else nonblocking_matches
-                )
-                applicable_result_list.append(match)
-                if "r2c-internal-cai" not in rule.id:
-                    non_cai_matches_by_rule[rule].append(match)
+                # CAI (r2c-internal-cai-*) findings are uploaded to the
+                # Semgrep App via filtered_matches_by_rule but excluded
+                # from local exit code and CLI output.
+                if "r2c-internal-cai" in rule.id:
+                    continue
+                non_cai_matches_by_rule[rule].append(match)
+                # Nosemgrep-suppressed matches must not be bucketed as
+                # blocking/nonblocking (they should not fail the scan), but
+                # they still reach output_handler.output() above so the
+                # SARIF formatter can emit them with `suppressions` entries.
+                is_suppressed = enable_nosem and match.match.extra.is_ignored
+                if not is_suppressed:
+                    applicable_result_list = (
+                        blocking_matches if match.is_blocking else nonblocking_matches
+                    )
+                    applicable_result_list.append(match)
 
         num_nonblocking_findings = len(nonblocking_matches)
         num_blocking_findings = len(blocking_matches)
@@ -1121,6 +1227,7 @@ def ci(
                     contributions=contributions,
                     engine_requested=engine_type,
                     progress_bar=progress_bar,
+                    disable_nosem=(not enable_nosem),
                 )
             app_blocked_mids = set()
             if (

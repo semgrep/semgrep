@@ -24,11 +24,10 @@ PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the Semgrep engine. P
 
 DEFAULT_SEMGREP_APP_CONFIG_URL = "api/agent/deployments/scans/config"
 
-DEFAULT_TIMEOUT = (
-    5  # seconds, coupling: keep up-to-date with Scan_CLI.ml and User_settings.ml
-)
+# coupling: keep defaults up-to-date with Scan_CLI.ml and User_settings.ml
+DEFAULT_TIMEOUT = 5  # seconds,
 DEFAULT_PRO_TIMEOUT_CI = 10800  # seconds
-DEFAULT_MAX_MEMORY_PRO_CI = 5000  # MiB
+DEFAULT_MAX_MEMORY_PRO_CI = 8 * 1024  # MiB
 
 SETTINGS_FILENAME = "settings.yml"
 
@@ -136,6 +135,13 @@ DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
 # coupling: with Output.ml
 DEFAULT_MAX_LOG_LIST_ENTRIES = 100
 TOO_MUCH_DATA = "<SKIPPED DATA (too many entries; use --max-log-list-entries)>"
+
+# Maximum total characters of match context (the source lines around a match)
+# to include in output. Prevents minified JS from producing enormous output.
+# 0 means unlimited.
+# coupling: with Output.ml
+DEFAULT_MAX_MATCH_CONTEXT_SIZE = 0
+TOO_MUCH_CONTEXT = "... [truncated; adjust with --max-match-context-size]"
 
 
 class Colors(Enum):

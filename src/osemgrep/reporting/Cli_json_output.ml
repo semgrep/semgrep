@@ -395,31 +395,31 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   (* Group by rule and path *)
   (* XXX: can we do with grouping by fingerprint only? *)
   |> Assoc.group_by (fun (_, (x : Out.cli_match)) ->
-         (x.path, x.check_id, x.extra.fingerprint))
+      (x.path, x.check_id, x.extra.fingerprint))
   (* Sort by start line *)
   |> List.map (fun (path_and_rule_id, matches) ->
-         ( path_and_rule_id,
-           List.sort
-             (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
-               compare a.start.offset b.start.offset)
-             matches ))
+      ( path_and_rule_id,
+        List.sort
+          (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
+            compare a.start.offset b.start.offset)
+          matches ))
   (* Index per file *)
   |> List.map (fun (path_and_rule_id, matches) ->
-         let matches =
-           List.mapi
-             (fun i (i', (x : Out.cli_match)) ->
-               ( i',
-                 {
-                   x with
-                   extra =
-                     {
-                       x.extra with
-                       fingerprint = spf "%s_%d" x.extra.fingerprint i;
-                     };
-                 } ))
-             matches
-         in
-         (path_and_rule_id, matches))
+      let matches =
+        List.mapi
+          (fun i (i', (x : Out.cli_match)) ->
+            ( i',
+              {
+                x with
+                extra =
+                  {
+                    x.extra with
+                    fingerprint = spf "%s_%d" x.extra.fingerprint i;
+                  };
+              } ))
+          matches
+      in
+      (path_and_rule_id, matches))
   (* Flatten *)
   |> List.concat_map snd
   |> List.sort (fun (a, _) (b, _) -> a - b)
@@ -458,58 +458,58 @@ let adjust_fields_cli_output_logged_out (x : Out.cli_output) : Out.cli_output =
   let results =
     results
     |> List.map (fun (res : Out.cli_match) : Out.cli_match ->
-           let { check_id; extra; path; start; end_ } : Out.cli_match = res in
-           let {
-             metavars = _;
-             message;
-             fix;
-             fixed_lines;
-             metadata;
-             severity;
-             fingerprint = _;
-             lines = _;
-             is_ignored = _;
-             sca_info;
-             dataflow_trace = _;
-             engine_kind;
-             validation_state;
-             historical_info;
-             extra_extra;
-           } : Out.cli_match_extra =
-             extra
-           in
-           let metadata =
-             match metadata with
-             | `Assoc xs ->
-                 let xs =
-                   xs
-                   |> List_.exclude (fun (fld, _v) ->
-                          List.mem fld [ "semgrep.dev"; "semgrep.policy" ])
-                 in
-                 `Assoc xs
-             | _else_ -> metadata
-           in
+        let { check_id; extra; path; start; end_ } : Out.cli_match = res in
+        let {
+          metavars = _;
+          message;
+          fix;
+          fixed_lines;
+          metadata;
+          severity;
+          fingerprint = _;
+          lines = _;
+          is_ignored = _;
+          sca_info;
+          dataflow_trace = _;
+          engine_kind;
+          validation_state;
+          historical_info;
+          extra_extra;
+        } : Out.cli_match_extra =
+          extra
+        in
+        let metadata =
+          match metadata with
+          | `Assoc xs ->
+              let xs =
+                xs
+                |> List_.exclude (fun (fld, _v) ->
+                    List.mem fld [ "semgrep.dev"; "semgrep.policy" ])
+              in
+              `Assoc xs
+          | _else_ -> metadata
+        in
 
-           let extra : Out.cli_match_extra =
-             {
-               metavars = None;
-               message;
-               fix;
-               fixed_lines;
-               metadata;
-               severity;
-               fingerprint = Gated_data.msg;
-               lines = Gated_data.msg;
-               is_ignored = None;
-               sca_info;
-               dataflow_trace = None;
-               engine_kind;
-               validation_state;
-               historical_info;
-               extra_extra;
-             }
-           in
-           { check_id; extra; path; start; end_ })
+        let extra : Out.cli_match_extra =
+          {
+            metavars = None;
+            message;
+            fix;
+            fixed_lines;
+            metadata;
+            severity;
+            fingerprint = Gated_data.msg;
+            lines = Gated_data.msg;
+            is_ignored = None;
+            sca_info;
+            dataflow_trace = None;
+            engine_kind;
+            validation_state;
+            historical_info;
+            extra_extra;
+          }
+        in
+        { check_id; extra; path; start; end_ })
   in
   {
     version;
@@ -565,7 +565,7 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
       let matches =
         matches
         |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
-               compare a.check_id b.check_id)
+            compare a.check_id b.check_id)
       in
       (* Sorted via Fpath.compare.
        * python: scanned=[str(path) for path in sorted(self.all_targets)] *)
@@ -604,11 +604,11 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
         results =
           matches
           |> List.map (fun (cm : Out.core_match) ->
-                 let rule =
-                   try Hashtbl.find hrules cm.check_id with
-                   | Not_found -> raise Impossible
-                 in
-                 cli_match_of_core_match ~fips_mode fixed_env_opt rule cm)
+              let rule =
+                try Hashtbl.find hrules cm.check_id with
+                | Not_found -> raise Impossible
+              in
+              cli_match_of_core_match ~fips_mode fixed_env_opt rule cm)
           |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List.map cli_error_of_core_error;
         paths;

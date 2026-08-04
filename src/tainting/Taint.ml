@@ -187,34 +187,30 @@ let rev_IL_offset_of_offset offset =
   let os =
     offset
     |> List.map (function
-         | Ofld x -> Some IL.{ o = Dot x; oorig = NoOrig }
-         | Oint i ->
-             Some
-               {
-                 o =
-                   Index
-                     {
-                       e = Literal (G.Int (Parsed_int.of_int i));
-                       eorig = NoOrig;
-                     };
-                 oorig = NoOrig;
-               }
-         | Ostr s ->
-             Some
-               {
-                 o =
-                   Index
-                     {
-                       e =
-                         Literal
-                           (G.String
-                              (Tok.unsafe_fake_bracket
-                                 (s, Tok.unsafe_fake_tok s)));
-                       eorig = NoOrig;
-                     };
-                 oorig = NoOrig;
-               }
-         | Oany -> None)
+      | Ofld x -> Some IL.{ o = Dot x; oorig = NoOrig }
+      | Oint i ->
+          Some
+            {
+              o =
+                Index
+                  { e = Literal (G.Int (Parsed_int.of_int i)); eorig = NoOrig };
+              oorig = NoOrig;
+            }
+      | Ostr s ->
+          Some
+            {
+              o =
+                Index
+                  {
+                    e =
+                      Literal
+                        (G.String
+                           (Tok.unsafe_fake_bracket (s, Tok.unsafe_fake_tok s)));
+                    eorig = NoOrig;
+                  };
+              oorig = NoOrig;
+            }
+      | Oany -> None)
   in
   os
   |> List.fold_left
@@ -613,19 +609,19 @@ and labels_in_taints taints =
   let maybe_labels = ref LabelSet.empty in
   taints
   |> Taint_set.iter (fun taint ->
-         match taint.orig with
-         | Var _ -> has_poly_taint := true
-         | Src { label; precondition = None; _ } ->
-             sure_labels := LabelSet.add label !sure_labels
-         | Src { label; precondition = Some (incoming, pre); _ } -> (
-             match
-               solve_precondition ~ignore_poly_taint:false
-                 ~taints:(Taint_set.of_list incoming)
-                 pre
-             with
-             | Some true -> sure_labels := LabelSet.add label !sure_labels
-             | Some false -> ()
-             | None -> maybe_labels := LabelSet.add label !maybe_labels));
+      match taint.orig with
+      | Var _ -> has_poly_taint := true
+      | Src { label; precondition = None; _ } ->
+          sure_labels := LabelSet.add label !sure_labels
+      | Src { label; precondition = Some (incoming, pre); _ } -> (
+          match
+            solve_precondition ~ignore_poly_taint:false
+              ~taints:(Taint_set.of_list incoming)
+              pre
+          with
+          | Some true -> sure_labels := LabelSet.add label !sure_labels
+          | Some false -> ()
+          | None -> maybe_labels := LabelSet.add label !maybe_labels));
   (!sure_labels, !maybe_labels, !has_poly_taint)
 
 let taints_satisfy_requires_for_finding taints pre =
@@ -650,9 +646,9 @@ let taints_satisfy_requires_for_finding taints pre =
   let has_real_taint_source =
     taints
     |> List.exists (fun taint ->
-           match taint.orig with
-           | Src _ -> true
-           | Var _ -> false)
+        match taint.orig with
+        | Src _ -> true
+        | Var _ -> false)
   in
   match
     solve_precondition ~ignore_poly_taint:true
@@ -677,9 +673,9 @@ let filter_relevant_taints requires taints =
   (* If the precondition is 'A' we don't care about taint with label 'B' or 'C'. *)
   taints
   |> Taint_set.filter (fun t ->
-         match t.orig with
-         | Src src -> LabelSet.mem src.label labels
-         | Var _ -> true)
+      match t.orig with
+      | Src src -> LabelSet.mem src.label labels
+      | Var _ -> true)
 
 (* Just a straightforward bottom-up map on preconditions. *)
 let rec map_preconditions f taint =

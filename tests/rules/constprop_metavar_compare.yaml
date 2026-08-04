@@ -1,0 +1,16 @@
+rules:
+  - id: constprop-metavar-compare
+    # metavariable-comparison evaluates $X through Eval_generic, which reads the
+    # propagated svalue (`id_svalue = Lit lit`). This pins the reporting/engine
+    # side of the `svalue option -> Unknown` migration: a metavariable bound to
+    # a single-assignment constant must still expose that literal to the
+    # comparison, and a non-constant must not.
+    patterns:
+      - pattern: sink($X)
+      - metavariable-comparison:
+          comparison: $X == 42
+          metavariable: $X
+    message: propagated constant $X reached the comparison
+    languages:
+      - python
+    severity: WARNING

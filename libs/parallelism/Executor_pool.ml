@@ -43,7 +43,7 @@ type job =
     }
       -> job
 
-type t = { queue : job Stream.t; running : bool Atomic.t }
+type t = { queue : job Stream.t }
 
 let max_capacity = 1_000_000
 let max_capacity_f = float max_capacity
@@ -51,7 +51,7 @@ let max_capacity_f = float max_capacity
 (* This function is the core of executor_pool.ml.
    Each worker runs in its own domain,
    taking jobs from [queue] whenever it has spare capacity. *)
-let run_worker { queue; running } active_job =
+let run_worker { queue } active_job =
   Switch.run ~name:"run_worker" @@ fun sw ->
   let capacity = ref 0 in
   let condition = Condition.create () in
@@ -60,41 +60,34 @@ let run_worker { queue; running } active_job =
     while !capacity >= max_capacity do
       Condition.await_no_mutex condition
     done;
-    (* Stream does not have a close function, so we just check this atomic *)
-    if not (Atomic.get running) then `Stop_daemon
-    else (
-      Option.iter
-        (fun (Pack { fn; w; weight } as job) ->
-          (* Record the active job so if we receive an async exception we can
-             restart the domain as mentioned in the prelude *)
-          active_job := Some job;
-          capacity := !capacity + weight;
-          Option.iter (Promise.resolve_error w) (Switch.get_error sw);
-          Fiber.fork ~sw (fun () ->
-              Promise.resolve w
-                (try Ok (fn ()) with
-                | ex -> Error ex);
-              (* Done with active job :) *)
-              active_job := None;
-              capacity := !capacity - weight;
-              Condition.broadcast condition))
-        (* Don't block while taking from the stream since we want to be able to
-           check if we're still running or not *)
-        (Stream.take_nonblocking queue);
-      (* Give a chance to other domains to start waiting on [queue]
-         before we take another item *)
-      Fiber.yield ();
-      (loop [@tailcall]) ())
+    let (Pack { fn; w; weight } as job) = Stream.take queue in
+    (* Record the active job so if we receive an async exception we can
+       restart the domain as mentioned in the prelude *)
+    active_job := Some job;
+    capacity := !capacity + weight;
+    Option.iter (Promise.resolve_error w) (Switch.get_error sw);
+    Fiber.fork ~sw (fun () ->
+        ignore
+          (Promise.try_resolve w
+             (try Ok (fn ()) with
+             | ex -> Error ex));
+        (* Done with active job :) *)
+        active_job := None;
+        capacity := !capacity - weight;
+        Condition.broadcast condition);
+    (* Give a chance to other domains to start waiting on [queue]
+       before we take another item *)
+    Fiber.yield ();
+    (loop [@tailcall]) ()
   in
   loop ()
 
 let create ~sw ~domain_count domain_mgr =
-  (* TODO(nathan): benchmark versus sizing the queue to the number of domains *)
-  let queue = Stream.create max_capacity in
-  let running = Atomic.make true in
-  let t = { queue; running } in
-  (* When the switch is released ensure the workers exit *)
-  Switch.on_release sw (fun () -> Atomic.set running false);
+  (* Match upstream Eio.Executor_pool's synchronous queue semantics using the
+     public Stream API. A capacity of 0 blocks submitters until a worker is
+     ready, avoiding idle polling and unbounded prefetching. *)
+  let queue = Stream.create 0 in
+  let t = { queue } in
   for _ = 1 to domain_count do
     (* Workers run as daemons to not hold the user's switch from completing.
        It's up to the user to hold the switch open (and thus, the executor pool)
@@ -105,6 +98,9 @@ let create ~sw ~domain_count domain_mgr =
           try
             Domain_manager.run domain_mgr (fun () -> run_worker t active_job)
           with
+          | Cancel.Cancelled _ as exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Printexc.raise_with_backtrace exn bt
           | exn -> (
               (* If there was an active job then we didn't really mean to raise
                  an exception, so resolve the promise and restart.
@@ -122,7 +118,7 @@ let create ~sw ~domain_count domain_mgr =
                          Resolving job promise with exception, and restarting \
                          worker to continue on remaining jobs..."
                         (Printexc.to_string exn));
-                  Promise.resolve_error w exn;
+                  ignore (Promise.try_resolve w (Error exn));
                   f ()
               | None ->
                   let bt = Printexc.get_raw_backtrace () in
@@ -133,7 +129,7 @@ let create ~sw ~domain_count domain_mgr =
   done;
   t
 
-let enqueue { queue; _ } ~weight fn =
+let enqueue { queue } ~weight fn =
   if not (weight >= 0. && weight <= 1.) (* Handles NaN *) then
     raise
       (Invalid_argument

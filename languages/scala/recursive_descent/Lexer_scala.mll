@@ -60,23 +60,26 @@ type state_mode =
 
 let default_state = ST_IN_CODE
 
-let _mode_stack =
-  ref [default_state]
+let _mode_stack : state_mode list Domain.DLS.key =
+  Domain.DLS.new_key (Fun.const [default_state])
 
 let reset () =
-  _mode_stack := [default_state];
+  Domain.DLS.set _mode_stack [default_state];
   ()
 
 let rec current_mode () =
-  match !_mode_stack with
+  match Domain.DLS.get _mode_stack with
   | top :: _ -> top
   | [] ->
       Log.warn (fun m-> m "mode_stack is empty, defaulting to INITIAL");
       reset();
       current_mode ()
 
-let push_mode mode = Stack_.push mode _mode_stack
-let pop_mode () = ignore(Stack_.pop _mode_stack)
+let push_mode mode =
+  Domain.DLS.set _mode_stack (mode :: Domain.DLS.get _mode_stack)
+let pop_mode () =
+  let ms = Domain.DLS.get _mode_stack in
+  Domain.DLS.set _mode_stack (List_.tl_exn "unexpected empty mode stack" ms)
 
 }
 

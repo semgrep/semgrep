@@ -20,11 +20,13 @@ from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
 from semgrep.config_resolver import ConfigType
 from semgrep.config_resolver import legacy_url_for_scan
-from semgrep.config_resolver import parse_config_string_as_rules
+from semgrep.config_resolver import parse_config_string
 from semgrep.config_resolver import PRODUCT_NAMES
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
+from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.rule_lang import RpcValidationError
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.state import SemgrepState
 
 FAKE_USER_AGENT = "user-agent"
@@ -44,6 +46,23 @@ def mocked_state(mocker):
     mocked.env.semgrep_url = API_URL
     mocker.patch("semgrep.config_resolver.get_state", return_value=mocked)
     return mocked
+
+
+@pytest.fixture
+def mocked_rpc_validation_error(mocker):
+    mocker.patch(
+        "semgrep.rule_lang.run_rpc_validate_exn",
+        side_effect=RpcValidationError(
+            out.CoreError(
+                error_type=out.ErrorType(value=out.InvalidYaml()),
+                severity=out.ErrorSeverity(value=out.Warning_()),
+                message="mock validation failure",
+                details=None,
+                location=None,
+                rule_id=None,
+            )
+        ),
+    )
 
 
 @pytest.mark.parametrize(
@@ -296,24 +315,10 @@ def test_legacy_url_for_scan(
 
 @pytest.mark.quick
 @pytest.mark.osemfail
-def test_parse_config_string_as_rules_jsonschema_fallback(mocker):
+def test_parse_config_string_jsonschema_fallback(mocked_rpc_validation_error):
     """
     Test that when RPC validation fails the fallback to jsonschema validation works correctly.
     """
-    # Mock RPC validation to fail
-    mocker.patch(
-        "semgrep.config_resolver.run_rpc_validate_exn",
-        side_effect=RpcValidationError(
-            out.CoreError(
-                error_type=out.ErrorType(value=out.InvalidYaml()),
-                severity=out.ErrorSeverity(value=out.Warning_()),
-                message="mock validation failure",
-                details=None,
-                location=None,
-                rule_id=None,
-            )
-        ),
-    )
 
     rule_config = """{
         "rules": [
@@ -327,27 +332,27 @@ def test_parse_config_string_as_rules_jsonschema_fallback(mocker):
         ]
     }"""
 
-    rules, errors = parse_config_string_as_rules(rule_config)
-
-    assert len(rules) == 1
-    assert rules[0].id == "test-rule"
-    assert len(errors) == 0
+    result = parse_config_string("test", rule_config, None)
+    assert len(result.rules) == 1
+    assert result.rules[0].id == "test-rule"
+    assert len(result.errors) == 0
 
 
 @pytest.mark.quick
 @pytest.mark.osemfail
 def test_parse_config_string_as_rules_no_surrogate_pairs_in_rules_file(mocker):
     """
-    Rules containing characters above U+FFFF (e.g. emoji) must be serialized
-    as raw UTF-8 in the .rules temp file, not as JSON surrogate pairs.
-    json.dumps(ensure_ascii=True) encodes U+1F6AB as \\ud83d\\udeab, which is
-    valid JSON but invalid YAML (YAML 1.2.2 §5.1 forbids surrogate code
-    points). semgrep-core parses this file as YAML, so surrogate pairs cause
-    parse errors.
+    Rules whose original source contains characters above U+FFFF (e.g. emoji)
+    must reach semgrep-core in a form its parser can handle. For JSON input,
+    we write the content with a .json suffix so semgrep-core's JSON parser
+    (which handles \\uXXXX surrogate escapes natively) runs. For YAML input,
+    we write it with a .yaml suffix so the YAML parser runs (which reads the
+    raw UTF-8 bytes). Either way, RPC validation should succeed without a
+    fallback to Python's jsonschema.
     """
-    import semgrep.config_resolver
+    import semgrep.rule_lang
 
-    spy = mocker.spy(semgrep.config_resolver, "run_rpc_validate_exn")
+    spy = mocker.spy(semgrep.rule_lang, "run_rpc_validate_exn")
 
     # Input contains a surrogate pair (valid JSON for U+1F6AB 🚫)
     rule_config = """{
@@ -362,12 +367,208 @@ def test_parse_config_string_as_rules_no_surrogate_pairs_in_rules_file(mocker):
         ]
     }"""
 
-    rules, errors = parse_config_string_as_rules(rule_config)
+    result = parse_config_string("test-config", rule_config, "rules.json")
 
-    assert len(rules) == 1
-    assert rules[0].id == "emoji-rule"
-    assert len(errors) == 0
-    # Verify semgrep-core's YAML parser accepted the rules file directly,
-    # rather than falling back to Python JSON schema validation.
+    assert len(result.rules) == 1
+    assert result.rules[0].id == "emoji-rule"
+    assert len(result.errors) == 0
+    # Verify semgrep-core accepted the rules file directly, rather than
+    # falling back to Python's jsonschema validation.
     spy.assert_called_once()
     assert spy.spy_exception is None
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_parse_config_string_skips_validation_when_none(mocker):
+    import semgrep.config_resolver
+
+    validate_rpc = mocker.patch.object(
+        semgrep.config_resolver, "validate_via_rpc_with_fallback"
+    )
+    validate_jsonschema = mocker.patch.object(
+        semgrep.config_resolver, "run_jsonschema_validation"
+    )
+
+    rule_config = """{
+        "rules": [
+            {
+                "id": "test-rule",
+                "message": "Test rule",
+                "languages": ["python"],
+                "severity": "WARNING",
+                "pattern": "$X"
+            }
+        ]
+    }"""
+
+    result = parse_config_string(
+        "test-config",
+        rule_config,
+        "rules.json",
+        validation_mode=RuleValidationMode.NONE,
+    )
+
+    assert len(result.rules) == 1
+    assert result.rules[0].id == "test-rule"
+    assert len(result.errors) == 0
+    validate_rpc.assert_not_called()
+    validate_jsonschema.assert_not_called()
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_parse_config_string_core_only_skips_jsonschema_under_force(mocker):
+    # CORE_ONLY is a hard constraint: even when --validate sets
+    # force_jsonschema=True, we must take the RPC path, not jsonschema.
+    import semgrep.config_resolver
+
+    validate_rpc = mocker.patch.object(
+        semgrep.config_resolver, "validate_via_rpc_with_fallback"
+    )
+    validate_jsonschema = mocker.patch.object(
+        semgrep.config_resolver, "run_jsonschema_validation"
+    )
+
+    rule_config = """{
+        "rules": [
+            {
+                "id": "test-rule",
+                "message": "Test rule",
+                "languages": ["python"],
+                "severity": "WARNING",
+                "pattern": "$X"
+            }
+        ]
+    }"""
+
+    parse_config_string(
+        "test-config",
+        rule_config,
+        "rules.json",
+        force_jsonschema=True,
+        validation_mode=RuleValidationMode.CORE_ONLY,
+    )
+
+    validate_jsonschema.assert_not_called()
+    validate_rpc.assert_called_once()
+    assert validate_rpc.call_args.args[-1] is RuleValidationMode.CORE_ONLY
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_parse_config_string_validates_core_rules_by_default(mocker):
+    import semgrep.config_resolver
+
+    validate_rpc = mocker.patch.object(
+        semgrep.config_resolver, "validate_via_rpc_with_fallback"
+    )
+
+    rule_config = """{
+        "rules": [
+            {
+                "id": "test-rule",
+                "message": "Test rule",
+                "languages": ["python"],
+                "severity": "WARNING",
+                "pattern": "$X"
+            }
+        ]
+    }"""
+
+    result = parse_config_string("test-config", rule_config, "rules.json")
+
+    assert len(result.rules) == 1
+    assert result.rules[0].id == "test-rule"
+    assert len(result.errors) == 0
+    validate_rpc.assert_called_once()
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_yaml_schema_error_points_to_correct_rule(mocked_rpc_validation_error):
+    """Schema validation errors for YAML rules should point at the failing
+    rule's location in the YAML file, not at 'a: b' / None."""
+
+    yaml_contents = """\
+rules:
+  - id: missing-severity
+    pattern: $X
+    message: oops
+    languages: [python]
+"""
+
+    with pytest.raises(InvalidRuleSchemaError) as exc_info:
+        parse_config_string("test-config", yaml_contents, "rules.yaml")
+
+    err = exc_info.value
+    assert len(err.spans) == 1
+    span = err.spans[0]
+    assert span.file == "rules.yaml"
+    # The span should point at the rule node (line 2: "- id: missing-severity")
+    assert span.start.line == 2
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_yaml_schema_error_picks_correct_rule_among_many(mocked_rpc_validation_error):
+    """When multiple rules exist, the error span should point at the specific
+    rule that failed validation, not the first one."""
+
+    yaml_contents = """\
+rules:
+  - id: good-rule
+    pattern: $X == $X
+    message: dupe
+    languages: [python]
+    severity: WARNING
+  - id: bad-rule
+    pattern: $Y
+    message: oops
+    languages: [python]
+"""
+
+    with pytest.raises(InvalidRuleSchemaError) as exc_info:
+        parse_config_string("test-config", yaml_contents, "rules.yaml")
+
+    span = exc_info.value.spans[0]
+    assert span.file == "rules.yaml"
+    # bad-rule starts at line 7
+    assert span.start.line == 7
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_json_schema_error_shows_filename(mocked_rpc_validation_error):
+    """JSON config schema errors should show the correct filename even though
+    there are no YAML spans."""
+
+    json_contents = '{"rules": [{"id": "bad", "pattern": "$X", "message": "m", "languages": ["python"]}]}'
+
+    with pytest.raises(InvalidRuleSchemaError) as exc_info:
+        parse_config_string("test-config", json_contents, "rules.json")
+
+    span = exc_info.value.spans[0]
+    assert span.file == "rules.json"
+    # No rule_spans for JSON, falls back to whole-file span at line 1
+    assert span.start.line == 1
+
+
+@pytest.mark.quick
+@pytest.mark.osemfail
+def test_yaml_schema_error_message_content(mocked_rpc_validation_error):
+    """The error message itself should still describe the actual problem."""
+
+    yaml_contents = """\
+rules:
+  - id: no-severity
+    pattern: $X
+    message: oops
+    languages: [python]
+"""
+
+    with pytest.raises(InvalidRuleSchemaError) as exc_info:
+        parse_config_string("test-config", yaml_contents, "rules.yaml")
+
+    assert exc_info.value.long_msg is not None
+    assert "severity" in exc_info.value.long_msg.lower()

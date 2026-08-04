@@ -1,0 +1,10 @@
+rules:
+  - id: test-entropy
+    patterns:
+      - pattern: "$STRING"
+      - metavariable-analysis:
+          metavariable: $STRING
+          analyzer: entropy
+    message: Semgrep found a match
+    languages: [python]
+    severity: WARNING

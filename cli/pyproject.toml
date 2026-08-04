@@ -15,12 +15,10 @@ authors = [
   { name = "Semgrep Inc.", email = "support@semgrep.com" }
 ]
 name = "semgrep"
-version = "1.160.0"
+version = "1.172.0"
 description = "Lightweight static analysis for many languages. Find bug variants with patterns that look like source code."
-# Since our readme lives outside of the project root (i.e in ../), and we do
-# some dynamic logic in `setup.py`, we need to declare the field as dynamic
-# here
-dynamic = ["readme"]
+# README.md is a symlink to the canonical ../README.md.
+readme = "README.md"
 requires-python = ">=3.10"
 license = "LGPL-2.1-or-later"
 license-files = ["LICENSE"]
@@ -59,7 +57,7 @@ dependencies = [
   "attrs>=21.3",
   "boltons~=21.0",
   "click-option-group~=0.5",
-  "click~=8.1.8",
+  "click~=8.4.2",
   "colorama~=0.4.0",
   "exceptiongroup~=1.2.0",
   "glom>=23.3",
@@ -72,13 +70,13 @@ dependencies = [
   "opentelemetry-instrumentation-threading~=0.58b0",
   "packaging>=21.0",
   "peewee~=3.14",
-  "pyjwt[crypto]~=2.12.0",
+  "pyjwt[crypto]~=2.13.0",
   "requests~=2.22",
   "rich>=13.5.2",
   "ruamel.yaml>=0.18.15",
-  "ruamel.yaml.clib==0.2.14",
+  "ruamel.yaml.clib==0.2.15",
   "semantic-version~=2.10.0",
-  "tomli~=2.0.1",
+  "tomli~=2.4.0",
   "typing-extensions~=4.2",
   "urllib3~=2.0",
   "wcmatch~=8.3",
@@ -175,5 +173,5 @@ markers = [
 asyncio_mode = "auto"
 
 [tool.uv]
-exclude-newer = "1 week"
+exclude-newer = "1 week"  # nosemgrep: uv-missing-dependency-cooldown -- "1 week" == 7-day cooldown (SEC-1765); rule only matches "N days"
 required-version = ">=0.10.0"

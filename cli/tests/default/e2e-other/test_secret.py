@@ -31,3 +31,18 @@ def test_cli_test_secret_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
         results,
         "results.txt",
     )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_secret_only_scan_status(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    """With only Secrets rules, the scan status should not mention code
+    rules or print an empty "Code Rules" section (ENGINE-2878)."""
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/secrets_only.yaml",
+            target_name="basic.py",
+            output_format=OutputFormat.TEXT,
+        ).as_snapshot(),
+        "results.txt",
+    )

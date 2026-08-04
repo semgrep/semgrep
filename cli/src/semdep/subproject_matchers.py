@@ -20,6 +20,7 @@ from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.base import SubprojectMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
+from semdep.matchers.sbt import SbtMatcher
 from semgrep.simple_profiling import simple_profiling
 from semgrep.types import Target
 
@@ -197,11 +198,7 @@ MATCHERS: List[SubprojectMatcher] = [
         ecosystem=out.Ecosystem(out.Pypi()),
     ),
     # SBT
-    ExactManifestOnlyMatcher(
-        manifest_kind=out.ManifestKind(out.BuildSbt()),
-        manifest_name="build.sbt",
-        ecosystem=out.Ecosystem(out.Maven()),
-    ),
+    SbtMatcher(),
 ]
 
 

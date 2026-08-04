@@ -226,18 +226,18 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     in
     core_matches
     |> List.map (fun (cm : Out.core_match) ->
-           let rule =
-             try Hashtbl.find hrules cm.check_id with
-             | Not_found ->
-                 (* should never happen; the core_matches are derived from
-                  * the passed rules
-                  *)
-                 failwith
-                   (spf "could not find the rule with rule_ID %s"
-                      (Rule_ID.show cm.check_id))
-           in
-           Cli_json_output.cli_match_of_core_match
-             ~fips_mode:conf.core_runner_conf.fips_mode fixed_env_opt rule cm)
+        let rule =
+          try Hashtbl.find hrules cm.check_id with
+          | Not_found ->
+              (* should never happen; the core_matches are derived from
+               * the passed rules
+               *)
+              failwith
+                (spf "could not find the rule with rule_ID %s"
+                   (Rule_ID.show cm.check_id))
+        in
+        Cli_json_output.cli_match_of_core_match
+          ~fips_mode:conf.core_runner_conf.fips_mode fixed_env_opt rule cm)
     |> List_.exclude (fun (m : Out.cli_match) -> m.extra.is_ignored ||| false)
   in
   if cli_matches <> [] then (
@@ -261,7 +261,7 @@ let incremental_json_printer (_conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
   cli_matches
   |> List.iter (fun cli_match ->
-         UConsole.print (Semgrep_output_v1_j.string_of_cli_match cli_match))
+      UConsole.print (Semgrep_output_v1_j.string_of_cli_match cli_match))
 
 let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
     (rules : Rule.rules) =
@@ -417,7 +417,7 @@ let check_targets_with_rules (conf : Scan_CLI.conf) (profiler : Profiler.t)
   let rules =
     rules
     |> List_.deduplicate_gen ~get_key:(fun r ->
-           Rule_ID.to_string (fst r.Rule.id))
+        Rule_ID.to_string (fst r.Rule.id))
   in
   let too_many_entries = conf.output_conf.max_log_list_entries in
   Logs.info (fun m ->
@@ -545,7 +545,7 @@ let check_targets_with_rules (conf : Scan_CLI.conf) (profiler : Profiler.t)
             | Ok r ->
                 r.valid_rules
                 |> List.map (fun (rv : Rule.rule) ->
-                       Rule_ID.to_string (fst rv.id))
+                    Rule_ID.to_string (fst rv.id))
             | Error _ -> []
           in
 

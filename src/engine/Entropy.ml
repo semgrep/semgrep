@@ -29,16 +29,16 @@ let normalize_string s =
   let buf = Buffer.create (String.length s) in
   s
   |> String.iter (fun c ->
-         match c with
-         | 'a' .. 'z' -> Buffer.add_char buf (Char.uppercase_ascii c)
-         | 'A' .. 'Z' -> Buffer.add_char buf c
-         | c ->
-             (* everything else, including:
+      match c with
+      | 'a' .. 'z' -> Buffer.add_char buf (Char.uppercase_ascii c)
+      | 'A' .. 'Z' -> Buffer.add_char buf c
+      | c ->
+          (* everything else, including:
                 - digits
                 - punctuation
                 - non-ascii UTF-8 bytes
              *)
-             Buffer.add_char buf c);
+          Buffer.add_char buf c);
   Buffer.contents buf
 
 let english_trigrams = Entropy_data.english_trigrams
@@ -83,8 +83,8 @@ let load_trigrams () =
     (fun (trigram, count) ->
       trigram
       |> String.iter (fun c ->
-             let i = Char.code c in
-             char_counts.(i) <- char_counts.(i) + count))
+          let i = Char.code c in
+          char_counts.(i) <- char_counts.(i) + count))
     ar;
   let char_entropies =
     Array.init 256 (fun i ->

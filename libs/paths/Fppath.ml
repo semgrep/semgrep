@@ -30,6 +30,36 @@ type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show, eq]
 let to_fpath x = x.fpath
 let compare a b = Fpath.compare a.fpath b.fpath
 
+let add_seg t name =
+  { fpath = Fpath.(t.fpath / name); ppath = Ppath.add_seg t.ppath name }
+
+let rec walk_dirs ?(should_recurse = fun _ -> true) (dir : t) f =
+  f dir.ppath;
+  match CapFS.read_dir_entries dir.fpath with
+  | exception e ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m ->
+          m "Fppath.walk_dirs: read_dir_entries on %a failed: %s" Fpath.pp
+            dir.fpath (Printexc.to_string e))
+  | entries ->
+      List.iter
+        (fun entry ->
+          let child = add_seg dir (Fpath.basename entry) in
+          if not (should_recurse child.ppath) then ()
+          else
+            match UUnix.lstat child.fpath with
+            | Ok { st_kind = Unix.S_DIR; _ } ->
+                walk_dirs ~should_recurse child f
+            | Ok _ ->
+                (* Non-directory entry — nothing to recurse into. *)
+                ()
+            | Error (code, _fun, info) ->
+                (* nosemgrep: no-logs-in-library *)
+                Logs.warn (fun m ->
+                    m "Fppath.walk_dirs: lstat %a: %s %s" Fpath.pp child.fpath
+                      (Unix.error_message code) info))
+        entries
+
 let append_relative_fpath root fpath =
   let fpath_append a b =
     match Fpath.to_string a with

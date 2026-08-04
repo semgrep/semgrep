@@ -25,15 +25,40 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 
 
-def _rule_match_to_CliMatch(rule_match: RuleMatch) -> out.CliMatch:
+def _rule_match_to_CliMatch(
+    rule_match: RuleMatch, max_match_context_size: int = 0
+) -> out.CliMatch:
+    from semgrep.constants import TOO_MUCH_CONTEXT
+
+    line_list = list(rule_match.lines)
+    truncated = False
+
+    if max_match_context_size > 0 and line_list:
+        start_line = line_list[0]
+        end_line = line_list[-1].rstrip()
+        start_pos = max(0, rule_match.start.col - 1 - (max_match_context_size // 2))
+        end_pos = min(
+            len(end_line), rule_match.end.col - 1 + (max_match_context_size // 2)
+        )
+        truncated = start_pos > 0 or end_pos < len(end_line)
+        if rule_match.start.line < rule_match.end.line:
+            first_line = start_line[start_pos:]
+            last_line = end_line[:end_pos]
+        else:
+            first_line = start_line[start_pos:end_pos]
+            last_line = end_line[start_pos:end_pos]
+        line_list[0] = first_line
+        line_list[-1] = last_line
+
+    lines = "".join(line_list).rstrip() + (TOO_MUCH_CONTEXT if truncated else "")
+
     extra = out.CliMatchExtra(
         message=rule_match.message,
         severity=rule_match.severity,
         metavars=rule_match.match.extra.metavars,
         metadata=out.RawJson(rule_match.metadata),
         fingerprint=rule_match.match_based_id,
-        # 'lines' already contains '\n' at the end of each line
-        lines="".join(rule_match.lines).rstrip(),
+        lines=lines,
         fix=rule_match.fix,
         fixed_lines=rule_match._fixed_lines,
         is_ignored=rule_match.match.extra.is_ignored,
@@ -57,6 +82,7 @@ def to_CliOutput(
     rule_matches: Iterable[RuleMatch],
     semgrep_structured_errors: Sequence[SemgrepError],
     cli_output_extra: out.CliOutputExtra,
+    max_match_context_size: int = 0,
 ) -> out.CliOutput:
     # Sort according to RuleMatch.get_ordering_key
     sorted_findings = sorted(rule_matches)
@@ -64,7 +90,10 @@ def to_CliOutput(
     # be specified in semgrep_output_v1.atd and be part of CliOutputExtra
     return out.CliOutput(
         version=out.Version(__VERSION__),
-        results=[_rule_match_to_CliMatch(rule_match) for rule_match in sorted_findings],
+        results=[
+            _rule_match_to_CliMatch(rule_match, max_match_context_size)
+            for rule_match in sorted_findings
+        ],
         errors=[error.to_CliError() for error in semgrep_structured_errors],
         paths=cli_output_extra.paths,
         time=cli_output_extra.time,

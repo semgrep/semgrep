@@ -51,28 +51,24 @@ let type_parameters_with_constraints (tparams : type_parameters option)
       let tparams' =
         tparams
         |> List.map (function
-             (* we do not generate those semgrep constructs for now in
-              * semgrep-java, we parse Java patterns in the Java pfff parser *)
-             | TParamEllipsis _ -> raise Impossible
-             | OtherTypeParam (x, anys) ->
-                 (* TODO: add constraints *)
-                 OtherTypeParam (x, anys)
-             | TP tparam -> (
-                 let with_constraints =
-                   constraints
-                   |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
-                 in
-                 match with_constraints with
-                 | Some (_id, xs) ->
-                     let _more_constraintsTODO, more_bounds =
-                       xs |> Either_.partition (fun x -> x)
-                     in
-                     TP
-                       {
-                         tparam with
-                         tp_bounds = more_bounds @ tparam.tp_bounds;
-                       }
-                 | None -> TP tparam))
+          (* we do not generate those semgrep constructs for now in
+           * semgrep-java, we parse Java patterns in the Java pfff parser *)
+          | TParamEllipsis _ -> raise Impossible
+          | OtherTypeParam (x, anys) ->
+              (* TODO: add constraints *)
+              OtherTypeParam (x, anys)
+          | TP tparam -> (
+              let with_constraints =
+                constraints
+                |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
+              in
+              match with_constraints with
+              | Some (_id, xs) ->
+                  let _more_constraintsTODO, more_bounds =
+                    xs |> Either_.partition (fun x -> x)
+                  in
+                  TP { tparam with tp_bounds = more_bounds @ tparam.tp_bounds }
+              | None -> TP tparam))
       in
       Some (lt, tparams', gt)
 
@@ -81,8 +77,8 @@ let var_def_stmt (attrs : attribute list)
   let stmts =
     decls
     |> List.map (fun (ent, def) ->
-           let ent = { ent with attrs = ent.attrs @ attrs } in
-           (ent, def))
+        let ent = { ent with attrs = ent.attrs @ attrs } in
+        (ent, def))
     |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc
   in
   G.stmt1 stmts
@@ -2537,8 +2533,8 @@ and statement (env : env) (x : CST.statement) =
         (* ";" *)
       in
       (match v2 with
-      | Some expr -> Throw (v1, expr, v3)
-      | None -> OtherStmt (OS_ThrowNothing, [ Tk v1; Tk v3 ]))
+        | Some expr -> Throw (v1, expr, v3)
+        | None -> OtherStmt (OS_ThrowNothing, [ Tk v1; Tk v3 ]))
       |> G.s
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 =
@@ -2575,7 +2571,7 @@ and statement (env : env) (x : CST.statement) =
             let vardefs = variable_declaration env x in
             vardefs
             |> List.map (fun (ent, vardef) ->
-                   DefStmt (ent, VarDef vardef) |> G.s)
+                DefStmt (ent, VarDef vardef) |> G.s)
             |> G.stmt1
         | `Exp x ->
             let expr = expression env x in
@@ -4089,30 +4085,28 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let funcs =
               accs
               |> List.map (fun (attrs, id, fbody) ->
-                     let iname, itok = id in
-                     let ent =
-                       basic_entity (iname ^ "_" ^ fname, itok) ~attrs
-                     in
-                     let valparam =
-                       Param
-                         {
-                           pname = Some ("value", fake "value");
-                           ptype = Some v4;
-                           pdefault = None;
-                           pattrs = [];
-                           pinfo = empty_id_info ();
-                         }
-                     in
-                     let funcdef =
-                       FuncDef
-                         {
-                           fkind = (Method, itok);
-                           fparams = fb [ valparam ];
-                           frettype = None;
-                           fbody;
-                         }
-                     in
-                     DefStmt (ent, funcdef) |> G.s)
+                  let iname, itok = id in
+                  let ent = basic_entity (iname ^ "_" ^ fname, itok) ~attrs in
+                  let valparam =
+                    Param
+                      {
+                        pname = Some ("value", fake "value");
+                        ptype = Some v4;
+                        pdefault = None;
+                        pattrs = [];
+                        pinfo = empty_id_info ();
+                      }
+                  in
+                  let funcdef =
+                    FuncDef
+                      {
+                        fkind = (Method, itok);
+                        fparams = fb [ valparam ];
+                        frettype = None;
+                        fbody;
+                      }
+                  in
+                  DefStmt (ent, funcdef) |> G.s)
             in
             (open_br, funcs, close_br)
         | `SEMI tok ->
@@ -4169,43 +4163,43 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           let funcs =
             accs
             |> List.map (fun (attrs, id, fbody) ->
-                   let iname, itok = id in
-                   match iname with
-                   | "get" ->
-                       let ent = basic_entity ("get_Item", itok) ~attrs in
-                       let funcdef =
-                         FuncDef
-                           {
-                             fkind = (Method, itok);
-                             fparams = (lbra, params, rbra);
-                             frettype = Some v3;
-                             fbody;
-                           }
-                       in
-                       DefStmt (ent, funcdef) |> G.s
-                   | "set" ->
-                       let valparam =
-                         Param
-                           {
-                             pname = Some ("value", fake "value");
-                             ptype = Some v3;
-                             pdefault = None;
-                             pattrs = [];
-                             pinfo = empty_id_info ();
-                           }
-                       in
-                       let ent = basic_entity ("set_Item", itok) ~attrs in
-                       let funcdef =
-                         FuncDef
-                           {
-                             fkind = (Method, itok);
-                             fparams = (lbra, params @ [ valparam ], rbra);
-                             frettype = None;
-                             fbody;
-                           }
-                       in
-                       DefStmt (ent, funcdef) |> G.s
-                   | _ -> raise Impossible)
+                let iname, itok = id in
+                match iname with
+                | "get" ->
+                    let ent = basic_entity ("get_Item", itok) ~attrs in
+                    let funcdef =
+                      FuncDef
+                        {
+                          fkind = (Method, itok);
+                          fparams = (lbra, params, rbra);
+                          frettype = Some v3;
+                          fbody;
+                        }
+                    in
+                    DefStmt (ent, funcdef) |> G.s
+                | "set" ->
+                    let valparam =
+                      Param
+                        {
+                          pname = Some ("value", fake "value");
+                          ptype = Some v3;
+                          pdefault = None;
+                          pattrs = [];
+                          pinfo = empty_id_info ();
+                        }
+                    in
+                    let ent = basic_entity ("set_Item", itok) ~attrs in
+                    let funcdef =
+                      FuncDef
+                        {
+                          fkind = (Method, itok);
+                          fparams = (lbra, params @ [ valparam ], rbra);
+                          frettype = None;
+                          fbody;
+                        }
+                    in
+                    DefStmt (ent, funcdef) |> G.s
+                | _ -> raise Impossible)
           in
           Block (open_br, funcs, close_br) |> G.s
       | `Arrow_exp_clause_SEMI (v1, v2) ->

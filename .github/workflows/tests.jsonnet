@@ -123,12 +123,15 @@ local fetch_submodules_step = {
 };
 
 local download_x86_artifacts =
-  actions.download_artifact_step(core_x86.export.artifact_name);
+  actions.download_artifact_step(core_x86.export.artifact_name, path='artifacts');
 
 local install_x86_artifacts = {
   name: 'Install artifacts',
   run: |||
-    tar xf artifacts.tgz
+    # upload-artifact does not preserve the executable bit
+    # (https://github.com/actions/upload-artifact#permission-loss),
+    # so restore it before installing semgrep-core.
+    chmod +x artifacts/*
     #alt: put it in cli/src/semgrep/bin/, like make copy-core-for-cli
     sudo cp artifacts/* /usr/bin
   |||,
@@ -300,7 +303,6 @@ local benchmarks_lite_job = {
 
 local build_test_docker_job = {
   uses: './.github/workflows/build-test-docker.yml',
-  secrets: 'inherit',
 };
 
 local right_ref_and_right_event =
@@ -341,18 +343,14 @@ local ignore_md = {
     'benchmarks-lite': benchmarks_lite_job,
     // Docker stuff
     'build-test-docker': build_test_docker_job,
-    // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
-      secrets: 'inherit',
     },
     'build-test-osx-x86': {
       uses: './.github/workflows/build-test-osx-x86.yml',
-      secrets: 'inherit',
     },
     'build-test-osx-arm64': {
       uses: './.github/workflows/build-test-osx-arm64.yml',
-      secrets: 'inherit',
     },
   },
   export:: {

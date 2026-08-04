@@ -6,34 +6,22 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     steps:
-      - env:
-          EXPIRATION: 600
-          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }}
-          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
-        id: jwt
-        name: Get JWT for semgrep-ci GitHub App
-        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
-      - env:
-          JWT: ${{ steps.jwt.outputs.jwt }}
-          SEMGREP_CI_APP_INSTALLATION_ID: ${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}
-        id: token
+      - id: token
         name: Get token for semgrep-ci GitHub App
-        run: |
-          TOKEN="$(curl -X POST \
-          -H "Authorization: Bearer $JWT" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
-          jq -r .token)"
-          echo "::add-mask::$TOKEN"
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ secrets.SEMGREP_CI_CLIENT_ID }}
+          owner: semgrep
+          private-key: ${{ secrets.SEMGREP_CI_APP_KEY }}
+          repositories: semgrep, semgrep-proprietary
       - name: Checkout OSS
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           fetch-depth: 0
           ref: refs/pull/${{ inputs.pr_number }}/head
           token: ${{ steps.token.outputs.token }}
       - name: Checkout PRO
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           path: PRO
           repository: semgrep/semgrep-proprietary

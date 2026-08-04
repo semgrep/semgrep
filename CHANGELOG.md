@@ -6,6 +6,284 @@
 
 <!-- insertion point -->
 
+## [1.172.0](https://github.com/semgrep/semgrep/releases/tag/v1.172.0) - 2026-07-28
+
+### ### Added
+
+- Added support for the OpenTofu `.tofu` file extension. Because OpenTofu uses the same HCL grammar as Terraform, `.tofu` files are now automatically detected and scanned as Terraform, so they are picked up by recursive scans and Terraform rulesets (e.g. `p/terraform`) with no extra configuration. (ENGINE-2884)
+
+### ### Changed
+
+- Updated the Ruby parser to tree-sitter-ruby v0.23.1, improving support for `!=`, case/when expressions with line breaks, and element references that take a block. (LANG-206)
+- The window for collecting git contributor information during `semgrep ci` has been extended from the last 30 days to the last 90 days, to match the updated usage policy. (contributor-window-90-days)
+
+### ### Fixed
+
+- Semgrep will now print richer error messages on segfaults when `--debug` is NOT passed, matching the segfault error output when `--debug` is passed (engine-segv)
+- Fixed a source of rare, nondeterministic crashes and incorrect results caused
+  by an OCaml compiler bug. Semgrep now builds against a compiler fork that
+  backports the upstream fix. (ocaml_codegen_fix)
+- Fixed excessive heap growth after explicit major garbage collections. Semgrep
+  now builds against an OCaml compiler that improves garbage collection duty
+  cycle pacing. (ocaml_gc_pacing_fix)
+- Improved the `Scan Status` output when no code rules will run (e.g. a
+  Secrets-only or Supply-Chain-only scan). The summary line no longer reports a
+  confusing "0 Code rules", and the "Code Rules" section now states explicitly
+  either that code scanning is not enabled or that there are no code rules to run,
+  instead of printing an empty table. (ENGINE-2878)
+- Fixed lockfileless Gradle dependency resolution failing with "Parsing
+  dependency output failed (Resolve_gradle.gradle_resolved_dependency)". The
+  github-dependency-graph-gradle-plugin used during resolution was fetched
+  unpinned, and its 1.4.2 release renamed keys in its JSON output. The plugin is
+  now pinned to 1.4.1. (sc-3738)
+
+
+## [1.170.0](https://github.com/semgrep/semgrep/releases/tag/v1.170.0) - 2026-07-15
+
+### ### Added
+
+- Pro C/C++ scans now skip code inside statically-dead preprocessor branches
+  (for example, `#if 0 ... #else ... #endif`). Patterns that would otherwise
+  match against intentionally-disabled code no longer report on it. (cpp-if-zero-filter)
+- Restored obackward: semgrep-core and semgrep-core-proprietary once again print a backtrace when receiving a fatal signal (e.g. SIGSEGV) (obackward)
+- `semgrep install-semgrep-pro` now sends usage metrics so that
+  installation errors can be tracked. Metrics can be disabled with
+  `--metrics off` or `SEMGREP_SEND_METRICS=off`. Metrics payloads also
+  now include the method used to install the Semgrep CLI (pip, homebrew,
+  docker, or unknown), detected heuristically. See metrics.md for
+  more details of what exactly is sent. (engine-2858)
+
+### ### Changed
+
+- Increased the timeout for dynamic dependency resolution subprocesses from
+  600 to 900 seconds, giving large projects more time to resolve dependencies
+  before timing out. (SC-3699)
+- Pro C/C++ `#if 0` filtering now also handles cases where the directive splits a
+  syntactic unit.  For example, a function signature toggle like `#if 0 void
+  foo(int i) { #else void foo(uint32_t i) { #endif`. (engine-994)
+
+### ### Fixed
+
+- Fixed a crash at startup (`Fatal error: Failed to allocate signal stack for
+  domain 0`) when running Semgrep on systems with musl 1.2.6 (e.g. Alpine 3.24) on
+  recent Intel CPUs whose kernel-reported minimum signal-stack size exceeds musl's
+  build-time SIGSTKSZ (notably AMX-capable Xeons). (ENGINE-2863)
+- Dockerfile: Fixed parse errors on `RUN` instructions that use heredoc syntax
+  (`<<EOF`, `<<-EOF`, quoted delimiters). (LANG-263)
+- `metavariable-type` now supports fully qualified type names in languages
+  where a qualified name in type position parses as an expression (e.g.
+  Python's `types: [a.b.C]`) when the metavariable's type is determined by
+  type inference, such as Pro engine cross-file type resolution. (LANG-583)
+- Updated the ocaml-tree-sitter-core dependency to the latest `main`.
+
+    * Fails loudly on a parser/runtime ABI mismatch
+    * Stamps every generated `parser.c` with the tree-sitter version that produced it.
+    * Changed paths where tree-sitter versions are installed (lang-591)
+
+
+## [1.169.0](https://github.com/semgrep/semgrep/releases/tag/v1.169.0) - 2026-07-08
+
+### ### Infra/Release Changes
+
+- Updated Dart parser to a more recent upstream version. (LANG-579)
+
+
+## [1.168.0](https://github.com/semgrep/semgrep/releases/tag/v1.168.0) - 2026-06-24
+
+### ### Added
+
+- Added an experimental `--x-dependency-paths` flag to `scan` and `ci` that includes the full dependency path(s) for transitive supply-chain findings in `--json` and `--sarif` output. (SC-3547)
+
+### ### Changed
+
+- Malicious supply chain rules are now labeled "Malicious" instead of "Basic" in the scan analysis summary table. (SC-3504)
+
+### ### Infra/Release Changes
+
+- semgrep-core no longer depends on libpcre 8.x; libpcre2 10.x is now the sole regex engine. (drop-libpcre)
+- Aliengrep (generic mode) now uses the maintained libpcre2 10.x regular-expression library instead of the deprecated libpcre 8.x. Matching behavior is unchanged. (aliengrep-pcre2)
+- The `metavariable-regex` and `metavariable-comparison` (`re.match()`) runtimes now use the maintained libpcre2 10.x library instead of the deprecated libpcre 8.x. Matching behavior is unchanged. (eval-generic-pcre2)
+
+
+## [1.167.0](https://github.com/semgrep/semgrep/releases/tag/v1.167.0) - 2026-06-17
+
+### ### Added
+
+- Added support for more operators for folding for constant propagation, including subtraction, division, bit ops, bit shifts, comparisons, and more. (const-folding)
+- Added a `nosemgrep_disabled` field to the scan configuration so the platform can disable `nosemgrep` inline ignore comments org-wide for a scan. (APPEX-1122)
+- Semgrep now skips binary files (images, archives, compiled executables,
+  etc.) during scanning by default, detected via matching file extensions
+  to known file-format magic bytes Pass `--no-exclude-binary-files` to
+  scan binary files as before. (ENGINE-2708)
+
+### ### Fixed
+
+- `semgrep ci` with `--sarif` now correctly populates the output's `ignores`
+  field with nosemgrep-suppressed findings, in accordance with other output
+  formatters. (gh-6651)
+
+### ### Infra/Release Changes
+
+- Updated the `ocaml-tree-sitter-core` submodule to the latest upstream `main`, providing
+
+  * improved thread-safety
+  * bumps the tree-sitter CLI option used from 0.20.6 to 0.20.8.
+
+  (ocaml-tree-sitter-core-bump)
+
+
+## [1.166.0](https://github.com/semgrep/semgrep/releases/tag/v1.166.0) - 2026-06-11
+
+### ### Added
+
+- Pro: Added experimental cross-file (interfile) analysis for Gosu, enabling taint tracking across multiple Gosu source files. (gosu-interfile)
+- Added support for more operators for folding for constant propagation, including subtraction, division, bit ops, bit shifts, comparisons, and more (ENGINE-2789)
+
+### ### Fixed
+
+- Fixed parsing of integer literals with an underscore immediately after the radix prefix (e.g. `0x_dead_beef`, `0o_755`, `0b_1010_1010`). (LANG-533)
+- Python parsing now preserves type parameters on `def` and `class` definitions. (LANG-536)
+- Semgrep no longer stores the API token in  `~/.semgrep/settings.yml`'s stored
+  token when the current scan's token is supplied via the `SEMGREP_APP_TOKEN`
+  envvar. (SEC-2240)
+- `semgrep ci` scans originating from a pre-commit hook will no longer fail with
+  `Unable to create '<tmp>/.git/index.lock': Not a directory` in certain cases. (engine-2736)
+
+### ### Infra/Release Changes
+
+- Added parsing tests covering Python language features (Python 3.0–3.12). (LANG-531)
+
+
+## [1.165.0](https://github.com/semgrep/semgrep/releases/tag/v1.165.0) - 2026-06-03
+
+### ### Added
+
+- Added `--max-match-context-size` option to limit the number of characters of source code included as context for each match in the output. This prevents matches in minified files (e.g., minified JavaScript where the entire file is a single line) from producing enormous output Set to 0 for unlimited, which is the default value. (ENGINE-2117)
+
+### ### Changed
+
+- Replaced `--x-no-python-schema-validation` with a value-taking `--x-rule-validation=full|core-only|none` flag. The default (`full`) preserves existing Python rule validation behavior; `core-only` matches the old flag's semantics (disables Python rule validation and uses semgrep-core RPC validation only); `none` skips both pre-validation passes, surfacing rule errors at scan-time. `--x-no-python-schema-validation` is still accepted as a no-op with a deprecation warning, and will be removed in a future release. (x-rule-validation)
+- Python: Updated Python grammar (LANG-201)
+
+### ### Fixed
+
+- Added bit shift operations to metavar comparison in addition to already present standard arithmetic operators and logical bit ops. (ENGINE-2448)
+- Reduce intermittent `validation_error` results on HTTP secret validators (Facebook, Slack, Stripe, Google, Cloudflare, etc.) by retrying transient network failures, mirroring the retry behavior already present for AWS validators. (SCRT-965)
+
+
+## [1.164.0](https://github.com/semgrep/semgrep/releases/tag/v1.164.0) - 2026-05-26
+
+### ### Added
+
+- Dart: typed metavariables (`$X as T`) and `metavariable-type`,
+  metavariable binding inside string interpolations, and function-definition
+  patterns that match Dart function definitions. (gh-11678)
+
+### ### Changed
+
+- The default memory limit for Pro interfile scans on Linux now adapts to the container's cgroup memory limit (90% of it) instead of the previous fixed 5 GiB, with an 8 GiB fallback when no cgroup limit is detected. (ENGINE-2568)
+- Lower the glibc contraint from `>=2.35` to `>=2.34`, allowing users on distros
+  that ship glibc 2.34 (e.g RHEL 9 & AL2023) to install the semgrep wheel. (gh-11622)
+
+### ### Fixed
+
+- Baseline diff scans (``semgrep ci`` and ``--baseline-commit``) no longer treat every finding on a file as newly introduced when rule(s) failed during the baseline run.
+
+  Per-rule failures (for example a timeout for a single rule) on baseline analysis now hide only that rule's matches on that file from the "new vs baseline" comparison.
+  Other rules on the same file are still taken in comparison for the "new vs baseline" comparison.
+
+  Per-file, rule-independent failures now hide all findings on that file from the "new vs baseline" comparison. (LANG-515)
+- Fixed a yarn.lock parse error on Yarn Berry entries written
+  in YAML explicit-key form. Affected lockfiles previously failed to parse. (SC-3479)
+- The (beta) SBT resolver with `--allow-local-builds` now correctly identifies dependencies as part of the Maven ecosystem. (SC-3522)
+- Fix `--sarif-output` and `--sarif` causing nosemgrep-suppressed findings to be reported in CLI scan output and to block scans. Suppressed findings are now correctly excluded from terminal text output, the scan-summary count, and the CLI's exit code. (engine-1824)
+- Fixed a bug that could cause unreliable target filtering in parallel scans. (gh-6313)
+- Dart: improved parser fidelity for Dart 3 grammar features and routed
+  pattern parsing for statements beginning with `await`, `rethrow`, and other
+  statement keywords. Eliminates a large class of `PartialParsing` errors on
+  real-world pub.dev packages. (gh-11678)
+
+### ### Infra/Release Changes
+
+- pro: macOS: Fixed dynamic library lookup for `semgrep-core-proprietary` so the binary works when `semgrep install-semgrep-pro` is invoked, and `semgrep` is installed via Homebrew. (pro-binary-homebrew)
+- Pro: Added optional `<case>.named_ast.expect` golden files for `tests/intrafile/maturity/` fixtures, exercised by `Unit_maturity_named_asts`. (LANG-287)
+
+
+## [1.163.0](https://github.com/semgrep/semgrep/releases/tag/v1.163.0) - 2026-05-13
+
+### ### Added
+
+- Updated PHP target parsing to support grammar changes from PHP 8.1-8.5 (LANG-380)
+
+### ### Changed
+
+- Improved `semgrep ci` startup time with App-provided rules by avoiding duplicate semgrep-core rule validation during CLI rule loading while preserving config-style failures for invalid rules. (ci-rule-validation-startup)
+- Semgrep now validates dependency aware rules only on the core side, improving startup time (validate-skip-dep-aware)
+- Rule validation now runs in parallel across cores on large rulesets, reducing scan startup time. (gh-6279)
+- Rule parsing now runs in parallel across shards on multi-core machines, reducing scan startup time on large rulesets. (gh-6281)
+
+### ### Fixed
+
+- Improved name resolution for fully-qualified names in Java, Kotlin, and Scala. This could lead to fewer false positives and more true positives when the code under analysis uses fully-qualified names instead of imports. (java-qualified)
+- Optimised rule prefiltering and parsing to improve engine startup time. (rule-parse-cache)
+- Reduced peak memory usage when scanning repos with large rulesets. (rules-json-compact)
+- Fixed transitive reachability rule parsing performance: the temporary rule
+  file written for each transitive-reachability RPC call is JSON content
+  (`json.dumps([rule.raw])`) but was being created with a `.yaml` suffix.
+  OCaml's `Parse_rule.parse_file` dispatches purely on file extension, so this
+  routed every TR rule through `Yaml_to_generic.parse_yaml_file` (the slow YAML
+  path) instead of `Fast_json.parse_program` (the new hand-written RFC 8259
+  parser). Switching the suffix to `.json` lines the suffix up with the actual
+  content and lets every TR rule parse take the fast path. (tr-json-suffix)
+- Pro: Fixed a naming resolution bug in Java. (LANG-274)
+
+
+## [1.162.0](https://github.com/semgrep/semgrep/releases/tag/v1.162.0) - 2026-05-07
+
+### ### Added
+
+- pro: Improved support for tracking taint through nested functions. (LANG-95)
+- Added indexes to file targeting to improve performance of semgrepignore matching. (gh-27830)
+
+### ### Changed
+
+- Faster JSON rule parsing: rule files in JSON format now parse roughly 5x faster end-to-end (measured ~134s → ~28s on a 382MB rule pack) by going through a new hand-written RFC 8259 parser instead of the previous JS-parser-based chain. (ENGINE-2725)
+- Scala projects are now identified for Supply Chain only by their root build.sbt, rather than treating each build.sbt as a different subproject. (SC-3293)
+- MCP `semgrep_findings` tool: added a `refs` parameter to filter findings by branch (defaults to the primary branch when not specified), and made `autotriage_verdict` optional so that findings without an AI verdict can also be returned. (engine-2723)
+
+### ### Fixed
+
+- jsonnet: `import` and `importstr` now reject paths that resolve outside the
+  rule file's parent directory. (ENGINE-2727)
+- semgrep ci: redact URL-embedded credentials and `Authorization` header
+  values from git error messages and from the captured tracebacks sent to
+  the fail-open telemetry endpoint, preventing leaks of secrets like
+  `CI_JOB_TOKEN` from a failed `git fetch` in GitLab CI. Also closes
+  ENGINE-2731 (raw, unsanitized tracebacks in fail-open telemetry). (ENGINE-2728)
+- `semgrep ci` no longer transmits SCM tokens to the Semgrep Platform. (ENGINE-2729)
+- semgrep CLI: the on-disk log file (`~/.semgrep/semgrep.log` or `$SEMGREP_LOG_FILE`) now respects the requested log level instead of always being written at DEBUG. This narrows the surface for credentials to land on disk via CI runner filesystems or job artifacts; pass `--debug` to restore the previous behavior. (ENGINE-2730)
+- jsonnet rules: bound recursion in both rule loading and evaluation so a
+  malicious rule can no longer hang semgrep via mutually-recursive `import`s
+  or runtime function calls that recurse forever. (ENGINE-2727-dos)
+- Scala: Merging consecutive top-level package declarations into a single package path. (LANG-374)
+- Fixed PHP parse errors during highly-parallel parsing. (gh-6197)
+- Fixed Scala parse errors during highly-parallel parsing. (gh-6198)
+- Surface a clearer error from the MCP scan tool when metrics is off and auto config is specified (gh-11649)
+- Fixed unknown option error when spawning the MCP daemon (gh-11660)
+
+
+## [1.161.0](https://github.com/semgrep/semgrep/releases/tag/v1.161.0) - 2026-04-22
+
+### ### Added
+
+- Scala 3.4+ trait parameters are now parsed correctly. (lang-73)
+
+### ### Fixed
+
+- Semgrep's HTTP requests no longer log URLs above the debug level; full request
+  details remain available when running with `SEMGREP_LOG_SRCS=cohttp.client`. (ENGINE-2712)
+
+
 ## [1.160.0](https://github.com/semgrep/semgrep/releases/tag/v1.160.0) - 2026-04-16
 
 ### ### Added

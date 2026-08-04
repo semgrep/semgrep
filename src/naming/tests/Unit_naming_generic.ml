@@ -36,17 +36,17 @@ let tests parse_program =
 
           files1 @ files2 @ files3 @ files4
           |> List.iter (fun file ->
-                 try
-                   (* at least we can assert we don't thrown an exn or go
+              try
+                (* at least we can assert we don't thrown an exn or go
                       into infinite loops *)
-                   let ast = parse_program file in
-                   let lang = Lang.lang_of_filename_exn file in
-                   Naming_AST.resolve lang ast;
-                   (* this used to loop forever if you were not handling correctly
+                let ast = parse_program file in
+                let lang = Lang.lang_of_filename_exn file in
+                Naming_AST.resolve lang ast;
+                (* this used to loop forever if you were not handling correctly
                       possible cycles with id_type *)
-                   let _v = AST_generic.show_any (AST_generic.Pr ast) in
-                   ()
-                 with
-                 | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" !!file));
+                let _v = AST_generic.show_any (AST_generic.Pr ast) in
+                ()
+              with
+              | Parsing_error.Syntax_error _ ->
+                  Alcotest.failf "it should correctly parse %s" !!file));
     ]

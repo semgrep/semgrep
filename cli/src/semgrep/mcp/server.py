@@ -6,6 +6,7 @@ import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 from typing import Literal
 
 import requests
@@ -109,12 +110,52 @@ SEVERITIES_FIELD = Field(
 CONFIDENCE_FIELD = Field(
     default=None, description="Confidences of the issues to filter by."
 )
-AUTOTRIAGE_VERDICT_DEFAULT: Literal["VERDICT_TRUE_POSITIVE"] = "VERDICT_TRUE_POSITIVE"
 AUTOTRIAGE_VERDICT_FIELD = Field(
-    default=AUTOTRIAGE_VERDICT_DEFAULT,
-    description="Autotriage verdict of the issues to filter by.",
+    default=None,
+    description="Autotriage verdict of the issues to filter by. If not provided, findings with any verdict (including unrated) are returned.",
+)
+REFS_FIELD: list[str] = Field(
+    default=[],
+    description="List of git refs (branch names) to filter findings by. If not provided, only findings on the primary branch are returned.",
 )
 LIMIT_FIELD = Field(default=10, description="Maximum number of findings to return")
+
+MCP_AGENT_TAG = "(command/mcp)"
+
+
+def _build_findings_filter(
+    *,
+    status: str,
+    repos: list[str],
+    severities: list[
+        Literal["SEVERITY_CRITICAL", "SEVERITY_HIGH", "SEVERITY_MEDIUM", "SEVERITY_LOW"]
+    ]
+    | None,
+    confidence: list[Literal["CONFIDENCE_HIGH", "CONFIDENCE_MEDIUM", "CONFIDENCE_LOW"]]
+    | None,
+    autotriage_verdict: Literal["VERDICT_TRUE_POSITIVE", "VERDICT_FALSE_POSITIVE"]
+    | None,
+    refs: list[str],
+) -> dict[str, Any]:
+    """Build the `filter` payload for the findings API.
+
+    The endpoint requires either a `refs` list or `on_primary_branch=True`; we set
+    `on_primary_branch` only when no refs are provided. `aiVerdicts` is empty when
+    no `autotriage_verdict` is given so unrated findings are not filtered out.
+    """
+    filter_body: dict[str, Any] = {
+        "status": [status],
+        "repositoryNames": repos,
+        "severities": severities if severities else [],
+        "confidences": confidence if confidence else [],
+        "aiVerdicts": [autotriage_verdict] if autotriage_verdict else [],
+    }
+    if refs:
+        filter_body["refs"] = refs
+    else:
+        filter_body["on_primary_branch"] = True
+    return filter_body
+
 
 # ---------------------------------------------------------------------------------
 # Utilities
@@ -268,6 +309,21 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
     args.extend(["--x-mcp"])
     if config:
         args.extend(["--config", config])
+
+    # If the config is auto and metrics are off, raise an error. This
+    # should only happen if the user is calling the MCP scan tool without
+    # a config with metrics turned off. Hooks are not affected
+    # since we pass in the config "hooks" for the hooks.
+    if (config is None or config == "auto") and (
+        (os.environ.get("SEMGREP_SEND_METRICS") or "").lower() in ("off", "0", "false")
+    ):
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message="Cannot run scan with auto config when metrics are off. Please allow metrics or run with a specific config.",
+            )
+        )
+
     args.append(temp_dir)
     return args
 
@@ -587,9 +643,9 @@ async def semgrep_findings(
     | None = SEVERITIES_FIELD,
     confidence: list[Literal["CONFIDENCE_HIGH", "CONFIDENCE_MEDIUM", "CONFIDENCE_LOW"]]
     | None = CONFIDENCE_FIELD,
-    autotriage_verdict: Literal[
-        "VERDICT_TRUE_POSITIVE", "VERDICT_FALSE_POSITIVE"
-    ] = AUTOTRIAGE_VERDICT_FIELD,
+    autotriage_verdict: Literal["VERDICT_TRUE_POSITIVE", "VERDICT_FALSE_POSITIVE"]
+    | None = AUTOTRIAGE_VERDICT_FIELD,
+    refs: list[str] = REFS_FIELD,
     limit: int = LIMIT_FIELD,
 ) -> list[Finding] | str:
     """
@@ -666,14 +722,14 @@ async def semgrep_findings(
     request_body = {
         "deploymentId": str(deployment_id),
         "issueType": issue_type,
-        "filter": {
-            "status": [status],
-            "repositoryNames": repos,
-            "severities": severities if severities else [],
-            "confidences": confidence if confidence else [],
-            "aiVerdicts": [autotriage_verdict],
-            "on_primary_branch": True,  # Required for this endpoint to work. TODO?: could there not be a primary branch for some repos?
-        },
+        "filter": _build_findings_filter(
+            status=status,
+            repos=repos,
+            severities=severities,
+            confidence=confidence,
+            autotriage_verdict=autotriage_verdict,
+            refs=refs,
+        ),
         "limit": limit,
     }
     try:
@@ -1327,6 +1383,13 @@ def setup_oauth_routes(mcp: FastMCP, server_url: str) -> None:
 
 
 def register(mcp: FastMCP) -> None:
+    state = get_state()
+    # Since the remote server doesn't call the command semgrep mcp, which should
+    # add the tag "(command/mcp)" to the user agent tag, we need to add the tag manually here
+    # for it to show up in the metrics.
+    if MCP_AGENT_TAG not in state.app_session.user_agent.tags:
+        state.app_session.user_agent.tags.add(MCP_AGENT_TAG)
+
     # tools
     mcp.add_tool(semgrep_rule_schema)
     mcp.add_tool(get_supported_languages)
@@ -1373,13 +1436,17 @@ def deregister_tools(mcp: FastMCP, transport: str) -> None:
             # for the time being, while there is no way to API-level remove tools,
             # we'll just mutate the internal `_tools`, because this language does
             # not stop us from doing so
-            del mcp._tool_manager._tools[tool_name]
+            if tool_name in mcp._tool_manager._tools:
+                del mcp._tool_manager._tools[tool_name]
 
     if is_hosted():
-        del mcp._tool_manager._tools["semgrep_scan"]
-        del mcp._tool_manager._tools["semgrep_scan_supply_chain"]
+        if "semgrep_scan" in mcp._tool_manager._tools:
+            del mcp._tool_manager._tools["semgrep_scan"]
+        if "semgrep_scan_supply_chain" in mcp._tool_manager._tools:
+            del mcp._tool_manager._tools["semgrep_scan_supply_chain"]
     else:
-        del mcp._tool_manager._tools["semgrep_scan_remote"]
+        if "semgrep_scan_remote" in mcp._tool_manager._tools:
+            del mcp._tool_manager._tools["semgrep_scan_remote"]
 
     if transport == "stdio":
         # The whoami tool doesn't work via stdio since it requires a JWT token,
@@ -1388,4 +1455,5 @@ def deregister_tools(mcp: FastMCP, transport: str) -> None:
         #
         # TODO?: if we implement OAuth for connecting to the MCP server locally,
         # we could enable it via stdio
-        del mcp._tool_manager._tools["semgrep_whoami"]
+        if "semgrep_whoami" in mcp._tool_manager._tools:
+            del mcp._tool_manager._tools["semgrep_whoami"]
