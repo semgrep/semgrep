@@ -341,6 +341,31 @@ let filter_path (ign : Gitignore_filter.t)
                 (Unix.error_message code));
           Ignore_silently)
 
+(* One warning per distinct cause, rather than one per dropped path:
+   filtering a single path can only fail on its own, but a worker killed
+   mid-chunk attributes its single exception to every path in that chunk,
+   which would otherwise produce a burst of near-identical warnings. Each
+   message names its paths, since "dropped 256 paths" tells an operator that
+   targets are missing but not which ones.
+
+   Grouping keys on a rendered exception message, so it only collapses when
+   that message is path-independent. A [Unix.Unix_error] embeds the filename
+   and would make every key unique, degenerating back into the per-path
+   burst. That is a property of what [filter_path] can raise, not of this
+   function: it handles its own [lstat] errors internally, and its gitignore
+   lookups hit a cache sealed before any parallel use. *)
+let drop_warnings (drops : (string * Fpath.t) list) : string list =
+  drops |> Assoc.group_assoc_bykey_eff
+  |> List.map (fun (reason, fpaths) ->
+      match fpaths with
+      | [ fpath ] ->
+          spf "Dropped path %s from the scan while filtering: %s"
+            (Fpath.to_string fpath) reason
+      | fpaths ->
+          spf "Dropped %d paths from the scan while filtering: %s (%s)"
+            (List.length fpaths) reason
+            (fpaths |> List.map Fpath.to_string |> String.concat ", "))
+
 (*
    Filter a pre-expanded list of target files, such as a list of files
    obtained with 'git ls-files'. A strong postcondition is that the
@@ -352,44 +377,94 @@ let filter_paths (par_conf : Parallelism_config.t) (num_jobs : int option)
   let%trace sp = "Find_targets.filter_paths" in
   let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
+  (* Dropped paths are keyed by their cause so that they can be reported in
+     groups; see the warnings emitted after filtering below. *)
+  let (dropped : (string * Fpath.t) list ref) = ref [] in
   let add path = Stack_.push path selected_paths in
   let skip target = Stack_.push target skipped in
+  (* A dropped path is in neither the selected set nor the skip report unless
+     we put it there, so record it as skipped: otherwise it vanishes from the
+     scan and from the report sent to the platform, leaving a log line as the
+     only evidence. *)
+  let drop (path : Fpath.t) e =
+    let reason = Printexc.to_string e in
+    skip
+      {
+        Out.path;
+        reason = Analysis_failed_parser_or_internal_error;
+        details = Some (spf "could not filter path: %s" reason);
+        rule_id = None;
+      };
+    Stack_.push (reason, path) dropped
+  in
   let map_filter_path :
       (Fppath.t -> Fppath.t * filter_result) ->
       Fppath.t list ->
       (Fppath.t * filter_result, Fppath.t * exn) result list =
     match (par_conf, num_jobs) with
     | Parallelism_config.Eio_executor conf, Some num_jobs when num_jobs > 1 ->
-        Concurrent.map ~conf ~domain_count:num_jobs
+        (* Path filtering elements are cheap (glob matching plus one lstat)
+           and uniform in cost — exactly the profile batched submission is
+           meant for. *)
+        Concurrent.map ~element_cost:`Cheap_uniform ~conf ~domain_count:num_jobs
     | _, _ -> fun f l -> List.map (fun x -> Ok (f x)) l
   in
 
+  let handle (fppath : Fppath.t) = function
+    | Keep -> (
+        (* This section is similar to what we have in
+              'walk_skip_and_collect' but the rest is sufficiently different
+              that sharing code makes things complicated
+              (e.g. no dir access filtering for git targets) *)
+        match Skip_target.filter_file_access_permissions fppath.fpath with
+        | Ok _path -> add fppath
+        | Error skipped -> skip skipped)
+    (* shouldn't happen if we work on the output of 'git ls-files *)
+    | Dir -> ()
+    | Skip x -> skip x
+    | Ignore_silently ->
+        Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath))
+  in
+
+  let (failed : Fppath.t list ref) = ref [] in
   target_files
   |> map_filter_path (fun x -> (x, filter_path ign include_filter x))
   |> List.iter (fun (res : (Fppath.t * filter_result, Fppath.t * exn) result) ->
       match res with
-      | Ok (fppath, Keep) -> (
-          (* This section is similar to what we have in
-                'walk_skip_and_collect' but the rest is sufficiently different
-                that sharing code makes things complicated
-                (e.g. no dir access filtering for git targets) *)
-          match Skip_target.filter_file_access_permissions fppath.fpath with
-          | Ok _path -> add fppath
-          | Error skipped -> skip skipped)
-      (* shouldn't happen if we work on the output of 'git ls-files *)
-      | Ok (_, Dir) -> ()
-      | Ok (_, Skip x) -> skip x
-      | Ok (fppath, Ignore_silently) ->
-          Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath))
+      | Ok (fppath, filter_res) -> handle fppath filter_res
       | Error (fppath, e) ->
+          (* Retried below, so this is not yet a dropped path. Still worth a
+             trace: otherwise a worker death that retrying papers over leaves
+             no record at all. *)
           Log.debug (fun m ->
-              m "Exception while filtering path %s:%s" !!(fppath.fpath)
-                (Printexc.to_string e)));
+              m "filtering %s failed, will retry sequentially: %s"
+                !!(fppath.fpath) (Printexc.to_string e));
+          Stack_.push fppath failed);
+
+  (* [Concurrent.map] cannot retry a failed element, because it cannot know
+     whether re-running an arbitrary [f] is safe. Here it is: [filter_path]
+     reads a gitignore cache sealed before any parallel use and does one
+     lstat, whose errors it already handles itself. Retrying matters because a
+     worker killed mid-chunk poisons every path in its chunk — including paths
+     whose filtering had already succeeded — so without this a single
+     asynchronous exception would drop a whole chunk's worth of targets. *)
+  !failed
+  |> List.iter (fun (fppath : Fppath.t) ->
+      match filter_path ign include_filter fppath with
+      | filter_res -> handle fppath filter_res
+      | exception e -> drop fppath.fpath e);
+
+  (* Paths that failed twice are genuinely dropped. [drop] already recorded
+     them as skipped; warn as well, since a missing target changes scan
+     results. *)
+  !dropped |> drop_warnings
+  |> List.iter (fun msg -> Log.warn (fun m -> m "%s" msg));
 
   Tracing.add_data_to_span sp
     [
       ("selected.count", `Int (List.length !selected_paths));
       ("skipped.count", `Int (List.length !skipped));
+      ("dropped.count", `Int (List.length !dropped));
     ];
   (Fppath_set.of_list !selected_paths, !skipped)
 [@@profiling]

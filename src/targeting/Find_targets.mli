@@ -160,3 +160,10 @@ val get_target_fpaths :
 (* internals used also in Find_targets_old.ml *)
 val get_reason_for_exclusion :
   Gitignore.selection_event list -> Semgrep_output_v1_t.skip_reason
+
+val drop_warnings : (string * Fpath.t) list -> string list
+(** [drop_warnings drops] renders the warnings for paths that could not be
+    filtered, given (cause, path) pairs. Emits one message per distinct cause,
+    naming the affected paths, so that one worker failure poisoning a whole
+    batch of paths does not produce a burst of near-identical warnings.
+    Exposed for testing. *)

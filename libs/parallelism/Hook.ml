@@ -93,6 +93,10 @@
  * then >1 such operations could land on the same domain, causing phantom writes
  * from another fiber to be observed.)
  *
+ * A batched Concurrent.map task runs several consecutive elements on a single
+ * fiber.  Hook scoping per element is unaffected, but a hook-mutating fiber
+ * forked by the mapped function must not outlive its chunk.
+ *
  * In the presence of other tasks (like cohttp-eio or metrics collection) on
  * a shared domain, this is fine so long as those tasks don't modify hook state.
  * Those are free to be scheduled on the same domain.
