@@ -1,0 +1,4 @@
+A target file whose path filtering failed was silently omitted from the scan,
+appearing in neither the results nor the list of skipped targets. Such paths
+are now retried, and any that still fail are reported as skipped targets so
+they show up in the scan report.
