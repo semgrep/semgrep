@@ -1,0 +1,5 @@
+Pro: Unsupported patterns in case expressions are now handled more
+robustly, with improved error recovery during taint analysis — branch
+bodies are no longer dropped from the dataflow intermediate language when
+a pattern can't be compiled. Pattern matching in statement position also
+now benefits from the same compilation as expression position.
