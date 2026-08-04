@@ -260,8 +260,132 @@ let tests_with_git_only () =
         ];
   ]
 
+let contains ~term s =
+  let n = String.length term in
+  let rec go i =
+    i + n <= String.length s && (String.sub s i n = term || go (i + 1))
+  in
+  n = 0 || go 0
+
+(*
+   [drop_warnings] is the only testable seam on dropped-path reporting: a drop
+   originates only from the parallel branch of 'filter_paths', and there is no
+   way to make 'filter_path' fail from outside.
+*)
+let test_drop_warnings () =
+  let p = Fpath.v in
+  let expect_one drops =
+    match Find_targets.drop_warnings drops with
+    | [ msg ] -> msg
+    | msgs ->
+        failwith
+          (sprintf "expected exactly one message, got %d" (List.length msgs))
+  in
+  if Find_targets.drop_warnings [] <> [] then
+    failwith "no drops must produce no warnings";
+
+  (* A lone failure names its path instead of reporting a count. *)
+  let msg = expect_one [ ("Failure(\"boom\")", p "a.py") ] in
+  if not (contains ~term:"a.py" msg && contains ~term:"boom" msg) then
+    failwith (sprintf "singleton message lost its path or reason: %s" msg);
+  if contains ~term:"1 paths" msg then
+    failwith (sprintf "singleton message should not report a count: %s" msg);
+
+  (* Paths sharing a cause collapse into one message that still names them
+     all; a different cause stays separate. *)
+  let msgs =
+    Find_targets.drop_warnings
+      [
+        ("Failure(\"boom\")", p "a.py");
+        ("Failure(\"boom\")", p "b.py");
+        ("Failure(\"boom\")", p "c.py");
+        ("Failure(\"other\")", p "d.py");
+      ]
+  in
+  if List.length msgs <> 2 then
+    failwith
+      (sprintf "expected one message per distinct cause, got %d"
+         (List.length msgs));
+  let grouped =
+    match List.filter (contains ~term:"boom") msgs with
+    | [ msg ] -> msg
+    | _ -> failwith "expected exactly one message for the shared cause"
+  in
+  if not (contains ~term:"3 paths" grouped) then
+    failwith (sprintf "grouped message lost its count: %s" grouped);
+  List.iter
+    (fun name ->
+      if not (contains ~term:name grouped) then
+        failwith (sprintf "grouped message omitted %s: %s" name grouped))
+    [ "a.py"; "b.py"; "c.py" ]
+
+(*
+   'filter_paths' only takes its parallel branch when par_conf is an Eio
+   executor and num_jobs > 1. Every other test in this file builds on
+   default_conf, which is neither, so none of them reach it. Batching work
+   across domains must not change which targets are selected or skipped, so
+   list the same tree both ways and compare.
+
+   The tree needs at least 16 * num_jobs files for the sizing policy to return
+   a chunk size above 1; with fewer, the parallel branch runs but never
+   batches, which would leave the interesting path untested.
+*)
+let test_parallel_filter_paths_matches_sequential () =
+  let files =
+    F.File (".semgrepignore", "ignored_*\n")
+    :: List.init 40 (fun i -> F.file (sprintf "f%d.py" i))
+    @ List.init 8 (fun i -> F.file (sprintf "ignored_%d.py" i))
+  in
+  Testutil_git.with_git_repo ~verbose:false ~force_add_gitignored_files:false
+    ~really_create_git_repo:true (F.sort files) (fun _root ->
+      (* Compare via strings: primitives only, so no polymorphic compare on
+         Fpath or on the skipped-target record. *)
+      let run conf =
+        let targets, errors, skipped =
+          Find_targets.get_target_fpaths conf
+            [ Scanning_root.of_fpath (Fpath.v ".") ]
+        in
+        ( targets |> List.map Fpath.to_string |> List.sort String.compare,
+          List.length errors,
+          skipped
+          |> List.map (fun (x : Out.skipped_target) -> Fpath.to_string x.path)
+          |> List.sort String.compare )
+      in
+      let sequential = run Find_targets.default_conf in
+      let parallel =
+        Eio_main.run @@ fun env ->
+        run
+          {
+            Find_targets.default_conf with
+            par_conf = Parallelism_config.create env;
+            num_jobs = Some 2;
+          }
+      in
+      let selected, _, _ = sequential in
+      if List.length selected < 32 then
+        failwith
+          (sprintf
+             "fixture too small to exercise batching: only %d targets selected"
+             (List.length selected));
+      if sequential <> parallel then
+        let show (targets, errors, skipped) =
+          sprintf "targets=[%s] errors=%d skipped=[%s]"
+            (String.concat ";" targets)
+            errors
+            (String.concat ";" skipped)
+        in
+        failwith
+          (sprintf "parallel targeting disagreed with sequential\n%s\n%s"
+             (show sequential) (show parallel)))
+
 let tests =
   Testo.categorize "Find_targets"
     (tests_with_or_without_git ~with_git:true
     @ tests_with_git_only ()
-    @ tests_with_or_without_git ~with_git:false)
+    @ tests_with_or_without_git ~with_git:false
+    @ [
+        Testo.create "drop_warnings groups by cause" test_drop_warnings;
+        Testo.create ?skipped:Testutil.skip_on_windows
+          "parallel filter_paths matches sequential"
+          test_parallel_filter_paths_matches_sequential;
+      ])
