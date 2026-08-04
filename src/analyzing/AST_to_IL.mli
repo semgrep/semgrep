@@ -16,6 +16,8 @@ type ctx
 type env
 (** Translation environment. Holds language, statements, etc. *)
 
+val lang_of_env : env -> Lang.t
+
 val empty_ctx : ctx
 (** Creates empty context *)
 
@@ -48,10 +50,12 @@ type compile_pattern_matching_fn =
   stmt_expr_with_pre_stmts:(env -> AST_generic.stmt -> IL.stmt list * IL.exp) ->
   AST_generic.condition ->
   AST_generic.case_and_body list ->
-  IL.stmt list * IL.exp
+  (IL.stmt list * IL.exp) option
 
 val hook_compile_pattern_matching : compile_pattern_matching_fn option Hook.t
-(** Hook for Pro-only pattern matching compilation. Defaults to None. *)
+(** Hook for Pro-only pattern matching compilation. Defaults to None.
+    The implementation returns [None] when it cannot compile the given cases;
+    the caller then falls back to the legacy switch lowering. *)
 
 val fresh_var : ?str:string -> env -> Tok.t -> IL.name
 val mk_e : IL.exp_kind -> IL.orig -> IL.exp

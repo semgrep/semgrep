@@ -119,6 +119,7 @@ type env = {
 }
 
 let empty_ctx : ctx = { entity_names = IdentSet.empty }
+let lang_of_env (env : env) : Lang.t = env.lang
 
 let empty_env (lang : Lang.t) : env =
   {
@@ -421,11 +422,14 @@ type compile_pattern_matching_fn =
   stmt_expr_with_pre_stmts:(env -> G.stmt -> stmt list * exp) ->
   G.condition ->
   G.case_and_body list ->
-  stmt list * exp
+  (stmt list * exp) option
 (** Hook for Pro pattern matching compilation.
 
     The implementation is provided by Pro code via Pro_AST_to_IL.with_pro_hooks.
-    If not set, pattern matching features will not be available (OSS limitation). *)
+    If not set, pattern matching features will not be available (OSS limitation).
+    The implementation returns [None] when it does not support the language or
+    cannot compile the given cases, in which case the caller must fall back to
+    the legacy switch lowering. *)
 
 let hook_compile_pattern_matching : compile_pattern_matching_fn option Hook.t =
   Hook.create None
@@ -1637,16 +1641,18 @@ and map_stmt_expr env ?(is_returned = false) ?g_expr st : exp =
       let e = mk_e (Fetch (lval_of_base (Var yield_var))) orig in
       if is_returned then mk_s (Return (G.fake "return", e)) |> add_stmt env;
       e
-  | G.Switch (_tok, Some scrutinee, branches) when Lang.(equal env.lang Scala)
-    -> (
-      match Hook.get hook_compile_pattern_matching with
-      | Some compile_fn ->
-          let ss, e =
+  | G.Switch (_tok, Some scrutinee, branches) -> (
+      let compiled =
+        match Hook.get hook_compile_pattern_matching with
+        | Some compile_fn ->
             compile_fn env ~cond_with_pre_stmts:map_cond_with_pre_stmts
               ~stmt_expr_with_pre_stmts:
                 (map_stmt_expr_with_pre_stmts ~is_returned)
               scrutinee branches
-          in
+        | None -> None
+      in
+      match compiled with
+      | Some (ss, e) ->
           add_stmts env ss;
           e
       | None ->
@@ -2071,25 +2077,44 @@ and map_stmt_aux env st : stmt list =
       let st1 = map_stmt env st1 in
       let st2 = List.concat_map (map_stmt env) (st2 |> Option.to_list) in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
-  | G.Switch (tok, switch_expr_opt, cases_and_bodies) ->
-      let ss, translate_cases =
-        match switch_expr_opt with
-        | Some switch_expr ->
-            let ss, switch_expr' = map_cond_with_pre_stmts env switch_expr in
-            ( ss,
-              map_switch_expr_and_cases_to_exp env tok
-                (H.cond_to_expr switch_expr)
-                switch_expr' )
-        | None -> ([], map_cases_to_exp env tok)
+  | G.Switch (tok, switch_expr_opt, cases_and_bodies) -> (
+      (* In languages where the switch cases are patterns, prefer the
+         pattern-matching compilation: it establishes pattern bindings and
+         assigns branch results, which the legacy lowering below does not.
+         The switch value is discarded here since we are in statement
+         position. *)
+      let compiled =
+        match (switch_expr_opt, Hook.get hook_compile_pattern_matching) with
+        | Some scrutinee, Some compile_fn ->
+            compile_fn env ~cond_with_pre_stmts:map_cond_with_pre_stmts
+              ~stmt_expr_with_pre_stmts:
+                (map_stmt_expr_with_pre_stmts ~is_returned:false)
+              scrutinee cases_and_bodies
+        | __else__ -> None
       in
-      let break_label, break_label_s, switch_env =
-        mk_switch_break_label env tok
-      in
-      let jumps, bodies =
-        map_cases_and_bodies_to_stmts switch_env tok break_label translate_cases
-          cases_and_bodies
-      in
-      ss @ jumps @ bodies @ break_label_s
+      match compiled with
+      | Some (ss, _discarded_result) -> ss
+      | None ->
+          let ss, translate_cases =
+            match switch_expr_opt with
+            | Some switch_expr ->
+                let ss, switch_expr' =
+                  map_cond_with_pre_stmts env switch_expr
+                in
+                ( ss,
+                  map_switch_expr_and_cases_to_exp env tok
+                    (H.cond_to_expr switch_expr)
+                    switch_expr' )
+            | None -> ([], map_cases_to_exp env tok)
+          in
+          let break_label, break_label_s, switch_env =
+            mk_switch_break_label env tok
+          in
+          let jumps, bodies =
+            map_cases_and_bodies_to_stmts switch_env tok break_label
+              translate_cases cases_and_bodies
+          in
+          ss @ jumps @ bodies @ break_label_s)
   | G.While (tok, e, st) -> map_while_aux env tok e st None
   | G.DoWhile (tok, st, e) ->
       let cont_label, break_label, st_env = mk_break_continue_labels env tok in
