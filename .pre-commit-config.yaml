@@ -129,7 +129,7 @@ repos:
           - appdirs
           - pytest
           - pytest-mock
-          - mcp==1.16.0
+          - mcp==1.29.0
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
