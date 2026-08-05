@@ -1,0 +1,1 @@
+Upgrade mcp dependency from 1.23.3 to 1.29.0 to fix CVE-2026-52869, CVE-2026-52870, and CVE-2026-59950
