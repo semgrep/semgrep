@@ -299,16 +299,23 @@ let find_rule_files roots =
 (* Entry point *)
 (*****************************************************************************)
 
-(* TODO: do not filter_map, instead fail when we can't parse a rule
- * (or wait that we switch to osemgrep test for our own test infra in which
- * case this whole file will be deleted)
- *)
+type collected_tests = {
+  valid_test_triples :
+    (Fpath.t (* rule file *) * Fpath.t (* target file *) * Analyzer.t) list;
+  invalid_rule_files : Fpath.t list;
+}
+
 let collect_tests ?(get_analyzer = single_analyzer_from_rules)
-    (xs : Fpath.t list) =
-  xs |> find_rule_files
-  |> List.filter_map (fun rule_file ->
-      let* _rules, target, analyzer = read_rules_file ~get_analyzer rule_file in
-      Some (rule_file, target, analyzer))
+    (xs : Fpath.t list) : collected_tests =
+  let all_rule_files = xs |> find_rule_files in
+  let valid_test_triples, invalid_rule_files =
+    all_rule_files
+    |> List.partition_map (fun rule_file ->
+        match read_rules_file ~get_analyzer rule_file with
+        | None -> Right rule_file
+        | Some (_rules, target, analyzer) -> Left (rule_file, target, analyzer))
+  in
+  { valid_test_triples; invalid_rule_files }
 
 let make_tests ?fail_callback ?get_analyzer ?prepend_lang (xs : Fpath.t list) :
     Testo.t list =

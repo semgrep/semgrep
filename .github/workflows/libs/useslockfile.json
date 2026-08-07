@@ -61,7 +61,7 @@
     "semgrep": {
       "claude-taskmaster": "e65485b0defbd6ef6c59adcdc91a1c3d9893c215",
       "github-api-commit-action": "455b1aaa1455b8c1d7ef123c4cb918a1a4709a5d",
-      "mfw": "52dc55d105ccdc08413c933599b8680a61d022d2",
+      "mfw": "202d5b2c2a7d1fb832b93d50cfb66f2d0877f4a7",
       "setup-ocaml": "a739c5405d73c42ef15a9dc995efc0f87396cc36"
     },
     "slackapi": {

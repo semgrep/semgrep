@@ -1286,7 +1286,7 @@ type targeting_conf = Semgrep_output_v1_t.targeting_conf = {
     *);
   force_novcs_project: bool;
   exclude_minified_files: bool;
-  exclude_binary_files: bool;
+  include_binary_files: bool;
   baseline_commit: string option
 }
   [@@deriving show]
@@ -18404,11 +18404,11 @@ let write_targeting_conf : _ -> targeting_conf -> _ = (
       is_first := false
     else
       Buffer.add_char ob ',';
-      Buffer.add_string ob "\"exclude_binary_files\":";
+      Buffer.add_string ob "\"include_binary_files\":";
     (
       Yojson.Safe.write_bool
     )
-      ob x.exclude_binary_files;
+      ob x.include_binary_files;
     (match x.baseline_commit with None -> () | Some x ->
       if !is_first then
         is_first := false
@@ -18442,7 +18442,7 @@ let read_targeting_conf = (
     let field_force_project_root = ref (None) in
     let field_force_novcs_project = ref (None) in
     let field_exclude_minified_files = ref (None) in
-    let field_exclude_binary_files = ref (None) in
+    let field_include_binary_files = ref (false) in
     let field_baseline_commit = ref (None) in
     try
       Yojson.Safe.read_space p lb;
@@ -18524,7 +18524,7 @@ let read_targeting_conf = (
                 )
               )
             | 20 -> (
-                if String.unsafe_get s pos = 'e' && String.unsafe_get s (pos+1) = 'x' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'l' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'b' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'y' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'f' && String.unsafe_get s (pos+16) = 'i' && String.unsafe_get s (pos+17) = 'l' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 's' then (
+                if String.unsafe_get s pos = 'i' && String.unsafe_get s (pos+1) = 'n' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'l' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'b' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'y' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'f' && String.unsafe_get s (pos+16) = 'i' && String.unsafe_get s (pos+17) = 'l' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 's' then (
                   12
                 )
                 else (
@@ -18688,13 +18688,13 @@ let read_targeting_conf = (
               )
             );
           | 12 ->
-            field_exclude_binary_files := (
-              Some (
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_include_binary_files := (
                 (
                   Atdgen_runtime.Oj_run.read_bool
                 ) p lb
-              )
-            );
+              );
+            )
           | 13 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_baseline_commit := (
@@ -18789,7 +18789,7 @@ let read_targeting_conf = (
                   )
                 )
               | 20 -> (
-                  if String.unsafe_get s pos = 'e' && String.unsafe_get s (pos+1) = 'x' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'l' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'b' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'y' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'f' && String.unsafe_get s (pos+16) = 'i' && String.unsafe_get s (pos+17) = 'l' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 's' then (
+                  if String.unsafe_get s pos = 'i' && String.unsafe_get s (pos+1) = 'n' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'l' && String.unsafe_get s (pos+4) = 'u' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'b' && String.unsafe_get s (pos+9) = 'i' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'y' && String.unsafe_get s (pos+14) = '_' && String.unsafe_get s (pos+15) = 'f' && String.unsafe_get s (pos+16) = 'i' && String.unsafe_get s (pos+17) = 'l' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 's' then (
                     12
                   )
                   else (
@@ -18953,13 +18953,13 @@ let read_targeting_conf = (
                 )
               );
             | 12 ->
-              field_exclude_binary_files := (
-                Some (
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_include_binary_files := (
                   (
                     Atdgen_runtime.Oj_run.read_bool
                   ) p lb
-                )
-              );
+                );
+              )
             | 13 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_baseline_commit := (
@@ -18991,7 +18991,7 @@ let read_targeting_conf = (
             force_project_root = !field_force_project_root;
             force_novcs_project = (match !field_force_novcs_project with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "force_novcs_project");
             exclude_minified_files = (match !field_exclude_minified_files with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "exclude_minified_files");
-            exclude_binary_files = (match !field_exclude_binary_files with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "exclude_binary_files");
+            include_binary_files = !field_include_binary_files;
             baseline_commit = !field_baseline_commit;
           }
          : targeting_conf)

@@ -124,11 +124,11 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 6 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+  Scanning 6 files tracked by git with 1 Supply Chain rule:
 
 
   CODE RULES
-  Nothing to scan.
+  No code rules to run.
 
   SUPPLY CHAIN RULES
 

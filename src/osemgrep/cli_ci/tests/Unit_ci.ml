@@ -39,19 +39,6 @@ let tests =
               let res = Ci_subcommand.scan_metadata () in
               Alcotest.(check (option string))
                 "checking sms_scan_id" (Some sms_scan_id) res.sms_scan_id));
-      t "parse_argv accepts x-cache-rules" (fun () ->
-          let conf =
-            Ci_CLI.parse_argv
-              [|
-                "semgrep";
-                "--x-cache-rules";
-                "--supply-chain";
-                "--no-suppress-errors";
-              |]
-          in
-          Alcotest.(check bool)
-            "checking supply-chain" true
-            (List.mem `SCA conf.products));
       (* Tests for is_scan_failure_error - should return true for scan failures *)
       t "is_scan_failure_error returns true for Timeout" (fun () ->
           Alcotest.(check bool)

@@ -1,41 +1,30 @@
-## [1.170.0](https://github.com/semgrep/semgrep/releases/tag/v1.170.0) - 2026-07-15
+## [1.172.0](https://github.com/semgrep/semgrep/releases/tag/v1.172.0) - 2026-07-28
 
 ### ### Added
 
-- Pro C/C++ scans now skip code inside statically-dead preprocessor branches
-  (for example, `#if 0 ... #else ... #endif`). Patterns that would otherwise
-  match against intentionally-disabled code no longer report on it. (cpp-if-zero-filter)
-- Restored obackward: semgrep-core and semgrep-core-proprietary once again print a backtrace when receiving a fatal signal (e.g. SIGSEGV) (obackward)
-- `semgrep install-semgrep-pro` now sends usage metrics so that
-  installation errors can be tracked. Metrics can be disabled with
-  `--metrics off` or `SEMGREP_SEND_METRICS=off`. Metrics payloads also
-  now include the method used to install the Semgrep CLI (pip, homebrew,
-  docker, or unknown), detected heuristically. See metrics.md for
-  more details of what exactly is sent. (engine-2858)
+- Added support for the OpenTofu `.tofu` file extension. Because OpenTofu uses the same HCL grammar as Terraform, `.tofu` files are now automatically detected and scanned as Terraform, so they are picked up by recursive scans and Terraform rulesets (e.g. `p/terraform`) with no extra configuration. (ENGINE-2884)
 
 ### ### Changed
 
-- Increased the timeout for dynamic dependency resolution subprocesses from
-  600 to 900 seconds, giving large projects more time to resolve dependencies
-  before timing out. (SC-3699)
-- Pro C/C++ `#if 0` filtering now also handles cases where the directive splits a
-  syntactic unit.  For example, a function signature toggle like `#if 0 void
-  foo(int i) { #else void foo(uint32_t i) { #endif`. (engine-994)
+- Updated the Ruby parser to tree-sitter-ruby v0.23.1, improving support for `!=`, case/when expressions with line breaks, and element references that take a block. (LANG-206)
+- The window for collecting git contributor information during `semgrep ci` has been extended from the last 30 days to the last 90 days, to match the updated usage policy. (contributor-window-90-days)
 
 ### ### Fixed
 
-- Fixed a crash at startup (`Fatal error: Failed to allocate signal stack for
-  domain 0`) when running Semgrep on systems with musl 1.2.6 (e.g. Alpine 3.24) on
-  recent Intel CPUs whose kernel-reported minimum signal-stack size exceeds musl's
-  build-time SIGSTKSZ (notably AMX-capable Xeons). (ENGINE-2863)
-- Dockerfile: Fixed parse errors on `RUN` instructions that use heredoc syntax
-  (`<<EOF`, `<<-EOF`, quoted delimiters). (LANG-263)
-- `metavariable-type` now supports fully qualified type names in languages
-  where a qualified name in type position parses as an expression (e.g.
-  Python's `types: [a.b.C]`) when the metavariable's type is determined by
-  type inference, such as Pro engine cross-file type resolution. (LANG-583)
-- Updated the ocaml-tree-sitter-core dependency to the latest `main`.
-
-    * Fails loudly on a parser/runtime ABI mismatch
-    * Stamps every generated `parser.c` with the tree-sitter version that produced it.
-    * Changed paths where tree-sitter versions are installed (lang-591)
+- Semgrep will now print richer error messages on segfaults when `--debug` is NOT passed, matching the segfault error output when `--debug` is passed (engine-segv)
+- Fixed a source of rare, nondeterministic crashes and incorrect results caused
+  by an OCaml compiler bug. Semgrep now builds against a compiler fork that
+  backports the upstream fix. (ocaml_codegen_fix)
+- Fixed excessive heap growth after explicit major garbage collections. Semgrep
+  now builds against an OCaml compiler that improves garbage collection duty
+  cycle pacing. (ocaml_gc_pacing_fix)
+- Improved the `Scan Status` output when no code rules will run (e.g. a
+  Secrets-only or Supply-Chain-only scan). The summary line no longer reports a
+  confusing "0 Code rules", and the "Code Rules" section now states explicitly
+  either that code scanning is not enabled or that there are no code rules to run,
+  instead of printing an empty table. (ENGINE-2878)
+- Fixed lockfileless Gradle dependency resolution failing with "Parsing
+  dependency output failed (Resolve_gradle.gradle_resolved_dependency)". The
+  github-dependency-graph-gradle-plugin used during resolution was fetched
+  unpinned, and its 1.4.2 release renamed keys in its JSON output. The plugin is
+  now pinned to 1.4.1. (sc-3738)

@@ -10,21 +10,17 @@ pin-depends: [
         - semgrep-pro.opam.template
         - semgrep-pro.opam
   *)
-  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#3499e5708b0637c12d24d973dd103406a32b8fe8"]
+  ["ocaml-variants.5.3.0" "git+https://github.com/semgrep/ocaml.git#aaaacf27f74fd87eb5b9887fb9995bee4cedb979"]
   ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#4e0a44486bb518b7a24ca11286c4b03a8d51e17e"]
   ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#c4baff8d83b2e1f83f247acb11d0c9dafa5e48f7"]
-  ["testo.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
-  ["testo-util.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
-  ["testo-diff.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
-  ["testo-lwt.dev" "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"]
   ["obackward.dev" "git+https://github.com/semgrep/obackward.git#e1c16766976b4fadd97097b96f96666e8e1cb98c"]
   (* coupling: update the submodule in cli/src/semgrep too *)
   ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#7e509db48c700cae49fe0372e2aa0410fa86d867"]
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
-  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#ef59d6c39085079bb7d2ea76b3d4c7a7d4ec27d9"]
-  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#ef59d6c39085079bb7d2ea76b3d4c7a7d4ec27d9"]
+  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
+  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
   ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]

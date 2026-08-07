@@ -1,0 +1,57 @@
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+
+
+┌───────────────────────────────┐
+│ 1 Unvalidated Secrets Finding │
+└───────────────────────────────┘
+
+    targets/basic.py
+   ❯❯❱ rules.basic-test.secret
+          ❰❰ Blocking ❱❱
+          Basic test
+
+            2┆ print(1*****)
+
+
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 1 Secrets rule:
+
+
+  CODE RULES
+  No code rules to run.
+
+  SECRETS RULES
+  Scanning 1 file.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 1 (1 blocking)
+ • Rules run: 1
+ • Targets scanned: 1
+ • Parsed lines: ~100.0%
+ • No ignore information available
+Ran 1 rule on 1 file: 1 finding.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

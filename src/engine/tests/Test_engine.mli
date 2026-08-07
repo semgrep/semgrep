@@ -27,11 +27,17 @@ val make_tests :
   Fpath.t list ->
   Testo.t list
 
+type collected_tests = {
+  valid_test_triples :
+    (Fpath.t (* rule file *) * Fpath.t (* target file *) * Analyzer.t) list;
+  invalid_rule_files : Fpath.t list;
+}
+
 (* For Pro tests *)
 val collect_tests :
   ?get_analyzer:(Fpath.t -> Rule.rules -> Analyzer.t) ->
   Fpath.t list (* roots *) ->
-  (Fpath.t (* rule file *) * Fpath.t (* target file *) * Analyzer.t) list
+  collected_tests
 
 (* helpers used in Test_subcommand.ml
  * TODO? Move in Rule_tests.mli?

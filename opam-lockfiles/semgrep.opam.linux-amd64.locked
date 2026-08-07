@@ -220,10 +220,10 @@ depends: [
   "stringext" {= "1.6.0"}
   "tcpip" {= "9.0.1"}
   "terminal_size" {= "0.2.0"}
-  "testo" {= "dev"}
-  "testo-diff" {= "dev"}
-  "testo-lwt" {= "dev"}
-  "testo-util" {= "dev"}
+  "testo" {= "0.5.0"}
+  "testo-diff" {= "0.5.0"}
+  "testo-lwt" {= "0.5.0"}
+  "testo-util" {= "0.5.0"}
   "thread-local-storage" {= "0.2"}
   "thread-table" {= "1.0.0"}
   "time_now" {= "v0.17.0"}
@@ -285,7 +285,7 @@ pin-depends: [
   ]
   [
     "ocaml-variants.5.3.0"
-    "git+https://github.com/semgrep/ocaml.git#3499e5708b0637c12d24d973dd103406a32b8fe8"
+    "git+https://github.com/semgrep/ocaml.git#aaaacf27f74fd87eb5b9887fb9995bee4cedb979"
   ]
   [
     "opentelemetry.dev"
@@ -309,31 +309,15 @@ pin-depends: [
   ]
   [
     "pyro-caml-instruments.dev"
-    "git+https://github.com/semgrep/pyro-caml.git#ef59d6c39085079bb7d2ea76b3d4c7a7d4ec27d9"
+    "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"
   ]
   [
     "pyro-caml-ppx.dev"
-    "git+https://github.com/semgrep/pyro-caml.git#ef59d6c39085079bb7d2ea76b3d4c7a7d4ec27d9"
+    "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"
   ]
   [
     "semgrep-interfaces.dev"
     "git+https://github.com/semgrep/semgrep-interfaces.git#7e509db48c700cae49fe0372e2aa0410fa86d867"
-  ]
-  [
-    "testo.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
-  ]
-  [
-    "testo-diff.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
-  ]
-  [
-    "testo-lwt.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
-  ]
-  [
-    "testo-util.dev"
-    "git+https://github.com/semgrep/testo.git#df18ea541c75c9acf75923218586c5ffe8915a04"
   ]
   [
     "tree-sitter.dev"

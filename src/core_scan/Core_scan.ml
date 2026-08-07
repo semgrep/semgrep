@@ -307,7 +307,11 @@ let translate_targeting_conf_from_pysemgrep (par_conf : Parallelism_config.t)
               Find_targets.Git_remote { url = Uri.of_string str });
     force_novcs_project = conf.force_novcs_project;
     exclude_minified_files = conf.exclude_minified_files;
-    exclude_binary_files = conf.exclude_binary_files;
+    (* coupling: the wire field is [include_binary_files] (optional, default
+     * false, i.e. binaries excluded); Find_targets keeps the
+     * [exclude_binary_files] spelling, so we invert here at the pysemgrep
+     * boundary. *)
+    exclude_binary_files = not conf.include_binary_files;
     baseline_commit = conf.baseline_commit;
     par_conf;
     num_jobs = Some num_jobs;

@@ -15,7 +15,7 @@ authors = [
   { name = "Semgrep Inc.", email = "support@semgrep.com" }
 ]
 name = "semgrep"
-version = "1.170.0"
+version = "1.172.0"
 description = "Lightweight static analysis for many languages. Find bug variants with patterns that look like source code."
 # README.md is a symlink to the canonical ../README.md.
 readme = "README.md"
@@ -57,7 +57,7 @@ dependencies = [
   "attrs>=21.3",
   "boltons~=21.0",
   "click-option-group~=0.5",
-  "click~=8.1.8",
+  "click~=8.4.2",
   "colorama~=0.4.0",
   "exceptiongroup~=1.2.0",
   "glom>=23.3",

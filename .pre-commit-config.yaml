@@ -101,8 +101,7 @@ repos:
 
           # some packages ship with type definitions
           - attrs>=21.3
-          # click 8.1.4's new decorator type hints don't seem to work well
-          - click<8.1.4
+          - click~=8.4.2
           - packaging~=21.0
           - pydantic~=2.12.2
           - requests~=2.22
