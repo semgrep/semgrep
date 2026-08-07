@@ -46,6 +46,7 @@ UNSUPPORTED_EXT_IGNORE_LANGS = {"generic", "regex"}
 class MemoryPolicy(Enum):
     AGGRESSIVE = auto()
     BALANCED = auto()
+    NO_DISK_CACHE = auto()
 
     @property
     def cli_value(self) -> str:

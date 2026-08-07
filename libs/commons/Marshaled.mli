@@ -20,8 +20,15 @@ module InMemory : sig
   (* marshaled representation of 'a *)
   type 'a t
 
-  val marshal : 'a -> 'a t
+  (* [flags] is forwarded to [Marshal.to_string]. Pass [Marshal.Closures] to
+   * marshal values that contain function values; such blobs are only safe to
+   * unmarshal within the same running binary. *)
+  val marshal : ?flags:Marshal.extern_flags list -> 'a -> 'a t
   val unmarshal : 'a t -> 'a
+
+  (* Size in bytes of the marshaled representation. Useful to account for the
+   * heap footprint of the compact form. *)
+  val size_bytes : 'a t -> int
 end
 
 module OnDisk : sig

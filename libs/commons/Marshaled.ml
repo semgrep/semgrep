@@ -34,8 +34,9 @@
 module InMemory = struct
   type 'a t = string
 
-  let marshal x = Marshal.to_string x []
+  let marshal ?(flags = []) x = Marshal.to_string x flags
   let unmarshal x = Marshal.from_string x 0
+  let size_bytes x = String.length x
 end
 
 (* Just a typesafe way to access and remember where the data was stored on
