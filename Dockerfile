@@ -155,6 +155,12 @@ COPY --from=build-files /src .
 # Docker struggles to copy symlinks, so let's just make it
 RUN ln -s _build/install/default/bin bin
 
+# Baked into semgrep-core as Git_info.commit (shown by -version). The
+# build context has no .git, so the binary cannot derive the SHA itself.
+# Declared here (after install-deps) so it does not re-key that layer.
+ARG VCS_REF_HEAD_REVISION
+ENV SEMGREP_GIT_COMMIT=${VCS_REF_HEAD_REVISION}
+
 # Compile (and minimal test) semgrep-core
 RUN opam exec -- make core
 

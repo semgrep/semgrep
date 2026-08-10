@@ -1,0 +1,34 @@
+; Single source of truth for the git commit that semgrep-core (and
+; semgrep-core-proprietary, which links this library too) was built
+; from. It is exposed as [Git_info.commit] and shown by the core CLI's
+; [-version] flag alongside [Version.version].
+;
+; The SHA is captured at build time (in priority order):
+;   1. SEMGREP_GIT_COMMIT env var. Used when the build context is not a
+;      git repository (e.g. the Docker build, where the Dockerfile sets
+;      it from VCS_REF_HEAD_REVISION). Accepted only when it is a hex
+;      SHA (7-40 chars) and then shortened to 10; a non-SHA value such as
+;      a branch or tag ref becomes "unknown" rather than a fake-looking
+;      commit, and cannot break the generated OCaml string literal.
+;   2. `git rev-parse --short=10 HEAD`, with `-dirty` appended when the
+;      working tree has uncommitted tracked changes. A best-effort index
+;      refresh runs first so a tracked file touched without a content
+;      change is not misreported as dirty; the refresh is skipped rather
+;      than fatal when .git is read-only (e.g. sandboxed/nix builds).
+;      Used for local builds.
+;   3. "unknown", when neither source is available (e.g. a source-tree
+;      build with no git checkout and no env var). Unlike a hard failure,
+;      this keeps such builds working.
+
+(library
+ (name git_info)
+ (public_name semgrep.git_info)
+ (wrapped false))
+
+(rule
+ (target git_info.ml)
+ (deps (universe))
+ (action
+  (with-stdout-to %{target}
+   (bash
+    "h=\"\"; if [ -n \"${SEMGREP_GIT_COMMIT:-}\" ]; then if [[ \"$SEMGREP_GIT_COMMIT\" =~ ^[0-9a-fA-F]{7,40}$ ]]; then h=\"${SEMGREP_GIT_COMMIT:0:10}\"; else h=\"unknown\"; fi; elif h=$(git rev-parse --short=10 HEAD 2>/dev/null); then git update-index -q --refresh >/dev/null 2>&1 || :; git diff-index --quiet HEAD -- 2>/dev/null || h=\"${h}-dirty\"; fi; [ -n \"$h\" ] || h=\"unknown\"; printf 'let commit = \"%s\"\\n' \"$h\""))))
