@@ -58,6 +58,19 @@ let semgrep_core_tests : Testo.t list =
           (* old: exception (Common.UnixExit 0) -> *)
           | Error (ExnExit 0) -> print_string "OK"
           | _ -> failwith "Not OK");
+      (* The commit is build-dependent, so we assert against a
+         reconstructed line rather than snapshot stdout, which would flap
+         on every commit. *)
+      t "-version reports the version and commit" (fun () ->
+          let res = Testo.with_capture stdout (fun () -> run_main "-version") in
+          (match fst res with
+          | Error (ExnExit 0) -> ()
+          | _ -> failwith "expected -version to exit with code 0");
+          let expected =
+            spf "semgrep-core version: %s (%s)" Version.version Git_info.commit
+          in
+          if String_.contains ~term:expected (snd res) then print_string "OK"
+          else failwith (spf "missing %S in -version output" expected));
       t "handle -rules <rule> -l <lang> <single_file>" (fun () ->
           let cmd =
             "-rules tests/rules_v2/new_syntax.yaml -l python \

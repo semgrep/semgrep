@@ -1,0 +1,2 @@
+`semgrep-core -version` now reports the git commit that the binary was built
+from.
