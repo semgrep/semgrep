@@ -95,8 +95,7 @@ repos:
         args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
-          # - cli/setup.py lists dependencies
-          # - cli/Pipfile lists type hint packages for dev env
+          # - cli/pyproject.toml lists dependencies and type hint packages for dev env
           # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 
           # some packages ship with type definitions
