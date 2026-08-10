@@ -101,16 +101,16 @@ repos:
           # some packages ship with type definitions
           - attrs>=21.3
           - click~=8.4.2
+          - opentelemetry-api~=1.37.0
+          - opentelemetry-exporter-otlp-proto-http~=1.37.0
+          - opentelemetry-instrumentation-requests~=0.58b0
+          - opentelemetry-instrumentation-threading~=0.58b0
+          - opentelemetry-sdk~=1.37.0
           - packaging~=21.0
           - pydantic~=2.12.2
           - requests~=2.22
           - rich~=13.5.2
           - tomli~=2.0.1
-          - opentelemetry-api~=1.37.0
-          - opentelemetry-sdk~=1.37.0
-          - opentelemetry-exporter-otlp-proto-http~=1.37.0
-          - opentelemetry-instrumentation-requests~=0.58b0
-          - opentelemetry-instrumentation-threading~=0.58b0
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-freezegun
@@ -126,9 +126,9 @@ repos:
           # from a reference such as *mypy-deps; and using Jsonnet would be
           # overkill):
           - appdirs
+          - mcp==1.16.0
           - pytest
           - pytest-mock
-          - mcp==1.16.0
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
