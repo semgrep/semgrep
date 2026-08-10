@@ -119,6 +119,8 @@ repos:
           - types-python-dateutil
           - types-requests
           - types-setuptools
+          # runtime deps for the MCP implementation
+          - mcp==1.16.0
           # for tests only:
           # (ideally, these additional items would go only in the
           # 'additional_properties' field of 'mypy-test' below but YAML
@@ -126,7 +128,6 @@ repos:
           # from a reference such as *mypy-deps; and using Jsonnet would be
           # overkill):
           - appdirs
-          - mcp==1.16.0
           - pytest
           - pytest-mock
       - id: mypy
