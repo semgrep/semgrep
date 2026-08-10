@@ -101,6 +101,7 @@ repos:
           # some packages ship with type definitions
           - attrs>=21.3
           - click~=8.4.2
+          - httpx>=0.27.1
           - opentelemetry-api~=1.37.0
           - opentelemetry-exporter-otlp-proto-http~=1.37.0
           - opentelemetry-instrumentation-requests~=0.58b0
@@ -110,6 +111,7 @@ repos:
           - pydantic~=2.12.2
           - requests~=2.22
           - rich~=13.5.2
+          - starlette>=0.27
           - tomli~=2.0.1
           # other packages have separate typings published
           - types-colorama~=0.4.0
