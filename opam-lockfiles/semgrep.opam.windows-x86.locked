@@ -205,7 +205,7 @@ depends: [
   "ppx_optcomp" {= "v0.17.1"}
   "ppx_sexp_conv" {= "v0.17.1"}
   "ppx_yojson_conv_lib" {= "v0.17.0"}
-  "ppxlib" {= "0.37.0"}
+  "ppxlib" {= "0.38.0"}
   "ppxlib_jane" {= "v0.17.4"}
   "psq" {= "0.2.1"}
   "ptime" {= "1.2.0"}

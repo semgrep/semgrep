@@ -119,7 +119,7 @@ For more information see https://semgrep.dev
     ; CLI
     (cmdliner (>= 2.0.0))
     ; PPX
-    (ppxlib (= 0.37.0))
+    (ppxlib (= 0.38.0))
     (ppx_blob (>= 0.9.0))
     (ppx_deriving (>= 6.0.3 ))
     (ppx_deriving_yojson (>= 3.9.1))
