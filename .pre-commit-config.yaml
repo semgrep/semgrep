@@ -107,17 +107,17 @@ repos:
           - opentelemetry-instrumentation-requests~=0.58b0
           - opentelemetry-instrumentation-threading~=0.58b0
           - opentelemetry-sdk~=1.37.0
-          - packaging~=21.0
+          - packaging>=21.0
           - pydantic~=2.12.2
           - requests~=2.22
-          - rich~=13.5.2
+          - rich>=13.5.2
           - starlette>=0.27
-          - tomli~=2.0.1
+          - tomli~=2.4.0
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-freezegun
           - types-Jinja2
-          - types-jsonschema~=4.25.1.20251009
+          - types-jsonschema==4.25.1.20251009
           - types-python-dateutil
           - types-requests
           - types-setuptools
