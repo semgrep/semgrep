@@ -1,0 +1,1 @@
+Fixed an issue where MCP mode could fail to scan UTF-8 files containing multibyte characters, including Japanese text, on systems using a non-UTF-8 locale such as cp932. Files are now read as UTF-8, with undecodable bytes replaced so a single unusual file does not fail the entire scan.

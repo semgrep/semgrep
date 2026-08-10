@@ -41,6 +41,27 @@ CLAUDE_AGENT_STRING = "claude"
 CURSOR_AGENT_STRING = "cursor"
 WINDSURF_AGENT_STRING = "windsurf"
 
+# File I/O in the MCP server must pin the codec explicitly. Python otherwise
+# falls back to the locale encoding, which is cp932 on a Japanese Windows
+# install, and decoding a UTF-8 target as cp932 fails with "'cp932' codec can't
+# decode byte ...: illegal multibyte sequence" (GDN-168). cp932 represents
+# Japanese perfectly well -- the problem is the mismatch between the file's real
+# encoding and the one we assumed, not cp932's coverage, which is why an
+# ASCII-only target decodes either way and only multibyte files break.
+# `semgrep scan` is unaffected because semgrep-core reads target bytes directly
+# rather than decoding them in Python.
+ENCODING = "utf-8"
+# Targets are not guaranteed to be valid UTF-8, so substitute any byte we cannot
+# decode instead of failing the whole scan over one file.
+#
+# Caveat: this recovers the scan, not the content. A target that is genuinely
+# cp932-encoded on disk still decodes to mojibake here, and because many cp932
+# characters carry 0x5C ('\\') as their second byte, replacing only the leading
+# byte can leave a stray backslash that breaks parsing. Pinning UTF-8 is a bet
+# that targets are UTF-8, which is what editors and git checkouts produce; if
+# real cp932-on-disk targets turn up, this needs to become encoding detection.
+ENCODING_ERRORS = "replace"
+
 # A regex to match { "identity": "... roles=(<content>) ..." }
 # We need this because the form of the response from the /agent/identity
 # endpoint looks like:

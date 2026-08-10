@@ -46,6 +46,8 @@ from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_span
 from semgrep.mcp.utilities.tracing import with_tool_span
+from semgrep.mcp.utilities.utils import ENCODING
+from semgrep.mcp.utilities.utils import ENCODING_ERRORS
 from semgrep.mcp.utilities.utils import findings_elicitation_enabled
 from semgrep.mcp.utilities.utils import get_authorization_server_url
 from semgrep.mcp.utilities.utils import get_current_user_from_jwt
@@ -268,7 +270,7 @@ def create_temp_files_from_code_content(code_files: list[CodeFile]) -> str:
                 os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
 
                 # Write content to file
-                with open(temp_file_path, "w") as f:
+                with open(temp_file_path, "w", encoding=ENCODING) as f:
                     f.write(file_info.content)
             except OSError as e:
                 raise McpError(
@@ -357,7 +359,7 @@ def validate_local_files(local_files: list[CodePath]) -> list[CodeFile]:
                         message="code_files.path must be a absolute path",
                     )
                 )
-            contents = Path(path).read_text()
+            contents = Path(path).read_text(encoding=ENCODING, errors=ENCODING_ERRORS)
             # We need to not use the absolute path here, as there is logic later
             # that raises, to prevent path traversal.
             # In reality, the name of the file is pretty immaterial. We only
@@ -808,7 +810,7 @@ async def semgrep_scan_with_custom_rule(
         temp_dir = create_temp_files_from_code_content(validated_code_files)
         # Write rule to file
         rule_file_path = os.path.join(temp_dir, "rule.yaml")
-        with open(rule_file_path, "w") as f:
+        with open(rule_file_path, "w", encoding=ENCODING) as f:
             f.write(rule)
 
         # Run semgrep scan with custom rule
@@ -871,7 +873,7 @@ async def get_abstract_syntax_tree(
         temp_file_path = os.path.join(temp_dir, "code.txt")  # safe
 
         # Write content to file
-        with open(temp_file_path, "w") as f:
+        with open(temp_file_path, "w", encoding=ENCODING) as f:
             f.write(code)
 
         args = [
