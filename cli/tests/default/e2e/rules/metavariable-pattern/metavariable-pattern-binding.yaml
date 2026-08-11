@@ -1,0 +1,11 @@
+rules:
+  - id: metavariable-pattern-binding
+    patterns:
+      - pattern: log($X)
+      - metavariable-pattern:
+          metavariable: $X
+          patterns:
+            - pattern: secret($Y)
+    message: found secret argument $Y
+    languages: [python]
+    severity: INFO

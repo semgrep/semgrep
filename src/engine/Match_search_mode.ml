@@ -889,14 +889,26 @@ and evaluate_formula env opt_context
   let ranges_with_persistent_bindings =
     ranges
     |> List.concat_map (fun (r, new_bindings_list) ->
-        (* At a prior step, we ensured that all these new bindings were nonempty.
-               We should keep around a copy of the original range, because otherwise
-               if we have no new bindings to add, we'll kill the range.
-           *)
-        r
-        :: (new_bindings_list
-           |> List.map (fun new_bindings ->
-               { r with RM.mvars = new_bindings @ r.RM.mvars })))
+        (* [new_bindings_list] holds one binding-set per successful inner match
+           of a capture-group [metavariable-regex] or a [metavariable-pattern].
+           A non-binding condition (a regex with no capture group, or a
+           [metavariable-pattern] used purely as a filter) contributes an
+           *empty* binding-set. We drop those empty ones: each remaining
+           augmented range is a strict superset of [r], so keeping the bare [r]
+           alongside them would surface as a duplicate finding whose message
+           still has unsubstituted metavariables. When every alternative is
+           empty (or there are none), we fall back to a single bare [r] so the
+           range is not killed. *)
+        match
+          List.filter
+            (fun bindings -> not (List.is_empty bindings))
+            new_bindings_list
+        with
+        | [] -> [ r ]
+        | non_empty ->
+            non_empty
+            |> List.map (fun new_bindings ->
+                { r with RM.mvars = new_bindings @ r.RM.mvars }))
   in
 
   let ranges =

@@ -1,0 +1,5 @@
+Fixed a bug where a capture-group `metavariable-regex` or a binding-introducing
+`metavariable-pattern` would emit a duplicate finding on the same range whose
+message still contained the raw metavariable (e.g. `a hash $ALG was detected`)
+instead of the substituted value. Only the correctly-substituted finding is now
+reported.

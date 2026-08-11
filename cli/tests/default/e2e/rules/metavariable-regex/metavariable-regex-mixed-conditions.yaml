@@ -1,0 +1,17 @@
+rules:
+  - id: metavariable-regex-mixed-conditions
+    patterns:
+      - pattern: hashlib.new("$REGEX", $MODE)
+      # Binding condition: the named group binds $ALG.
+      - metavariable-regex:
+          metavariable: $REGEX
+          regex: (?<ALG>Sha\d\d\d_\d\d\d)
+      # Non-binding condition: a plain regex with no capture group. This
+      # contributes an empty binding-set that must not resurrect a bare,
+      # unsubstituted finding (ENGINE-2932).
+      - metavariable-regex:
+          metavariable: $MODE
+          regex: usedforsecurity
+    message: a hash $ALG was detected
+    languages: [python]
+    severity: INFO

@@ -10,6 +10,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import json
+
 import pytest
 from tests.conftest import _clean_stdout
 from tests.conftest import skip_on_windows
@@ -236,3 +238,77 @@ def test_pattern_regex_empty_file(run_semgrep_in_tmp: RunSemgrep, posix_snapshot
         ).stdout,
         "results.json",
     )
+
+
+# Regression test for ENGINE-2932: a capture-group metavariable-regex used to
+# emit two findings on the same range -- the correct one (with $ALG bound) plus
+# a bare duplicate whose message still read "a hash $ALG was detected". We must
+# get exactly one finding, with $ALG substituted.
+@pytest.mark.kinda_slow
+def test_metavariable_regex_capture_group_no_duplicate(run_semgrep_in_tmp: RunSemgrep):
+    results = json.loads(
+        run_semgrep_in_tmp(
+            "rules/metavariable-regex/metavariable-regex-capture-group.yaml",
+            target_name="metavariable_regex_capture/capture-group.py",
+        ).stdout
+    )["results"]
+    assert len(results) == 1
+    message = results[0]["extra"]["message"]
+    assert "$ALG" not in message
+    assert message == "a hash Sha512_256 was detected"
+
+
+# Regression test for ENGINE-2932: a metavariable-pattern that binds a new
+# metavariable ($Y) must return only the augmented finding, not a bare duplicate
+# whose message still reads "found secret argument $Y".
+@pytest.mark.kinda_slow
+def test_metavariable_pattern_binding_no_duplicate(run_semgrep_in_tmp: RunSemgrep):
+    results = json.loads(
+        run_semgrep_in_tmp(
+            "rules/metavariable-pattern/metavariable-pattern-binding.yaml",
+            target_name="metavariable_pattern_binding/binding.py",
+        ).stdout
+    )["results"]
+    assert len(results) == 1
+    message = results[0]["extra"]["message"]
+    assert "$Y" not in message
+    assert message == 'found secret argument "password"'
+
+
+# Regression test for ENGINE-2932: when a capture-group regex matches the
+# metavariable value multiple times, every binding-set must be preserved as its
+# own finding with the metavariable substituted -- and none left unsubstituted.
+@pytest.mark.kinda_slow
+def test_metavariable_regex_capture_group_multi_match(run_semgrep_in_tmp: RunSemgrep):
+    results = json.loads(
+        run_semgrep_in_tmp(
+            "rules/metavariable-regex/metavariable-regex-capture-group-multi.yaml",
+            target_name="metavariable_regex_capture/capture-group-multi.py",
+        ).stdout
+    )["results"]
+    messages = sorted(r["extra"]["message"] for r in results)
+    assert all("$ALG" not in m for m in messages)
+    assert messages == [
+        "a hash Sha1 was detected",
+        "a hash Sha256 was detected",
+        "a hash Sha384 was detected",
+    ]
+
+
+# Regression test for ENGINE-2932: a binding condition combined with a
+# non-binding one (which contributes an empty binding-set) must NOT resurrect a
+# bare, unsubstituted duplicate finding. Exactly one substituted finding.
+@pytest.mark.kinda_slow
+def test_metavariable_regex_mixed_conditions_no_duplicate(
+    run_semgrep_in_tmp: RunSemgrep,
+):
+    results = json.loads(
+        run_semgrep_in_tmp(
+            "rules/metavariable-regex/metavariable-regex-mixed-conditions.yaml",
+            target_name="metavariable_regex_capture/mixed-conditions.py",
+        ).stdout
+    )["results"]
+    assert len(results) == 1
+    message = results[0]["extra"]["message"]
+    assert "$ALG" not in message
+    assert message == "a hash Sha512_256 was detected"

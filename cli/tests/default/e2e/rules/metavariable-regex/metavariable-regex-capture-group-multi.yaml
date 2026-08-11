@@ -1,0 +1,10 @@
+rules:
+  - id: metavariable-regex-capture-group-multi
+    patterns:
+      - pattern: hashlib.new("$REGEX")
+      - metavariable-regex:
+          metavariable: $REGEX
+          regex: (?<ALG>Sha\d+)
+    message: a hash $ALG was detected
+    languages: [python]
+    severity: INFO
