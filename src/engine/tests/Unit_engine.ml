@@ -901,6 +901,52 @@ let semgrep_rules_repo_tests : Testo.t list =
         |> Testo.categorize group))
 
 (*****************************************************************************)
+(* Match range tests *)
+(*****************************************************************************)
+
+(* Regression test for the range reported when an expression-statement
+ * pattern matches a subexpression of a larger statement via implicit deep
+ * expression matching (see #2199). The tests/patterns/ suite compares only
+ * lines (see Test_compare_matches), so it can not detect a range that is
+ * too wide within a single line; here we also check the exact columns.
+ *)
+let match_range_tests =
+  [
+    t "implicit deep exprstmt match reports subexpr range (gh-2199)" (fun () ->
+        let contents = "print(foo());\nfoo();\n" in
+        UTmp.with_temp_file ~contents ~suffix:".js" (fun file ->
+            let matches =
+              match_pattern ~lang:Lang.Js
+                ~hook:(fun _ -> ())
+                ~file ~pattern:"foo();" ~fix:NoFix
+            in
+            (* "line:start_col-end_col content" with a 1-based line, 0-based
+             * start column, and exclusive end column *)
+            let spans =
+              matches
+              |> List.map (fun (pm : PM.t) ->
+                  let start_loc, end_loc = pm.range_loc in
+                  let _, end_col, _ = Loc.end_pos end_loc in
+                  let range =
+                    Range.range_of_token_locations start_loc end_loc
+                  in
+                  spf "%d:%d-%d %s" start_loc.pos.line start_loc.pos.column
+                    end_col
+                    (Range.content_at_range file range))
+              |> List.sort String.compare
+            in
+            (* The match inside 'print(...)' must cover just the 'foo()'
+             * subexpression, not the whole 'print(foo());' statement
+             * (which would be "1:0-13 print(foo());"), while the plain
+             * 'foo();' match must still cover the whole statement,
+             * semicolon included. *)
+            Alcotest.(check (list string))
+              "reported match ranges"
+              [ "1:6-11 foo()"; "2:0-6 foo();" ]
+              spans));
+  ]
+
+(*****************************************************************************)
 (* All tests *)
 (*****************************************************************************)
 
@@ -910,6 +956,7 @@ let tests =
       (* full testing for many languages *)
       lang_regression_tests ~polyglot_pattern_path;
       lang_autofix_tests ~polyglot_pattern_path;
+      Testo.categorize "match ranges" match_range_tests;
       eval_regression_tests ();
       filter_irrelevant_rules_tests;
       lang_tainting_tests ();

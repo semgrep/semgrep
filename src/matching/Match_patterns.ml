@@ -513,7 +513,47 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                     matches_with_env
                     |> List.iter (fun (env : MG.tin) ->
                         let mv = env.mv in
-                        match AST_generic_helpers.range_of_any_opt (S x) with
+                        (* If an ExprStmt pattern such as 'foo();' matched a
+                         * subexpression of this statement thanks to the
+                         * implicit deep matching of m_expr_deep_implict
+                         * (e.g., inside 'print(foo());'), report just that
+                         * subexpression instead of the whole statement
+                         * (see #2199). The deep_expr_matched_stmt check
+                         * ensures the deep match happened for this very
+                         * statement, and not for some statement nested in
+                         * a larger stmt pattern, in which case the match
+                         * really is the whole statement. The range check
+                         * keeps the narrowing sound under symbolic
+                         * propagation, where the deep match can land on an
+                         * expression propagated from another statement (the
+                         * assignment that defined the value); such a range
+                         * lies outside this statement and must not be
+                         * reported for it.
+                         *)
+                        let expr_within_stmt e =
+                          Option.bind
+                            (AST_generic_helpers.range_of_any_opt (S x))
+                            (fun (s1, s2) ->
+                              AST_generic_helpers.range_of_any_opt (E e)
+                              |> Option.map (fun (e1, e2) ->
+                                  Range.(
+                                    range_of_token_locations e1 e2
+                                    $<=$ range_of_token_locations s1 s2)))
+                          |> Option.value ~default:false
+                        in
+                        let matched_any =
+                          if
+                            env.deep_expr_matched_stmt
+                            |> Option.fold ~none:false ~some:(fun st -> st == x)
+                          then
+                            env.deep_expr_matched
+                            |> Option.fold ~none:(S x) ~some:(fun e ->
+                                if expr_within_stmt e then E e else S x)
+                          else S x
+                        in
+                        match
+                          AST_generic_helpers.range_of_any_opt matched_any
+                        with
                         | None ->
                             (* TODO: Report a warning to the user? *)
                             Log.warn (fun m ->
@@ -524,7 +564,8 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                             ()
                         | Some range_loc ->
                             let tokens =
-                              lazy_safe (AST_generic_helpers.ii_of_any (S x))
+                              lazy_safe
+                                (AST_generic_helpers.ii_of_any matched_any)
                             in
                             let facts = get_facts_of_stmt x in
                             let rule_id = rule_id_of_mini_rule rule in
@@ -536,7 +577,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                 range_loc;
                                 (* as-metavariable: *)
                                 ast_node =
-                                  (if has_as_metavariable then Some (S x)
+                                  (if has_as_metavariable then Some matched_any
                                    else None);
                                 tokens;
                                 taint_trace = None;
