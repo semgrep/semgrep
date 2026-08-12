@@ -1,5 +1,0 @@
-When the internal semgrep-core RPC subprocess is terminated by a signal (for
-example an out-of-memory kill or a segfault), Semgrep now logs a clear error
-naming the signal, instead of the misleading "Expected a number, got ''"
-message. When debug logging is enabled, the tail of the subprocess's stderr is
-included as well.

@@ -1,1 +1,0 @@
-Updated the Solidity parser for newer language features (transient storage, named mapping parameters, `layout at`, assembly flags, `global` using-directives, EVM Cancun builtins) and corrected ternary/`?:` vs member-access precedence.
