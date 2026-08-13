@@ -1,30 +1,44 @@
-## [1.172.0](https://github.com/semgrep/semgrep/releases/tag/v1.172.0) - 2026-07-28
+## [1.173.0](https://github.com/semgrep/semgrep/releases/tag/v1.173.0) - 2026-08-12
 
 ### ### Added
 
-- Added support for the OpenTofu `.tofu` file extension. Because OpenTofu uses the same HCL grammar as Terraform, `.tofu` files are now automatically detected and scanned as Terraform, so they are picked up by recursive scans and Terraform rulesets (e.g. `p/terraform`) with no extra configuration. (ENGINE-2884)
+- `semgrep-core -version` now reports the git commit that the binary was built
+  from. (core-version-git-sha)
+- Pro: Added a `no_disk_cache` memory policy (`--x-mem-policy no_disk_cache`) to trade higher memory usage for not caching intermediary scan data structures on disk. (no-disk-cache-memory-policy)
 
 ### ### Changed
 
-- Updated the Ruby parser to tree-sitter-ruby v0.23.1, improving support for `!=`, case/when expressions with line breaks, and element references that take a block. (LANG-206)
-- The window for collecting git contributor information during `semgrep ci` has been extended from the last 30 days to the last 90 days, to match the updated usage policy. (contributor-window-90-days)
+- File targeting now submits path-filtering work to worker domains in batches
+  removing multithreaded synchronization overhead for very large repos. (ENGINE-2854)
+- Parallel rule parsing for large rulesets now shards rules into files sized by
+  bytes rather than by worker count, stabilizing memory allocations at parse-time
+  and improving parsing throughput. (ENGINE-2920)
+- Updated the Solidity parser for newer language features (transient storage, named mapping parameters, `layout at`, assembly flags, `global` using-directives, EVM Cancun builtins) and corrected ternary/`?:` vs member-access precedence. (LANG-207)
+- Pro: Unsupported patterns in case expressions are now handled more
+  robustly, with improved error recovery during taint analysis — branch
+  bodies are no longer dropped from the dataflow intermediate language when
+  a pattern can't be compiled. Pattern matching in statement position also
+  now benefits from the same compilation as expression position. (LANG-598)
+- Improved performance in highly parallel scans with many target files, running
+  on systems using the musl libc implementation. (pcre2-match-data-reuse)
 
 ### ### Fixed
 
-- Semgrep will now print richer error messages on segfaults when `--debug` is NOT passed, matching the segfault error output when `--debug` is passed (engine-segv)
-- Fixed a source of rare, nondeterministic crashes and incorrect results caused
-  by an OCaml compiler bug. Semgrep now builds against a compiler fork that
-  backports the upstream fix. (ocaml_codegen_fix)
-- Fixed excessive heap growth after explicit major garbage collections. Semgrep
-  now builds against an OCaml compiler that improves garbage collection duty
-  cycle pacing. (ocaml_gc_pacing_fix)
-- Improved the `Scan Status` output when no code rules will run (e.g. a
-  Secrets-only or Supply-Chain-only scan). The summary line no longer reports a
-  confusing "0 Code rules", and the "Code Rules" section now states explicitly
-  either that code scanning is not enabled or that there are no code rules to run,
-  instead of printing an empty table. (ENGINE-2878)
-- Fixed lockfileless Gradle dependency resolution failing with "Parsing
-  dependency output failed (Resolve_gradle.gradle_resolved_dependency)". The
-  github-dependency-graph-gradle-plugin used during resolution was fetched
-  unpinned, and its 1.4.2 release renamed keys in its JSON output. The plugin is
-  now pinned to 1.4.1. (sc-3738)
+- When the internal semgrep-core RPC subprocess is terminated by a signal (for
+  example an out-of-memory kill or a segfault), Semgrep now logs a clear error
+  naming the signal, instead of the misleading "Expected a number, got ''"
+  message. When debug logging is enabled, the tail of the subprocess's stderr is
+  included as well. (rpc-subprocess-death-diagnostics)
+- A target file whose path filtering failed was silently omitted from the scan,
+  appearing in neither the results nor the list of skipped targets. Such paths
+  are now retried, and any that still fail are reported as skipped targets so
+  they show up in the scan report. (ENGINE-2854)
+- Fixed a bug where a capture-group `metavariable-regex` or a binding-introducing
+  `metavariable-pattern` would emit a duplicate finding on the same range whose
+  message still contained the raw metavariable (e.g. `a hash $ALG was detected`)
+  instead of the substituted value. Only the correctly-substituted finding is now
+  reported. (ENGINE-2932)
+- Fixed fully-qualified name resolution for Rust symbols imported via a braced
+  grouped `use` with a nested path (e.g. `use a::b::C`). It was wrongly being
+  resolved as b::a::C. (LANG-234)
+- Fixed an issue where MCP mode could fail to scan UTF-8 files containing multibyte characters, including Japanese text, on systems using a non-UTF-8 locale such as cp932. Files are now read as UTF-8, with undecodable bytes replaced so a single unusual file does not fail the entire scan. (gdn-168)

@@ -1,3 +1,0 @@
-Parallel rule parsing for large rulesets now shards rules into files sized by
-bytes rather than by worker count, stabilizing memory allocations at parse-time
-and improving parsing throughput.
