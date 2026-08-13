@@ -1,2 +1,0 @@
-File targeting now submits path-filtering work to worker domains in batches
-removing multithreaded synchronization overhead for very large repos.
