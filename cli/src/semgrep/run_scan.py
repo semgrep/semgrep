@@ -776,7 +776,17 @@ def resolve_dependencies(
     all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]] = []
     resolved_subprojects: Dict[Ecosystem, List[out.ResolvedSubproject]] = {}
 
-    if not dependency_aware_rules:
+    # With no dependency-aware rules there is nothing to resolve for, so we skip
+    # subproject discovery entirely.
+    #
+    # Not so when resolution is restricted to the rules' ecosystems: there we
+    # still have to discover subprojects, because every one of them is being
+    # deliberately left unresolved and the app has to be told which, or it will
+    # read their absence from the reported dependencies as a removal.
+    if (
+        not dependency_aware_rules
+        and not dependency_resolution_config.restrict_resolution_to_rule_ecosystems
+    ):
         return (
             filtered_dependency_aware_rules,
             dependency_resolution_errors,
@@ -1330,6 +1340,10 @@ def run_scan(
     x_dump_subprojects_and_exit: Path | None = None,
     x_computed_dependencies_dir: Path | None = None,
     code_enabled: Optional[bool] = None,
+    # True when only a restricted set of rules is being run
+    # (see --x-partial-scan-rule-id): dependency resolution is then limited to
+    # the ecosystems those rules evaluate.
+    is_partial_scan: bool = False,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1510,6 +1524,7 @@ def run_scan(
             filtered_rules,
             x_dump_subprojects_and_exit,
             resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
+            restrict_resolution_to_rule_ecosystems=is_partial_scan,
         )
 
     # Set up supply chain settings
@@ -1540,6 +1555,9 @@ def run_scan(
         precomputed_dependencies_dir=x_computed_dependencies_dir,
         is_baseline_scan=False,
         use_experimental_ocaml_parsers=False,
+        # a partial scan cannot produce a finding outside the ecosystems its
+        # restricted rule set evaluates
+        restrict_resolution_to_rule_ecosystems=is_partial_scan,
     )
 
     # ----------------------------

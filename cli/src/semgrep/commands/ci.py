@@ -944,6 +944,13 @@ def ci(
             "code_enabled": (
                 "sast" in scan_handler.enabled_products if scan_handler else None
             ),
+            # deferring to the scan handler keeps this in sync with the value
+            # that decides whether skipped subprojects are reported to the app
+            "is_partial_scan": (
+                scan_handler.is_partial_scan
+                if scan_handler
+                else bool(x_partial_scan_rule_ids)
+            ),
         }
 
         try:

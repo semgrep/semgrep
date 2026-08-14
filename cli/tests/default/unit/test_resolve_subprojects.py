@@ -10,8 +10,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import subprocess
 from pathlib import Path
 from typing import List
+from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -22,9 +24,14 @@ from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_dependency_source import ResolveDependenciesRpcResult
+from semgrep.resolve_subprojects import filter_subprojects_by_rule_ecosystems
 from semgrep.resolve_subprojects import match_subprojects
+from semgrep.rule import Rule
+from semgrep.run_scan import resolve_dependencies
+from semgrep.subproject import collect_skipped_subprojects
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import subproject_to_plan_output
+from semgrep.target_manager import TargetManager
 from semgrep.types import fake_targets_of_paths
 
 
@@ -279,6 +286,214 @@ def test_subproject_id_differs_for_different_paths() -> None:
     id_a = subproject_to_plan_output(sub_a, True).subproject_id
     id_b = subproject_to_plan_output(sub_b, True).subproject_id
     assert id_a != id_b
+
+
+def make_depends_on_rule(rule_id: str, namespace: str) -> Rule:
+    return Rule(
+        {
+            "id": rule_id,
+            "r2c-internal-project-depends-on": {
+                "namespace": namespace,
+                "package": "some-package",
+                "version": ">=1.0.0",
+            },
+            "languages": ["python"],
+            "patterns": ["pattern"],
+        }
+    )
+
+
+def make_ecosystem_subproject(
+    root_dir: str, ecosystem: Optional[out.Ecosystem]
+) -> out.Subproject:
+    return out.Subproject(
+        root_dir=out.Fpath(root_dir),
+        dependency_source=out.DependencySource(
+            out.LockfileOnly(
+                out.Lockfile(
+                    # the lockfile kind is irrelevant to ecosystem filtering
+                    out.LockfileKind(out.PipRequirementsTxt()),
+                    out.Fpath(f"{root_dir}/requirements.txt"),
+                )
+            )
+        ),
+        ecosystem=ecosystem,
+    )
+
+
+@pytest.mark.quick
+def test_filter_subprojects_by_rule_ecosystems() -> None:
+    """Only subprojects in an ecosystem some rule evaluates are kept."""
+    pypi_subproject = make_ecosystem_subproject("py", out.Ecosystem(out.Pypi()))
+    npm_subproject = make_ecosystem_subproject("js", out.Ecosystem(out.Npm()))
+    maven_subproject = make_ecosystem_subproject("java", out.Ecosystem(out.Maven()))
+
+    relevant, irrelevant = filter_subprojects_by_rule_ecosystems(
+        [
+            make_depends_on_rule("rules.pypi-rule", "pypi"),
+            make_depends_on_rule("rules.npm-rule", "npm"),
+        ],
+        [pypi_subproject, npm_subproject, maven_subproject],
+    )
+
+    assert relevant == [pypi_subproject, npm_subproject]
+    assert [sub.info for sub in irrelevant] == [maven_subproject]
+    assert irrelevant[0].reason == out.UnresolvedReason(out.UnresolvedSkipped())
+
+
+@pytest.mark.quick
+def test_filter_subprojects_by_rule_ecosystems__keeps_unknown_ecosystem() -> None:
+    """
+    Subprojects with no ecosystem are kept so that they are reported with the
+    more precise "unsupported" reason during resolution.
+    """
+    unknown_subproject = make_ecosystem_subproject("mystery", None)
+
+    relevant, irrelevant = filter_subprojects_by_rule_ecosystems(
+        [make_depends_on_rule("rules.pypi-rule", "pypi")], [unknown_subproject]
+    )
+
+    assert relevant == [unknown_subproject]
+    assert irrelevant == []
+
+
+@pytest.mark.quick
+def test_filter_subprojects_by_rule_ecosystems__keeps_precomputed_sbom() -> None:
+    """
+    A subproject with a precomputed SBOM is kept even when no rule evaluates its
+    ecosystem: resolving it only means reading a file that is already on disk.
+    """
+    maven_subproject = make_ecosystem_subproject("java", out.Ecosystem(out.Maven()))
+    with_sbom = out.Subproject(
+        root_dir=maven_subproject.root_dir,
+        dependency_source=out.DependencySource(
+            out.AuxillarySBOM(
+                (
+                    out.Sbom(
+                        kind=out.SbomKind(out.CycloneDXJson()),
+                        is_ephemeral=True,
+                        path=out.Fpath("java/sbom.cdx.json"),
+                    ),
+                    maven_subproject.dependency_source,
+                )
+            )
+        ),
+        ecosystem=maven_subproject.ecosystem,
+    )
+
+    relevant, irrelevant = filter_subprojects_by_rule_ecosystems(
+        [make_depends_on_rule("rules.pypi-rule", "pypi")],
+        [with_sbom, maven_subproject],
+    )
+
+    assert relevant == [with_sbom]
+    assert [sub.info for sub in irrelevant] == [maven_subproject]
+
+
+@pytest.mark.quick
+def test_collect_skipped_subprojects_only_includes_skipped() -> None:
+    """Only deliberately skipped subprojects are reported to the app."""
+    skipped = out.UnresolvedSubproject(
+        info=make_ecosystem_subproject("skipped", out.Ecosystem(out.Pypi())),
+        reason=out.UnresolvedReason(out.UnresolvedSkipped()),
+        errors=[],
+    )
+    failed = out.UnresolvedSubproject(
+        info=make_ecosystem_subproject("failed", out.Ecosystem(out.Pypi())),
+        reason=out.UnresolvedReason(out.UnresolvedFailed()),
+        errors=[],
+    )
+    unsupported = out.UnresolvedSubproject(
+        info=make_ecosystem_subproject("unsupported", None),
+        reason=out.UnresolvedReason(out.UnresolvedUnsupported()),
+        errors=[],
+    )
+    resolved = out.ResolvedSubproject(
+        info=make_ecosystem_subproject("resolved", out.Ecosystem(out.Pypi())),
+        resolution_method=out.ResolutionMethod(out.LockfileParsing()),
+        ecosystem=out.Ecosystem(out.Pypi()),
+        resolved_dependencies={},
+        errors=[],
+    )
+
+    assert collect_skipped_subprojects([skipped, failed, unsupported, resolved]) == [
+        out.SkippedSubproject(
+            root_dir=out.Fpath("skipped"),
+            dependency_sources=[
+                out.DependencySourceFile(
+                    kind=out.DependencySourceFileKind(
+                        out.Lockfile_(out.LockfileKind(out.PipRequirementsTxt()))
+                    ),
+                    path=out.Fpath("skipped/requirements.txt"),
+                )
+            ],
+        )
+    ]
+
+
+def make_restricted_resolution_config(
+    restrict_resolution_to_rule_ecosystems: bool,
+) -> DependencyResolutionConfig:
+    return DependencyResolutionConfig(
+        allow_local_builds=False,
+        ptt_enabled=False,
+        resolve_untargeted_subprojects=False,
+        download_dependency_source_code=False,
+        restrict_resolution_to_rule_ecosystems=restrict_resolution_to_rule_ecosystems,
+    )
+
+
+def make_repo_with_lockfile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    subprocess.check_call(["git", "init"])
+    subprocess.check_call(["git", "config", "user.email", "test@semgrep.com"])
+    subprocess.check_call(["git", "config", "user.name", "Test"])
+    Path("requirements.txt").touch()
+    subprocess.check_call(["git", "add", "."])
+    subprocess.check_call(["git", "commit", "-m", "first"])
+
+
+@pytest.mark.kinda_slow
+def test_restricted_resolution_reports_subprojects_without_dependency_aware_rules(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """
+    A partial scan whose rules include no dependency-aware rule must still
+    discover subprojects and report them as skipped, so that the app does not
+    read their absence from the reported dependencies as a removal.
+    """
+    make_repo_with_lockfile(monkeypatch, tmp_path)
+
+    (_rules, _errors, _targets, all_subprojects, resolved) = resolve_dependencies(
+        dependency_aware_rules=[],
+        target_manager=TargetManager(scanning_root_strings=frozenset([Path(".")])),
+        dependency_resolution_config=make_restricted_resolution_config(True),
+    )
+
+    assert resolved == {}
+    assert [
+        (sub.info.root_dir, sub.reason)
+        for sub in all_subprojects
+        if isinstance(sub, out.UnresolvedSubproject)
+    ] == [(out.Fpath("."), out.UnresolvedReason(out.UnresolvedSkipped()))]
+    assert collect_skipped_subprojects(all_subprojects) != []
+
+
+@pytest.mark.kinda_slow
+def test_unrestricted_resolution_skips_discovery_without_dependency_aware_rules(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Normal scans keep the fast path: no rules means no discovery at all."""
+    make_repo_with_lockfile(monkeypatch, tmp_path)
+
+    (_rules, _errors, _targets, all_subprojects, resolved) = resolve_dependencies(
+        dependency_aware_rules=[],
+        target_manager=TargetManager(scanning_root_strings=frozenset([Path(".")])),
+        dependency_resolution_config=make_restricted_resolution_config(False),
+    )
+
+    assert resolved == {}
+    assert all_subprojects == []
 
 
 # Please don't use @patch because it can't be typechecked and makes refactoring
