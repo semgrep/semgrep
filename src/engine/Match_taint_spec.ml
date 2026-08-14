@@ -180,7 +180,6 @@ let mk_synthetic_rwm ~(rule : R.t) ~(lang : Lang.t)
           fix_regexp = None;
           langs = [ lang ];
           pattern_string = "";
-          severity = Some rule.severity;
         };
       engine_of_match = `OSS;
       env = [];

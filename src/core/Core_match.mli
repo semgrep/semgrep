@@ -52,10 +52,6 @@ and rule_id = {
   fix_regexp : Rule.fix_regexp option;
   langs : Lang.t list;
   pattern_string : string;
-  (* the rule's (or mini rule's) own declared severity, used as the default
-     severity reported for a match unless overridden (see severity_override
-     above) *)
-  severity : Rule.severity option;
 }
 [@@deriving show, eq, sexp]
 

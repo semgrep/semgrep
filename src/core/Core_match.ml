@@ -186,10 +186,6 @@ and rule_id = {
   langs : (Lang.t[@sexp.opaque]) list;
   (* used for debugging (could be removed at some point) *)
   pattern_string : string;
-  (* the rule's (or mini rule's) own declared severity, used as the default
-     severity reported for a match unless overridden (see severity_override
-     above) *)
-  severity : (Rule.severity[@sexp.opaque]) option;
 }
 [@@deriving show, eq, ord, sexp]
 
