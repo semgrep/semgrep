@@ -17,6 +17,7 @@ from dataclasses import field
 from pathlib import Path
 from typing import Dict
 from typing import Generator
+from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -64,6 +65,12 @@ class DependencyResolutionConfig:
     # but it's here because attach_auxillary_sboms needs it when selecting
     # the head/ vs base/ SBOM directory during resolution.
     is_baseline_scan: bool = False
+
+    # If true, resolve only the subprojects whose ecosystem is evaluated by at
+    # least one of the rules being run, and skip the rest. Set for partial scans
+    # (see --x-partial-scan-rule-id), which run a restricted set of rules and so
+    # cannot produce a finding for any other ecosystem.
+    restrict_resolution_to_rule_ecosystems: bool = False
 
 
 # A classification of subprojects we use to deterine support for various features.
@@ -267,6 +274,30 @@ def subproject_to_stats(
         return _resolved_subproject_to_stats(sub)
     else:
         raise ValueError(f"Unexpected subproject type: {type(sub)}")
+
+
+def collect_skipped_subprojects(
+    subprojects: Iterable[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+) -> List[out.SkippedSubproject]:
+    """
+    Select the subprojects that were deliberately left unresolved and describe
+    them for the app.
+
+    Only subprojects with the `skipped` unresolved reason are included: the app
+    uses this list to know which dependencies are missing from the reported set
+    by design (so it must not treat them as removed), which does not apply to
+    subprojects whose resolution was attempted and failed, or whose ecosystem we
+    do not support at all.
+    """
+    return [
+        out.SkippedSubproject(
+            root_dir=sub.info.root_dir,
+            dependency_sources=to_stats_output(sub.info.dependency_source),
+        )
+        for sub in subprojects
+        if isinstance(sub, out.UnresolvedSubproject)
+        and isinstance(sub.reason.value, out.UnresolvedSkipped)
+    ]
 
 
 def subproject_to_cli_output_info(

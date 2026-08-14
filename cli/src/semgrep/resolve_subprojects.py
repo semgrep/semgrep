@@ -122,6 +122,62 @@ def match_subprojects(
     return unresolved_subprojects
 
 
+@simple_profiling
+@telemetry.trace(owner=telemetry.TraceOwner.SSC)
+def filter_subprojects_by_rule_ecosystems(
+    dependency_aware_rules: List[Rule],
+    subprojects: List[out.Subproject],
+) -> Tuple[List[out.Subproject], List[out.UnresolvedSubproject]]:
+    """
+    Partition subprojects into those worth resolving given the rules being run
+    and those that are not.
+
+    Marks the latter subprojects' unresolved reason as "skipped".
+
+    This is used for partial scans, which run a restricted set of rules (see
+    --x-partial-scan-rule-id): resolving a subproject that no rule can produce a
+    finding for is pure overhead, and can be expensive when local builds are
+    allowed.
+
+    A subproject is worth resolving when its ecosystem is evaluated by at least
+    one of the given rules. Two kinds of subproject are kept regardless:
+    - those with no ecosystem, since resolution is not attempted for them anyway
+      and they are reported with the more precise "unsupported" reason
+      downstream;
+    - those carrying a precomputed SBOM, since "resolving" them only means
+      reading a file that is already on disk. Their inventory is worth reporting
+      even when no rule can match against it, so this function must run after
+      `attach_auxillary_sboms`.
+    """
+    span = telemetry.get_current_span()
+    span.set_attribute("num_dependency_aware_rules", len(dependency_aware_rules))
+    span.set_attribute("num_subprojects", len(subprojects))
+
+    rule_ecosystems = {
+        ecosystem for rule in dependency_aware_rules for ecosystem in rule.ecosystems
+    }
+    span.set_attribute("num_rule_ecosystems", len(rule_ecosystems))
+
+    relevant: List[out.Subproject] = []
+    irrelevant: List[out.UnresolvedSubproject] = []
+    for subproject in subprojects:
+        if (
+            subproject.ecosystem is None
+            or subproject.ecosystem in rule_ecosystems
+            or isinstance(subproject.dependency_source.value, out.AuxillarySBOM)
+        ):
+            relevant.append(subproject)
+        else:
+            irrelevant.append(
+                out.UnresolvedSubproject(
+                    info=subproject,
+                    reason=out.UnresolvedReason(out.UnresolvedSkipped()),
+                    errors=[],
+                )
+            )
+    return relevant, irrelevant
+
+
 @telemetry.trace(telemetry.TraceOwner.SSC)
 def find_subprojects(
     target_manager: TargetManager,
@@ -354,6 +410,10 @@ def resolve_subprojects(
     resolve and which can be skipped based
     on the set of targets reported by the `target_manager`.
 
+    If `restrict_resolution_to_rule_ecosystems` is True, resolution is
+    additionally restricted to the ecosystems that the given rules evaluate;
+    subprojects in any other ecosystem are skipped.
+
     If `download_source` is True, dependency resolvers will attempt to download
     source code for each subproject's dependencies. For all currently supported
     package managers, this requires that `allow_dynamic_resolution` is also True.
@@ -369,6 +429,18 @@ def resolve_subprojects(
 
     # attach precomputed SBOMs to relevant subprojects
     relevant_subprojects = attach_auxillary_sboms(relevant_subprojects, config)
+
+    # Subprojects in an ecosystem that none of the rules look at cannot produce
+    # a finding, so they are not worth resolving. This runs after the SBOMs are
+    # attached so that a subproject with a precomputed one is still resolved.
+    if config.restrict_resolution_to_rule_ecosystems:
+        (
+            relevant_subprojects,
+            unevaluated_subprojects,
+        ) = filter_subprojects_by_rule_ecosystems(
+            dependency_aware_rules, relevant_subprojects
+        )
+        irrelevant_subprojects = irrelevant_subprojects + unevaluated_subprojects
 
     # targets that were considered in generating the dependency tree
     dependency_targets: List[Path] = []
@@ -458,12 +530,25 @@ def dump_subprojects_and_exit(
     rules: list[Rule],
     dump_subprojects_to_path: Path,
     resolve_untargeted_subprojects: bool,
+    restrict_resolution_to_rule_ecosystems: bool = False,
 ) -> None:
     dependency_aware_rules: List[Rule] = [r for r in rules if r.project_depends_on]
 
     relevant_subprojects, irrelevant_subprojects = find_subprojects(
         target_manager, resolve_untargeted_subprojects, dependency_aware_rules
     )
+
+    # Note that, unlike resolve_subprojects, this plan does not model precomputed
+    # SBOMs, so a subproject that would be resolved from one is reported here as
+    # skipped.
+    if restrict_resolution_to_rule_ecosystems:
+        (
+            relevant_subprojects,
+            unevaluated_subprojects,
+        ) = filter_subprojects_by_rule_ecosystems(
+            dependency_aware_rules, relevant_subprojects
+        )
+        irrelevant_subprojects = irrelevant_subprojects + unevaluated_subprojects
 
     output = out.SubprojectResolutionPlan(
         subprojects=[
