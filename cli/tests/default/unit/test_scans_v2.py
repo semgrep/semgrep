@@ -310,3 +310,16 @@ def test_partial_scan_rule_ids_empty_tuple_is_absent(mock_state):
     )
     assert handler.scan_metadata.partial_scan_rule_ids is None
     assert "partial_scan_rule_ids" not in handler.scan_metadata.to_json()
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+def test_is_partial_scan(mock_state):
+    """is_partial_scan follows whether any rule ids were passed."""
+    assert not ScanHandler(enable_transitive_reachability=None).is_partial_scan
+    assert not ScanHandler(
+        enable_transitive_reachability=None, partial_scan_rule_ids=()
+    ).is_partial_scan
+    assert ScanHandler(
+        enable_transitive_reachability=None, partial_scan_rule_ids=("rules.foo",)
+    ).is_partial_scan
