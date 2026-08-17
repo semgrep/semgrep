@@ -1359,6 +1359,7 @@ def run_scan(
     int,  # Missed Rule Count
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
     Optional[Sequence[SubprojectSymbolAnalysis]],
+    Optional[List[out.Fpath]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -1636,8 +1637,26 @@ def run_scan(
         # Step3 bis: optional baseline run
         # ---------------------------------
 
+        changed_dependency_sources: Optional[List[out.Fpath]] = None
+
         # Run baseline if needed
         if baseline_handler:
+            # Value only gets populated on a diff scan (where there is a base to
+            # compare against). Uses the warm cache value for
+            # get_files_for_language() which was already computed by
+            # filter_changed_subprojects() during the run_rules() call above.
+            all_dependency_source_targets = (
+                target_manager.get_all_dependency_source_files(
+                    ignore_baseline_handler=False
+                )
+            )
+            all_dependency_source_fpaths = fpaths_of_targets(
+                all_dependency_source_targets
+            )
+            changed_dependency_sources = [
+                out.Fpath(str(fpath)) for fpath in sorted(all_dependency_source_fpaths)
+            ]
+
             rule_matches_by_rule = baseline_run(
                 baseline_handler=baseline_handler,
                 baseline_commit=baseline_commit,
@@ -1730,6 +1749,7 @@ def run_scan(
         missed_rule_count,
         all_subprojects,
         sca_symbol_analysis,
+        changed_dependency_sources,
     )
 
 
@@ -1771,6 +1791,7 @@ def run_scan_and_return_json(
         _,
         _,
         _all_subprojects,
+        _,
         _,
     ) = run_scan(
         output_handler=output_handler,

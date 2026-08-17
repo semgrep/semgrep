@@ -2144,6 +2144,16 @@ type ci_scan_results = {
      ">
    : skipped_subproject list option;
 
+   ?changed_dependency_sources
+     <doc text="
+     since semgrep 1.174.0.
+     The dependency sources (lockfiles or manifests) that the diff scan added
+     or modified relative to the merge base. Empty when the diff scan touched
+     no dependency source.
+     Absent on full scans, since there is no base to compare against.
+     ">
+   : fpath list option;
+
    ?metadata
      <doc text="
      filled in by the backend to associate scan results with the
@@ -2221,6 +2231,15 @@ type ci_scan_complete
   : skipped_subproject list option;
   (* TODO: move the errors in ci_scan_complete_stats.errors instead *)
   ?dependency_parser_errors: dependency_parser_error list option;
+  ?changed_dependency_sources
+    <doc text="
+    since semgrep 1.174.0
+    The dependency sources (lockfiles or manifests) that the diff scan added
+    or modified relative to the merge base. Empty when the diff scan touched
+    no dependency source.
+    Absent on full scans, since there is no base to compare against.
+    ">
+  : fpath list option;
   ?task_id
     <doc text="since 1.31.0">
   : string option;

@@ -12517,6 +12517,10 @@ class CiScanResults:
     The app should NOT treat the dependencies of these subprojects as removed.
     Absent (rather than empty) when sent by a CLI too old to report this,
     which is not the same as a scan where nothing was skipped.
+    :param changed_dependency_sources: since semgrep 1.174.0. The dependency
+    sources (lockfiles or manifests) that the diff scan added or modified
+    relative to the merge base. Empty when the diff scan touched no dependency
+    source. Absent on full scans, since there is no base to compare against.
     :param metadata: filled in by the backend to associate scan results with
     the driving scan
     """
@@ -12531,6 +12535,7 @@ class CiScanResults:
     contributions: Optional[Contributions] = None
     dependencies: Optional[CiScanDependencies] = None
     skipped_subprojects: Optional[List[SkippedSubproject]] = None
+    changed_dependency_sources: Optional[List[Fpath]] = None
     metadata: Optional[CiScanMetadata] = None
 
     @classmethod
@@ -12547,6 +12552,7 @@ class CiScanResults:
                 contributions=Contributions.from_json(x['contributions']) if 'contributions' in x else None,
                 dependencies=CiScanDependencies.from_json(x['dependencies']) if 'dependencies' in x else None,
                 skipped_subprojects=_atd_read_list(SkippedSubproject.from_json)(x['skipped_subprojects']) if 'skipped_subprojects' in x else None,
+                changed_dependency_sources=_atd_read_list(Fpath.from_json)(x['changed_dependency_sources']) if 'changed_dependency_sources' in x else None,
                 metadata=CiScanMetadata.from_json(x['metadata']) if 'metadata' in x else None,
             )
         else:
@@ -12567,6 +12573,8 @@ class CiScanResults:
             res['dependencies'] = (lambda x: x.to_json())(self.dependencies)
         if self.skipped_subprojects is not None:
             res['skipped_subprojects'] = _atd_write_list((lambda x: x.to_json()))(self.skipped_subprojects)
+        if self.changed_dependency_sources is not None:
+            res['changed_dependency_sources'] = _atd_write_list((lambda x: x.to_json()))(self.changed_dependency_sources)
         if self.metadata is not None:
             res['metadata'] = (lambda x: x.to_json())(self.metadata)
         return res
@@ -12693,6 +12701,10 @@ class CiScanComplete:
     :param skipped_subprojects: since semgrep 1.173.0. See the
     identically-named field in ``ci_scan_results``. Sent to both endpoints for
     the same reason ``dependencies`` is.
+    :param changed_dependency_sources: since semgrep 1.174.0 The dependency
+    sources (lockfiles or manifests) that the diff scan added or modified
+    relative to the merge base. Empty when the diff scan touched no dependency
+    source. Absent on full scans, since there is no base to compare against.
     :param task_id: since 1.31.0
     """
 
@@ -12701,6 +12713,7 @@ class CiScanComplete:
     dependencies: Optional[CiScanDependencies] = None
     skipped_subprojects: Optional[List[SkippedSubproject]] = None
     dependency_parser_errors: Optional[List[DependencyParserError]] = None
+    changed_dependency_sources: Optional[List[Fpath]] = None
     task_id: Optional[str] = None
     final_attempt: Optional[bool] = None
 
@@ -12713,6 +12726,7 @@ class CiScanComplete:
                 dependencies=CiScanDependencies.from_json(x['dependencies']) if 'dependencies' in x else None,
                 skipped_subprojects=_atd_read_list(SkippedSubproject.from_json)(x['skipped_subprojects']) if 'skipped_subprojects' in x else None,
                 dependency_parser_errors=_atd_read_list(DependencyParserError.from_json)(x['dependency_parser_errors']) if 'dependency_parser_errors' in x else None,
+                changed_dependency_sources=_atd_read_list(Fpath.from_json)(x['changed_dependency_sources']) if 'changed_dependency_sources' in x else None,
                 task_id=_atd_read_string(x['task_id']) if 'task_id' in x else None,
                 final_attempt=_atd_read_bool(x['final_attempt']) if 'final_attempt' in x else None,
             )
@@ -12729,6 +12743,8 @@ class CiScanComplete:
             res['skipped_subprojects'] = _atd_write_list((lambda x: x.to_json()))(self.skipped_subprojects)
         if self.dependency_parser_errors is not None:
             res['dependency_parser_errors'] = _atd_write_list((lambda x: x.to_json()))(self.dependency_parser_errors)
+        if self.changed_dependency_sources is not None:
+            res['changed_dependency_sources'] = _atd_write_list((lambda x: x.to_json()))(self.changed_dependency_sources)
         if self.task_id is not None:
             res['task_id'] = _atd_write_string(self.task_id)
         if self.final_attempt is not None:

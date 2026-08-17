@@ -1973,6 +1973,11 @@
           "type": "array",
           "items": { "$ref": "#/definitions/skipped_subproject" }
         },
+        "changed_dependency_sources": {
+          "description": "since semgrep 1.174.0. The dependency sources (lockfiles or manifests) that the diff scan added or modified relative to the merge base. Empty when the diff scan touched no dependency source. Absent on full scans, since there is no base to compare against.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/fpath" }
+        },
         "metadata": {
           "description": "filled in by the backend to associate scan results with the driving scan",
           "$ref": "#/definitions/ci_scan_metadata"
@@ -2061,6 +2066,11 @@
         "dependency_parser_errors": {
           "type": "array",
           "items": { "$ref": "#/definitions/dependency_parser_error" }
+        },
+        "changed_dependency_sources": {
+          "description": "since semgrep 1.174.0 The dependency sources (lockfiles or manifests) that the diff scan added or modified relative to the merge base. Empty when the diff scan touched no dependency source. Absent on full scans, since there is no base to compare against.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/fpath" }
         },
         "task_id": { "description": "since 1.31.0", "type": "string" },
         "final_attempt": { "type": "boolean" }

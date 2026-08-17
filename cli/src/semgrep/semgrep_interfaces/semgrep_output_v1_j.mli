@@ -2407,6 +2407,13 @@ type ci_scan_results = Semgrep_output_v1_t.ci_scan_results = {
       than empty) when sent by a CLI too old to report this, which is not the
       same as a scan where nothing was skipped.
     *);
+  changed_dependency_sources: fpath list option
+    (**
+      since semgrep 1.174.0. The dependency sources (lockfiles or manifests)
+      that the diff scan added or modified relative to the merge base. Empty
+      when the diff scan touched no dependency source. Absent on full scans,
+      since there is no base to compare against.
+    *);
   metadata: ci_scan_metadata option
     (**
       filled in by the backend to associate scan results with the driving
@@ -2463,6 +2470,13 @@ type ci_scan_complete = Semgrep_output_v1_t.ci_scan_complete = {
       [dependencies] is.
     *);
   dependency_parser_errors: dependency_parser_error list option;
+  changed_dependency_sources: fpath list option
+    (**
+      since semgrep 1.174.0 The dependency sources (lockfiles or manifests)
+      that the diff scan added or modified relative to the merge base. Empty
+      when the diff scan touched no dependency source. Absent on full scans,
+      since there is no base to compare against.
+    *);
   task_id: string option (** since 1.31.0 *);
   final_attempt: bool option
 }

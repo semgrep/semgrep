@@ -771,6 +771,7 @@ export type CiScanResults = {
   contributions?: Contributions;
   dependencies?: CiScanDependencies;
   skipped_subprojects?: SkippedSubproject[];
+  changed_dependency_sources?: Fpath[];
   metadata?: CiScanMetadata;
 }
 
@@ -812,6 +813,7 @@ export type CiScanComplete = {
   dependencies?: CiScanDependencies;
   skipped_subprojects?: SkippedSubproject[];
   dependency_parser_errors?: DependencyParserError[];
+  changed_dependency_sources?: Fpath[];
   task_id?: string;
   final_attempt?: boolean;
 }
@@ -3758,6 +3760,7 @@ export function writeCiScanResults(x: CiScanResults, context: any = x): any {
     'contributions': _atd_write_optional_field(writeContributions, x.contributions, x),
     'dependencies': _atd_write_optional_field(writeCiScanDependencies, x.dependencies, x),
     'skipped_subprojects': _atd_write_optional_field(_atd_write_array(writeSkippedSubproject), x.skipped_subprojects, x),
+    'changed_dependency_sources': _atd_write_optional_field(_atd_write_array(writeFpath), x.changed_dependency_sources, x),
     'metadata': _atd_write_optional_field(writeCiScanMetadata, x.metadata, x),
   };
 }
@@ -3774,6 +3777,7 @@ export function readCiScanResults(x: any, context: any = x): CiScanResults {
     contributions: _atd_read_optional_field(readContributions, x['contributions'], x),
     dependencies: _atd_read_optional_field(readCiScanDependencies, x['dependencies'], x),
     skipped_subprojects: _atd_read_optional_field(_atd_read_array(readSkippedSubproject), x['skipped_subprojects'], x),
+    changed_dependency_sources: _atd_read_optional_field(_atd_read_array(readFpath), x['changed_dependency_sources'], x),
     metadata: _atd_read_optional_field(readCiScanMetadata, x['metadata'], x),
   };
 }
@@ -3873,6 +3877,7 @@ export function writeCiScanComplete(x: CiScanComplete, context: any = x): any {
     'dependencies': _atd_write_optional_field(writeCiScanDependencies, x.dependencies, x),
     'skipped_subprojects': _atd_write_optional_field(_atd_write_array(writeSkippedSubproject), x.skipped_subprojects, x),
     'dependency_parser_errors': _atd_write_optional_field(_atd_write_array(writeDependencyParserError), x.dependency_parser_errors, x),
+    'changed_dependency_sources': _atd_write_optional_field(_atd_write_array(writeFpath), x.changed_dependency_sources, x),
     'task_id': _atd_write_optional_field(_atd_write_string, x.task_id, x),
     'final_attempt': _atd_write_optional_field(_atd_write_bool, x.final_attempt, x),
   };
@@ -3885,6 +3890,7 @@ export function readCiScanComplete(x: any, context: any = x): CiScanComplete {
     dependencies: _atd_read_optional_field(readCiScanDependencies, x['dependencies'], x),
     skipped_subprojects: _atd_read_optional_field(_atd_read_array(readSkippedSubproject), x['skipped_subprojects'], x),
     dependency_parser_errors: _atd_read_optional_field(_atd_read_array(readDependencyParserError), x['dependency_parser_errors'], x),
+    changed_dependency_sources: _atd_read_optional_field(_atd_read_array(readFpath), x['changed_dependency_sources'], x),
     task_id: _atd_read_optional_field(_atd_read_string, x['task_id'], x),
     final_attempt: _atd_read_optional_field(_atd_read_bool, x['final_attempt'], x),
   };
