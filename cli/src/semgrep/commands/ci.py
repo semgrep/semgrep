@@ -558,6 +558,7 @@ def ci(
                         commit_date="",
                         lockfile_dependencies=dict(),
                         dependency_parser_errors=[],
+                        changed_dependency_sources=None,
                         all_subprojects=[],
                         contributions=contributions,
                         engine_requested=engine_type,
@@ -979,6 +980,7 @@ def ci(
                 _missed_rule_count,
                 all_subprojects,
                 sca_symbol_analysis,
+                changed_dependency_sources,
             ) = semgrep.run_scan.run_scan(
                 **run_scan_args  # type: ignore
             )
@@ -1051,6 +1053,7 @@ def ci(
                     _missed_rule_count,
                     _historical_all_subprojects,
                     _sca_symbol_analysis,
+                    _changed_dependency_sources,
                 ) = semgrep.run_scan.run_scan(
                     **run_scan_args,  # type: ignore
                     historical_secrets=True,
@@ -1230,6 +1233,7 @@ def ci(
                     commit_date=metadata.commit_datetime,
                     lockfile_dependencies=dependencies,
                     dependency_parser_errors=dependency_parser_errors,
+                    changed_dependency_sources=changed_dependency_sources,
                     all_subprojects=all_subprojects,
                     contributions=contributions,
                     engine_requested=engine_type,

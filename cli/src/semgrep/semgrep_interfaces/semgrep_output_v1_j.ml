@@ -2407,6 +2407,13 @@ type ci_scan_results = Semgrep_output_v1_t.ci_scan_results = {
       than empty) when sent by a CLI too old to report this, which is not the
       same as a scan where nothing was skipped.
     *);
+  changed_dependency_sources: fpath list option
+    (**
+      since semgrep 1.174.0. The dependency sources (lockfiles or manifests)
+      that the diff scan added or modified relative to the merge base. Empty
+      when the diff scan touched no dependency source. Absent on full scans,
+      since there is no base to compare against.
+    *);
   metadata: ci_scan_metadata option
     (**
       filled in by the backend to associate scan results with the driving
@@ -2463,6 +2470,13 @@ type ci_scan_complete = Semgrep_output_v1_t.ci_scan_complete = {
       [dependencies] is.
     *);
   dependency_parser_errors: dependency_parser_error list option;
+  changed_dependency_sources: fpath list option
+    (**
+      since semgrep 1.174.0 The dependency sources (lockfiles or manifests)
+      that the diff scan added or modified relative to the merge base. Empty
+      when the diff scan touched no dependency source. Absent on full scans,
+      since there is no base to compare against.
+    *);
   task_id: string option (** since 1.31.0 *);
   final_attempt: bool option
 }
@@ -41682,6 +41696,45 @@ let read__skipped_subproject_list_option = (
 )
 let _skipped_subproject_list_option_of_string s =
   read__skipped_subproject_list_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write__fpath_list_option = (
+  Atdgen_runtime.Oj_run.write_std_option (
+    write__fpath_list
+  )
+)
+let string_of__fpath_list_option ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write__fpath_list_option ob x;
+  Buffer.contents ob
+let read__fpath_list_option = (
+  fun p lb ->
+    Yojson.Safe.read_space p lb;
+    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
+      | `Double_quote -> (
+          match Yojson.Safe.finish_string p lb with
+            | "None" ->
+              (None : _ option)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+      | `Square_bracket -> (
+          match Atdgen_runtime.Oj_run.read_string p lb with
+            | "Some" ->
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_comma p lb;
+              Yojson.Safe.read_space p lb;
+              let x = (
+                  read__fpath_list
+                ) p lb
+              in
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_rbr p lb;
+              (Some x : _ option)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+)
+let _fpath_list_option_of_string s =
+  read__fpath_list_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
 let write__finding_list = (
   Atdgen_runtime.Oj_run.write_list (
     write_finding
@@ -41915,6 +41968,17 @@ let write_ci_scan_results : _ -> ci_scan_results -> _ = (
       )
         ob x;
     );
+    (match x.changed_dependency_sources with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"changed_dependency_sources\":";
+      (
+        write__fpath_list
+      )
+        ob x;
+    );
     (match x.metadata with None -> () | Some x ->
       if !is_first then
         is_first := false
@@ -41946,6 +42010,7 @@ let read_ci_scan_results = (
     let field_contributions = ref (None) in
     let field_dependencies = ref (None) in
     let field_skipped_subprojects = ref (None) in
+    let field_changed_dependency_sources = ref (None) in
     let field_metadata = ref (None) in
     try
       Yojson.Safe.read_space p lb;
@@ -41984,7 +42049,7 @@ let read_ci_scan_results = (
                     )
                   | 'm' -> (
                       if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 't' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'd' && String.unsafe_get s (pos+5) = 'a' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = 'a' then (
-                        10
+                        11
                       )
                       else (
                         -1
@@ -42051,6 +42116,14 @@ let read_ci_scan_results = (
             | 19 -> (
                 if String.unsafe_get s pos = 's' && String.unsafe_get s (pos+1) = 'k' && String.unsafe_get s (pos+2) = 'i' && String.unsafe_get s (pos+3) = 'p' && String.unsafe_get s (pos+4) = 'p' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'u' && String.unsafe_get s (pos+10) = 'b' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'o' && String.unsafe_get s (pos+14) = 'j' && String.unsafe_get s (pos+15) = 'e' && String.unsafe_get s (pos+16) = 'c' && String.unsafe_get s (pos+17) = 't' && String.unsafe_get s (pos+18) = 's' then (
                   9
+                )
+                else (
+                  -1
+                )
+              )
+            | 26 -> (
+                if String.unsafe_get s pos = 'c' && String.unsafe_get s (pos+1) = 'h' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'n' && String.unsafe_get s (pos+4) = 'g' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'd' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'e' && String.unsafe_get s (pos+12) = 'n' && String.unsafe_get s (pos+13) = 'd' && String.unsafe_get s (pos+14) = 'e' && String.unsafe_get s (pos+15) = 'n' && String.unsafe_get s (pos+16) = 'c' && String.unsafe_get s (pos+17) = 'y' && String.unsafe_get s (pos+18) = '_' && String.unsafe_get s (pos+19) = 's' && String.unsafe_get s (pos+20) = 'o' && String.unsafe_get s (pos+21) = 'u' && String.unsafe_get s (pos+22) = 'r' && String.unsafe_get s (pos+23) = 'c' && String.unsafe_get s (pos+24) = 'e' && String.unsafe_get s (pos+25) = 's' then (
+                  10
                 )
                 else (
                   -1
@@ -42152,6 +42225,16 @@ let read_ci_scan_results = (
             )
           | 10 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_changed_dependency_sources := (
+                Some (
+                  (
+                    read__fpath_list
+                  ) p lb
+                )
+              );
+            )
+          | 11 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_metadata := (
                 Some (
                   (
@@ -42201,7 +42284,7 @@ let read_ci_scan_results = (
                       )
                     | 'm' -> (
                         if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 't' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'd' && String.unsafe_get s (pos+5) = 'a' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = 'a' then (
-                          10
+                          11
                         )
                         else (
                           -1
@@ -42268,6 +42351,14 @@ let read_ci_scan_results = (
               | 19 -> (
                   if String.unsafe_get s pos = 's' && String.unsafe_get s (pos+1) = 'k' && String.unsafe_get s (pos+2) = 'i' && String.unsafe_get s (pos+3) = 'p' && String.unsafe_get s (pos+4) = 'p' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'u' && String.unsafe_get s (pos+10) = 'b' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 'r' && String.unsafe_get s (pos+13) = 'o' && String.unsafe_get s (pos+14) = 'j' && String.unsafe_get s (pos+15) = 'e' && String.unsafe_get s (pos+16) = 'c' && String.unsafe_get s (pos+17) = 't' && String.unsafe_get s (pos+18) = 's' then (
                     9
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 26 -> (
+                  if String.unsafe_get s pos = 'c' && String.unsafe_get s (pos+1) = 'h' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'n' && String.unsafe_get s (pos+4) = 'g' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'd' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'e' && String.unsafe_get s (pos+12) = 'n' && String.unsafe_get s (pos+13) = 'd' && String.unsafe_get s (pos+14) = 'e' && String.unsafe_get s (pos+15) = 'n' && String.unsafe_get s (pos+16) = 'c' && String.unsafe_get s (pos+17) = 'y' && String.unsafe_get s (pos+18) = '_' && String.unsafe_get s (pos+19) = 's' && String.unsafe_get s (pos+20) = 'o' && String.unsafe_get s (pos+21) = 'u' && String.unsafe_get s (pos+22) = 'r' && String.unsafe_get s (pos+23) = 'c' && String.unsafe_get s (pos+24) = 'e' && String.unsafe_get s (pos+25) = 's' then (
+                    10
                   )
                   else (
                     -1
@@ -42369,6 +42460,16 @@ let read_ci_scan_results = (
               )
             | 10 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_changed_dependency_sources := (
+                  Some (
+                    (
+                      read__fpath_list
+                    ) p lb
+                  )
+                );
+              )
+            | 11 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_metadata := (
                   Some (
                     (
@@ -42396,6 +42497,7 @@ let read_ci_scan_results = (
             contributions = !field_contributions;
             dependencies = !field_dependencies;
             skipped_subprojects = !field_skipped_subprojects;
+            changed_dependency_sources = !field_changed_dependency_sources;
             metadata = !field_metadata;
           }
          : ci_scan_results)
@@ -43292,6 +43394,17 @@ let write_ci_scan_complete : _ -> ci_scan_complete -> _ = (
       )
         ob x;
     );
+    (match x.changed_dependency_sources with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"changed_dependency_sources\":";
+      (
+        write__fpath_list
+      )
+        ob x;
+    );
     (match x.task_id with None -> () | Some x ->
       if !is_first then
         is_first := false
@@ -43329,6 +43442,7 @@ let read_ci_scan_complete = (
     let field_dependencies = ref (None) in
     let field_skipped_subprojects = ref (None) in
     let field_dependency_parser_errors = ref (None) in
+    let field_changed_dependency_sources = ref (None) in
     let field_task_id = ref (None) in
     let field_final_attempt = ref (None) in
     try
@@ -43350,7 +43464,7 @@ let read_ci_scan_complete = (
               )
             | 7 -> (
                 if String.unsafe_get s pos = 't' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = '_' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'd' then (
-                  5
+                  6
                 )
                 else (
                   -1
@@ -43374,7 +43488,7 @@ let read_ci_scan_complete = (
               )
             | 13 -> (
                 if String.unsafe_get s pos = 'f' && String.unsafe_get s (pos+1) = 'i' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = '_' && String.unsafe_get s (pos+6) = 'a' && String.unsafe_get s (pos+7) = 't' && String.unsafe_get s (pos+8) = 't' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'm' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 't' then (
-                  6
+                  7
                 )
                 else (
                   -1
@@ -43391,6 +43505,14 @@ let read_ci_scan_complete = (
             | 24 -> (
                 if String.unsafe_get s pos = 'd' && String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'p' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'n' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = 'n' && String.unsafe_get s (pos+8) = 'c' && String.unsafe_get s (pos+9) = 'y' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 'a' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 's' && String.unsafe_get s (pos+15) = 'e' && String.unsafe_get s (pos+16) = 'r' && String.unsafe_get s (pos+17) = '_' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 'r' && String.unsafe_get s (pos+20) = 'r' && String.unsafe_get s (pos+21) = 'o' && String.unsafe_get s (pos+22) = 'r' && String.unsafe_get s (pos+23) = 's' then (
                   4
+                )
+                else (
+                  -1
+                )
+              )
+            | 26 -> (
+                if String.unsafe_get s pos = 'c' && String.unsafe_get s (pos+1) = 'h' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'n' && String.unsafe_get s (pos+4) = 'g' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'd' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'e' && String.unsafe_get s (pos+12) = 'n' && String.unsafe_get s (pos+13) = 'd' && String.unsafe_get s (pos+14) = 'e' && String.unsafe_get s (pos+15) = 'n' && String.unsafe_get s (pos+16) = 'c' && String.unsafe_get s (pos+17) = 'y' && String.unsafe_get s (pos+18) = '_' && String.unsafe_get s (pos+19) = 's' && String.unsafe_get s (pos+20) = 'o' && String.unsafe_get s (pos+21) = 'u' && String.unsafe_get s (pos+22) = 'r' && String.unsafe_get s (pos+23) = 'c' && String.unsafe_get s (pos+24) = 'e' && String.unsafe_get s (pos+25) = 's' then (
+                  5
                 )
                 else (
                   -1
@@ -43452,6 +43574,16 @@ let read_ci_scan_complete = (
             )
           | 5 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_changed_dependency_sources := (
+                Some (
+                  (
+                    read__fpath_list
+                  ) p lb
+                )
+              );
+            )
+          | 6 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_task_id := (
                 Some (
                   (
@@ -43460,7 +43592,7 @@ let read_ci_scan_complete = (
                 )
               );
             )
-          | 6 ->
+          | 7 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_final_attempt := (
                 Some (
@@ -43493,7 +43625,7 @@ let read_ci_scan_complete = (
                 )
               | 7 -> (
                   if String.unsafe_get s pos = 't' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = '_' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'd' then (
-                    5
+                    6
                   )
                   else (
                     -1
@@ -43517,7 +43649,7 @@ let read_ci_scan_complete = (
                 )
               | 13 -> (
                   if String.unsafe_get s pos = 'f' && String.unsafe_get s (pos+1) = 'i' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = '_' && String.unsafe_get s (pos+6) = 'a' && String.unsafe_get s (pos+7) = 't' && String.unsafe_get s (pos+8) = 't' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'm' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 't' then (
-                    6
+                    7
                   )
                   else (
                     -1
@@ -43534,6 +43666,14 @@ let read_ci_scan_complete = (
               | 24 -> (
                   if String.unsafe_get s pos = 'd' && String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'p' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'n' && String.unsafe_get s (pos+5) = 'd' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = 'n' && String.unsafe_get s (pos+8) = 'c' && String.unsafe_get s (pos+9) = 'y' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 'a' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 's' && String.unsafe_get s (pos+15) = 'e' && String.unsafe_get s (pos+16) = 'r' && String.unsafe_get s (pos+17) = '_' && String.unsafe_get s (pos+18) = 'e' && String.unsafe_get s (pos+19) = 'r' && String.unsafe_get s (pos+20) = 'r' && String.unsafe_get s (pos+21) = 'o' && String.unsafe_get s (pos+22) = 'r' && String.unsafe_get s (pos+23) = 's' then (
                     4
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 26 -> (
+                  if String.unsafe_get s pos = 'c' && String.unsafe_get s (pos+1) = 'h' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'n' && String.unsafe_get s (pos+4) = 'g' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 'd' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'd' && String.unsafe_get s (pos+9) = 'e' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'e' && String.unsafe_get s (pos+12) = 'n' && String.unsafe_get s (pos+13) = 'd' && String.unsafe_get s (pos+14) = 'e' && String.unsafe_get s (pos+15) = 'n' && String.unsafe_get s (pos+16) = 'c' && String.unsafe_get s (pos+17) = 'y' && String.unsafe_get s (pos+18) = '_' && String.unsafe_get s (pos+19) = 's' && String.unsafe_get s (pos+20) = 'o' && String.unsafe_get s (pos+21) = 'u' && String.unsafe_get s (pos+22) = 'r' && String.unsafe_get s (pos+23) = 'c' && String.unsafe_get s (pos+24) = 'e' && String.unsafe_get s (pos+25) = 's' then (
+                    5
                   )
                   else (
                     -1
@@ -43595,6 +43735,16 @@ let read_ci_scan_complete = (
               )
             | 5 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_changed_dependency_sources := (
+                  Some (
+                    (
+                      read__fpath_list
+                    ) p lb
+                  )
+                );
+              )
+            | 6 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_task_id := (
                   Some (
                     (
@@ -43603,7 +43753,7 @@ let read_ci_scan_complete = (
                   )
                 );
               )
-            | 6 ->
+            | 7 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_final_attempt := (
                   Some (
@@ -43627,6 +43777,7 @@ let read_ci_scan_complete = (
             dependencies = !field_dependencies;
             skipped_subprojects = !field_skipped_subprojects;
             dependency_parser_errors = !field_dependency_parser_errors;
+            changed_dependency_sources = !field_changed_dependency_sources;
             task_id = !field_task_id;
             final_attempt = !field_final_attempt;
           }

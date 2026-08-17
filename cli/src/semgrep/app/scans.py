@@ -701,6 +701,7 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
+        changed_dependency_sources: Optional[List[out.Fpath]],
         all_subprojects: List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
         contributions: out.Contributions,
         engine_requested: "EngineType",
@@ -786,6 +787,7 @@ class ScanHandler:
                 lockfile_dependencies
             )
             self.ci_scan_results.skipped_subprojects = skipped_subprojects
+        self.ci_scan_results.changed_dependency_sources = changed_dependency_sources
 
         findings_and_ignores = self.ci_scan_results.to_json()
 
@@ -826,6 +828,7 @@ class ScanHandler:
             skipped_subprojects=skipped_subprojects,
             exit_code=cli_suggested_exit_code,
             dependency_parser_errors=dependency_parser_errors,
+            changed_dependency_sources=changed_dependency_sources,
             stats=out.CiScanCompleteStats(
                 findings=len(
                     [match for match in all_matches if not match.from_transient_scan]

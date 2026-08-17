@@ -29,6 +29,7 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Mapping
@@ -2832,6 +2833,8 @@ def test_reachable_and_unreachable_diff_scan_findings(
 
     findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 3
+    # Field should be absent when not in a diff scan
+    assert "changed_dependency_sources" not in findings_json
 
     pyfile1 = repo_copy_base / "foo.py"
     pyfile1.write_text(f"x = 2\n")
@@ -2870,6 +2873,312 @@ def test_reachable_and_unreachable_diff_scan_findings(
     )
     findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 1
+    # A diff scan that touched only a code file: dependencies are still
+    # resolved and uploaded, but no lockfile or manifest changed.
+    assert findings_json["changed_dependency_sources"] == []
+
+
+_REQUESTS_LOCKFILE_ENTRY = dedent(
+    """\
+
+    [[package]]
+    name = "requests"
+    version = "2.28.1"
+    description = "Python HTTP for Humans."
+    category = "main"
+    optional = false
+    python-versions = ">=3.7, <4"
+    """
+)
+
+# Shaped after the lodash entry the git fixture already writes to yarn.lock.
+_UNDERSCORE_YARN_ENTRY = dedent(
+    """\
+
+    underscore@1.13.6:
+      version "1.13.6"
+      resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.6.tgz#5c5f072c5c02f386378dd3f6325b529376210427"
+      integrity sha512-au4L1q0HKcaaa37qOdpWWhwzDnB/taYJfRiKULnaT+Ml9UaBIjJ2SOJMeLtSeeLT+zUdyFMm0+ts+j4eeuUpIA==
+    """
+)
+
+# A dependency-aware rule is required for the CLI to resolve subprojects at all,
+# and enable_dependency_query is what puts the resolved dependencies on the
+# /results payload. Without both, `dependencies` would be empty and the
+# assertions about it would be vacuous.
+_SCA_SCAN_CONFIG = dedent(
+    """
+    rules:
+      - id: eqeq-bad
+        pattern: $X == $X
+        message: "useless comparison"
+        languages: [python]
+        severity: ERROR
+      - id: supply-chain1
+        message: "found a dependency"
+        languages: [python]
+        severity: ERROR
+        r2c-internal-project-depends-on:
+          namespace: pypi
+          package: badlib
+          version: == 99.99.99
+        metadata:
+          dev.semgrep.actions: [block]
+          sca-kind: upgrade-only
+    """
+).lstrip()
+
+
+@pytest.mark.parametrize("scan_config", [_SCA_SCAN_CONFIG], ids=["config"])
+@pytest.mark.parametrize("enable_dependency_query", [True])
+@pytest.mark.osemfail
+class TestChangedDependencySources:
+    """`changed_dependency_sources` is relative to each scan's own merge base.
+
+    It is used to communicate to the app which dependency sources were edited in
+    the diff scan. Subproject dependencies are resolved and uploaded regardless
+    so an empty list means no dependency sources were edited.
+    """
+
+    @staticmethod
+    def _git(*args: str) -> None:
+        subprocess.run(["git", *args], check=True, capture_output=True)
+
+    @staticmethod
+    def _head_sha() -> str:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], encoding="utf-8"
+        ).strip()
+
+    @classmethod
+    def _commit_new_poetry_dependency(cls, repo_base: Path) -> None:
+        lockfile = repo_base / "poetry.lock"
+        lockfile.write_text(lockfile.read_text() + _REQUESTS_LOCKFILE_ENTRY)
+        cls._git("add", ".")
+        cls._git("commit", "-m", "add requests to poetry.lock")
+
+    @classmethod
+    def _commit_new_yarn_dependency(cls, repo_base: Path) -> None:
+        lockfile = repo_base / "yarn.lock"
+        lockfile.write_text(lockfile.read_text() + _UNDERSCORE_YARN_ENTRY)
+        cls._git("add", ".")
+        cls._git("commit", "-m", "add underscore to yarn.lock")
+
+    @classmethod
+    def _commit_deleted_poetry_lockfile(cls, repo_base: Path) -> None:
+        (repo_base / "poetry.lock").unlink()
+        cls._git("add", "-A")
+        cls._git("commit", "-m", "delete poetry.lock")
+
+    @classmethod
+    def _commit_removed_poetry_dependency(cls, repo_base: Path) -> None:
+        """Undo `_commit_new_poetry_dependency`. Fails loudly if there is nothing to undo,
+        since `git commit` refuses an empty commit."""
+        lockfile = repo_base / "poetry.lock"
+        lockfile.write_text(lockfile.read_text().replace(_REQUESTS_LOCKFILE_ENTRY, ""))
+        cls._git("add", ".")
+        cls._git("commit", "-m", "remove requests from poetry.lock")
+
+    @classmethod
+    def _commit_code_edit(cls, repo_base: Path) -> None:
+        (repo_base / "foo.py").write_text("x == x\n")
+        cls._git("add", ".")
+        cls._git("commit", "-m", "edit code only")
+
+    @pytest.fixture
+    def upload_results_mock(
+        self, start_scan_mock_maker, complete_scan_mock_maker, upload_results_mock_maker
+    ):
+        start_scan_mock_maker("https://semgrep.dev")
+        complete_scan_mock_maker("https://semgrep.dev")
+        return upload_results_mock_maker("https://semgrep.dev")
+
+    @staticmethod
+    def _scan(
+        run_semgrep: RunSemgrep,
+        upload_results_mock,
+        baseline: Optional[str] = None,
+    ) -> Any:
+        """Run `semgrep ci`; return the uploaded /results body.
+
+        Passing `baseline` makes it a diff scan against that commit; omitting it
+        makes it a full scan.
+        """
+        options = ["--no-suppress-errors", "--oss-only"]
+        if baseline is not None:
+            options += ["--baseline-commit", baseline]
+        run_semgrep(
+            subcommand="ci",
+            options=options,
+            target_name=None,
+            strict=False,
+            assert_exit_code=None,
+            env={"SEMGREP_APP_TOKEN": "fake_key"},
+            use_click_runner=True,
+        )
+        return upload_results_mock.last_request.json()
+
+    @pytest.mark.slow
+    def test_lockfile_edit_reports_the_lockfile(
+        self,
+        git_tmp_path_with_commit,
+        run_semgrep: RunSemgrep,
+        upload_results_mock,
+    ):
+        """A branch that edits a lockfile reports that lockfile."""
+        repo_copy_base, main_commit, _branch_commit = git_tmp_path_with_commit
+
+        self._git("checkout", "-B", "branch-a", main_commit)
+        self._commit_new_poetry_dependency(repo_copy_base)
+
+        results = self._scan(run_semgrep, upload_results_mock, baseline=main_commit)
+        assert results["changed_dependency_sources"] == ["poetry.lock"]
+        assert results["dependencies"]
+
+    @pytest.mark.slow
+    def test_multiple_lockfile_edits_report_every_lockfile(
+        self,
+        git_tmp_path_with_commit,
+        run_semgrep: RunSemgrep,
+        upload_results_mock,
+    ):
+        """Every edited dependency source is reported, in alphabetical order."""
+        repo_copy_base, main_commit, _branch_commit = git_tmp_path_with_commit
+
+        self._git("checkout", "-B", "branch-a", main_commit)
+        self._commit_new_yarn_dependency(repo_copy_base)
+        self._commit_new_poetry_dependency(repo_copy_base)
+
+        results = self._scan(run_semgrep, upload_results_mock, baseline=main_commit)
+        assert results["changed_dependency_sources"] == ["poetry.lock", "yarn.lock"]
+        assert results["dependencies"]
+
+    @pytest.mark.slow
+    def test_deleted_lockfile_is_not_reported(
+        self,
+        git_tmp_path_with_commit,
+        run_semgrep: RunSemgrep,
+        upload_results_mock,
+    ):
+        """Deleting a lockfile outright is not reported as a changed source.
+
+        The field is derived from scan targets, and a deleted file is not a
+        target at HEAD, so its removal is invisible here even though it plainly
+        changes the project's dependencies. Pinned so the gap is deliberate: an
+        empty list means "no dependency source was added or modified", not
+        "the dependencies are unchanged".
+        """
+        repo_copy_base, main_commit, _branch_commit = git_tmp_path_with_commit
+
+        self._git("checkout", "-B", "branch-a", main_commit)
+        self._commit_deleted_poetry_lockfile(repo_copy_base)
+
+        results = self._scan(run_semgrep, upload_results_mock, baseline=main_commit)
+        assert results["changed_dependency_sources"] == []
+
+    @pytest.mark.slow
+    def test_stacked_no_change_branch_reports_no_changes(
+        self,
+        git_tmp_path_with_commit,
+        run_semgrep: RunSemgrep,
+        upload_results_mock,
+    ):
+        """A branch stacked on a dependency-adding branch reports no changes."""
+        repo_copy_base, main_commit, _branch_commit = git_tmp_path_with_commit
+
+        self._git("checkout", "-B", "branch-a", main_commit)
+        self._commit_new_poetry_dependency(repo_copy_base)
+        commit_a = self._head_sha()
+
+        results_a = self._scan(run_semgrep, upload_results_mock, baseline=main_commit)
+        assert results_a["changed_dependency_sources"] == ["poetry.lock"]
+
+        self._git("checkout", "-b", "branch-b")
+        self._commit_code_edit(repo_copy_base)
+
+        results_b = self._scan(run_semgrep, upload_results_mock, baseline=commit_a)
+        assert results_b["changed_dependency_sources"] == []
+        assert results_b["dependencies"]
+
+    @pytest.mark.slow
+    def test_dependency_already_merged_to_main_reports_no_changes(
+        self,
+        git_tmp_path_with_commit,
+        run_semgrep: RunSemgrep,
+        upload_results_mock,
+    ):
+        """A dependency already merged to main is not reported by later branches."""
+        repo_copy_base, main_commit, _branch_commit = git_tmp_path_with_commit
+
+        # Full scan of main, before the dependency exists.
+        self._git("checkout", "-B", MAIN_BRANCH_NAME, main_commit)
+        results_main = self._scan(run_semgrep, upload_results_mock)
+        assert "changed_dependency_sources" not in results_main
+
+        # Branch A adds the dependency, so its diff scan reports the lockfile.
+        self._git("checkout", "-b", "branch-a")
+        self._commit_new_poetry_dependency(repo_copy_base)
+
+        results_a = self._scan(run_semgrep, upload_results_mock, baseline=main_commit)
+        assert results_a["changed_dependency_sources"] == ["poetry.lock"]
+
+        # A merges into main. Main's own diff scan still sees the lockfile edit.
+        self._git("checkout", MAIN_BRANCH_NAME)
+        self._git("merge", "--ff-only", "branch-a")
+        main_with_dependency = self._head_sha()
+
+        results_merge = self._scan(
+            run_semgrep, upload_results_mock, baseline=main_commit
+        )
+        assert results_merge["changed_dependency_sources"] == ["poetry.lock"]
+
+        # Branch B is cut from the updated main and edits only code. No changes are reported.
+        self._git("checkout", "-b", "branch-b")
+        self._commit_code_edit(repo_copy_base)
+
+        results_b = self._scan(
+            run_semgrep, upload_results_mock, baseline=main_with_dependency
+        )
+        assert results_b["changed_dependency_sources"] == []
+        assert results_b["dependencies"]
+
+    @pytest.mark.slow
+    def test_stale_lockfile_not_reported_when_branch_did_not_edit_it(
+        self,
+        git_tmp_path_with_commit,
+        run_semgrep: RunSemgrep,
+        upload_results_mock,
+    ):
+        """A stale lockfile is not reported as changed if there were no edits to the dependency source."""
+
+        repo_copy_base, main_commit, _branch_commit = git_tmp_path_with_commit
+
+        # Main carries the dependency to begin with.
+        self._git("checkout", "-B", MAIN_BRANCH_NAME, main_commit)
+        self._commit_new_poetry_dependency(repo_copy_base)
+        main_with_dependency = self._head_sha()
+
+        # Branch A edits code only, leaving the lockfile untouched.
+        self._git("checkout", "-b", "branch-a", main_with_dependency)
+        self._commit_code_edit(repo_copy_base)
+
+        # Branch B drops the dependency and merges into main, so branch A now has a stale lockfile compared to main.
+        self._git("checkout", "-b", "branch-b", main_with_dependency)
+        self._commit_removed_poetry_dependency(repo_copy_base)
+        self._git("checkout", MAIN_BRANCH_NAME)
+        self._git("merge", "--ff-only", "branch-b")
+        main_without_dependency = self._head_sha()
+
+        self._git("checkout", "branch-a")
+
+        # A has a stale lockfile with the old dependency.
+        assert _REQUESTS_LOCKFILE_ENTRY in (repo_copy_base / "poetry.lock").read_text()
+
+        results_a = self._scan(
+            run_semgrep, upload_results_mock, baseline=main_without_dependency
+        )
+        assert results_a["changed_dependency_sources"] == []
+        assert results_a["dependencies"]
 
 
 @pytest.mark.parametrize(
