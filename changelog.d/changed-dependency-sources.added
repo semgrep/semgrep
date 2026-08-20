@@ -1,1 +1,0 @@
-Diff scans now report which dependency source files were added or modified relative to the merge base.
