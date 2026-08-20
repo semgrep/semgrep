@@ -461,7 +461,12 @@ let unsafe_match_to_match
     extra =
       {
         message = Some message;
-        severity = pm.severity_override;
+        (* the severity_override (set by e.g. secrets validators) takes
+           precedence over the rule's own declared severity *)
+        severity =
+          (match pm.severity_override with
+          | Some _ as overridden -> overridden
+          | None -> pm.rule_id.severity);
         metadata;
         metavars;
         dataflow_trace;

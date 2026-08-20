@@ -194,7 +194,7 @@ let (mini_rule_of_pattern :
      * we just care about the matching result.
      *)
     message = "";
-    severity = `Error;
+    severity = rule.severity;
     langs =
       (match analyzer with
       | L (x, xs) -> x :: xs
