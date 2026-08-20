@@ -372,12 +372,30 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       state.g |> add_arc_from_opt (previ, matchi);
       let nodes =
         List.map
-          (fun ({ pattern; body } : IL.pattern_branch) ->
-            let casei =
-              state.g#add_node (IL.mk_node (F.NCase (scrutinee, pattern)))
+          (fun ({ patterns; body } : IL.pattern_branch) ->
+            (* One 'NCase' per pattern; several patterns are routed through a
+             * 'Join' into a single shared copy of the body. *)
+            let body_previ =
+              match patterns with
+              | [ pattern ] ->
+                  let casei =
+                    state.g#add_node (IL.mk_node (F.NCase (scrutinee, pattern)))
+                  in
+                  state.g |> add_arc (matchi, casei);
+                  casei
+              | patterns ->
+                  let joini = state.g#add_node (IL.mk_node F.Join) in
+                  patterns
+                  |> List.iter (fun pattern ->
+                      let casei =
+                        state.g#add_node
+                          (IL.mk_node (F.NCase (scrutinee, pattern)))
+                      in
+                      state.g |> add_arc (matchi, casei);
+                      state.g |> add_arc (casei, joini));
+                  joini
             in
-            state.g |> add_arc (matchi, casei);
-            cfg_stmt_list state (Some casei) body)
+            cfg_stmt_list state (Some body_previ) body)
           branches
       in
       let throws =

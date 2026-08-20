@@ -473,7 +473,14 @@ and other_stmt =
 
 and label = ident * G.sid
 and pattern_match = { scrutinee : name; branches : pattern_branch list }
-and pattern_branch = { pattern : pattern_spec; body : stmt list }
+
+and pattern_branch = {
+  patterns : pattern_spec list;
+      (** Patterns any one of which leads to executing [body] (e.g. ML-style
+          or-patterns [A | B | C -> ...], or Ruby's [when a, b, c]). Non-empty,
+          and all patterns must bind the same variables. *)
+  body : stmt list;  (** The statements to execute on a successful match. *)
+}
 
 and pattern_spec =
   | PatLiteral of G.literal

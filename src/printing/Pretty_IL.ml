@@ -390,9 +390,8 @@ and pretty_stmt ?(indent = 0) stmt =
       let scrutinee_str = fst scrutinee.IL.ident in
       let branches_str =
         branches
-        |> List.map (fun { IL.pattern; body } ->
-            let pat_str =
-              match pattern with
+        |> List.map (fun { IL.patterns; body } ->
+            let pat_str_of = function
               | IL.PatLiteral lit -> G.show_literal lit
               | IL.PatWildcard -> "_"
               | IL.PatVariable name -> fst name.IL.ident
@@ -403,6 +402,9 @@ and pretty_stmt ?(indent = 0) stmt =
                     |> String.concat ", "
                   in
                   spf "%s(%s)" (fst name.IL.ident) args_str
+            in
+            let pat_str =
+              patterns |> List.map pat_str_of |> String.concat " | "
             in
             let body_str = pretty_stmts ~indent:(indent + 2) body in
             spf "%scase %s:\n%s" ind1 pat_str body_str)
