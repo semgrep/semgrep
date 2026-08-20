@@ -259,7 +259,7 @@ RUN apk add --no-cache --virtual=.build-deps build-base make py3-pip && \
 # Get semgrep-core from step1
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 # Get pyro-caml from step1
-COPY --from=semgrep-core-container /root/.opam/5.3.0/bin/pyro-caml /usr/bin/pyro-caml
+COPY --from=semgrep-core-container /root/.opam/5.4.0/bin/pyro-caml /usr/bin/pyro-caml
 # We don't need the python source anymore; 'pip install ...' above
 # installed them under /usr/local/lib/python3.xx/site-packages/semgrep/
 RUN ln -s semgrep-core /usr/local/bin/osemgrep && rm -rf /pysemgrep

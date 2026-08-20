@@ -33,7 +33,7 @@ local github_bot = {
 // ----------------------------------------------------------------------------
 
 // default one
-local opam_switch = 'ocaml-variants.5.3.0+options,ocaml-option-flambda';
+local opam_switch = 'ocaml-variants.5.4.0+options,ocaml-option-flambda';
 // also default but needed by another nameso we can use it as a function default arg
 local opam_switch_default = opam_switch;
 local containers = {

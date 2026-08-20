@@ -77,7 +77,7 @@ clean:
 
 .PHONY: dev-setup
 dev-setup:
-	opam switch create semgrep-interfaces-dev 5.3.0
+	opam switch create semgrep-interfaces-dev 5.4.0
 	$(MAKE) setup
 
 # This takes a while but ensures we use the correct versions of the atd tools.

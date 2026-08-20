@@ -158,12 +158,12 @@ depends: [
   "mtime" {= "2.1.0"}
   "num" {= "1.6"}
   "obackward" {= "dev"}
-  "ocaml" {= "5.3.0"}
+  "ocaml" {= "5.4.0"}
   "ocaml-compiler-libs" {= "v0.17.0"}
   "ocaml-config" {= "3"}
   "ocaml-option-flambda" {= "1"}
   "ocaml-syntax-shims" {= "1.0.0"}
-  "ocaml-variants" {= "5.3.0"}
+  "ocaml-variants" {= "5.4.0"}
   "ocaml_intrinsics_kernel" {= "v0.17.2"}
   "ocamlbuild" {= "0.16.1"}
   "ocamlfind" {= "1.9.8"}
@@ -284,8 +284,8 @@ pin-depends: [
     "git+https://github.com/semgrep/obackward.git#e1c16766976b4fadd97097b96f96666e8e1cb98c"
   ]
   [
-    "ocaml-variants.5.3.0"
-    "git+https://github.com/semgrep/ocaml.git#aaaacf27f74fd87eb5b9887fb9995bee4cedb979"
+    "ocaml-variants.5.4.0"
+    "git+https://github.com/semgrep/ocaml.git#4046c817ed2ed5c2431300902d1bd306230bf3dd"
   ]
   [
     "opentelemetry.dev"
