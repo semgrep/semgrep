@@ -154,6 +154,7 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Core_match.rule_id) =
     fix = mr.fix;
     fix_regexp = mr.fix_regexp;
     langs = mr.langs;
+    severity = Some mr.severity;
   }
 
 let log_invalid_metavar_bindings (pms : PM.t list) =

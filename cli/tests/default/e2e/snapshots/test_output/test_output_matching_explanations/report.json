@@ -59,6 +59,7 @@
                     }
                   }
                 },
+                "severity": "ERROR",
                 "validation_state": "NO_VALIDATOR"
               },
               "path": "targets/basic/stupid.js",
@@ -119,6 +120,7 @@
                     }
                   }
                 },
+                "severity": "ERROR",
                 "validation_state": "NO_VALIDATOR"
               },
               "path": "targets/basic/stupid.js",
@@ -184,6 +186,7 @@
                 }
               }
             },
+            "severity": "ERROR",
             "validation_state": "NO_VALIDATOR"
           },
           "path": "targets/basic/stupid.js",
