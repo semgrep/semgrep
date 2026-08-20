@@ -18,9 +18,9 @@ let t = Testo.create
 
 let tests : Testo.t list =
   [
-    t "OCaml compiler version starts with 5.3.0+semgrep-fork" (fun () ->
+    t "OCaml compiler version starts with 5.4.0+semgrep-fork" (fun () ->
         let ocaml_version = Sys.ocaml_version in
-        let expected_prefix = "5.3.0+semgrep-fork" in
+        let expected_prefix = "5.4.0+semgrep-fork" in
         if not (String.starts_with ~prefix:expected_prefix ocaml_version) then
           failwith
             (spf "Expected OCaml version to start with '%s', but got '%s'"

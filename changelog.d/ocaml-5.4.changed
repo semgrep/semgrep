@@ -1,0 +1,1 @@
+Semgrep is now built with OCaml 5.4 instead of OCaml 5.3. End users should notice no change.
