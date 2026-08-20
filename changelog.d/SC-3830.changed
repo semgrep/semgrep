@@ -1,4 +1,0 @@
-Partial scans (`--x-partial-scan-rule-id`) now resolve dependencies only for
-subprojects whose ecosystem is evaluated by the rules being run. Subprojects in
-any other ecosystem are skipped and reported to semgrep-app as skipped
-subprojects.
