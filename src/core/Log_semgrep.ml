@@ -60,8 +60,7 @@ let with_setup ?log_to_file ?(log_to_otel = false) ?require_one_of_these_tags
   (* currently only additional reporter is otel. Only set to true when --trace
      is passed *)
   let additional_reporters =
-    if log_to_otel then
-      [ Logging.(attach_otel_reporter ?service_name:None ?attributes:None) ]
+    if log_to_otel then [ Logging.(attach_otel_reporter ?attributes:None) ]
     else []
   in
   (* If we're going to log to otel, let's by default log info since that's

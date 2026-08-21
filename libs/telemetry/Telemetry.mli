@@ -14,7 +14,7 @@
 (* Types *)
 (*****************************************************************************)
 
-type scope = Opentelemetry.Scope.t [@@deriving show]
+type scope = Opentelemetry.Span.t [@@deriving show]
 
 type config = {
   endpoint : Uri.t;

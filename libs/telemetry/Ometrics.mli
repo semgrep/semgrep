@@ -101,18 +101,19 @@ val make_instrument_meta :
     instruments! *)
 
 type meter_meta = {
-  name : string option;  (** Overrides global service name *)
+  name : string option;  (** Names the instrumentation scope *)
   attrs : (string * user_data) list;
       (** Attributes to apply to all instruments in this meter *)
 }
-(** [meter_meta] will override the service name if set, and attrs will apply
-    labels to all data points recorded by any instruments made by this meter.
-    For example you may want to record the number of some operation, and then
-    always apply a label about which component it happened in *)
+(** [meter_meta] names the instrumentation scope if set (recorded as
+    [otel.scope.name]), and attrs will apply labels to all data points recorded
+    by any instruments made by this meter. For example you may want to record
+    the number of some operation, and then always apply a label about which
+    component it happened in. *)
 
 val default_meter_meta : meter_meta
-(** [default_meter_meta] is the default metadata for a meter, which will use the
-    global service name and no attributes. *)
+(** [default_meter_meta] is the default metadata for a meter, which will use no
+    scope name and no attributes. *)
 
 (* https://opentelemetry.io/docs/specs/otel/metrics/api/#meterprovider *)
 module type Meter_provider

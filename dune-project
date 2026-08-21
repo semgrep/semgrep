@@ -151,21 +151,24 @@ For more information see https://semgrep.dev
     ; profiling
     pyro-caml-instruments
     pyro-caml-ppx
-    ; these are vendored due to https://github.com/imandra-ai/ocaml-opentelemetry/issues/113
-    ; TODO once these changes are released, unvendor them
-    opentelemetry
-    opentelemetry-client-ocurl
-    opentelemetry-client-cohttp-eio
-    opentelemetry-logs
-    ; trace 0.11 removed the Otrace.trace_id type that our pinned
-    ; opentelemetry-trace still uses; pin until we bump the opentelemetry SHA
-    (trace (< 0.11))
-    ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
-    ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
-    ; hence the pin to 0.9.1
-    (ocurl (= 0.9.1))
-    ; ambient-context-lwt 0.2 introduces API changes, breaking ./libs/telemetry
-    (ambient-context-lwt (and (>= 0.1.0) (< 0.2)))
+    ; libs used in ./libs/telemetry
+    (opentelemetry (= 0.91.1))
+    (opentelemetry-client (= 0.91.1))
+    (opentelemetry-client-ocurl (= 0.91.1))
+    (opentelemetry-client-cohttp-eio (= 0.91.1))
+    (opentelemetry-logs (= 0.91.1))
+    ; opentelemetry 0.91.1 conflicts with trace < 0.12
+    (trace (>= 0.12))
+    ; opentelemetry.ambient-context is a re-export of these since 0.90
+    (ambient-context (>= 0.2))
+    (ambient-context-lwt (>= 0.2))
+    (ambient-context-eio (>= 0.2))
+    ; ocurl was renamed to curl upstream and opentelemetry-client-ocurl
+    ; followed in 0.91. This replaces our (ocurl (= 0.9.1)) pin: 0.9.2 broke
+    ; windows (ygrek/ocurl#77), and curl 0.10.0 carries both the
+    ; `#undef TCP_FASTOPEN` fix for it and a dune build. 0.10.0 is currently
+    ; the only released version of the renamed package.
+    (curl (= 0.10.0))
     (conf-libcurl (= 2))
     ; web stuff
     (uri (>= 4.4.0))

@@ -67,13 +67,16 @@ depends: [
   "memtrace"
   "pyro-caml-instruments"
   "pyro-caml-ppx"
-  "opentelemetry"
-  "opentelemetry-client-ocurl"
-  "opentelemetry-client-cohttp-eio"
-  "opentelemetry-logs"
-  "trace" {< "0.11"}
-  "ocurl" {= "0.9.1"}
-  "ambient-context-lwt" {>= "0.1.0" & < "0.2"}
+  "opentelemetry" {= "0.91.1"}
+  "opentelemetry-client" {= "0.91.1"}
+  "opentelemetry-client-ocurl" {= "0.91.1"}
+  "opentelemetry-client-cohttp-eio" {= "0.91.1"}
+  "opentelemetry-logs" {= "0.91.1"}
+  "trace" {>= "0.12"}
+  "ambient-context" {>= "0.2"}
+  "ambient-context-lwt" {>= "0.2"}
+  "ambient-context-eio" {>= "0.2"}
+  "curl" {= "0.10.0"}
   "conf-libcurl" {= "2"}
   "uri" {>= "4.4.0"}
   "uuidm" {>= "0.9.10"}
@@ -131,10 +134,6 @@ pin-depends: [
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
   ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
   ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
-  ["opentelemetry.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
-  ["opentelemetry-client-ocurl.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
-  ["opentelemetry-client-cohttp-eio.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
-  ["opentelemetry-logs.dev" "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"]
   ["memtrace.dev" "git+https://github.com/janestreet/memtrace.git#a88470c3de884182503ba5fcd4729e281e544731"]
 ]
 

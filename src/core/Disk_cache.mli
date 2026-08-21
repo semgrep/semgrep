@@ -93,7 +93,7 @@ module type S = sig
   (** Handle identity: path equality on disk, physical (pointer) identity of
       the marshaled blob in memory. *)
 
-  val record_stats_on_span : Opentelemetry.Scope.t -> unit
+  val record_stats_on_span : Opentelemetry.Span.t -> unit
   (** Snapshot I/O stats, reset counters, and record them as attributes
       on the given OpenTelemetry span under keys like
       ["disk_cache.{ext}.reads"], ["disk_cache.{ext}.cache_size_bytes"], etc.

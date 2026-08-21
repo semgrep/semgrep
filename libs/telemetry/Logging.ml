@@ -24,7 +24,7 @@ let no_telemetry_tag_set = Opentelemetry_logs.(emit_telemetry false)
 
 (* Same as Opentelemetry_logs.attach_otel_reporter but does not log if level is
    DEBUG *)
-let attach_otel_reporter ?service_name ?attributes reporter =
+let attach_otel_reporter ?attributes reporter =
   let combine r1 r2 =
     let report src level ~over k msgf =
       (* Let's not send debug logs for now, as they can be expensive and
@@ -40,7 +40,5 @@ let attach_otel_reporter ?service_name ?attributes reporter =
     in
     { Logs.report }
   in
-  let otel_reporter =
-    Opentelemetry_logs.otel_reporter ?service_name ?attributes ()
-  in
+  let otel_reporter = Opentelemetry_logs.otel_reporter ?attributes () in
   combine reporter otel_reporter

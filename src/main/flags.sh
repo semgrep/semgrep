@@ -134,7 +134,7 @@ else
             "-lcomprmarsh"
             "-lcstruct_stubs"
             "-lctypes_stubs"
-            "-lcurl-helper"
+            "-lcurl_stubs"
             "-lintegers_stubs"
             "-llwt_unix_stubs"
             "-lmirage_crypto_ec_stubs"

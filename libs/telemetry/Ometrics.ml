@@ -14,10 +14,8 @@
  *)
 
 module Otel = Opentelemetry
-module Timestamp_ns = Otel.Timestamp_ns
 open Telemetry
 
-open Otel_util
 (**
    ATTENTION!!!!!!!! READ THE FOLLOWING BEFORE ADDING METRICS SERIOUSLY!!! It is
    VERY easy to create metrics that will blow up our metrics backend, and you
@@ -138,41 +136,7 @@ type histogram_data = {
 (* Helpers *)
 (*****************************************************************************)
 
-(* We copy these conv value functions from the otel library (opentelemetry.ml)
-   so we can wrap the metrics emit functions in a nicer way. When we upstream
-   this we could just make the types nicer there *)
-let _conv_value =
-  let open Otel.Proto.Common in
-  function
-  | `Int i -> Some (Int_value (Int64.of_int i))
-  | `String s -> Some (String_value s)
-  | `Bool b -> Some (Bool_value b)
-  | `Float f -> Some (Double_value f)
-  | `None -> None
-
-let _conv_key_value (k, v) =
-  let open Otel.Proto.Common in
-  let value = _conv_value v in
-  default_key_value ~key:k ~value ()
-
-let _value_conv =
-  let open Otel.Proto.Common in
-  function
-  | Some (Int_value i) -> `Int (Int64.to_int i)
-  | Some (String_value s) -> `String s
-  | Some (Bool_value b) -> `Bool b
-  | Some (Double_value f) -> `Float f
-  | Some (Array_value _)
-  | Some (Bytes_value _)
-  | Some (Kvlist_value _)
-  | None ->
-      `None
-
-let _key_value_conv kv =
-  let open Otel.Proto.Common in
-  (kv.key, _value_conv kv.value)
-
-let now = Timestamp_ns.now_unix_ns
+let now = Otel.Clock.now_main
 let _program_start = now ()
 
 (* nice conversion functions *)
@@ -182,7 +146,7 @@ let make_instrument_meta ~name ?description ?unit_ () : instrument_meta =
 let default_meter_meta =
   {
     name = None;
-    (* use global service name *)
+    (* no instrumentation scope name *)
     attrs = [];
   }
 
@@ -212,7 +176,7 @@ let metric_value_of_int64 (i : int64) : metric_value = As_int i
 let number_datapoint_of_metric_value ?(start_time_unix_nano = _program_start)
     ?(now = now ()) ?exemplars ?(attributes = []) ?flags (value : metric_value)
     : Otel.Proto.Metrics.number_data_point =
-  Otel.Proto.Metrics.default_number_data_point ~start_time_unix_nano
+  Otel.Proto.Metrics.make_number_data_point ~start_time_unix_nano
     ~time_unix_nano:now ?exemplars ?flags ~attributes ~value ()
 
 let explicit_bounds_of_histogram (histogram : histogram_data) =
@@ -277,9 +241,9 @@ let histogram_datapoint_of_histogram_data
     | None -> (None, None)
     | Some (min, max) -> (Some min, Some max)
   in
-  Otel.Proto.Metrics.default_histogram_data_point ~start_time_unix_nano
-    ~time_unix_nano:now ~count ~sum ~bucket_counts ?explicit_bounds ?exemplars
-    ?flags ~attributes ~min ~max ()
+  Otel.Proto.Metrics.make_histogram_data_point ~start_time_unix_nano
+    ~time_unix_nano:now ~count ?sum ~bucket_counts ?explicit_bounds ?exemplars
+    ?flags ~attributes ?min ?max ()
 
 let exemplar_value_of_metric_value (value : metric_value) : exemplar_value =
   match value with
@@ -288,21 +252,21 @@ let exemplar_value_of_metric_value (value : metric_value) : exemplar_value =
 
 let exemplar_of_metric_value ?(now = now ()) ?filtered_attrs value =
   let value = exemplar_value_of_metric_value value in
-  let current_scope = Otel.Scope.get_ambient_scope () in
+  let current_scope = Otel.Ambient_span.get () in
   let trace_id =
     Option.map
-      (fun (scope : Otel.Scope.t) -> scope.trace_id |> Otel.Trace_id.to_bytes)
+      (fun sp -> Otel.Span.trace_id sp |> Otel.Trace_id.to_bytes)
       current_scope
   in
   let span_id =
     Option.map
-      (fun (scope : Otel.Scope.t) -> scope.span_id |> Otel.Span_id.to_bytes)
+      (fun sp -> Otel.Span.id sp |> Otel.Span_id.to_bytes)
       current_scope
   in
   let filtered_attributes =
-    Option.map (fun xs -> List.map _conv_key_value xs) filtered_attrs
+    Option.map (fun xs -> List.map Otel.Key_value.conv xs) filtered_attrs
   in
-  Otel.Proto.Metrics.default_exemplar ?filtered_attributes ?span_id ?trace_id
+  Otel.Proto.Metrics.make_exemplar ?filtered_attributes ?span_id ?trace_id
     ~time_unix_nano:now ~value ()
 
 (*****************************************************************************)
@@ -349,21 +313,21 @@ let default_metric_attributes () =
 (*****************************************************************************)
 (* https://opentelemetry.io/docs/specs/otel/metrics/api/#meterprovider *)
 module type Meter_provider = sig
-  val emit :
-    ?service_name:string ->
+  val make_emitter :
+    ?name:string ->
     ?attrs:(string * user_data) list ->
+    unit ->
     Otel.Metrics.t list ->
     unit
 end
 
 (* Normal meter provider, shouldn't need anything else unless we get weird *)
 module Simple_meter_provider : Meter_provider = struct
-  (* Basically just copypasta of Otel.Metrics.emit but with service_name pass
-     through *)
-  let emit ?service_name ?attrs l =
-    let rm = Otel.Metrics.make_resource_metrics ?service_name ?attrs l in
-    (* TODO: Maybe add a debug log statement to ret *)
-    Otel.Collector.send_metrics [ rm ] ~ret:(fun () -> ())
+  (* Resolves the global provider at emit time, so this is safe to build
+     before [configure_otel] runs. *)
+  let make_emitter ?name ?(attrs = []) () =
+    let meter = Otel.Meter_provider.get_meter ?name ~attrs () in
+    fun metrics -> Otel.Meter.emit meter metrics
 end
 
 (* an instrument kind is just a type for an instrument. An instrument can be
@@ -590,6 +554,9 @@ module Make_meter
     end) : Meter = struct
   let meter_meta = M.meta
 
+  let emit_metrics =
+    P.make_emitter ?name:meter_meta.name ~attrs:meter_meta.attrs ()
+
   module Make_instrument
       (K : Instrument_kind)
       (M : sig
@@ -609,11 +576,11 @@ module Make_meter
       let attrs = attrs @ default_metric_attributes () in
       let data_point =
         let exemplars = Option.map (fun x -> [ x ]) exemplar in
-        let attributes = List.map _conv_key_value attrs in
+        let attributes = List.map Otel.Key_value.conv attrs in
         K.make_data_point ?now ?exemplars ~attributes x
       in
       let metric = report_data_points [ data_point ] in
-      P.emit ?service_name:meter_meta.name ~attrs:meter_meta.attrs [ metric ]
+      emit_metrics [ metric ]
 
     let record ?(attrs = []) (x : value) : unit = x |> emit ~attrs
 
