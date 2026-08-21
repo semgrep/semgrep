@@ -95,7 +95,7 @@ module type S = sig
   val read : handle -> (value, error) result
   val rm : handle -> (unit, error) result
   val equal_handle : handle -> handle -> bool
-  val record_stats_on_span : Opentelemetry.Scope.t -> unit
+  val record_stats_on_span : Opentelemetry.Span.t -> unit
 end
 
 module Make (V : DISK_CACHEABLE) : S with type value = V.t = struct

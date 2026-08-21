@@ -17,11 +17,10 @@ val no_telemetry_tag_set : Logs.Tag.set
     example *)
 
 val attach_otel_reporter :
-  ?service_name:string ->
   ?attributes:(string * Opentelemetry.value) list ->
   Logs.reporter ->
   Logs.reporter
-(** [attach_otel_reporter ?service_name ?attributes logger] attaches a
+(** [attach_otel_reporter ?attributes logger] attaches a
     {!Logs.reporter} to an existing reporter to additionally send logs to the
     Otel backend. To disable logging for just this reporter, tag the log with
     {!Opentelemetry_logs.no_telemetry_tag}.

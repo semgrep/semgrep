@@ -24,7 +24,7 @@ open Telemetry
  *
  * - trace (https://github.com/c-cube/ocaml-trace) for the trace
  *   instrumentation frontend (e.g. the annotations)
- * - opentelemetry (https://github.com/imandra-ai/ocaml-opentelemetry)
+ * - opentelemetry (https://github.com/ocaml-tracing/ocaml-opentelemetry)
  *   for the backend that processes traces
  * - opentelemetry-client-ocurl (included with opentelemetry) for the
  *   collector.
@@ -70,11 +70,9 @@ let trace_level_var = "SEMGREP_TRACE_LEVEL"
 let parent_span_id_var = "SEMGREP_TRACE_PARENT_SPAN_ID"
 let parent_trace_id_var = "SEMGREP_TRACE_PARENT_TRACE_ID"
 
-let empty_scope =
-  Otel.Scope.make
-    ~trace_id:Otel.Trace_id.(create ())
-    ~span_id:Otel.Span_id.(create ())
-    ()
+(* Otel never records or mutates [Span.dummy], so attributes attached to a
+   filtered-out span are discarded. *)
+let empty_scope = Otel.Span.dummy
 
 (*****************************************************************************)
 (* Levels *)
@@ -116,7 +114,7 @@ let show_level = function
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
-let add_data_to_span sc attrs = Otel.Scope.add_attrs sc (fun () -> attrs)
+let add_data_to_span sc attrs = Otel.Span.add_attrs' sc (fun () -> attrs)
 
 let opt_add_data_to_span data sc =
   sc |> Option.iter (fun sc -> add_data_to_span sc data)
@@ -128,13 +126,13 @@ let add_data data (tracing_opt : config option) =
       tracing.top_level_scope |> opt_add_data_to_span data)
 
 let add_global_attribute = Otel.Globals.add_global_attribute
-let record_exn = Otel.Scope.record_exception
+let record_exn = Otel.Span.record_exception
 
 let record_exn_curr_span exn raw_backtrace =
   (* Only record if there's an active scope *)
   let _ =
     Option.map
-      (fun sc -> Otel.Scope.record_exception sc exn raw_backtrace)
+      (fun sc -> Otel.Span.record_exception sc exn raw_backtrace)
       (get_current_scope ())
   in
   ()
@@ -144,7 +142,7 @@ let record_exn_curr_span exn raw_backtrace =
 (*****************************************************************************)
 
 let with_ ?attrs ?kind ?trace_id ?parent name f =
-  Otel.Trace.with_ ?attrs ?kind ?trace_id ?parent name f
+  Otel.Tracer.with_ ?attrs ?kind ?trace_id ?parent name f
 
 let with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data =
   let code_attrs =
@@ -169,10 +167,10 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
         | result -> result
         | exception exn ->
             let bt = Printexc.get_raw_backtrace () in
-            Otel.Scope.set_status sp
+            Otel.Span.set_status sp
               (Otel.Span_status.make ~message:(Printexc.to_string exn)
                  ~code:Otel.Span_status.Status_code_error);
-            Otel.Scope.record_exception sp exn bt;
+            Otel.Span.record_exception sp exn bt;
             Printexc.raise_with_backtrace exn bt)
   else f empty_scope
 
@@ -186,7 +184,7 @@ let with_span_result ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
             | Some to_s -> to_s err
             | None -> ""
           in
-          Otel.Scope.set_status sp
+          Otel.Span.set_status sp
             (Otel.Span_status.make ~message
                ~code:Otel.Span_status.Status_code_error);
           result
@@ -205,23 +203,32 @@ let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
       | None -> Sys.getenv_opt parent_trace_id_var)
   in
   let parent =
-    Option.map Otel.Span_id.of_hex
-      (match parent_span_id with
+    (* [~parent] takes a span but ours arrives as a bare hex id; only its id
+       and trace_id are read, and it is never emitted. *)
+    (match parent_span_id with
       | Some _ -> parent_span_id
       | None -> Sys.getenv_opt parent_span_id_var)
+    |> Option.map (fun hex ->
+        let id = Otel.Span_id.of_hex hex in
+        let trace_id =
+          match trace_id with
+          | Some trace_id -> trace_id
+          | None -> Otel.Trace_id.create ()
+        in
+        Otel.Span.make ~trace_id ~id ~start_time:0L ~end_time:0L "remote-parent")
   in
   let attrs = with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data in
   let kind = Otel.Span_kind.Span_kind_server in
   with_ ~attrs ~kind ?trace_id ?parent name f
 
 let log_trace_message () =
-  match Otel.Scope.get_ambient_scope () with
+  match Otel.Ambient_span.get () with
   | None ->
       (* nosemgrep: no-logs-in-library *)
       Logs.info (fun m ->
           m "Tracing is enabled for this scan. There was no trace id recorded.")
   | Some scope ->
-      let id = Otel.Trace_id.to_hex scope.trace_id in
+      let id = Otel.Trace_id.to_hex (Otel.Span.trace_id scope) in
       (* nosemgrep: no-logs-in-library *)
       Logs.info (fun m ->
           m "Tracing is enabled for this scan. The trace id is <%s>." id)
@@ -235,7 +242,7 @@ let with_tracing ?(stop_otel_after = true) fname data f =
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
      the given run are nested under a single trace.
-   * ALT: we could also have wrapped this with a `Otel.Scope.with_ambient_scope`
+   * ALT: we could also have wrapped this with a `Otel.Ambient_span.with_ambient`
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
   let level =

@@ -18,21 +18,21 @@ depends: [
   "ANSITerminal" {= "0.8.5"}
   "alcotest" {= "1.9.1"}
   "alcotest-lwt" {= "1.9.1"}
-  "ambient-context" {= "0.1.1"}
-  "ambient-context-lwt" {= "0.1.1"}
+  "ambient-context" {= "0.2"}
+  "ambient-context-eio" {= "0.2"}
+  "ambient-context-lwt" {= "0.2"}
   "angstrom" {= "0.16.1"}
   "arch-x86_64" {= "1"}
   "arp" {= "4.1.0"}
   "asn1-combinators" {= "0.3.2"}
   "astring" {= "0.8.5"}
-  "atd" {= "3.0.1"}
-  "atdgen" {= "3.0.1"}
-  "atdgen-runtime" {= "3.0.1"}
-  "atdpy" {= "3.0.1"}
-  "atdts" {= "3.0.1"}
-  "atomic" {= "base"}
-  "awa" {= "0.5.2"}
-  "awa-mirage" {= "0.5.2"}
+  "atd" {= "4.2.0"}
+  "atdgen" {= "4.2.0"}
+  "atdgen-runtime" {= "4.2.0"}
+  "atdpy" {= "4.2.0"}
+  "atdts" {= "4.2.0"}
+  "awa" {= "0.6.0"}
+  "awa-mirage" {= "0.6.0"}
   "base" {= "v0.17.3"}
   "base-bigarray" {= "base"}
   "base-bytes" {= "base"}
@@ -44,15 +44,15 @@ depends: [
   "base64" {= "3.5.2"}
   "bigstringaf" {= "0.10.0"}
   "biniou" {= "1.2.2"}
-  "bos" {= "0.2.1"}
-  "ca-certs" {= "1.0.1"}
-  "ca-certs-nss" {= "3.118"}
+  "bos" {= "0.3.0"}
+  "ca-certs" {= "1.0.3"}
+  "ca-certs-nss" {= "3.123.1"}
   "calendar" {= "3.0.0"}
   "camlp-streams" {= "5.0.1"}
   "carton" {= "0.7.2"}
   "carton-git" {= "0.7.2"}
   "carton-lwt" {= "0.7.2"}
-  "checkseum" {= "0.5.2"}
+  "checkseum" {= "0.5.3"}
   "cmdliner" {= "2.1.1"}
   "cohttp" {= "6.2.1"}
   "cohttp-eio" {= "6.2.1"}
@@ -78,19 +78,20 @@ depends: [
   "csexp" {= "1.5.2"}
   "cstruct" {= "6.2.0"}
   "cstruct-lwt" {= "6.2.0"}
-  "cstruct-unix" {= "6.2.0"}
   "ctypes" {= "0.24.0"}
+  "curl" {= "0.10.0"}
+  "curl_lwt" {= "0.10.0"}
   "decompress" {= "1.5.3"}
   "digestif" {= "1.3.0"}
-  "dns" {= "10.2.4"}
-  "dns-client" {= "10.2.4"}
-  "dns-client-mirage" {= "10.2.4"}
+  "dns" {= "10.2.5"}
+  "dns-client" {= "10.2.5"}
+  "dns-client-mirage" {= "10.2.5"}
   "domain-local-await" {= "1.0.1"}
   "domain-name" {= "0.5.0"}
   "duff" {= "0.5"}
-  "dune" {= "3.21.1"}
-  "dune-configurator" {= "3.21.1"}
-  "duration" {= "0.2.1"}
+  "dune" {= "3.23.1"}
+  "dune-configurator" {= "3.23.1"}
+  "duration" {= "0.3.1"}
   "easy-format" {= "1.3.4"}
   "eio" {= "1.2"}
   "eio_main" {= "1.2"}
@@ -99,7 +100,7 @@ depends: [
   "encore" {= "0.8.1"}
   "eqaf" {= "0.10"}
   "ethernet" {= "3.2.0"}
-  "ezcurl" {= "0.2.4"}
+  "ezcurl" {= "0.3"}
   "faraday" {= "0.8.2"}
   "fileutils" {= "0.6.6"}
   "flexdll" {= "0.44"}
@@ -123,7 +124,7 @@ depends: [
   "http" {= "6.2.1"}
   "httpun-types" {= "0.2.0"}
   "hxd" {= "0.4.0"}
-  "integers" {= "0.7.0"}
+  "integers" {= "0.8.0"}
   "ipaddr" {= "5.6.2"}
   "ipaddr-cstruct" {= "5.6.2"}
   "ipaddr-sexp" {= "5.6.2"}
@@ -135,9 +136,9 @@ depends: [
   "logs" {= "0.10.0"}
   "lru" {= "0.3.1"}
   "lsp" {= "1.23.1"}
-  "lwt" {= "5.9.2"}
+  "lwt" {= "6.1.2"}
   "lwt-dllist" {= "1.1.0"}
-  "lwt_ppx" {= "5.9.3"}
+  "lwt_ppx" {= "6.1.0"}
   "macaddr" {= "5.6.2"}
   "macaddr-cstruct" {= "5.6.2"}
   "magic-mime" {= "1.3.1"}
@@ -149,11 +150,10 @@ depends: [
   "mimic" {= "0.0.9"}
   "mimic-happy-eyeballs" {= "0.0.9"}
   "mingw-w64-shims" {= "0.2.0"}
-  "mirage-crypto" {= "1.2.0"}
-  "mirage-crypto-ec" {= "1.2.0"}
-  "mirage-crypto-pk" {= "1.2.0"}
-  "mirage-crypto-rng" {= "1.2.0"}
-  "mirage-crypto-rng-eio" {= "1.2.0"}
+  "mirage-crypto" {= "2.1.0"}
+  "mirage-crypto-ec" {= "2.1.0"}
+  "mirage-crypto-pk" {= "2.1.0"}
+  "mirage-crypto-rng" {= "2.1.0"}
   "mirage-flow" {= "5.0.0"}
   "mirage-kv" {= "6.1.1"}
   "mirage-mtime" {= "5.2.0"}
@@ -170,23 +170,25 @@ depends: [
   "ocaml-option-flambda" {= "1"}
   "ocaml-syntax-shims" {= "1.0.0"}
   "ocaml-variants" {= "5.4.0"}
-  "ocaml_intrinsics_kernel" {= "v0.17.1"}
+  "ocaml_intrinsics_kernel" {= "v0.17.2"}
   "ocamlbuild" {= "0.16.1"}
   "ocamlfind" {= "1.9.8"}
   "ocamlgraph" {= "2.2.0"}
   "ocolor" {= "1.3.1"}
   "ocplib-endian" {= "1.2"}
-  "ocurl" {= "0.9.1"}
+  "ocurl" {= "transition"}
   "ohex" {= "0.2.0"}
-  "opentelemetry" {= "dev"}
-  "opentelemetry-client-cohttp-eio" {= "dev"}
-  "opentelemetry-client-ocurl" {= "dev"}
-  "opentelemetry-logs" {= "dev"}
+  "opentelemetry" {= "0.91.1"}
+  "opentelemetry-client" {= "0.91.1"}
+  "opentelemetry-client-cohttp-eio" {= "0.91.1"}
+  "opentelemetry-client-ocurl" {= "0.91.1"}
+  "opentelemetry-logs" {= "0.91.1"}
   "optint" {= "0.3.0"}
   "paf" {= "0.8.0"}
   "parmap" {= "1.2.5"}
   "parsexp" {= "v0.17.0"}
-  "pbrt" {= "3.1.1"}
+  "pbrt" {= "4.1"}
+  "pbrt_yojson" {= "4.1"}
   "pcre2" {= "dev"}
   "pecu" {= "0.7"}
   "ppx_assert" {= "v0.17.0"}
@@ -237,12 +239,12 @@ depends: [
   "timedesc" {= "3.1.0"}
   "timedesc-tzdb" {= "3.1.0"}
   "timedesc-tzlocal" {= "3.1.0"}
-  "tls" {= "2.0.3"}
-  "tls-eio" {= "2.0.3"}
-  "tls-lwt" {= "2.0.3"}
-  "tls-mirage" {= "2.0.3"}
+  "tls" {= "2.1.0"}
+  "tls-eio" {= "2.1.0"}
+  "tls-lwt" {= "2.1.0"}
+  "tls-mirage" {= "2.1.0"}
   "topkg" {= "1.1.1"}
-  "trace" {= "0.10.1"}
+  "trace" {= "0.12"}
   "tree-sitter" {= "dev"}
   "tsort" {= "2.2.0"}
   "uri" {= "4.4.0"}
@@ -292,22 +294,6 @@ pin-depends: [
   [
     "ocaml-variants.5.4.0"
     "git+https://github.com/semgrep/ocaml.git#4046c817ed2ed5c2431300902d1bd306230bf3dd"
-  ]
-  [
-    "opentelemetry.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
-  ]
-  [
-    "opentelemetry-client-cohttp-eio.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
-  ]
-  [
-    "opentelemetry-client-ocurl.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
-  ]
-  [
-    "opentelemetry-logs.dev"
-    "git+https://github.com/semgrep/ocaml-opentelemetry.git#6cfa5f16d85ac65b602f732469b667bac4aca5ac"
   ]
   [
     "pcre2.dev"
