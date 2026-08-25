@@ -65,7 +65,7 @@
       "setup-ocaml": "a739c5405d73c42ef15a9dc995efc0f87396cc36"
     },
     "slackapi": {
-      "slack-github-action": "007b2c3c751a190b6f0f040e47ed024deaa72844"
+      "slack-github-action": "dcb1066f776dd043e64d0e8ba94ca15cc7e1875d"
     },
     "softprops": {
       "action-gh-release": "153bb8e04406b158c6c84fc1615b65b24149a1fe"
