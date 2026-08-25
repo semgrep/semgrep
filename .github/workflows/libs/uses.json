@@ -65,7 +65,7 @@
       "mfw": "v0.3.8"
     },
     "slackapi": {
-      "slack-github-action": "v1.23.0"
+      "slack-github-action": "v4.0.0"
     },
     "softprops": {
       "action-gh-release": "v2.6.1"
