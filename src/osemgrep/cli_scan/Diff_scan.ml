@@ -76,11 +76,17 @@ let extract_sig renamed (m : Core_match.t) =
    are equal. *)
 let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
     (head : Core_result.t) (renamed : (Fpath.t * Fpath.t) list) =
+  (* [sigs] counts, per baseline signature, how many baseline matches produced
+     it (a multiset). Consuming a signature decrements its count and drops the
+     entry at 0, so a signature seen N times in the baseline can suppress at
+     most N head matches. *)
   let sigs = Hashtbl.create 10 in
   Git_wrapper.run_with_worktree_exn ~commit (fun () ->
       List.iter
         (fun ({ pm; _ } : Core_result.processed_match) ->
-          pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
+          pm |> extract_sig None |> fun x ->
+          let count = Hashtbl.find_opt sigs x |> Option.value ~default:0 in
+          Hashtbl.replace sigs x (count + 1))
         baseline.processed_matches);
   let removed = ref 0 in
   let processed_matches =
@@ -88,7 +94,11 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
       (fun (pm : Core_result.processed_match) ->
         let s = extract_sig (Some renamed) pm.pm in
         if Hashtbl.mem sigs s then (
-          Hashtbl.remove sigs s;
+          (match Hashtbl.find_opt sigs s with
+          | Some n when n > 1 -> Hashtbl.replace sigs s (n - 1)
+          | Some _
+          | None ->
+              Hashtbl.remove sigs s);
           incr removed;
           None)
         else Some pm)
