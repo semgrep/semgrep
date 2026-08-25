@@ -20,4 +20,6 @@ set -euo pipefail
 jsonnet "$@" \
 | yq eval -P \
 | sed -e 's/^\( *\)"on":/\1on:/' \
-| sed -e 's/: "yes"$/: yes/'
+| sed -e 's/: "yes"$/: yes/' \
+| sed -E "s/^( *-? *)uses: '([^']+) # ([^']+)'$/\\1uses: \\2 # \\3/" \
+| sed -E 's/^( *-? *)uses: "([^"]+) # ([^"]+)"$/\1uses: \2 # \3/'
