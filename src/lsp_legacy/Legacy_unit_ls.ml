@@ -480,6 +480,44 @@ let test_ls_libev () = Lwt_platform.set_engine ()
 let libev_tests =
   Testo.categorize "Lib EV tests" [ t "Test LS with libev" test_ls_libev ]
 
+(* Regression test for the "scan" settings object silently reverting to
+   defaults (including `configuration = []`, dropping the user's local rule
+   config) whenever the VS Code extension sends a key this record doesn't
+   declare, e.g. `secrets`. See Legacy_user_settings.ml for the full
+   explanation. *)
+let user_settings () =
+  let test_unknown_key_tolerated () =
+    let scan_json =
+      `Assoc
+        [
+          ("configuration", `List [ `String "rules/java-starter.yaml" ]);
+          ("secrets", `Bool false);
+          ("someFutureSettingSemgrepVscodeWillAdd", `Bool true);
+        ]
+    in
+    match Legacy_user_settings.t_of_yojson scan_json with
+    | Error msg ->
+        Alcotest.failf
+          "expected unknown scan keys to be tolerated, but parsing failed: %s"
+          msg
+    | Ok settings ->
+        Alcotest.(check (list string))
+          "configuration" [ "rules/java-starter.yaml" ] settings.configuration
+  in
+  let test_defaults_on_empty_object () =
+    match Legacy_user_settings.t_of_yojson (`Assoc []) with
+    | Error msg -> Alcotest.failf "expected defaults to apply, got: %s" msg
+    | Ok settings ->
+        Alcotest.(check (list string))
+          "configuration" [] settings.configuration
+  in
+  Testo.categorize "User Settings"
+    [
+      t "unknown scan keys don't break configuration parsing"
+        test_unknown_key_tolerated;
+      t "defaults apply on empty scan object" test_defaults_on_empty_object;
+    ]
+
 let tests () =
   Testo.categorize_suites "Language Server (unit)"
     [
@@ -488,4 +526,5 @@ let tests () =
       ci_tests ();
       v2_fetch_async_tests ();
       libev_tests;
+      user_settings ();
     ]
