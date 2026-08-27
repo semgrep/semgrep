@@ -180,7 +180,23 @@ let compare_match (a : core_match) (b : core_match) =
   let (bloc : location) = { path = b.path; start = b.start; end_ = b.end_ } in
 
   let c = compare_location aloc bloc in
-  if c <> 0 then c else compare_match_extra a.extra b.extra
+  if c <> 0 then c
+  else
+    let c = compare_match_extra a.extra b.extra in
+    (* Tie-break on the rule and the historical info, the fields of
+       Core_json_output.core_unique_key not already compared above. Matches
+       differing only in those survive dedup as separate entries, so if they
+       compared equal their order would fall through to the iteration order of
+       the dedup table in Core_json_output.dedup_and_sort. Autofix applies the
+       first edit of an identical span, so an unstable order there picks a
+       different fix. *)
+    if c <> 0 then c
+    else
+      let c = Rule_ID.compare a.check_id b.check_id in
+      if c <> 0 then c
+      else
+        Option.compare compare_historical_info a.extra.historical_info
+          b.extra.historical_info
 
 let sort_metavars (metavars : (string * metavar_value) list) =
   List.stable_sort compare_metavar_binding metavars
