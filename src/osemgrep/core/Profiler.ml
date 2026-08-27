@@ -53,7 +53,7 @@ let stop profiler ~name =
   match Hashtbl.find_opt ht name with
   | Some (Start _) ->
       let now = Unix.gettimeofday () in
-      Hashtbl.add ht name (Start now)
+      Hashtbl.replace ht name (Start now)
   | Some (Recorded _) ->
       invalid_arg (spf "Profiler.stop: %s already recorded" name)
   | None -> invalid_arg (spf "Profiler.stop: %s does not exist" name)
@@ -67,7 +67,7 @@ let record profiler ~name fn =
   let t0 = Unix.gettimeofday () in
   let finally () =
     let t1 = Unix.gettimeofday () in
-    Mutex.protect mtx @@ fun () -> Hashtbl.add ht name (Recorded (t1 -. t0))
+    Mutex.protect mtx @@ fun () -> Hashtbl.replace ht name (Recorded (t1 -. t0))
   in
   Common.protect ~finally fn
 

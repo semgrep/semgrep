@@ -87,7 +87,7 @@ let all_possible_plugins = Atomic.make []
 let make ?(optional = false) lang =
   Atomic_.cons lang all_possible_plugins;
   let parsers = ref None in
-  if not optional then Hashtbl.add missing_plugins lang ();
+  if not optional then Hashtbl.replace missing_plugins lang ();
   let register ~parse_pattern ~parse_target =
     match !parsers with
     | None ->
