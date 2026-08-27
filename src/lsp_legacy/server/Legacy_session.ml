@@ -413,7 +413,6 @@ let fetch_skipped_app_fingerprints () =
 (* Useful for when we need to reset diagnostics, such as when changing what
  * rules we've run *)
 let scanned_files session =
-  (* We can get duplicates apparently *)
   Hashtbl.fold (fun file _ acc -> file :: acc) session.cached_scans []
   |> List.sort_uniq Fpath.compare
 
@@ -531,6 +530,6 @@ let record_results session results files =
   in
   List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter
-    (fun (f, results) -> Hashtbl.add session.cached_scans f results)
+    (fun (f, results) -> Hashtbl.replace session.cached_scans f results)
     results_by_file;
   ()
