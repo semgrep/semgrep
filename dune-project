@@ -70,9 +70,8 @@ For more information see https://semgrep.dev
     semgrep-interfaces
     ; standard libraries
     ;
-    ; We currently don't use base directly, but there are 2 issues in past
-    ; versions that require us to have a min version, since we DO use it
-    ; indirectly:
+    ; Used directly (e.g. Hashtbl_.Base in libs/collections). The min version
+    ; below also guards 2 issues in past versions:
     ; https://github.com/janestreet/base/issues/146
     ; https://github.com/janestreet/base/issues/178
     (base (>= v0.17.3))
