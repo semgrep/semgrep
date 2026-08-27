@@ -108,3 +108,74 @@ let find_default key value_if_not_found h =
 let update_default key ~update:op ~default:value_if_not_found h =
   let old = find_default key value_if_not_found h in
   Hashtbl.replace h key (op old)
+
+(*****************************************************************************)
+(* Base-backed twins *)
+(*****************************************************************************)
+
+(* [Base] shadows the library module [Base] for the rest of this file. There
+ * is nothing after this module, and inside its own body below, unqualified
+ * [Base] still refers to the library (a module can't refer to itself before
+ * its own definition is complete). *)
+module Base = struct
+  let find (tbl : ('k, 'v) Base.Hashtbl.t) (key : 'k) : 'v =
+    match Base.Hashtbl.find tbl key with
+    | Some v -> v
+    | None -> raise Not_found
+
+  let hash_of_list (xs : ('k * 'v) list) : ('k, 'v) Base.Hashtbl.t =
+    let h = Base.Hashtbl.Poly.create ~size:(List.length xs) () in
+    xs |> List.iter (fun (k, v) -> Base.Hashtbl.set h ~key:k ~data:v);
+    h
+
+  let hash_to_list (h : ('k, 'v) Base.Hashtbl.t) : ('k * 'v) list =
+    Base.Hashtbl.to_alist h |> List.sort compare
+
+  let hkeys (h : ('k, _) Base.Hashtbl.t) : 'k list =
+    Base.Hashtbl.keys h |> List.sort compare
+
+  let map (f : 'k -> 'v -> 'w) (h : ('k, 'v) Base.Hashtbl.t) :
+      ('k, 'w) Base.Hashtbl.t =
+    Base.Hashtbl.mapi h ~f:(fun ~key ~data -> f key data)
+
+  let sorted_iter ~cmp (f : 'k -> 'v -> unit) (h : ('k, 'v) Base.Hashtbl.t) :
+      unit =
+    h |> Base.Hashtbl.to_alist
+    |> List.sort (fun (key1, _) (key2, _) -> cmp key1 key2)
+    |> List.iter (fun (key, data) -> f key data)
+
+  type 'a hashset = ('a, bool) Base.Hashtbl.t
+
+  let hashset_of_list (xs : 'a list) : 'a hashset =
+    let h = Base.Hashtbl.Poly.create ~size:(List.length xs) () in
+    xs |> List.iter (fun k -> Base.Hashtbl.set h ~key:k ~data:true);
+    h
+
+  let hashset_to_list (h : 'a hashset) : 'a list =
+    hash_to_list h |> List.map fst
+
+  let push (tbl : ('k, 'v list ref) Base.Hashtbl.t) (key : 'k) (value : 'v) :
+      unit =
+    let stack = Base.Hashtbl.find_or_add tbl key ~default:(fun () -> ref []) in
+    stack := value :: !stack
+
+  let peek_opt (tbl : ('k, 'v list ref) Base.Hashtbl.t) (key : 'k) : 'v option =
+    match Base.Hashtbl.find tbl key with
+    | Some { contents = hd :: _ } -> Some hd
+    | Some { contents = [] } -> None
+    | None -> None
+
+  let get_stack (tbl : ('k, 'v list ref) Base.Hashtbl.t) (key : 'k) : 'v list =
+    match Base.Hashtbl.find tbl key with
+    | Some stack -> !stack
+    | None -> []
+
+  let find_default (key : 'k) (value_if_not_found : unit -> 'v)
+      (h : ('k, 'v) Base.Hashtbl.t) : 'v =
+    Base.Hashtbl.find_or_add h key ~default:value_if_not_found
+
+  let update_default (key : 'k) ~(update : 'v -> 'v) ~(default : unit -> 'v)
+      (h : ('k, 'v) Base.Hashtbl.t) : unit =
+    let old = find_default key default h in
+    Base.Hashtbl.set h ~key ~data:(update old)
+end
