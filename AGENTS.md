@@ -130,6 +130,11 @@ This project uses **make** for build orchestration. **IMPORTANT: Never invoke `d
  - Avoid the implicit use of polymorphic compare, hash, etc. in complex data
    structures. Prefer instantiations of `Stdlib`'s `Map`/`Set` using
    ppx-generated compare functions, for example.
+ - New code uses `Base.Hashtbl.Poly` (or `Hashtbl_.Base` for the `Hashtbl_`
+   extension helpers) instead of stdlib `Hashtbl`. Stdlib `Hashtbl` remains
+   only at documented exception sites (marshalled tables, custom-equality
+   `Hashtbl.Make` functors, order-sensitive tables). Migration of existing
+   call sites is in progress.
 
 ### `ocamldoc` Guidelines
 
