@@ -16,6 +16,7 @@ OBJS = \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
   build-test-docker.yml \
+  ocaml-tree-sitter-ci.yml \
   trigger-semgrep-comparison-argo.yml \
   sync-with-PRO.yml
 

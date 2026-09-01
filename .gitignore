@@ -224,3 +224,9 @@ result
 .direnv
 # Personal symlink to semgrep-proprietary used by 'make pro'
 /semgrep-proprietary
+
+# TEMPORARY: shrink generated .dockerignore / build context.
+# Docker only COPYs .../ocaml-tree-sitter-semgrep/core.
+libs/ocaml-tree-sitter-semgrep/**
+!libs/ocaml-tree-sitter-semgrep/core
+!libs/ocaml-tree-sitter-semgrep/core/**

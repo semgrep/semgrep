@@ -123,7 +123,7 @@ WORKDIR /src/semgrep
 # creating the switch stay in their own docker cache layers, independent of the
 # opam files, lockfiles, and sources copied below. Creating the switch (which
 # builds the compiler) is one of the most expensive steps of the build.
-COPY Makefile cygwin-env.mk ./
+COPY Makefile cygwin-env.mk tree-sitter-config.mk tree-sitter-config.sh ./
 
 # Initialize opam with our pinned opam-repository (containers can't use the
 # bubblewrap sandbox), then create the switch and install our fork of the
@@ -142,8 +142,9 @@ COPY scripts/build-static-libcurl.sh scripts/
 COPY scripts/validate-compiler-sha.sh scripts/
 COPY scripts/pick-lockfile.sh scripts/
 COPY opam-lockfiles/ ./opam-lockfiles
-COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
+COPY libs/ocaml-tree-sitter-semgrep/core libs/ocaml-tree-sitter-semgrep/core
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
+COPY dune-project ./
 
 RUN make install-deps
 

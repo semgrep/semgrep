@@ -283,6 +283,8 @@ let
         [
           ./Makefile
           ./cygwin-env.mk
+          ./tree-sitter-config.mk
+          ./tree-sitter-config.sh
           ./bin
           # might be missing due to submodule issue (dumb)
           (maybeMissing ./cli/src/semgrep/semgrep_interfaces)

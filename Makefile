@@ -73,18 +73,6 @@ endif
 # Build (and clean) targets
 ###############################################################################
 
-# Set environment variables used by dune files to locate the
-# C headers and libraries of the tree-sitter runtime library.
-# This file is created by ocaml-tree-sitter-core's configure script.
-#
-# Because of these required environment variables, we can't call dune directly
-# to build semgrep-core, unless you manually execute first
-#  `source src/ocaml-tree-sitter-core/tree-sitter-config.sh`
-#
-# I use '-include' and not 'include' because before 'make setup' this file does
-# not exist but we still want 'make setup' to succeed
--include libs/ocaml-tree-sitter-core/tree-sitter-config.mk
-
 # First (and default) target.
 .PHONY: default
 default: core
@@ -105,13 +93,25 @@ copy-core-for-cli:
 	rm -f cli/src/semgrep/bin/semgrep-core$(EXE)
 	cp bin/semgrep-core$(EXE) cli/src/semgrep/bin/
 
+# Per-language grammar C stubs need TREESITTER_*.
+# Don't call dune directly for semgrep-core — use
+# 'make core' (or source tree-sitter-config.sh).
+include tree-sitter-config.mk
+_TS_DUNE := libs/ocaml-tree-sitter-semgrep/core/tree-sitter-out
+
+# Build the tree-sitter C runtime (headers + libtree-sitter).
+# Only the C library is built; the tree-sitter CLI (needs Rust/cargo) is not.
+.PHONY: tree-sitter-runtime
+tree-sitter-runtime:
+	dune build $(_TS_DUNE)
+
 # Minimal build of the semgrep-core executable. Intended for the docker build.
 # If you need other binaries, look at the build-xxx rules below.
 # We do not use .../bin/{semgrep-core,osemgrep,semgrep} below to
 # factorize because make under Alpine uses busybox/ash for /bin/sh which
 # does not support this bash feature.
 .PHONY: core
-core:
+core: tree-sitter-runtime
 	dune build $(BUILD)/install/default/bin/semgrep-core$(EXE)
 	dune build $(BUILD)/install/default/bin/osemgrep$(EXE)
 	chmod +w $(BUILD)/install/default/bin/semgrep-core$(EXE)
@@ -204,7 +204,7 @@ core-test-smoke:
 # It rebuilds the test executable which can then be called with
 # './test <filter>' where <filter> selects the tests to run.
 .PHONY: build-core-test
-build-core-test:
+build-core-test: tree-sitter-runtime
 	dune build $(BUILD_DEFAULT)/src/tests/test.exe
 
 ###############################################################################
@@ -233,9 +233,9 @@ check-opam-conflicts: dune-project
 
 # We need to install all the dependencies in a single 'opam install'
 # command so as to detect conflicts.
-# WEIRD: if you use ./libs/ocaml-tree-sitter-core/ instead of the full
+# WEIRD: if you use ./libs/ocaml-tree-sitter-semgrep/ instead of the full
 # path, then recent versions of opam crash with a 'git ls-files fatal error'
-# about some 'libs/ocaml-tree-sitter-core/../../.git/...' not being a git
+# about some 'libs/ocaml-tree-sitter-semgrep/../../.git/...' not being a git
 # repo.
 #
 # EXTRA_OPAM_DEPS allows us to add more opam files when building semgrep
@@ -258,12 +258,11 @@ OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 # new packages that are not covered yet by our ocaml-layer docker image.
 .PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core:
-# Fetch, build and install the tree-sitter runtime library locally.
-	cd libs/ocaml-tree-sitter-core \
-	&& ./configure \
-	&& ./scripts/install-tree-sitter-lib
 	./scripts/build-static-libcurl.sh
 	$(MAKE) install-opam-deps
+# Build the tree-sitter runtime so grammar bindings can compile against it
+# (see TREESITTER_INCDIR/TREESITTER_LIBDIR and tree-sitter-runtime above).
+	opam exec -- dune build $(_TS_DUNE)
 
 # Pin the upstream opam-repository to a known-good commit.
 # coupling: keep this commit in sync with opam_repository_pin in

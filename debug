@@ -15,7 +15,7 @@
 
 set -eu
 
-# so can use dune build in run-ocamldebug.sh
-source libs/ocaml-tree-sitter-core/tree-sitter-config.sh
+# run-ocamldebug.sh calls `dune build` directly, which needs TREESITTER_*.
+source "$(dirname "$0")/tree-sitter-config.sh"
 
 ./scripts/run-ocamldebug.sh ./_build/install/default/bin/osemgrep.bc

@@ -54,9 +54,10 @@ url = https://github.com/returntocorp/semgrep-dockerfile
 path = languages/bash/tree-sitter/semgrep-bash
 url = https://github.com/returntocorp/semgrep-bash
 
-[submodule "OSS/libs/ocaml-tree-sitter-core"]
-path = libs/ocaml-tree-sitter-core
-url = https://github.com/returntocorp/ocaml-tree-sitter-core.git
+[submodule "OSS/libs/ocaml-tree-sitter-semgrep"]
+path = libs/ocaml-tree-sitter-semgrep
+url = https://github.com/semgrep/ocaml-tree-sitter-semgrep.git
+branch = malaverdiere-license-change
 
 [submodule "OSS/languages/php/tree-sitter/semgrep-php"]
 path = languages/php/tree-sitter/semgrep-php

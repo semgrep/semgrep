@@ -42,7 +42,7 @@ local copy_executable_dlls(path_to_libs, executable, target_dir) =
     // available to be able to run Python.
     //
     // NOTE: although not a depext, we recently begun seeing tree-sitter.dll be
-    // not included/not found after a bumping the ocaml-tree-sitter-core lib.
+    // not included/not found after a bumping the ocaml-tree-sitter-semgrep lib.
     // Since they aren't managed by opam, we have to include them when
     // we copy these depext DLLs.
     // see: pull/3790
@@ -52,12 +52,12 @@ local copy_executable_dlls(path_to_libs, executable, target_dir) =
       # path to tree-sitter.dll
       TREESITTER_BIN=%(lib_path)s
       DLL_PATHS=$SYS_ROOT_BIN:$TREESITTER_BIN
-      dlls=$(PATH=$DLL_PATHS:$PATH cygcheck "%(exe)s" | grep '\(x86_64-w64-mingw32\|ocaml-tree-sitter-core\)' | sed 's/^[[:space:]]*//' | sort -u)
+      dlls=$(PATH=$DLL_PATHS:$PATH cygcheck "%(exe)s" | grep '\(x86_64-w64-mingw32\|ocaml-tree-sitter-semgrep\)' | sed 's/^[[:space:]]*//' | sort -u)
       for dll in $dlls; do
         echo "Copying $dll to %(dst)s/"
         cp -p "$dll" "%(dst)s"
       done
-    ||| % { dst: target_dir, lib_path: path_to_libs + 'ocaml-tree-sitter-core/tree-sitter/bin', exe: executable },
+    ||| % { dst: target_dir, lib_path: path_to_libs + 'ocaml-tree-sitter-semgrep/core/tree-sitter-out/bin', exe: executable },
   };
 
 

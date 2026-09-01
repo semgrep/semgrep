@@ -64,7 +64,7 @@ For more information see https://semgrep.dev
     ocaml-option-flambda
     ; parser generators
     (menhir (= 20230608))
-    ; vendored in libs/ocaml-tree-sitter-core
+    ; vendored in libs/ocaml-tree-sitter-semgrep
     tree-sitter
     ; vendored in libs/semgrep-interfaces
     semgrep-interfaces
