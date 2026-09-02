@@ -1,0 +1,1 @@
+Speed up `semgrep ci` filtering when a deployment has many triage-ignored findings.

@@ -17,6 +17,7 @@ import sys
 import time
 from collections import defaultdict
 from pathlib import Path
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -112,6 +113,24 @@ def get_exclude_paths(
     }
 
     return patterns
+
+
+def _filter_app_ignored_matches(
+    matches_by_rule: Mapping[Rule, Sequence[RuleMatch]],
+    skipped_syntactic_ids: List[str],
+    skipped_match_based_ids: List[str],
+) -> Dict[Rule, List[RuleMatch]]:
+    skipped_syntactic_id_set = set(skipped_syntactic_ids)
+    skipped_match_based_id_set = set(skipped_match_based_ids)
+    return {
+        rule: [
+            match
+            for match in matches
+            if match.syntactic_id not in skipped_syntactic_id_set
+            and match.match_based_id not in skipped_match_based_id_set
+        ]
+        for rule, matches in matches_by_rule.items()
+    }
 
 
 def fix_head_if_github_action(metadata: GitMeta) -> None:
@@ -1103,16 +1122,14 @@ def ci(
             if (not rule.from_transient_scan)
         }
 
-        for rule, matches in removed_prev_scan_matches.items():
-            # Filter out any matches that are triaged as ignored on the app
-            if scan_handler:
-                matches = [
-                    match
-                    for match in matches
-                    if match.syntactic_id not in scan_handler.skipped_syntactic_ids
-                    and match.match_based_id not in scan_handler.skipped_match_based_ids
-                ]
+        if scan_handler:
+            removed_prev_scan_matches = _filter_app_ignored_matches(
+                removed_prev_scan_matches,
+                scan_handler.skipped_syntactic_ids,
+                scan_handler.skipped_match_based_ids,
+            )
 
+        for rule, matches in removed_prev_scan_matches.items():
             for match in matches:
                 # CAI (r2c-internal-cai-*) findings are uploaded to the
                 # Semgrep App via filtered_matches_by_rule but excluded
