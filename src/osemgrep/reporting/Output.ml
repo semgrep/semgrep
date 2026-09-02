@@ -74,7 +74,7 @@ let default : conf =
     fips_mode = false;
     skipped_files = false;
     max_log_list_entries = 100;
-    max_match_context_size = 0;
+    max_match_context_size = 2000;
     output_mcp_scan_results = false;
   }
 
