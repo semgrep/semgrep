@@ -22,6 +22,16 @@ pin-depends: [
   ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
   ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#d6941d16419a7d73d60126a70400fdb4d207e2ab"]
   ["memtrace.dev" "git+https://github.com/janestreet/memtrace.git#a88470c3de884182503ba5fcd4729e281e544731"]
+  (* Fork of upstream 0.91.1 carrying a single fix: on shutdown, the exporter's
+     retry backoff and the ticker's inter-tick sleep could delay process exit
+     when the collector is unreachable. Upstream 0.91.1 still has this.
+     Drop these pins once the fix lands upstream.
+     coupling: branch semgrep/shutdown-fix-0.91.1 in that repo *)
+  ["opentelemetry.0.91.1" "git+https://github.com/semgrep/ocaml-opentelemetry.git#c3a03bcc0afafea188b8aefa631788090f0b8fd4"]
+  ["opentelemetry-client.0.91.1" "git+https://github.com/semgrep/ocaml-opentelemetry.git#c3a03bcc0afafea188b8aefa631788090f0b8fd4"]
+  ["opentelemetry-client-ocurl.0.91.1" "git+https://github.com/semgrep/ocaml-opentelemetry.git#c3a03bcc0afafea188b8aefa631788090f0b8fd4"]
+  ["opentelemetry-client-cohttp-eio.0.91.1" "git+https://github.com/semgrep/ocaml-opentelemetry.git#c3a03bcc0afafea188b8aefa631788090f0b8fd4"]
+  ["opentelemetry-logs.0.91.1" "git+https://github.com/semgrep/ocaml-opentelemetry.git#c3a03bcc0afafea188b8aefa631788090f0b8fd4"]
 ]
 
 (* Needed for alpine linux docker image. These used to get pulled in *)
