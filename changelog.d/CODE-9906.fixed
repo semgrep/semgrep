@@ -1,0 +1,1 @@
+Fixed scans run with `--trace` that would fail with `Stdlib.Effect.Unhandled(Eio__core__Cancel.Get_context)` when a secret would fail to validate

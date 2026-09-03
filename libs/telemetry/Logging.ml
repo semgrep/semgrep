@@ -34,9 +34,14 @@ let attach_otel_reporter ?attributes reporter =
                pysemgrep too! *)
       match level with
       | Logs.Debug -> r1.Logs.report src level ~over k msgf
-      | _ ->
+      | _ -> (
           let v = r1.Logs.report src level ~over:(fun () -> ()) k msgf in
-          r2.Logs.report src level ~over (fun () -> v) msgf
+          (* Catch-all is deliberate: a raising otel reporter must not kill
+             the program it reports on. [over] is r2's job, so we call it. *)
+          try r2.Logs.report src level ~over (fun () -> v) msgf with
+          | _ ->
+              over ();
+              v)
     in
     { Logs.report }
   in

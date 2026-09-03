@@ -215,6 +215,35 @@ let setup_otel ?eio_sw_base trace_endpoint =
   Otel.Sdk.set ~traces:common.traces ~metrics:common.metrics ~logs:common.logs
     exporter
 
+(* We wrap [Ambient_context_eio.storage]. In ambient-context 0.2 they fixed a
+   bug(?) where ambient context was per thread, and so in new threads it would
+   fall back from eio to a thread level storage mechanism. unfortunately for us
+   in non main threads we do secret validation via lwt which means the eio
+   effect handler isnt set. this ensures even if we are in a non eio context we
+   still get some ambient context even if its empty, so we can do things like
+   send logs (although this means spans from lwt contexts might not work
+   well) *)
+let eio_ambient_storage : Opentelemetry_ambient_context.Storage.t =
+  let eio : Opentelemetry_ambient_context.Storage.t =
+    Ambient_context_eio.storage
+  in
+  let in_fiber () =
+    match eio.get_context () with
+    | _ -> true
+    | exception Effect.Unhandled _ -> false
+  in
+  {
+    name = "eio-or-empty";
+    get_context =
+      (fun () ->
+        match eio.get_context () with
+        | ctx -> ctx
+        | exception Effect.Unhandled _ ->
+            Opentelemetry_ambient_context.Context.empty);
+    with_context =
+      (fun ctx f -> if in_fiber () then eio.with_context ctx f else f ());
+  }
+
 (* Set according to README of https://github.com/ocaml-tracing/ocaml-opentelemetry/ *)
 let configure_otel ?eio_sw_base ?(attrs : (string * user_data) list = [])
     service_name trace_endpoint =
@@ -234,7 +263,7 @@ let configure_otel ?eio_sw_base ?(attrs : (string * user_data) list = [])
     (* If we are provided an eio switch + base we know we are going to use eio,
        so let's use that as our ambient context storage provider *)
     | None -> Ambient_context_lwt.storage
-    | Some _ -> Ambient_context_eio.storage
+    | Some _ -> eio_ambient_storage
   in
   Opentelemetry_ambient_context.set_current_storage ambient_storage_provider;
   setup_otel ?eio_sw_base trace_endpoint
