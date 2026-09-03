@@ -1,0 +1,4 @@
+Supply Chain: lockfileless Gradle scans now report a "Resource Inaccessible"
+resolution error when a repository refuses a request (for example a 401 from a
+private registry), instead of exiting successfully with a silently incomplete
+dependency list.
