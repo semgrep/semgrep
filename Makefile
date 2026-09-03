@@ -176,6 +176,7 @@ test-all:
 	$(MAKE) -C cli osempass
 
 #coupling: this is run by .github/workflow/tests.yml
+# OTS core tests are covered by ocaml-tree-sitter-ci, not core-test.
 .PHONY: core-test
 core-test:
 	./scripts/make-symlinks
