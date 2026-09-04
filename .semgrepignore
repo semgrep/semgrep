@@ -44,3 +44,6 @@
 
 # fixpoint is sometimes timing out on this file
 /src/data/Entropy_data.ml
+
+# Vendored tree-sitter grammars, copied verbatim from upstream
+languages/*/tree-sitter/semgrep-*/

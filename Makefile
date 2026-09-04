@@ -176,7 +176,6 @@ test-all:
 	$(MAKE) -C cli osempass
 
 #coupling: this is run by .github/workflow/tests.yml
-# OTS core tests are covered by ocaml-tree-sitter-ci, not core-test.
 .PHONY: core-test
 core-test:
 	./scripts/make-symlinks
@@ -264,6 +263,11 @@ install-deps-for-semgrep-core:
 # Build the tree-sitter runtime so grammar bindings can compile against it
 # (see TREESITTER_INCDIR/TREESITTER_LIBDIR and tree-sitter-runtime above).
 	opam exec -- dune build $(_TS_DUNE)
+
+# Regenerate an in-tree grammar, e.g. `make regen-grammar-python`.
+# Pattern rule (not LANG=) to avoid colliding with the LANG locale var.
+regen-grammar-%:
+	./scripts/regen-grammar $*
 
 # Pin the upstream opam-repository to a known-good commit.
 # coupling: keep this commit in sync with opam_repository_pin in

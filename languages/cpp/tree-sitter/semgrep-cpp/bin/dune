@@ -1,0 +1,6 @@
+(executable
+  (package tree-sitter-lang)
+  (public_name parse-cpp)
+  (name Main)
+  (libraries tree-sitter-lang.cpp)
+)

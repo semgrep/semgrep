@@ -43,6 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          lfs: true
       - name: Checkout ocaml-tree-sitter-semgrep submodule
         run: git submodule update --init --depth 1 libs/ocaml-tree-sitter-semgrep
         working-directory: ${{ github.workspace }}
@@ -58,6 +60,8 @@ jobs:
     runs-on: ${{ (matrix.language == 'c-sharp-pro' || matrix.language == 'c-sharp' || matrix.language == 'hack') && fromJSON('{"group":"Default Larger Runners","labels":"ubuntu-latest-8-core"}') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          lfs: true
       - name: Checkout ocaml-tree-sitter-semgrep submodule
         run: git submodule update --init --depth 1 libs/ocaml-tree-sitter-semgrep
         working-directory: ${{ github.workspace }}
