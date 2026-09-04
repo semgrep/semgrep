@@ -13,6 +13,13 @@
 - Homebrew installs of Semgrep are no longer supported on Intel Macs. (ENGINE-2951)
 
 
+## [1.175.1](https://github.com/semgrep/semgrep/releases/tag/v1.175.1) - 2026-09-03
+
+### ### Fixed
+
+- Fixed scans run with `--trace` that would fail with `Stdlib.Effect.Unhandled(Eio__core__Cancel.Get_context)` when a secret would fail to validate (CODE-9906)
+
+
 ## [1.175.0](https://github.com/semgrep/semgrep/releases/tag/v1.175.0) - 2026-08-26
 
 ### ### Changed
