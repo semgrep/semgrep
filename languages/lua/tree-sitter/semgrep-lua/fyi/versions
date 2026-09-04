@@ -1,0 +1,35 @@
+File: semgrep-grammars/src/tree-sitter-lua/LICENSE.md
+Git repo name: tree-sitter-lua
+Latest commit in repo: a943944ec09c5e96f455bb166079de4ef3534457
+Last change in file:
+  commit a943944ec09c5e96f455bb166079de4ef3534457
+  Author: Ademir J. Ferreira Junior <ademirj.ferreirajunior@gmail.com>
+  Date:   Sun Dec 27 00:15:24 2020 -0300
+  
+      1.6.2
+---
+File: semgrep-grammars/src/tree-sitter-lua/grammar.js
+Git repo name: tree-sitter-lua
+Latest commit in repo: a943944ec09c5e96f455bb166079de4ef3534457
+Last change in file:
+  commit a943944ec09c5e96f455bb166079de4ef3534457
+  Author: Ademir J. Ferreira Junior <ademirj.ferreirajunior@gmail.com>
+  Date:   Sun Dec 27 00:15:24 2020 -0300
+  
+      1.6.2
+---
+File: semgrep-grammars/src/semgrep-lua/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit 1cfa0a2c63a1218cf7752cb1504689eed2511548
+  Merge: e5e0c02 dbc2761
+  Author: Martin Jambon <martin@mjambon.com>
+  Date:   Fri Feb 5 17:06:26 2021 -0800
+  
+      Add 'lang/semgrep-grammars/' from commit 'dbc2761d2c62e60d2181d777393f9eaea08673a1'
+      
+      git-subtree-dir: lang/semgrep-grammars
+      git-subtree-mainline: e5e0c029006cf2d087615cc1420db28550c9ad38
+      git-subtree-split: dbc2761d2c62e60d2181d777393f9eaea08673a1
+---

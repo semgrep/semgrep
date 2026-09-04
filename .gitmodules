@@ -1,11 +1,3 @@
-[submodule "OSS/languages/java/tree-sitter/semgrep-java"]
-path = languages/java/tree-sitter/semgrep-java
-url = https://github.com/returntocorp/semgrep-java
-
-[submodule "OSS/languages/lua/tree-sitter/semgrep-lua"]
-path = languages/lua/tree-sitter/semgrep-lua
-url = https://github.com/returntocorp/semgrep-lua
-
 [submodule "OSS/languages/r/tree-sitter/semgrep-r"]
 path = languages/r/tree-sitter/semgrep-r
 url = https://github.com/returntocorp/semgrep-r
@@ -21,14 +13,6 @@ url = https://github.com/returntocorp/semgrep-tsx
 [submodule "OSS/languages/typescript/tree-sitter/semgrep-typescript"]
 path = languages/typescript/tree-sitter/semgrep-typescript
 url = https://github.com/returntocorp/semgrep-typescript
-
-[submodule "OSS/languages/ocaml/tree-sitter/semgrep-ocaml"]
-path = languages/ocaml/tree-sitter/semgrep-ocaml
-url = https://github.com/returntocorp/semgrep-ocaml.git
-
-[submodule "OSS/languages/html/tree-sitter/semgrep-html"]
-path = languages/html/tree-sitter/semgrep-html
-url = https://github.com/returntocorp/semgrep-html.git
 
 [submodule "OSS/libs/ocaml-tree-sitter-semgrep"]
 path = libs/ocaml-tree-sitter-semgrep
@@ -51,18 +35,6 @@ url = https://github.com/returntocorp/semgrep-python.git
 path = languages/swift/tree-sitter/semgrep-swift
 url = https://github.com/returntocorp/semgrep-swift.git
 
-[submodule "OSS/languages/julia/tree-sitter/semgrep-julia"]
-path = languages/julia/tree-sitter/semgrep-julia
-url = https://github.com/returntocorp/semgrep-julia.git
-
-[submodule "OSS/languages/jsonnet/tree-sitter/semgrep-jsonnet"]
-path = languages/jsonnet/tree-sitter/semgrep-jsonnet
-url = https://github.com/returntocorp/semgrep-jsonnet.git
-
-[submodule "OSS/languages/lisp/tree-sitter/semgrep-clojure"]
-path = languages/lisp/tree-sitter/semgrep-clojure
-url = https://github.com/returntocorp/semgrep-clojure.git
-
 [submodule "OSS/languages/protobuf/tree-sitter/semgrep-proto"]
 path = languages/protobuf/tree-sitter/semgrep-proto
 url = https://github.com/returntocorp/semgrep-proto.git
@@ -75,21 +47,9 @@ url = https://github.com/returntocorp/semgrep-promql.git
 path = languages/ql/tree-sitter/semgrep-ql
 url = https://github.com/semgrep/semgrep-ql
 
-[submodule "OSS/languages/kotlin/tree-sitter/semgrep-kotlin"]
-path = languages/kotlin/tree-sitter/semgrep-kotlin
-url = https://github.com/returntocorp/semgrep-kotlin.git
-
 [submodule "OSS/tests/semgrep-rules"]
 path = tests/semgrep-rules
 url = https://github.com/returntocorp/semgrep-rules.git
-
-[submodule "OSS/languages/move-on-aptos/tree-sitter/semgrep-move-on-aptos"]
-path = languages/move_on_aptos/tree-sitter/semgrep-move-on-aptos
-url = https://github.com/semgrep/semgrep-move-on-aptos.git
-
-[submodule "OSS/languages/move_on_sui/tree-sitter/semgrep-move-on-sui"]
-path = languages/move_on_sui/tree-sitter/semgrep-move-on-sui
-url = https://github.com/semgrep/semgrep-move-on-sui.git
 
 [submodule "OSS/languages/scala/tree-sitter/semgrep-scala"]
 path = languages/scala/tree-sitter/semgrep-scala

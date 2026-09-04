@@ -1,0 +1,46 @@
+; required to install tree_sitter/parser.h
+(include_subdirs qualified)
+
+(library
+  (public_name tree-sitter-lang.move-on-sui)
+  (name tree_sitter_move_on_sui)
+  (libraries atdgen-runtime tree-sitter.run)
+
+  ; A copy of the C headers for the tree-sitter library is found locally.
+  ; This is because it's important to use the right version of 'parser.h'.
+  ;
+  (foreign_stubs
+    (language c)
+    (names parser bindings)
+    (flags -std=c99
+           -fPIC
+           -I %{env:TREESITTER_INCDIR=/usr/local/include}
+           -I .)
+  )
+
+  ; TREESITTER_LIBDIR is meant to be some nonstandard location containing the
+  ; desired version of the tree-sitter library.
+  ; The -rpath option tells the linker to hardcode this search location
+  ; in the binary.
+  ;
+  ; This works as long as libtree-sitter stays where it is, which is
+  ; fine for test executables. Production executables should instead
+  ; link statically against libree-sitter to avoid problems in locating
+  ; the library at runtime.
+  ;
+  (c_library_flags
+    (
+      -L%{env:TREESITTER_LIBDIR=/usr/local/lib}
+      -lstdc++
+      -ltree-sitter
+      -Wl,-rpath,%{env:TREESITTER_LIBDIR=/usr/local/lib}
+    )
+  )
+  (foreign_stubs
+    (language cxx)
+    (names )
+    (flags -fPIC
+           -I %{env:TREESITTER_INCDIR=/usr/local/include}
+           -I .)
+  )
+)
