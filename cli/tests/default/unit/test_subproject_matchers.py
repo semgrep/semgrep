@@ -21,6 +21,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import ExactLockfileManifestMatcher
 from semdep.matchers.base import ExactManifestOnlyMatcher
 from semdep.matchers.base import PatternManifestStaticLockfileMatcher
+from semdep.matchers.bazel import BazelMavenInstallMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.matchers.sbt import SbtMatcher
@@ -1211,6 +1212,131 @@ class TestDefaultMatchers:
 
         assert len(subprojects) == len(expected_subprojects)
         assert subprojects.sort() == expected_subprojects.sort()
+
+
+class TestBazelMavenInstallMatcher:
+    @pytest.mark.quick
+    @pytest.mark.parametrize(
+        ["path", "expected_match"],
+        [
+            (Path("maven_install.json"), True),
+            (Path("MODULE.bazel"), True),
+            (Path("WORKSPACE"), True),
+            (Path("WORKSPACE.bazel"), True),
+            (Path("3rdparty/maven_install.json"), True),
+            (Path("some/nested/MODULE.bazel"), True),
+            (Path("pom.xml"), False),
+            (Path("maven_dep_tree.txt"), False),
+            (Path("build.gradle"), False),
+        ],
+    )
+    def test_is_match(self, path: Path, expected_match: bool) -> None:
+        assert BazelMavenInstallMatcher().is_match(path) == expected_match
+
+    @pytest.mark.quick
+    def test_maven_install_next_to_module_bazel(self) -> None:
+        """Lockfile and MODULE.bazel both at repo root — the canonical case."""
+        source_files = fake_targets_of_paths(
+            [Path("MODULE.bazel"), Path("maven_install.json")]
+        )
+        subprojects, used = BazelMavenInstallMatcher().make_subprojects(source_files)
+
+        assert len(subprojects) == 1
+        sp = subprojects[0]
+        assert sp.root_dir == out.Fpath(".")
+        assert sp.ecosystem == out.Ecosystem(out.Maven())
+        ds = sp.dependency_source.value
+        assert isinstance(ds, out.ManifestLockfile)
+        manifest, lockfile = ds.value
+        assert manifest.kind == out.ManifestKind(out.ModuleBazel())
+        assert manifest.path == out.Fpath("MODULE.bazel")
+        assert lockfile.kind == out.LockfileKind(out.MavenInstallJson())
+        assert lockfile.path == out.Fpath("maven_install.json")
+        assert used == fpaths_of_targets(source_files)
+
+    @pytest.mark.quick
+    def test_lockfile_in_subdirectory_attributes_to_workspace_root(self) -> None:
+        """A maven_install.json under 3rdparty/ still resolves to the repo-root workspace.
+        The subproject root_dir is the workspace root, not the lockfile parent."""
+        source_files = fake_targets_of_paths(
+            [Path("MODULE.bazel"), Path("3rdparty/maven_install.json")]
+        )
+        subprojects, _ = BazelMavenInstallMatcher().make_subprojects(source_files)
+
+        assert len(subprojects) == 1
+        assert subprojects[0].root_dir == out.Fpath(".")
+        ds = subprojects[0].dependency_source.value
+        assert isinstance(ds, out.ManifestLockfile)
+        _manifest, lockfile = ds.value
+        assert lockfile.path == out.Fpath("3rdparty/maven_install.json")
+
+    @pytest.mark.quick
+    def test_legacy_workspace_marker(self) -> None:
+        """A repo with only a legacy WORKSPACE (no MODULE.bazel) is still recognized."""
+        source_files = fake_targets_of_paths(
+            [Path("WORKSPACE"), Path("maven_install.json")]
+        )
+        subprojects, _ = BazelMavenInstallMatcher().make_subprojects(source_files)
+
+        assert len(subprojects) == 1
+        ds = subprojects[0].dependency_source.value
+        assert isinstance(ds, out.ManifestLockfile)
+        manifest, _lockfile = ds.value
+        assert manifest.path == out.Fpath("WORKSPACE")
+
+    @pytest.mark.quick
+    def test_module_bazel_preferred_over_workspace(self) -> None:
+        """When both markers exist at the same root, prefer MODULE.bazel (bzlmod)."""
+        source_files = fake_targets_of_paths(
+            [Path("MODULE.bazel"), Path("WORKSPACE"), Path("maven_install.json")]
+        )
+        subprojects, _ = BazelMavenInstallMatcher().make_subprojects(source_files)
+
+        assert len(subprojects) == 1
+        ds = subprojects[0].dependency_source.value
+        assert isinstance(ds, out.ManifestLockfile)
+        manifest, _ = ds.value
+        assert manifest.path == out.Fpath("MODULE.bazel")
+
+    @pytest.mark.quick
+    def test_multiple_lockfiles_under_one_workspace_collapse(self) -> None:
+        """Two maven_install.json files under one workspace produce one
+        subproject with a MultiLockfile dep source."""
+        source_files = fake_targets_of_paths(
+            [
+                Path("MODULE.bazel"),
+                Path("3rdparty/maven_install.json"),
+                Path("build/maven_install.json"),
+            ]
+        )
+        subprojects, _ = BazelMavenInstallMatcher().make_subprojects(source_files)
+
+        assert len(subprojects) == 1
+        ds = subprojects[0].dependency_source.value
+        assert isinstance(ds, out.MultiLockfile)
+        assert len(ds.value) == 2
+
+    @pytest.mark.quick
+    def test_orphan_lockfile_without_workspace_marker(self) -> None:
+        """A maven_install.json with no ancestor workspace marker still yields
+        a lockfile-only subproject rather than being silently dropped."""
+        source_files = fake_targets_of_paths([Path("orphan/maven_install.json")])
+        subprojects, _ = BazelMavenInstallMatcher().make_subprojects(source_files)
+
+        assert len(subprojects) == 1
+        assert subprojects[0].root_dir == out.Fpath("orphan")
+        ds = subprojects[0].dependency_source.value
+        assert isinstance(ds, out.LockfileOnly)
+
+    @pytest.mark.quick
+    def test_no_lockfile_yields_no_subproject(self) -> None:
+        """A workspace with a MODULE.bazel but no maven_install.json is not
+        an SCA subproject as far as this matcher is concerned."""
+        source_files = fake_targets_of_paths([Path("MODULE.bazel")])
+        subprojects, used = BazelMavenInstallMatcher().make_subprojects(source_files)
+
+        assert subprojects == []
+        assert used == frozenset()
 
 
 @pytest.mark.quick

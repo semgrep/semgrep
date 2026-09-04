@@ -18,6 +18,7 @@ from semdep.matchers.base import ExactLockfileManifestMatcher
 from semdep.matchers.base import ExactManifestOnlyMatcher
 from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.base import SubprojectMatcher
+from semdep.matchers.bazel import BazelMavenInstallMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.matchers.sbt import SbtMatcher
@@ -119,6 +120,8 @@ MATCHERS: List[SubprojectMatcher] = [
         ecosystem=out.Ecosystem(out.Maven()),
     ),
     GradleMatcher(),
+    # Bazel + rules_jvm_external (maven_install.json under a MODULE.bazel/WORKSPACE)
+    BazelMavenInstallMatcher(),
     # Composer
     ExactLockfileManifestMatcher(
         lockfile_name="composer.lock",

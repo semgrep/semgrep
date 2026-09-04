@@ -220,6 +220,11 @@ type lockfile_kind = Semgrep_output_v1_t.lockfile_kind =
   | MixLock
   | ConanLock
   | OpamLocked
+  | MavenInstallJson
+      (**
+        rules_jvm_external's pinned maven_install.json lockfile
+        https://github.com/bazel-contrib/rules_jvm_external
+      *)
 
   [@@deriving show { with_path = false }, eq, yojson]
 
@@ -323,6 +328,11 @@ type manifest_kind = Semgrep_output_v1_t.manifest_kind =
       *)
   | BuildSbt
       (** build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html *)
+  | ModuleBazel
+      (**
+        MODULE.bazel or WORKSPACE(.bazel) marks the root of a Bazel
+        workspace. https://bazel.build/external/module
+      *)
 
   [@@deriving show { with_path = false }, eq]
 
