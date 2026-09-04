@@ -3043,6 +3043,36 @@ type dump_rule_partitions_params = {
   ?strategy: string option;
 }
 
+type scan_params
+     <doc text="
+     Parameters for CallScan.
+
+     Unlike the rest of this section, this is an EXTERNAL contract: it is
+     vendored by Guardian's fragment scanner rather than used by pysemgrep.
+     Breaking changes are allowed and to be expected.
+     ">
+  = {
+  rules
+     <doc text="Path to a file containing the rules, as for CallValidate.">
+  : fpath;
+  (* TODO we may want to switch to passing scanning roots explicitly here. *)
+  targets
+     <doc text="Path to a file containing a 'targets' value, as for -targets.">
+  : fpath;
+  timeout
+     <doc text="
+     Maximum time to spend running one rule on one file, in seconds.
+     0 disables the timeout.
+     ">
+  : float;
+  timeout_threshold
+     <doc text="
+     Number of rules that may time out on a file before the file is skipped.
+     0 disables the threshold.
+     ">
+  : int;
+}
+
 (* ----------------------------- *)
 (* SCA part 3 *)
 (* ----------------------------- *)
@@ -3594,6 +3624,12 @@ type function_call <python decorator="dataclass(frozen=True)"> = [
       through the RPC pipe.
       ">
       of fpath
+  | CallScan
+      <doc text="
+      Run a pro intra-file scan. Called by Guardian's fragment scanner, not by
+      pysemgrep; see the scan_params doc.
+      ">
+      of scan_params
   | CallResolveDependencies of resolve_dependencies_params
   | CallUploadSymbolAnalysis of ((* token *) string * (* scan_id *) int * symbol_analysis)
   (* upload a symbol analysis that was already generated during an
@@ -3637,6 +3673,7 @@ type function_return <python decorator="dataclass(frozen=True)"> = [
   | RetValidate
       <doc text="rule validation error, if validation failed">
       of core_error option
+  | RetScan of core_output
   | RetResolveDependencies of (dependency_source * resolution_result) list
   | RetUploadSymbolAnalysis
       <doc text="success msg">

@@ -1873,6 +1873,30 @@ type scan_request = Semgrep_output_v1_t.scan_request = {
   project_config: ci_config_from_repo option
 }
 
+(**
+  Parameters for CallScan.
+  
+  Unlike the rest of this section, this is an EXTERNAL contract: it is
+  vendored by Guardian's fragment scanner rather than used by pysemgrep.
+  Breaking changes are allowed and to be expected.
+*)
+type scan_params = Semgrep_output_v1_t.scan_params = {
+  rules: fpath
+    (** Path to a file containing the rules, as for CallValidate. *);
+  targets: fpath
+    (** Path to a file containing a 'targets' value, as for -targets. *);
+  timeout: float
+    (**
+      Maximum time to spend running one rule on one file, in seconds. 0
+      disables the timeout.
+    *);
+  timeout_threshold: int
+    (**
+      Number of rules that may time out on a file before the file is skipped.
+      0 disables the threshold.
+    *)
+}
+
 type ci_env = Semgrep_output_v1_t.ci_env
 
 (**
@@ -2522,6 +2546,48 @@ type get_config_response_v2 = Semgrep_output_v1_t.get_config_response_v2 = {
   engine_params: engine_configuration option
 }
 
+type core_output = Semgrep_output_v1_t.core_output = {
+  version: version;
+  results: core_match list;
+  errors: core_error list
+    (** errors are guaranteed to be duplicate free; see also Report.ml *);
+  paths: scanned_and_skipped (** targeting information *);
+  time: profile option (** profiling information *);
+  explanations: matching_explanation list option
+    (**
+      debugging (rule writing) information. Note that as opposed to the
+      dataflow trace, the explanations are not embedded inside a match
+      because we give also explanations when things are not matching.
+      EXPERIMENTAL: since semgrep 0.109
+    *);
+  rules_by_engine: rule_id_and_engine_kind list option
+    (**
+      These rules, classified by engine used, will let us be transparent in
+      the CLI output over what rules were run with what. EXPERIMENTAL: since:
+      1.11.0
+    *);
+  engine_requested: engine_kind option;
+  interfile_languages_used: string list option
+    (**
+      Reporting just the requested engine isn't granular enough. We want to
+      know what languages had rules that invoked interfile. This is
+      particularly important for tracking the performance impact of new
+      interfile languages EXPERIMENTAL: since 1.49.0
+    *);
+  skipped_rules: skipped_rule list (** EXPERIMENTAL: since: 1.37.0 *);
+  subprojects: cli_output_subproject_info list option
+    (**
+      SCA subproject resolution results. Note: this is only available when
+      logged in. EXPERIMENTAL: since: 1.125.0
+    *);
+  mcp_scan_results: mcp_scan_results option (** MCP scan results. *);
+  profiling_results: profiling_entry list
+    (**
+      How long it took to execute this or that piece of code in semgrep-core
+    *);
+  symbol_analysis: symbol_analysis option (** since semgrep 1.108.0 *)
+}
+
 type apply_fixes_return = Semgrep_output_v1_t.apply_fixes_return = {
   modified_file_count: int (** Number of files modified *);
   fixed_lines: (int * string list) list
@@ -2623,48 +2689,6 @@ type create_scan_request_v2 = Semgrep_output_v1_t.create_scan_request_v2 = {
   necessarily want to share with the cli_output.
 *)
 type core_output_extra = Semgrep_output_v1_t.core_output_extra = {
-  symbol_analysis: symbol_analysis option (** since semgrep 1.108.0 *)
-}
-
-type core_output = Semgrep_output_v1_t.core_output = {
-  version: version;
-  results: core_match list;
-  errors: core_error list
-    (** errors are guaranteed to be duplicate free; see also Report.ml *);
-  paths: scanned_and_skipped (** targeting information *);
-  time: profile option (** profiling information *);
-  explanations: matching_explanation list option
-    (**
-      debugging (rule writing) information. Note that as opposed to the
-      dataflow trace, the explanations are not embedded inside a match
-      because we give also explanations when things are not matching.
-      EXPERIMENTAL: since semgrep 0.109
-    *);
-  rules_by_engine: rule_id_and_engine_kind list option
-    (**
-      These rules, classified by engine used, will let us be transparent in
-      the CLI output over what rules were run with what. EXPERIMENTAL: since:
-      1.11.0
-    *);
-  engine_requested: engine_kind option;
-  interfile_languages_used: string list option
-    (**
-      Reporting just the requested engine isn't granular enough. We want to
-      know what languages had rules that invoked interfile. This is
-      particularly important for tracking the performance impact of new
-      interfile languages EXPERIMENTAL: since 1.49.0
-    *);
-  skipped_rules: skipped_rule list (** EXPERIMENTAL: since: 1.37.0 *);
-  subprojects: cli_output_subproject_info list option
-    (**
-      SCA subproject resolution results. Note: this is only available when
-      logged in. EXPERIMENTAL: since: 1.125.0
-    *);
-  mcp_scan_results: mcp_scan_results option (** MCP scan results. *);
-  profiling_results: profiling_entry list
-    (**
-      How long it took to execute this or that piece of code in semgrep-core
-    *);
   symbol_analysis: symbol_analysis option (** since semgrep 1.108.0 *)
 }
 
@@ -5493,6 +5517,26 @@ val scan_request_of_string :
   string -> scan_request
   (** Deserialize JSON data of type {!type:scan_request}. *)
 
+val write_scan_params :
+  Buffer.t -> scan_params -> unit
+  (** Output a JSON value of type {!type:scan_params}. *)
+
+val string_of_scan_params :
+  ?len:int -> scan_params -> string
+  (** Serialize a value of type {!type:scan_params}
+      into a JSON string.
+      @param len specifies the initial length
+                 of the buffer used internally.
+                 Default: 1024. *)
+
+val read_scan_params :
+  Yojson.Safe.lexer_state -> Lexing.lexbuf -> scan_params
+  (** Input JSON data of type {!type:scan_params}. *)
+
+val scan_params_of_string :
+  string -> scan_params
+  (** Deserialize JSON data of type {!type:scan_params}. *)
+
 val write_ci_env :
   Buffer.t -> ci_env -> unit
   (** Output a JSON value of type {!type:ci_env}. *)
@@ -6433,6 +6477,26 @@ val get_config_response_v2_of_string :
   string -> get_config_response_v2
   (** Deserialize JSON data of type {!type:get_config_response_v2}. *)
 
+val write_core_output :
+  Buffer.t -> core_output -> unit
+  (** Output a JSON value of type {!type:core_output}. *)
+
+val string_of_core_output :
+  ?len:int -> core_output -> string
+  (** Serialize a value of type {!type:core_output}
+      into a JSON string.
+      @param len specifies the initial length
+                 of the buffer used internally.
+                 Default: 1024. *)
+
+val read_core_output :
+  Yojson.Safe.lexer_state -> Lexing.lexbuf -> core_output
+  (** Input JSON data of type {!type:core_output}. *)
+
+val core_output_of_string :
+  string -> core_output
+  (** Deserialize JSON data of type {!type:core_output}. *)
+
 val write_apply_fixes_return :
   Buffer.t -> apply_fixes_return -> unit
   (** Output a JSON value of type {!type:apply_fixes_return}. *)
@@ -6652,26 +6716,6 @@ val read_core_output_extra :
 val core_output_extra_of_string :
   string -> core_output_extra
   (** Deserialize JSON data of type {!type:core_output_extra}. *)
-
-val write_core_output :
-  Buffer.t -> core_output -> unit
-  (** Output a JSON value of type {!type:core_output}. *)
-
-val string_of_core_output :
-  ?len:int -> core_output -> string
-  (** Serialize a value of type {!type:core_output}
-      into a JSON string.
-      @param len specifies the initial length
-                 of the buffer used internally.
-                 Default: 1024. *)
-
-val read_core_output :
-  Yojson.Safe.lexer_state -> Lexing.lexbuf -> core_output
-  (** Input JSON data of type {!type:core_output}. *)
-
-val core_output_of_string :
-  string -> core_output
-  (** Deserialize JSON data of type {!type:core_output}. *)
 
 val write_cli_output_extra :
   Buffer.t -> cli_output_extra -> unit

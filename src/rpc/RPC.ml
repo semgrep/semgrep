@@ -19,6 +19,10 @@ module Out = Semgrep_output_v1_j
 (* OCaml side of the Python -> OCaml RPC
  *
  * See RPC_return.ml for the code implementing the Python RPC calls.
+ *
+ * coupling: OSS/cli/src/semgrep/rpc.py, the pysemgrep caller
+ * coupling: Guardian's fragment scanner, which calls CallScan directly and
+ * vendors the types. See src/rpc/README.txt.
  *)
 
 let name_of_call (call : Out.function_call) : string =
@@ -28,6 +32,7 @@ let name_of_call (call : Out.function_call) : string =
   | `CallContributions -> "CallContributions"
   | `CallFormatter _ -> "CallFormatter"
   | `CallValidate _ -> "CallValidate"
+  | `CallScan _ -> "CallScan"
   | `CallResolveDependencies _ -> "CallResolveDependencies"
   | `CallUploadSymbolAnalysis _ -> "CallUploadSymbolAnalysis"
   | `CallDumpRulePartitions _ -> "CallDumpRulePartitions"
@@ -75,6 +80,15 @@ let handle_call (conf : config) (call : Out.function_call) :
         RPC_return.validate ~par_conf:conf.par_conf ~num_jobs:conf.num_jobs path
       in
       Ok (`RetValidate valid)
+  | `CallScan params -> (
+      let msg =
+        "Scanning over RPC is a proprietary feature, but semgrep-pro has not \
+         been loaded"
+      in
+      let/ scan = Option.to_result ~none:msg !RPC_return.hook_scan in
+      match scan ~par_conf:conf.par_conf ~num_jobs:conf.num_jobs params with
+      | Ok core_output -> Ok (`RetScan core_output)
+      | Error msg -> Error msg)
   | `CallResolveDependencies params -> (
       match !RPC_return.hook_resolve_dependencies with
       | Some resolve_dependencies ->

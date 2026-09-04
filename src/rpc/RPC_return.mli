@@ -55,3 +55,11 @@ val hook_match_subprojects : (Out.fpath list -> Out.subproject list) option ref
 val hook_run_symbol_analysis :
   (Out.symbol_analysis_params -> (Out.symbol_analysis, string) result) option
   ref
+
+val hook_scan :
+  (par_conf:Parallelism_config.t ->
+  num_jobs:int ->
+  Out.scan_params ->
+  (Out.core_output, string) result)
+  option
+  ref
