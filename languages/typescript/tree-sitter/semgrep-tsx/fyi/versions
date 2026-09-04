@@ -1,0 +1,99 @@
+File: semgrep-grammars/src/tree-sitter-javascript/LICENSE
+Git repo name: tree-sitter-javascript
+Latest commit in repo: 6fbef40512dcd9f0a61ce03a4c9ae7597b36ab5c
+Last change in file:
+  commit 236a8dc0e5116ca1aca483b1a90df07f4bf3177e
+  Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
+  Date:   Wed Jul 30 00:40:50 2014 -0700
+  
+      Initial commit
+---
+File: semgrep-grammars/src/tree-sitter-javascript/grammar.js
+Git repo name: tree-sitter-javascript
+Latest commit in repo: 6fbef40512dcd9f0a61ce03a4c9ae7597b36ab5c
+Last change in file:
+  commit a2ef0796e8b9db9107c9ad210b3121b8ad918d5e
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Sat Oct 26 18:22:54 2024 -0400
+  
+      feat!: remove glimmer template tags
+      
+      There is now a glimmer parser that's been out for a while now, glimmer
+      parsers should be using this.
+---
+File: semgrep-grammars/src/tree-sitter-typescript/LICENSE
+Git repo name: tree-sitter-typescript
+Latest commit in repo: 75b3874edb2dc714fb1fd77a32013d0f8699989f
+Last change in file:
+  commit f836f66b9c9bfc5c5d068476c9fdd0d2fa4af65a
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Mon May 6 00:41:00 2024 -0400
+  
+      build: update bindings and manifests
+---
+File: semgrep-grammars/src/tree-sitter-typescript/common/define-grammar.js
+Git repo name: tree-sitter-typescript
+Latest commit in repo: 75b3874edb2dc714fb1fd77a32013d0f8699989f
+Last change in file:
+  commit 71fe6418462fe69a33860ceb3299a613441dae4b
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Mon Sep 2 16:46:26 2024 -0400
+  
+      feat: bump tree-sitter-javascript to 0.23
+---
+File: semgrep-grammars/src/tree-sitter-typescript/typescript/grammar.js
+Git repo name: tree-sitter-typescript
+Latest commit in repo: 75b3874edb2dc714fb1fd77a32013d0f8699989f
+Last change in file:
+  commit 4312b355b21710839110f934e240c7761383c86b
+  Author: Nathan Sobo <nathan@github.com>
+  Date:   Thu May 23 13:20:08 2019 -0700
+  
+      Include common scanner.h in both custom scanners to avoid extra symbols
+---
+File: semgrep-grammars/src/semgrep-typescript/typescript/grammar.js
+Git repo name: main
+Latest commit in repo: d68c1d87318808ec1b36ce89570ef6c0bc763f77
+Last change in file:
+  commit f5c74b25c04be3b4901fe961e5c7a0489415aaaa
+  Author: Nat Mote <nat@r2c.dev>
+  Date:   Tue Aug 23 17:57:41 2022 -0700
+  
+      feat(ts): Add ellipsis and top level switch case parsing
+      
+      We recently received a feature request for allowing standalone switch
+      cases as patterns, e.g. `case 5: ...`. This seems useful. There is
+      currently no precedent for it in Semgrep, but there are a variety of
+      other partial programs that are allowed as patterns, so the
+      infrastructure for this exists.
+      
+      However, we currently use the JS pfff parser to parse all patterns for
+      TS and JS, rather than this tree sitter parser which we use for parsing
+      targets (for JS, we still fall back on the pfff parser, but for TS we
+      use this exclusively).
+      
+      Because we generally seem to be moving away from pfff parsers, I was
+      reluctant to add new features to the pfff parser. Instead, I would like
+      to begin to fall back on the tree sitter parser when parsing patterns,
+      just like we do when parsing targets.
+      
+      This PR adds parsing support for the semgrep ellipsis (`...`) and top
+      level switch case parsing to the TypeScript and TSX parsers. The
+      ellipsis is a table stakes feature, so I didn't want to omit it even
+      initially. The switch case provides the motivation for adding the
+      fallback logic (in an upcoming PR to Semgrep).
+      
+      Test plan: Automated tests plus a manual test with my upcoming changes
+      to Semgrep, where it can successfully match using a standalone switch
+      case pattern.
+---
+File: semgrep-grammars/src/tree-sitter-typescript/tsx/grammar.js
+Git repo name: tree-sitter-typescript
+Latest commit in repo: 75b3874edb2dc714fb1fd77a32013d0f8699989f
+Last change in file:
+  commit 4312b355b21710839110f934e240c7761383c86b
+  Author: Nathan Sobo <nathan@github.com>
+  Date:   Thu May 23 13:20:08 2019 -0700
+  
+      Include common scanner.h in both custom scanners to avoid extra symbols
+---

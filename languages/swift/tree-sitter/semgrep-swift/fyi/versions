@@ -1,0 +1,54 @@
+File: semgrep-grammars/src/tree-sitter-swift/LICENSE
+Git repo name: tree-sitter-swift
+Latest commit in repo: 597d544b3c93b2f67d2e143f27cc51ba874ec5c3
+Last change in file:
+  commit 597d544b3c93b2f67d2e143f27cc51ba874ec5c3
+  Author: Alex Pinkus <pinkus@amazon.com>
+  Date:   Sun Oct 8 16:26:24 2023 -0700
+  
+      Loosen the restrictions around directly assignable expressions
+      
+      We currently only allow a subset of expressions to be used as the target
+      of assignment. The Swift compiler also only allows a subset, but keeping
+      track of their subset is hard. For example, in #321 we see that an
+      optional expression can be used for assignment but we don't currently
+      support that.
+      
+      Let's get out of that game. All expressions can be assignments now!
+      Sure, that doesn't work for the real swift compiler, but that's not our
+      circus, and furthermore, not our monkeys.
+---
+File: semgrep-grammars/src/tree-sitter-swift/grammar.js
+Git repo name: tree-sitter-swift
+Latest commit in repo: 597d544b3c93b2f67d2e143f27cc51ba874ec5c3
+Last change in file:
+  commit 597d544b3c93b2f67d2e143f27cc51ba874ec5c3
+  Author: Alex Pinkus <pinkus@amazon.com>
+  Date:   Sun Oct 8 16:26:24 2023 -0700
+  
+      Loosen the restrictions around directly assignable expressions
+      
+      We currently only allow a subset of expressions to be used as the target
+      of assignment. The Swift compiler also only allows a subset, but keeping
+      track of their subset is hard. For example, in #321 we see that an
+      optional expression can be used for assignment but we don't currently
+      support that.
+      
+      Let's get out of that game. All expressions can be assignments now!
+      Sure, that doesn't work for the real swift compiler, but that's not our
+      circus, and furthermore, not our monkeys.
+---
+File: semgrep-grammars/src/semgrep-swift/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit 12e7143a5ee5f0cb910e055f9a02edad2069ab25
+  Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
+  Date:   Tue Nov 12 09:33:26 2024 -0800
+  
+      fix(swift): allow ellipses in function parameters (#517)
+      
+      * allow metavariables in function parameters
+      
+      * ellipsis metavariables too
+---
