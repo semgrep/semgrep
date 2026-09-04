@@ -1,0 +1,53 @@
+File: semgrep-grammars/src/tree-sitter-php/LICENSE
+Git repo name: tree-sitter-php
+Latest commit in repo: 7d07b41ce2d442ca9a90ed85d0075eccc17ae315
+Last change in file:
+  commit ad1c8c837e34222839c804bf96466e518787e180
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Fri May 3 22:46:31 2024 -0400
+  
+      feat: update bindings
+---
+File: semgrep-grammars/src/tree-sitter-php/common/define-grammar.js
+Git repo name: tree-sitter-php
+Latest commit in repo: 7d07b41ce2d442ca9a90ed85d0075eccc17ae315
+Last change in file:
+  commit 43fbdd53c34a82d9a27c83f9798a2918b3dcd270
+  Author: Caleb White <cdwhite3@pm.me>
+  Date:   Wed Jul 2 07:44:55 2025 -0500
+  
+      feat!: add php_end_tag to grammar and queries
+---
+File: semgrep-grammars/src/tree-sitter-php/php/grammar.js
+Git repo name: tree-sitter-php
+Latest commit in repo: 7d07b41ce2d442ca9a90ed85d0075eccc17ae315
+Last change in file:
+  commit ba383c7670e163b596efe11a0fd81d5b2af4b14c
+  Author: Caleb White <cdwhite3@pm.me>
+  Date:   Fri Oct 20 09:08:49 2023 +0200
+  
+      Split parser into php/php_only dialects with common files
+---
+File: semgrep-grammars/src/semgrep-php/php/grammar.js
+Git repo name: otss
+Latest commit in repo: 5bb6cd7ebdd490a82345fee3b5e1962faa183834
+Last change in file:
+  commit 5bb6cd7ebdd490a82345fee3b5e1962faa183834
+  Author: Cooper Pierce <cooper@semgrep.com>
+  Date:   Thu Feb 5 11:47:36 2026 -0500
+  
+      feat: use latest upsteam php
+      
+      This requires several changes:
+      - Updates the core submodule to use a more recent version which supports
+        tree-sitter 0.26.3. This is needed since latest upstream php uses
+        features (namely `reserved`) which are only avaliable in 0.25.0 or
+        later.
+      - Updates languages/language-variants-$VERSION files to reflect this.
+      - Upstream has split the grammar into both `php` and `php-only` (the
+        former allows markup tags) so we have to make some updates here. We
+        already had a configuration like this for typescript and tsx, so much
+        of this is just copied from what we do for those (e.g., the
+        `semgrep-grammars/src/semgrep-php/prep` file is essentially just a
+        port of the same for typescript)
+---

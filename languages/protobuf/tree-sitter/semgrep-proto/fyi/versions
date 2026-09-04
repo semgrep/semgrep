@@ -1,0 +1,35 @@
+File: semgrep-grammars/src/tree-sitter-proto/LICENSE
+Git repo name: tree-sitter-proto
+Latest commit in repo: 42d82fa18f8afe59b5fc0b16c207ee4f84cb185f
+Last change in file:
+  commit 42d82fa18f8afe59b5fc0b16c207ee4f84cb185f
+  Author: Mitchell Hashimoto <mitchell.hashimoto@gmail.com>
+  Date:   Sat Jun 12 09:29:04 2021 -0700
+  
+      add folds
+---
+File: semgrep-grammars/src/tree-sitter-proto/grammar.js
+Git repo name: tree-sitter-proto
+Latest commit in repo: 42d82fa18f8afe59b5fc0b16c207ee4f84cb185f
+Last change in file:
+  commit 42d82fa18f8afe59b5fc0b16c207ee4f84cb185f
+  Author: Mitchell Hashimoto <mitchell.hashimoto@gmail.com>
+  Date:   Sat Jun 12 09:29:04 2021 -0700
+  
+      add folds
+---
+File: semgrep-grammars/src/semgrep-proto/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit 5cdac7131e3753e36116ff2951a74ac18bf5003c
+  Author: pad <pad@r2c.dev>
+  Date:   Wed Jun 21 12:35:18 2023 +0200
+  
+      add tree-sitter-proto for protobuf, step1
+      
+      This will help https://github.com/returntocorp/semgrep/issues/8088
+      
+      test plan:
+      ./test-lang proto
+---
