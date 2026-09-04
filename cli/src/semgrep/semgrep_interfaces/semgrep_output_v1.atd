@@ -3076,6 +3076,11 @@ type lockfile_kind
     | MixLock
     | ConanLock
     | OpamLocked
+    | MavenInstallJson
+        <doc text="
+        rules_jvm_external's pinned maven_install.json lockfile
+        https://github.com/bazel-contrib/rules_jvm_external
+        ">
 ] <ocaml repr="classic">
 
 type manifest_kind
@@ -3181,6 +3186,11 @@ type manifest_kind
   | BuildSbt
       <doc text="
       build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html
+      ">
+  | ModuleBazel
+      <doc text="
+      MODULE.bazel or WORKSPACE(.bazel) marks the root of a Bazel workspace.
+      https://bazel.build/external/module
       ">
 ] <ocaml repr="classic">
 

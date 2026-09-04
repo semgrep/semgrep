@@ -1358,11 +1358,32 @@ class OpamLocked:
 
 
 @dataclass(frozen=True)
+class MavenInstallJson:
+    """Original type: lockfile_kind = [ ... | MavenInstallJson | ... ]
+
+    rules_jvm_external's pinned maven_install.json lockfile
+    https://github.com/bazel-contrib/rules_jvm_external
+    """
+
+    @property
+    def kind(self) -> str:
+        """Name of the class representing this variant."""
+        return 'MavenInstallJson'
+
+    @staticmethod
+    def to_json() -> Any:
+        return 'MavenInstallJson'
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
 class LockfileKind:
     """Original type: lockfile_kind = [ ... ]
     """
 
-    value: Union[PipRequirementsTxt, PoetryLock, PipfileLock, UvLock, NpmPackageLockJson, YarnLock, PnpmLock, BunLock, BunBinaryLock, GemfileLock, GoModLock, CargoLock, MavenDepTree, GradleLockfile, ComposerLock, NugetPackagesLockJson, PubspecLock, SwiftPackageResolved, PodfileLock, MixLock, ConanLock, OpamLocked]
+    value: Union[PipRequirementsTxt, PoetryLock, PipfileLock, UvLock, NpmPackageLockJson, YarnLock, PnpmLock, BunLock, BunBinaryLock, GemfileLock, GoModLock, CargoLock, MavenDepTree, GradleLockfile, ComposerLock, NugetPackagesLockJson, PubspecLock, SwiftPackageResolved, PodfileLock, MixLock, ConanLock, OpamLocked, MavenInstallJson]
 
     @property
     def kind(self) -> str:
@@ -1416,6 +1437,8 @@ class LockfileKind:
                 return cls(ConanLock())
             if x == 'OpamLocked':
                 return cls(OpamLocked())
+            if x == 'MavenInstallJson':
+                return cls(MavenInstallJson())
             _atd_bad_json('LockfileKind', x)
         _atd_bad_json('LockfileKind', x)
 
@@ -1939,11 +1962,32 @@ class BuildSbt:
 
 
 @dataclass(frozen=True)
+class ModuleBazel:
+    """Original type: manifest_kind = [ ... | ModuleBazel | ... ]
+
+    MODULE.bazel or WORKSPACE(.bazel) marks the root of a Bazel workspace.
+    https://bazel.build/external/module
+    """
+
+    @property
+    def kind(self) -> str:
+        """Name of the class representing this variant."""
+        return 'ModuleBazel'
+
+    @staticmethod
+    def to_json() -> Any:
+        return 'ModuleBazel'
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
 class ManifestKind:
     """Original type: manifest_kind = [ ... ]
     """
 
-    value: Union[RequirementsIn, SetupPy, PackageJson, Gemfile, GoModManifest, CargoToml, PomXml, BuildGradle, BuildGradleKts, SettingsGradle, ComposerJson, NugetManifestJson, PubspecYaml, PackageSwift, Podfile, MixExs, Pipfile, PyprojectToml, ConanFileTxt, ConanFilePy, Csproj, OpamFile, BuildSbt]
+    value: Union[RequirementsIn, SetupPy, PackageJson, Gemfile, GoModManifest, CargoToml, PomXml, BuildGradle, BuildGradleKts, SettingsGradle, ComposerJson, NugetManifestJson, PubspecYaml, PackageSwift, Podfile, MixExs, Pipfile, PyprojectToml, ConanFileTxt, ConanFilePy, Csproj, OpamFile, BuildSbt, ModuleBazel]
 
     @property
     def kind(self) -> str:
@@ -1999,6 +2043,8 @@ class ManifestKind:
                 return cls(OpamFile())
             if x == 'BuildSbt':
                 return cls(BuildSbt())
+            if x == 'ModuleBazel':
+                return cls(ModuleBazel())
             _atd_bad_json('ManifestKind', x)
         _atd_bad_json('ManifestKind', x)
 

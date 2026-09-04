@@ -1,0 +1,15 @@
+module(
+    name = "sc_2008_bazel_e2e",
+    version = "0.1.0",
+)
+
+bazel_dep(name = "rules_jvm_external", version = "6.1")
+
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    artifacts = [
+        "org.apache.logging.log4j:log4j-core:2.14.0",
+    ],
+    lock_file = "//:maven_install.json",
+)
+use_repo(maven, "maven")

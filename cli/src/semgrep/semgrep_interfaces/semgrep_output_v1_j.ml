@@ -220,6 +220,11 @@ type lockfile_kind = Semgrep_output_v1_t.lockfile_kind =
   | MixLock
   | ConanLock
   | OpamLocked
+  | MavenInstallJson
+      (**
+        rules_jvm_external's pinned maven_install.json lockfile
+        https://github.com/bazel-contrib/rules_jvm_external
+      *)
 
   [@@deriving show { with_path = false }, eq, yojson]
 
@@ -323,6 +328,11 @@ type manifest_kind = Semgrep_output_v1_t.manifest_kind =
       *)
   | BuildSbt
       (** build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html *)
+  | ModuleBazel
+      (**
+        MODULE.bazel or WORKSPACE(.bazel) marks the root of a Bazel
+        workspace. https://bazel.build/external/module
+      *)
 
   [@@deriving show { with_path = false }, eq]
 
@@ -4179,6 +4189,7 @@ let write_lockfile_kind : _ -> lockfile_kind -> _ = (
       | MixLock -> Buffer.add_string ob "\"MixLock\""
       | ConanLock -> Buffer.add_string ob "\"ConanLock\""
       | OpamLocked -> Buffer.add_string ob "\"OpamLocked\""
+      | MavenInstallJson -> Buffer.add_string ob "\"MavenInstallJson\""
 )
 let string_of_lockfile_kind ?(len = 1024) x =
   let ob = Buffer.create len in
@@ -4234,6 +4245,8 @@ let read_lockfile_kind = (
               (ConanLock : lockfile_kind)
             | "OpamLocked" ->
               (OpamLocked : lockfile_kind)
+            | "MavenInstallJson" ->
+              (MavenInstallJson : lockfile_kind)
             | x ->
               Atdgen_runtime.Oj_run.invalid_variant_tag p x
         )
@@ -4434,6 +4447,7 @@ let write_manifest_kind : _ -> manifest_kind -> _ = (
       | Csproj -> Buffer.add_string ob "\"Csproj\""
       | OpamFile -> Buffer.add_string ob "\"OpamFile\""
       | BuildSbt -> Buffer.add_string ob "\"BuildSbt\""
+      | ModuleBazel -> Buffer.add_string ob "\"ModuleBazel\""
 )
 let string_of_manifest_kind ?(len = 1024) x =
   let ob = Buffer.create len in
@@ -4491,6 +4505,8 @@ let read_manifest_kind = (
               (OpamFile : manifest_kind)
             | "BuildSbt" ->
               (BuildSbt : manifest_kind)
+            | "ModuleBazel" ->
+              (ModuleBazel : manifest_kind)
             | x ->
               Atdgen_runtime.Oj_run.invalid_variant_tag p x
         )

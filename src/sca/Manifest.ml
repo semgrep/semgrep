@@ -93,6 +93,8 @@ type kind = Out.manifest_kind =
   | OpamFile
   (* build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html *)
   | BuildSbt
+  (* MODULE.bazel or WORKSPACE(.bazel) - https://bazel.build/external/module *)
+  | ModuleBazel
 [@@deriving eq, ord, show]
 
 (* old: used to be path : Target.path but no need complex origin for manifest*)
@@ -135,6 +137,7 @@ let kind_to_ecosystem_opt (kind : kind) : Out.ecosystem option =
       None
   | Podfile -> Some Out.Cocoapods
   | OpamFile -> Some Out.Opam
+  | ModuleBazel -> Some Out.Maven
 
 (* coupling: Match_subprojects.ml *)
 let kind_of_filename_exn (file : Fpath.t) : kind =
