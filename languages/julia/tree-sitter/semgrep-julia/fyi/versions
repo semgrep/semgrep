@@ -1,0 +1,33 @@
+File: semgrep-grammars/src/tree-sitter-julia/LICENSE
+Git repo name: tree-sitter-julia
+Latest commit in repo: 87394e7ce3b1aca1a7c7912d2bbc599551591093
+Last change in file:
+  commit 22e8889dc3718099e4dd14feb5930e84cf03fbb1
+  Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
+  Date:   Tue Jul 21 10:27:50 2020 -0700
+  
+      Add mit license file
+---
+File: semgrep-grammars/src/tree-sitter-julia/grammar.js
+Git repo name: tree-sitter-julia
+Latest commit in repo: 87394e7ce3b1aca1a7c7912d2bbc599551591093
+Last change in file:
+  commit 5a3c32155f0ea5b2630cd6cd4f786633609bc2bd
+  Author: Sergio Alejandro Vargas <savargasqu+git@unal.edu.co>
+  Date:   Sat Mar 30 21:56:26 2024 -0500
+  
+      Rename `bare_tuple` to `open_tuple`
+---
+File: semgrep-grammars/src/semgrep-julia/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: a1626e94302e3f3fc1d2e23cec259ef306ae9372
+Last change in file:
+  commit 63c38b4cabb5dfd3d2ab41cfa24aa7490c7d15c9
+  Author: Sergio Alejandro Vargas <savargasqu+git@unal.edu.co>
+  Date:   Thu Apr 24 10:29:03 2025 -0500
+  
+      fix(julia): remove _statement extension
+      
+      The `_statement` rule doesn't need to be extended because statements are
+      expressions and the `_expression` rule is already extended.
+---

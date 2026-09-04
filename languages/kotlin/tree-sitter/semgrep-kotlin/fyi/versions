@@ -1,0 +1,43 @@
+File: semgrep-grammars/src/tree-sitter-kotlin/LICENSE
+Git repo name: tree-sitter-kotlin
+Latest commit in repo: a1760ba7178fe76515e7cfe7577deae2335fa57d
+Last change in file:
+  commit 677f3ae356d7a31fabbd860fcb30bfefeadaaeec
+  Author: fwcd <fwcdmail@gmail.com>
+  Date:   Mon Jul 29 19:00:48 2019 +0300
+  
+      Update repository to focus solely on the Tree-Sitter grammar
+---
+File: semgrep-grammars/src/tree-sitter-kotlin/grammar.js
+Git repo name: tree-sitter-kotlin
+Latest commit in repo: a1760ba7178fe76515e7cfe7577deae2335fa57d
+Last change in file:
+  commit f3a1ea74304adad67164a0a6ffe729428748a7a7
+  Author: Vladimir Makaev <vmakaev@gmail.com>
+  Date:   Wed Mar 4 12:56:01 2026 +0000
+  
+      fix(scanner): suppress ASI before catch and finally keywords (#246)
+      
+      The scanner was inserting automatic semicolons before `catch` and
+      `finally` keywords on new lines, breaking common Kotlin patterns like
+      multi-catch and try-catch-finally across lines.
+      
+      - Add `catch` and `finally` as continuation keywords in the main ASI
+        switch and line comment inner switch
+      - Add `prec.right` to `try_expression` to resolve the grammar-level
+        ambiguity (dangling-else style) between ending the try expression
+        and continuing with catch/finally
+      - Remove the now-unnecessary `[$.try_expression]` conflict declaration
+      - Add 4 regression tests for try-catch-catch, try-catch-finally, and
+        comment-separated variants
+---
+File: semgrep-grammars/src/semgrep-kotlin/grammar.js
+Git repo name: tarides-kotlin
+Latest commit in repo: 4515172ebd992948d04b889d8dd546986fa90756
+Last change in file:
+  commit 4515172ebd992948d04b889d8dd546986fa90756
+  Author: Puneeth Chaganti <punchagan@muse-amuse.in>
+  Date:   Tue Mar 10 20:57:04 2026 +0530
+  
+      Remove workaround for newline between classname and constructor
+---
