@@ -48,6 +48,11 @@ RPC protocol details:
 - [OCaml] Serialize the result and send it following the same protocol.
 - [Python] Read the result from the channel following the same protocol.
 
+Not all callers are pysemgrep. Guardian's fragment scanner speaks this
+protocol directly and vendors a copy of the types. Breaking changes are fine:
+the fragment scanner's sync job will ensure that Semgrep and the types are
+updated in lockstep.
+
 We use stdin and stdout here. This is the simplest option for communication
 between the two processes. The main concern would be that we might inadvertently
 print something on the OCaml process' stdout. However, we already use stdout for

@@ -1163,6 +1163,13 @@ export type DumpRulePartitionsParams = {
   strategy?: string;
 }
 
+export type ScanParams = {
+  rules: Fpath;
+  targets: Fpath;
+  timeout: number;
+  timeout_threshold: number /*int*/;
+}
+
 export type LockfileKind =
 | { kind: 'PipRequirementsTxt' }
 | { kind: 'PoetryLock' }
@@ -1362,6 +1369,7 @@ export type FunctionCall =
 | { kind: 'CallFormatter'; value: [OutputFormat, FormatContext, CliOutput] }
 | { kind: 'CallSarifFormat'; value: [SarifFormat, FormatContext, CliOutput] }
 | { kind: 'CallValidate'; value: Fpath }
+| { kind: 'CallScan'; value: ScanParams }
 | { kind: 'CallResolveDependencies'; value: ResolveDependenciesParams }
 | { kind: 'CallUploadSymbolAnalysis'; value: [string, number /*int*/, SymbolAnalysis] }
 | { kind: 'CallDumpRulePartitions'; value: DumpRulePartitionsParams }
@@ -1379,6 +1387,7 @@ export type FunctionReturn =
 | { kind: 'RetFormatter'; value: string }
 | { kind: 'RetSarifFormat'; value: string }
 | { kind: 'RetValidate'; value: Option<CoreError> }
+| { kind: 'RetScan'; value: CoreOutput }
 | { kind: 'RetResolveDependencies'; value: [DependencySource, ResolutionResult][] }
 | { kind: 'RetUploadSymbolAnalysis'; value: string }
 | { kind: 'RetDumpRulePartitions'; value: boolean }
@@ -4895,6 +4904,24 @@ export function readDumpRulePartitionsParams(x: any, context: any = x): DumpRule
   };
 }
 
+export function writeScanParams(x: ScanParams, context: any = x): any {
+  return {
+    'rules': _atd_write_required_field('ScanParams', 'rules', writeFpath, x.rules, x),
+    'targets': _atd_write_required_field('ScanParams', 'targets', writeFpath, x.targets, x),
+    'timeout': _atd_write_required_field('ScanParams', 'timeout', _atd_write_float, x.timeout, x),
+    'timeout_threshold': _atd_write_required_field('ScanParams', 'timeout_threshold', _atd_write_int, x.timeout_threshold, x),
+  };
+}
+
+export function readScanParams(x: any, context: any = x): ScanParams {
+  return {
+    rules: _atd_read_required_field('ScanParams', 'rules', readFpath, x['rules'], x),
+    targets: _atd_read_required_field('ScanParams', 'targets', readFpath, x['targets'], x),
+    timeout: _atd_read_required_field('ScanParams', 'timeout', _atd_read_float, x['timeout'], x),
+    timeout_threshold: _atd_read_required_field('ScanParams', 'timeout_threshold', _atd_read_int, x['timeout_threshold'], x),
+  };
+}
+
 export function writeLockfileKind(x: LockfileKind, context: any = x): any {
   switch (x.kind) {
     case 'PipRequirementsTxt':
@@ -5596,6 +5623,8 @@ export function writeFunctionCall(x: FunctionCall, context: any = x): any {
       return ['CallSarifFormat', ((x, context) => [writeSarifFormat(x[0], x), writeFormatContext(x[1], x), writeCliOutput(x[2], x)])(x.value, x)]
     case 'CallValidate':
       return ['CallValidate', writeFpath(x.value, x)]
+    case 'CallScan':
+      return ['CallScan', writeScanParams(x.value, x)]
     case 'CallResolveDependencies':
       return ['CallResolveDependencies', writeResolveDependenciesParams(x.value, x)]
     case 'CallUploadSymbolAnalysis':
@@ -5638,6 +5667,8 @@ export function readFunctionCall(x: any, context: any = x): FunctionCall {
         return { kind: 'CallSarifFormat', value: ((x, context): [SarifFormat, FormatContext, CliOutput] => { _atd_check_json_tuple(3, x, context); return [readSarifFormat(x[0], x), readFormatContext(x[1], x), readCliOutput(x[2], x)] })(x[1], x) }
       case 'CallValidate':
         return { kind: 'CallValidate', value: readFpath(x[1], x) }
+      case 'CallScan':
+        return { kind: 'CallScan', value: readScanParams(x[1], x) }
       case 'CallResolveDependencies':
         return { kind: 'CallResolveDependencies', value: readResolveDependenciesParams(x[1], x) }
       case 'CallUploadSymbolAnalysis':
@@ -5677,6 +5708,8 @@ export function writeFunctionReturn(x: FunctionReturn, context: any = x): any {
       return ['RetSarifFormat', _atd_write_string(x.value, x)]
     case 'RetValidate':
       return ['RetValidate', _atd_write_option(writeCoreError)(x.value, x)]
+    case 'RetScan':
+      return ['RetScan', writeCoreOutput(x.value, x)]
     case 'RetResolveDependencies':
       return ['RetResolveDependencies', _atd_write_array(((x, context) => [writeDependencySource(x[0], x), writeResolutionResult(x[1], x)]))(x.value, x)]
     case 'RetUploadSymbolAnalysis':
@@ -5713,6 +5746,8 @@ export function readFunctionReturn(x: any, context: any = x): FunctionReturn {
       return { kind: 'RetSarifFormat', value: _atd_read_string(x[1], x) }
     case 'RetValidate':
       return { kind: 'RetValidate', value: _atd_read_option(readCoreError)(x[1], x) }
+    case 'RetScan':
+      return { kind: 'RetScan', value: readCoreOutput(x[1], x) }
     case 'RetResolveDependencies':
       return { kind: 'RetResolveDependencies', value: _atd_read_array(((x, context): [DependencySource, ResolutionResult] => { _atd_check_json_tuple(2, x, context); return [readDependencySource(x[0], x), readResolutionResult(x[1], x)] }))(x[1], x) }
     case 'RetUploadSymbolAnalysis':
