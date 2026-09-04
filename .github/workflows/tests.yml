@@ -103,7 +103,7 @@ jobs:
       - id: snapshot-commit
         if: failure() && github.event_name == 'pull_request' && (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
         name: Commit snapshot updates
-        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
+        uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8
         with:
           add: cli/tests/default/e2e/snapshots
           default_author: github_actions
@@ -211,7 +211,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           uv sync --locked
         working-directory: cli
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}
           path: ~/.cache/qa-public-repos
