@@ -51,6 +51,7 @@ type kind = Out.lockfile_kind =
   | MixLock
   | ConanLock
   | OpamLocked
+  | MavenInstallJson
 [@@deriving ord, eq, show]
 
 (* For the origin of the lockfile see SCA_dependency_source.ml
@@ -91,6 +92,7 @@ let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   | ConanLock -> None
   | PodfileLock -> Some Out.Cocoapods
   | OpamLocked -> Some Out.Opam
+  | MavenInstallJson -> Some Out.Maven
 
 (* coupling: Match_subprojects.ml *)
 let kind_of_filename_exn (file : Fpath.t) : kind =

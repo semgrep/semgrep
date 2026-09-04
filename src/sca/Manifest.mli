@@ -72,6 +72,8 @@ type kind = Semgrep_output_v1_j.manifest_kind =
   | OpamFile
   (* build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html *)
   | BuildSbt
+  (* MODULE.bazel or WORKSPACE(.bazel) - https://bazel.build/external/module *)
+  | ModuleBazel
 [@@deriving eq, ord, show]
 
 type t = Semgrep_output_v1_t.manifest = { kind : kind; path : Fpath.t }

@@ -1,0 +1,9 @@
+java_binary(
+    name = "app",
+    srcs = ["App.java"],
+    main_class = "example.App",
+    deps = [
+        "@maven//:org_apache_logging_log4j_log4j_core",
+        "@maven//:org_apache_logging_log4j_log4j_api",
+    ],
+)

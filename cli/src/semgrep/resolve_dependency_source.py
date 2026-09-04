@@ -30,6 +30,7 @@ from semdep.parsers.composer import parse_composer_lock
 from semdep.parsers.gem import parse_gemfile
 from semdep.parsers.go_mod import parse_go_mod
 from semdep.parsers.gradle import parse_gradle
+from semdep.parsers.maven_install import parse_maven_install
 from semdep.parsers.mix import parse_mix
 from semdep.parsers.packages_lock_c_sharp import (
     parse_packages_lock as parse_packages_lock_c_sharp,
@@ -79,6 +80,7 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] 
     out.LockfileKind(out.GoModLock()): DependencyParser(parse_go_mod),
     out.LockfileKind(out.CargoLock()): to_parser(parse_cargo),
     out.LockfileKind(out.MavenDepTree()): DependencyParser(parse_pom_tree),
+    out.LockfileKind(out.MavenInstallJson()): DependencyParser(parse_maven_install),
     out.LockfileKind(out.GradleLockfile()): DependencyParser(parse_gradle),
     out.LockfileKind(out.NugetPackagesLockJson()): DependencyParser(
         parse_packages_lock_c_sharp

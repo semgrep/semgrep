@@ -2991,7 +2991,11 @@
         { "const": "PodfileLock" },
         { "const": "MixLock" },
         { "const": "ConanLock" },
-        { "const": "OpamLocked" }
+        { "const": "OpamLocked" },
+        {
+          "description": "rules_jvm_external's pinned maven_install.json lockfile https://github.com/bazel-contrib/rules_jvm_external",
+          "const": "MavenInstallJson"
+        }
       ]
     },
     "manifest_kind": {
@@ -3087,6 +3091,10 @@
         {
           "description": "build.sbt - https://www.scala-sbt.org/1.x/docs/Basic-Def.html",
           "const": "BuildSbt"
+        },
+        {
+          "description": "MODULE.bazel or WORKSPACE(.bazel) marks the root of a Bazel workspace. https://bazel.build/external/module",
+          "const": "ModuleBazel"
         }
       ]
     },

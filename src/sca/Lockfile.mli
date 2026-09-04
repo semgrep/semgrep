@@ -33,6 +33,7 @@ type kind = Semgrep_output_v1_t.lockfile_kind =
   | MixLock
   | ConanLock
   | OpamLocked
+  | MavenInstallJson
 [@@deriving eq, ord, show]
 
 type t = Semgrep_output_v1_t.lockfile = { kind : kind; path : Fpath.t }

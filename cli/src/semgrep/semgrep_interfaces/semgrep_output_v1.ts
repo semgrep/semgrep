@@ -1186,6 +1186,7 @@ export type LockfileKind =
 | { kind: 'MixLock' }
 | { kind: 'ConanLock' }
 | { kind: 'OpamLocked' }
+| { kind: 'MavenInstallJson' }
 
 export type ManifestKind =
 | { kind: 'RequirementsIn' }
@@ -1211,6 +1212,7 @@ export type ManifestKind =
 | { kind: 'Csproj' }
 | { kind: 'OpamFile' }
 | { kind: 'BuildSbt' }
+| { kind: 'ModuleBazel' }
 
 export type SbomKind =
 | { kind: 'CycloneDXJson' }
@@ -4939,6 +4941,8 @@ export function writeLockfileKind(x: LockfileKind, context: any = x): any {
       return 'ConanLock'
     case 'OpamLocked':
       return 'OpamLocked'
+    case 'MavenInstallJson':
+      return 'MavenInstallJson'
   }
 }
 
@@ -4988,6 +4992,8 @@ export function readLockfileKind(x: any, context: any = x): LockfileKind {
       return { kind: 'ConanLock' }
     case 'OpamLocked':
       return { kind: 'OpamLocked' }
+    case 'MavenInstallJson':
+      return { kind: 'MavenInstallJson' }
     default:
       _atd_bad_json('LockfileKind', x, context)
       throw new Error('impossible')
@@ -5042,6 +5048,8 @@ export function writeManifestKind(x: ManifestKind, context: any = x): any {
       return 'OpamFile'
     case 'BuildSbt':
       return 'BuildSbt'
+    case 'ModuleBazel':
+      return 'ModuleBazel'
   }
 }
 
@@ -5093,6 +5101,8 @@ export function readManifestKind(x: any, context: any = x): ManifestKind {
       return { kind: 'OpamFile' }
     case 'BuildSbt':
       return { kind: 'BuildSbt' }
+    case 'ModuleBazel':
+      return { kind: 'ModuleBazel' }
     default:
       _atd_bad_json('ManifestKind', x, context)
       throw new Error('impossible')
