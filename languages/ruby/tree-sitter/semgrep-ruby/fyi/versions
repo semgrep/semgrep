@@ -1,0 +1,30 @@
+File: semgrep-grammars/src/tree-sitter-ruby/LICENSE
+Git repo name: tree-sitter-ruby
+Latest commit in repo: 71bd32fb7607035768799732addba884a37a6210
+Last change in file:
+  commit 71bd32fb7607035768799732addba884a37a6210
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Sun Nov 10 23:48:17 2024 -0500
+  
+      0.23.1
+---
+File: semgrep-grammars/src/tree-sitter-ruby/grammar.js
+Git repo name: tree-sitter-ruby
+Latest commit in repo: 71bd32fb7607035768799732addba884a37a6210
+Last change in file:
+  commit 71bd32fb7607035768799732addba884a37a6210
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Sun Nov 10 23:48:17 2024 -0500
+  
+      0.23.1
+---
+File: semgrep-grammars/src/semgrep-ruby/grammar.js
+Git repo name: thimphu
+Latest commit in repo: 6fb9d44e71622de327da69034a95dc870ae3b619
+Last change in file:
+  commit 4f4e890c6bba5597d3f89e52262bf563a49bea3d
+  Author: brandonspark <wu.brandonj@gmail.com>
+  Date:   Mon Sep 18 11:59:04 2023 -0700
+  
+      fix regular blocks
+---

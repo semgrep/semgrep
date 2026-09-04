@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+#
+# regen-grammar LANG
+#
+# Regenerates the in-tree tree-sitter parser for LANG from the vendored
+# ocaml-tree-sitter-semgrep generator, into
+#   <oss>/languages/LANG/tree-sitter/semgrep-LANG/
+# (<oss> = this repo's OSS root: the repo root standalone, `OSS/` in the monorepo).
+#
+# Replaces the old generate -> publish to external semgrep-LANG repo -> git
+# submodule round trip with one in-tree step, so a grammar change and its
+# regenerated parser land in one reviewable commit.
+#
+# Paths are derived from this script's own location, not `git rev-parse`, so it
+# behaves the same in the monorepo and the standalone OSS repo.
+#
+# Tree-sitter version: generation uses the per-language CLI pin in
+# lang/languages-<version> (provisioned into core/tree-sitter-<version>/ by
+# core/scripts/provision-tree-sitter, then put on PATH by `make gen`) -- NOT
+# the single version core/ inlines for the OCaml bindings / semgrep-core
+# runtime (core/tree-sitter-version -> dune's tree-sitter-out).
+#
+# Prerequisites:
+#   - ots core built and installed, so `ocaml-tree-sitter-gen-c` /
+#     `ocaml-tree-sitter-gen-ocaml` are on PATH via core/bin:
+#       make -C <oss>/libs/ocaml-tree-sitter-semgrep/core setup install
+#   - network, once per tree-sitter version, for provision-tree-sitter to
+#     fetch that language's CLI + runtime.
+#   - upstream grammar sources under
+#     libs/ocaml-tree-sitter-semgrep/lang/semgrep-grammars/src/tree-sitter-LANG/;
+#     no longer submodules, so this script shallow-clones at the pin recorded
+#     in fyi/versions if the directory is empty.
+#   - clang++ on PATH (lang/semgrep-grammars/src/Makefile.common requires it
+#     to compile scanner.cc grammars).
+#
+set -euo pipefail
+
+prog=$(basename "$0")
+lang="${1:-}"
+if [[ -z "$lang" || "$lang" == "-h" || "$lang" == "--help" ]]; then
+  echo "usage: $prog LANG   (e.g. $prog python)" >&2
+  [[ "$lang" == "-h" || "$lang" == "--help" ]] && exit 0
+  exit 2
+fi
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+oss=$(dirname "$script_dir")                       # <oss> root (see header)
+ots="$oss/libs/ocaml-tree-sitter-semgrep"
+langdir="$ots/lang/$lang"
+
+# Destination leaf is always tree-sitter/semgrep-$lang; the parent directory
+# name can differ (csharp vs c-sharp, lisp vs clojure, terraform vs hcl, …).
+shopt -s nullglob
+dsts=(
+  "$oss/languages/"*/tree-sitter/semgrep-"$lang"
+  "$(dirname "$oss")/languages/"*/tree-sitter/semgrep-"$lang"
+)
+shopt -u nullglob
+if ((${#dsts[@]} != 1)); then
+  echo "$prog: expected one in-tree dest for '$lang', found ${#dsts[@]}: ${dsts[*]:-<none>}" >&2
+  exit 1
+fi
+dst=${dsts[0]}
+
+[[ -d "$langdir" ]] || { echo "$prog: no generator dir for '$lang' ($langdir)" >&2; exit 1; }
+
+# ----------------------------------------------------------------------------
+# 0. Best-effort: provision the upstream grammar at its recorded pin.
+# ----------------------------------------------------------------------------
+# No longer a submodule: if not checked out, clone it at the fyi/versions pin
+# (URL from the vendored ots .gitmodules). Git can't track empty dirs, so
+# "absent" is the normal not-yet-provisioned state here, not an error.
+grammar_dir="$ots/lang/semgrep-grammars/src/tree-sitter-$lang"
+if [[ ! -d "$grammar_dir" || -z "$(ls -A "$grammar_dir" 2>/dev/null)" ]]; then
+  gm="$ots/.gitmodules"
+  url=$(git config -f "$gm" --get "submodule.lang/semgrep-grammars/src/tree-sitter-$lang.url" 2>/dev/null || true)
+  url=${url/git@github.com:/https://github.com/}
+  # Pull the pinned commit for tree-sitter-LANG out of fyi/versions.
+  pin=$(awk -v want="tree-sitter-$lang" '
+      $0 ~ ("Git repo name: " want "$") { getline; if ($0 ~ /Latest commit in repo:/) { print $NF; exit } }
+    ' "$dst/fyi/versions" 2>/dev/null || true)
+  if [[ -n "$url" ]]; then
+    echo "$prog: cloning upstream grammar $url -> $grammar_dir"
+    git clone --quiet "$url" "$grammar_dir"
+    if [[ -n "$pin" ]]; then
+      echo "$prog: checking out recorded pin $pin"
+      git -C "$grammar_dir" checkout --quiet "$pin" \
+        || echo "$prog: WARNING could not check out pin $pin; using default branch" >&2
+    else
+      echo "$prog: WARNING no recorded pin found in fyi/versions; using default branch" >&2
+    fi
+  else
+    echo "$prog: WARNING no URL for tree-sitter-$lang in $gm; skipping auto-clone" >&2
+  fi
+fi
+
+# ----------------------------------------------------------------------------
+# 0b. Per-language tree-sitter CLI — not the inlined core/tree-sitter-out.
+# ----------------------------------------------------------------------------
+# lang/Makefile.common wants the CLI at core/tree-sitter-<version>/bin (per
+# lang/languages-<version>) -- not dune's inlined tree-sitter-out, which is a
+# single version used to build the OCaml bindings / semgrep-core. Without
+# provisioning, `make gen` could pick up whatever `tree-sitter` is on PATH.
+ts_for_lang="$ots/lang/scripts/ts-version-for-lang"
+[[ -x "$ts_for_lang" ]] || { echo "$prog: missing $ts_for_lang" >&2; exit 1; }
+ts_version=$("$ts_for_lang" "$lang") || exit 1
+echo "$prog: tree-sitter $ts_version (lang/languages-*)"
+
+recorded=$(awk '{ print $2; exit }' "$dst/fyi/tree-sitter-version" 2>/dev/null || true)
+if [[ -n "$recorded" && "$recorded" != "$ts_version" ]]; then
+  echo "$prog: WARNING fyi/tree-sitter-version records $recorded, languages-* pins $ts_version" >&2
+fi
+
+"$ots/core/scripts/provision-tree-sitter" "$ts_version"
+export PATH="$ots/core/tree-sitter-$ts_version/bin:$PATH"
+
+# ----------------------------------------------------------------------------
+# 0c. Prep + generate the semgrep-flavored grammar copy.
+# ----------------------------------------------------------------------------
+# lang/$lang/Makefile reads grammar.json from this dir via the
+# ../semgrep-grammars/lang/$lang symlink, but src/{grammar.json,parser.c}
+# there are gitignored build output (lang/semgrep-grammars/src/.gitignore) --
+# never committed, even for long-established languages -- so a fresh checkout
+# never has them. `make build` here runs `prep` (import/patch from the
+# upstream tree-sitter-$lang clone from step 0) then `tree-sitter generate`.
+semgrep_grammar_dir="$ots/lang/semgrep-grammars/src/semgrep-$lang"
+[[ -d "$semgrep_grammar_dir" ]] \
+  || { echo "$prog: no semgrep-flavored grammar dir for '$lang' ($semgrep_grammar_dir)" >&2; exit 1; }
+make -C "$semgrep_grammar_dir" PROJECT_ROOT="$ots" build
+
+# Pro languages generate into the pro package (mirrors lang/release). $dst
+# already tells us which side of the OSS/Pro boundary $lang is on: OSS
+# languages resolve under $oss/languages/, Pro-only ones under the
+# proprietary languages/ tree (see "OSS vs Pro boundary" in
+# OSS/languages/GRAMMAR_INTEGRATION.md) -- no separate list to keep in sync.
+gen_ocaml_options=""
+[[ "$dst" == "$oss/languages/"* ]] || gen_ocaml_options="--package tree-sitter-lang-pro"
+
+# ----------------------------------------------------------------------------
+# 1. Generate into ots's own ocaml-src/ (ots stays decoupled from <oss>).
+# ----------------------------------------------------------------------------
+# PROJECT_ROOT is explicit: lang/Makefile.common otherwise falls back to
+# `git rev-parse --show-toplevel`, which is the monorepo root once ots is
+# vendored (or even now, if the submodule .git is missing).
+make -C "$langdir" PROJECT_ROOT="$ots" clean
+make -C "$langdir" PROJECT_ROOT="$ots" GEN_OCAML_OPTIONS="$gen_ocaml_options" gen
+
+src="$langdir/ocaml-src"
+[[ -d "$src" ]] || { echo "$prog: generation produced no '$src'" >&2; exit 1; }
+
+# ----------------------------------------------------------------------------
+# 2. Replace the generated artifacts in-tree (keep README.md, .github/, etc.).
+# ----------------------------------------------------------------------------
+rm -rf "${dst:?}/lib" "${dst:?}/bin"
+cp -a "$src/lib" "$dst/"
+cp -a "$src/bin" "$dst/"
+cp -a "$src/config" "$dst/"
+cp -a "$src/.gitignore" "$dst/"
+
+# ----------------------------------------------------------------------------
+# 3. Refresh fyi/ provenance (docs, not a build input): upstream grammar
+#    commit + tree-sitter version. Mirrors copy_fyi_files in
+#    libs/ocaml-tree-sitter-semgrep/lang/release.
+# ----------------------------------------------------------------------------
+"$script_dir/sync-grammar-fyi.py" "$langdir" "$dst" "$src/lib/parser.c"
+
+echo "$prog: regenerated $dst"
+echo "$prog: review the diff, then commit lib/, bin/, config/ and fyi/."

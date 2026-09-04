@@ -1,0 +1,73 @@
+File: semgrep-grammars/src/tree-sitter-go/LICENSE
+Git repo name: tree-sitter-go
+Latest commit in repo: 05900faa3cdb5d2d8c8bd5e77ee698487e0a8611
+Last change in file:
+  commit 05900faa3cdb5d2d8c8bd5e77ee698487e0a8611
+  Author: Yoann Padioleau <pad@r2c.dev>
+  Date:   Thu Oct 20 09:01:48 2022 +0200
+  
+      Merge pull request #92 from kawaemon/fix/generic-type-accepts-qualified-type
+      
+      Allow GenericType to accept QualifiedType
+---
+File: semgrep-grammars/src/tree-sitter-go/grammar.js
+Git repo name: tree-sitter-go
+Latest commit in repo: 05900faa3cdb5d2d8c8bd5e77ee698487e0a8611
+Last change in file:
+  commit 05900faa3cdb5d2d8c8bd5e77ee698487e0a8611
+  Author: Yoann Padioleau <pad@r2c.dev>
+  Date:   Thu Oct 20 09:01:48 2022 +0200
+  
+      Merge pull request #92 from kawaemon/fix/generic-type-accepts-qualified-type
+      
+      Allow GenericType to accept QualifiedType
+---
+File: semgrep-grammars/src/semgrep-go/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit e4bd8598155070740039b0170c8199ef67bd99de
+  Author: Martin Jambon <martin@r2c.dev>
+  Date:   Wed Sep 18 10:10:26 2024 -0700
+  
+      Update the ocaml-tree-sitter runtime library (#510)
+      
+      * Use new OCaml code generator and runtime with support for extras
+      
+      * Add lists of languages that need this or that version of tree-sitter.
+      
+      * Fix gitignore
+      
+      * Update core submodule
+      
+      * Add missing languages to lists of languages
+      
+      * Add missing language
+      
+      * Restore version of tree-sitter-julia supported by semgrep
+      
+      * Update core, requires regenerating all languages
+      
+      * Add lists of languages for the 'release' command
+      
+      * Add readme
+      
+      * Undo PR https://github.com/semgrep/ocaml-tree-sitter-semgrep/pull/488
+      because the corresponding changes weren't made in semgrep
+      
+      * Revert 2 recent semgrep-go commits by Brandon and Yosef because
+      the accompanying changes in semgrep are not ready.
+      We're reverting the contents of semgrep-go to
+      commit 9b59bf4de55a94ebfeae44ad37b628ef1e2dd8c8
+      
+      * Update core
+      
+      * Promote html parser from tree-sitter 0.20.6 to 0.22.6
+      
+      * Use a patched version of tree-sitter-vue that avoids HTML parsing errors
+      in programs where both semgrep-vue and semgrep-html are used.
+      
+      * Add safeguard against running into the same tree-sitter-vue issue again
+      
+      * Update core
+---

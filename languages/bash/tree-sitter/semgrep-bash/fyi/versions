@@ -1,0 +1,34 @@
+File: semgrep-grammars/src/tree-sitter-bash/LICENSE
+Git repo name: tree-sitter-bash
+Latest commit in repo: 30d369ba45971a40160de34631ceea05358c9a48
+Last change in file:
+  commit 30d369ba45971a40160de34631ceea05358c9a48
+  Author: Martin Jambon <martin@returntocorp.com>
+  Date:   Sun Oct 10 01:14:12 2021 -0700
+  
+      Merge pull request #111 from tree-sitter/mj-select
+      
+      Support for 'select' loops
+---
+File: semgrep-grammars/src/tree-sitter-bash/grammar.js
+Git repo name: tree-sitter-bash
+Latest commit in repo: 30d369ba45971a40160de34631ceea05358c9a48
+Last change in file:
+  commit 30d369ba45971a40160de34631ceea05358c9a48
+  Author: Martin Jambon <martin@returntocorp.com>
+  Date:   Sun Oct 10 01:14:12 2021 -0700
+  
+      Merge pull request #111 from tree-sitter/mj-select
+      
+      Support for 'select' loops
+---
+File: semgrep-grammars/src/semgrep-bash/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit 26f6ce5a8e3b2d6731f14c5ccb92deafb102a8d1
+  Author: Martin Jambon <martin@r2c.dev>
+  Date:   Wed Apr 13 15:38:06 2022 -0700
+  
+      Update comment
+---

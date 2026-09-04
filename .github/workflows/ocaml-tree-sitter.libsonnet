@@ -160,8 +160,10 @@ local for_tree(ots_dir, ots_is_submodule=true) =
     },
 
     // TEMPORARY: public ots only — full submodule checkout hits private deps.
+    // lfs=true: every caller builds the tree, and lib/parser.c is
+    // LFS-tracked, so plain `git diff`/`git status` need real content.
     checkout_steps:
-      actions.checkout()
+      actions.checkout(lfs=true)
       + (if ots_is_submodule then [checkout_ots_submodule_step] else []),
 
     build_core_steps: build_core_steps,

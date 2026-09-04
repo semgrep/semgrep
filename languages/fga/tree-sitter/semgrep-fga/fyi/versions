@@ -1,0 +1,50 @@
+File: semgrep-grammars/src/tree-sitter-fga/LICENSE
+Git repo name: tree-sitter-fga
+Latest commit in repo: 0fc6a930bee430daea05aefd79ff70703044011d
+Last change in file:
+  commit 49a700db6958c2a7ad08f001794f4b60459b4f83
+  Author: Matouš Dzivjak <matousdzivjak@gmail.com>
+  Date:   Sun Mar 31 22:32:57 2024 +0200
+  
+      feat: init
+      
+      Tree sitter grammar for OpenFGA authorization schema language (fga).
+---
+File: semgrep-grammars/src/tree-sitter-fga/grammar.js
+Git repo name: tree-sitter-fga
+Latest commit in repo: 0fc6a930bee430daea05aefd79ff70703044011d
+Last change in file:
+  commit cb15c44cd13d96e6061e89c394ea2dbaae047a89
+  Author: Alex Useche <alex.o.useche@gmail.com>
+  Date:   Fri Jan 9 15:02:52 2026 -0800
+  
+      generated parsers
+---
+File: semgrep-grammars/src/semgrep-fga/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: fdc34f286075ac40ae16b05dc38b923a6181e914
+Last change in file:
+  commit fdc34f286075ac40ae16b05dc38b923a6181e914
+  Author: Alex Useche <1915998+hex0punk@users.noreply.github.com>
+  Date:   Thu Feb 12 17:45:28 2026 -0800
+  
+      feat(fga): Add OpenFGA language support (#554)
+      
+      * add support for openfga model parsing
+      
+      * extended fga gramar for semgrep, added support for number lits for base grammar
+      
+      * cxleaned files, updated lang/makefile
+      
+      * added test file
+      
+      * removed trailing whitespacew
+      
+      * removed ouput dir for gen'ed files
+      
+      * update tree-sitter-fga to remove build directory
+      
+      ---------
+      
+      Signed-off-by: Jessie Grosen <jessie.grosen@semgrep.com>
+---
