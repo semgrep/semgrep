@@ -4,7 +4,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: "1.24"
       - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.8
@@ -48,7 +48,7 @@ jobs:
           save-opam-post-run: true
       - run: opam install -y ocamlformat.0.29.0
       - name: Cache pre-commit hook envs
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           key: pre-commit-v1|${{ hashFiles('.pre-commit-config.yaml') }}
           path: ~/.cache/pre-commit
