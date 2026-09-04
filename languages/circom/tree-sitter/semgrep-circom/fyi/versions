@@ -1,0 +1,34 @@
+File: semgrep-grammars/src/tree-sitter-circom/LICENSE
+Git repo name: tree-sitter-circom
+Latest commit in repo: c4df0664be207e2eae9f5507f9f5f00ea0a952c9
+Last change in file:
+  commit c4df0664be207e2eae9f5507f9f5f00ea0a952c9
+  Author: Daniil Fronts <Frodan@users.noreply.github.com>
+  Date:   Thu Jul 11 15:21:47 2024 +0700
+  
+      Merge pull request #2 from Decurity/semgrep-grammar-fixes
+      
+      Circom 2.0.1 + semgrep grammar support
+---
+File: semgrep-grammars/src/tree-sitter-circom/grammar.js
+Git repo name: tree-sitter-circom
+Latest commit in repo: c4df0664be207e2eae9f5507f9f5f00ea0a952c9
+Last change in file:
+  commit c4df0664be207e2eae9f5507f9f5f00ea0a952c9
+  Author: Daniil Fronts <Frodan@users.noreply.github.com>
+  Date:   Thu Jul 11 15:21:47 2024 +0700
+  
+      Merge pull request #2 from Decurity/semgrep-grammar-fixes
+      
+      Circom 2.0.1 + semgrep grammar support
+---
+File: semgrep-grammars/src/semgrep-circom/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit c0523bf7824b26abbf8484b6c590bb19d603f41d
+  Author: frodan <fronc2000@gmail.com>
+  Date:   Wed Jul 10 21:05:17 2024 +0700
+  
+      + fixes and corpus
+---

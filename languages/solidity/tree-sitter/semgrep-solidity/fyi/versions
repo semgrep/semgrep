@@ -1,0 +1,41 @@
+File: semgrep-grammars/src/tree-sitter-solidity/LICENSE
+Git repo name: tree-sitter-solidity
+Latest commit in repo: 048fe686cb1fde267243739b8bdbec8fc3a55272
+Last change in file:
+  commit 048fe686cb1fde267243739b8bdbec8fc3a55272
+  Author: JoranHonig <JoranHonig@users.noreply.github.com>
+  Date:   Wed Feb 11 10:25:14 2026 +0100
+  
+      test: add test for yul function definitions
+---
+File: semgrep-grammars/src/tree-sitter-solidity/grammar.js
+Git repo name: tree-sitter-solidity
+Latest commit in repo: 048fe686cb1fde267243739b8bdbec8fc3a55272
+Last change in file:
+  commit 048fe686cb1fde267243739b8bdbec8fc3a55272
+  Author: JoranHonig <JoranHonig@users.noreply.github.com>
+  Date:   Wed Feb 11 10:25:14 2026 +0100
+  
+      test: add test for yul function definitions
+---
+File: semgrep-grammars/src/semgrep-solidity/grammar.js
+Git repo name: medan
+Latest commit in repo: eac4949a19c4af1da00f77e96d37257f22a78127
+Last change in file:
+  commit eac4949a19c4af1da00f77e96d37257f22a78127
+  Author: Marc-André Laverdière <marc-andre@semgrep.com>
+  Date:   Thu Jun 11 16:53:35 2026 -0600
+  
+      feat: update tree-sitter-solidity grammar
+      
+      Bump the tree-sitter-solidity submodule to 048fe68 and update the
+      semgrep extension grammar to match upstream rule renames:
+      _statement -> statement, _expression -> expression, the event_paramater
+      typo fix -> event_parameter, and the new enum_body rule (replacing the
+      copy-pasted enum_declaration). event_definition is now a top-level
+      declaration upstream, so it was dropped from the source_file override to
+      avoid a grammar conflict. Solidity moves to the 0.22.6 language list and
+      the test corpus is updated for the new parse trees.
+      
+      Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+---

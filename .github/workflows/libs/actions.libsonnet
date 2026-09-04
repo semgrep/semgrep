@@ -162,11 +162,13 @@ local merge_base_output = '${{ steps.get-merge-base.outputs.commit }}';
   // TODO: default to submodules=true, and a flexible with={}?
   // What about 'persist-credentials': false? needed? A few of
   // our workflows was using that, but not consistently
-  checkout: function(ref='') (
+  checkout: function(ref='', lfs=false) (
+    local with_ = (if ref == '' then {} else { ref: ref })
+                  + (if lfs then { lfs: true } else {});
     [
       {
         uses: uses.actions.checkout,
-      } + (if ref == '' then {} else { with: { ref: ref } }),
+      } + (if with_ == {} then {} else { with: with_ }),
     ]
   ),
   // The right checkout to call in most cases; slower but correct.

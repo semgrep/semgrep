@@ -1,0 +1,50 @@
+File: semgrep-grammars/src/tree-sitter-c/LICENSE
+Git repo name: tree-sitter-c
+Latest commit in repo: ecdd500806cf8154d944344f1df6418b32e0e9a7
+Last change in file:
+  commit ecdd500806cf8154d944344f1df6418b32e0e9a7
+  Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
+  Date:   Fri Jan 26 12:20:17 2024 -0800
+  
+      fix: properly suffix elifdef
+---
+File: semgrep-grammars/src/tree-sitter-c/grammar.js
+Git repo name: tree-sitter-c
+Latest commit in repo: ecdd500806cf8154d944344f1df6418b32e0e9a7
+Last change in file:
+  commit ecdd500806cf8154d944344f1df6418b32e0e9a7
+  Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
+  Date:   Fri Jan 26 12:20:17 2024 -0800
+  
+      fix: properly suffix elifdef
+---
+File: semgrep-grammars/src/tree-sitter-cpp/LICENSE
+Git repo name: tree-sitter-cpp
+Latest commit in repo: 4ca37be8e70e5a40ae95688bec56b886ba945888
+Last change in file:
+  commit 4ca37be8e70e5a40ae95688bec56b886ba945888
+  Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
+  Date:   Fri Jan 26 08:33:26 2024 -0800
+  
+      disambiguate fold vs parenthesized assignment (#239)
+---
+File: semgrep-grammars/src/tree-sitter-cpp/grammar.js
+Git repo name: tree-sitter-cpp
+Latest commit in repo: 4ca37be8e70e5a40ae95688bec56b886ba945888
+Last change in file:
+  commit 4ca37be8e70e5a40ae95688bec56b886ba945888
+  Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
+  Date:   Fri Jan 26 08:33:26 2024 -0800
+  
+      disambiguate fold vs parenthesized assignment (#239)
+---
+File: semgrep-grammars/src/semgrep-cpp/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit 5f3836d894376e97f7582fd32c2bd01b98697886
+  Author: brandonspark <wu.brandonj@gmail.com>
+  Date:   Mon Jan 29 15:03:38 2024 -0800
+  
+      remove redundant choice
+---

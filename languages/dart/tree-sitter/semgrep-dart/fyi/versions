@@ -1,0 +1,218 @@
+File: semgrep-grammars/src/tree-sitter-dart/LICENSE
+Git repo name: tree-sitter-dart
+Latest commit in repo: 02e9bb191c7cb6c73cbd9e09a5d089e4496f9cff
+Last change in file:
+  commit 02e9bb191c7cb6c73cbd9e09a5d089e4496f9cff
+  Author: Alexandre Laroche <larochealexandre@hotmail.com>
+  Date:   Tue May 5 22:09:22 2026 -0400
+  
+      Parse `@annotation (R, T) method() {...}` (record-return + leading annotation) (#98)
+      
+      * fix: parse `@annotation (R, T) method() {...}` (record-return + leading annotation)
+      
+      Tree-sitter previously couldn't parse a method whose return type is a
+      record type when preceded by an annotation (e.g.
+      `@override (Model, Cmd?) update(Msg msg) { ... }`), because
+      `annotation`'s `optional(arguments)` greedily consumed the leading `(`
+      of the record return type and then the rest mis-parsed as the
+      annotation's argument list. This was the dominant remaining
+      PartialParsing failure mode in our pub.dev scan: ~74% of the 113
+      failing packages tripped this exact pattern (Elm-style architecture
+      methods, Bloc emitters returning tuples, etc.).
+      
+      Approach: instead of trying to make `annotation`'s argument list
+      non-greedy (which breaks every legitimate `@Foo(arg)` use), introduce
+      a separate `_bare_annotation` rule (just `@name` with no args) and a
+      parallel parse path for "method whose return type is a record type,
+      preceded by bare annotations". GLR keeps both stacks alive via a
+      declared `[$.annotation, $._bare_annotation]` conflict and resolves
+      them on whatever follows the closing `)`:
+      
+        - if it's `(arg, ...)` followed by a function body, the bare-annotation
+          path wins (record return type method)
+        - otherwise the regular `annotation` path wins (e.g. `@Foo(x)`,
+          `@Foo()` + plain function)
+      
+      To keep the AST stable for downstream consumers (highlights.scm,
+      ocaml-tree-sitter mapper, …), the new rules are hidden and aliased to
+      their existing equivalents at the use site:
+        `_bare_annotation`              → `annotation`
+        `_record_return_function_signature` → `function_signature`
+        `_record_return_method_signature`   → `method_signature`
+      The empty record form `()` is intentionally excluded from the
+      record-return path so e.g. `@Foo() bar() {}` keeps parsing as
+      (annotation w/ empty args) + (plain function) rather than (bare
+      annotation) + (empty-record return). For the same reason `()` in the
+      top-level `record_type` rule is given `prec.dynamic(-20)`.
+      
+      Negative dynamic precedence biases the new alternatives so the
+      existing parse paths win on ambiguous-but-legal inputs:
+        `_bare_annotation`        → prec.dynamic(-1)
+        record-return method/top  → prec.dynamic(-10)
+        empty `()` record_type    → prec.dynamic(-20)
+      
+      Applied in all three places where annotated methods can appear:
+      class_body, extension_body, enum_body. Also added the analogous
+      top-level alternative in `_top_level_definition` for record-return
+      top-level functions with leading annotations.
+      
+      Validation:
+        - all 166 existing corpus tests pass
+        - all highlight + tag tests pass
+        - all 8 reduced regression cases parse with zero ERROR nodes
+        - re-parsed the 116 previously-failing pub.dev packages locally:
+          65 (56%) now parse 100% cleanly; the remaining 50 are non-Dart
+          inputs (Mason mustache templates, frb_generated codegen, NUL
+          bytes, git conflict markers, `<#placeholder#>` source stubs,
+          `as` used as variable name, etc.) that aren't grammar issues.
+      
+      * test: cover annotated record-return method/function
+      
+      Adds 6 corpus tests for the structural fix from the previous commit:
+      
+        1. Class with annotated record-return method (basic positional case).
+        2. Class variants: getter returning named record, static method
+           returning record, nullable record return with generics and a
+           function-type field.
+        3. Extension method with annotated record-return type.
+        4. Enum method with annotated record-return type.
+        5. Top-level function with annotated record-return type, including
+           a named-record-with-nullable-field variant.
+        6. Regression guard: `@Foo() bar() {}` (empty annotation args + plain
+           function) and `class A { @Foo() A(); }` (empty args + constructor)
+           keep parsing through the standard path, not the new bare-annotation
+           + record-return path. This pins the `prec.dynamic(-20)` on the
+           empty `()` record_type form.
+---
+File: semgrep-grammars/src/tree-sitter-dart/grammar.js
+Git repo name: tree-sitter-dart
+Latest commit in repo: 02e9bb191c7cb6c73cbd9e09a5d089e4496f9cff
+Last change in file:
+  commit 02e9bb191c7cb6c73cbd9e09a5d089e4496f9cff
+  Author: Alexandre Laroche <larochealexandre@hotmail.com>
+  Date:   Tue May 5 22:09:22 2026 -0400
+  
+      Parse `@annotation (R, T) method() {...}` (record-return + leading annotation) (#98)
+      
+      * fix: parse `@annotation (R, T) method() {...}` (record-return + leading annotation)
+      
+      Tree-sitter previously couldn't parse a method whose return type is a
+      record type when preceded by an annotation (e.g.
+      `@override (Model, Cmd?) update(Msg msg) { ... }`), because
+      `annotation`'s `optional(arguments)` greedily consumed the leading `(`
+      of the record return type and then the rest mis-parsed as the
+      annotation's argument list. This was the dominant remaining
+      PartialParsing failure mode in our pub.dev scan: ~74% of the 113
+      failing packages tripped this exact pattern (Elm-style architecture
+      methods, Bloc emitters returning tuples, etc.).
+      
+      Approach: instead of trying to make `annotation`'s argument list
+      non-greedy (which breaks every legitimate `@Foo(arg)` use), introduce
+      a separate `_bare_annotation` rule (just `@name` with no args) and a
+      parallel parse path for "method whose return type is a record type,
+      preceded by bare annotations". GLR keeps both stacks alive via a
+      declared `[$.annotation, $._bare_annotation]` conflict and resolves
+      them on whatever follows the closing `)`:
+      
+        - if it's `(arg, ...)` followed by a function body, the bare-annotation
+          path wins (record return type method)
+        - otherwise the regular `annotation` path wins (e.g. `@Foo(x)`,
+          `@Foo()` + plain function)
+      
+      To keep the AST stable for downstream consumers (highlights.scm,
+      ocaml-tree-sitter mapper, …), the new rules are hidden and aliased to
+      their existing equivalents at the use site:
+        `_bare_annotation`              → `annotation`
+        `_record_return_function_signature` → `function_signature`
+        `_record_return_method_signature`   → `method_signature`
+      The empty record form `()` is intentionally excluded from the
+      record-return path so e.g. `@Foo() bar() {}` keeps parsing as
+      (annotation w/ empty args) + (plain function) rather than (bare
+      annotation) + (empty-record return). For the same reason `()` in the
+      top-level `record_type` rule is given `prec.dynamic(-20)`.
+      
+      Negative dynamic precedence biases the new alternatives so the
+      existing parse paths win on ambiguous-but-legal inputs:
+        `_bare_annotation`        → prec.dynamic(-1)
+        record-return method/top  → prec.dynamic(-10)
+        empty `()` record_type    → prec.dynamic(-20)
+      
+      Applied in all three places where annotated methods can appear:
+      class_body, extension_body, enum_body. Also added the analogous
+      top-level alternative in `_top_level_definition` for record-return
+      top-level functions with leading annotations.
+      
+      Validation:
+        - all 166 existing corpus tests pass
+        - all highlight + tag tests pass
+        - all 8 reduced regression cases parse with zero ERROR nodes
+        - re-parsed the 116 previously-failing pub.dev packages locally:
+          65 (56%) now parse 100% cleanly; the remaining 50 are non-Dart
+          inputs (Mason mustache templates, frb_generated codegen, NUL
+          bytes, git conflict markers, `<#placeholder#>` source stubs,
+          `as` used as variable name, etc.) that aren't grammar issues.
+      
+      * test: cover annotated record-return method/function
+      
+      Adds 6 corpus tests for the structural fix from the previous commit:
+      
+        1. Class with annotated record-return method (basic positional case).
+        2. Class variants: getter returning named record, static method
+           returning record, nullable record return with generics and a
+           function-type field.
+        3. Extension method with annotated record-return type.
+        4. Enum method with annotated record-return type.
+        5. Top-level function with annotated record-return type, including
+           a named-record-with-nullable-field variant.
+        6. Regression guard: `@Foo() bar() {}` (empty annotation args + plain
+           function) and `class A { @Foo() A(); }` (empty args + constructor)
+           keep parsing through the standard path, not the new bare-annotation
+           + record-return path. This pins the `prec.dynamic(-20)` on the
+           empty `()` record_type form.
+---
+File: semgrep-grammars/src/semgrep-dart/grammar.js
+Git repo name: delhi
+Latest commit in repo: 88fbaced64e422a558a599e101eb80cce9dee48a
+Last change in file:
+  commit 36b5985c389aaadcf18425db8cf99290e28c9e09
+  Author: Alexandre Laroche <larochealexandre@hotmail.com>
+  Date:   Fri May 8 15:14:01 2026 -0400
+  
+      fix(dart): bump tree-sitter-dart to upstream master (02e9bb19) (#590)
+      
+      * fix(dart): bump tree-sitter-dart to upstream master (02e9bb19)
+      
+      Brings in 13 upstream commits since the May 2023 pin (80e23c07): the
+      parser-improvements PR (#97), the Dart 3.10 dot-shorthand support
+      (#93), get/set contextual keyword fixes (#89, #92), the
+      extension-type-declarations support (#83), the CI/tree-sitter 0.25
+      compatibility fixes, and the recently-merged record-return + leading
+      annotation fix (#98).
+      
+      * fix(semgrep-dart): hide `semgrep_pattern` choice rule
+      
+      The wrapper grammar declared `semgrep_pattern` as a public rule:
+      
+        semgrep_pattern: $ => choice($._expression, $._statement),
+      
+      so tree-sitter emitted a `(semgrep_pattern …)` node in the parse tree.
+      Two corpus tests in `test/corpus/semgrep.txt` (`Standalone expression`
+      and `Standalone metavariable ellipsis`) wrote their expected output
+      without that wrapper, so they failed. The wrapper node carries no
+      semantic information — it's just a choice point between two
+      alternatives.
+      
+      Rename to `_semgrep_pattern` (leading underscore = tree-sitter's
+      hidden-rule convention). The parse tree now inlines the choice's
+      result directly under `semgrep_expression`, the corpus tests pass as
+      written, and `ocaml-tree-sitter simplify` un-hides the rule before
+      generating the OCaml CST so the downstream artifact (and the OCaml
+      mapper) is unaffected.
+      
+      Verified: `cd lang/semgrep-grammars/src/semgrep-dart && tree-sitter
+      test` — 6/6 pass (was 4/6). Also re-ran the full
+      `lang/dart` artifact build: regenerated `parser.c`, `Boilerplate.ml`,
+      `CST.ml`, `Parse.ml` are byte-identical to the pre-change versions
+      (simplification re-introduces the rule for OCaml processing), so no
+      downstream artifact change is needed.
+---

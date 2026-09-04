@@ -1,0 +1,48 @@
+File: semgrep-grammars/src/tree-sitter-c-sharp/LICENSE
+Git repo name: tree-sitter-c-sharp
+Latest commit in repo: e1384e2f132936019b43aaaae154cd780fb497ce
+Last change in file:
+  commit e1384e2f132936019b43aaaae154cd780fb497ce
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Wed May 1 16:20:19 2024 -0400
+  
+      build: update bindings
+---
+File: semgrep-grammars/src/tree-sitter-c-sharp/grammar.js
+Git repo name: tree-sitter-c-sharp
+Latest commit in repo: e1384e2f132936019b43aaaae154cd780fb497ce
+Last change in file:
+  commit e1384e2f132936019b43aaaae154cd780fb497ce
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Wed May 1 16:20:19 2024 -0400
+  
+      build: update bindings
+---
+File: semgrep-grammars/src/semgrep-c-sharp/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit dbb53feb5fe778e61d9feb6a899df3c2e346919f
+  Author: Martin Jambon <martin@r2c.dev>
+  Date:   Fri Sep 20 11:48:16 2024 -0700
+  
+      Add another git submodule for C# called c-sharp-pro (#512)
+      
+      * Add another submodule for C# (c-sharp-pro)
+      
+      * Mark c-sharp and c-sharp-pro as fully compatible with tree-sitter 0.22.6
+      
+      * Add new language 'c-sharp-pro' that tracks another version of
+      tree-sitter-c-sharp than the existing 'c-sharp'. C functions were renamed
+      so as to avoid conflicts when both parsers are used in the same program.
+      
+      * Fix release script to work on a blank destination repo
+      
+      * Fix generated package name for c-sharp-pro
+      
+      * Add c-sharp-pro to the CircleCI tests
+      
+      * Move test file to where it should be
+      
+      * Fix comments in the semgrep grammar extensions for c-sharp and c-sharp-pro
+---
