@@ -1,0 +1,30 @@
+File: semgrep-grammars/src/tree-sitter-move-on-sui/LICENSE
+Git repo name: tree-sitter-move-on-sui
+Latest commit in repo: 083b7d6ab4bd41327d3b6c56e46e3c720f48fbd9
+Last change in file:
+  commit 3fb7beaf5b5b422572c1c411f84dbe27ae4c83ba
+  Author: Timothy Zakian <tim@mystenlabs.com>
+  Date:   Mon Nov 20 21:36:13 2023 -0800
+  
+      Commit it all up
+---
+File: semgrep-grammars/src/tree-sitter-move-on-sui/grammar.js
+Git repo name: tree-sitter-move-on-sui
+Latest commit in repo: 083b7d6ab4bd41327d3b6c56e46e3c720f48fbd9
+Last change in file:
+  commit 083b7d6ab4bd41327d3b6c56e46e3c720f48fbd9
+  Author: maxmysten <max.spector@mystenlabs.com>
+  Date:   Thu Oct 10 00:31:23 2024 -0400
+  
+      Hiding newline from parse tree
+---
+File: semgrep-grammars/src/semgrep-move-on-sui/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 208d2435230cdf92324e794be0101bbbae48d48f
+Last change in file:
+  commit 208d2435230cdf92324e794be0101bbbae48d48f
+  Author: maxmysten <max.spector@mystenlabs.com>
+  Date:   Thu Oct 10 09:33:54 2024 -0400
+  
+      Removing newline hiding hack form semgrep grammer (added to tree-sitter for now). (#515)
+---

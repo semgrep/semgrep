@@ -1,0 +1,6 @@
+(executable
+  (package tree-sitter-lang)
+  (public_name parse-move-on-sui)
+  (name Main)
+  (libraries tree-sitter-lang.move-on-sui)
+)

@@ -1,0 +1,35 @@
+File: semgrep-grammars/src/tree-sitter-jsonnet/LICENSE
+Git repo name: tree-sitter-jsonnet
+Latest commit in repo: fdc775714afa27fdef823adbaba6ab98f5ae66f2
+Last change in file:
+  commit fdc775714afa27fdef823adbaba6ab98f5ae66f2
+  Author: Yoann Padioleau <pad@r2c.dev>
+  Date:   Tue Feb 7 17:40:49 2023 +0100
+  
+      add intermediate ident (#12)
+---
+File: semgrep-grammars/src/tree-sitter-jsonnet/grammar.js
+Git repo name: tree-sitter-jsonnet
+Latest commit in repo: fdc775714afa27fdef823adbaba6ab98f5ae66f2
+Last change in file:
+  commit fdc775714afa27fdef823adbaba6ab98f5ae66f2
+  Author: Yoann Padioleau <pad@r2c.dev>
+  Date:   Tue Feb 7 17:40:49 2023 +0100
+  
+      add intermediate ident (#12)
+---
+File: semgrep-grammars/src/semgrep-jsonnet/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit 7fd94add572c2bc67a98571b870a9082c37c7a91
+  Author: pad <pad@r2c.dev>
+  Date:   Sun Jan 29 18:52:08 2023 +0100
+  
+      Jsonnet: add metavar and ellipsis for jsonnet
+      
+      I need to make a PR for the tree-sitter-jsonnet patch.
+      
+      test plan:
+      ./test-lang jsonnet
+---

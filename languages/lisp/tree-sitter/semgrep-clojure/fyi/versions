@@ -1,0 +1,35 @@
+File: semgrep-grammars/src/tree-sitter-clojure/COPYING.txt
+Git repo name: tree-sitter-clojure
+Latest commit in repo: 8c23e0ec078af461ccad43fffbbfc204aa6bc238
+Last change in file:
+  commit 8c23e0ec078af461ccad43fffbbfc204aa6bc238
+  Author: sogaiu <983021772@users.noreply.github.com>
+  Date:   Wed Dec 7 14:22:11 2022 +0900
+  
+      Update credits
+---
+File: semgrep-grammars/src/tree-sitter-clojure/grammar.js
+Git repo name: tree-sitter-clojure
+Latest commit in repo: 8c23e0ec078af461ccad43fffbbfc204aa6bc238
+Last change in file:
+  commit 8c23e0ec078af461ccad43fffbbfc204aa6bc238
+  Author: sogaiu <983021772@users.noreply.github.com>
+  Date:   Wed Dec 7 14:22:11 2022 +0900
+  
+      Update credits
+---
+File: semgrep-grammars/src/semgrep-clojure/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit c870e59754e039274703ab332abdb49a857402ee
+  Author: pad <pad@r2c.dev>
+  Date:   Tue Jan 3 14:26:53 2023 +0100
+  
+      adding tree-sitter-clojure
+      
+      This might help for analyzing not just clojure but any lisp dialects
+      
+      test plan:
+      ./test-lang clojure
+---

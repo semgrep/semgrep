@@ -1,0 +1,30 @@
+File: semgrep-grammars/src/tree-sitter-java/LICENSE
+Git repo name: tree-sitter-java
+Latest commit in repo: a7db5227ec40fcfe94489559d8c9bc7c8181e25a
+Last change in file:
+  commit 594f37a72daf46820a8d5b1b939f39e8aa3c6ce1
+  Author: Ayman Nadeem <aymannadeem@github.com>
+  Date:   Mon Nov 27 12:47:27 2017 -0800
+  
+      Update LICENSE
+---
+File: semgrep-grammars/src/tree-sitter-java/grammar.js
+Git repo name: tree-sitter-java
+Latest commit in repo: a7db5227ec40fcfe94489559d8c9bc7c8181e25a
+Last change in file:
+  commit 488557612b44bde9c5e8c3011138992a8e500c90
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Sat Dec 21 13:08:03 2024 -0500
+  
+      feat: allow reserved identifiers in `element_value_pair`
+---
+File: semgrep-grammars/src/semgrep-java/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 78b9c78b6f1e98cd1f1d51d1436dd8b99ac617a7
+Last change in file:
+  commit 78b9c78b6f1e98cd1f1d51d1436dd8b99ac617a7
+  Author: brandonspark <wu.brandonj@gmail.com>
+  Date:   Mon Jun 23 17:14:11 2025 -0700
+  
+      allow no smemicolon in toplevel typed metavariable decl
+---
