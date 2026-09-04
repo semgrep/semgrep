@@ -24,12 +24,14 @@ from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_dependency_source import ResolveDependenciesRpcResult
+from semgrep.resolve_subprojects import attach_auxillary_sboms
 from semgrep.resolve_subprojects import filter_subprojects_by_rule_ecosystems
 from semgrep.resolve_subprojects import match_subprojects
 from semgrep.rule import Rule
 from semgrep.run_scan import resolve_dependencies
 from semgrep.subproject import collect_skipped_subprojects
 from semgrep.subproject import DependencyResolutionConfig
+from semgrep.subproject import generate_dependency_source_id
 from semgrep.subproject import subproject_to_plan_output
 from semgrep.target_manager import TargetManager
 from semgrep.types import fake_targets_of_paths
@@ -494,6 +496,187 @@ def test_unrestricted_resolution_skips_discovery_without_dependency_aware_rules(
 
     assert resolved == {}
     assert all_subprojects == []
+
+
+def _npm_subproject(root: str) -> out.Subproject:
+    return out.Subproject(
+        root_dir=out.Fpath(root),
+        dependency_source=out.DependencySource(
+            out.LockfileOnly(
+                out.Lockfile(
+                    out.LockfileKind(out.NpmPackageLockJson()),
+                    out.Fpath(f"{root}/package-lock.json"),
+                )
+            )
+        ),
+        ecosystem=out.Ecosystem(value=out.Npm()),
+    )
+
+
+def _precomputed_deps_config(
+    precomputed_dir: Path, *, restrict_to_rule_ecosystems: bool = False
+) -> DependencyResolutionConfig:
+    return DependencyResolutionConfig(
+        allow_local_builds=False,
+        ptt_enabled=False,
+        resolve_untargeted_subprojects=False,
+        download_dependency_source_code=False,
+        precomputed_dependencies_dir=precomputed_dir,
+        restrict_resolution_to_rule_ecosystems=restrict_to_rule_ecosystems,
+    )
+
+
+@pytest.mark.quick
+def test_attach_auxillary_sboms_warns_when_no_sbom_matches(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """When no precomputed SBOM matches any subproject, a warning names the
+    directory and the unmatched count."""
+    (tmp_path / "head").mkdir()
+    (tmp_path / "head" / "wrong-id.cdx.json").write_text("{}")
+    subproject = _npm_subproject("app")
+
+    result = attach_auxillary_sboms(
+        [subproject], _precomputed_deps_config(tmp_path), []
+    )
+
+    assert not isinstance(result[0].dependency_source.value, out.AuxillarySBOM)
+    warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert str(tmp_path / "head") in warnings[0].getMessage()
+    assert "1 of 1" in warnings[0].getMessage()
+
+
+@pytest.mark.quick
+def test_attach_auxillary_sboms_warns_on_partial_match(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """When only some subprojects have a precomputed SBOM, a warning still
+    fires reporting how many are falling back to local resolution."""
+    matched = _npm_subproject("app")
+    unmatched = _npm_subproject("other")
+    sbom_name = generate_dependency_source_id(matched.dependency_source) + ".cdx.json"
+    (tmp_path / "head").mkdir()
+    (tmp_path / "head" / sbom_name).write_text("{}")
+
+    result = attach_auxillary_sboms(
+        [matched, unmatched], _precomputed_deps_config(tmp_path), []
+    )
+
+    assert isinstance(result[0].dependency_source.value, out.AuxillarySBOM)
+    assert not isinstance(result[1].dependency_source.value, out.AuxillarySBOM)
+    warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert "1 of 2" in warnings[0].getMessage()
+
+
+@pytest.mark.quick
+def test_attach_auxillary_sboms_ignores_unsupported_ecosystems(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Subprojects with no ecosystem are never resolved, so a missing
+    precomputed SBOM for them is expected and must not trigger the warning
+    or inflate its counts."""
+    matched = _npm_subproject("app")
+    unsupported = out.Subproject(
+        root_dir=out.Fpath("legacy"),
+        dependency_source=out.DependencySource(
+            out.ManifestOnly(
+                out.Manifest(
+                    out.ManifestKind(out.ConanFileTxt()),
+                    out.Fpath("legacy/conanfile.txt"),
+                )
+            )
+        ),
+        ecosystem=None,
+    )
+    sbom_name = generate_dependency_source_id(matched.dependency_source) + ".cdx.json"
+    (tmp_path / "head").mkdir()
+    (tmp_path / "head" / sbom_name).write_text("{}")
+
+    result = attach_auxillary_sboms(
+        [matched, unsupported], _precomputed_deps_config(tmp_path), []
+    )
+
+    assert isinstance(result[0].dependency_source.value, out.AuxillarySBOM)
+    assert not isinstance(result[1].dependency_source.value, out.AuxillarySBOM)
+    assert not [r for r in caplog.records if r.levelname == "WARNING"]
+
+
+@pytest.mark.quick
+def test_attach_auxillary_sboms_ignores_rule_irrelevant_ecosystems(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A restricted scan must not claim it will locally resolve a subproject
+    that the rule-ecosystem filter will skip."""
+    pypi_subproject = make_ecosystem_subproject("py", out.Ecosystem(out.Pypi()))
+    npm_subproject = _npm_subproject("js")
+    (tmp_path / "head").mkdir()
+
+    attach_auxillary_sboms(
+        [pypi_subproject, npm_subproject],
+        _precomputed_deps_config(tmp_path, restrict_to_rule_ecosystems=True),
+        [make_depends_on_rule("rules.pypi-rule", "pypi")],
+    )
+
+    warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert "1 of 1" in warnings[0].getMessage()
+
+
+@pytest.mark.quick
+def test_attach_auxillary_sboms_no_warning_when_sbom_matches(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    subproject = _npm_subproject("app")
+    sbom_name = (
+        generate_dependency_source_id(subproject.dependency_source) + ".cdx.json"
+    )
+    (tmp_path / "head").mkdir()
+    (tmp_path / "head" / sbom_name).write_text("{}")
+
+    result = attach_auxillary_sboms(
+        [subproject], _precomputed_deps_config(tmp_path), []
+    )
+
+    assert isinstance(result[0].dependency_source.value, out.AuxillarySBOM)
+    assert not [r for r in caplog.records if r.levelname == "WARNING"]
+
+
+# Please don't use @patch because it can't be typechecked and makes refactoring
+# particularly tricky.
+@pytest.mark.quick
+@patch("semgrep.resolve_dependency_source._resolve_dependencies_rpc")
+def test_precomputed_sbom_resolution_failure_warns_before_fallback(
+    mock_resolve, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    sbom_path = tmp_path / "precomputed.cdx.json"
+    underlying_source = _npm_subproject("app").dependency_source
+    source = out.DependencySource(
+        out.AuxillarySBOM(
+            (
+                out.Sbom(
+                    kind=out.SbomKind(out.CycloneDXJson()),
+                    is_ephemeral=True,
+                    path=out.Fpath(str(sbom_path)),
+                ),
+                underlying_source,
+            )
+        )
+    )
+    mock_resolve.side_effect = [
+        ResolveDependenciesRpcResult(new_deps=None, new_errors=[], new_targets=[]),
+        ResolveDependenciesRpcResult(new_deps=[], new_errors=[], new_targets=[]),
+    ]
+
+    resolve_dependency_source(
+        source, DependencyResolutionConfig(False, False, False, False)
+    )
+
+    warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert str(sbom_path) in warnings[0].getMessage()
+    assert "falling back" in warnings[0].getMessage()
 
 
 # Please don't use @patch because it can't be typechecked and makes refactoring

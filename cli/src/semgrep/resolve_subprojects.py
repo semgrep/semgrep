@@ -236,6 +236,7 @@ def find_subprojects(
 def attach_auxillary_sboms(
     subprojects: list[out.Subproject],
     dependency_resolution_config: DependencyResolutionConfig,
+    dependency_aware_rules: List[Rule],
 ) -> list[out.Subproject]:
     """
     For each subproject, look up a precomputed CycloneDX SBOM in the
@@ -252,10 +253,22 @@ def attach_auxillary_sboms(
 
     subdir = "base" if dependency_resolution_config.is_baseline_scan else "head"
     result: list[out.Subproject] = []
+    unmatched: list[tuple[out.Subproject, str]] = []
+    rule_ecosystems = {
+        ecosystem for rule in dependency_aware_rules for ecosystem in rule.ecosystems
+    }
+    # subprojects with no ecosystem are never resolved (see resolve_dependencies),
+    # so no precomputed SBOM will exist for them and they should not count as
+    # missing.
+    resolvable_count = 0
     for subproject in subprojects:
+        if subproject.ecosystem is None:
+            result.append(subproject)
+            continue
         dep_source_id = generate_dependency_source_id(subproject.dependency_source)
         sbom_path = precomputed_dir / subdir / (dep_source_id + ".cdx.json")
         if sbom_path.exists():
+            resolvable_count += 1
             sbom = out.Sbom(
                 kind=out.SbomKind(out.CycloneDXJson()),
                 is_ephemeral=True,
@@ -270,7 +283,26 @@ def attach_auxillary_sboms(
                 ecosystem=subproject.ecosystem,
             )
             logger.verbose(f"Using precomputed SBOM for {subproject.root_dir}")
+        elif (
+            not dependency_resolution_config.restrict_resolution_to_rule_ecosystems
+            or subproject.ecosystem in rule_ecosystems
+        ):
+            resolvable_count += 1
+            unmatched.append((subproject, sbom_path.name))
         result.append(subproject)
+    if unmatched:
+        logger.warning(
+            f"Precomputed dependencies directory {precomputed_dir / subdir} was "
+            f"provided, but no SBOM was found for {len(unmatched)} of "
+            f"{resolvable_count} subprojects selected for dependency resolution; "
+            f"falling back to local dependency resolution for those. Run with "
+            f"--verbose to see the affected subprojects."
+        )
+        for subproject, expected_name in unmatched:
+            logger.verbose(
+                f"No precomputed SBOM for subproject at {subproject.root_dir} "
+                f"(expected file name: {expected_name})"
+            )
     return result
 
 
@@ -428,7 +460,9 @@ def resolve_subprojects(
     )
 
     # attach precomputed SBOMs to relevant subprojects
-    relevant_subprojects = attach_auxillary_sboms(relevant_subprojects, config)
+    relevant_subprojects = attach_auxillary_sboms(
+        relevant_subprojects, config, dependency_aware_rules
+    )
 
     # Subprojects in an ecosystem that none of the rules look at cannot produce
     # a finding, so they are not worth resolving. This runs after the SBOMs are

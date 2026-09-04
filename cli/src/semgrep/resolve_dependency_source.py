@@ -540,8 +540,9 @@ def _handle_auxillary_sbom_source(
         # but add a safety check that there is not somehow another auxillarysbom inside,
         # since that could cause an infinite loop as we recurse (if it's the same auxillarysbom)
         if not isinstance(dep_source.value[1].value, out.AuxillarySBOM):
-            logger.verbose(
-                "SBOM resolution failed, falling back to underlying dep source"
+            logger.warning(
+                f"Failed to resolve precomputed SBOM {dep_source.value[0].path.value}, "
+                f"falling back to resolving the underlying dependency source"
             )
             inner_dep_source = dep_source.value[1]
             return resolve_dependency_source(
