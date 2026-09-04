@@ -19,7 +19,7 @@ jobs:
       - uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461
       - id: semgrep-cli-prepare-metadata
         name: Set tags and labels
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
         with:
           flavor: |
             latest=false
@@ -34,7 +34,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
       - id: build-semgrep-cli-docker-image
         name: 'Build Build Core: Build docker image in Depot'
-        uses: depot/build-push-action@fe21fca271114de9237a9b1129b9ef38c77a1c21
+        uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287
         with:
           build-args: |
             VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}

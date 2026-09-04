@@ -1,19 +1,19 @@
 {
   "dependencies": {
     "DeterminateSystems": {
-      "flake-checker-action": "v12",
-      "nix-installer-action": "v16"
+      "flake-checker-action": "v13",
+      "nix-installer-action": "v22"
     },
     "EndBug": {
-      "add-and-commit": "v9"
+      "add-and-commit": "v11"
     },
     "actions": {
-      "cache": "v4",
+      "cache": "v6",
       "checkout": "v6",
       "create-github-app-token": "v3",
       "download-artifact": "v7",
-      "setup-go": "v5",
-      "setup-python": "v5",
+      "setup-go": "v7",
+      "setup-python": "v7",
       "upload-artifact": "v7"
     },
     "anthropics":{
@@ -24,30 +24,30 @@
     },
     "aws-actions": {
       "amazon-ecr-login": "v2",
-      "configure-aws-credentials": "v4"
+      "configure-aws-credentials": "v6"
     },
     "cachix": {
-      "cachix-action": "v16"
+      "cachix-action": "v17"
     },
     "christian-draeger": {
       "increment-semantic-version": "1.1.0"
     },
     "depot": {
       "bake-action": "v1.13.0",
-      "build-push-action": "v1.9.0",
+      "build-push-action": "v1.18.0",
       "setup-action": "v1"
     },
     "docker": {
-      "login-action": "v3",
-      "metadata-action": "v5",
-      "setup-buildx-action": "v3",
-      "setup-qemu-action": "v3"
+      "login-action": "v4",
+      "metadata-action": "v6",
+      "setup-buildx-action": "v4",
+      "setup-qemu-action": "v4"
     },
     "jtmullen": {
       "submodule-branch-check-action": "v1"
     },
     "marocchino": {
-      "sticky-pull-request-comment": "v2.9.4"
+      "sticky-pull-request-comment": "v3.0.5"
     },
     "peter-evans": {
       "create-pull-request": "v8"
@@ -68,10 +68,7 @@
       "slack-github-action": "v4.0.0"
     },
     "softprops": {
-      "action-gh-release": "v2.6.1"
-    },
-    "tibdex": {
-      "github-app-token": "v2"
+      "action-gh-release": "v3.0.3"
     }
   }
 }
