@@ -1,11 +1,3 @@
-[submodule "OSS/languages/r/tree-sitter/semgrep-r"]
-path = languages/r/tree-sitter/semgrep-r
-url = https://github.com/returntocorp/semgrep-r
-
-[submodule "OSS/languages/rust/tree-sitter/semgrep-rust"]
-path = languages/rust/tree-sitter/semgrep-rust
-url = https://github.com/returntocorp/semgrep-rust
-
 [submodule "OSS/languages/typescript/tree-sitter/semgrep-tsx"]
 path = languages/typescript/tree-sitter/semgrep-tsx
 url = https://github.com/returntocorp/semgrep-tsx
@@ -19,40 +11,15 @@ path = libs/ocaml-tree-sitter-semgrep
 url = https://github.com/semgrep/ocaml-tree-sitter-semgrep.git
 branch = malaverdiere-license-change
 
-[submodule "OSS/languages/php/tree-sitter/semgrep-php"]
-path = languages/php/tree-sitter/semgrep-php
-url = https://github.com/returntocorp/semgrep-php
-
 [submodule "OSS/languages/terraform/tree-sitter/semgrep-hcl"]
 path = languages/terraform/tree-sitter/semgrep-hcl
 url = https://github.com/returntocorp/semgrep-hcl
-
-[submodule "OSS/languages/python/tree-sitter/semgrep-python"]
-path = languages/python/tree-sitter/semgrep-python
-url = https://github.com/returntocorp/semgrep-python.git
 
 [submodule "OSS/languages/swift/tree-sitter/semgrep-swift"]
 path = languages/swift/tree-sitter/semgrep-swift
 url = https://github.com/returntocorp/semgrep-swift.git
 
-[submodule "OSS/languages/protobuf/tree-sitter/semgrep-proto"]
-path = languages/protobuf/tree-sitter/semgrep-proto
-url = https://github.com/returntocorp/semgrep-proto.git
-
-[submodule "OSS/languages/promql/tree-sitter/semgrep-promql"]
-path = languages/promql/tree-sitter/semgrep-promql
-url = https://github.com/returntocorp/semgrep-promql.git
-
-[submodule "OSS/languages/ql/tree-sitter/semgrep-ql"]
-path = languages/ql/tree-sitter/semgrep-ql
-url = https://github.com/semgrep/semgrep-ql
-
 [submodule "OSS/tests/semgrep-rules"]
 path = tests/semgrep-rules
 url = https://github.com/returntocorp/semgrep-rules.git
-
-[submodule "OSS/languages/scala/tree-sitter/semgrep-scala"]
-path = languages/scala/tree-sitter/semgrep-scala
-url = https://github.com/semgrep/semgrep-scala/
-branch = main
 

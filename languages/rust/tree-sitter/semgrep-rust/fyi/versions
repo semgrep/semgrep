@@ -1,0 +1,64 @@
+File: semgrep-grammars/src/tree-sitter-rust/LICENSE
+Git repo name: tree-sitter-rust
+Latest commit in repo: 8a1ccae7aaccdc11b04dbd803453e3e9cfd9159b
+Last change in file:
+  commit 261b20226c04ef601adbdf185a800512a5f66291
+  Author: Vanessa <88671600+vanessa-rodrigues@users.noreply.github.com>
+  Date:   Mon Oct 6 12:16:35 2025 -0300
+  
+      Raw reference/identifier conflict (#288)
+      
+      * Raw reference/identifier conflict
+      
+      * Added test
+      
+      * Regenerate with cli v0.25.10
+      
+      * Upgrade tree-sitter dependency on node bindings
+      
+      * Upgrade tree-sitter dependency for Swift
+      
+      * Unsafe foreign_mod_item and CI updates
+---
+File: semgrep-grammars/src/tree-sitter-rust/grammar.js
+Git repo name: tree-sitter-rust
+Latest commit in repo: 8a1ccae7aaccdc11b04dbd803453e3e9cfd9159b
+Last change in file:
+  commit ab43fdbb1640bdece8fab9927b1aa6774d942189
+  Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
+  Date:   Thu Mar 19 09:42:57 2026 -0700
+  
+      Parse string literals even in with unexpected prefixes (#306)
+      
+      * Parse string literals even in with unexpected prefixes
+      
+      This is important so that we still give a useful tree when re-parsing
+      token trees that are passed to macros like Bevy's `bsn!` macro, which
+      uses syntax like @"a", :"b", etc.
+      
+      Co-authored-by: Christopher Biscardi <chris@christopherbiscardi.com>
+      
+      * Bump tree-sitter-cli
+      
+      * Regenerate parser
+      
+      Co-authored-by: Christopher Biscardi <chris@christopherbiscardi.com>
+      
+      * Don't run node binding tests in CI for now
+      
+      ---------
+      
+      Co-authored-by: Christopher Biscardi <chris@christopherbiscardi.com>
+---
+File: semgrep-grammars/src/semgrep-rust/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: e0703702894b0da3912fca7f353fa5c2e10396b7
+Last change in file:
+  commit 081eab2e83634c0bfb73d83dbc1edb3ad7f01280
+  Author: Max vonBlankenburg <137826054+Fidget-Grep@users.noreply.github.com>
+  Date:   Mon Feb 23 16:55:56 2026 -0800
+  
+      Revert "Rust support for ellipses inside struct initialization and use lists …" (#565)
+      
+      This reverts commit cb0541f1b9dc9bc224f49cddf4a6279360a373c6.
+---

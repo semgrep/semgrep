@@ -1,0 +1,23 @@
+File: semgrep-grammars/src/tree-sitter-r/grammar.js
+Git repo name: tree-sitter-r
+Latest commit in repo: 205c2877af33a814386ff275031f88400a011397
+Last change in file:
+  commit 205c2877af33a814386ff275031f88400a011397
+  Author: Jim Hester <james.f.hester@gmail.com>
+  Date:   Wed May 25 11:20:55 2022 -0400
+  
+      Merge branch 'feature/raw-string-literals'
+---
+File: semgrep-grammars/src/semgrep-r/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit dc268d053bbda7c7863e3bbd3420440fa5e8857c
+  Author: pad <pad@r2c.dev>
+  Date:   Tue Jun 14 16:05:45 2022 +0200
+  
+      R: allow metavariable in semgrep-r
+      
+      test plan:
+      ./test-lang r
+---

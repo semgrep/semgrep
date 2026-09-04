@@ -1,0 +1,6 @@
+(executable
+  (package tree-sitter-lang)
+  (public_name parse-scala)
+  (name Main)
+  (libraries tree-sitter-lang.scala)
+)

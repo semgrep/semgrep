@@ -1,0 +1,39 @@
+File: semgrep-grammars/src/tree-sitter-scala/LICENSE
+Git repo name: tree-sitter-scala
+Latest commit in repo: 97aead18d97708190a51d4f551ea9b05b60641c9
+Last change in file:
+  commit 18b7392472ae43a9f3f7f8c881bba6f452d0f97f
+  Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
+  Date:   Wed Aug 7 11:11:36 2019 -0700
+  
+      Add MIT license
+      
+      Fixes #8
+---
+File: semgrep-grammars/src/tree-sitter-scala/grammar.js
+Git repo name: tree-sitter-scala
+Latest commit in repo: 97aead18d97708190a51d4f551ea9b05b60641c9
+Last change in file:
+  commit 24114684a4b0543c89199873c6193345432aabb4
+  Author: GitHub <noreply@github.com>
+  Date:   Thu Aug 7 05:11:26 2025 +0000
+  
+      chore: generate and sync from 98bca07a3043ecb195f61817a94a909445d7d637
+---
+File: semgrep-grammars/src/semgrep-scala/grammar.js
+Git repo name: phoenix
+Latest commit in repo: 7a1949b4d82471269260ebcf945d542b5849ad52
+Last change in file:
+  commit 7a1949b4d82471269260ebcf945d542b5849ad52
+  Author: Cooper Pierce <cooper@semgrep.com>
+  Date:   Mon Apr 13 15:21:53 2026 -0400
+  
+      feat(scala): add Scala 2 symbol literal support
+      
+      Scala 2 symbol literals (`'foo`) use the same `'` prefix as Scala 3
+      quote expressions. Adds `symbol_literal` as a lower-precedence rule
+      so `quote_expression` wins by default. Downstream consumers (like
+      semgrep's mapper) can check context to decide interpretation.
+      
+      Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+---

@@ -1,0 +1,20 @@
+File: semgrep-grammars/src/tree-sitter-ql/grammar.js
+Git repo name: tree-sitter-ql
+Latest commit in repo: ff04ba61857ba05b80221e71b423b2728dbebe1e
+Last change in file:
+  commit d08db734f8dc52f6bc04db53a966603122bc6985
+  Author: erik-krogh <erik-krogh@github.com>
+  Date:   Tue Aug 16 13:07:30 2022 +0200
+  
+      add parameterized signatures to the QL grammar
+---
+File: semgrep-grammars/src/semgrep-ql/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 62c59803ce966ac00210b5ed8aa163a926f7eaad
+Last change in file:
+  commit be8c47c54127c51427cce5ed169876953de65d92
+  Author: brandonspark <wu.brandonj@gmail.com>
+  Date:   Fri Mar 29 00:11:25 2024 -0700
+  
+      parse ellipsis in call better
+---

@@ -1,0 +1,32 @@
+File: semgrep-grammars/src/tree-sitter-promql/LICENSE
+Git repo name: tree-sitter-promql
+Latest commit in repo: ed9a12f6ae4e75d4622adef8fb1b1e4d0ac0a759
+Last change in file:
+  commit ed9a12f6ae4e75d4622adef8fb1b1e4d0ac0a759
+  Author: Michael Hoffmann <mhoffm@posteo.de>
+  Date:   Sat Jul 22 15:37:54 2023 +0200
+  
+      move corpus to example/realworld
+---
+File: semgrep-grammars/src/tree-sitter-promql/grammar.js
+Git repo name: tree-sitter-promql
+Latest commit in repo: ed9a12f6ae4e75d4622adef8fb1b1e4d0ac0a759
+Last change in file:
+  commit ed9a12f6ae4e75d4622adef8fb1b1e4d0ac0a759
+  Author: Michael Hoffmann <mhoffm@posteo.de>
+  Date:   Sat Jul 22 15:37:54 2023 +0200
+  
+      move corpus to example/realworld
+---
+File: semgrep-grammars/src/semgrep-promql/grammar.js
+Git repo name: ocaml-tree-sitter-semgrep
+Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Last change in file:
+  commit 69df6ad0e0061de13aec614ac135b4cf6f3fb31a
+  Author: Michael Hoffmann <mhoffm@posteo.de>
+  Date:   Sat Jul 22 15:39:58 2023 +0200
+  
+      feat(promql): allow ellipsis in subqueries; fix test corpus
+      
+      Signed-off-by: Michael Hoffmann <mhoffm@posteo.de>
+---
