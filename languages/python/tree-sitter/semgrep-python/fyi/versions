@@ -1,0 +1,39 @@
+File: semgrep-grammars/src/tree-sitter-python/LICENSE
+Git repo name: tree-sitter-python
+Latest commit in repo: c5fca1a186e8e528115196178c28eefa8d86b0b0
+Last change in file:
+  commit 409b5d671eb0ea4972eeacaaca24bbec1acf79b1
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Tue Jan 7 16:59:00 2025 -0500
+  
+      fix(scanner): keep size of indents consistent
+---
+File: semgrep-grammars/src/tree-sitter-python/grammar.js
+Git repo name: tree-sitter-python
+Latest commit in repo: c5fca1a186e8e528115196178c28eefa8d86b0b0
+Last change in file:
+  commit 409b5d671eb0ea4972eeacaaca24bbec1acf79b1
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Tue Jan 7 16:59:00 2025 -0500
+  
+      fix(scanner): keep size of indents consistent
+---
+File: semgrep-grammars/src/semgrep-python/grammar.js
+Git repo name: caracas
+Latest commit in repo: f8a2e9ce7645454fbcb4aacb1887821aebd66f7f
+Last change in file:
+  commit d68c1d87318808ec1b36ce89570ef6c0bc763f77
+  Author: Brandon Wu <49291449+brandonspark@users.noreply.github.com>
+  Date:   Wed Mar 4 13:06:00 2026 -0800
+  
+      feat(python): support ellipsis in dot-access chain patterns (#567)
+      
+      Override the `attribute` rule to accept `'...'` as an alternative to
+      `identifier` in the attribute field. This lets semgrep patterns like
+      `a. ... .d` parse correctly for matching call chains, matching the
+      existing Java `field_access` behavior.
+      
+      Fixes https://github.com/semgrep/semgrep/issues/11545
+      
+      Co-authored-by: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+---
