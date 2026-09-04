@@ -1866,6 +1866,30 @@ type scan_request = {
   project_config: ci_config_from_repo option
 }
 
+(**
+  Parameters for CallScan.
+  
+  Unlike the rest of this section, this is an EXTERNAL contract: it is
+  vendored by Guardian's fragment scanner rather than used by pysemgrep.
+  Breaking changes are allowed and to be expected.
+*)
+type scan_params = {
+  rules: fpath
+    (** Path to a file containing the rules, as for CallValidate. *);
+  targets: fpath
+    (** Path to a file containing a 'targets' value, as for -targets. *);
+  timeout: float
+    (**
+      Maximum time to spend running one rule on one file, in seconds. 0
+      disables the timeout.
+    *);
+  timeout_threshold: int
+    (**
+      Number of rules that may time out on a file before the file is skipped.
+      0 disables the threshold.
+    *)
+}
+
 type ci_env = (string * string) list
 
 (**
@@ -2243,6 +2267,11 @@ type function_call = [
         rules in JSON format. In the future, we could send the rules via a
         big string through the RPC pipe.
       *)
+  | `CallScan of scan_params
+      (**
+        Run a pro intra-file scan. Called by Guardian's fragment scanner, not
+        by pysemgrep; see the scan_params doc.
+      *)
   | `CallResolveDependencies of resolve_dependencies_params
   | `CallUploadSymbolAnalysis of (string * int * symbol_analysis)
   | `CallDumpRulePartitions of dump_rule_partitions_params
@@ -2534,6 +2563,48 @@ type get_config_response_v2 = {
   engine_params: engine_configuration option
 }
 
+type core_output = {
+  version: version;
+  results: core_match list;
+  errors: core_error list
+    (** errors are guaranteed to be duplicate free; see also Report.ml *);
+  paths: scanned_and_skipped (** targeting information *);
+  time: profile option (** profiling information *);
+  explanations: matching_explanation list option
+    (**
+      debugging (rule writing) information. Note that as opposed to the
+      dataflow trace, the explanations are not embedded inside a match
+      because we give also explanations when things are not matching.
+      EXPERIMENTAL: since semgrep 0.109
+    *);
+  rules_by_engine: rule_id_and_engine_kind list option
+    (**
+      These rules, classified by engine used, will let us be transparent in
+      the CLI output over what rules were run with what. EXPERIMENTAL: since:
+      1.11.0
+    *);
+  engine_requested: engine_kind option;
+  interfile_languages_used: string list option
+    (**
+      Reporting just the requested engine isn't granular enough. We want to
+      know what languages had rules that invoked interfile. This is
+      particularly important for tracking the performance impact of new
+      interfile languages EXPERIMENTAL: since 1.49.0
+    *);
+  skipped_rules: skipped_rule list (** EXPERIMENTAL: since: 1.37.0 *);
+  subprojects: cli_output_subproject_info list option
+    (**
+      SCA subproject resolution results. Note: this is only available when
+      logged in. EXPERIMENTAL: since: 1.125.0
+    *);
+  mcp_scan_results: mcp_scan_results option (** MCP scan results. *);
+  profiling_results: profiling_entry list
+    (**
+      How long it took to execute this or that piece of code in semgrep-core
+    *);
+  symbol_analysis: symbol_analysis option (** since semgrep 1.108.0 *)
+}
+
 type apply_fixes_return = {
   modified_file_count: int (** Number of files modified *);
   fixed_lines: (int * string list) list
@@ -2552,6 +2623,7 @@ type function_return = [
   | `RetSarifFormat of string
   | `RetValidate of core_error option
       (** rule validation error, if validation failed *)
+  | `RetScan of core_output
   | `RetResolveDependencies of (dependency_source * resolution_result) list
   | `RetUploadSymbolAnalysis of string (** success msg *)
   | `RetDumpRulePartitions of bool
@@ -2650,48 +2722,6 @@ type create_scan_request_v2 = {
   necessarily want to share with the cli_output.
 *)
 type core_output_extra = {
-  symbol_analysis: symbol_analysis option (** since semgrep 1.108.0 *)
-}
-
-type core_output = {
-  version: version;
-  results: core_match list;
-  errors: core_error list
-    (** errors are guaranteed to be duplicate free; see also Report.ml *);
-  paths: scanned_and_skipped (** targeting information *);
-  time: profile option (** profiling information *);
-  explanations: matching_explanation list option
-    (**
-      debugging (rule writing) information. Note that as opposed to the
-      dataflow trace, the explanations are not embedded inside a match
-      because we give also explanations when things are not matching.
-      EXPERIMENTAL: since semgrep 0.109
-    *);
-  rules_by_engine: rule_id_and_engine_kind list option
-    (**
-      These rules, classified by engine used, will let us be transparent in
-      the CLI output over what rules were run with what. EXPERIMENTAL: since:
-      1.11.0
-    *);
-  engine_requested: engine_kind option;
-  interfile_languages_used: string list option
-    (**
-      Reporting just the requested engine isn't granular enough. We want to
-      know what languages had rules that invoked interfile. This is
-      particularly important for tracking the performance impact of new
-      interfile languages EXPERIMENTAL: since 1.49.0
-    *);
-  skipped_rules: skipped_rule list (** EXPERIMENTAL: since: 1.37.0 *);
-  subprojects: cli_output_subproject_info list option
-    (**
-      SCA subproject resolution results. Note: this is only available when
-      logged in. EXPERIMENTAL: since: 1.125.0
-    *);
-  mcp_scan_results: mcp_scan_results option (** MCP scan results. *);
-  profiling_results: profiling_entry list
-    (**
-      How long it took to execute this or that piece of code in semgrep-core
-    *);
   symbol_analysis: symbol_analysis option (** since semgrep 1.108.0 *)
 }
 

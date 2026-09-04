@@ -2962,6 +2962,29 @@
         "strategy": { "type": "string" }
       }
     },
+    "scan_params": {
+      "description": "Parameters for CallScan.\n\nUnlike the rest of this section, this is an EXTERNAL contract: it is vendored by Guardian's fragment scanner rather than used by pysemgrep. Breaking changes are allowed and to be expected.",
+      "type": "object",
+      "required": [ "rules", "targets", "timeout", "timeout_threshold" ],
+      "properties": {
+        "rules": {
+          "description": "Path to a file containing the rules, as for CallValidate.",
+          "$ref": "#/definitions/fpath"
+        },
+        "targets": {
+          "description": "Path to a file containing a 'targets' value, as for -targets.",
+          "$ref": "#/definitions/fpath"
+        },
+        "timeout": {
+          "description": "Maximum time to spend running one rule on one file, in seconds. 0 disables the timeout.",
+          "type": "number"
+        },
+        "timeout_threshold": {
+          "description": "Number of rules that may time out on a file before the file is skipped. 0 disables the threshold.",
+          "type": "integer"
+        }
+      }
+    },
     "lockfile_kind": {
       "oneOf": [
         { "const": "PipRequirementsTxt" },
@@ -3720,6 +3743,18 @@
           "minItems": 2,
           "items": false,
           "prefixItems": [
+            {
+              "description": "Run a pro intra-file scan. Called by Guardian's fragment scanner, not by pysemgrep; see the scan_params doc.",
+              "const": "CallScan"
+            },
+            { "$ref": "#/definitions/scan_params" }
+          ]
+        },
+        {
+          "type": "array",
+          "minItems": 2,
+          "items": false,
+          "prefixItems": [
             { "const": "CallResolveDependencies" },
             { "$ref": "#/definitions/resolve_dependencies_params" }
           ]
@@ -3883,6 +3918,14 @@
                 { "const": "None" }
               ]
             }
+          ]
+        },
+        {
+          "type": "array",
+          "minItems": 2,
+          "items": false,
+          "prefixItems": [
+            { "const": "RetScan" }, { "$ref": "#/definitions/core_output" }
           ]
         },
         {

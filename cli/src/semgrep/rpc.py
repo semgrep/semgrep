@@ -19,6 +19,8 @@
 # See `src/rpc/README.txt` from the repository root for more details.
 # coupling: src/rpc/RPC.handle_call()
 # coupling: semgrep_output_v1.atd which defines the CallXxx and RetXxx
+# Note that pysemgrep is not the only caller: Guardian's fragment scanner
+# speaks this protocol directly for CallScan. See src/rpc/README.txt.
 from __future__ import annotations
 
 import logging
