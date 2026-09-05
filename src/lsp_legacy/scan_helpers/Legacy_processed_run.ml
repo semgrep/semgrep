@@ -65,6 +65,15 @@ let filter_clean_lines git_ref matches =
 
 let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true) ?git_ref
     (result : Core_runner.result) =
+  
+  let result =
+    let core =
+      { result.core with
+        results = Nosemgrep.filter_ignored ~keep_ignored:false result.core.results
+      }
+    in
+    { result with core }
+  in
   let result =
     Output.preprocess_result ~fips_mode:false ~fixed_lines:false result
   in
