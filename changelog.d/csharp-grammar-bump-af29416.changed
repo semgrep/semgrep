@@ -1,0 +1,1 @@
+Bumped the C# tree-sitter grammar to `tree-sitter/tree-sitter-c-sharp@af29416`, which adds C# 14 language support (including extension declarations, partial events/constructors, field-backed properties, compound-assignment operator overloads, simple-lambda parameter modifiers, null-conditional assignment, and raw string literals).
