@@ -10,8 +10,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import os
+import tempfile
+
 import pytest
 
+import semgrep.join_rule as join_rule_module
 from semgrep.join_rule import Condition
 from semgrep.join_rule import create_collection_set_from_conditions
 from semgrep.join_rule import create_model_map
@@ -235,3 +239,44 @@ def test_create_model_map():
         metavars = result.get("extra", {}).get("metavars")  # type: ignore
         for metavar in metavars.keys():
             assert getattr(model_map[check_id], metavar)  # type: ignore
+
+
+@pytest.mark.quick
+def test_write_temp_rule_file_closes_handle_before_returning(monkeypatch):
+    """
+    Regression test for GH-11403.
+
+    `run_join_rule` hands the temp rule file's path to a *nested* Semgrep
+    scan while relying on the OS to let that path be reopened by name. A
+    `NamedTemporaryFile`'s path cannot be reopened while its own handle is
+    still open on Windows (POSIX allows this, which is why this bug only
+    ever reproduced for Windows users). Assert that `_write_temp_rule_file`
+    always closes its handle before handing back the path, by spying on the
+    real `NamedTemporaryFile` object it creates.
+    """
+    created_handles = []
+    real_named_temporary_file = tempfile.NamedTemporaryFile
+
+    def spy_named_temporary_file(*args, **kwargs):
+        handle = real_named_temporary_file(*args, **kwargs)
+        created_handles.append(handle)
+        return handle
+
+    monkeypatch.setattr(
+        join_rule_module.tempfile, "NamedTemporaryFile", spy_named_temporary_file
+    )
+
+    rule_path = join_rule_module._write_temp_rule_file(
+        [{"id": "test-rule", "pattern": "foo", "severity": "INFO"}]
+    )
+    try:
+        assert len(created_handles) == 1
+        assert created_handles[0].closed is True
+
+        # The path must also be independently readable by a brand new
+        # handle -- the actual behavior that fails on Windows when the
+        # original handle is left open.
+        content = rule_path.read_text()
+        assert "test-rule" in content
+    finally:
+        os.unlink(rule_path)
