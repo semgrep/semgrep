@@ -292,9 +292,23 @@ let m_module_name a b =
  * todo? now that we don't use >!> and always explore the subexprs,
  * we could probably refactor this code to not need so many arguments.
  *)
-let m_deep (deep_fun : G.expr Matching_generic.matcher)
+let m_deep ?(record_expr_match = false)
+    (deep_fun : G.expr Matching_generic.matcher)
     (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
     (a : G.expr) (b : 't) =
+  (* When record_expr_match is set, remember which subexpression the deep
+   * match landed on, so Match_patterns can report just its range (#2199).
+   * We only set the field if it is still None: the recursive calls to
+   * deep_fun process the innermost subexpressions first, so a None here
+   * means the pattern matched x itself (not something deeper inside x).
+   *)
+  let record x m tin =
+    m tin
+    |> List.map (fun env ->
+        if record_expr_match && Option.is_none env.deep_expr_matched then
+          { env with deep_expr_matched = Some x }
+        else env)
+  in
   if_config
     (fun x -> not x.go_deeper_expr)
     ~then_:(first_fun a b)
@@ -312,7 +326,7 @@ let m_deep (deep_fun : G.expr Matching_generic.matcher)
       let rec aux xs =
         match xs with
         | [] -> fail ()
-        | x :: xs -> deep_fun a x >||> aux xs
+        | x :: xs -> record x (deep_fun a x) >||> aux xs
       in
       b |> sub_fun |> aux)
 
@@ -856,7 +870,8 @@ and m_expr_deep_implict a b tin =
   (* Deep expression matching extracts sub-expressions without decomposing on the pattern,
      meaning that matching those sub-expressions should be considered as the root.
   *)
-  m_deep m_expr_deep_implict m_expr_root subexprs_of_expr a b tin
+  m_deep ~record_expr_match:true m_expr_deep_implict m_expr_root
+    subexprs_of_expr a b tin
 
 (* This just calls `m_expr_inner` as the root. This is exposed, so that exterior uses will
    properly register as the root, and should only be called at the start of matching.
@@ -2780,14 +2795,28 @@ and m_stmt a b =
       m_tok asc bsc
   (* deeper: go deep by default implicitly *)
   | G.ExprStmt (a1, a2), B.ExprStmt (b1, b2) ->
-      (* TODO: should make this an options: *)
-      let* () =
-        if_config
-          (fun x -> x.implicit_deep_exprstmt)
-          ~then_:(m_expr_deep_implict a1 b1)
-          ~else_:(m_expr_root a1 b1)
-      in
-      m_tok a2 b2
+      fun tin ->
+        (* TODO: should make this an options: *)
+        (let* () =
+           if_config
+             (fun x -> x.implicit_deep_exprstmt)
+             ~then_:(m_expr_deep_implict a1 b1)
+             ~else_:(m_expr_root a1 b1)
+         in
+         m_tok a2 b2)
+          tin
+        (* If the implicit deep matching just recorded the subexpression it
+         * landed on, also record which ExprStmt it happened for, so that
+         * Match_patterns can narrow the reported range (see #2199). The
+         * Option.is_none check keeps the innermost ExprStmt in case of
+         * nested deep matches, consistent with deep_expr_matched itself.
+         *)
+        |> List.map (fun env ->
+            if
+              Option.is_some env.deep_expr_matched
+              && Option.is_none env.deep_expr_matched_stmt
+            then { env with deep_expr_matched_stmt = Some b }
+            else env)
   (* opti: specialization to avoid going in the deep stmt matching!
    * TODO: we should not need this; '...' should not enumerate all
    * possible subset of stmt list and take forever.
