@@ -304,10 +304,30 @@ let top_func () =
           and v3 = expr v3 in
           G.Call
             (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
-      | CompositeLit (v1, v2) ->
-          let v1 = type_ v1
-          and l, v2, r = bracket (list init_for_composite_lit) v2 in
-          G.New (fake l "new", v1, G.empty_id_info (), (l, v2, r))
+      | CompositeLit (v1, v2) -> (
+          (* Slice/array/map composite literals lower to a G.Container, as in
+           * every other semgrep language (js/python/ruby/java lower collection
+           * literals this way), so they no longer collide with make(...), which
+           * stays a G.New (see the new/make handling above). Before this, both
+           * `make([]T, n)` and `[]T{x}` became `New(TyArray T, [_])`, so a
+           * `make([]$T, $L)` pattern wrongly matched a one-element slice literal
+           * (issue #9558; the same collision for maps is #8980).
+           * Struct composites (CompositeLit of a named type) stay New so that
+           * `p := Foo{}` still confers type Foo for typed-metavariable matching
+           * (the New arm of Naming_AST.get_resolved_type). make only ever builds
+           * TArray/TArrayEllipsis/TMap/TChan, never a TName, so structs are
+           * untouched by the collision. *)
+          match v1 with
+          | TArray _ | TArrayEllipsis _ ->
+              let l, v2, r = bracket (list init) v2 in
+              G.Container (G.List, (l, v2, r))
+          | TMap _ ->
+              let l, v2, r = bracket (list init) v2 in
+              G.Container (G.Dict, (l, v2, r))
+          | _ ->
+              let v1 = type_ v1
+              and l, v2, r = bracket (list init_for_composite_lit) v2 in
+              G.New (fake l "new", v1, G.empty_id_info (), (l, v2, r)))
       | Slice (v1, (t1, v2, t2)) ->
           let e = expr v1 in
           let v1, v2, v3 = v2 in
