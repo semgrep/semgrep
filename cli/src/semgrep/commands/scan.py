@@ -693,6 +693,13 @@ class ScanResult:
     is_flag=True,
     default=False,
 )
+@optgroup.option(
+    "--list-rules",
+    "list_rules",
+    is_flag=True,
+    default=False,
+    help="List the rules that would be run and exit without scanning.",
+)
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False)
 @optgroup.option(
@@ -798,6 +805,7 @@ def scan(
     x_ignore_semgrepignore_files: bool,
     x_ls: bool,
     x_ls_long: bool,
+    list_rules: bool,
     enable_transitive_reachability: Optional[bool],
     x_dependency_paths: bool,
     x_eio: bool,
@@ -1167,6 +1175,7 @@ def scan(
                         baseline_commit=baseline_commit,
                         x_ls=x_ls,
                         x_ls_long=x_ls_long,
+                        list_rules=list_rules,
                         enable_transitive_reachability=enable_transitive_reachability,
                         x_dependency_paths=x_dependency_paths,
                         x_parmap=x_parmap,
