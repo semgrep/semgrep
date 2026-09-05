@@ -97,7 +97,7 @@ def download_semgrep_pro(
             logger.warning(
                 "Logged in deployment does not have access to Semgrep Pro Engine"
             )
-            # FIXME: Needs to be updated before launch Feb 2023
+            
             logger.warning(
                 "Visit https://semgrep.dev/products/pro-engine/ for more information."
             )
