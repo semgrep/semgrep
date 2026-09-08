@@ -24,8 +24,8 @@ type t [@@deriving show]
 (** An opaque prefilter for file-level matching *)
 
 type predicate = Predicate.t =
-  | String of string  (** Match exact string occurrence *)
-  | Regex of Pcre2_.t  (** Match regular expression *)
+  | String of { needle : string; case_sensitive : bool }
+  | Regex of Pcre2_.t
 [@@deriving show, eq, ord, hash]
 
 val of_rule : ?interfile:bool -> Rule.t -> t option

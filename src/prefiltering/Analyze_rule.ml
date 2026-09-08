@@ -89,7 +89,17 @@ type metavariable_and_strings_predicate =
   | MvarRegexp of Metavariable.mvar * string * bool
 [@@deriving show]
 
-type env = { interfile : bool; is_id_mvar : Metavariable.mvar -> bool }
+type env = {
+  interfile : bool;
+  is_id_mvar : Metavariable.mvar -> bool;
+  regex_only : bool;
+      (** [true] when the rule consists solely of regexes (i.e. an [LRegex] rule).
+
+          Only then do we replace a regex predicate with the (weaker but much
+          cheaper) literal substrings extracted from it: for such a rule the
+          prefilter would otherwise re-run the very regex the scan itself runs.
+          *)
+}
 
 (* Here we overapproximate and just look for _ONE_ occurrence of an $MVAR in an
    "identifier position" (cf., 'Analyze_pattern.extract_mvars_in_id_position').
@@ -165,7 +175,7 @@ let simplify_patterns env cnf =
 
 (* Now remove the predicate references to metavariables and directly have
    predicates on the entire text stream. *)
-let rec textual_requirements_of_simplified :
+let rec textual_requirements_of_simplified ~regex_only :
     metavariable_and_strings_predicate requirement_tree ->
     Predicate.t requirement_tree option =
   let no_regex_special_chars (s : string) =
@@ -220,15 +230,32 @@ let rec textual_requirements_of_simplified :
   let module P = Predicate in
   let module F = Formula in
   function
-  | And xs -> List.filter_map textual_requirements_of_simplified xs |> F.and_
+  | And xs ->
+      List.filter_map (textual_requirements_of_simplified ~regex_only) xs
+      |> F.and_
   | Or xs ->
-      let* xs = option_map textual_requirements_of_simplified xs in
+      let* xs =
+        option_map (textual_requirements_of_simplified ~regex_only) xs
+      in
       F.or_ xs
   | Pred (StringsAndMvars (xs, _)) ->
-      F.and_ (List.map (fun x -> F.pred (P.String x)) xs)
-  | Pred (Regex re) ->
-      if no_regex_special_chars re then Some (F.pred (P.String re))
-      else Some (F.pred (P.Regex (Pcre2_.pcre_compile re)))
+      F.and_
+        (List.map
+           (fun x -> F.pred (P.String { needle = x; case_sensitive = true }))
+           xs)
+  | Pred (Regex re) -> (
+      if
+        (* Try and turn the regex into a cheaper (string) prefilter, but just
+           use the regex if we can't *)
+        no_regex_special_chars re
+      then Some (F.pred (P.String { needle = re; case_sensitive = true }))
+      else
+        let extracted =
+          if regex_only then Regexp_prefilter.required_substrings re else None
+        in
+        match extracted with
+        | Some f -> Some f
+        | None -> Some (F.pred (P.Regex (Pcre2_.pcre_compile re))))
   | Pred (MvarRegexp (_mvar, re_str, _const_prop)) ->
       (* The original regexp is meant to apply on a substring.
            We rewrite them to remove end-of-string anchors if possible. *)
@@ -242,7 +269,7 @@ type prefilter = Predicate.t requirement_tree [@@deriving show]
 let create_prefilter (env : env) f =
   let* f = required_patterns_of_formula f in
   let* f = simplify_patterns env f in
-  let* f = textual_requirements_of_simplified f in
+  let* f = textual_requirements_of_simplified ~regex_only:env.regex_only f in
   Some f
 [@@profiling]
 
@@ -266,7 +293,17 @@ let prefilter_of_formula ~interfile ~analyzer f : prefilter option =
         let id_mvars = id_mvars_of_formula ~interfile f in
         fun mvar -> Analyze_pattern.MvarSet.mem mvar id_mvars
   in
-  create_prefilter { interfile; is_id_mvar } f
+  (* An [LRegex] rule is written in `languages: [regex]` mode, so every one of
+     its patterns is a regex. *)
+  let regex_only =
+    match (analyzer : Analyzer.t) with
+    | LRegex -> true
+    | LSpacegrep
+    | LAliengrep
+    | L _ ->
+        false
+  in
+  create_prefilter { interfile; is_id_mvar; regex_only } f
 
 let prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
     ({ sources = _, source_patterns; sinks = _, sink_patterns; _ } :

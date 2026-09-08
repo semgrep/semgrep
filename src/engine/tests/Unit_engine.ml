@@ -609,6 +609,94 @@ let filter_irrelevant_rules_tests =
      |> List.map (fun target_file -> test_irrelevant_rule_file target_file))
 
 (*****************************************************************************)
+(* Regexp prefilter extraction tests *)
+(*****************************************************************************)
+
+(* Tests that we can extract literal string prefilters from regexes, which we
+   do for regex-only (LRegex) rules. See Prefiltering.Regexp_prefilter. *)
+let regexp_prefilter_tests =
+  let module F = Prefiltering.Formula in
+  let module P = Prefiltering.Predicate in
+  let check re (expected : P.t F.t option) =
+    t (spf "extract prefilter from /%s/" re) (fun () ->
+        let got = Prefiltering.Regexp_prefilter.required_substrings re in
+        let eq =
+          match (got, expected) with
+          | None, None -> true
+          | Some g, Some e -> F.equal P.equal g e
+          | Some _, None
+          | None, Some _ ->
+              false
+        in
+        if not eq then
+          let show = function
+            | None -> "None"
+            | Some f -> F.show P.pp f
+          in
+          Alcotest.failf "for /%s/: expected %s but got %s" re (show expected)
+            (show got))
+  in
+  let str s = F.pred (P.String { needle = s; case_sensitive = true }) in
+  let istr s = F.pred (P.String { needle = s; case_sensitive = false }) in
+  Testo.categorize "regexp prefilter extraction"
+    [
+      (* The motivating case: an AWS-style key. Any match must contain one of
+         the fixed prefixes, so we get a disjunction of literal substrings. *)
+      check {|(?<KEY>\b((AKIA|ABIA|ACCA)[0-9A-Z]{16})\b)|}
+        (F.or_ [ str "AKIA"; str "ABIA"; str "ACCA" ]);
+      (* Literals on both sides of a variable-length gap are both required. *)
+      check {|foo\d+bar|} (F.and_ [ str "foo"; str "bar" ]);
+      (* A plain (parenthesized) literal collapses to a single substring. *)
+      check {|(foobar)|} (Some (str "foobar"));
+      (* An alternation with an unconstrained branch (here [.]) yields no
+         useful condition, so we fall back to the full regex (None). *)
+      check {|foo|.|} None;
+      (* Runs shorter than the minimum useful length are dropped. *)
+      check {|a.b|} None;
+      (* Case-insensitive scope: literals become case-insensitive predicates. *)
+      check {|(?i:abuseipdb|key)|} (F.or_ [ istr "abuseipdb"; istr "key" ]);
+      check {|(?i)AKIA[0-9]{16}|} (Some (istr "AKIA"));
+      (* Mixed scope: a case-insensitive run and a case-sensitive run are kept
+         separate, never merged. *)
+      check {|(?i:foo)BARBAZ|} (F.and_ [ istr "foo"; str "BARBAZ" ]);
+      (* Soundness guard: [Parser_regexp] mis-parses a bracket expression
+         containing whitespace (here [ =:]) into literal characters, which do
+         not reflect PCRE semantics; we must not extract from it. *)
+      check {|prefix[ =:]+suffix|} None;
+      (* A fixed repeat count is expanded into the full literal. *)
+      check {|(ab){3}|} (Some (str "ababab"));
+      (* ... and merges with its neighbors, up to the expansion cap (8). *)
+      check {|d(ab){8}c|} (Some (str "dababababababababc"));
+      (* Soundness guard: a repeat count above the expansion cap (8) is
+         materialized with only 8 copies, so the result must be claimed as a
+         prefix and a suffix rather than the exact match; requiring e.g.
+         "d(ab)^8c" as one contiguous substring would wrongly skip files
+         matching d(ab){10}c. *)
+      check {|d(ab){10}c|}
+        (F.and_ [ str "dabababababababab"; str "ababababababababc" ]);
+      (* When the prefix and suffix runs coincide, require them only once. *)
+      check {|(ab){9}|} (Some (str "abababababababab"));
+      (* A (?i) directive applies to all following alternation branches. *)
+      check {|(?i)foo|bar|} (F.or_ [ istr "foo"; istr "bar" ]);
+      (* A mid-sequence (?i) does not parse ([Parser_regexp] only supports
+         directives where PCRE scoping is unambiguous), so we extract
+         nothing rather than risk wrong case-sensitivity. *)
+      check {|abc(?i)def|} None;
+      (* Escaped punctuation is a literal... *)
+      check {|foo\.bar|} (Some (str "foo.bar"));
+      (* A trailing literal '-' in a character class must not derail the
+         literals around it (a lexer bug used to make the class swallow the
+         rest of the pattern, losing ".auth0.com" here). *)
+      check {|(?<DOMAIN>([a-zA-Z0-9][a-zA-Z0-9._-]*\.auth0\.com))|}
+        (Some (str ".auth0.com"));
+      (* ... but escapes the lexer decodes as letters or to the wrong byte
+         (here \N, which in PCRE matches any non-newline character, and \cI,
+         a control character) must not become required literals. *)
+      check {|abc\Ndef|} (F.and_ [ str "abc"; str "def" ]);
+      check {|abc\cIdef|} (F.and_ [ str "abc"; str "def" ]);
+    ]
+
+(*****************************************************************************)
 (* Tainting tests *)
 (*****************************************************************************)
 
@@ -912,6 +1000,7 @@ let tests =
       lang_autofix_tests ~polyglot_pattern_path;
       eval_regression_tests ();
       filter_irrelevant_rules_tests;
+      regexp_prefilter_tests;
       lang_tainting_tests ();
       maturity_tests ();
       full_rule_taint_maturity_tests;

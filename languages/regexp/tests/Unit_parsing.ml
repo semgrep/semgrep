@@ -72,6 +72,11 @@ let tests =
             (test_syntax {|[[:alpha|});
           t "tolerate unfinished non-capturing group" (test_syntax {|(?|});
           t "tolerate unfinished raw sequence" (test_syntax {|\Qabc|});
+          (* A '-' just before ']' is a literal hyphen, not a range. A bug
+             used to consume the ']' as a range's upper bound, making the
+             class swallow the rest of the pattern (here, the unbalanced
+             ')' this leaves behind would raise a syntax error). *)
+          t "trailing hyphen in character class" (test_syntax {|(x[a-z_-])y|});
           (* Check regexps kept in files *)
           t "valid files"
             (test_valid_files Dialect.PCRE (Fpath.v "regexp/pcre/parsing"));
