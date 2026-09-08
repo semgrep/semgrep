@@ -11,45 +11,48 @@
  * FITNESS FOR A PARTICULAR PURPOSE. See the file LICENSE for more details.
  *)
 
-(* Extracting required literal substrings from a regexp, for prefiltering.
+(* Extract required literal substrings ("needles") from a regexp, for
+   prefiltering: any match of
 
-   Given a PCRE-compatible regexp such as
+     (AKIA|ABIA|ACCA)[0-9A-Z]{16}
 
-     (?<KEY>\b((AKIA|ABIA|ACCA)[0-9A-Z]{16})\b)
+   must contain "AKIA", "ABIA", or "ACCA", so a file containing none of them
+   can be skipped without running the regexp. [required_substrings] returns
+   such a necessary condition as a [Predicate.t Formula.t] of literal
+   [String] predicates, or [None] when it cannot extract a useful one.
 
-   any string it matches must contain one of the literals "AKIA", "ABIA", or
-   "ACCA", so a file containing none of them can be skipped without running
-   the (comparatively expensive) regexp. This module computes such a necessary
-   condition as a [Predicate.t Formula.t] of literal [String] predicates.
+   We fold the AST of the regular expression (see [Parser_regexp]) bottom-up
+   into a [frag], which summarises a subexpression's guaranteed literals as
+   case-tagged "runs":
 
-   We parse the regexp into an AST (see [Parser_regexp]) and fold it bottom-up
-   into a [frag], a summary of the guaranteed-literal structure of a
-   subexpression:
+   - [exact]: the run, if the fragment matches exactly one fixed string;
+   - [prefix]/[suffix]: runs guaranteed at either end, left open so that
+     concatenation can merge adjacent literals into longer runs;
+   - [req]: needles already required of the interior. Once a run can no
+     longer grow (it lands in the middle of a concatenation) it is "closed":
+     made into a [String] needle if at least [min_substring_length] long,
+     dropped otherwise.
 
-   - [exact]: the fixed string, if the fragment matches exactly one;
-   - [prefix]/[suffix]: the literal runs guaranteed at the start/end of any
-     match, kept open so that adjacent literals merge across a concatenation
-     into a single longer (more selective) substring;
-   - [req]: a formula of substrings guaranteed to occur somewhere in any
-     match (runs closed off in the interior, alternations).
+   Alternation closes each branch and ORs them (every branch must produce a
+   needle); repetition keeps its content's requirements when its lower bound
+   is positive. Anything we cannot reason about soundly (character classes,
+   [.], back-references, ...) is treated as unconstrained, and [(?x)] aborts
+   extraction entirely.
 
-   Concatenation merges boundary runs and closes off interior ones;
-   alternation disjoins its branches' requirements; a repetition with a
-   positive lower bound keeps its content's requirements. Constructs we cannot
-   reason about soundly (arbitrary character classes, back-references, [.],
-   ...) contribute no constraint. An inline [(?i)] makes literals in its scope
-   case-insensitive; runs of differing case-sensitivity are never merged.
+   Examples (ex/pre/suf/req = the top-level [frag]; more in the "regexp
+   prefilter extraction" tests):
 
-   Extraction functions return [None] ("give up") for constructs that could
-   make the result unsound, notably the [(?x)] option, which changes how the
-   pattern lexes. The extracted formula is always a *necessary* condition for
-   the regexp to match, so it is sound to use as a prefilter; it may of course
-   be weaker than the regexp itself.
+     regexp            ex       pre      suf     req   result
+     (foobar)          foobar   foobar   foobar  -     "foobar"
+     foo\d+bar         -        foo      bar     -     And [foo; bar]
+     \d+abc\d+         -        -        -       abc   "abc"
+     a.b               -        a        b       -     None (runs < 3)
+     (?i:foo)BARBAZ    -        i"foo"   BARBAZ  -     And [i"foo"; "BARBAZ"]
+     foo|.             -        -        -       -     None
 
-   Note that the formula is evaluated against whole file contents, not against
-   match text; this is what makes it sound to treat zero-width assertions
-   (including [\K], which excludes the preceding text from the reported match)
-   as transparent to literal runs. *)
+   The result is a *necessary* condition, hence sound as a prefilter. It is
+   checked against whole file contents, which is why zero-width assertions
+   ([\b], [\K], ...) can be transparent to runs. *)
 
 open Common
 module P = Predicate
@@ -67,8 +70,7 @@ let min_substring_length = 3
    prefilter. *)
 let max_repeat_expansion = 8
 
-(* A literal run: a guaranteed-present substring, tagged with whether it is
-   matched case-insensitively (i.e., it occurred within a [(?i)] scope). *)
+(* A literal run; see the module preamble. *)
 type run = { str : string; ci : bool }
 
 let no_run = { str = ""; ci = false }
@@ -76,7 +78,7 @@ let no_run = { str = ""; ci = false }
 let equal_run (r1 : run) (r2 : run) : bool =
   String.equal r1.str r2.str && Bool.equal r1.ci r2.ci
 
-(* A summary of the guaranteed-literal structure of a regexp fragment.
+(* A fragment; see the module preamble.
 
    Invariants:
    - if [exact = Some r], the fragment matches exactly the fixed run [r], and

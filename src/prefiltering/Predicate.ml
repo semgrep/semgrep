@@ -15,6 +15,7 @@ type t =
 
 let eval_cost (predicate : t) : int =
   match predicate with
+  (* KMP string search is faster than PCRE2 regex *)
   | String _ -> 0
   | Regex _ -> 1
 
