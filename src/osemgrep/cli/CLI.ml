@@ -298,18 +298,29 @@ let main (argv : string array) : Exit_code.t =
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
 
   (* coupling: Core_CLI.ml and Pro_core_CLI.ml *)
-  Proxy.configure_proxy (Proxy.settings_from_env ());
-  Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
+  (* An invalid proxy variable can't be recovered from: using it would crash
+   * later in cohttp, and ignoring it would silently send traffic around the
+   * proxy the user asked for. Report the error and exit before doing anything
+   * else. Note that this exit path reports no metrics, since sending them
+   * would itself go through the proxy we just rejected. *)
+  match Proxy.settings_from_env () with
+  | Error (`Msg msg) ->
+      Logs.err (fun m -> m "%s" msg);
+      before_exit ();
+      Exit_code.fatal ~__LOC__
+  | Ok proxy_settings ->
+      Proxy.configure_proxy proxy_settings;
+      Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
-  metrics_init ();
+      metrics_init ();
 
-  (* TOPORT: maybe_set_git_safe_directories() *)
-  (* TOADAPT? adapt more of Common.boilerplate? *)
+      (* TOPORT: maybe_set_git_safe_directories() *)
+      (* TOADAPT? adapt more of Common.boilerplate? *)
 
-  (* !The main call! dispatching a subcommand *)
-  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
+      (* !The main call! dispatching a subcommand *)
+      let exit_code = safe_run ~debug (fun () -> dispatch_subcommand argv) in
 
-  Metrics_.add_exit_code exit_code;
-  send_metrics ();
-  before_exit ();
-  exit_code
+      Metrics_.add_exit_code exit_code;
+      send_metrics ();
+      before_exit ();
+      exit_code
