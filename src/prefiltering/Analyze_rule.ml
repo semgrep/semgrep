@@ -270,7 +270,11 @@ let create_prefilter (env : env) f =
   let* f = required_patterns_of_formula f in
   let* f = simplify_patterns env f in
   let* f = textual_requirements_of_simplified ~regex_only:env.regex_only f in
-  Some f
+  (* Cheapest predicates first: evaluation short-circuits left to right, so a
+     cheap string predicate that already decides an And/Or saves evaluating an
+     expensive regex predicate (which is what patterns fall back to when no
+     literal can be extracted from them). *)
+  Some (Formula.sort_by_cost ~cost:Predicate.eval_cost f)
 [@@profiling]
 
 let prefilter_of_formula ~interfile ~analyzer f : prefilter option =
