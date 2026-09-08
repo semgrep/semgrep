@@ -13,6 +13,11 @@ type t =
   | Regex of Pcre2_.t
 [@@deriving show, eq, ord, hash, sexp_of]
 
+let eval_cost (predicate : t) : int =
+  match predicate with
+  | String _ -> 0
+  | Regex _ -> 1
+
 let eval (predicate : t) (content : string) : bool =
   let module Search_pattern = Base.String.Search_pattern in
   match predicate with

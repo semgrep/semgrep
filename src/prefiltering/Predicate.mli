@@ -22,6 +22,13 @@ type t =
   | Regex of Pcre2_.t  (** Match regular expression *)
 [@@deriving show, eq, ord, hash, sexp_of]
 
+val eval_cost : t -> int
+(** [eval_cost predicate] is a coarse relative cost tier for evaluating
+    [predicate], used to order predicates cheapest-first: [String] predicates
+    (a substring search) are cheaper than [Regex] predicates, which can be
+    arbitrarily expensive (e.g., regexes that backtrack quadratically on
+    files with very long lines). *)
+
 val eval : t -> string -> bool
 (** [eval predicate content] evaluates [predicate] against [content].
     Returns [true] if the predicate matches, [false] otherwise.
