@@ -667,6 +667,12 @@ and char_class conf = parse
   | ']' {
       Empty
     }
+  | (utf8 as a) '-' ']' {
+      (* A '-' just before ']' is a literal hyphen, not a range: without this
+         rule the range rule below would consume the ']' as the range's upper
+         bound and the class would swallow the rest of the pattern. *)
+      union (Singleton (decode a)) (Singleton (Char.code '-'))
+    }
   | (utf8 as a) '-' (utf8 as b) {
       let range = Range (decode a, decode b) in
       union range (char_class conf lexbuf)

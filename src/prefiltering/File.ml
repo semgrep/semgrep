@@ -10,13 +10,9 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* Needed to derive hash *)
-let hash_fold_string : Base.Hash.state -> string -> Base.Hash.state =
-  Base.hash_fold_string
-
 type predicate = Predicate.t =
-  | String of string  (** Match exact string occurrence *)
-  | Regex of Pcre2_.t  (** Match regular expression *)
+  | String of { needle : Base.String.t; case_sensitive : Base.Bool.t }
+  | Regex of Pcre2_.t
 [@@deriving show, eq, ord, hash]
 
 type t = predicate Formula.t [@@deriving show]
@@ -49,7 +45,12 @@ let to_semgrep_formula (prefilter : t) : Semgrep_prefilter_t.formula =
         | [] -> failwith "Empty Or not supported"
         | [ x ] -> x
         | xs -> `Or xs)
-    | Formula.Pred (String s) -> `Pred (`Idents [ s ])
+    | Formula.Pred (String { needle = s; case_sensitive = true }) ->
+        `Pred (`Idents [ s ])
+    | Formula.Pred (String { needle = s; case_sensitive = false }) ->
+        (* The external format has no case-insensitive string predicate, so we
+           express it as a case-insensitive regexp of the (quoted) literal. *)
+        `Pred (`Regexp ("(?i)" ^ Pcre2_.quote s))
     | Formula.Pred (Regex re) ->
         let re_str = Pcre2_.show re in
         `Pred (`Regexp re_str)

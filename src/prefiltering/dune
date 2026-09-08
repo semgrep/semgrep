@@ -3,6 +3,7 @@
  (name prefiltering)
  (libraries
     ast_generic
+    parser_regexp
     semgrep.core
     semgrep.target
  )

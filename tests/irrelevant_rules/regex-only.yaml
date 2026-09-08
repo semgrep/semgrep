@@ -1,0 +1,10 @@
+# This rule/target pair targets filter_irrelevant_rules: a regex-only rule
+# gets a literal string prefilter extracted from its regex (here the AWS key
+# prefixes AKIA/ABIA/ACCA), so a file containing none of them is skipped
+# without running the regex.
+rules:
+- id: aws-key
+  pattern-regex: '(?<KEY>\b((AKIA|ABIA|ACCA)[0-9A-Z]{16})\b)'
+  languages: [regex]
+  severity: WARNING
+  message: "AWS access key ID"
