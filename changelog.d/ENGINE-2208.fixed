@@ -1,0 +1,9 @@
+Semgrep no longer crashes with an OCaml stack trace when a proxy environment
+variable holds an unusable value. `HTTP_PROXY`, `HTTPS_PROXY`, or `ALL_PROXY`
+set to an empty value is now ignored with a warning, and the scan
+proceeds without a proxy. A non-empty value that is not a usable proxy URL
+now exits with an error message, with any credentials in the URL
+redacted, instead of failing inside the HTTP client.
+
+Semgrep also now adds the missing scheme to a proxy URL supplied
+without one; `https` for `HTTPS_PROXY and `http` otherwise.

@@ -1,0 +1,12 @@
+(library
+  (public_name networking.proxy.tests)
+  (name networking_proxy_tests)
+  (wrapped false)
+  (libraries
+    alcotest
+    testo
+    commons
+    uri
+    networking.proxy
+    )
+)

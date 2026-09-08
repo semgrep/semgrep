@@ -777,7 +777,14 @@ let main_exn (argv : string array) : unit =
   (* coupling: if you add an init() call here, you probably need to modify
      also tests/Test.ml, CLI.ml, and Pro_core_CLI.ml
   *)
-  Proxy.configure_proxy (Proxy.settings_from_env ());
+  (match Proxy.settings_from_env () with
+  | Ok proxy_settings -> Proxy.configure_proxy proxy_settings
+  | Error (`Msg msg) ->
+      (* Passing an invalid proxy URI to [configure_proxy] raises
+       * [Invalid_argument] out of cohttp, so report [msg], which names the
+       * offending variable, and exit instead. *)
+      Logs.err (fun m -> m "%s" msg);
+      Core_exit_code.(exit_semgrep Bad_command_line));
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
   (* must be done after Arg.parse, because Common.profile is set by it *)

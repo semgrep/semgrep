@@ -177,6 +177,7 @@ let tests =
         Unit_metachecking.tests;
         Unit_http_helpers.tests;
         Unit_keepalive_race.tests ~extra_tags:[ Test_tags.flaky ] ();
+        Unit_proxy.tests;
         (* osemgrep unit tests *)
         Unit_Login.tests;
         Unit_app.tests;
