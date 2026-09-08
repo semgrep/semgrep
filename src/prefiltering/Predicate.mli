@@ -17,7 +17,8 @@
     can be evaluated against file content to determine if a rule might match. *)
 
 type t =
-  | String of string  (** Match exact string occurrence *)
+  | String of { needle : string; case_sensitive : bool }
+      (** Match exact string occurrence, possibly case-insensitively *)
   | Regex of Pcre2_.t  (** Match regular expression *)
 [@@deriving show, eq, ord, hash, sexp_of]
 
