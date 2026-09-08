@@ -85,5 +85,24 @@ let rec map (f : 'a -> 'b) (formula : 'a t) : 'b t =
   | Or xs -> Or (List.map (map f) xs)
   | Pred x -> Pred (f x)
 
+let sort_by_cost ~(cost : 'a -> int) (formula : 'a t) : 'a t =
+  (* Deciding a subtree may require evaluating its most expensive predicate,
+     so rank subtrees pessimistically by their maximum predicate cost. *)
+  let rec max_cost = function
+    | Pred x -> cost x
+    | And xs
+    | Or xs ->
+        List.fold_left (fun acc x -> Int.max acc (max_cost x)) 0 xs
+  in
+  let rank =
+    List.stable_sort (fun a b -> Int.compare (max_cost a) (max_cost b))
+  in
+  let rec sort = function
+    | Pred _ as p -> p
+    | And xs -> And (rank (List.map sort xs))
+    | Or xs -> Or (rank (List.map sort xs))
+  in
+  sort formula
+
 let predicates (formula : 'a t) : 'a list =
   fold (fun pred acc -> pred :: acc) formula []

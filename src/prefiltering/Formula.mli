@@ -62,5 +62,14 @@ val eval : ('a -> bool) -> 'a t -> bool
 val map : ('a -> 'b) -> 'a t -> 'b t
 (** [map f formula] applies [f] to each predicate in [formula] *)
 
+val sort_by_cost : cost:('a -> int) -> 'a t -> 'a t
+(** [sort_by_cost ~cost formula] reorders the children of every [And] and [Or]
+    so that cheaper subtrees come first, where a subtree's cost is the maximum
+    [cost] of its predicates. The sort is stable, so children of equal cost
+    keep their relative order. The formula is logically unchanged, but since
+    [eval] short-circuits left to right, putting cheap conjuncts (which may be
+    false) and disjuncts (which may be true) first avoids evaluating expensive
+    predicates whenever a cheap one already decides the result. *)
+
 val predicates : 'a t -> 'a list
 (** [predicates formula] returns a list of all predicates in [formula] *)

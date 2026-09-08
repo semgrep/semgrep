@@ -697,6 +697,43 @@ let regexp_prefilter_tests =
     ]
 
 (*****************************************************************************)
+(* Prefilter conjunct ranking tests *)
+(*****************************************************************************)
+
+(* Tests that [Formula.sort_by_cost] reorders And/Or children so that cheap
+   (string) predicates are evaluated before expensive (regex) ones, stably. *)
+let prefilter_ranking_tests =
+  let module F = Prefiltering.Formula in
+  let module P = Prefiltering.Predicate in
+  let str s = F.pred (P.String { needle = s; case_sensitive = true }) in
+  let re s = F.pred (P.Regex (Pcre2_.pcre_compile s)) in
+  let and_ xs = Option.get (F.and_ xs) in
+  let or_ xs = Option.get (F.or_ xs) in
+  let check name formula expected =
+    t name (fun () ->
+        let got = F.sort_by_cost ~cost:P.eval_cost formula in
+        if not (F.equal P.equal got expected) then
+          Alcotest.failf "expected %s but got %s" (F.show P.pp expected)
+            (F.show P.pp got))
+  in
+  Testo.categorize "prefilter conjunct ranking"
+    [
+      (* Strings are cheaper than regexes, so they move to the front. *)
+      check "regex after string"
+        (and_ [ re "a.*b"; str "foo" ])
+        (and_ [ str "foo"; re "a.*b" ]);
+      (* The sort is stable: same-cost predicates keep their order. *)
+      check "stable within cost tiers"
+        (and_ [ str "a"; re "x+"; str "b"; re "y+" ])
+        (and_ [ str "a"; str "b"; re "x+"; re "y+" ]);
+      (* Subtrees rank by their most expensive predicate, and nested And/Or
+         are sorted too. *)
+      check "nested subtrees"
+        (or_ [ and_ [ re "p.*q"; str "bar" ]; str "baz" ])
+        (or_ [ str "baz"; and_ [ str "bar"; re "p.*q" ] ]);
+    ]
+
+(*****************************************************************************)
 (* Tainting tests *)
 (*****************************************************************************)
 
@@ -1001,6 +1038,7 @@ let tests =
       eval_regression_tests ();
       filter_irrelevant_rules_tests;
       regexp_prefilter_tests;
+      prefilter_ranking_tests;
       lang_tainting_tests ();
       maturity_tests ();
       full_rule_taint_maturity_tests;
