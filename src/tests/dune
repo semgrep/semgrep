@@ -17,6 +17,7 @@
     commons.tests
     collections.tests
     networking.http_helpers.tests
+    networking.proxy.tests
     parallelism.tests
     semgrep.analyzing.tests ; Unit_dataflow
     semgrep.core

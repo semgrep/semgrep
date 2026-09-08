@@ -34,10 +34,21 @@ type settings = {
 [@@deriving show, eq]
 (** Configuration settings for HTTP/HTTPS proxy setup *)
 
-val settings_from_env : unit -> settings
+val settings_from_env : unit -> (settings, [> `Msg of string ]) result
 (** Creates proxy settings by reading from environment variables.
     Reads from both lowercase and uppercase variants of:
-    HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, NO_PROXY, PROXY_USER, PROXY_PASSWORD *)
+    HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, NO_PROXY, PROXY_USER, PROXY_PASSWORD
+
+    A proxy URL variable set to an empty (or whitespace-only) value is treated
+    as unset: a warning is logged, the corresponding field of [settings]
+    is [None], and the requests that variable governs are sent
+    directly rather than through a proxy.
+
+    Returns [Error (`Msg msg)], where [msg] is a user-facing message with any
+    proxy credentials redacted, when one of HTTP_PROXY, HTTPS_PROXY or
+    ALL_PROXY has a non-empty value that is not a usable proxy URL. Such a
+    value must not be passed to {!configure_proxy}, which would raise
+    [Invalid_argument]; callers are expected to report [msg] and exit. *)
 
 val configure_proxy : settings -> unit
 (** Configures the LWT HTTP client to use the specified proxy settings *)
