@@ -1,0 +1,81 @@
+[
+  {
+    "rootOrigin": { "id": "project ':app'", "path": ":app" },
+    "configurationName": "compileClasspath",
+    "scope": "Runtime",
+    "allDependencies": [
+      {
+        "id": "com.example:app-parent:1.0",
+        "origin": { "id": "project ':app'", "path": ":app" },
+        "isDirect": true,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.example",
+          "module": "app-parent",
+          "version": "1.0"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": ["com.google.guava:guava:32.1.1-jre"]
+      },
+      {
+        "id": "com.google.guava:guava:32.1.1-jre",
+        "origin": { "id": "project ':app'", "path": ":app" },
+        "isDirect": false,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": "32.1.1-jre"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": ["com.example:app-child:1.0"]
+      },
+      {
+        "id": "com.example:app-child:1.0",
+        "origin": { "id": "project ':app'", "path": ":app" },
+        "isDirect": false,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.example",
+          "module": "app-child",
+          "version": "1.0"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "rootOrigin": { "id": "project ':lib'", "path": ":lib" },
+    "configurationName": "compileClasspath",
+    "scope": "Runtime",
+    "allDependencies": [
+      {
+        "id": "com.google.guava:guava:32.1.1-jre",
+        "origin": { "id": "project ':lib'", "path": ":lib" },
+        "isDirect": true,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": "32.1.1-jre"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": ["com.example:lib-child:1.0"]
+      },
+      {
+        "id": "com.example:lib-child:1.0",
+        "origin": { "id": "project ':lib'", "path": ":lib" },
+        "isDirect": false,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.example",
+          "module": "lib-child",
+          "version": "1.0"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": []
+      }
+    ]
+  }
+]
