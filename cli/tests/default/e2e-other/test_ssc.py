@@ -402,6 +402,10 @@ def test_ssc__requirements_lockfiles(
             "dependency_aware/gradle-no-lockfile",
         ),
         (
+            "rules/dependency_aware/gradle-guava.yaml",
+            "dependency_aware/gradle-multi-module-duplicate",
+        ),
+        (
             "rules/dependency_aware/java-gradle-sca.yaml",
             "dependency_aware/gradle-no-lockfile-missing-gradlew",
         ),
