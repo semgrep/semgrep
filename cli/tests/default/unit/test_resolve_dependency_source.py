@@ -10,6 +10,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+from dataclasses import replace
 from pathlib import PosixPath
 from unittest.mock import patch
 
@@ -18,6 +19,7 @@ import pytest
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParser
 from semgrep.resolve_dependency_source import _handle_lockfile_source
+from semgrep.resolve_dependency_source import _handle_manifest_only_source
 from semgrep.subproject import DependencyResolutionConfig
 
 
@@ -97,3 +99,27 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
         )
     )
     assert result.targets == [PosixPath("poetry.lock")]
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize("enabled", [None, False, True])
+@pytest.mark.parametrize("persistent", [False, True])
+def test_gradle_module_attribution_rpc_transport(mocker, enabled, persistent):
+    """The rollout setting reaches either RPC transport, including baseline scans."""
+    config = DependencyResolutionConfig(False, False, False, False)
+    if enabled is not None:
+        config = replace(config, gradle_module_attribution=enabled)
+    config = replace(config, is_baseline_scan=True)
+    source = out.ManifestOnly(
+        out.Manifest(out.ManifestKind(out.BuildGradle()), out.Fpath("build.gradle"))
+    )
+    session = mocker.Mock() if persistent else None
+    call = session.call if session else mocker.patch("semgrep.rpc_call.rpc_call")
+    call.return_value = None
+
+    _handle_manifest_only_source(source, config, rpc_session=session)
+
+    call.assert_called_once()
+    params = call.call_args.args[0].value.value
+    assert params.to_json().get("gradle_module_attribution", False) is bool(enabled)
+    assert params.dependency_sources == [out.DependencySource(source)]

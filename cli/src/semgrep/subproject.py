@@ -47,6 +47,9 @@ class DependencyResolutionConfig:
     # download source code for each subproject's dependencies.
     download_dependency_source_code: bool
 
+    # Report Gradle dependencies separately for each module build file.
+    gradle_module_attribution: bool = False
+
     # Use only the experimental ocaml parsers. This may
     # produce different results from the python parsers. Note that ocaml parsers
     # may be used even when False when necessary for feature support or when

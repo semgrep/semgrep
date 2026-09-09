@@ -92,6 +92,7 @@ def resolve_dependencies(
     download_dependency_source_code: bool,
     allow_local_builds: bool,
     package_manager_env: Optional[List[Tuple[str, str]]] = None,
+    gradle_module_attribution: bool = False,
 ) -> Optional[List[Tuple[out.DependencySource, out.ResolutionResult]]]:
     call = out.FunctionCall(
         out.CallResolveDependencies(
@@ -99,6 +100,7 @@ def resolve_dependencies(
                 dependency_sources,
                 download_dependency_source_code,
                 allow_local_builds,
+                gradle_module_attribution=gradle_module_attribution,
                 package_manager_env=package_manager_env,
             )
         )

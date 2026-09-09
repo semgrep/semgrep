@@ -31,6 +31,7 @@ from semdep.parsers.util import DependencyParser
 from semdep.parsers.yarn import parse_yarn
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
+from semgrep.util import IS_WINDOWS
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -443,6 +444,78 @@ def test_ssc__lockfileless(
         result.as_snapshot(),
         "results.txt",
     )
+
+
+@pytest.mark.requires_lockfileless_deps
+@pytest.mark.parametrize("enabled", [False, True])
+def test_gradle_module_attribution_rollout(
+    run_semgrep_on_copied_files: RunSemgrep, enabled: bool
+):
+    """Opting in changes module finding paths and IDs; default retains the old ID."""
+    target = "dependency_aware/gradle-multi-module-duplicate"
+    options = ["--allow-local-builds"]
+    if enabled:
+        options.append("--x-gradle-module-attribution")
+    result = run_semgrep_on_copied_files(
+        "rules/dependency_aware/gradle-guava.yaml",
+        target_name=target,
+        options=options,
+        clean_fingerprint=False,
+        is_logged_in_weak=True,
+    )
+    output = json.loads(result.raw_stdout)
+    assert output["errors"] == []
+    findings = output["results"]
+    prefix = f"targets/{target}/"
+    root_manifest = prefix + "settings.gradle.kts"
+    # Captured from the CLI before module attribution was introduced.
+    legacy_mid = (
+        "19710a660200bf3e155336d6c0ccc1ead9626764ae6043f1af4524ccac74ac69"
+        "fcf2fba9b534805eda952b1df016996f87bfcdb724ad16d08e4f66e7e212210d_0"
+    )
+    if IS_WINDOWS:
+        # MIDs include the platform-specific Path representation.
+        legacy_mid = (
+            "9f9f9bcd7e0cc684216f0337ddd740ebb38c65cd1f25b8a241771acc723498b213"
+            "53b68fef82ca3148b635a559761206a12062056f4f2e9ead28a87da5f10e45_0"
+        )
+    expected_paths = (
+        {prefix + "app/build.gradle.kts", prefix + "lib/build.gradle.kts"}
+        if enabled
+        else {root_manifest}
+    )
+    assert len(findings) == len(expected_paths)
+    assert {Path(finding["path"]).as_posix() for finding in findings} == expected_paths
+    mids = {finding["extra"]["fingerprint"] for finding in findings}
+    if enabled:
+        assert len(mids) == 2
+        assert legacy_mid not in mids
+    else:
+        assert mids == {legacy_mid}
+    for finding in findings:
+        dependency = finding["extra"]["sca_info"]["dependency_match"][
+            "found_dependency"
+        ]
+        assert dependency["package"] == "com.google.guava:guava"
+        assert dependency["version"] == "32.1.1-jre"
+        assert Path(dependency["manifest_path"]).as_posix() == root_manifest
+        assert dependency["lockfile_path"] == finding["path"]
+        module = (
+            "app"
+            if Path(finding["path"]).as_posix().endswith("app/build.gradle.kts")
+            else "lib"
+        )
+        assert dependency["transitivity"] == (
+            "transitive" if enabled and module == "app" else "direct"
+        )
+        expected_children = (
+            {f"com.example:{module}-child"}
+            if enabled
+            else {"com.example:app-child", "com.example:lib-child"}
+        )
+        assert {
+            child["package"] for child in dependency["children"]
+        } == expected_children
 
 
 @pytest.mark.parametrize(

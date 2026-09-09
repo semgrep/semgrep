@@ -46,7 +46,10 @@ def mock_state(mocker):
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
-def test_dump_and_load_scan_config_roundtrip(mocker, mock_state, tmp_path):
+@pytest.mark.parametrize("gradle_module_attribution", [False, True])
+def test_dump_and_load_scan_config_roundtrip(
+    mocker, mock_state, tmp_path, gradle_module_attribution
+):
     """ScanResponse can be saved to disk and loaded back with all fields intact."""
     config_path = tmp_path / "scan_config.json"
 
@@ -55,7 +58,12 @@ def test_dump_and_load_scan_config_roundtrip(mocker, mock_state, tmp_path):
         enable_transitive_reachability=None,
         dump_scan_config_path=config_path,
     )
-    scan_response = out.ScanResponse.from_json(V1_SCAN_RESPONSE)
+    scan_response = out.ScanResponse.from_json(
+        {
+            **V1_SCAN_RESPONSE,
+            "engine_params": {"gradle_module_attribution": gradle_module_attribution},
+        }
+    )
     handler._handle_scan_response(scan_response)
     assert config_path.exists()
 
@@ -76,6 +84,7 @@ def test_dump_and_load_scan_config_roundtrip(mocker, mock_state, tmp_path):
     assert handler2.deployment_id == 1
     assert handler2.deployment_name == "test-org"
     assert handler2.rules == handler.rules
+    assert handler2.gradle_module_attribution is gradle_module_attribution
 
 
 @pytest.mark.quick
