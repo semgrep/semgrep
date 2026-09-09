@@ -1730,6 +1730,11 @@ type engine_configuration = Semgrep_output_v1_t.engine_configuration = {
     *);
   ignored_files: string list;
   product_ignored_files: product_ignored_files option (** from 1.71.0 *);
+  gradle_module_attribution: bool
+    (**
+      Report Gradle dependencies at their module build files. Disabled by
+      default during rollout.
+    *);
   generic_slow_rollout: bool
     (** for features we only want to turn on for select customers *);
   historical_config: historical_configuration option (** from 1.63.0 *);
@@ -2015,6 +2020,11 @@ type resolve_dependencies_params =
   download_dependency_source_code: bool;
   allow_local_builds: bool
     (** whether to allow executing package manager commands *);
+  gradle_module_attribution: bool
+    (**
+      Preserve Gradle module dependency instances and build-file paths in
+      resolution results.
+    *);
   package_manager_env: (string * string) list option
     (**
       extra environment variables to pass to package manager subprocesses
@@ -26241,6 +26251,15 @@ let write_engine_configuration : _ -> engine_configuration -> _ = (
       is_first := false
     else
       Buffer.add_char ob ',';
+      Buffer.add_string ob "\"gradle_module_attribution\":";
+    (
+      Yojson.Safe.write_bool
+    )
+      ob x.gradle_module_attribution;
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
       Buffer.add_string ob "\"generic_slow_rollout\":";
     (
       Yojson.Safe.write_bool
@@ -26285,6 +26304,7 @@ let read_engine_configuration = (
     let field_transitive_reachability_enabled = ref (false) in
     let field_ignored_files = ref ([]) in
     let field_product_ignored_files = ref (None) in
+    let field_gradle_module_attribution = ref (false) in
     let field_generic_slow_rollout = ref (false) in
     let field_historical_config = ref (None) in
     let field_always_suppress_errors = ref (false) in
@@ -26339,7 +26359,7 @@ let read_engine_configuration = (
               )
             | 17 -> (
                 if String.unsafe_get s pos = 'h' && String.unsafe_get s (pos+1) = 'i' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 't' && String.unsafe_get s (pos+4) = 'o' && String.unsafe_get s (pos+5) = 'r' && String.unsafe_get s (pos+6) = 'i' && String.unsafe_get s (pos+7) = 'c' && String.unsafe_get s (pos+8) = 'a' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'c' && String.unsafe_get s (pos+12) = 'o' && String.unsafe_get s (pos+13) = 'n' && String.unsafe_get s (pos+14) = 'f' && String.unsafe_get s (pos+15) = 'i' && String.unsafe_get s (pos+16) = 'g' then (
-                  10
+                  11
                 )
                 else (
                   -1
@@ -26349,7 +26369,7 @@ let read_engine_configuration = (
                 match String.unsafe_get s pos with
                   | 'g' -> (
                       if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'c' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = 'o' && String.unsafe_get s (pos+11) = 'w' && String.unsafe_get s (pos+12) = '_' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'o' && String.unsafe_get s (pos+15) = 'l' && String.unsafe_get s (pos+16) = 'l' && String.unsafe_get s (pos+17) = 'o' && String.unsafe_get s (pos+18) = 'u' && String.unsafe_get s (pos+19) = 't' then (
-                        9
+                        10
                       )
                       else (
                         -1
@@ -26377,7 +26397,15 @@ let read_engine_configuration = (
               )
             | 22 -> (
                 if String.unsafe_get s pos = 'a' && String.unsafe_get s (pos+1) = 'l' && String.unsafe_get s (pos+2) = 'w' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = 's' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 's' && String.unsafe_get s (pos+8) = 'u' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'r' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = 's' && String.unsafe_get s (pos+14) = 's' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'r' && String.unsafe_get s (pos+19) = 'o' && String.unsafe_get s (pos+20) = 'r' && String.unsafe_get s (pos+21) = 's' then (
-                  11
+                  12
+                )
+                else (
+                  -1
+                )
+              )
+            | 25 -> (
+                if String.unsafe_get s pos = 'g' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'm' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'd' && String.unsafe_get s (pos+10) = 'u' && String.unsafe_get s (pos+11) = 'l' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = '_' && String.unsafe_get s (pos+14) = 'a' && String.unsafe_get s (pos+15) = 't' && String.unsafe_get s (pos+16) = 't' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'b' && String.unsafe_get s (pos+20) = 'u' && String.unsafe_get s (pos+21) = 't' && String.unsafe_get s (pos+22) = 'i' && String.unsafe_get s (pos+23) = 'o' && String.unsafe_get s (pos+24) = 'n' then (
+                  9
                 )
                 else (
                   -1
@@ -26483,13 +26511,21 @@ let read_engine_configuration = (
             )
           | 9 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
-              field_generic_slow_rollout := (
+              field_gradle_module_attribution := (
                 (
                   Atdgen_runtime.Oj_run.read_bool
                 ) p lb
               );
             )
           | 10 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_generic_slow_rollout := (
+                (
+                  Atdgen_runtime.Oj_run.read_bool
+                ) p lb
+              );
+            )
+          | 11 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_historical_config := (
                 Some (
@@ -26499,7 +26535,7 @@ let read_engine_configuration = (
                 )
               );
             )
-          | 11 ->
+          | 12 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_always_suppress_errors := (
                 (
@@ -26562,7 +26598,7 @@ let read_engine_configuration = (
                 )
               | 17 -> (
                   if String.unsafe_get s pos = 'h' && String.unsafe_get s (pos+1) = 'i' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 't' && String.unsafe_get s (pos+4) = 'o' && String.unsafe_get s (pos+5) = 'r' && String.unsafe_get s (pos+6) = 'i' && String.unsafe_get s (pos+7) = 'c' && String.unsafe_get s (pos+8) = 'a' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'c' && String.unsafe_get s (pos+12) = 'o' && String.unsafe_get s (pos+13) = 'n' && String.unsafe_get s (pos+14) = 'f' && String.unsafe_get s (pos+15) = 'i' && String.unsafe_get s (pos+16) = 'g' then (
-                    10
+                    11
                   )
                   else (
                     -1
@@ -26572,7 +26608,7 @@ let read_engine_configuration = (
                   match String.unsafe_get s pos with
                     | 'g' -> (
                         if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'e' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'c' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 's' && String.unsafe_get s (pos+9) = 'l' && String.unsafe_get s (pos+10) = 'o' && String.unsafe_get s (pos+11) = 'w' && String.unsafe_get s (pos+12) = '_' && String.unsafe_get s (pos+13) = 'r' && String.unsafe_get s (pos+14) = 'o' && String.unsafe_get s (pos+15) = 'l' && String.unsafe_get s (pos+16) = 'l' && String.unsafe_get s (pos+17) = 'o' && String.unsafe_get s (pos+18) = 'u' && String.unsafe_get s (pos+19) = 't' then (
-                          9
+                          10
                         )
                         else (
                           -1
@@ -26600,7 +26636,15 @@ let read_engine_configuration = (
                 )
               | 22 -> (
                   if String.unsafe_get s pos = 'a' && String.unsafe_get s (pos+1) = 'l' && String.unsafe_get s (pos+2) = 'w' && String.unsafe_get s (pos+3) = 'a' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = 's' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 's' && String.unsafe_get s (pos+8) = 'u' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'p' && String.unsafe_get s (pos+11) = 'r' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = 's' && String.unsafe_get s (pos+14) = 's' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'r' && String.unsafe_get s (pos+19) = 'o' && String.unsafe_get s (pos+20) = 'r' && String.unsafe_get s (pos+21) = 's' then (
-                    11
+                    12
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 25 -> (
+                  if String.unsafe_get s pos = 'g' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'm' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'd' && String.unsafe_get s (pos+10) = 'u' && String.unsafe_get s (pos+11) = 'l' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = '_' && String.unsafe_get s (pos+14) = 'a' && String.unsafe_get s (pos+15) = 't' && String.unsafe_get s (pos+16) = 't' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'b' && String.unsafe_get s (pos+20) = 'u' && String.unsafe_get s (pos+21) = 't' && String.unsafe_get s (pos+22) = 'i' && String.unsafe_get s (pos+23) = 'o' && String.unsafe_get s (pos+24) = 'n' then (
+                    9
                   )
                   else (
                     -1
@@ -26706,13 +26750,21 @@ let read_engine_configuration = (
               )
             | 9 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
-                field_generic_slow_rollout := (
+                field_gradle_module_attribution := (
                   (
                     Atdgen_runtime.Oj_run.read_bool
                   ) p lb
                 );
               )
             | 10 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_generic_slow_rollout := (
+                  (
+                    Atdgen_runtime.Oj_run.read_bool
+                  ) p lb
+                );
+              )
+            | 11 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_historical_config := (
                   Some (
@@ -26722,7 +26774,7 @@ let read_engine_configuration = (
                   )
                 );
               )
-            | 11 ->
+            | 12 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_always_suppress_errors := (
                   (
@@ -26748,6 +26800,7 @@ let read_engine_configuration = (
             transitive_reachability_enabled = !field_transitive_reachability_enabled;
             ignored_files = !field_ignored_files;
             product_ignored_files = !field_product_ignored_files;
+            gradle_module_attribution = !field_gradle_module_attribution;
             generic_slow_rollout = !field_generic_slow_rollout;
             historical_config = !field_historical_config;
             always_suppress_errors = !field_always_suppress_errors;
@@ -32206,6 +32259,15 @@ let write_resolve_dependencies_params : _ -> resolve_dependencies_params -> _ = 
       Yojson.Safe.write_bool
     )
       ob x.allow_local_builds;
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
+      Buffer.add_string ob "\"gradle_module_attribution\":";
+    (
+      Yojson.Safe.write_bool
+    )
+      ob x.gradle_module_attribution;
     (match x.package_manager_env with None -> () | Some x ->
       if !is_first then
         is_first := false
@@ -32230,6 +32292,7 @@ let read_resolve_dependencies_params = (
     let field_dependency_sources = ref (None) in
     let field_download_dependency_source_code = ref (None) in
     let field_allow_local_builds = ref (None) in
+    let field_gradle_module_attribution = ref (false) in
     let field_package_manager_env = ref (None) in
     try
       Yojson.Safe.read_space p lb;
@@ -32264,6 +32327,14 @@ let read_resolve_dependencies_params = (
               )
             | 19 -> (
                 if String.unsafe_get s pos = 'p' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'm' && String.unsafe_get s (pos+9) = 'a' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'g' && String.unsafe_get s (pos+13) = 'e' && String.unsafe_get s (pos+14) = 'r' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'n' && String.unsafe_get s (pos+18) = 'v' then (
+                  4
+                )
+                else (
+                  -1
+                )
+              )
+            | 25 -> (
+                if String.unsafe_get s pos = 'g' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'm' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'd' && String.unsafe_get s (pos+10) = 'u' && String.unsafe_get s (pos+11) = 'l' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = '_' && String.unsafe_get s (pos+14) = 'a' && String.unsafe_get s (pos+15) = 't' && String.unsafe_get s (pos+16) = 't' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'b' && String.unsafe_get s (pos+20) = 'u' && String.unsafe_get s (pos+21) = 't' && String.unsafe_get s (pos+22) = 'i' && String.unsafe_get s (pos+23) = 'o' && String.unsafe_get s (pos+24) = 'n' then (
                   3
                 )
                 else (
@@ -32312,6 +32383,14 @@ let read_resolve_dependencies_params = (
             );
           | 3 ->
             if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_gradle_module_attribution := (
+                (
+                  Atdgen_runtime.Oj_run.read_bool
+                ) p lb
+              );
+            )
+          | 4 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
               field_package_manager_env := (
                 Some (
                   (
@@ -32357,6 +32436,14 @@ let read_resolve_dependencies_params = (
                 )
               | 19 -> (
                   if String.unsafe_get s pos = 'p' && String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' && String.unsafe_get s (pos+7) = '_' && String.unsafe_get s (pos+8) = 'm' && String.unsafe_get s (pos+9) = 'a' && String.unsafe_get s (pos+10) = 'n' && String.unsafe_get s (pos+11) = 'a' && String.unsafe_get s (pos+12) = 'g' && String.unsafe_get s (pos+13) = 'e' && String.unsafe_get s (pos+14) = 'r' && String.unsafe_get s (pos+15) = '_' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'n' && String.unsafe_get s (pos+18) = 'v' then (
+                    4
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 25 -> (
+                  if String.unsafe_get s pos = 'g' && String.unsafe_get s (pos+1) = 'r' && String.unsafe_get s (pos+2) = 'a' && String.unsafe_get s (pos+3) = 'd' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'm' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'd' && String.unsafe_get s (pos+10) = 'u' && String.unsafe_get s (pos+11) = 'l' && String.unsafe_get s (pos+12) = 'e' && String.unsafe_get s (pos+13) = '_' && String.unsafe_get s (pos+14) = 'a' && String.unsafe_get s (pos+15) = 't' && String.unsafe_get s (pos+16) = 't' && String.unsafe_get s (pos+17) = 'r' && String.unsafe_get s (pos+18) = 'i' && String.unsafe_get s (pos+19) = 'b' && String.unsafe_get s (pos+20) = 'u' && String.unsafe_get s (pos+21) = 't' && String.unsafe_get s (pos+22) = 'i' && String.unsafe_get s (pos+23) = 'o' && String.unsafe_get s (pos+24) = 'n' then (
                     3
                   )
                   else (
@@ -32405,6 +32492,14 @@ let read_resolve_dependencies_params = (
               );
             | 3 ->
               if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_gradle_module_attribution := (
+                  (
+                    Atdgen_runtime.Oj_run.read_bool
+                  ) p lb
+                );
+              )
+            | 4 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
                 field_package_manager_env := (
                   Some (
                     (
@@ -32425,6 +32520,7 @@ let read_resolve_dependencies_params = (
             dependency_sources = (match !field_dependency_sources with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "dependency_sources");
             download_dependency_source_code = (match !field_download_dependency_source_code with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "download_dependency_source_code");
             allow_local_builds = (match !field_allow_local_builds with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "allow_local_builds");
+            gradle_module_attribution = !field_gradle_module_attribution;
             package_manager_env = !field_package_manager_env;
           }
          : resolve_dependencies_params)

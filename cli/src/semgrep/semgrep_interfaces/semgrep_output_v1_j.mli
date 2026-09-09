@@ -1730,6 +1730,11 @@ type engine_configuration = Semgrep_output_v1_t.engine_configuration = {
     *);
   ignored_files: string list;
   product_ignored_files: product_ignored_files option (** from 1.71.0 *);
+  gradle_module_attribution: bool
+    (**
+      Report Gradle dependencies at their module build files. Disabled by
+      default during rollout.
+    *);
   generic_slow_rollout: bool
     (** for features we only want to turn on for select customers *);
   historical_config: historical_configuration option (** from 1.63.0 *);
@@ -2015,6 +2020,11 @@ type resolve_dependencies_params =
   download_dependency_source_code: bool;
   allow_local_builds: bool
     (** whether to allow executing package manager commands *);
+  gradle_module_attribution: bool
+    (**
+      Preserve Gradle module dependency instances and build-file paths in
+      resolution results.
+    *);
   package_manager_env: (string * string) list option
     (**
       extra environment variables to pass to package manager subprocesses
