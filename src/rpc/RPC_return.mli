@@ -36,6 +36,7 @@ val hook_resolve_dependencies :
   (par_conf:Parallelism_config.t ->
   download_dependency_source_code:bool ->
   allow_local_builds:bool ->
+  gradle_module_attribution:bool ->
   package_manager_env:(string * string) list ->
   Out.dependency_source list ->
   (Out.dependency_source * Out.resolution_result) list)

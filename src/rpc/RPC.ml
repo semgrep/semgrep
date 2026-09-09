@@ -99,8 +99,9 @@ let handle_call (conf : config) (call : Out.function_call) :
             resolve_dependencies ~par_conf:conf.par_conf
               ~download_dependency_source_code:
                 params.download_dependency_source_code
-              ~allow_local_builds:params.allow_local_builds ~package_manager_env
-              params.dependency_sources
+              ~allow_local_builds:params.allow_local_builds
+              ~gradle_module_attribution:params.gradle_module_attribution
+              ~package_manager_env params.dependency_sources
           in
           Ok (`RetResolveDependencies resolved)
       | None ->

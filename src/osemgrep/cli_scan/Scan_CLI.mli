@@ -147,6 +147,10 @@ val o_x_ignore_semgrepignore_files : bool Cmdliner.Term.t
 val o_x_mem_policy : string option Cmdliner.Term.t
 val o_x_tr : bool option Cmdliner.Term.t
 val o_x_dependency_paths : bool Cmdliner.Term.t
+
+val o_x_gradle_module_attribution : bool Cmdliner.Term.t
+(** Accept the Gradle module attribution flag for forwarding to the Python CLI. *)
+
 val o_x_pro_naming : bool Cmdliner.Term.t
 val o_x_group_taint_rules : bool Cmdliner.Term.t
 val o_x_mcp : bool Cmdliner.Term.t

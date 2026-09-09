@@ -355,6 +355,7 @@ def ci(
     verbose: bool,
     x_eio: bool,
     x_parmap: bool,
+    gradle_module_attribution: bool,
     enable_transitive_reachability: Optional[bool],
     x_dependency_paths: bool,
     x_pro_naming: bool,
@@ -948,6 +949,8 @@ def ci(
             "x_run_taint_once": x_run_taint_once,
             "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
+            "gradle_module_attribution": gradle_module_attribution
+            or (scan_handler.gradle_module_attribution if scan_handler else False),
             "resolve_all_deps_in_diff_scan": (
                 scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
             ),

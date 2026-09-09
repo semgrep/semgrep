@@ -323,3 +323,15 @@ def test_is_partial_scan(mock_state):
     assert ScanHandler(
         enable_transitive_reachability=None, partial_scan_rule_ids=("rules.foo",)
     ).is_partial_scan
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+@pytest.mark.parametrize("enabled", [None, False, True])
+def test_gradle_module_attribution_engine_params(handler, mocker, enabled):
+    assert handler.gradle_module_attribution is False
+    params = {} if enabled is None else {"gradle_module_attribution": enabled}
+    handler.scan_response = mocker.Mock(
+        engine_params=out.EngineConfiguration.from_json(params)
+    )
+    assert handler.gradle_module_attribution is bool(enabled)
