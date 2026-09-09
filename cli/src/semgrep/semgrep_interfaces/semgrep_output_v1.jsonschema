@@ -1672,6 +1672,10 @@
           "description": "from 1.71.0",
           "$ref": "#/definitions/product_ignored_files"
         },
+        "gradle_module_attribution": {
+          "description": "Report Gradle dependencies at their module build files. Disabled by default during rollout.",
+          "type": "boolean"
+        },
         "generic_slow_rollout": {
           "description": "for features we only want to turn on for select customers",
           "type": "boolean"
@@ -3494,6 +3498,10 @@
         "download_dependency_source_code": { "type": "boolean" },
         "allow_local_builds": {
           "description": "whether to allow executing package manager commands",
+          "type": "boolean"
+        },
+        "gradle_module_attribution": {
+          "description": "Preserve Gradle module dependency instances and build-file paths in resolution results.",
           "type": "boolean"
         },
         "package_manager_env": {
