@@ -655,6 +655,7 @@ export type EngineConfiguration = {
   transitive_reachability_enabled: boolean;
   ignored_files: string[];
   product_ignored_files?: ProductIgnoredFiles;
+  gradle_module_attribution: boolean;
   generic_slow_rollout: boolean;
   historical_config?: HistoricalConfiguration;
   always_suppress_errors: boolean;
@@ -1311,6 +1312,7 @@ export type ResolveDependenciesParams = {
   dependency_sources: DependencySource[];
   download_dependency_source_code: boolean;
   allow_local_builds: boolean;
+  gradle_module_attribution: boolean;
   package_manager_env?: [string, string][];
 }
 
@@ -3496,6 +3498,7 @@ export function writeEngineConfiguration(x: EngineConfiguration, context: any = 
     'transitive_reachability_enabled': _atd_write_field_with_default(_atd_write_bool, false, x.transitive_reachability_enabled, x),
     'ignored_files': _atd_write_field_with_default(_atd_write_array(_atd_write_string), [], x.ignored_files, x),
     'product_ignored_files': _atd_write_optional_field(writeProductIgnoredFiles, x.product_ignored_files, x),
+    'gradle_module_attribution': _atd_write_field_with_default(_atd_write_bool, false, x.gradle_module_attribution, x),
     'generic_slow_rollout': _atd_write_field_with_default(_atd_write_bool, false, x.generic_slow_rollout, x),
     'historical_config': _atd_write_optional_field(writeHistoricalConfiguration, x.historical_config, x),
     'always_suppress_errors': _atd_write_field_with_default(_atd_write_bool, false, x.always_suppress_errors, x),
@@ -3513,6 +3516,7 @@ export function readEngineConfiguration(x: any, context: any = x): EngineConfigu
     transitive_reachability_enabled: _atd_read_field_with_default(_atd_read_bool, false, x['transitive_reachability_enabled'], x),
     ignored_files: _atd_read_field_with_default(_atd_read_array(_atd_read_string), [], x['ignored_files'], x),
     product_ignored_files: _atd_read_optional_field(readProductIgnoredFiles, x['product_ignored_files'], x),
+    gradle_module_attribution: _atd_read_field_with_default(_atd_read_bool, false, x['gradle_module_attribution'], x),
     generic_slow_rollout: _atd_read_field_with_default(_atd_read_bool, false, x['generic_slow_rollout'], x),
     historical_config: _atd_read_optional_field(readHistoricalConfiguration, x['historical_config'], x),
     always_suppress_errors: _atd_read_field_with_default(_atd_read_bool, false, x['always_suppress_errors'], x),
@@ -5450,6 +5454,7 @@ export function writeResolveDependenciesParams(x: ResolveDependenciesParams, con
     'dependency_sources': _atd_write_required_field('ResolveDependenciesParams', 'dependency_sources', _atd_write_array(writeDependencySource), x.dependency_sources, x),
     'download_dependency_source_code': _atd_write_required_field('ResolveDependenciesParams', 'download_dependency_source_code', _atd_write_bool, x.download_dependency_source_code, x),
     'allow_local_builds': _atd_write_required_field('ResolveDependenciesParams', 'allow_local_builds', _atd_write_bool, x.allow_local_builds, x),
+    'gradle_module_attribution': _atd_write_field_with_default(_atd_write_bool, false, x.gradle_module_attribution, x),
     'package_manager_env': _atd_write_optional_field(_atd_write_array(((x, context) => [_atd_write_string(x[0], x), _atd_write_string(x[1], x)])), x.package_manager_env, x),
   };
 }
@@ -5459,6 +5464,7 @@ export function readResolveDependenciesParams(x: any, context: any = x): Resolve
     dependency_sources: _atd_read_required_field('ResolveDependenciesParams', 'dependency_sources', _atd_read_array(readDependencySource), x['dependency_sources'], x),
     download_dependency_source_code: _atd_read_required_field('ResolveDependenciesParams', 'download_dependency_source_code', _atd_read_bool, x['download_dependency_source_code'], x),
     allow_local_builds: _atd_read_required_field('ResolveDependenciesParams', 'allow_local_builds', _atd_read_bool, x['allow_local_builds'], x),
+    gradle_module_attribution: _atd_read_field_with_default(_atd_read_bool, false, x['gradle_module_attribution'], x),
     package_manager_env: _atd_read_optional_field(_atd_read_array(((x, context): [string, string] => { _atd_check_json_tuple(2, x, context); return [_atd_read_string(x[0], x), _atd_read_string(x[1], x)] })), x['package_manager_env'], x),
   };
 }

@@ -1790,6 +1790,9 @@ type engine_configuration
     ?product_ignored_files
       <doc text="from 1.71.0">
     : product_ignored_files option;
+    ~gradle_module_attribution
+      <doc text="Report Gradle dependencies at their module build files. Disabled by default during rollout.">
+    : bool;
     ~generic_slow_rollout
       <doc text="for features we only want to turn on for select customers">
     : bool;
@@ -3482,6 +3485,9 @@ type resolve_dependencies_params <python decorator="dataclass(frozen=True)"> = {
   download_dependency_source_code: bool;
   allow_local_builds
     <doc text="whether to allow executing package manager commands">
+  : bool;
+  ~gradle_module_attribution
+    <doc text="Preserve Gradle module dependency instances and build-file paths in resolution results.">
   : bool;
   ?package_manager_env
     <doc text="extra environment variables to pass to package manager subprocesses">

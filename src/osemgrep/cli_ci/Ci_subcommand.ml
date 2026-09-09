@@ -985,6 +985,7 @@ let run_conf (ci_conf : Ci_CLI.conf) : Exit_code.t =
         symbol_analysis;
         ignored_files = _;
         product_ignored_files = _;
+        gradle_module_attribution = _;
         generic_slow_rollout = _;
         historical_config = _;
         always_suppress_errors = _;

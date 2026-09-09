@@ -9695,6 +9695,8 @@ class EngineConfiguration:
     :param transitive_reachability_enabled: Whether to enable transitive
     reachability analysis for SCA findings
     :param product_ignored_files: from 1.71.0
+    :param gradle_module_attribution: Report Gradle dependencies at their
+    module build files. Disabled by default during rollout.
     :param generic_slow_rollout: for features we only want to turn on for
     select customers
     :param historical_config: from 1.63.0
@@ -9711,6 +9713,7 @@ class EngineConfiguration:
     transitive_reachability_enabled: bool = field(default_factory=lambda: False)
     ignored_files: List[str] = field(default_factory=lambda: [])
     product_ignored_files: Optional[ProductIgnoredFiles] = None
+    gradle_module_attribution: bool = field(default_factory=lambda: False)
     generic_slow_rollout: bool = field(default_factory=lambda: False)
     historical_config: Optional[HistoricalConfiguration] = None
     always_suppress_errors: bool = field(default_factory=lambda: False)
@@ -9728,6 +9731,7 @@ class EngineConfiguration:
                 transitive_reachability_enabled=_atd_read_bool(x['transitive_reachability_enabled']) if 'transitive_reachability_enabled' in x else False,
                 ignored_files=_atd_read_list(_atd_read_string)(x['ignored_files']) if 'ignored_files' in x else [],
                 product_ignored_files=ProductIgnoredFiles.from_json(x['product_ignored_files']) if 'product_ignored_files' in x else None,
+                gradle_module_attribution=_atd_read_bool(x['gradle_module_attribution']) if 'gradle_module_attribution' in x else False,
                 generic_slow_rollout=_atd_read_bool(x['generic_slow_rollout']) if 'generic_slow_rollout' in x else False,
                 historical_config=HistoricalConfiguration.from_json(x['historical_config']) if 'historical_config' in x else None,
                 always_suppress_errors=_atd_read_bool(x['always_suppress_errors']) if 'always_suppress_errors' in x else False,
@@ -9747,6 +9751,7 @@ class EngineConfiguration:
         res['ignored_files'] = _atd_write_list(_atd_write_string)(self.ignored_files)
         if self.product_ignored_files is not None:
             res['product_ignored_files'] = (lambda x: x.to_json())(self.product_ignored_files)
+        res['gradle_module_attribution'] = _atd_write_bool(self.gradle_module_attribution)
         res['generic_slow_rollout'] = _atd_write_bool(self.generic_slow_rollout)
         if self.historical_config is not None:
             res['historical_config'] = (lambda x: x.to_json())(self.historical_config)
@@ -10642,6 +10647,8 @@ class ResolveDependenciesParams:
 
     :param allow_local_builds: whether to allow executing package manager
     commands
+    :param gradle_module_attribution: Preserve Gradle module dependency
+    instances and build-file paths in resolution results.
     :param package_manager_env: extra environment variables to pass to package
     manager subprocesses
     """
@@ -10649,6 +10656,7 @@ class ResolveDependenciesParams:
     dependency_sources: List[DependencySource]
     download_dependency_source_code: bool
     allow_local_builds: bool
+    gradle_module_attribution: bool = field(default_factory=lambda: False)
     package_manager_env: Optional[List[Tuple[str, str]]] = None
 
     @classmethod
@@ -10658,6 +10666,7 @@ class ResolveDependenciesParams:
                 dependency_sources=_atd_read_list(DependencySource.from_json)(x['dependency_sources']) if 'dependency_sources' in x else _atd_missing_json_field('ResolveDependenciesParams', 'dependency_sources'),
                 download_dependency_source_code=_atd_read_bool(x['download_dependency_source_code']) if 'download_dependency_source_code' in x else _atd_missing_json_field('ResolveDependenciesParams', 'download_dependency_source_code'),
                 allow_local_builds=_atd_read_bool(x['allow_local_builds']) if 'allow_local_builds' in x else _atd_missing_json_field('ResolveDependenciesParams', 'allow_local_builds'),
+                gradle_module_attribution=_atd_read_bool(x['gradle_module_attribution']) if 'gradle_module_attribution' in x else False,
                 package_manager_env=_atd_read_list((lambda x: (_atd_read_string(x[0]), _atd_read_string(x[1])) if isinstance(x, list) and len(x) == 2 else _atd_bad_json('array of length 2', x)))(x['package_manager_env']) if 'package_manager_env' in x else None,
             )
         else:
@@ -10668,6 +10677,7 @@ class ResolveDependenciesParams:
         res['dependency_sources'] = _atd_write_list((lambda x: x.to_json()))(self.dependency_sources)
         res['download_dependency_source_code'] = _atd_write_bool(self.download_dependency_source_code)
         res['allow_local_builds'] = _atd_write_bool(self.allow_local_builds)
+        res['gradle_module_attribution'] = _atd_write_bool(self.gradle_module_attribution)
         if self.package_manager_env is not None:
             res['package_manager_env'] = _atd_write_list((lambda x: [_atd_write_string(x[0]), _atd_write_string(x[1])] if isinstance(x, tuple) and len(x) == 2 else _atd_bad_python('tuple of length 2', x)))(self.package_manager_env)
         return res
