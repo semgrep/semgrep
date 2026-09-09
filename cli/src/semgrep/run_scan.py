@@ -1331,6 +1331,7 @@ def run_scan(
     allow_local_builds: bool = False,
     dump_rule_partitions_params: Optional[out.DumpRulePartitionsParams] = None,
     ptt_enabled: bool = False,
+    gradle_module_attribution: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
     run_symbol_analysis: bool = False,
     fips_mode: bool = False,
@@ -1548,6 +1549,7 @@ def run_scan(
     dependency_resolution_config = DependencyResolutionConfig(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
+        gradle_module_attribution=gradle_module_attribution,
         resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
         download_dependency_source_code=enable_transitive_reachability
         if enable_transitive_reachability is not None

@@ -273,6 +273,12 @@ class ScanHandler:
         return False
 
     @property
+    def gradle_module_attribution(self) -> bool:
+        if self.scan_response:
+            return self.scan_response.engine_params.gradle_module_attribution
+        return False
+
+    @property
     def generic_slow_rollout(self) -> bool:
         """
         Separate property for easy of mocking in test
