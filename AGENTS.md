@@ -69,6 +69,7 @@ build errors.
 - Use conventional commits: `feat:`, `fix:`, `chore:`, `test:`, `docs:`
 - Keep commits focused and atomic
 - Reference issue numbers when applicable
+- Run pre-commit on every commit (`pre-commit install` once; never `--no-verify`)
 
 ### Changelog
 For any nontrivial user-facing change, add an entry under `changelog.d/`. Name the file after the Linear ticket with an appropriate suffix (e.g. `changelog.d/ENGINE-1234.fixed`). Valid suffixes are `.added`, `.changed`, `.fixed`, and `.infra` — see `changelog.d/README` for details.
@@ -142,8 +143,8 @@ This project uses **make** for build orchestration. **IMPORTANT: Never invoke `d
    used in it.
  - NEVER document functions and types that are internal to a `.ml` file, unless that file's symbols
    are accessible to other `.ml` files.
- - ALWAYS document functions and types that are accessible to other source code.
- - NEVER document functions that are idiomatically converting from one type to another (e.g. `x_of_y`)
+ - ALWAYS document functions and types accessible to other source code (including `.mli` symbols),
+   except idiomatic type converters (e.g. `x_of_y`).
 
 ## Working with Tests
 
