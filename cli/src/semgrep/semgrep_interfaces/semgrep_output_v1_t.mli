@@ -91,8 +91,6 @@
 type datetime = ATD_string_wrap.Datetime.t
   [@@deriving ord]
 
-type dependency_child = { package: string; version: string } [@@deriving ord]
-
 type dependency_kind = 
     Direct
       (**
@@ -117,8 +115,6 @@ type dependency_kind =
       *)
 
   [@@deriving ord, eq, show]
-
-type dependency_path = { nodes: dependency_child list } [@@deriving ord]
 
 (**
   both ecosystem and transitivity below have frozen=True so the generated
@@ -150,6 +146,21 @@ type ecosystem =
   [@@deriving eq, ord, show { with_path = false }]
 
 type fpath = ATD_string_wrap.Fpath.t [@@deriving eq, ord, show]
+
+type dependency_child = {
+  package: string;
+  version: string;
+  lockfile_path: fpath option
+    (**
+      Path of the file the child was reported from, set when the same package
+      and version can be reported from several files, e.g. one entry per
+      Gradle module build file. Together with package and version it
+      identifies the found_dependency this child refers to. Since 1.177.0
+    *)
+}
+  [@@deriving ord]
+
+type dependency_path = { nodes: dependency_child list } [@@deriving ord]
 
 type found_dependency = {
   package: string;

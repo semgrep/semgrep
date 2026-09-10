@@ -842,6 +842,13 @@ type dependency_child
   <python decorator="dataclass(frozen=True)"> = {
   package: string;
   version: string;
+  ?lockfile_path
+    <doc text="
+     Path of the file the child was reported from, set when the same package
+     and version can be reported from several files, e.g. one entry per Gradle
+     module build file. Together with package and version it identifies the
+     found_dependency this child refers to. Since 1.177.0">
+  : fpath option;
 }
 
 (* An ordered chain describing how a transitive dependency was introduced.

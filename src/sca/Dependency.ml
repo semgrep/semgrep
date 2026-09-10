@@ -173,6 +173,7 @@ let to_found_dependency ?(lockfile_path : Fpath.t option)
                   ({
                      package = (dep.package.name :> string);
                      version = (dep.package.version :> string);
+                     lockfile_path = None;
                    }
                     : Out.dependency_child)));
     }

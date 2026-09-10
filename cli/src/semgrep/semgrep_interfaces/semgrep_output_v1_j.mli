@@ -91,12 +91,6 @@
 type datetime = Semgrep_output_v1_t.datetime
   [@@deriving ord]
 
-type dependency_child = Semgrep_output_v1_t.dependency_child = {
-  package: string;
-  version: string
-}
-  [@@deriving ord]
-
 type dependency_kind = Semgrep_output_v1_t.dependency_kind = 
     Direct
       (**
@@ -121,11 +115,6 @@ type dependency_kind = Semgrep_output_v1_t.dependency_kind =
       *)
 
   [@@deriving ord, eq, show]
-
-type dependency_path = Semgrep_output_v1_t.dependency_path = {
-  nodes: dependency_child list
-}
-  [@@deriving ord]
 
 (**
   both ecosystem and transitivity below have frozen=True so the generated
@@ -157,6 +146,24 @@ type ecosystem = Semgrep_output_v1_t.ecosystem =
   [@@deriving eq, ord, show { with_path = false }]
 
 type fpath = Semgrep_output_v1_t.fpath [@@deriving eq, ord, show]
+
+type dependency_child = Semgrep_output_v1_t.dependency_child = {
+  package: string;
+  version: string;
+  lockfile_path: fpath option
+    (**
+      Path of the file the child was reported from, set when the same package
+      and version can be reported from several files, e.g. one entry per
+      Gradle module build file. Together with package and version it
+      identifies the found_dependency this child refers to. Since 1.177.0
+    *)
+}
+  [@@deriving ord]
+
+type dependency_path = Semgrep_output_v1_t.dependency_path = {
+  nodes: dependency_child list
+}
+  [@@deriving ord]
 
 type found_dependency = Semgrep_output_v1_t.found_dependency = {
   package: string;
@@ -2787,26 +2794,6 @@ val datetime_of_string :
   string -> datetime
   (** Deserialize JSON data of type {!type:datetime}. *)
 
-val write_dependency_child :
-  Buffer.t -> dependency_child -> unit
-  (** Output a JSON value of type {!type:dependency_child}. *)
-
-val string_of_dependency_child :
-  ?len:int -> dependency_child -> string
-  (** Serialize a value of type {!type:dependency_child}
-      into a JSON string.
-      @param len specifies the initial length
-                 of the buffer used internally.
-                 Default: 1024. *)
-
-val read_dependency_child :
-  Yojson.Safe.lexer_state -> Lexing.lexbuf -> dependency_child
-  (** Input JSON data of type {!type:dependency_child}. *)
-
-val dependency_child_of_string :
-  string -> dependency_child
-  (** Deserialize JSON data of type {!type:dependency_child}. *)
-
 val write_dependency_kind :
   Buffer.t -> dependency_kind -> unit
   (** Output a JSON value of type {!type:dependency_kind}. *)
@@ -2826,26 +2813,6 @@ val read_dependency_kind :
 val dependency_kind_of_string :
   string -> dependency_kind
   (** Deserialize JSON data of type {!type:dependency_kind}. *)
-
-val write_dependency_path :
-  Buffer.t -> dependency_path -> unit
-  (** Output a JSON value of type {!type:dependency_path}. *)
-
-val string_of_dependency_path :
-  ?len:int -> dependency_path -> string
-  (** Serialize a value of type {!type:dependency_path}
-      into a JSON string.
-      @param len specifies the initial length
-                 of the buffer used internally.
-                 Default: 1024. *)
-
-val read_dependency_path :
-  Yojson.Safe.lexer_state -> Lexing.lexbuf -> dependency_path
-  (** Input JSON data of type {!type:dependency_path}. *)
-
-val dependency_path_of_string :
-  string -> dependency_path
-  (** Deserialize JSON data of type {!type:dependency_path}. *)
 
 val write_ecosystem :
   Buffer.t -> ecosystem -> unit
@@ -2886,6 +2853,46 @@ val read_fpath :
 val fpath_of_string :
   string -> fpath
   (** Deserialize JSON data of type {!type:fpath}. *)
+
+val write_dependency_child :
+  Buffer.t -> dependency_child -> unit
+  (** Output a JSON value of type {!type:dependency_child}. *)
+
+val string_of_dependency_child :
+  ?len:int -> dependency_child -> string
+  (** Serialize a value of type {!type:dependency_child}
+      into a JSON string.
+      @param len specifies the initial length
+                 of the buffer used internally.
+                 Default: 1024. *)
+
+val read_dependency_child :
+  Yojson.Safe.lexer_state -> Lexing.lexbuf -> dependency_child
+  (** Input JSON data of type {!type:dependency_child}. *)
+
+val dependency_child_of_string :
+  string -> dependency_child
+  (** Deserialize JSON data of type {!type:dependency_child}. *)
+
+val write_dependency_path :
+  Buffer.t -> dependency_path -> unit
+  (** Output a JSON value of type {!type:dependency_path}. *)
+
+val string_of_dependency_path :
+  ?len:int -> dependency_path -> string
+  (** Serialize a value of type {!type:dependency_path}
+      into a JSON string.
+      @param len specifies the initial length
+                 of the buffer used internally.
+                 Default: 1024. *)
+
+val read_dependency_path :
+  Yojson.Safe.lexer_state -> Lexing.lexbuf -> dependency_path
+  (** Input JSON data of type {!type:dependency_path}. *)
+
+val dependency_path_of_string :
+  string -> dependency_path
+  (** Deserialize JSON data of type {!type:dependency_path}. *)
 
 val write_found_dependency :
   Buffer.t -> found_dependency -> unit
