@@ -370,38 +370,6 @@ class Datetime:
 
 
 @dataclass(frozen=True)
-class DependencyChild:
-    """Original type: dependency_child = { ... }
-    """
-
-    package: str
-    version: str
-
-    @classmethod
-    def from_json(cls, x: Any) -> 'DependencyChild':
-        if isinstance(x, dict):
-            return cls(
-                package=_atd_read_string(x['package']) if 'package' in x else _atd_missing_json_field('DependencyChild', 'package'),
-                version=_atd_read_string(x['version']) if 'version' in x else _atd_missing_json_field('DependencyChild', 'version'),
-            )
-        else:
-            _atd_bad_json('DependencyChild', x)
-
-    def to_json(self) -> Any:
-        res: Dict[str, Any] = {}
-        res['package'] = _atd_write_string(self.package)
-        res['version'] = _atd_write_string(self.version)
-        return res
-
-    @classmethod
-    def from_json_string(cls, x: str) -> 'DependencyChild':
-        return cls.from_json(json.loads(x))
-
-    def to_json_string(self, **kw: Any) -> str:
-        return json.dumps(self.to_json(), **kw)
-
-
-@dataclass(frozen=True)
 class Direct:
     """Original type: dependency_kind = [ ... | Direct | ... ]
 
@@ -498,35 +466,6 @@ class DependencyKind:
 
     @classmethod
     def from_json_string(cls, x: str) -> 'DependencyKind':
-        return cls.from_json(json.loads(x))
-
-    def to_json_string(self, **kw: Any) -> str:
-        return json.dumps(self.to_json(), **kw)
-
-
-@dataclass
-class DependencyPath:
-    """Original type: dependency_path = { ... }
-    """
-
-    nodes: List[DependencyChild]
-
-    @classmethod
-    def from_json(cls, x: Any) -> 'DependencyPath':
-        if isinstance(x, dict):
-            return cls(
-                nodes=_atd_read_list(DependencyChild.from_json)(x['nodes']) if 'nodes' in x else _atd_missing_json_field('DependencyPath', 'nodes'),
-            )
-        else:
-            _atd_bad_json('DependencyPath', x)
-
-    def to_json(self) -> Any:
-        res: Dict[str, Any] = {}
-        res['nodes'] = _atd_write_list((lambda x: x.to_json()))(self.nodes)
-        return res
-
-    @classmethod
-    def from_json_string(cls, x: str) -> 'DependencyPath':
         return cls.from_json(json.loads(x))
 
     def to_json_string(self, **kw: Any) -> str:
@@ -866,6 +805,76 @@ class Fpath:
 
     @classmethod
     def from_json_string(cls, x: str) -> 'Fpath':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
+class DependencyChild:
+    """Original type: dependency_child = { ... }
+
+    :param lockfile_path: Path of the file the child was reported from, set
+    when the same package and version can be reported from several files, e.g.
+    one entry per Gradle module build file. Together with package and version
+    it identifies the found_dependency this child refers to. Since 1.177.0
+    """
+
+    package: str
+    version: str
+    lockfile_path: Optional[Fpath] = None
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'DependencyChild':
+        if isinstance(x, dict):
+            return cls(
+                package=_atd_read_string(x['package']) if 'package' in x else _atd_missing_json_field('DependencyChild', 'package'),
+                version=_atd_read_string(x['version']) if 'version' in x else _atd_missing_json_field('DependencyChild', 'version'),
+                lockfile_path=Fpath.from_json(x['lockfile_path']) if 'lockfile_path' in x else None,
+            )
+        else:
+            _atd_bad_json('DependencyChild', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res['package'] = _atd_write_string(self.package)
+        res['version'] = _atd_write_string(self.version)
+        if self.lockfile_path is not None:
+            res['lockfile_path'] = (lambda x: x.to_json())(self.lockfile_path)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'DependencyChild':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass
+class DependencyPath:
+    """Original type: dependency_path = { ... }
+    """
+
+    nodes: List[DependencyChild]
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'DependencyPath':
+        if isinstance(x, dict):
+            return cls(
+                nodes=_atd_read_list(DependencyChild.from_json)(x['nodes']) if 'nodes' in x else _atd_missing_json_field('DependencyPath', 'nodes'),
+            )
+        else:
+            _atd_bad_json('DependencyPath', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res['nodes'] = _atd_write_list((lambda x: x.to_json()))(self.nodes)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'DependencyPath':
         return cls.from_json(json.loads(x))
 
     def to_json_string(self, **kw: Any) -> str:

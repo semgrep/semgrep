@@ -91,12 +91,6 @@
 type datetime = Semgrep_output_v1_t.datetime
   [@@deriving ord]
 
-type dependency_child = Semgrep_output_v1_t.dependency_child = {
-  package: string;
-  version: string
-}
-  [@@deriving ord]
-
 type dependency_kind = Semgrep_output_v1_t.dependency_kind = 
     Direct
       (**
@@ -121,11 +115,6 @@ type dependency_kind = Semgrep_output_v1_t.dependency_kind =
       *)
 
   [@@deriving ord, eq, show]
-
-type dependency_path = Semgrep_output_v1_t.dependency_path = {
-  nodes: dependency_child list
-}
-  [@@deriving ord]
 
 (**
   both ecosystem and transitivity below have frozen=True so the generated
@@ -157,6 +146,24 @@ type ecosystem = Semgrep_output_v1_t.ecosystem =
   [@@deriving eq, ord, show { with_path = false }]
 
 type fpath = Semgrep_output_v1_t.fpath [@@deriving eq, ord, show]
+
+type dependency_child = Semgrep_output_v1_t.dependency_child = {
+  package: string;
+  version: string;
+  lockfile_path: fpath option
+    (**
+      Path of the file the child was reported from, set when the same package
+      and version can be reported from several files, e.g. one entry per
+      Gradle module build file. Together with package and version it
+      identifies the found_dependency this child refers to. Since 1.177.0
+    *)
+}
+  [@@deriving ord]
+
+type dependency_path = Semgrep_output_v1_t.dependency_path = {
+  nodes: dependency_child list
+}
+  [@@deriving ord]
 
 type found_dependency = Semgrep_output_v1_t.found_dependency = {
   package: string;
@@ -3047,6 +3054,158 @@ let read_datetime = (
 )
 let datetime_of_string s =
   read_datetime (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write_dependency_kind : _ -> dependency_kind -> _ = (
+  fun ob (x : dependency_kind) ->
+    match x with
+      | Direct -> Buffer.add_string ob "\"direct\""
+      | Transitive -> Buffer.add_string ob "\"transitive\""
+      | Unknown -> Buffer.add_string ob "\"unknown\""
+)
+let string_of_dependency_kind ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write_dependency_kind ob x;
+  Buffer.contents ob
+let read_dependency_kind = (
+  fun p lb ->
+    Yojson.Safe.read_space p lb;
+    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
+      | `Double_quote -> (
+          match Yojson.Safe.finish_string p lb with
+            | "direct" ->
+              (Direct : dependency_kind)
+            | "transitive" ->
+              (Transitive : dependency_kind)
+            | "unknown" ->
+              (Unknown : dependency_kind)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+      | `Square_bracket -> (
+          match Atdgen_runtime.Oj_run.read_string p lb with
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+)
+let dependency_kind_of_string s =
+  read_dependency_kind (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write_ecosystem : _ -> ecosystem -> _ = (
+  fun ob (x : ecosystem) ->
+    match x with
+      | Npm -> Buffer.add_string ob "\"npm\""
+      | Pypi -> Buffer.add_string ob "\"pypi\""
+      | Gem -> Buffer.add_string ob "\"gem\""
+      | Gomod -> Buffer.add_string ob "\"gomod\""
+      | Cargo -> Buffer.add_string ob "\"cargo\""
+      | Maven -> Buffer.add_string ob "\"maven\""
+      | Composer -> Buffer.add_string ob "\"composer\""
+      | Nuget -> Buffer.add_string ob "\"nuget\""
+      | Pub -> Buffer.add_string ob "\"pub\""
+      | SwiftPM -> Buffer.add_string ob "\"swiftpm\""
+      | Cocoapods -> Buffer.add_string ob "\"cocoapods\""
+      | Mix -> Buffer.add_string ob "\"mix\""
+      | Hex -> Buffer.add_string ob "\"hex\""
+      | Opam -> Buffer.add_string ob "\"opam\""
+)
+let string_of_ecosystem ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write_ecosystem ob x;
+  Buffer.contents ob
+let read_ecosystem = (
+  fun p lb ->
+    Yojson.Safe.read_space p lb;
+    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
+      | `Double_quote -> (
+          match Yojson.Safe.finish_string p lb with
+            | "npm" ->
+              (Npm : ecosystem)
+            | "pypi" ->
+              (Pypi : ecosystem)
+            | "gem" ->
+              (Gem : ecosystem)
+            | "gomod" ->
+              (Gomod : ecosystem)
+            | "cargo" ->
+              (Cargo : ecosystem)
+            | "maven" ->
+              (Maven : ecosystem)
+            | "composer" ->
+              (Composer : ecosystem)
+            | "nuget" ->
+              (Nuget : ecosystem)
+            | "pub" ->
+              (Pub : ecosystem)
+            | "swiftpm" ->
+              (SwiftPM : ecosystem)
+            | "cocoapods" ->
+              (Cocoapods : ecosystem)
+            | "mix" ->
+              (Mix : ecosystem)
+            | "hex" ->
+              (Hex : ecosystem)
+            | "opam" ->
+              (Opam : ecosystem)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+      | `Square_bracket -> (
+          match Atdgen_runtime.Oj_run.read_string p lb with
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+)
+let ecosystem_of_string s =
+  read_ecosystem (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write_fpath = (
+  write__x_45497b3
+)
+let string_of_fpath ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write_fpath ob x;
+  Buffer.contents ob
+let read_fpath = (
+  read__x_45497b3
+)
+let fpath_of_string s =
+  read_fpath (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write__fpath_option = (
+  Atdgen_runtime.Oj_run.write_std_option (
+    write_fpath
+  )
+)
+let string_of__fpath_option ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write__fpath_option ob x;
+  Buffer.contents ob
+let read__fpath_option = (
+  fun p lb ->
+    Yojson.Safe.read_space p lb;
+    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
+      | `Double_quote -> (
+          match Yojson.Safe.finish_string p lb with
+            | "None" ->
+              (None : _ option)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+      | `Square_bracket -> (
+          match Atdgen_runtime.Oj_run.read_string p lb with
+            | "Some" ->
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_comma p lb;
+              Yojson.Safe.read_space p lb;
+              let x = (
+                  read_fpath
+                ) p lb
+              in
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_rbr p lb;
+              (Some x : _ option)
+            | x ->
+              Atdgen_runtime.Oj_run.invalid_variant_tag p x
+        )
+)
+let _fpath_option_of_string s =
+  read__fpath_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
 let write_dependency_child : _ -> dependency_child -> _ = (
   fun ob (x : dependency_child) ->
     Buffer.add_char ob '{';
@@ -3069,6 +3228,17 @@ let write_dependency_child : _ -> dependency_child -> _ = (
       Yojson.Safe.write_string
     )
       ob x.version;
+    (match x.lockfile_path with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"lockfile_path\":";
+      (
+        write_fpath
+      )
+        ob x;
+    );
     Buffer.add_char ob '}';
 )
 let string_of_dependency_child ?(len = 1024) x =
@@ -3081,6 +3251,7 @@ let read_dependency_child = (
     Yojson.Safe.read_lcurl p lb;
     let field_package = ref (None) in
     let field_version = ref (None) in
+    let field_lockfile_path = ref (None) in
     try
       Yojson.Safe.read_space p lb;
       Yojson.Safe.read_object_end lb;
@@ -3089,31 +3260,40 @@ let read_dependency_child = (
         fun s pos len ->
           if pos < 0 || len < 0 || pos + len > String.length s then
             invalid_arg (Printf.sprintf "out-of-bounds substring position or length: string = %S, requested position = %i, requested length = %i" s pos len);
-          if len = 7 then (
-            match String.unsafe_get s pos with
-              | 'p' -> (
-                  if String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' then (
-                    0
-                  )
-                  else (
-                    -1
-                  )
+          match len with
+            | 7 -> (
+                match String.unsafe_get s pos with
+                  | 'p' -> (
+                      if String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' then (
+                        0
+                      )
+                      else (
+                        -1
+                      )
+                    )
+                  | 'v' -> (
+                      if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'i' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'n' then (
+                        1
+                      )
+                      else (
+                        -1
+                      )
+                    )
+                  | _ -> (
+                      -1
+                    )
+              )
+            | 13 -> (
+                if String.unsafe_get s pos = 'l' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'f' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'l' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 't' && String.unsafe_get s (pos+12) = 'h' then (
+                  2
                 )
-              | 'v' -> (
-                  if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'i' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'n' then (
-                    1
-                  )
-                  else (
-                    -1
-                  )
-                )
-              | _ -> (
+                else (
                   -1
                 )
-          )
-          else (
-            -1
-          )
+              )
+            | _ -> (
+                -1
+              )
       in
       let i = Yojson.Safe.map_ident p f lb in
       Atdgen_runtime.Oj_run.read_until_field_value p lb;
@@ -3135,6 +3315,16 @@ let read_dependency_child = (
                 ) p lb
               )
             );
+          | 2 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_lockfile_path := (
+                Some (
+                  (
+                    read_fpath
+                  ) p lb
+                )
+              );
+            )
           | _ -> (
               Yojson.Safe.skip_json p lb
             )
@@ -3147,31 +3337,40 @@ let read_dependency_child = (
           fun s pos len ->
             if pos < 0 || len < 0 || pos + len > String.length s then
               invalid_arg (Printf.sprintf "out-of-bounds substring position or length: string = %S, requested position = %i, requested length = %i" s pos len);
-            if len = 7 then (
-              match String.unsafe_get s pos with
-                | 'p' -> (
-                    if String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' then (
-                      0
-                    )
-                    else (
-                      -1
-                    )
+            match len with
+              | 7 -> (
+                  match String.unsafe_get s pos with
+                    | 'p' -> (
+                        if String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' then (
+                          0
+                        )
+                        else (
+                          -1
+                        )
+                      )
+                    | 'v' -> (
+                        if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'i' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'n' then (
+                          1
+                        )
+                        else (
+                          -1
+                        )
+                      )
+                    | _ -> (
+                        -1
+                      )
+                )
+              | 13 -> (
+                  if String.unsafe_get s pos = 'l' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'f' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'l' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 't' && String.unsafe_get s (pos+12) = 'h' then (
+                    2
                   )
-                | 'v' -> (
-                    if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 'r' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'i' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'n' then (
-                      1
-                    )
-                    else (
-                      -1
-                    )
-                  )
-                | _ -> (
+                  else (
                     -1
                   )
-            )
-            else (
-              -1
-            )
+                )
+              | _ -> (
+                  -1
+                )
         in
         let i = Yojson.Safe.map_ident p f lb in
         Atdgen_runtime.Oj_run.read_until_field_value p lb;
@@ -3193,6 +3392,16 @@ let read_dependency_child = (
                   ) p lb
                 )
               );
+            | 2 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_lockfile_path := (
+                  Some (
+                    (
+                      read_fpath
+                    ) p lb
+                  )
+                );
+              )
             | _ -> (
                 Yojson.Safe.skip_json p lb
               )
@@ -3204,6 +3413,7 @@ let read_dependency_child = (
           {
             package = (match !field_package with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "package");
             version = (match !field_version with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "version");
+            lockfile_path = !field_lockfile_path;
           }
          : dependency_child)
       )
@@ -3265,40 +3475,6 @@ let read__dependency_child_list_option = (
 )
 let _dependency_child_list_option_of_string s =
   read__dependency_child_list_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
-let write_dependency_kind : _ -> dependency_kind -> _ = (
-  fun ob (x : dependency_kind) ->
-    match x with
-      | Direct -> Buffer.add_string ob "\"direct\""
-      | Transitive -> Buffer.add_string ob "\"transitive\""
-      | Unknown -> Buffer.add_string ob "\"unknown\""
-)
-let string_of_dependency_kind ?(len = 1024) x =
-  let ob = Buffer.create len in
-  write_dependency_kind ob x;
-  Buffer.contents ob
-let read_dependency_kind = (
-  fun p lb ->
-    Yojson.Safe.read_space p lb;
-    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
-      | `Double_quote -> (
-          match Yojson.Safe.finish_string p lb with
-            | "direct" ->
-              (Direct : dependency_kind)
-            | "transitive" ->
-              (Transitive : dependency_kind)
-            | "unknown" ->
-              (Unknown : dependency_kind)
-            | x ->
-              Atdgen_runtime.Oj_run.invalid_variant_tag p x
-        )
-      | `Square_bracket -> (
-          match Atdgen_runtime.Oj_run.read_string p lb with
-            | x ->
-              Atdgen_runtime.Oj_run.invalid_variant_tag p x
-        )
-)
-let dependency_kind_of_string s =
-  read_dependency_kind (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
 let write_dependency_path : _ -> dependency_path -> _ = (
   fun ob (x : dependency_path) ->
     Buffer.add_char ob '{';
@@ -3452,124 +3628,6 @@ let read__dependency_path_list_option = (
 )
 let _dependency_path_list_option_of_string s =
   read__dependency_path_list_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
-let write_ecosystem : _ -> ecosystem -> _ = (
-  fun ob (x : ecosystem) ->
-    match x with
-      | Npm -> Buffer.add_string ob "\"npm\""
-      | Pypi -> Buffer.add_string ob "\"pypi\""
-      | Gem -> Buffer.add_string ob "\"gem\""
-      | Gomod -> Buffer.add_string ob "\"gomod\""
-      | Cargo -> Buffer.add_string ob "\"cargo\""
-      | Maven -> Buffer.add_string ob "\"maven\""
-      | Composer -> Buffer.add_string ob "\"composer\""
-      | Nuget -> Buffer.add_string ob "\"nuget\""
-      | Pub -> Buffer.add_string ob "\"pub\""
-      | SwiftPM -> Buffer.add_string ob "\"swiftpm\""
-      | Cocoapods -> Buffer.add_string ob "\"cocoapods\""
-      | Mix -> Buffer.add_string ob "\"mix\""
-      | Hex -> Buffer.add_string ob "\"hex\""
-      | Opam -> Buffer.add_string ob "\"opam\""
-)
-let string_of_ecosystem ?(len = 1024) x =
-  let ob = Buffer.create len in
-  write_ecosystem ob x;
-  Buffer.contents ob
-let read_ecosystem = (
-  fun p lb ->
-    Yojson.Safe.read_space p lb;
-    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
-      | `Double_quote -> (
-          match Yojson.Safe.finish_string p lb with
-            | "npm" ->
-              (Npm : ecosystem)
-            | "pypi" ->
-              (Pypi : ecosystem)
-            | "gem" ->
-              (Gem : ecosystem)
-            | "gomod" ->
-              (Gomod : ecosystem)
-            | "cargo" ->
-              (Cargo : ecosystem)
-            | "maven" ->
-              (Maven : ecosystem)
-            | "composer" ->
-              (Composer : ecosystem)
-            | "nuget" ->
-              (Nuget : ecosystem)
-            | "pub" ->
-              (Pub : ecosystem)
-            | "swiftpm" ->
-              (SwiftPM : ecosystem)
-            | "cocoapods" ->
-              (Cocoapods : ecosystem)
-            | "mix" ->
-              (Mix : ecosystem)
-            | "hex" ->
-              (Hex : ecosystem)
-            | "opam" ->
-              (Opam : ecosystem)
-            | x ->
-              Atdgen_runtime.Oj_run.invalid_variant_tag p x
-        )
-      | `Square_bracket -> (
-          match Atdgen_runtime.Oj_run.read_string p lb with
-            | x ->
-              Atdgen_runtime.Oj_run.invalid_variant_tag p x
-        )
-)
-let ecosystem_of_string s =
-  read_ecosystem (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
-let write_fpath = (
-  write__x_45497b3
-)
-let string_of_fpath ?(len = 1024) x =
-  let ob = Buffer.create len in
-  write_fpath ob x;
-  Buffer.contents ob
-let read_fpath = (
-  read__x_45497b3
-)
-let fpath_of_string s =
-  read_fpath (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
-let write__fpath_option = (
-  Atdgen_runtime.Oj_run.write_std_option (
-    write_fpath
-  )
-)
-let string_of__fpath_option ?(len = 1024) x =
-  let ob = Buffer.create len in
-  write__fpath_option ob x;
-  Buffer.contents ob
-let read__fpath_option = (
-  fun p lb ->
-    Yojson.Safe.read_space p lb;
-    match Atdgen_runtime.Yojson_extra.start_any_variant p lb with
-      | `Double_quote -> (
-          match Yojson.Safe.finish_string p lb with
-            | "None" ->
-              (None : _ option)
-            | x ->
-              Atdgen_runtime.Oj_run.invalid_variant_tag p x
-        )
-      | `Square_bracket -> (
-          match Atdgen_runtime.Oj_run.read_string p lb with
-            | "Some" ->
-              Yojson.Safe.read_space p lb;
-              Yojson.Safe.read_comma p lb;
-              Yojson.Safe.read_space p lb;
-              let x = (
-                  read_fpath
-                ) p lb
-              in
-              Yojson.Safe.read_space p lb;
-              Yojson.Safe.read_rbr p lb;
-              (Some x : _ option)
-            | x ->
-              Atdgen_runtime.Oj_run.invalid_variant_tag p x
-        )
-)
-let _fpath_option_of_string s =
-  read__fpath_option (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
 let write_found_dependency : _ -> found_dependency -> _ = (
   fun ob (x : found_dependency) ->
     Buffer.add_char ob '{';

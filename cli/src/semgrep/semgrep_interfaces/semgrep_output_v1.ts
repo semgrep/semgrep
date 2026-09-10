@@ -258,6 +258,7 @@ export type FoundDependency = {
 export type DependencyChild = {
   package_: string;
   version: string;
+  lockfile_path?: Fpath;
 }
 
 export type DependencyPath = {
@@ -2293,6 +2294,7 @@ export function writeDependencyChild(x: DependencyChild, context: any = x): any 
   return {
     'package': _atd_write_required_field('DependencyChild', 'package', _atd_write_string, x.package_, x),
     'version': _atd_write_required_field('DependencyChild', 'version', _atd_write_string, x.version, x),
+    'lockfile_path': _atd_write_optional_field(writeFpath, x.lockfile_path, x),
   };
 }
 
@@ -2300,6 +2302,7 @@ export function readDependencyChild(x: any, context: any = x): DependencyChild {
   return {
     package_: _atd_read_required_field('DependencyChild', 'package', _atd_read_string, x['package'], x),
     version: _atd_read_required_field('DependencyChild', 'version', _atd_read_string, x['version'], x),
+    lockfile_path: _atd_read_optional_field(readFpath, x['lockfile_path'], x),
   };
 }
 
