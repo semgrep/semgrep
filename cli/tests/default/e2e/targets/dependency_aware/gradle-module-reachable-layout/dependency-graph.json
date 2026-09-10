@@ -1,0 +1,121 @@
+[
+  {
+    "rootOrigin": { "id": "root project 'reachable-layout'", "path": ":" },
+    "configurationName": "compileClasspath",
+    "scope": "Runtime",
+    "allDependencies": [
+      {
+        "id": "com.google.guava:guava:32.1.1-jre",
+        "origin": { "id": "root project 'reachable-layout'", "path": ":" },
+        "isDirect": true,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": "32.1.1-jre"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "rootOrigin": { "id": "project ':app'", "path": ":app" },
+    "configurationName": "compileClasspath",
+    "scope": "Runtime",
+    "allDependencies": [
+      {
+        "id": "project :lib",
+        "origin": { "id": "project ':app'", "path": ":app" },
+        "isDirect": true,
+        "isProject": true,
+        "coordinates": {
+          "group": "reachable-layout",
+          "module": "lib",
+          "version": "unspecified"
+        },
+        "repositoryUrl": null,
+        "dependencies": ["com.google.guava:guava:32.1.1-jre"]
+      },
+      {
+        "id": "com.google.guava:guava:32.1.1-jre",
+        "origin": { "id": "project ':lib'", "path": ":lib" },
+        "isDirect": true,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": "32.1.1-jre"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": ["com.example:lib-child:1.0"]
+      },
+      {
+        "id": "com.example:lib-child:1.0",
+        "origin": { "id": "project ':lib'", "path": ":lib" },
+        "isDirect": false,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.example",
+          "module": "lib-child",
+          "version": "1.0"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "rootOrigin": { "id": "project ':lib'", "path": ":lib" },
+    "configurationName": "compileClasspath",
+    "scope": "Runtime",
+    "allDependencies": [
+      {
+        "id": "com.google.guava:guava:32.1.1-jre",
+        "origin": { "id": "project ':lib'", "path": ":lib" },
+        "isDirect": true,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": "32.1.1-jre"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": ["com.example:lib-child:1.0"]
+      },
+      {
+        "id": "com.example:lib-child:1.0",
+        "origin": { "id": "project ':lib'", "path": ":lib" },
+        "isDirect": false,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.example",
+          "module": "lib-child",
+          "version": "1.0"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": []
+      }
+    ]
+  },
+  {
+    "rootOrigin": { "id": "project ':services:api'", "path": ":services:api" },
+    "configurationName": "compileClasspath",
+    "scope": "Runtime",
+    "allDependencies": [
+      {
+        "id": "com.google.guava:guava:32.1.1-jre",
+        "origin": { "id": "project ':services:api'", "path": ":services:api" },
+        "isDirect": true,
+        "isProject": false,
+        "coordinates": {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": "32.1.1-jre"
+        },
+        "repositoryUrl": "https://repo.maven.apache.org/maven2",
+        "dependencies": []
+      }
+    ]
+  }
+]

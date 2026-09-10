@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+project_root=
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = "-p" ]; then
+        project_root=$2
+        break
+    fi
+    shift
+done
+
+test -n "$project_root"
+report_dir="$project_root/build/reports/dependency-graph-snapshots"
+mkdir -p "$report_dir"
+cp "$project_root/dependency-graph.json" "$report_dir/dependency-graph.json"
