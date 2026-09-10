@@ -1,1 +1,0 @@
-Supply Chain scans can report dependencies from their Gradle module build files instead of the root manifest. This behavior is disabled by default during rollout and can be tested with `--x-gradle-module-attribution`. Enabling it can change finding IDs because finding paths change; the ID calculation is unchanged.

@@ -1,4 +1,0 @@
-Several performance improvements for regex-only rules where the underlying
-regex are inefficient to run on our default regex engine (currently PCRE2). For
-example, a rule matching `FOOBAR(a+)\1` will skip any file that does not
-contain `FOOBAR` without running the regex.
