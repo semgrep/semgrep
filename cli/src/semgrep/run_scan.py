@@ -849,6 +849,7 @@ def adjust_matches_for_sca_rules(
     rpc_session: Optional[RpcSession] = None,
     enable_transitive_reachability: Optional[bool] = False,
     x_dependency_paths: bool = False,
+    gradle_module_attribution: bool = False,
 ) -> None:
     """
     Generates SCA findings based on the dependency-aware rules and the resolved subprojects.
@@ -877,7 +878,9 @@ def adjust_matches_for_sca_rules(
     for ecosystem, subprojects in resolved_subprojects.items():
         dependency_index[ecosystem] = []
         for subproject in subprojects:
-            idx = SubprojectDependencyIndex.from_subproject(subproject)
+            idx = SubprojectDependencyIndex.from_subproject(
+                subproject, gradle_module_attribution=gradle_module_attribution
+            )
             dependency_index[ecosystem].append((subproject, idx))
             num_dependencies += idx.num_deps
 
@@ -914,6 +917,7 @@ def adjust_matches_for_sca_rules(
                 rule,
                 dependency_index,
                 parent_indexes=parent_indexes,
+                gradle_module_attribution=gradle_module_attribution,
             )
 
             rule_matches_by_rule[rule] = dep_rule_matches
@@ -1191,6 +1195,7 @@ def run_rules(
             write_to_tr_cache=write_to_tr_cache,
             enable_transitive_reachability=enable_transitive_reachability,
             x_dependency_paths=x_dependency_paths,
+            gradle_module_attribution=dependency_resolution_config.gradle_module_attribution,
             fips_mode=fips_mode,
             rpc_session=rpc_session,
         )

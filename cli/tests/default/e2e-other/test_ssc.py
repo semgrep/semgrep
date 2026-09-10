@@ -518,6 +518,160 @@ def test_gradle_module_attribution_rollout(
         } == expected_children
 
 
+def _sca_associations(result: Any) -> list[tuple[str, bool, str, str, str]]:
+    """
+    Summarize each SCA finding as (finding path, reachable, dependency path,
+    transitivity, fingerprint). Paths are relative to the fixture directory.
+    Reads the unmasked JSON so the fingerprints (MIDs) can be checked.
+    """
+    output = json.loads(result.raw_stdout)
+    assert output["errors"] == []
+    associations = []
+    for finding in output["results"]:
+        sca_info = finding["extra"]["sca_info"]
+        found_dependency = sca_info["dependency_match"]["found_dependency"]
+        associations.append(
+            (
+                finding["path"],
+                sca_info["reachable"],
+                found_dependency["lockfile_path"],
+                found_dependency["transitivity"],
+                finding["extra"]["fingerprint"],
+            )
+        )
+    return sorted(associations)
+
+
+GRADLE_GUAVA_RULE = "rules/dependency_aware/gradle-guava.yaml"
+GRADLE_MODULE_REACHABLE_TARGETS = "targets/dependency_aware/"
+
+
+@pytest.mark.parametrize(
+    "target,expected",
+    [
+        # Guava is transitive in app and direct in lib. The app code must pair
+        # with app's own copy; lib's direct copy is a dependency-only finding.
+        (
+            "gradle-module-reachable-mixed",
+            [
+                (
+                    "app/src/main/java/App.java",
+                    True,
+                    "app/build.gradle.kts",
+                    "transitive",
+                ),
+                ("lib/build.gradle.kts", False, "lib/build.gradle.kts", "direct"),
+            ],
+        ),
+        # Both modules depend on Guava directly. Only app has matching code, so
+        # there is exactly one reachable finding, and lib keeps its own
+        # dependency-only finding.
+        (
+            "gradle-module-reachable-both-direct",
+            [
+                ("app/src/main/java/App.java", True, "app/build.gradle.kts", "direct"),
+                ("lib/build.gradle.kts", False, "lib/build.gradle.kts", "direct"),
+            ],
+        ),
+        # Root, nested, and empty modules, plus an explicit project dependency:
+        # - code in the root module pairs with the root build file,
+        # - code in services/api pairs with that nested module,
+        # - code in empty (no resolved dependencies) gets no finding, so root
+        #   dependencies do not leak into it,
+        # - app depends on project(":lib") and has no Guava of its own, so its
+        #   code pairs with lib's Guava.
+        (
+            "gradle-module-reachable-layout",
+            [
+                ("app/src/main/java/App.java", True, "lib/build.gradle.kts", "direct"),
+                (
+                    "services/api/src/main/java/Api.java",
+                    True,
+                    "services/api/build.gradle.kts",
+                    "direct",
+                ),
+                ("src/main/java/Root.java", True, "build.gradle.kts", "direct"),
+            ],
+        ),
+    ],
+)
+@pytest.mark.requires_lockfileless_deps
+def test_ssc__gradle_module_reachable_attribution(
+    run_semgrep_on_copied_files: RunSemgrep,
+    target: str,
+    expected: list[tuple[str, bool, str, str]],
+):
+    """
+    With Gradle module attribution enabled, a reachable code match must only be
+    paired with dependencies applicable to the module that contains the code.
+    """
+    result = run_semgrep_on_copied_files(
+        GRADLE_GUAVA_RULE,
+        target_name=f"dependency_aware/{target}",
+        options=["--allow-local-builds", "--x-gradle-module-attribution"],
+        is_logged_in_weak=True,
+    )
+    prefix = f"{GRADLE_MODULE_REACHABLE_TARGETS}{target}/"
+    associations = _sca_associations(result)
+    assert [
+        (path.removeprefix(prefix), reachable, dependency.removeprefix(prefix), kind)
+        for path, reachable, dependency, kind, _ in associations
+    ] == expected
+    fingerprints = [fingerprint for *_, fingerprint in associations]
+    assert len(set(fingerprints)) == len(fingerprints), "duplicate finding IDs"
+    # One finding per (code, rule): the first index of the match-based ID
+    assert all(fingerprint.endswith("_0") for fingerprint in fingerprints)
+
+
+@pytest.mark.parametrize(
+    "target,reachable_paths",
+    [
+        ("gradle-module-reachable-mixed", ["app/src/main/java/App.java"]),
+        ("gradle-module-reachable-both-direct", ["app/src/main/java/App.java"]),
+        (
+            "gradle-module-reachable-layout",
+            [
+                "app/src/main/java/App.java",
+                "empty/src/main/java/Empty.java",
+                "services/api/src/main/java/Api.java",
+                "src/main/java/Root.java",
+            ],
+        ),
+    ],
+)
+@pytest.mark.requires_lockfileless_deps
+def test_ssc__gradle_module_reachable_attribution_flag_off(
+    run_semgrep_on_copied_files: RunSemgrep,
+    target: str,
+    reachable_paths: list[str],
+):
+    """
+    Without the flag, the whole Gradle build stays one unit: every code match
+    pairs with the single package-level Guava entry reported at the root
+    manifest, and the finding IDs are unchanged from before module scoping.
+    """
+    result = run_semgrep_on_copied_files(
+        GRADLE_GUAVA_RULE,
+        target_name=f"dependency_aware/{target}",
+        options=["--allow-local-builds"],
+        is_logged_in_weak=True,
+    )
+    prefix = f"{GRADLE_MODULE_REACHABLE_TARGETS}{target}/"
+    root_manifest = (
+        "build.gradle.kts"
+        if target == "gradle-module-reachable-layout"
+        else "settings.gradle.kts"
+    )
+    associations = _sca_associations(result)
+    assert [
+        (path.removeprefix(prefix), reachable, dependency.removeprefix(prefix), kind)
+        for path, reachable, dependency, kind, _ in associations
+    ] == [(path, True, root_manifest, "direct") for path in reachable_paths]
+    fingerprints = [fingerprint for *_, fingerprint in associations]
+    assert len(set(fingerprints)) == len(fingerprints), "duplicate finding IDs"
+    assert all(fingerprint.endswith("_0") for fingerprint in fingerprints)
+
+
 @pytest.mark.parametrize(
     "rule,target",
     [

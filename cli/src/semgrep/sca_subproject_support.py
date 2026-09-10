@@ -77,6 +77,16 @@ ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
 ]
 
+# Gradle builds resolved from their build files without a lockfile. With
+# gradle_module_attribution on, the resolve_dependencies RPC reports one
+# dependency entry per module build file for these; every other kind, including
+# Gradle builds resolved from an SBOM or a lockfile, keeps one entry per package.
+GRADLE_MODULE_ATTRIBUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
+    (out.ManifestKind(out.BuildGradle()), None),
+    (out.ManifestKind(out.BuildGradleKts()), None),
+    (out.ManifestKind(out.SettingsGradle()), None),
+]
+
 # All subproject kinds that are supported for transitive reachability, regardless
 # of how they are parsed. In practice this is probably identical to TR_OCAML_RESOLVER_SUBPROJECT_KINDS,
 # but doesn't necessarily have to be.
