@@ -1,6 +1,0 @@
-Prefilter conditions now evaluate their cheap string predicates before their
-expensive regex predicates. Since evaluation short-circuits, a file that a
-string check already rules in or out no longer pays for regex predicates
-(which is what a pattern's prefilter falls back to when no literal substring
-can be extracted from it, and which can be slow on files with very long
-lines).
