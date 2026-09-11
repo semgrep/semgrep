@@ -153,7 +153,11 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           submodules: true
-      - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
+      - env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: maintenance.auto
+          GIT_CONFIG_VALUE_0: "false"
+        uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
           cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
           ocaml-compiler: ocaml-variants.5.4.0+options,ocaml-option-flambda
@@ -248,7 +252,11 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           submodules: true
-      - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
+      - env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: maintenance.auto
+          GIT_CONFIG_VALUE_0: "false"
+        uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
           cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
           ocaml-compiler: ocaml-variants.5.4.0+options,ocaml-option-flambda
