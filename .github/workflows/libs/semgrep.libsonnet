@@ -165,6 +165,16 @@ local opam_setup = function(opam_switch=opam_switch_default, checkout_path='') {
   // normalize to a glob prefix: '' -> '', 'foo' -> 'foo/'
   local p = if checkout_path == '' then '' else checkout_path + '/',
   uses: uses.semgrep.setup_ocaml,
+  // OPAM 2.5.0 repository setup failed while traversing the fetched Git tree:
+  // "lstat" failed on /home/runner/.opam/repo/default/.git/objects/maintenance.lock: No such file or directory
+  // [ERROR] Initial repository fetch failed
+  // Disable fetch-triggered Git maintenance so its temporary lock cannot disappear
+  // during traversal. Scope the setting to this action and its subprocesses.
+  env: {
+    GIT_CONFIG_COUNT: '1',
+    GIT_CONFIG_KEY_0: 'maintenance.auto',
+    GIT_CONFIG_VALUE_0: 'false',
+  },
   with: {
     'ocaml-compiler': opam_switch,
     'opam-pin': false,
