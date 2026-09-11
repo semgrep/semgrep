@@ -96,31 +96,34 @@ repos:
         args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
-          # - cli/setup.py lists dependencies
-          # - cli/Pipfile lists type hint packages for dev env
+          # - cli/pyproject.toml lists dependencies and type hint packages for dev env
           # - .pre-commit-config.yaml's mypy hooks also list type hint packages
 
           # some packages ship with type definitions
           - attrs>=21.3
           - click~=8.4.2
-          - packaging~=21.0
-          - pydantic~=2.12.2
-          - requests~=2.22
-          - rich~=13.5.2
-          - tomli~=2.0.1
+          - httpx>=0.27.1
           - opentelemetry-api~=1.37.0
-          - opentelemetry-sdk~=1.37.0
           - opentelemetry-exporter-otlp-proto-http~=1.37.0
           - opentelemetry-instrumentation-requests~=0.58b0
           - opentelemetry-instrumentation-threading~=0.58b0
+          - opentelemetry-sdk~=1.37.0
+          - packaging>=21.0
+          - pydantic~=2.12.2
+          - requests~=2.22
+          - rich>=13.5.2
+          - starlette>=0.27
+          - tomli~=2.4.0
           # other packages have separate typings published
           - types-colorama~=0.4.0
           - types-freezegun
           - types-Jinja2
-          - types-jsonschema~=4.25.1.20251009
+          - types-jsonschema==4.25.1.20251009
           - types-python-dateutil
           - types-requests
           - types-setuptools
+          # runtime deps for the MCP implementation
+          - mcp==1.29.0
           # for tests only:
           # (ideally, these additional items would go only in the
           # 'additional_properties' field of 'mypy-test' below but YAML
@@ -130,7 +133,6 @@ repos:
           - appdirs
           - pytest
           - pytest-mock
-          - mcp==1.29.0
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
