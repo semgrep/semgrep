@@ -1,0 +1,27 @@
+rules:
+  - id: taint-param-source-typed-arrow
+    mode: taint
+    languages:
+      - typescript
+    message: |
+      This confirms taint mode works for focused destructured parameters.
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  const $FUNC = ({ ..., $X, ... }: $T) => { ... }
+              - pattern: |
+                  const $FUNC = ({ ..., $X, ... }) => { ... }
+          - focus-metavariable: $X
+    pattern-sinks:
+      - patterns:
+          - pattern: $SINK($CONTENT)
+          - focus-metavariable: $CONTENT
+    severity: ERROR
+  - id: typed-destructured-param-imported-type
+    languages:
+      - typescript
+    message: This confirms imported types remain resolvable in typed destructured parameters.
+    pattern: |
+      const $FUNC = ({ ..., $X, ... }: LocalProps) => { ... }
+    severity: ERROR
