@@ -1,0 +1,27 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+# Not the generic script because we provide a semgrep-specific scanner.c
+#
+set -eu -o pipefail
+
+name=$(basename "$(pwd)" | sed -e 's/semgrep-//')
+
+mkdir -p test/corpus
+(
+  cd test/corpus
+  rm -f inherited
+  # The root of the tests is either 'test/corpus' or 'corpus' as per
+  # tree-sitter documentation.
+  for dir in test/corpus corpus; do
+    corpus=../../../tree-sitter-"$name"/$dir
+    if [[ -e "$corpus" ]]; then
+      ln -sf "$corpus" inherited
+    fi
+  done
+)
+echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+echo Note that semgrep-kotlin/src/scanner.c must be in sync with
+echo tree-sitter-kotlin/src/scanner.c
+echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -1,0 +1,122 @@
+--- inherited/definitions.txt	2026-04-13 15:13:43
++++ inherited/definitions.txt	2026-04-13 15:13:59
+@@ -667,7 +667,6 @@
+   val y: Int,
+ )(implicit coord: Coord)
+ 
+-// TODO: The last argument should become class_parameters
+ class A @Inject()(x: Int, y: Int)
+ 
+ --------------------------------------------------------------------------------
+@@ -686,19 +685,17 @@
+       (class_parameter
+         (identifier)
+         (type_identifier))))
+-  (comment)
+   (class_definition
+     (identifier)
+-    (annotation
+-      (type_identifier)
+-      (arguments)
+-      (arguments
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier))
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier))))))
++    (type_identifier)
++    (arguments)
++    (class_parameters
++      (class_parameter
++        (identifier)
++        (type_identifier))
++      (class_parameter
++        (identifier)
++        (type_identifier)))))
+ 
+ ================================================================================
+ Class definitions with parameters (Scala 3 syntax)
+@@ -706,15 +703,10 @@
+ 
+ class Point(val x: Int, val y: Int)(using coord: Coord)
+ 
+-// TODO: The last argument should become class_parameters
+ class A @ann (x: Int, y: Int)
+ 
+-// TODO: The last argument should become class_parameters
+ class A @ann(1) (x: Int, y: Int)
+ 
+-// TODO: The last argument should become class_parameters
+-class A @ann(1)(1) (x: Int, y: Int)
+-
+ --------------------------------------------------------------------------------
+ 
+ (compilation_unit
+@@ -731,48 +723,28 @@
+       (class_parameter
+         (identifier)
+         (type_identifier))))
+-  (comment)
+   (class_definition
+     (identifier)
+-    (annotation
+-      (type_identifier)
+-      (arguments
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier))
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier)))))
+-  (comment)
+-  (class_definition
+-    (identifier)
+-    (annotation
+-      (type_identifier)
+-      (arguments
+-        (integer_literal))
+-      (arguments
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier))
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier)))))
+-  (comment)
++    (type_identifier)
++    (arguments
++      (ascription_expression
++        (identifier)
++        (type_identifier))
++      (ascription_expression
++        (identifier)
++        (type_identifier))))
+   (class_definition
+     (identifier)
+-    (annotation
+-      (type_identifier)
+-      (arguments
+-        (integer_literal))
+-      (arguments
+-        (integer_literal))
+-      (arguments
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier))
+-        (ascription_expression
+-          (identifier)
+-          (type_identifier))))))
++    (type_identifier)
++    (arguments
++      (integer_literal))
++    (class_parameters
++      (class_parameter
++        (identifier)
++        (type_identifier))
++      (class_parameter
++        (identifier)
++        (type_identifier)))))
+ 
+ ================================================================================
+ Modifiers

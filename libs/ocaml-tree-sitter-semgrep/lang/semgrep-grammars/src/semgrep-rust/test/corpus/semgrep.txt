@@ -1,0 +1,330 @@
+================================================================================
+Metavariables
+================================================================================
+
+impl $CLASS {
+  pub fn $FUNC($PARAM: $TYPE) -> $RETTYPE {
+    if $COND {
+        $V1
+    } else {
+        $V2
+    }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (impl_item
+    (type_identifier)
+    (declaration_list
+      (function_item
+        (visibility_modifier)
+        (identifier)
+        (parameters
+          (parameter
+            (identifier)
+            (type_identifier)))
+        (type_identifier)
+        (block
+          (expression_statement
+            (if_expression
+              (identifier)
+              (block
+                (identifier))
+              (else_clause
+                (block
+                  (identifier))))))))))
+
+================================================================================
+Typed Metavariables
+================================================================================
+
+x == ($Y : String);
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (binary_expression
+      (identifier)
+      (parenthesized_expression
+        (semgrep_typed_metavar
+          (identifier)
+          (type_identifier))))))
+
+================================================================================
+Ellipsis for expression
+================================================================================
+
+impl Foo {
+  fn bar() {
+    let a = 0;
+    ...;
+    let b = 0;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (impl_item
+    (type_identifier)
+    (declaration_list
+      (function_item
+        (identifier)
+        (parameters)
+        (block
+          (let_declaration
+            (identifier)
+            (integer_literal))
+          (expression_statement
+            (ellipsis))
+          (let_declaration
+            (identifier)
+            (integer_literal)))))))
+
+================================================================================
+Ellipsis for statements
+================================================================================
+
+impl Foo {
+  fn bar() {
+    let a = 0;
+    ...
+    let b = 0;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (impl_item
+    (type_identifier)
+    (declaration_list
+      (function_item
+        (identifier)
+        (parameters)
+        (block
+          (let_declaration
+            (identifier)
+            (integer_literal))
+          (expression_statement
+            (ellipsis))
+          (let_declaration
+            (identifier)
+            (integer_literal)))))))
+
+================================================================================
+Ellipsis for declarations
+================================================================================
+
+mod Foo {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (mod_item
+    (identifier)
+    (declaration_list
+      (ellipsis))))
+
+================================================================================
+Ellipsis for struct fields
+================================================================================
+
+struct $FOO {
+  ...
+}
+
+struct $FOO {
+  $VAR: $TYPE,
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_item
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (ellipsis))))
+  (struct_item
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (field_identifier)
+        (type_identifier))
+      (field_declaration
+        (ellipsis)))))
+
+================================================================================
+Deep expression ellipsis
+================================================================================
+
+impl Foo {
+  fn bar() {
+    let a = <... 0 ...>;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (impl_item
+    (type_identifier)
+    (declaration_list
+      (function_item
+        (identifier)
+        (parameters)
+        (block
+          (let_declaration
+            (identifier)
+            (deep_ellipsis
+              (integer_literal))))))))
+
+================================================================================
+Ellipsis for method / field chains
+================================================================================
+
+let $L = $X.iter(). ... .count();
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (let_declaration
+    (identifier)
+    (call_expression
+      (field_expression
+        (member_access_ellipsis_expression
+          (call_expression
+            (field_expression
+              (identifier)
+              (field_identifier))
+            (arguments))
+          (ellipsis))
+        (field_identifier))
+      (arguments))))
+
+================================================================================
+Ellipsis for attribute arguments
+================================================================================
+
+#[foo(...)]
+#[foo(bar, ...)]
+#[foo(..., baz, ...)]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (attribute_item
+    (attribute
+      (identifier)
+      (token_tree)))
+  (attribute_item
+    (attribute
+      (identifier)
+      (token_tree
+        (identifier))))
+  (attribute_item
+    (attribute
+      (identifier)
+      (token_tree
+        (identifier)))))
+
+================================================================================
+Toplevel expression
+================================================================================
+
+__SEMGREP_EXPRESSION
+42
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_expression
+    (integer_literal)))
+
+================================================================================
+Toplevel single statement
+================================================================================
+
+__SEMGREP_STATEMENT
+let mut x = 0;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_statement
+    (let_declaration
+      (mutable_specifier)
+      (identifier)
+      (integer_literal))))
+
+================================================================================
+Toplevel multiple statements
+================================================================================
+
+__SEMGREP_STATEMENT
+let mut x = 0;
+let y = x * 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_statement
+    (let_declaration
+      (mutable_specifier)
+      (identifier)
+      (integer_literal))
+    (let_declaration
+      (identifier)
+      (binary_expression
+        (identifier)
+        (integer_literal)))))
+
+================================================================================
+Argument ellipsis
+================================================================================
+
+__SEMGREP_EXPRESSION
+foo(...)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_expression
+    (call_expression
+      (identifier)
+      (arguments
+        (ellipsis)))))
+
+================================================================================
+Argument metavariable ellipsis
+================================================================================
+
+foo($...X);
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (call_expression
+      (identifier)
+      (arguments
+        (identifier)))))
+
+================================================================================
+Statement metavariable ellipsis
+================================================================================
+
+$...X;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (identifier)))

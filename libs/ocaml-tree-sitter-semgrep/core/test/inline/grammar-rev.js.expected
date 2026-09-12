@@ -1,0 +1,27 @@
+// JavaScript grammar recovered from JSON by 'ocaml-tree-sitter to-js'
+module.exports = grammar({
+  name: "inline",
+  externals: $ => [
+  ],
+  conflicts: $ => [
+  ],
+  inline: $ => [
+  ],
+  precedences: $ => [
+  ],
+  supertypes: $ => [
+  ],
+  extras: $ => [
+    /\s/
+  ],
+  rules: {
+    program: $ => seq(
+      "a",
+      alias(
+        /b+/,
+        $.pat_69acc68
+      )
+    ),
+    pat_69acc68: $ => /b+/
+  }
+});

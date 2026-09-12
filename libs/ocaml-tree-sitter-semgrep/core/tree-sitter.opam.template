@@ -1,0 +1,2 @@
+# Dependencies only; Semgrep builds this vendored library in-tree.
+build: []

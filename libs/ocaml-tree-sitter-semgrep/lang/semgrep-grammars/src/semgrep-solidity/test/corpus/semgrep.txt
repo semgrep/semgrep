@@ -1,0 +1,130 @@
+=====================================
+Metavariable for version
+=====================================
+pragma solidity ^ $VER;
+---
+(source_file
+  (pragma_directive
+    (solidity_pragma_token
+      (solidity_version_comparison_operator)
+      (identifier))))
+
+=====================================
+Metavariable for versions range
+=====================================
+pragma solidity >= $VER_FROM <= $VER_TO;
+---
+(source_file
+  (pragma_directive
+    (solidity_pragma_token
+      (solidity_version_comparison_operator)
+      (identifier)
+      (solidity_version_comparison_operator)
+      (identifier))))
+
+=====================================
+Ellipsis for contract
+=====================================
+contract Foo {
+  ...
+}
+---
+(source_file
+	(contract_declaration (identifier)
+			      (contract_body (ellipsis))))
+
+=====================================
+Ellipsis for 'for'
+=====================================
+
+for(...) {
+}
+
+---
+
+(source_file
+  (statement
+    (for_statement
+      (ellipsis)
+      (statement
+        (block_statement)))))
+
+=====================================
+Constructor pattern
+=====================================
+constructor (...) {
+   ...
+}
+---
+ (source_file
+      (constructor_definition
+        (parameter
+          (ellipsis))
+        (function_body
+          (statement
+            (expression_statement
+              (ellipsis))))))
+
+=====================================
+Modifier pattern
+=====================================
+
+modifier $M(...) {
+   ...
+}
+---
+(source_file
+      (modifier_definition
+        (identifier)
+        (parameter
+          (ellipsis))
+        (function_body
+          (statement
+            (expression_statement
+              (ellipsis))))))
+
+=====================================
+Inheritance ellipsis pattern
+=====================================
+contract Example is ..., BoringBatchable, ... {}
+---
+(source_file
+  (contract_declaration
+    (identifier)
+    (inheritance_specifier
+      (ellipsis))
+    (inheritance_specifier
+      (user_defined_type
+        (identifier)))
+    (inheritance_specifier
+      (ellipsis))
+  (contract_body)))
+
+
+=====================================
+Enum pattern
+=====================================
+
+enum $X {
+   ...
+}
+---
+
+(source_file
+      (enum_declaration
+        (identifier)
+        (enum_body
+          (ellipsis))))
+
+=====================================
+Event pattern
+=====================================
+
+event $EV(...);
+---
+
+(source_file
+      (event_definition
+        (identifier)
+        (event_parameter
+          (ellipsis))))

@@ -1,0 +1,1 @@
+../../tree-sitter-php/common/scanner.h

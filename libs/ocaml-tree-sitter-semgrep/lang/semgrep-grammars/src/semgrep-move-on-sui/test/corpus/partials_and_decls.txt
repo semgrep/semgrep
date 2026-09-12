@@ -1,0 +1,113 @@
+=======================
+Function in Statement
+=======================
+
+fun $TEST (...) : ... { ... }
+
+---
+
+(source_file
+  (semgrep_statement
+      (function_definition
+        (function_identifier)
+        (function_parameters
+          (function_parameter
+            (ellipsis)))
+        (ret_type
+          (ellipsis))
+        (block
+          (ellipsis)))))
+
+=======================
+Declarations
+=======================
+
+use 0xabcd::ff;
+struct $STRUCT has ... { ... }
+const $CONST : ... = $FOO(...);
+...
+fun hello (...) {
+  let XXX = $STRUCT { ... };
+  ...
+}
+
+---
+
+(source_file
+  (semgrep_statement
+    (use_declaration
+      (use_module
+        (module_identity
+          (num_literal
+            (untyped_num_literal))
+          (module_identifier))))
+      (struct_definition
+        (struct_identifier)
+        (ability_decls
+          (ability
+            (ellipsis)))
+        (datatype_fields
+          (named_fields
+            (field_annotation
+              (ellipsis)))))
+      (constant
+        (constant_identifier)
+        (ellipsis)
+        (call_expression
+            (module_access
+              (identifier))
+        (arg_list
+          (ellipsis))))
+    (block_item
+     (ellipsis))
+      (function_definition
+        (function_identifier)
+        (function_parameters
+          (function_parameter
+            (ellipsis)))
+        (block
+          (block_item
+            (let_statement
+              (bind_list
+                (bind_var
+                  (variable_identifier)))
+              (pack_expression
+                (module_access
+                  (identifier))
+                (field_initialize_list
+                  (exp_field
+                    (ellipsis))))))
+            (ellipsis)))))
+
+
+=======================
+Function Signature
+=======================
+
+public(friend) fun $FUNC (...)
+
+---
+
+(source_file
+  (semgrep_partial
+    (modifier)
+      (function_identifier)
+      (function_parameters
+        (function_parameter
+      (ellipsis)))))
+
+=======================
+Struct Signature
+=======================
+
+public native struct $STRUCT has ...
+
+---
+(source_file
+  (semgrep_statement
+    (native_struct_definition
+      (struct_identifier)
+      (ability_decls
+        (ability
+          (ellipsis)))
+      (MISSING ";"))))

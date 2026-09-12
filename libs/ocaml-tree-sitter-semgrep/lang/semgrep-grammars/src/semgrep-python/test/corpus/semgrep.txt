@@ -1,0 +1,41 @@
+====================================
+Ellipsis in dot-access chain
+====================================
+
+a. ... .d
+---
+
+(module
+  (expression_statement
+    (attribute
+      (attribute
+        (identifier))
+      (identifier))))
+
+====================================
+Metavariable in match
+====================================
+
+ match $X:
+        case str():
+          print("oh no")
+---
+
+(module
+  (match_statement
+    (identifier)
+    (block
+      (case_clause
+        (case_pattern
+          (class_pattern
+            (dotted_name
+              (identifier))))
+        (block
+          (expression_statement
+            (call
+              (identifier)
+              (argument_list
+                (string
+                  (string_start)
+                  (string_content)
+                  (string_end))))))))))

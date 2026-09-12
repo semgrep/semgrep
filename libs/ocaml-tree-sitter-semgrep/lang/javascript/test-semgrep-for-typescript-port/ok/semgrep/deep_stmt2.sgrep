@@ -1,0 +1,6 @@
+var $X = "...";
+...
+function $F() {
+    ...
+    console.log($X);
+}

@@ -1,0 +1,265 @@
+=======================
+Macro Upper Lower var
+=======================
+
+public macro fun fold<$T, $Acc>(
+    $v: vector<$T>,
+    $init: $Acc,
+    $f: |$Acc, $T| -> $Acc,
+): $Acc {
+    let v = $v;
+    let mut acc = $init;
+    v.do!(|e| acc = $f(acc, e));
+    acc
+}
+
+---
+
+
+(source_file
+  (semgrep_statement
+        (macro_function_definition
+          (modifier)
+          (function_identifier)
+          (type_parameters
+            (type_parameter
+              (type_parameter_identifier))
+            (type_parameter
+              (type_parameter_identifier)))
+          (function_parameters
+            (function_parameter
+              (variable_identifier)
+              (apply_type
+                (module_access
+                  (identifier))
+                (type_arguments
+                  (apply_type
+                    (module_access
+                      (identifier))))))
+            (function_parameter
+              (variable_identifier)
+              (apply_type
+                (module_access
+                  (identifier))))
+            (function_parameter
+              (variable_identifier)
+              (function_type
+                (function_type_parameters
+                  (apply_type
+                    (module_access
+                      (identifier)))
+                  (apply_type
+                    (module_access
+                      (identifier))))
+                (apply_type
+                  (module_access
+                    (identifier))))))
+          (ret_type
+            (apply_type
+              (module_access
+                (identifier))))
+          (block
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier)))
+                (name_expression
+                  (module_access
+                    (identifier)))))
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier)))
+                (name_expression
+                  (module_access
+                    (identifier)))))
+            (block_item
+              (receiver_macro_call
+                (name_expression
+                  (module_access
+                    (identifier)))
+                (identifier)
+                (arg_list
+                  (lambda_expression
+                    (lambda_bindings
+                      (bind_var
+                        (variable_identifier)))
+                    (assign_expression
+                      (name_expression
+                        (module_access
+                          (identifier)))
+                      (call_expression
+                        (module_access
+                          (identifier))
+                        (arg_list
+                          (name_expression
+                            (module_access
+                              (identifier)))
+                          (name_expression
+                            (module_access
+                              (identifier))))))))))
+            (name_expression
+              (module_access
+                (identifier)))))))
+
+
+=======================
+Macro Upper Lower dynamic fields
+=======================
+
+macro fun add_impl<$Name: copy + drop + store, $Value: key>(
+    // we use &mut UID in several spots for access control
+    $object: &mut UID,
+    $name: $Name,
+    $value: $Value,
+) {
+    let object = $object;
+    let name = $name;
+    let value = $value;
+    let key = Wrapper { name };
+    let id = object::id(&value);
+    field::add(object, key, id);
+    let (field, _) = field::field_info<Wrapper<$Name>>(object, key);
+    add_child_object(field.to_address(), value);
+}
+---
+
+
+(source_file
+   (semgrep_statement
+        (macro_function_definition
+          (function_identifier)
+          (type_parameters
+            (type_parameter
+              (type_parameter_identifier)
+              (ability)
+              (ability)
+              (ability))
+            (type_parameter
+              (type_parameter_identifier)
+              (ability)))
+          (function_parameters
+            (line_comment)
+            (function_parameter
+              (variable_identifier)
+              (ref_type
+                (apply_type
+                  (module_access
+                    (identifier)))))
+            (function_parameter
+              (variable_identifier)
+              (apply_type
+                (module_access
+                  (identifier))))
+            (function_parameter
+              (variable_identifier)
+              (apply_type
+                (module_access
+                  (identifier)))))
+          (block
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier)))
+                (name_expression
+                  (module_access
+                    (identifier)))))
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier)))
+                (name_expression
+                  (module_access
+                    (identifier)))))
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier)))
+                (name_expression
+                  (module_access
+                    (identifier)))))
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier)))
+                (pack_expression
+                  (module_access
+                    (identifier))
+                  (field_initialize_list
+                    (exp_field
+                      (field_identifier))))))
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier)))
+                (call_expression
+                  (module_access
+                    (module_identifier)
+                    (identifier))
+                  (arg_list
+                    (borrow_expression
+                      (name_expression
+                        (module_access
+                          (identifier))))))))
+            (block_item
+              (call_expression
+                (module_access
+                  (module_identifier)
+                  (identifier))
+                (arg_list
+                  (name_expression
+                    (module_access
+                      (identifier)))
+                  (name_expression
+                    (module_access
+                      (identifier)))
+                  (name_expression
+                    (module_access
+                      (identifier))))))
+            (block_item
+              (let_statement
+                (bind_list
+                  (bind_var
+                    (variable_identifier))
+                  (bind_var
+                    (variable_identifier)))
+                (call_expression
+                  (module_access
+                    (module_identifier)
+                    (identifier))
+                  (type_arguments
+                    (apply_type
+                      (module_access
+                        (identifier))
+                      (type_arguments
+                        (apply_type
+                          (module_access
+                            (identifier))))))
+                  (arg_list
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (name_expression
+                      (module_access
+                        (identifier)))))))
+            (block_item
+              (call_expression
+                (module_access
+                  (identifier))
+                (arg_list
+                  (receiver_call
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (identifier)
+                    (arg_list))
+                  (name_expression
+                    (module_access
+                      (identifier))))))))))

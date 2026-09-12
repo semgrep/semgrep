@@ -1,0 +1,26 @@
+{
+  "grammars": [
+    {
+      "name": "php_only",
+      "scope": "source.php",
+      "path": "."
+    }
+  ],
+  "metadata": {
+    "version": "0.0.0-7d07b41",
+    "license": "GPL",
+    "description": "Semgrep-extended PHP-only grammar for tree-sitter",
+    "authors": [{ "name": "Semgrep" }],
+    "links": {
+      "repository": "https://github.com/semgrep/ocaml-tree-sitter-semgrep"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": false,
+    "node": false,
+    "python": false,
+    "rust": false,
+    "swift": false
+  }
+}

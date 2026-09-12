@@ -1,0 +1,8 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+#
+https://github.com/aptos-labs/aptos-core
+https://github.com/sea-protocol/seaprotocol
+https://github.com/wormhole-foundation/wormhole
+https://github.com/aptos-labs/aptos-networks
+https://github.com/pancakeswap/pancake-contracts-move

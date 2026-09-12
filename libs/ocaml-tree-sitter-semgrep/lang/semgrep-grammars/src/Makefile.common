@@ -1,0 +1,99 @@
+#
+# Build the upstream and semgrep-extended grammars under
+# lang/semgrep-grammars/src/. Each grammar is generated using the tree-sitter
+# version pinned for it in lang/upstream-grammars.json. There is no globally-selected tree-sitter
+# binary here.
+#
+
+# src → semgrep-grammars → lang → ots.
+# Language Makefiles are symlinks here; realpath so MAKEFILE_LIST is this file.
+PROJECT_ROOT ?= $(abspath $(dir $(realpath $(lastword $(MAKEFILE_LIST))))/../../..)
+export PROJECT_ROOT
+LANG_SCRIPTS = $(PROJECT_ROOT)/scripts
+
+NODE_PATH := $(PROJECT_ROOT)/lang/semgrep-grammars/src:$(NODE_PATH)
+export NODE_PATH
+
+# 'tree-sitter test' compiles the *generated* parser.c as C++ whenever the
+# grammar has a scanner.cc, and g++ rejects its C99 designated initializers
+# ("non-trivial designated initializers not supported", "designator order ...
+# does not match declaration order") with no flag to opt out; clang++ accepts
+# them. `?=` cannot work here: make predefines CXX, hence the origin test.
+ifeq ($(origin CXX),default)
+  ifeq ($(shell command -v clang++ >/dev/null 2>&1 && echo yes),)
+    $(error CXX defaults to clang++ (needed for scanner.cc grammars) but clang++ is not on PATH; install clang or set CXX)
+  endif
+  CXX := clang++
+endif
+export CXX
+
+# Per-grammar build. The tree-sitter binary comes from the version directory
+# that owns the grammar. ABI selection:
+#   - ABI 15 only when the grammar ships a tree-sitter.json AND ABI 15 is
+#     enabled via the SEMGREP_ENABLE_ABI15 environment variable (see the
+#     "tree-sitter ABI 15" section of the repository-root README). This is
+#     off by default: we are not yet ready to ship ABI 15 parsers.
+#   - ABI 14 otherwise, for tree-sitter >= 0.24.0 (which introduced --abi).
+#   - --no-bindings for older tree-sitter.
+.PHONY: build
+build: prep
+	set -eu; \
+	for dir in $$(find . -name grammar.js | xargs -I{} dirname {}); do \
+	  ts_version=$$($(LANG_SCRIPTS)/ts-version-for-grammar-dir "$$dir"); \
+	  ts_bindir=$(PROJECT_ROOT)/core/tree-sitter-$$ts_version/bin; \
+	  if [ ! -x "$$ts_bindir/tree-sitter" ]; then \
+	    echo "Error: tree-sitter $$ts_version is not installed at $$ts_bindir." >&2; \
+	    echo "Install it with:" >&2; \
+	    echo "  make -C $(PROJECT_ROOT)/../.. setup-tree-sitter-versions" >&2; \
+	    exit 1; \
+	  fi; \
+	  echo "Generate parser in $$(pwd)/$$dir (tree-sitter $$ts_version)"; \
+	  if ! [ -e "$$dir/src/parser.c" ] \
+	     || [ "$$dir/grammar.js" -nt "$$dir/src/parser.c" ]; then \
+	    gen_args=$$($(LANG_SCRIPTS)/ts-generate-abi-args "$$dir" "$$ts_version"); \
+	    echo "  Running in $$dir: tree-sitter generate $$gen_args"; \
+	    (cd "$$dir" \
+	     && PATH="$$ts_bindir:$$PATH" \
+	        NODE_PATH=$(PROJECT_ROOT)/lang/semgrep-grammars/src \
+	        tree-sitter generate $$gen_args); \
+	  else \
+	    echo "$$dir/src/parser.c is up to date."; \
+	  fi; \
+	done
+
+# Import, rename, patch etc. in a custom manner, as needed.
+#
+.PHONY: prep
+prep:
+	python3 $(LANG_SCRIPTS)/grammar_registry.py fetch $(patsubst semgrep-%,%,$(notdir $(CURDIR)))
+	$(PROJECT_ROOT)/core/scripts/provision-tree-sitter $$($(LANG_SCRIPTS)/ts-version-for-lang $(patsubst semgrep-%,%,$(notdir $(CURDIR))))
+	if [ -x prep ]; then ./prep; fi
+
+.PHONY: test
+test: build
+	# 'tree-sitter test' can emit a large number of repetitive error
+	# messages when compiling 'parser.c'.
+	set -eu; \
+	for dir in $$(find . | grep 'grammar.js$$' | xargs -L1 dirname); do \
+	  ts_version=$$($(LANG_SCRIPTS)/ts-version-for-grammar-dir "$$dir"); \
+	  ts_bindir=$(PROJECT_ROOT)/core/tree-sitter-$$ts_version/bin; \
+	  if [ ! -x "$$ts_bindir/tree-sitter" ]; then \
+	    echo "Error: tree-sitter $$ts_version is not installed at $$ts_bindir." >&2; \
+	    echo "Install it with:" >&2; \
+	    echo "  make -C $(PROJECT_ROOT)/../.. setup-tree-sitter-versions" >&2; \
+	    exit 1; \
+	  fi; \
+	  echo "Test $$(pwd)/$$dir (tree-sitter $$ts_version)"; \
+	  (cd "$$dir"; \
+           show_log() { echo "..."; tail -n 1000 test.log; }; \
+           if PATH="$$ts_bindir:$$PATH" tree-sitter test > test.log 2>&1; then \
+             show_log; \
+           else \
+             show_log; \
+             exit 1; \
+           fi); \
+	done
+
+.PHONY: clean
+clean:
+	find . -type d -name node_modules -prune -o -type f \( -name parser.c -o -name grammar.json -o -name node-types.json \) -exec rm -f {} +

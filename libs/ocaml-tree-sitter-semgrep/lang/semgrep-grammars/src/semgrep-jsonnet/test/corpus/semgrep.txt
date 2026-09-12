@@ -1,0 +1,132 @@
+=====================================
+Metavariables
+=====================================
+
+$FOO(1, 2)
+
+---
+
+(document
+      (expr
+        (expr
+          (id))
+        (args
+          (expr
+            (number))
+          (expr
+            (number)))))
+
+=====================================
+Ellipsis in calls
+=====================================
+
+foo(...)
+
+---
+
+(document
+      (expr
+        (expr
+          (id))
+        (args
+          (expr
+            (semgrep_ellipsis)))))
+
+
+
+=====================================
+Ellipsis in arrays
+=====================================
+[1, 2, ...]
+
+---
+(document
+      (expr
+        (expr
+          (number))
+        (expr
+          (number))
+        (expr
+          (semgrep_ellipsis))))
+
+=====================================
+Ellipsis in objects
+=====================================
+{ a: 1, ..., b: 3 }
+
+---
+(document
+      (expr
+        (member
+          (field
+            (fieldname
+              (id))
+            (expr
+              (number))))
+        (member
+          (field
+            (semgrep_ellipsis)))
+        (member
+          (field
+            (fieldname
+              (id))
+            (expr
+              (number))))))
+
+
+=====================================
+Ellipsis in parameter
+=====================================
+
+local x = function(a, ..., b) { ... };
+x(1,2,3)
+
+---
+   (document
+      (expr
+        (local_bind
+          (local)
+          (bind
+            (id)
+            (expr
+              (anonymous_function
+                (params
+                  (param
+                    (id))
+                  (param
+                    (semgrep_ellipsis))
+                  (param
+                    (id)))
+                (expr
+                  (member
+                    (field
+                      (semgrep_ellipsis)))))))
+          (expr
+            (expr
+              (id))
+            (args
+              (expr
+                (number))
+              (expr
+                (number))
+              (expr
+                (number)))))))
+
+=====================================
+Deep Ellipsis
+=====================================
+
+
+foo(<... 3 ...>)
+
+---
+(document
+      (expr
+        (expr
+          (id))
+        (args
+          (expr
+            (deep_ellipsis
+              (expr
+                (number)))))))
+

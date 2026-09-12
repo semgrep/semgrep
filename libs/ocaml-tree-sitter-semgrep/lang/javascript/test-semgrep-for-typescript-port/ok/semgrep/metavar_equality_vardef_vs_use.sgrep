@@ -1,0 +1,2 @@
+var $X = ...;
+console.log($X);

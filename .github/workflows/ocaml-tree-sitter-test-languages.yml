@@ -28,7 +28,7 @@ jobs:
             exit 0
           fi
           # --quiet exits 1 when any of these paths changed; 0 when none did.
-          if git diff --quiet --name-only HEAD^ HEAD -- '.github/workflows/ocaml-tree-sitter-test-languages.jsonnet' '.github/workflows/ocaml-tree-sitter-test-languages.yml' '.github/workflows/ocaml-tree-sitter.libsonnet' '.gitmodules' 'libs/ocaml-tree-sitter-semgrep' 'libs/ocaml-tree-sitter-semgrep/core' 'libs/ocaml-tree-sitter-semgrep/lang'; then
+          if git diff --quiet --name-only HEAD^ HEAD -- '*.opam' '.github/workflows/libs/actions.libsonnet' '.github/workflows/libs/semgrep.libsonnet' '.github/workflows/libs/uses.libsonnet' '.github/workflows/ocaml-tree-sitter-test-languages.jsonnet' '.github/workflows/ocaml-tree-sitter-test-languages.yml' '.github/workflows/ocaml-tree-sitter.libsonnet' 'Makefile' 'cli/pyproject.toml' 'cli/uv.lock' 'dune-project' 'dune-workspace' 'libs/ocaml-tree-sitter-semgrep/Makefile' 'libs/ocaml-tree-sitter-semgrep/core' 'libs/ocaml-tree-sitter-semgrep/dune' 'libs/ocaml-tree-sitter-semgrep/lang' 'libs/ocaml-tree-sitter-semgrep/scripts' 'opam-lockfiles/*.locked' 'tree-sitter-config.mk' 'tree-sitter-config.sh'; then
             echo "should_test=false" >> "$GITHUB_OUTPUT"
           else
             echo "should_test=true" >> "$GITHUB_OUTPUT"
@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 5
   enumerate:
     if: ${{ needs.detect-changes.outputs.should_test == 'true' }}
-    name: Enumerate languages
+    name: Enumerate languages and prepare tools
     needs: detect-changes
     outputs:
       languages: ${{ steps.list.outputs.languages }}
@@ -45,15 +45,66 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           lfs: true
-      - name: Checkout ocaml-tree-sitter-semgrep submodule
-        run: git submodule update --init --depth 1 libs/ocaml-tree-sitter-semgrep
-        working-directory: ${{ github.workspace }}
       - id: list
         run: |
           set -euo pipefail
-          echo "languages=$(lang/scripts/list-languages | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
+          echo "languages=$(scripts/list-languages | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
         working-directory: libs/ocaml-tree-sitter-semgrep
-    timeout-minutes: 5
+      - env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: maintenance.auto
+          GIT_CONFIG_VALUE_0: "false"
+        uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
+        with:
+          cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
+          ocaml-compiler: ocaml-variants.5.4.0+options,ocaml-option-flambda
+          opam-pin: false
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git#78d29aba187e8362b8ab86c189790c0af9153d4b
+          save-opam-post-run: true
+      - id: cache-id
+        run: |
+          echo "sha=$(git rev-parse HEAD:libs/ocaml-tree-sitter-semgrep/core)" >> "$GITHUB_OUTPUT"
+          echo "ocaml=$(opam exec -- ocamlc -version)" >> "$GITHUB_OUTPUT"
+      - id: core-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          key: grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}
+          path: |-
+            _build
+            libs/ocaml-tree-sitter-semgrep/core/bin
+      - name: Install repository dependencies
+        run: opam exec -- make install-deps
+        working-directory: libs/ocaml-tree-sitter-semgrep/../..
+      - name: Build grammar tools
+        run: opam exec -- make grammar-tools
+        working-directory: libs/ocaml-tree-sitter-semgrep/../..
+      - if: steps.core-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          key: grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}
+          path: |-
+            _build
+            libs/ocaml-tree-sitter-semgrep/core/bin
+      - id: ts-versions
+        name: Resolve pinned tree-sitter versions
+        run: |
+          echo "versions=$(./scripts/ts-versions | tr '\n' '-')" >> "$GITHUB_OUTPUT"
+        working-directory: libs/ocaml-tree-sitter-semgrep
+      - id: ts-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          key: tree-sitter-${{ runner.os }}-${{ steps.ts-versions.outputs.versions }}-${{ steps.cache-id.outputs.sha }}
+          path: libs/ocaml-tree-sitter-semgrep/core/tree-sitter-*.*.*
+      - name: Setup tree-sitter versions
+        run: ./core/scripts/provision-tree-sitter-all
+        working-directory: libs/ocaml-tree-sitter-semgrep
+      - if: steps.ts-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          key: tree-sitter-${{ runner.os }}-${{ steps.ts-versions.outputs.versions }}-${{ steps.cache-id.outputs.sha }}
+          path: libs/ocaml-tree-sitter-semgrep/core/tree-sitter-*.*.*
+    timeout-minutes: 60
   test-language:
     name: test-lang ${{ matrix.language }}
     needs: enumerate
@@ -62,60 +113,60 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           lfs: true
-      - name: Checkout ocaml-tree-sitter-semgrep submodule
-        run: git submodule update --init --depth 1 libs/ocaml-tree-sitter-semgrep
-        working-directory: ${{ github.workspace }}
-      - uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
+      - env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: maintenance.auto
+          GIT_CONFIG_VALUE_0: "false"
+        uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
-          cache-prefix: v5-${{ hashFiles('libs/ocaml-tree-sitter-semgrep/core/*.opam') }}
+          cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
           ocaml-compiler: ocaml-variants.5.4.0+options,ocaml-option-flambda
           opam-pin: false
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git#78d29aba187e8362b8ab86c189790c0af9153d4b
           save-opam-post-run: true
-      - name: Rewrite SSH grammar URLs to HTTPS
-        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
-      - name: Provision the upstream grammar submodules
-        run: git submodule update --init --recursive --depth 1 --jobs 8
-        working-directory: libs/ocaml-tree-sitter-semgrep
       - id: cache-id
         run: |
-          echo "sha=$(git rev-parse HEAD:libs/ocaml-tree-sitter-semgrep)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD:libs/ocaml-tree-sitter-semgrep/core)" >> "$GITHUB_OUTPUT"
           echo "ocaml=$(opam exec -- ocamlc -version)" >> "$GITHUB_OUTPUT"
+      - id: core-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          key: grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}
+          path: |-
+            _build
+            libs/ocaml-tree-sitter-semgrep/core/bin
+      - name: Install repository dependencies
+        run: opam exec -- make install-deps
+        working-directory: libs/ocaml-tree-sitter-semgrep/../..
+      - name: Build grammar tools
+        run: opam exec -- make grammar-tools
+        working-directory: libs/ocaml-tree-sitter-semgrep/../..
+      - if: steps.core-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          key: grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}
+          path: |-
+            _build
+            libs/ocaml-tree-sitter-semgrep/core/bin
       - id: ts-versions
+        name: Resolve pinned tree-sitter versions
         run: |
-          echo "versions=$(./lang/scripts/ts-versions | tr '\n' '-')" >> "$GITHUB_OUTPUT"
+          echo "versions=$(./scripts/ts-versions | tr '\n' '-')" >> "$GITHUB_OUTPUT"
         working-directory: libs/ocaml-tree-sitter-semgrep
       - id: ts-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           key: tree-sitter-${{ runner.os }}-${{ steps.ts-versions.outputs.versions }}-${{ steps.cache-id.outputs.sha }}
           path: libs/ocaml-tree-sitter-semgrep/core/tree-sitter-*.*.*
-      - run: ./core/scripts/provision-tree-sitter-all
+      - name: Setup tree-sitter versions
+        run: ./core/scripts/provision-tree-sitter-all
         working-directory: libs/ocaml-tree-sitter-semgrep
       - if: steps.ts-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           key: tree-sitter-${{ runner.os }}-${{ steps.ts-versions.outputs.versions }}-${{ steps.cache-id.outputs.sha }}
           path: libs/ocaml-tree-sitter-semgrep/core/tree-sitter-*.*.*
-      - id: core-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          key: core-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}
-          path: |-
-            libs/ocaml-tree-sitter-semgrep/core/_build
-            libs/ocaml-tree-sitter-semgrep/core/bin
-      - name: Setup
-        run: opam exec -- make setup
-        working-directory: libs/ocaml-tree-sitter-semgrep
-      - name: Install
-        run: opam exec -- make install
-        working-directory: libs/ocaml-tree-sitter-semgrep
-      - if: steps.core-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          key: core-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}
-          path: |-
-            libs/ocaml-tree-sitter-semgrep/core/_build
-            libs/ocaml-tree-sitter-semgrep/core/bin
       - name: test-lang ${{ matrix.language }}
         run: |
           set -euo pipefail
@@ -160,11 +211,24 @@ on:
     branches:
       - develop
     paths:
+      - '*.opam'
+      - .github/workflows/libs/actions.libsonnet
+      - .github/workflows/libs/semgrep.libsonnet
+      - .github/workflows/libs/uses.libsonnet
       - .github/workflows/ocaml-tree-sitter-test-languages.jsonnet
       - .github/workflows/ocaml-tree-sitter-test-languages.yml
       - .github/workflows/ocaml-tree-sitter.libsonnet
-      - .gitmodules
-      - libs/ocaml-tree-sitter-semgrep
+      - Makefile
+      - cli/pyproject.toml
+      - cli/uv.lock
+      - dune-project
+      - dune-workspace
+      - libs/ocaml-tree-sitter-semgrep/Makefile
       - libs/ocaml-tree-sitter-semgrep/core/**
+      - libs/ocaml-tree-sitter-semgrep/dune
       - libs/ocaml-tree-sitter-semgrep/lang/**
+      - libs/ocaml-tree-sitter-semgrep/scripts/**
+      - opam-lockfiles/*.locked
+      - tree-sitter-config.mk
+      - tree-sitter-config.sh
   workflow_dispatch: null

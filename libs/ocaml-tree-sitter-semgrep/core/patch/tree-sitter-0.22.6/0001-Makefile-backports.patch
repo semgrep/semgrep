@@ -1,0 +1,104 @@
+From 7a6bc07ac901a202f04dc38e4c95a22873cd0568 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Antonin=20D=C3=A9cimo?= <antonin@tarides.com>
+Date: Thu, 13 Feb 2025 16:22:19 +0100
+Subject: [PATCH] Makefile backports
+
+---
+ Makefile | 38 +++++++++++++++++++++++++-------------
+ 1 file changed, 25 insertions(+), 13 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index e021e877..84d76ee8 100644
+--- a/Makefile
++++ b/Makefile
+@@ -4,6 +4,7 @@ VERSION := 0.22.6
+ PREFIX ?= /usr/local
+ INCLUDEDIR ?= $(PREFIX)/include
+ LIBDIR ?= $(PREFIX)/lib
++BINDIR ?= $(PREFIX)/bin
+ PCLIBDIR ?= $(LIBDIR)/pkgconfig
+
+ # collect sources
+@@ -21,25 +22,26 @@ OBJ := $(SRC:.c=.o)
+ ARFLAGS := rcs
+ CFLAGS ?= -O3 -Wall -Wextra -Wshadow -pedantic
+ override CFLAGS += -std=c11 -fPIC -fvisibility=hidden
+-override CFLAGS += -Ilib/src -Ilib/src/wasm -Ilib/include
++override CPPFLAGS += -Ilib/src -Ilib/src/wasm -Ilib/include
+
+ # ABI versioning
+ SONAME_MAJOR := $(word 1,$(subst ., ,$(VERSION)))
+ SONAME_MINOR := $(word 2,$(subst ., ,$(VERSION)))
+
+ # OS-specific bits
+-ifeq ($(OS),Windows_NT)
+-	$(error "Windows is not supported")
+-else ifeq ($(shell uname),Darwin)
++ifneq ($(findstring darwin,$(shell $(CC) -dumpmachine)),)
+ 	SOEXT = dylib
+-	SOEXTVER_MAJOR = $(SONAME_MAJOR).dylib
+-	SOEXTVER = $(SONAME_MAJOR).$(SONAME_MINOR).dylib
+-	LINKSHARED += -dynamiclib -Wl,-install_name,$(LIBDIR)/libtree-sitter.$(SONAME_MAJOR).dylib
++	SOEXTVER_MAJOR = $(SONAME_MAJOR).$(SOEXT)
++	SOEXTVER = $(SONAME_MAJOR).$(SONAME_MINOR).$(SOEXT)
++	LINKSHARED += -dynamiclib -Wl,-install_name,$(LIBDIR)/libtree-sitter.$(SOEXTVER)
++else ifneq ($(findstring mingw32,$(shell $(CC) -dumpmachine)),)
++	SOEXT = dll
++	LINKSHARED += -s -shared -Wl,--out-implib,$@.a
+ else
+ 	SOEXT = so
+-	SOEXTVER_MAJOR = so.$(SONAME_MAJOR)
+-	SOEXTVER = so.$(SONAME_MAJOR).$(SONAME_MINOR)
+-	LINKSHARED += -shared -Wl,-soname,libtree-sitter.so.$(SONAME_MAJOR)
++	SOEXTVER_MAJOR = $(SOEXT).$(SONAME_MAJOR)
++	SOEXTVER = $(SOEXT).$(SONAME_MAJOR).$(SONAME_MINOR)
++	LINKSHARED += -shared -Wl,-z,noexecstack -Wl,-soname,libtree-sitter.$(SOEXTVER)
+ endif
+ ifneq ($(filter $(shell uname),FreeBSD NetBSD DragonFly),)
+ 	PCLIBDIR := $(PREFIX)/libdata/pkgconfig
+@@ -56,6 +58,9 @@ ifneq ($(STRIP),)
+ 	$(STRIP) $@
+ endif
+
++# For MinGW-w64 targets
++libtree-sitter.dll.a: libtree-sitter.$(SOEXT)
++
+ tree-sitter.pc: tree-sitter.pc.in
+ 	sed -e 's|@VERSION@|$(VERSION)|' \
+ 		-e 's|@LIBDIR@|$(LIBDIR)|' \
+@@ -64,16 +69,22 @@ tree-sitter.pc: tree-sitter.pc.in
+ 		-e 's|@PREFIX@|$(PREFIX)|' $< > $@
+
+ clean:
+-	$(RM) $(OBJ) tree-sitter.pc libtree-sitter.a libtree-sitter.$(SOEXT)
++	$(RM) $(OBJ) tree-sitter.pc libtree-sitter.a libtree-sitter.$(SOEXT) libtree-stitter.dll.a
+
+ install: all
+ 	install -d '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter '$(DESTDIR)$(PCLIBDIR)' '$(DESTDIR)$(LIBDIR)'
+ 	install -m644 lib/include/tree_sitter/api.h '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/api.h
+ 	install -m644 tree-sitter.pc '$(DESTDIR)$(PCLIBDIR)'/tree-sitter.pc
+ 	install -m644 libtree-sitter.a '$(DESTDIR)$(LIBDIR)'/libtree-sitter.a
++ifneq ($(findstring mingw32,$(shell $(CC) -dumpmachine)),)
++	install -d '$(DESTDIR)$(BINDIR)'
++	install -m755 libtree-sitter.dll '$(DESTDIR)$(BINDIR)'/libtree-sitter.dll
++	install -m755 libtree-sitter.dll.a '$(DESTDIR)$(LIBDIR)'/libtree-sitter.dll.a
++else
+ 	install -m755 libtree-sitter.$(SOEXT) '$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXTVER)
+-	ln -sf libtree-sitter.$(SOEXTVER) '$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXTVER_MAJOR)
+-	ln -sf libtree-sitter.$(SOEXTVER_MAJOR) '$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXT)
++	cd '$(DESTDIR)$(LIBDIR)' && ln -sf libtree-sitter.$(SOEXTVER) libtree-sitter.$(SOEXTVER_MAJOR)
++	cd '$(DESTDIR)$(LIBDIR)' && ln -sf libtree-sitter.$(SOEXTVER_MAJOR) libtree-sitter.$(SOEXT)
++endif
+
+ uninstall:
+ 	$(RM) '$(DESTDIR)$(LIBDIR)'/libtree-sitter.a \
+@@ -82,6 +93,7 @@ uninstall:
+ 		'$(DESTDIR)$(LIBDIR)'/libtree-sitter.$(SOEXT) \
+ 		'$(DESTDIR)$(INCLUDEDIR)'/tree_sitter/api.h \
+ 		'$(DESTDIR)$(PCLIBDIR)'/tree-sitter.pc
++	rmdir '$(DESTDIR)$(INCLUDEDIR)'/tree_sitter
+
+ .PHONY: all install uninstall clean
+
+--
+2.45.1

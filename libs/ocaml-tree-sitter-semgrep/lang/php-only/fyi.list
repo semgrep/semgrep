@@ -1,0 +1,4 @@
+semgrep-grammars/src/tree-sitter-php/LICENSE
+semgrep-grammars/src/tree-sitter-php/common/define-grammar.js
+semgrep-grammars/src/tree-sitter-php/php-only/grammar.js
+semgrep-grammars/src/semgrep-php/php-only/grammar.js
