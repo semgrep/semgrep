@@ -1,0 +1,348 @@
+======================================================================
+Statement ellipsis
+======================================================================
+
+...
+cat ...
+... --force
+
+---
+
+(program
+  (command (command_name (word)))
+  (command (command_name (word)) (word))
+  (command (command_name (word)) (word)))
+
+======================================================================
+Metavariables
+======================================================================
+
+echo $FOO
+$FOO
+
+---
+
+(program
+  (command
+    (command_name (word))
+    (simple_expansion (variable_name)))
+  (command (command_name (simple_expansion (variable_name)))))
+
+======================================================================
+Simple expansion
+======================================================================
+
+$$A
+"$$A"
+
+---
+
+(program
+  (command
+    (command_name
+      (concatenation
+        (simple_expansion
+          (special_variable_name))
+        (word))))
+  (command
+    (command_name
+      (string
+        (simple_expansion
+          (special_variable_name))))))
+
+======================================================================
+Concatenation
+======================================================================
+
+$a.$b
+
+---
+
+(program
+  (command
+    (command_name
+      (concatenation
+        (simple_expansion
+          (variable_name))
+        (word)
+        (simple_expansion
+          (variable_name))))))
+
+======================================================================
+All-caps shell variables
+======================================================================
+
+echo "${BAR}"
+echo ${BAR}
+${BAR}
+
+---
+
+(program
+  (command (command_name (word)) (string (expansion (variable_name))))
+  (command
+    (command_name (word))
+    (expansion (variable_name)))
+  (command (command_name (expansion (variable_name)))))
+
+======================================================================
+Metavariable matching a variable
+======================================================================
+
+echo ${$X}
+echo ${$X#/}
+
+---
+
+(program
+  (command
+    (command_name (word))
+    (expansion (semgrep_metavariable)))
+  (command
+    (command_name (word))
+    (expansion
+      (semgrep_metavariable)
+      (word))))
+
+======================================================================
+Ellipsis in unquoted concatenation
+======================================================================
+
+$a...
+...$a
+
+---
+
+(program
+  (command
+    (command_name
+      (concatenation
+        (simple_expansion
+          (variable_name))
+        (word))))
+  (command
+    (command_name
+      (concatenation
+        (word)
+        (simple_expansion
+          (variable_name))))))
+
+======================================================================
+Ellipsis in quoted concatenation
+======================================================================
+
+"$a..."
+"...$a"
+
+---
+
+(program
+  (command
+    (command_name
+      (string
+        (simple_expansion
+          (variable_name)))))
+  (command
+    (command_name
+      (string
+        (simple_expansion
+          (variable_name))))))
+
+======================================================================
+Case (switch) with metavariables and ellipses
+======================================================================
+
+case $X in
+  a)
+    ;;
+  *)
+esac
+
+---
+
+(program
+  (case_statement
+    (simple_expansion (variable_name))
+    (case_item (word))
+    (case_item (word))))
+
+======================================================================
+For loop with metavariable and ellipsis
+======================================================================
+
+for $X in ...; do
+  ...
+done
+
+---
+
+(program
+  (for_statement
+    (semgrep_metavariable)
+    (word)
+    (do_group (command (command_name (word))))))
+
+======================================================================
+Function definition
+======================================================================
+
+function $FOO() {
+ ...
+}
+
+---
+
+(program
+  (function_definition
+    (semgrep_metavariable)
+    (compound_statement (command (command_name (word))))))
+
+
+======================================================================
+Metavariable in declaration
+======================================================================
+
+declare -r $VAR
+
+---
+
+(program
+  (declaration_command
+    (word)
+    (semgrep_metavariable)))
+
+======================================================================
+Metavariable in assignment
+======================================================================
+
+$MUT=x
+$MUT+=x
+
+---
+
+(program
+  (variable_assignment
+    (semgrep_metavar_eq)
+    (word))
+  (variable_assignment
+    (semgrep_metavar_pluseq)
+    (word)))
+
+======================================================================
+Environment variable assignment before command
+======================================================================
+
+${PATH}=/bin command arg
+
+---
+
+(program
+  (command
+    (command_name
+      (concatenation
+        (expansion
+          (variable_name))
+        (word)))
+    (word)
+    (word)))
+
+======================================================================
+Metavariable in assignment before command
+======================================================================
+
+$X=42 Y=x command arg
+$X= 42 command
+
+---
+
+(program
+  (command
+    (variable_assignment
+      (semgrep_metavar_eq)
+      (word))
+    (variable_assignment
+      (variable_name)
+      (word))
+    (command_name
+      (word))
+    (word))
+  (command
+    (variable_assignment
+      (semgrep_metavar_eq))
+    (command_name
+      (word))
+    (word)))
+
+======================================================================
+Array declaration and assignment (TODO)
+======================================================================
+
+declare -a $ARR
+
+---
+
+(program (declaration_command (word) (semgrep_metavariable)))
+
+======================================================================
+Deep expressions
+======================================================================
+
+<... a ...>
+a <... b ...>
+a <... 'b'$c ...>
+
+---
+
+(program
+  (command
+    (command_name
+      (semgrep_deep_expression
+        (word))))
+  (command
+    (command_name
+      (word))
+    (semgrep_deep_expression
+      (word)))
+  (command
+    (command_name
+      (word))
+    (semgrep_deep_expression
+      (concatenation
+        (raw_string)
+        (simple_expansion
+          (variable_name))))))
+
+======================================================================
+Named ellipses
+======================================================================
+
+apt-get install $...ARGS
+$...ARGS and more
+"$...X"
+"foo$...Xbar"
+
+---
+
+(program
+  (command
+    (command_name
+      (word))
+    (word)
+    (simple_expansion
+      (semgrep_named_ellipsis)))
+  (command
+    (command_name
+      (simple_expansion
+        (semgrep_named_ellipsis)))
+    (word)
+    (word))
+  (command
+    (command_name
+      (string
+        (simple_expansion
+          (semgrep_named_ellipsis)))))
+  (command
+    (command_name
+      (string
+        (simple_expansion
+          (semgrep_named_ellipsis))))))

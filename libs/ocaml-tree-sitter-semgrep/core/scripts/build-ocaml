@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+#
+# Compile generated ocaml parsers.
+#
+set -eu -o pipefail
+
+source "$(dirname "$(realpath "$0")")/../../../../tree-sitter-config.sh"
+
+(
+  cd ocaml-src
+  dune build --root .
+)

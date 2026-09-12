@@ -1,0 +1,49 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+# This is a custom prep script (not the generic prep.common symlink) because
+# tree-sitter-powershell is the first upstream grammar in this repo to use
+# ESM syntax ("type": "module" in package.json, 'export default grammar(...)').
+#
+# The semgrep wrapper grammar inherits from the base via require(), which is
+# CJS. Node refuses to load ESM modules via require() when the package.json
+# declares "type": "module", so we create a CJS-compatible copy by rewriting
+# 'export default grammar(' -> 'module.exports = grammar('.
+#
+# If the upstream grammar is ever converted back to CJS, this script can be
+# replaced with a symlink to ../prep.common and grammar.js can go back to
+# using require('tree-sitter-powershell/grammar').
+#
+set -eu -o pipefail
+
+name=$(basename "$(pwd)" | sed -e 's/semgrep-//')
+
+# Create CJS-compatible copy of the base grammar (see header comment)
+sed 's/^export default grammar(/module.exports = grammar(/' \
+  ../tree-sitter-"$name"/grammar.js > grammar-base.js
+
+mkdir -p src
+(
+  cd src
+  rm -f scanner.c scanner.cc
+  scanner_c=../../tree-sitter-"$name"/src/scanner.c
+  scanner_cc="$scanner_c"c
+  if [[ -e "$scanner_c" ]]; then
+    ln -sf "$scanner_c" .
+  elif [[ -e "$scanner_cc" ]]; then
+    ln -sf "$scanner_cc" .
+  fi
+)
+
+mkdir -p test/corpus
+(
+  cd test/corpus
+  rm -f inherited
+  for dir in test/corpus corpus; do
+    corpus=../../../tree-sitter-"$name"/$dir
+    if [[ -e "$corpus" ]]; then
+      ln -sf "$corpus" inherited
+    fi
+  done
+)

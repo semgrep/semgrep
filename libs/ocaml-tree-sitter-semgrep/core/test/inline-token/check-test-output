@@ -1,0 +1,25 @@
+#! /usr/bin/env bash
+#
+# Check that the parsing output contains no Blank nodes.
+#
+set -eu -o pipefail
+
+# Print faulty output and error message
+error() {
+  file=$1
+  msg=$2
+  {
+    echo "--- $file ---"
+    cat "$file"
+    echo "Error: $msg"
+  } >&2
+  exit 1
+}
+
+for out in test.out/ok/* ; do
+  x=$(basename "$out")
+  echo "$x: Check that the output doesn't contain any Blank node."
+  if grep -q "Blank" "$out"; then
+    error "$out" "Unexpected Blank in $out"
+  fi
+done

@@ -1,0 +1,37 @@
+#
+# Top apex projects from GitHub, sorted by stars.
+# Created by ../../scripts/most-starred-for-language.
+#
+https://github.com/apex-enterprise-patterns/fflib-apex-common
+https://github.com/kevinohara80/sfdc-trigger-framework
+https://github.com/trailheadapps/apex-recipes
+https://github.com/SFDO-Community/declarative-lookup-rollup-summaries
+https://github.com/SalesforceFoundation/NPSP
+https://github.com/financialforcedev/apex-mdapi
+https://github.com/alexed1/LightningFlowComponents
+https://github.com/apex-enterprise-patterns/fflib-apex-mocks
+https://github.com/mitchspano/apex-trigger-actions-framework
+https://github.com/jongpie/NebulaLogger
+https://github.com/trailheadapps/automation-components
+https://github.com/ipavlic/apex-fp
+https://github.com/mbotos/SmartFactory-for-Force.com
+https://github.com/sfdx-mass-action-scheduler/sfdx-mass-action-scheduler
+https://github.com/dhoechst/Salesforce-Test-Factory
+https://github.com/SalesforceFoundation/EDA
+https://github.com/apex-enterprise-patterns/force-di
+https://github.com/SalesforceLabs/Milestones-PM
+https://github.com/trailheadapps/dreamhouse-sfdx
+https://github.com/benahm/TestDataFactory
+https://github.com/developerforce/trailhead-code-samples
+https://github.com/apex-enterprise-patterns/fflib-apex-common-samplecode
+https://github.com/forcedotcom/CustomMetadataLoader
+https://github.com/abhinavguptas/Salesforce-Lookup-Rollup-Summaries
+https://github.com/rsoesemann/apex-unified-logging
+https://github.com/j-fischer/rflib
+https://github.com/pdalcol/Zippex
+https://github.com/choudharymanish8585/Apex-Development-Course
+https://github.com/rsoesemann/visualforce-table-grid
+https://github.com/jamessimone/apex-rollup
+
+# Extra public repos provided by customer
+https://github.com/trailheadapps/build-apps-with-lwc

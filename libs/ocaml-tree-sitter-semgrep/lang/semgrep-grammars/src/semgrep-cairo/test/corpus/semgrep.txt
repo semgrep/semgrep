@@ -1,0 +1,270 @@
+===================
+Ellipsis in attribute
+===================
+
+#[derive(..., Unsafe, ...)]
+struct Foo;
+
+#[derive(...)]
+trait Foo {}
+
+---
+
+(source_file
+    (struct_declaration
+        (attribute_list
+            (attribute 
+                (path (name))
+                (attribute_argument (ellipsis))
+                (attribute_argument (name))
+                (attribute_argument (ellipsis))
+            )
+        )
+        (name)
+    )
+    (trait_declaration
+        (attribute_list
+            (attribute 
+                (path (name))
+                (attribute_argument (ellipsis))
+            )
+        )
+        (name)
+        (trait_body)
+    )
+)
+
+======================================
+Ellipsis in function parameters
+======================================
+
+fn foo(..., x: usize, ...) {}
+fn foo(...) {}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list
+                (parameter_declaration (ellipsis))
+                (parameter_declaration 
+                    (name) 
+                    (type_identifier (qualified_name (name)))
+                )
+                (parameter_declaration (ellipsis))
+            )
+        )
+        (block)
+    )
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list
+                (parameter_declaration (ellipsis))
+            )
+        )
+        (block)
+    )
+)
+
+======================================
+Ellipsis in body
+======================================
+
+fn foo() {
+    ...
+}
+
+fn foo() {
+    ...;
+    let x = 42;
+    ...;
+}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list)
+        )
+        (block (ellipsis))
+    )
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list)
+        )
+        (block
+            (ellipsis)
+            (let_statement (identifier) (number (integer)))
+            (ellipsis)
+        )
+    )
+)
+
+======================================
+Ellipsis in call arguments
+======================================
+
+fn foo() {
+    bar(..., 42, ...)
+}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list)
+        )
+        (block 
+            (call_expression
+                (qualified_name (name))
+                (argument_list
+                    (ellipsis)
+                    (number (integer))
+                    (ellipsis)
+                )
+            )
+        )
+    )
+)
+
+======================================
+Ellipsis in selector expression
+======================================
+
+fn foo() {
+    foo1. ... .foo2;
+}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list)
+        )
+        (block 
+            (selector_expression
+                (selector_expression
+                    (qualified_name (name))
+                    (ellipsis)
+                )
+                (name)
+            )
+        )
+    )
+)
+
+======================================
+Deep ellipsis in if
+======================================
+
+fn foo() {
+    if <... a == true ...> {}
+}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list)
+        )
+        (block 
+            (if_expression
+                (deep_ellipsis
+                    (binary_expression
+                        (qualified_name (name))
+                        (true)
+                    )
+                )
+                (block)
+            )
+        )
+    )
+)
+
+======================================
+Metavariable in let
+======================================
+
+fn foo() {
+    let $X = $Y;
+}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list)
+        )
+        (block 
+            (let_statement
+                (identifier)
+                (qualified_name (semgrep_var))
+            )
+        )
+    )
+)
+
+======================================
+Metavariable in expression
+======================================
+
+fn foo() {
+    let $X = 42;
+    if $X < $Y {}
+}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (name)
+            (parameter_list)
+        )
+        (block 
+            (let_statement
+                (identifier)
+                (number (integer))
+            )
+            (if_expression
+                (binary_expression
+                    (qualified_name (semgrep_var))
+                    (qualified_name (semgrep_var))
+                )
+                (block)
+            )
+        )
+    )
+)
+
+======================================
+Metavariable in function name
+======================================
+
+fn $FUN() {}
+
+---
+
+(source_file
+    (function_declaration 
+        (function_signature
+            (semgrep_var)
+            (parameter_list)
+        )
+        (block )
+    )
+)

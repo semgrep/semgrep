@@ -1,0 +1,27 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+#
+https://github.com/apache/spark
+https://github.com/prisma/prisma1
+https://github.com/scala/scala
+https://github.com/akka/akka
+https://github.com/apache/predictionio
+https://github.com/playframework/playframework
+https://github.com/lichess-org/lila
+https://github.com/yahoo/CMAK
+https://github.com/rtyley/bfg-repo-cleaner
+https://github.com/gitbucket/gitbucket
+https://github.com/twitter/finagle
+https://github.com/twitter-archive/snowflake
+https://github.com/lhartikk/ArnoldC
+https://github.com/snowplow/snowplow
+https://github.com/apache/openwhisk
+https://github.com/gatling/gatling
+https://github.com/fpinscala/fpinscala
+https://github.com/linkerd/linkerd
+https://github.com/delta-io/delta
+https://github.com/lampepfl/dotty
+https://github.com/airbnb/aerosolve
+https://github.com/typelevel/cats
+https://github.com/scalaz/scalaz
+https://github.com/sbt/sbt

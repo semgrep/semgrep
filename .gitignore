@@ -225,8 +225,5 @@ result
 # Personal symlink to semgrep-proprietary used by 'make pro'
 /semgrep-proprietary
 
-# TEMPORARY: shrink generated .dockerignore / build context.
-# Docker only COPYs .../ocaml-tree-sitter-semgrep/core.
-libs/ocaml-tree-sitter-semgrep/**
-!libs/ocaml-tree-sitter-semgrep/core
-!libs/ocaml-tree-sitter-semgrep/core/**
+# Ephemeral grammar clones (fetched via grammar_registry.py; see lang/semgrep-grammars/src/.gitignore).
+libs/ocaml-tree-sitter-semgrep/lang/semgrep-grammars/src/tree-sitter-*

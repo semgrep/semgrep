@@ -1,0 +1,191 @@
+================================================================================
+Simple metavariable
+================================================================================
+
+$X = 2
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (function
+    (variable
+      (semgrep_metavariable))
+    (exp_literal
+      (integer))))
+
+================================================================================
+Simple application
+================================================================================
+
+$X = $Y 3
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (function
+    (variable
+      (semgrep_metavariable))
+    (exp_apply
+      (exp_name
+        (variable
+          (semgrep_metavariable)))
+      (exp_literal
+        (integer)))))
+
+================================================================================
+Imports
+================================================================================
+
+import $X 
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (import
+    (module
+      (semgrep_metavariable))))
+
+================================================================================
+Monadic chaining
+================================================================================
+
+main = do
+    $F >>= print 
+    getHomeDirectory >>= $G
+    getUserDocumentsDirectory >>= print
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (function
+    (variable)
+    (exp_do
+      (stmt
+        (exp_infix
+          (exp_name
+            (constructor
+              (semgrep_metavariable)))
+          (operator)
+          (exp_name
+            (variable))))
+      (stmt
+        (exp_infix
+          (exp_name
+            (variable))
+          (operator)
+          (exp_name
+            (variable
+              (semgrep_metavariable)))))
+      (stmt
+        (exp_infix
+          (exp_name
+            (variable))
+          (operator)
+          (exp_name
+            (variable)))))))
+
+================================================================================
+Data declaration
+================================================================================
+
+data $Y = MyData
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (adt
+    (type
+      (semgrep_metavariable))
+    (constructors
+      (data_constructor
+        (constructor)))))
+
+================================================================================
+Constructor casing
+================================================================================
+
+main = do
+  case error of
+    $L x -> print $ "Error: " ++ x
+    Right x -> print $ "Value: " ++ show x
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (function
+    (variable)
+    (exp_do
+      (stmt
+        (exp_case
+          (exp_name
+            (variable))
+          (alts
+            (alt
+              (pat_apply
+                (pat_name
+                  (constructor
+                    (semgrep_metavariable)))
+                (pat_name
+                  (variable)))
+              (exp_infix
+                (exp_infix
+                  (exp_name
+                    (variable))
+                  (operator)
+                  (exp_literal
+                    (string)))
+                (operator)
+                (exp_name
+                  (variable))))
+            (alt
+              (pat_apply
+                (pat_name
+                  (constructor))
+                (pat_name
+                  (variable)))
+              (exp_infix
+                (exp_infix
+                  (exp_name
+                    (variable))
+                  (operator)
+                  (exp_literal
+                    (string)))
+                (operator)
+                (exp_apply
+                  (exp_name
+                    (variable))
+                  (exp_name
+                    (variable)))))))))))
+
+================================================================================
+Simple ellipses
+================================================================================
+
+main = do 
+  print $ f
+  ...
+  4
+
+{- the haskell grammar is like really complicated and it's difficult to
+   insert semgrep_ellipsis into any of these nonterminals
+   for now let's just try to solve this in postprocessing
+-}
+
+--------------------------------------------------------------------------------
+
+(haskell
+  (function
+    (variable)
+    (exp_infix
+      (exp_do
+        (stmt
+          (exp_infix
+            (exp_name
+              (variable))
+            (operator)
+            (exp_name
+              (variable)))))
+      (operator)
+      (exp_literal
+        (integer))))
+  (comment))

@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+#
+# Print, one per line, the distinct tree-sitter versions the grammars are
+# pinned to (from lang/upstream-grammars.json).
+#
+# Usage: ts-versions
+#
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from ts_versions import list_pinned_versions  # noqa: E402
+
+
+def main() -> int:
+    """Print each pinned tree-sitter version on its own line."""
+    argparse.ArgumentParser(
+        description="Print each pinned tree-sitter version on its own line."
+    ).parse_args()
+    for version in list_pinned_versions():
+        print(version)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,8 @@
+// $A; is actually considered a statement metavariable, even with a following
+// not-fake ;, because there are many languages where we need this ; to
+// parse metavariable statement. But with a recent fix we also
+// consider it an expression metavariable thx to >||>.
+
+$A;
+...
+foo($A);

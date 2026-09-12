@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-make/LICENSE
+semgrep-grammars/src/tree-sitter-make/grammar.js
+semgrep-grammars/src/semgrep-make/grammar.js

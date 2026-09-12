@@ -1,0 +1,33 @@
+#
+# Top dockerfile projects from GitHub, sorted by stars.
+# Created by ../../scripts/most-starred-for-language.
+#
+https://github.com/CGAL/cgal-testsuite-dockerfiles
+https://github.com/jessfraz/dockerfiles
+https://github.com/laradock/laradock
+https://github.com/vulhub/vulhub
+https://github.com/nodejs/docker-node
+https://github.com/ThinkDevelop/Free-SS-SSR
+https://github.com/hexops/dockerfile
+https://github.com/dotnet/dotnet-docker
+https://github.com/docker-library/php
+https://github.com/vimagick/dockerfiles
+https://github.com/nginx-boilerplate/nginx-boilerplate
+https://github.com/Urigo/angular-meteor
+https://github.com/mhart/alpine-node
+https://github.com/AlanTur1ng/Free-VPN-for-Coursera
+https://github.com/docker-library/python
+https://github.com/big-data-europe/docker-spark
+https://github.com/richarvey/nginx-php-fpm
+https://github.com/sprintcube/docker-compose-lamp
+https://github.com/aschmelyun/docker-compose-laravel
+https://github.com/appleboy/ssh-action
+https://github.com/maxpou/docker-symfony
+https://github.com/eko/docker-symfony
+https://github.com/cnych/kubernetes-learning
+https://github.com/webrtc-for-the-curious/webrtc-for-the-curious
+https://github.com/HenryQW/Awesome-TTRSS
+https://github.com/sequenceiq/hadoop-docker
+https://github.com/microsoft/mssql-docker
+https://github.com/apple/swift-docker
+https://github.com/lukechilds/dockerpi

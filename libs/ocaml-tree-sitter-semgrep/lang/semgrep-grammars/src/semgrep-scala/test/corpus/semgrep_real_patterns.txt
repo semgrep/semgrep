@@ -1,0 +1,550 @@
+========================
+Taint: unsafe deserialization
+========================
+
+// Pattern: deserialization from untrusted input
+val $OBJ = $DESER.readObject($INPUT)
+
+---
+
+(compilation_unit
+  (comment)
+  (val_definition
+    (identifier)
+    (call_expression
+      (field_expression
+        (semgrep_metavariable)
+        (identifier))
+      (arguments
+        (semgrep_metavariable)))))
+
+========================
+Taint: SQL injection via string concatenation
+========================
+
+// Pattern: user input concatenated into query
+$CONN.execute("SELECT * FROM users WHERE id = " + $INPUT)
+
+---
+
+(compilation_unit
+  (comment)
+  (call_expression
+    (field_expression
+      (semgrep_metavariable)
+      (identifier))
+    (arguments
+      (infix_expression
+        (string)
+        (operator_identifier)
+        (semgrep_metavariable)))))
+
+========================
+Taint: SQL injection via format string
+========================
+
+$CONN.execute(s"SELECT * FROM $TABLE WHERE id = ${$INPUT}")
+
+---
+
+(compilation_unit
+  (call_expression
+    (field_expression
+      (semgrep_metavariable)
+      (identifier))
+    (arguments
+      (interpolated_string_expression
+        (identifier)
+        (interpolated_string
+          (interpolation
+            (identifier))
+          (interpolation
+            (block
+              (semgrep_metavariable))))))))
+
+========================
+Taint: flow through val binding
+========================
+
+val $X = $SOURCE
+...
+$SINK($X)
+
+---
+
+(compilation_unit
+  (val_definition
+    (identifier)
+    (semgrep_metavariable))
+  (semgrep_ellipsis)
+  (call_expression
+    (semgrep_metavariable)
+    (arguments
+      (semgrep_metavariable))))
+
+========================
+Taint: data flow through method chain
+========================
+
+$SOURCE.transform(...).process($X).sink()
+
+---
+
+(compilation_unit
+  (call_expression
+    (field_expression
+      (call_expression
+        (field_expression
+          (call_expression
+            (field_expression
+              (semgrep_metavariable)
+              (identifier))
+            (arguments
+              (semgrep_ellipsis)))
+          (identifier))
+        (arguments
+          (semgrep_metavariable)))
+      (identifier))
+    (arguments)))
+
+========================
+Unsafe: reflection-based instantiation
+========================
+
+Class.forName($CLASSNAME).newInstance()
+
+---
+
+(compilation_unit
+  (call_expression
+    (field_expression
+      (call_expression
+        (field_expression
+          (identifier)
+          (identifier))
+        (arguments
+          (semgrep_metavariable)))
+      (identifier))
+    (arguments)))
+
+========================
+Unsafe: command injection via Runtime.exec
+========================
+
+Runtime.getRuntime().exec($CMD)
+
+---
+
+(compilation_unit
+  (call_expression
+    (field_expression
+      (call_expression
+        (field_expression
+          (identifier)
+          (identifier))
+        (arguments))
+      (identifier))
+    (arguments
+      (semgrep_metavariable))))
+
+========================
+Unsafe: command injection via process builder
+========================
+
+new ProcessBuilder($...ARGS).start()
+
+---
+
+(compilation_unit
+  (call_expression
+    (field_expression
+      (instance_expression
+        (type_identifier)
+        (arguments
+          (semgrep_ellipsis_metavariable)))
+      (identifier))
+    (arguments)))
+
+========================
+Security: hardcoded credentials
+========================
+
+val $NAME = "$PASSWORD"
+...
+connect($HOST, $NAME)
+
+---
+
+(compilation_unit
+  (val_definition
+    (identifier)
+    (string))
+  (semgrep_ellipsis)
+  (call_expression
+    (identifier)
+    (arguments
+      (semgrep_metavariable)
+      (semgrep_metavariable))))
+
+========================
+Security: path traversal
+========================
+
+new File($BASE + $USER_INPUT)
+
+---
+
+(compilation_unit
+  (instance_expression
+    (type_identifier)
+    (arguments
+      (infix_expression
+        (semgrep_metavariable)
+        (operator_identifier)
+        (semgrep_metavariable)))))
+
+========================
+Security: open redirect
+========================
+
+val $URL = $REQUEST.getParameter($PARAM)
+...
+response.sendRedirect($URL)
+
+---
+
+(compilation_unit
+  (val_definition
+    (identifier)
+    (call_expression
+      (field_expression
+        (semgrep_metavariable)
+        (identifier))
+      (arguments
+        (semgrep_metavariable))))
+  (semgrep_ellipsis)
+  (call_expression
+    (field_expression
+      (identifier)
+      (identifier))
+    (arguments
+      (semgrep_metavariable))))
+
+========================
+Security: logging sensitive data
+========================
+
+logger.$LEVEL(... + $PASSWORD + ...)
+
+---
+
+(compilation_unit
+  (call_expression
+    (field_expression
+      (identifier)
+      (identifier))
+    (arguments
+      (infix_expression
+        (infix_expression
+          (semgrep_ellipsis)
+          (operator_identifier)
+          (semgrep_metavariable))
+        (operator_identifier)
+        (semgrep_ellipsis)))))
+
+========================
+Security: XML external entity via factory
+========================
+
+val $FACTORY = $TYPE.newInstance()
+...
+$FACTORY.setFeature($FEATURE, true)
+
+---
+
+(compilation_unit
+  (val_definition
+    (identifier)
+    (call_expression
+      (field_expression
+        (semgrep_metavariable)
+        (identifier))
+      (arguments)))
+  (semgrep_ellipsis)
+  (call_expression
+    (field_expression
+      (semgrep_metavariable)
+      (identifier))
+    (arguments
+      (semgrep_metavariable)
+      (boolean_literal))))
+
+========================
+Pattern: catch-all exception swallowing
+========================
+
+try { ... } catch { case $E: Exception => }
+
+---
+
+(compilation_unit
+  (try_expression
+    (block
+      (semgrep_ellipsis))
+    (catch_clause
+      (case_block
+        (case_clause
+          (typed_pattern
+            (identifier)
+            (type_identifier)))))))
+
+========================
+Pattern: Akka ask pattern with timeout
+========================
+
+val $RESULT = $ACTOR ? $MSG
+...
+Await.result($RESULT, $TIMEOUT)
+
+---
+
+(compilation_unit
+  (val_definition
+    (identifier)
+    (infix_expression
+      (semgrep_metavariable)
+      (operator_identifier)
+      (semgrep_metavariable)))
+  (semgrep_ellipsis)
+  (call_expression
+    (field_expression
+      (identifier)
+      (identifier))
+    (arguments
+      (semgrep_metavariable)
+      (semgrep_metavariable))))
+
+========================
+Pattern: Future flatMap taint chain
+========================
+
+$SOURCE.flatMap($X => $SINK($X))
+
+---
+
+(compilation_unit
+  (call_expression
+    (field_expression
+      (semgrep_metavariable)
+      (identifier))
+    (arguments
+      (infix_expression
+        (semgrep_metavariable)
+        (operator_identifier)
+        (call_expression
+          (semgrep_metavariable)
+          (arguments
+            (semgrep_metavariable)))))))
+
+========================
+Pattern: Slick query with unsafe raw SQL
+========================
+
+sql"SELECT * FROM $TABLE WHERE id = ${$INPUT}".as[$TYPE]
+
+---
+
+(compilation_unit
+  (generic_function
+    (field_expression
+      (interpolated_string_expression
+        (identifier)
+        (interpolated_string
+          (interpolation
+            (identifier))
+          (interpolation
+            (block
+              (semgrep_metavariable)))))
+      (identifier))
+    (type_arguments
+      (type_identifier))))
+
+========================
+Pattern: Play framework action with taint
+========================
+
+def $ACTION($REQUEST: Request[AnyContent]): Result = {
+  val $INPUT = $REQUEST.body.asText.getOrElse("")
+  ...
+  Ok($INPUT)
+}
+
+---
+
+(compilation_unit
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (generic_type
+          (type_identifier)
+          (type_arguments
+            (type_identifier)))))
+    (type_identifier)
+    (block
+      (val_definition
+        (identifier)
+        (call_expression
+          (field_expression
+            (field_expression
+              (field_expression
+                (semgrep_metavariable)
+                (identifier))
+              (identifier))
+            (identifier))
+          (arguments
+            (string))))
+      (semgrep_ellipsis)
+      (call_expression
+        (identifier)
+        (arguments
+          (semgrep_metavariable))))))
+
+========================
+Pattern: case class with sensitive field
+========================
+
+case class $MODEL(..., $SENSITIVE: String, ...)
+
+---
+
+(compilation_unit
+  (class_definition
+    (identifier)
+    (class_parameters
+      (class_parameter
+        (semgrep_ellipsis))
+      (class_parameter
+        (identifier)
+        (type_identifier))
+      (class_parameter
+        (semgrep_ellipsis)))))
+
+========================
+Security: hardcoded secret used in JWT HMAC256
+========================
+
+class $CLASS {
+  ...
+  $DECL $SECRET = "...";
+  ...
+  def $FUNC (...): $RETURNTYPE = {
+    ...
+    com.auth0.jwt.algorithms.Algorithm.HMAC256($SECRET);
+    ...
+  }
+  ...
+}
+
+---
+
+(compilation_unit
+  (class_definition
+    (identifier)
+    (template_body
+      (semgrep_ellipsis)
+      (semgrep_val_or_var_definition
+        (semgrep_metavariable)
+        (identifier)
+        (string))
+      (semgrep_ellipsis)
+      (function_definition
+        (identifier)
+        (parameters
+          (parameter
+            (semgrep_ellipsis)))
+        (type_identifier)
+        (block
+          (semgrep_ellipsis)
+          (call_expression
+            (field_expression
+              (field_expression
+                (field_expression
+                  (field_expression
+                    (field_expression
+                      (identifier)
+                      (identifier))
+                    (identifier))
+                  (identifier))
+                (identifier))
+              (identifier))
+            (arguments
+              (semgrep_metavariable)))
+          (semgrep_ellipsis)))
+      (semgrep_ellipsis))))
+
+========================
+Pattern: deep expression for taint check
+========================
+
+<... $USER_INPUT.toString ...>
+
+---
+
+(compilation_unit
+  (deep_expression
+    (field_expression
+      (semgrep_metavariable)
+      (identifier))))
+
+========================
+Pattern: matching any class that extends a type
+========================
+
+class $NAME extends $DANGEROUS_BASE {
+  ...
+}
+
+---
+
+(compilation_unit
+  (class_definition
+    (identifier)
+    (extends_clause
+      (type_identifier))
+    (template_body
+      (semgrep_ellipsis))))
+
+========================
+Pattern: for-comprehension with taint
+========================
+
+for {
+  $X <- $SOURCE
+  ...
+  $Y <- $X.transform(...)
+} yield $SINK($Y)
+
+---
+
+(compilation_unit
+  (for_expression
+    (enumerators
+      (enumerator
+        (identifier)
+        (semgrep_metavariable))
+      (enumerator
+        (semgrep_ellipsis))
+      (enumerator
+        (identifier)
+        (call_expression
+          (field_expression
+            (semgrep_metavariable)
+            (identifier))
+          (arguments
+            (semgrep_ellipsis)))))
+    (call_expression
+      (semgrep_metavariable)
+      (arguments
+        (semgrep_metavariable)))))

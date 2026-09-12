@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-lua/LICENSE.md
+semgrep-grammars/src/tree-sitter-lua/grammar.js
+semgrep-grammars/src/semgrep-lua/grammar.js

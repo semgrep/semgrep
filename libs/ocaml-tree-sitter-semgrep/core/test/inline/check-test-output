@@ -1,0 +1,15 @@
+#! /usr/bin/env bash
+#
+# Check that the grammar transformation is what we expect.
+#
+set -eu
+
+targets="
+  grammar-rev.js
+"
+
+for actual in $targets; do
+  expected=$actual.expected
+  echo "Checking $actual against $expected."
+  diff -u "$expected" "$actual"
+done

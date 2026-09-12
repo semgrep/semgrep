@@ -86,6 +86,12 @@ See [Contributing docs](https://semgrep.dev/docs/contributing/contributing-code/
 
 ## Development
 
+### Grammar updates
+
+See [`libs/ocaml-tree-sitter-semgrep/doc/add-or-update-grammar.md`](libs/ocaml-tree-sitter-semgrep/doc/add-or-update-grammar.md):
+edit `libs/ocaml-tree-sitter-semgrep/lang/upstream-grammars.json`, then
+`make test-grammar-<name>` and `make regen-grammar-<dest>` from the repo root.
+
 ### Common Commands
 
 **Building:**

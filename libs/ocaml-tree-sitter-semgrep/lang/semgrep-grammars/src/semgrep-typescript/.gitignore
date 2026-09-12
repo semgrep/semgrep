@@ -1,0 +1,5 @@
+/typescript/src/scanner.c
+/tsx/src/scanner.c
+/typescript/corpus/tree-sitter-typescript
+/tsx/corpus/tree-sitter-tsx
+inherited

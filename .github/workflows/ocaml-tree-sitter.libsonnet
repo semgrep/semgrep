@@ -1,11 +1,5 @@
 // Shared paths and steps for ocaml-tree-sitter-semgrep GHA workflows.
 // Parameterized by ots_dir for reuse from semgrep-proprietary.
-//
-// TEMPORARY: ots_is_submodule — flip callers to false once ots_dir is not a
-// git module, then delete submodule-only branches. While true:
-// 1. path filters include bare gitlink (bump ≠ `<path>/**`);
-// 2. checkout inits only public ots (+ nested grammar gitlinks);
-// 3. cache key is HEAD:<ots_dir> (HEAD:<ots_dir>/core does not resolve).
 
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
@@ -15,42 +9,24 @@ local uses = import 'libs/uses.libsonnet';
 local cache_restore = std.strReplace(uses.actions.cache, '/cache@', '/cache/restore@');
 local cache_save = std.strReplace(uses.actions.cache, '/cache@', '/cache/save@');
 
-local for_tree(ots_dir, ots_is_submodule=true) =
+local for_tree(ots_dir) =
+  local root = std.substr(ots_dir, 0, std.length(ots_dir) - std.length('libs/ocaml-tree-sitter-semgrep'));
+  local build_paths = ['Makefile', 'dune-project', 'dune-workspace', '*.opam', 'opam-lockfiles/*.locked'];
+  local integration_paths = std.set(build_paths + [root + p for p in build_paths + [
+    'tree-sitter-config.sh',
+    'tree-sitter-config.mk',
+    'cli/pyproject.toml',
+    'cli/uv.lock',
+    '.github/workflows/libs/actions.libsonnet',
+    '.github/workflows/libs/semgrep.libsonnet',
+    '.github/workflows/libs/uses.libsonnet',
+  ]]);
   local core_dir = ots_dir + '/core';
   local lang_dir = ots_dir + '/lang';
 
-  // TEMPORARY: drop once ots is in-tree.
-  local checkout_ots_submodule_step = {
-    name: 'Checkout ocaml-tree-sitter-semgrep submodule',
-    // Job-level working-directory would make this pathspec relative to ots_dir.
-    'working-directory': '${{ github.workspace }}',
-    run: 'git submodule update --init --depth 1 ' + ots_dir,
-  };
-
-  // gosu and requirements are public, but OTS .gitmodules pins SSH URLs
-  // (git@github.com:...). GHA runners have no GitHub SSH key, so clone
-  // fails with "Permission denied (publickey)". Rewrite to HTTPS.
-  local rewrite_ssh_step = {
-    name: 'Rewrite SSH grammar URLs to HTTPS',
-    run: 'git config --global url."https://github.com/".insteadOf "git@github.com:"',
-  };
-
-  // Nested tree-sitter-<lang> gitlinks under lang/semgrep-grammars/src/.
-  // --recursive --depth 1 is a shallow clone of those gitlinks (and unused
-  // nested copies: bash-it, dart/hcl fuzz tree-sitter). After ots is in-tree,
-  // skip this: there is no git repo at ots_dir to recurse.
-  local provision_grammars_step = {
-    name: 'Provision the upstream grammar submodules',
-    'working-directory': ots_dir,
-    run: 'git submodule update --init --recursive --depth 1 --jobs 8',
-  };
-
-  // TEMPORARY: gitlink SHA; after vendoring use core/ (lang/ churn ≠ bust).
-  local core_tree_rev = if ots_is_submodule then ots_dir else core_dir;
-
   local ts_cache_path = core_dir + '/tree-sitter-*.*.*';
-  // Include the tree SHA: provision-tree-sitter skips a complete install dir, so
-  // a script/patch/checksum change with the same version numbers must miss.
+  // Include the tree SHA so provisioning changes invalidate the CLI cache.
+  // Versions come from scripts/ts-versions (upstream-grammars.json pins).
   local ts_cache_key = 'tree-sitter-${{ runner.os }}-${{ steps.ts-versions.outputs.versions }}-${{ steps.cache-id.outputs.sha }}';
 
   local cache_id_step = {
@@ -58,15 +34,17 @@ local for_tree(ots_dir, ots_is_submodule=true) =
     run: |||
       echo "sha=$(git rev-parse HEAD:%s)" >> "$GITHUB_OUTPUT"
       echo "ocaml=$(opam exec -- ocamlc -version)" >> "$GITHUB_OUTPUT"
-    ||| % core_tree_rev,
+    ||| % core_dir,
   };
 
+  // Run from source so tools install where grammar builds and caches expect.
   local provision_tree_sitter_steps = [
     {
       id: 'ts-versions',
+      name: 'Resolve pinned tree-sitter versions',
       'working-directory': ots_dir,
       run: |||
-        echo "versions=$(./lang/scripts/ts-versions | tr '\n' '-')" >> "$GITHUB_OUTPUT"
+        echo "versions=$(./scripts/ts-versions | tr '\n' '-')" >> "$GITHUB_OUTPUT"
       |||,
     },
     {
@@ -79,6 +57,7 @@ local for_tree(ots_dir, ots_is_submodule=true) =
       },
     },
     {
+      name: 'Setup tree-sitter versions',
       'working-directory': ots_dir,
       run: './core/scripts/provision-tree-sitter-all',
     },
@@ -92,80 +71,71 @@ local for_tree(ots_dir, ots_is_submodule=true) =
     },
   ];
 
-  local core_cache_paths = std.join('\n', [core_dir + '/_build', core_dir + '/bin']);
-  local core_cache_key = 'core-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}';
+  local core_cache_paths = std.join('\n', ['_build', core_dir + '/bin']);
+  local core_cache_key = 'grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles(' + std.join(', ', ["'" + p + "'" for p in integration_paths]) + ') }}';
 
+  local save_core_cache(suffix='') = {
+    'if': "steps.core-cache.outputs.cache-hit != 'true'",
+    uses: cache_save,
+    with: {
+      path: core_cache_paths,
+      key: core_cache_key + suffix,
+    },
+  };
+
+  local restore_core_cache(suffix='') = {
+    id: 'core-cache',
+    uses: cache_restore,
+    with: {
+      // _build for dune; bin/ for the promoted ocaml-tree-sitter binary
+      // (lang/ looks at core/bin, not _build).
+      path: core_cache_paths,
+      key: core_cache_key + suffix,
+    },
+  };
+
+  // Dependencies come from the repository lockfiles.
   local build_install_core_steps = [
+    restore_core_cache(),
     {
-      id: 'core-cache',
-      uses: cache_restore,
-      with: {
-        // _build for dune; bin/ for the promoted ocaml-tree-sitter binary
-        // (lang/ looks at core/bin, not _build).
-        path: core_cache_paths,
-        key: core_cache_key,
-      },
+      name: 'Install repository dependencies',
+      'working-directory': ots_dir + '/../..',
+      run: 'opam exec -- make install-deps',
     },
     {
-      name: 'Setup',
-      'working-directory': ots_dir,
-      run: 'opam exec -- make setup',
+      name: 'Build grammar tools',
+      'working-directory': ots_dir + '/../..',
+      run: 'opam exec -- make grammar-tools',
     },
-    {
-      name: 'Install',
-      'working-directory': ots_dir,
-      run: 'opam exec -- make install',
-    },
-    {
-      'if': "steps.core-cache.outputs.cache-hit != 'true'",
-      uses: cache_save,
-      with: {
-        path: core_cache_paths,
-        key: core_cache_key,
-      },
-    },
+    save_core_cache(),
   ];
 
   local build_core_steps =
-    (if ots_is_submodule then [rewrite_ssh_step, provision_grammars_step] else [])
-    + [cache_id_step]
-    + provision_tree_sitter_steps
-    + build_install_core_steps;
+    [cache_id_step]
+    + build_install_core_steps
+    + provision_tree_sitter_steps;
 
   {
+    restore_core_cache: restore_core_cache,
+    save_core_cache: save_core_cache,
+    integration_paths: integration_paths,
     ots_dir: ots_dir,
-    core_dir: core_dir,
-    ots_is_submodule: ots_is_submodule,
 
-    // TEMPORARY: same bare-gitlink rule for core/ triggers.
-    core_paths:
-      [core_dir + '/**']
-      + (if ots_is_submodule then [ots_dir] else [core_dir]),
+    core_paths: [core_dir + '/**'],
 
-    // lang/ is the grammar sources + test-lang harness.
-    // TEMPORARY: gitlink bump can be core or lang; parent diffs cannot tell.
-    grammar_paths:
-      [lang_dir + '/**']
-      + (if ots_is_submodule then [ots_dir] else [lang_dir]),
+    // lang/ is the grammar sources + test-lang harness; scripts/ holds the
+    // registry / version / ABI tooling those builds invoke.
+    grammar_paths: [lang_dir + '/**', ots_dir + '/scripts/**'],
 
-    // core/ has its own opam files; hash those, not the top-level lockfiles.
-    setup_ocaml_step: {
-      uses: uses.semgrep.setup_ocaml,
-      with: {
-        'cache-prefix': "v5-${{ hashFiles('%s/*.opam') }}" % core_dir,
-        'ocaml-compiler': semgrep.opam_switch,
-        'opam-pin': false,
-        'save-opam-post-run': true,
-      },
-    },
+    // Same OCaml switch config as main Semgrep CI (lockfiles + pinned opam-repo).
+    setup_ocaml_step: semgrep.opam_setup(),
 
-    // TEMPORARY: public ots only — full submodule checkout hits private deps.
     // lfs=true: every caller builds the tree, and lib/parser.c is
     // LFS-tracked, so plain `git diff`/`git status` need real content.
-    checkout_steps:
-      actions.checkout(lfs=true)
-      + (if ots_is_submodule then [checkout_ots_submodule_step] else []),
+    checkout_steps: actions.checkout(lfs=true),
 
+    cache_id_step: cache_id_step,
+    provision_tree_sitter_steps: provision_tree_sitter_steps,
     build_core_steps: build_core_steps,
   };
 

@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-gosu/LICENSE
+semgrep-grammars/src/tree-sitter-gosu/grammar.js
+semgrep-grammars/src/semgrep-gosu/grammar.js
