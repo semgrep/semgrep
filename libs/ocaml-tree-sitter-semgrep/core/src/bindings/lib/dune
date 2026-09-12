@@ -1,0 +1,54 @@
+; Build OCaml bindings to the tree-sitter's C API.
+;
+; tree-sitter can be installed by cloning its git repo, then
+; 'make && make install'
+;
+; Configuration is handled by config/discover.ml which uses pkg-config
+; to find tree-sitter and generate c_flags.sexp and c_library_flags.sexp.
+;
+
+(library
+ (public_name tree-sitter.bindings)
+ (name tree_sitter_bindings)
+ (libraries atdgen-runtime)
+ (foreign_stubs
+  (language c)
+  (names bindings)
+  (flags
+   :standard
+   (:include c_flags.sexp)))
+ (c_library_flags
+  :standard
+  (:include c_library_flags.sexp)))
+
+(rule
+ (targets c_flags.sexp c_library_flags.sexp)
+ (deps (:tree-sitter-prefix %{project_root}/tree-sitter-out))
+ (action
+  ; Neutralize PKG_CONFIG_SYSROOT_DIR for this query: on Windows the mingw
+  ; pkg-config otherwise prepends its sysroot to tree-sitter.pc's absolute C:/
+  ; include/lib paths, producing a broken "-I<sysroot>C:/..." fragment that hides
+  ; <tree_sitter/api.h>.
+  (setenv
+   PKG_CONFIG_SYSROOT_DIR
+   ""
+   (setenv
+    PKG_CONFIG_PATH
+    "%{tree-sitter-prefix}/lib/pkgconfig:%{env:PKG_CONFIG_PATH=}"
+    (run ./config/discover.exe)))))
+
+; atdgen preprocessing for json support
+
+(rule
+ (targets Tree_sitter_output_j.ml Tree_sitter_output_j.mli)
+ (deps Tree_sitter_output.atd)
+ (action
+  (run atdgen -j -j-std %{deps})))
+
+; atdgen preprocessing for json support
+
+(rule
+ (targets Tree_sitter_output_t.ml Tree_sitter_output_t.mli)
+ (deps Tree_sitter_output.atd)
+ (action
+  (run atdgen -t %{deps})))

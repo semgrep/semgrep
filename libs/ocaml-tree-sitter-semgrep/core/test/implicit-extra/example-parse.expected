@@ -1,0 +1,62 @@
+CST obtained from the tree-sitter parser:
+program:
+| period
+| comma
+| foos:
+|   foo
+|   comma_explicit_
+|   period
+|   comma
+|   foo
+|   semi
+|   comma
+|   period
+|   foo
+|   period_explicit
+|   period
+|   comma
+|   foo
+---
+Recovered typed CST:
+(
+  "foo"
+  [
+    (
+      Comma_expl_ (
+        ()
+      )
+      "foo"
+    )
+    (
+      Semi ";"
+      "foo"
+    )
+    (
+      Period_expl (
+        ()
+      )
+      "foo"
+    )
+  ]
+)
+Extras:
+period:
+"."
+comma:
+","
+period:
+"."
+comma:
+","
+comma:
+","
+period:
+"."
+period:
+"."
+comma:
+","
+total lines: 2
+error lines: 0
+error count: 0
+success: 100.00%

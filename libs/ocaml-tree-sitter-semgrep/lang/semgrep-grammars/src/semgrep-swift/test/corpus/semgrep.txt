@@ -1,0 +1,309 @@
+================================================================================
+Ellipsis
+================================================================================
+
+... + 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (additive_expression
+    (semgrep_expression_ellipsis)
+    (integer_literal)))
+
+================================================================================
+Unbounded range operator
+================================================================================
+
+(...) + 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (additive_expression
+    (tuple_expression
+      (fully_open_range))
+    (integer_literal)))
+
+================================================================================
+Parameter Ellipsis
+================================================================================
+
+func $F(..., $X: $T, ...) {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (simple_identifier)
+    (parameter
+      (semgrep_ellipsis))
+    (parameter
+      (simple_identifier)
+      (user_type
+        (type_identifier)))
+    (parameter
+      (semgrep_ellipsis))
+    (function_body
+      (statements
+        (fully_open_range)))))
+
+================================================================================
+Parameter Metavariable Ellipsis
+================================================================================
+
+func $F($...ARGS1, $X: $T, $...ARGS2) {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (simple_identifier)
+    (parameter
+      (semgrep_ellipsis_metavar))
+    (parameter
+      (simple_identifier)
+      (user_type
+        (type_identifier)))
+    (parameter
+      (semgrep_ellipsis_metavar))
+    (function_body
+      (statements
+        (fully_open_range)))))
+
+================================================================================
+Argument Ellipsis
+================================================================================
+
+foo(...);
+foo(..., 1, ...);
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (fully_open_range)))))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (fully_open_range))
+        (value_argument
+          (integer_literal))
+        (value_argument
+          (fully_open_range))))))
+
+================================================================================
+Ellipsis Metavariable
+================================================================================
+
+foo($...ARGS);
+foo($...ARGS1, 1, $...ARGS2);
+$...FOO + 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (semgrep_ellipsis_metavar)))))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (semgrep_ellipsis_metavar))
+        (value_argument
+          (integer_literal))
+        (value_argument
+          (semgrep_ellipsis_metavar)))))
+  (additive_expression
+    (semgrep_ellipsis_metavar)
+    (integer_literal)))
+
+================================================================================
+Type Ellipsis
+================================================================================
+
+typealias foo = ...;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (typealias_declaration
+    (type_identifier)
+    (semgrep_ellipsis)))
+
+================================================================================
+TParam Ellipsis
+================================================================================
+
+func foo<...>() { }
+func foo<T, ...>() { }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (simple_identifier)
+    (type_parameters
+      (type_parameter
+        (semgrep_ellipsis)))
+    (function_body))
+  (function_declaration
+    (simple_identifier)
+    (type_parameters
+      (type_parameter
+        (type_identifier))
+      (type_parameter
+        (semgrep_ellipsis)))
+    (function_body)))
+
+================================================================================
+Deep Ellipsis
+================================================================================
+
+<... 5 ...>
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_deep_ellipsis
+    (integer_literal)
+    (custom_operator)))
+
+================================================================================
+Deep Ellipsis with custom operator (should not parse, but does because of a hack
+necessary to work around custom operators getting scanned by the custom scanner)
+================================================================================
+
+<... 5 .+.
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_deep_ellipsis
+    (integer_literal)
+    (custom_operator)))
+
+================================================================================
+Deep Ellipsis with custom operator (this parses due to parens)
+================================================================================
+
+<... (5 .+. 3) ...>
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_deep_ellipsis
+    (tuple_expression
+      (infix_expression
+        (integer_literal)
+        (custom_operator)
+        (integer_literal)))
+    (custom_operator)))
+
+================================================================================
+Class Ellipsis
+================================================================================
+
+class ClassName {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (semgrep_ellipsis))))
+
+================================================================================
+Class Ellipsis Sandwiched
+================================================================================
+
+class ClassName {
+  ...
+  var x = 2;
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (semgrep_ellipsis)
+      (property_declaration
+        (value_binding_pattern)
+        (pattern
+          (simple_identifier))
+        (integer_literal))
+      (semgrep_ellipsis))))
+
+================================================================================
+Statement Ellipsis with semicolon
+================================================================================
+
+foo;
+...
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (simple_identifier)
+  (fully_open_range))
+
+================================================================================
+Statement Ellipsis without semicolon
+================================================================================
+
+foo
+...
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (simple_identifier)
+  (fully_open_range))
+
+================================================================================
+Field Access with Ellipsis
+================================================================================
+
+$FOO. ... .bar(startNum..<endData.count)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (navigation_expression
+      (navigation_expression
+        (simple_identifier)
+        (navigation_suffix
+          (semgrep_ellipsis)))
+      (navigation_suffix
+        (simple_identifier)))
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (range_expression
+            (simple_identifier)
+            (navigation_expression
+              (simple_identifier)
+              (navigation_suffix
+                (simple_identifier)))))))))

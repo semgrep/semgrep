@@ -1,0 +1,38 @@
+(lang dune 3.20)
+(using directory-targets 0.1)
+
+(name tree-sitter)
+(generate_opam_files)
+; Vendored under libs/ocaml-tree-sitter-semgrep/core in the Semgrep monorepo
+; (historically https://github.com/semgrep/ocaml-tree-sitter-core).
+(source
+  (github semgrep/semgrep))
+
+(package
+  (name tree-sitter)
+  (synopsis "Code generator for parsing the output of tree-sitter parsers")
+  (description
+    "Ocaml-tree-sitter translates a tree-sitter json grammar to OCaml code for
+    recovering a full CST from the output for a tree-sitter parser.")
+  (maintainers
+    "Martin Jambon <martin@semgrep.com>")
+  (authors
+     "Semgrep, Inc.")
+  (license "LGPL-2.1-only WITH OCaml-LGPL-linking-exception")
+  (homepage https://github.com/semgrep/semgrep/tree/develop/libs/ocaml-tree-sitter-semgrep/core)
+  (bug_reports https://github.com/semgrep/semgrep/issues)
+  (depends
+     alcotest
+     ANSITerminal
+     atdgen
+     (cmdliner (>= 2.0.0))
+     conf-pkg-config
+     dune
+     (dune-configurator (>= 3.10.0))
+     base
+     ocaml
+     ppx_deriving
+     ppx_deriving_yojson
+     sexplib
+     (tsort (>= 2.0))
+     yojson))

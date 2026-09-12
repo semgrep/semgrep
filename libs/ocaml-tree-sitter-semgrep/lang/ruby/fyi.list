@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-ruby/LICENSE
+semgrep-grammars/src/tree-sitter-ruby/grammar.js
+semgrep-grammars/src/semgrep-ruby/grammar.js

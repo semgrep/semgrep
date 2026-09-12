@@ -47,3 +47,7 @@
 
 # Vendored tree-sitter grammars, copied verbatim from upstream
 languages/*/tree-sitter/semgrep-*/
+
+# Vendored upstream generator and grammar sources.
+/libs/ocaml-tree-sitter-semgrep/core/
+/libs/ocaml-tree-sitter-semgrep/lang/

@@ -1,0 +1,43 @@
+#! /usr/bin/env bash
+#
+# Find files of the form X.expected and report differences with file X.
+#
+# Input: list of root folders to scan.
+#
+set -eu
+
+root_dirs="$*"
+
+missing=0
+errors=0
+total=0
+for root_dir in $root_dirs; do
+  # shellcheck disable=SC2044
+  for expected in $(find "$root_dir" -name '*.expected'); do
+    output=${expected%.expected}
+    if [[ ! -e "$output" ]]; then
+      missing=$(( missing + 1 ))
+      echo "MISSING  $output"
+    else
+      total=$(( total + 1 ))
+      if diff -u "$expected" "$output"; then
+        echo "OK       $output"
+      else
+        errors=$(( errors + 1 ))
+        echo "ERROR    $output"
+      fi
+    fi
+  done
+done
+
+cat <<EOF
+missing output files: $missing
+total output files: $total
+output files deviating from expectations: $errors/$total
+EOF
+
+if [[ "$errors" = 0 ]]; then
+  exit 0
+else
+  exit 1
+fi

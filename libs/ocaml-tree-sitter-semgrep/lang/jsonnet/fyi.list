@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-jsonnet/LICENSE
+semgrep-grammars/src/tree-sitter-jsonnet/grammar.js
+semgrep-grammars/src/semgrep-jsonnet/grammar.js

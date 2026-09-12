@@ -1,0 +1,574 @@
+====================
+Semgrep Ellipsis
+====================
+
+...
+
+---
+
+(source_file
+  (semgrep_expression
+    (ellipsis)))
+
+========================
+Semgrep Metavariables
+========================
+
+call(..., $VAR)
+
+---
+
+(source_file
+  (semgrep_expression
+    (call_expr
+      (name_access_chain
+        (identifier))
+      (call_args
+        (ellipsis)
+        (var
+          (name_access_chain
+            (identifier)))))))
+
+====
+Semgrep Statement
+====
+
+let _: u64 = if (cond) { ... } else { s2 + <... $...SOME ...> }.f;
+
+---
+
+(source_file
+  (semgrep_statement
+    (let_expr
+      (bind_list
+        (var_name
+          (identifier)))
+      (type
+        (primitive_type
+          (number_type)))
+      (access_field
+        (if_expr
+          (parenthesized_expr
+            (var
+              (name_access_chain
+                (identifier))))
+          (block
+            (ellipsis))
+          (block
+            (bin_op_expr
+              (var
+                (name_access_chain
+                  (identifier)))
+              (binary_operator)
+              (deep_ellipsis
+                (var
+                  (name_access_chain
+                    (identifier)))))))
+        (identifier)))))
+
+
+=========
+struct
+=========
+
+module 0xdeadbeef::mod {
+    struct $STRUCT has key {
+        ...
+    }
+}
+
+---
+
+(source_file
+    (module
+    (numerical_addr
+        (number))
+    (identifier)
+    (declaration
+        (struct_decl
+        (identifier)
+        (abilities
+            (ability))
+        (body
+            (field_annot
+            (ellipsis)))))))
+
+=======================
+Spec with attributes
+=======================
+
+module 0xdeadbeef::mod {
+    use 0x1::xx::...;
+    #[..., attr(...)]
+    spec module {
+        fun spec_incr(x: num): num { ... }
+        axiom forall x: num: (...);
+        ...
+    }
+}
+---
+
+(source_file
+  (module
+    (numerical_addr
+      (number))
+    (identifier)
+    (declaration
+      (use_decl
+        (module_ident
+          (numerical_addr
+            (number))
+          (identifier))
+        (member
+          (ellipsis))))
+    (declaration
+      (attributes
+        (attribute
+          (ellipsis))
+        (attribute
+          (identifier)
+          (attribute
+            (ellipsis))))
+      (spec_block
+        (spec_block_target)
+        (spec_func
+          (identifier)
+          (parameters
+            (parameter
+              (identifier)
+              (type
+                (name_access_chain
+                  (identifier)))))
+          (type
+            (name_access_chain
+              (identifier)))
+          (block
+            (ellipsis)))
+        (spec_axiom
+          (quantifier
+            (quantifier_bind
+              (identifier)
+              (type
+                (name_access_chain
+                  (identifier))))
+            (tuple_expr
+              (ellipsis))))
+        (ellipsis)))))
+
+=======================
+Typed Metavariables
+=======================
+
+call(arr1, arr2, ($VAR: u32), $VAR2)
+
+---
+(source_file
+  (semgrep_expression
+    (call_expr
+      (name_access_chain
+        (identifier))
+      (call_args
+        (var
+          (name_access_chain
+            (identifier)))
+        (var
+          (name_access_chain
+            (identifier)))
+        (typed_metavariable
+          (identifier)
+          (type
+            (primitive_type
+              (number_type))))
+        (var
+          (name_access_chain
+            (identifier)))))))
+
+=======================
+Type Parameters & Arguments; Struct Bind Field & Pack Field; For Ellipsis
+=======================
+
+module 0xdeadbeef::mod {
+    struct $STRUCT<$T1, ...> has key {
+        ...
+    }
+
+    fun $FUN() {
+        let $STRUCT<u32, ..., $T1> { ... } = Struct2 {
+            ...,
+            field1: $VAR,
+            $VAR2,
+        };
+
+        for (...) { ... }
+    }
+}
+
+---
+
+(source_file
+  (module
+    (numerical_addr
+      (number))
+    (identifier)
+    (declaration
+      (struct_decl
+        (identifier)
+        (type_params
+          (type_param
+            (type_param
+              (identifier)))
+          (type_param
+            (type_param
+              (ellipsis))))
+        (abilities
+          (ability))
+        (body
+          (field_annot
+            (ellipsis)))))
+    (declaration
+      (function_decl
+        (identifier)
+        (parameters)
+        (block
+          (let_expr
+            (bind_list
+              (name_access_chain
+                (identifier))
+              (type_args
+                (type
+                  (primitive_type
+                    (number_type)))
+                (type
+                  (ellipsis))
+                (type
+                  (name_access_chain
+                    (identifier))))
+              (fields
+                (bind_field
+                  (ellipsis))))
+            (pack_expr
+              (name_access_chain
+                (identifier))
+              (expr_field
+                (ellipsis))
+              (expr_field
+                (identifier)
+                (var
+                  (name_access_chain
+                    (identifier))))
+              (expr_field
+                (shorthand_field_identifier))))
+          (for_loop_expr
+            (ellipsis)
+            (block
+              (ellipsis))))))))
+
+=======================
+Function Call with Type Arguments
+=======================
+
+{
+    borrow_global_mut<Locks<CoinType>>(...);
+    exists<...> (...);
+    test_fun<..., $T1, ...> (...);
+}
+
+---
+
+(source_file
+  (semgrep_expression
+    (block
+      (call_expr
+        (name_access_chain
+          (identifier))
+        (type_args
+          (type
+            (name_access_chain
+              (identifier))
+            (type_args
+              (type
+                (name_access_chain
+                  (identifier))))))
+        (call_args
+          (ellipsis)))
+      (call_expr
+        (name_access_chain
+          (discouraged_name))
+        (type_args
+          (type
+            (ellipsis)))
+        (call_args
+          (ellipsis)))
+      (call_expr
+        (name_access_chain
+          (identifier))
+        (type_args
+          (type
+            (ellipsis))
+          (type
+            (name_access_chain
+              (identifier)))
+          (type
+            (ellipsis)))
+        (call_args
+          (ellipsis))))))
+
+=======================
+Let Expression Match
+=======================
+
+let test::Token { ... } = $VAR
+
+---
+
+(source_file
+  (semgrep_expression
+    (let_expr
+      (bind_list
+        (name_access_chain
+          (identifier)
+          (identifier))
+        (fields
+          (bind_field
+            (ellipsis))))
+      (var
+        (name_access_chain
+          (identifier))))))
+
+=======================
+Let Expr 2
+=======================
+
+let Lock { coins, $VAR2: ..., } = ...
+
+---
+
+(source_file
+  (semgrep_expression
+    (let_expr
+      (bind_list
+        (name_access_chain
+          (identifier))
+        (fields
+          (bind_field
+            (shorthand_field_identifier
+              (identifier)))
+          (bind_field
+            (var_name
+              (identifier))
+            (ellipsis))))
+      (ellipsis))))
+
+=======================
+Multiline Statements 1
+=======================
+
+...
+...
+
+---
+
+(source_file
+  (semgrep_statement
+    (ellipsis)
+    (ellipsis)))
+
+=======================
+Multiline Statements 2
+=======================
+
+{
+  let t = 100;
+  ...
+  t
+}
+
+---
+
+(source_file
+  (semgrep_expression
+    (block
+      (let_expr
+        (bind_list
+          (var_name
+            (identifier)))
+        (value
+          (number)))
+      (ellipsis)
+      (var
+        (name_access_chain
+          (identifier))))))
+
+=======================
+Script
+=======================
+
+script {
+  ...
+  use std::vec::{...};
+  ...
+  const aa: u32 = ...;
+  ...
+  spec { ... }
+  ...
+}
+---
+
+(source_file
+  (script
+    (declaration
+      (ellipsis))
+    (declaration
+      (use_decl
+        (module_ident
+          (identifier)
+          (identifier))
+        (member
+          (ellipsis))))
+    (declaration
+      (ellipsis))
+    (declaration
+      (constant_decl
+        (identifier)
+        (type
+          (primitive_type
+            (number_type)))
+        (ellipsis)))
+    (declaration
+      (ellipsis))
+    (declaration
+      (spec_block
+        (ellipsis)))
+    (declaration
+      (ellipsis))))
+
+=======================
+Address Block
+=======================
+
+address $ADDR {
+  ...
+  module $MOD { ... }
+  ...
+}
+---
+
+(source_file
+  (address_block
+    (identifier)
+    (ellipsis)
+    (module
+      (identifier)
+      (declaration
+        (ellipsis)))
+    (ellipsis)))
+
+
+=======================
+More Ellipsis in Field Access
+=======================
+
+let $LEFT = <... $OBJ ...>.inner;
+let $LEFT2 = ... . ... . ...;
+let $LEFT3 = ... . ... .func(...);
+
+---
+
+(source_file
+  (semgrep_statement
+    (let_expr
+      (bind_list
+        (var_name
+          (identifier)))
+      (access_field
+        (deep_ellipsis
+          (var
+            (name_access_chain
+              (identifier))))
+        (identifier)))
+    (let_expr
+      (bind_list
+        (var_name
+          (identifier)))
+      (field_access_ellipsis_expr
+        (field_access_ellipsis_expr
+          (ellipsis)
+          (ellipsis))
+        (ellipsis)))
+    (let_expr
+      (bind_list
+        (var_name
+          (identifier)))
+      (receiver_call
+        (field_access_ellipsis_expr
+          (ellipsis)
+          (ellipsis))
+        (identifier)
+        (call_args
+          (ellipsis))))))
+
+=======================
+Vector Expression
+=======================
+
+let vec_val = vector[...];
+let copied = vec_val[0] + vector[1][0];
+
+let vec_2 = vector[1, 2, 3];
+
+---
+
+(source_file
+  (semgrep_statement
+    (let_expr
+      (bind_list
+        (var_name
+          (identifier)))
+      (vector_value_expr
+        (ellipsis)))
+    (let_expr
+      (bind_list
+        (var_name
+          (identifier)))
+      (bin_op_expr
+        (mem_access
+          (var
+            (name_access_chain
+              (identifier)))
+          (value
+            (number)))
+        (binary_operator)
+        (mem_access
+          (vector_value_expr
+            (value
+              (number)))
+          (value
+            (number)))))
+    (let_expr
+      (bind_list
+        (var_name
+          (identifier)))
+      (vector_value_expr
+        (value
+          (number))
+        (value
+          (number))
+        (value
+          (number))))))
+
+=======================
+Return Expression
+=======================
+
+return | a;
+
+---
+
+(source_file
+  (semgrep_statement
+    (bin_op_expr
+      (return_expr)
+      (binary_operator)
+      (var
+        (name_access_chain
+          (identifier))))))

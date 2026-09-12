@@ -1,0 +1,416 @@
+========================
+Match on metavariable with metavariable case
+========================
+
+__SEMGREP_EXPRESSION $X match { case $P => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (identifier)
+          (semgrep_metavariable))))))
+
+========================
+Match with ellipsis between cases
+========================
+
+__SEMGREP_EXPRESSION $X match { case $A => $B; ...; case $C => $D }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (identifier)
+          (semgrep_metavariable)
+          (semgrep_ellipsis))
+        (case_clause
+          (identifier)
+          (semgrep_metavariable))))))
+
+========================
+Match with ellipsis as catch-all pattern
+========================
+
+__SEMGREP_EXPRESSION $X match { case ... => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (semgrep_ellipsis)
+          (semgrep_metavariable))))))
+
+========================
+Case clause with wildcard
+========================
+
+__SEMGREP_EXPRESSION $X match { case _ => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (wildcard)
+          (semgrep_metavariable))))))
+
+========================
+Case class pattern with metavariables
+========================
+
+__SEMGREP_EXPRESSION $X match { case Point($A, $B) => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (case_class_pattern
+            (type_identifier)
+            (identifier)
+            (identifier))
+          (semgrep_metavariable))))))
+
+========================
+Case class pattern with metavariable type
+========================
+
+__SEMGREP_EXPRESSION $X match { case $CLS($A, $B) => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (case_class_pattern
+            (type_identifier)
+            (identifier)
+            (identifier))
+          (semgrep_metavariable))))))
+
+========================
+Case class pattern with ellipsis
+========================
+
+__SEMGREP_EXPRESSION $X match { case Foo(...) => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (case_class_pattern
+            (type_identifier)
+            (semgrep_ellipsis))
+          (semgrep_metavariable))))))
+
+========================
+Typed pattern with metavariable
+========================
+
+__SEMGREP_EXPRESSION $X match { case $V: Int => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (typed_pattern
+            (identifier)
+            (type_identifier))
+          (semgrep_metavariable))))))
+
+========================
+Typed pattern with metavariable type
+========================
+
+__SEMGREP_EXPRESSION $X match { case $V: $T => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (typed_pattern
+            (identifier)
+            (type_identifier))
+          (semgrep_metavariable))))))
+
+========================
+Capture pattern with metavariable
+========================
+
+__SEMGREP_EXPRESSION $X match { case $N @ $P => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (capture_pattern
+            (identifier)
+            (identifier))
+          (semgrep_metavariable))))))
+
+========================
+Infix pattern: cons cell
+========================
+
+__SEMGREP_EXPRESSION $X match { case $H :: $T => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (infix_pattern
+            (identifier)
+            (operator_identifier)
+            (identifier))
+          (semgrep_metavariable))))))
+
+========================
+Alternative pattern with metavariables
+========================
+
+__SEMGREP_EXPRESSION $X match { case $A | $B => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (alternative_pattern
+            (identifier)
+            (identifier))
+          (semgrep_metavariable))))))
+
+========================
+Tuple pattern with metavariables
+========================
+
+__SEMGREP_EXPRESSION $X match { case ($A, $B) => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (tuple_pattern
+            (identifier)
+            (identifier))
+          (semgrep_metavariable))))))
+
+========================
+Tuple pattern with ellipsis
+========================
+
+__SEMGREP_EXPRESSION $X match { case ($A, ...) => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (tuple_pattern
+            (identifier)
+            (semgrep_ellipsis))
+          (semgrep_metavariable))))))
+
+========================
+Guard with metavariable condition
+========================
+
+__SEMGREP_EXPRESSION $X match { case $V if $COND => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (identifier)
+          (guard
+            (semgrep_metavariable))
+          (semgrep_metavariable))))))
+
+========================
+Guard with complex condition
+========================
+
+__SEMGREP_EXPRESSION $X match { case $V if $V > $THRESHOLD => $R }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (identifier)
+          (guard
+            (infix_expression
+              (semgrep_metavariable)
+              (operator_identifier)
+              (semgrep_metavariable)))
+          (semgrep_metavariable))))))
+
+========================
+Case clause with ellipsis body
+========================
+
+__SEMGREP_EXPRESSION $X match { case $P => ... }
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (identifier)
+          (semgrep_ellipsis))))))
+
+========================
+Case clause with multi-statement ellipsis body
+========================
+
+__SEMGREP_EXPRESSION $X match {
+  case $P =>
+    setup()
+    ...
+    result
+}
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (identifier)
+          (call_expression
+            (identifier)
+            (arguments))
+          (semgrep_ellipsis)
+          (identifier))))))
+
+========================
+Multiple cases with ellipsis between
+========================
+
+__SEMGREP_EXPRESSION $X match {
+  case Foo($A) => $R1
+  ...
+  case Bar($B) => $R2
+}
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (case_class_pattern
+            (type_identifier)
+            (identifier))
+          (semgrep_metavariable)
+          (semgrep_ellipsis))
+        (case_clause
+          (case_class_pattern
+            (type_identifier)
+            (identifier))
+          (semgrep_metavariable))))))
+
+========================
+Pattern matching in for enumerator
+========================
+
+__SEMGREP_EXPRESSION for (case $P <- $COLL) yield $R
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (for_expression
+      (enumerators
+        (enumerator
+          (identifier)
+          (semgrep_metavariable)))
+      (semgrep_metavariable))))
+
+========================
+Try-catch with case class pattern
+========================
+
+__SEMGREP_STATEMENT
+try { ... } catch { case $E: $EXC_TYPE => $HANDLER }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (try_expression
+      (block
+        (semgrep_ellipsis))
+      (catch_clause
+        (case_block
+          (case_clause
+            (typed_pattern
+              (identifier)
+              (type_identifier))
+            (semgrep_metavariable)))))))

@@ -1,0 +1,391 @@
+=====================================
+Metavariables
+=====================================
+
+class $CLASS {
+    fun $FOO($VAR:$TYPE) {
+        foo($X, 2)
+    }
+}
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (function_declaration
+        (simple_identifier)
+        (function_value_parameters
+          (parameter
+            (simple_identifier)
+            (user_type
+              (type_identifier))))
+        (function_body
+          (statements
+            (call_expression
+              (simple_identifier)
+              (call_suffix
+                (value_arguments
+                  (value_argument
+                    (simple_identifier))
+                  (value_argument
+                    (integer_literal)))))))))))
+
+=====================================
+Typed Metavariables
+=====================================
+
+val x = ($X : int)
+
+---
+
+(source_file
+  (property_declaration
+    (binding_pattern_kind)
+    (variable_declaration
+      (simple_identifier))
+    (typed_metavar
+      (simple_identifier)
+      (user_type
+        (type_identifier)))))
+
+=====================================
+Ellipsis Metavariable
+=====================================
+
+$...X
+val x = 2
+
+---
+
+(source_file
+  (semgrep_named_ellipsis)
+  (property_declaration
+    (binding_pattern_kind)
+    (variable_declaration
+      (simple_identifier))
+    (integer_literal)))
+
+=====================================
+Expression Ellipsis
+=====================================
+
+class Foo {
+  fun bar() {
+    ...
+  }
+}
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (function_declaration
+        (simple_identifier)
+        (function_value_parameters)
+        (function_body
+          (statements
+            (ellipsis)))))))
+
+=====================================
+Deep Ellipsis
+=====================================
+
+class Foo {
+    fun bar() {
+        val x = foo2(<...var...>,var2)
+    }
+}
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (function_declaration
+        (simple_identifier)
+        (function_value_parameters)
+        (function_body
+          (statements
+            (property_declaration
+              (binding_pattern_kind)
+              (variable_declaration
+                (simple_identifier))
+              (call_expression
+                (simple_identifier)
+                (call_suffix
+                  (value_arguments
+                    (value_argument
+                      (deep_ellipsis
+                        (simple_identifier)))
+                    (value_argument
+                      (simple_identifier))))))))))))
+
+=====================================
+Field Ellipsis
+=====================================
+class Foo {
+  ...
+}
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (ellipsis))))
+
+=====================================
+Argument Ellipsis
+=====================================
+foo(1, ..., 2)
+
+---
+
+(source_file
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (integer_literal))
+        (value_argument
+          (ellipsis))
+        (value_argument
+          (integer_literal))))))
+
+=====================================
+Parameter Ellipsis
+=====================================
+fun foo(..., bar: String, ...) {}
+
+---
+
+(source_file
+  (function_declaration
+    (simple_identifier)
+    (function_value_parameters
+      (ellipsis)
+      (parameter
+        (simple_identifier)
+        (user_type
+          (type_identifier)))
+      (ellipsis))
+    (function_body)))
+
+=====================================
+Class Parameter Ellipsis
+=====================================
+class Foo(...) : Filter {
+}
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (primary_constructor
+      (class_parameter
+        (ellipsis)))
+    (delegation_specifier
+      (user_type
+        (type_identifier)))
+    (class_body)))
+
+=====================================
+Statement Ellipsis
+=====================================
+fun foo() {
+  a()
+  ...
+  b()
+}
+
+---
+
+(source_file
+  (function_declaration
+    (simple_identifier)
+    (function_value_parameters)
+    (function_body
+      (statements
+        (call_expression
+          (simple_identifier)
+          (call_suffix
+            (value_arguments)))
+        (ellipsis)
+        (call_expression
+          (simple_identifier)
+          (call_suffix
+            (value_arguments)))))))
+
+=====================================
+Statement Ellipsis and metavarible
+=====================================
+
+$COOKIE.setValue("")
+...
+
+---
+
+(source_file
+  (call_expression
+    (navigation_expression
+      (simple_identifier)
+      (navigation_suffix
+        (simple_identifier)))
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (string_literal)))))
+  (ellipsis))
+
+=====================================
+Method chaining Ellipsis
+=====================================
+obj. ... .foo().bar()
+
+---
+
+(source_file
+  (call_expression
+    (navigation_expression
+      (call_expression
+        (navigation_expression
+          (navigation_expression
+            (simple_identifier)
+            (navigation_suffix
+              (ellipsis)))
+          (navigation_suffix
+            (simple_identifier)))
+        (call_suffix
+          (value_arguments)))
+      (navigation_suffix
+        (simple_identifier)))
+    (call_suffix
+      (value_arguments))))
+
+===========================================
+Expression with 'constructor' as identifier
+===========================================
+
+allArgs.map { args ->
+  constructor.call(args.internalContext, args.objectValue)
+}
+
+---
+
+(source_file
+  (call_expression
+    (navigation_expression
+      (simple_identifier)
+      (navigation_suffix
+        (simple_identifier)))
+    (call_suffix
+      (annotated_lambda
+        (lambda_literal
+          (lambda_parameters
+            (variable_declaration
+              (simple_identifier)))
+          (statements
+            (call_expression
+              (navigation_expression
+                (simple_identifier)
+                (navigation_suffix
+                  (simple_identifier)))
+              (call_suffix
+                (value_arguments
+                  (value_argument
+                    (navigation_expression
+                      (simple_identifier)
+                      (navigation_suffix
+                        (simple_identifier))))
+                  (value_argument
+                    (navigation_expression
+                      (simple_identifier)
+                      (navigation_suffix
+                        (simple_identifier)))))))))))))
+
+=====================================
+Class with a newline
+=====================================
+
+class BlahClass
+constructor(arg: Int) {
+  private val blah2 = "foo${arg}"
+}
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (primary_constructor
+      (class_parameter
+        (simple_identifier)
+        (user_type
+          (type_identifier))))
+    (class_body
+      (property_declaration
+        (modifiers
+          (visibility_modifier))
+        (binding_pattern_kind)
+        (variable_declaration
+          (simple_identifier))
+        (string_literal
+          (string_content)
+          (interpolated_expression
+            (simple_identifier)))))))
+
+=====================================
+Class in a class
+=====================================
+
+class Foo {
+  class BlahClass
+  constructor(arg: Int) {
+    private val blah2 = "foo${arg}"
+  }
+}
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (class_declaration
+        (type_identifier)
+        (primary_constructor
+          (class_parameter
+            (simple_identifier)
+            (user_type
+              (type_identifier))))
+        (class_body
+          (property_declaration
+            (modifiers
+              (visibility_modifier))
+            (binding_pattern_kind)
+            (variable_declaration
+              (simple_identifier))
+            (string_literal
+              (string_content)
+              (interpolated_expression
+                (simple_identifier)))))))))
+
+=====================================
+Class without body
+=====================================
+
+class Foo
+
+---
+
+(source_file
+  (class_declaration
+    (type_identifier)))

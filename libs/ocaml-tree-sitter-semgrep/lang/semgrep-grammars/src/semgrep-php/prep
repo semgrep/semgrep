@@ -1,0 +1,31 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files for PHP parsers.
+#
+set -eu -o pipefail
+
+echo `pwd`
+
+# Put all the C files in the same folder to facilitate packaging
+# for ocaml/dune.
+mkdir -p php/src
+ln -sf ../../common/scanner.h php/src
+cat ../tree-sitter-php/php/src/scanner.c \
+  | sed -e 's:"../../common/scanner.h":"scanner.h":' \
+  > php/src/scanner.c
+
+mkdir -p php_only/src
+ln -sf ../../common/scanner.h php_only/src
+cat ../tree-sitter-php/php_only/src/scanner.c \
+  | sed -e 's:"../../common/scanner.h":"scanner.h":' \
+  > php_only/src/scanner.c
+
+mkdir -p php/corpus
+rm -f php/corpus/inherited
+ln -sf ../../../tree-sitter-php/test/corpus \
+   php/corpus/inherited
+
+mkdir -p php_only/corpus
+rm -f php_only/corpus/inherited
+ln -sf ../../../tree-sitter-php/test/corpus \
+   php_only/corpus/inherited

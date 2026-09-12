@@ -1,0 +1,51 @@
+// JavaScript grammar recovered from JSON by 'ocaml-tree-sitter to-js'
+module.exports = grammar({
+  name: "implicit_extra",
+  externals: $ => [
+  ],
+  conflicts: $ => [
+  ],
+  inline: $ => [
+  ],
+  precedences: $ => [
+  ],
+  supertypes: $ => [
+  ],
+  extras: $ => [
+    $.comma,
+    $.period,
+    "\n"
+  ],
+  rules: {
+    program: $ => $.foos,
+    foos: $ => seq(
+      $.foo,
+      repeat(
+        seq(
+          choice(
+            alias(
+              $.comma,
+              $.comma_explicit_
+            ),
+            alias(
+              $.period,
+              $.period_explicit
+            ),
+            $.semi
+          ),
+          $.foo
+        )
+      )
+    ),
+    foo: $ => "foo",
+    comma: $ => ",",
+    semi: $ => ";",
+    period: $ => ".",
+    comma_explicit: $ => "unused",
+    dummy_alias0: $ => "unused",
+    period_explicit: $ => "" /* blank */,
+    comma_explicit_: $ => "" /* blank */,
+    dummy_alias0_: $ => $.period,
+    dummy_alias1: $ => $.comma
+  }
+});

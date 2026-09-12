@@ -1,0 +1,791 @@
+====================
+Semgrep Ellipsis
+====================
+
+...
+
+---
+
+(source_file
+  (semgrep_expression
+          (ellipsis)))
+========================
+Semgrep Metavariables
+========================
+
+call(..., $VAR)
+
+---
+
+(source_file
+  (semgrep_expression
+    (call_expression
+      (module_access
+        (identifier))
+      (arg_list
+        (ellipsis)
+        (name_expression
+          (module_access
+            (identifier)))))))
+
+====
+Semgrep Statement
+====
+
+let _: u64 = if (cond) { ... } else { s2 + <... $...SOME ...> }.f;
+
+---
+
+(source_file
+  (semgrep_statement
+    (block_item
+    (let_statement
+      (bind_list
+        (bind_var
+          (variable_identifier)))
+      (primitive_type)
+      (if_expression
+        (name_expression
+          (module_access
+            (identifier)))
+          (block
+            (ellipsis))
+          (access_field
+            (block
+              (binary_expression
+                (name_expression
+                  (module_access
+                    (identifier)))
+                (binary_operator)
+                (deep_ellipsis
+                    (name_expression
+                        (module_access
+                          (identifier))))))
+                  (name_expression
+                  (module_access
+                    (identifier)))))))))
+
+=========
+struct
+=========
+
+module 0xdeadbeef::mod {
+    struct $STRUCT has key {
+        ...
+    }
+}
+
+---
+
+(source_file
+        (module_definition
+        (module_identity
+          (num_literal
+            (untyped_num_literal))
+          (module_identifier))
+        (module_body
+          (struct_definition
+            (struct_identifier)
+            (ability_decls
+                 (ability))
+            (datatype_fields
+              (named_fields
+                (field_annotation
+                  (ellipsis))))))))
+
+
+=======================
+Typed Metavariables
+=======================
+
+call(arr1, arr2, ($VAR: u32), $VAR2)
+
+---
+(source_file
+  (semgrep_expression
+    (call_expression
+       (module_access
+        (identifier))
+        (arg_list
+          (name_expression
+            (module_access
+            (identifier)))
+           (name_expression
+            (module_access
+            (identifier)))
+        (typed_metavariable
+          (identifier)
+            (primitive_type))
+            (name_expression
+              (module_access
+                (identifier)))))))
+
+=======================
+Type Parameters & Arguments; Struct Bind Field & Pack Field; For Ellipsis
+=======================
+
+module 0xdeadbeef::mod {
+    struct $STRUCT<$T1, ...> has key {
+        ...
+    }
+
+    fun $FUN() {
+        let $STRUCT<u32, ..., $T1> { ... } = Struct2 {
+            ...,
+            field1: $VAR,
+            $VAR2,
+        };
+
+        while (...) { ... }
+    }
+}
+
+---
+
+(source_file
+  (module_definition
+          (module_identity
+            (num_literal
+              (untyped_num_literal))
+            (module_identifier))
+          (module_body
+            (struct_definition
+              (struct_identifier)
+              (type_parameters
+                (type_parameter
+                  (type_parameter_identifier))
+                (type_parameter
+                  (ellipsis)))
+              (ability_decls
+                  (ability))
+            (datatype_fields
+              (named_fields
+                (field_annotation
+                  (ellipsis)))))
+          (function_definition
+            (function_identifier)
+            (function_parameters)
+
+             (block
+              (block_item
+                (let_statement
+                  (bind_list
+                    (bind_unpack
+                      (module_access
+                        (identifier))
+                      (type_arguments
+                        (primitive_type)
+                        (ellipsis)
+                        (apply_type
+                          (module_access
+                            (identifier))))
+                      (bind_fields
+                        (bind_named_fields
+                          (bind_field
+                            (ellipsis))))))
+                  (pack_expression
+                    (module_access
+                      (identifier))
+                    (field_initialize_list
+                      (exp_field
+                        (ellipsis))
+                      (exp_field
+                        (field_identifier)
+                        (name_expression
+                          (module_access
+                            (identifier))))
+                      (exp_field
+                        (field_identifier))))))
+              (while_expression
+                (ellipsis)
+                (block
+                  (ellipsis))))))))
+
+=======================
+Function Call with Type Arguments
+=======================
+
+{
+    borrow_global_mut<Locks<CoinType>>(...);
+    exists<...> (...);
+    cat<...> (...);
+
+    test_fun<..., $T1, ...> (...);
+}
+
+---
+
+(source_file
+  (semgrep_expression
+    (block
+      (block_item
+        (call_expression
+          (module_access
+            (identifier))
+          (type_arguments
+            (apply_type
+              (module_access
+                (identifier))
+              (type_arguments
+                (apply_type
+                  (module_access
+                    (identifier))))))
+
+        (arg_list
+          (ellipsis))))
+    (block_item
+      (call_expression
+        (module_access
+          (identifier))
+        (type_arguments
+          (ellipsis))
+        (arg_list
+           (ellipsis))))
+    (block_item
+            (call_expression
+              (module_access
+                (identifier))
+              (type_arguments
+                   (ellipsis))
+              (arg_list
+                (ellipsis))))
+          (block_item
+            (call_expression
+              (module_access
+                (identifier))
+              (type_arguments
+
+                (ellipsis)
+                (apply_type
+                  (module_access
+                    (identifier)))
+                (ellipsis))
+              (arg_list
+                (ellipsis)))))))
+
+
+=======================
+Let Expression Match
+=======================
+
+let test::Token { ... } = $VAR
+
+---
+
+(source_file
+  (semgrep_expression
+    (let_statement
+      (bind_list
+        (bind_unpack
+              (module_access
+                (module_identifier)
+                (identifier))
+              (bind_fields
+                (bind_named_fields
+                  (bind_field
+                    (ellipsis))))))
+          (name_expression
+            (module_access
+
+          (identifier))))))
+
+=======================
+Let Expr 2
+=======================
+
+let Lock { coins, $VAR2: ..., } = ...
+
+---
+
+(source_file
+  (semgrep_expression
+    (let_statement
+      (bind_list
+    (bind_unpack
+
+      (module_access
+        (identifier))
+      (bind_fields
+        (bind_named_fields
+          (bind_field
+            (name_expression
+            (module_access
+              (identifier))))
+          (bind_field
+            (name_expression
+              (module_access
+                (identifier)))
+                (ellipsis))))))
+          (ellipsis))))
+
+
+=======================
+Multiline Statements 1
+=======================
+
+...
+...
+
+---
+
+(source_file
+  (semgrep_statement
+    (block_item
+      (ellipsis))
+    (block_item
+      (ellipsis))))
+
+=======================
+Multiline Statements 2
+=======================
+
+{
+  let t = 100;
+  ...
+  t
+}
+
+---
+
+(source_file
+  (semgrep_expression
+    (block
+    (block_item
+      (let_statement
+        (bind_list
+          (bind_var
+            (variable_identifier)))
+        (num_literal
+          (typed_num_literal))))
+    (block_item
+      (ellipsis))
+    (name_expression
+            (module_access
+                          (identifier))))))
+
+
+=======================
+More Ellipsis in Field Access
+=======================
+
+
+let $LEFT = <... $OBJ ...>.inner;
+let $LEFT2 = ... . ... . ...;
+let $LEFT3 = ... . ... .func(...);
+
+---
+
+(source_file
+  (semgrep_statement
+    (block_item
+      (let_statement
+        (bind_list
+          (bind_var
+            (variable_identifier)))
+        (access_field
+          (deep_ellipsis
+            (name_expression
+              (module_access
+                (identifier))))
+              (name_expression
+                (module_access
+                  (identifier))))))
+
+    (block_item
+      (let_statement
+        (bind_list
+          (bind_var
+            (variable_identifier)))
+          (field_access_ellipsis_expr
+            (field_access_ellipsis_expr
+                    (ellipsis)
+                    (ellipsis))
+                  (ellipsis))))
+    (block_item
+      (let_statement
+        (bind_list
+          (bind_var
+            (variable_identifier)))
+        (receiver_call
+          (field_access_ellipsis_expr
+              (ellipsis)
+            (ellipsis))
+          (identifier)
+            (arg_list
+              (ellipsis)))))))
+
+
+
+=======================
+Dot Expressions
+=======================
+
+use 0xabcd::ff;
+...
+fun jwk_lt (a: &ActiveJwk, b: &ActiveJwk): bool {
+    if (&a.jwk_id.iss != &b.jwk_id.iss) {
+        return string_bytes_lt(&a.jwk_id.iss, &b.jwk_id.iss)
+    };
+    if (&a.jwk_id.kid != &b.jwk_id.kid) {
+        return string_bytes_lt(&a.jwk_id.kid, &b.jwk_id.kid)
+    };
+    if (&a.jwk.kty != &b.jwk.kty) {
+        return string_bytes_lt(&a.jwk.kty, &b.jwk.kty)
+    };
+    if (&a.jwk.e != &b.jwk.e) {
+        return string_bytes_lt(&a.jwk.e, &b.jwk.e)
+    };
+    if (&a.jwk.n != &b.jwk.n) {
+        return string_bytes_lt(&a.jwk.n, &b.jwk.n)
+    };
+    string_bytes_lt(&a.jwk.alg, &b.jwk.alg)
+}
+
+---
+
+    (source_file
+      (semgrep_statement
+        (use_declaration
+          (use_module
+            (module_identity
+              (num_literal
+                (untyped_num_literal))
+              (module_identifier))))
+        (block_item
+          (ellipsis))
+        (function_definition
+          (function_identifier)
+          (function_parameters
+            (function_parameter
+              (variable_identifier)
+              (ref_type
+                (apply_type
+                  (module_access
+                    (identifier)))))
+            (function_parameter
+              (variable_identifier)
+              (ref_type
+                (apply_type
+                  (module_access
+                    (identifier))))))
+          (ret_type
+            (primitive_type))
+          (block
+            (block_item
+              (if_expression
+                (borrow_expression
+                  (access_field
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (binary_expression
+                      (access_field
+                        (name_expression
+                          (module_access
+                            (identifier)))
+                        (name_expression
+                          (module_access
+                            (identifier))))
+                      (binary_operator)
+                      (borrow_expression
+                        (access_field
+                          (name_expression
+                            (module_access
+                              (identifier)))
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (name_expression
+                              (module_access
+                                (identifier)))))))))
+                (block
+                  (return_expression
+                    (call_expression
+                      (module_access
+                        (identifier))
+                      (arg_list
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))))))))
+            (block_item
+              (if_expression
+                (borrow_expression
+                  (access_field
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (binary_expression
+                      (access_field
+                        (name_expression
+                          (module_access
+                            (identifier)))
+                        (name_expression
+                          (module_access
+                            (identifier))))
+                      (binary_operator)
+                      (borrow_expression
+                        (access_field
+                          (name_expression
+                            (module_access
+                              (identifier)))
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (name_expression
+                              (module_access
+                                (identifier)))))))))
+                (block
+                  (return_expression
+                    (call_expression
+                      (module_access
+                        (identifier))
+                      (arg_list
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))))))))
+            (block_item
+              (if_expression
+                (borrow_expression
+                  (access_field
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (binary_expression
+                      (access_field
+                        (name_expression
+                          (module_access
+                            (identifier)))
+                        (name_expression
+                          (module_access
+                            (identifier))))
+                      (binary_operator)
+                      (borrow_expression
+                        (access_field
+                          (name_expression
+                            (module_access
+                              (identifier)))
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (name_expression
+                              (module_access
+                                (identifier)))))))))
+                (block
+                  (return_expression
+                    (call_expression
+                      (module_access
+                        (identifier))
+                      (arg_list
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))))))))
+            (block_item
+              (if_expression
+                (borrow_expression
+                  (access_field
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (binary_expression
+                      (access_field
+                        (name_expression
+                          (module_access
+                            (identifier)))
+                        (name_expression
+                          (module_access
+                            (identifier))))
+                      (binary_operator)
+                      (borrow_expression
+                        (access_field
+                          (name_expression
+                            (module_access
+                              (identifier)))
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (name_expression
+                              (module_access
+                                (identifier)))))))))
+                (block
+                  (return_expression
+                    (call_expression
+                      (module_access
+                        (identifier))
+                      (arg_list
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))))))))
+            (block_item
+              (if_expression
+                (borrow_expression
+                  (access_field
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (binary_expression
+                      (access_field
+                        (name_expression
+                          (module_access
+                            (identifier)))
+                        (name_expression
+                          (module_access
+                            (identifier))))
+                      (binary_operator)
+                      (borrow_expression
+                        (access_field
+                          (name_expression
+                            (module_access
+                              (identifier)))
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (name_expression
+                              (module_access
+                                (identifier)))))))))
+                (block
+                  (return_expression
+                    (call_expression
+                      (module_access
+                        (identifier))
+                      (arg_list
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))
+                        (borrow_expression
+                          (access_field
+                            (name_expression
+                              (module_access
+                                (identifier)))
+                            (access_field
+                              (name_expression
+                                (module_access
+                                  (identifier)))
+                              (name_expression
+                                (module_access
+                                  (identifier))))))))))))
+            (call_expression
+              (module_access
+                (identifier))
+              (arg_list
+                (borrow_expression
+                  (access_field
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (access_field
+                      (name_expression
+                        (module_access
+                          (identifier)))
+                      (name_expression
+                        (module_access
+                          (identifier))))))
+                (borrow_expression
+                  (access_field
+                    (name_expression
+                      (module_access
+                        (identifier)))
+                    (access_field
+                      (name_expression
+                        (module_access
+                          (identifier)))
+                      (name_expression
+                        (module_access
+                          (identifier))))))))))))

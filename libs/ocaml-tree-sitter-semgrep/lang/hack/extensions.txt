@@ -1,0 +1,11 @@
+# File extensions for the target language, one per line.
+#
+.hack
+.hh
+.hck
+
+# Some projects use the .php extension for files starting with '<?hh'.
+# Since we're not checking for this, it's safer to exclude the files
+# with the '.php' extension because they might contain PHP code
+# incompatible with Hack.
+# .php

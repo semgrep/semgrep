@@ -1,74 +1,87 @@
-// Builds the ocaml-tree-sitter code generator and runs its OCaml test suite.
-// Reusable from semgrep-proprietary
+// Builds the ocaml-tree-sitter code generator and runs its unit tests
+// Uses the Semgrep root ots-test-ocaml and ots-test-python targets.
+// Reusable from semgrep-proprietary.
+//
+// Python tests stay in this workflow (not main build-test): they need
+// per-pin tree-sitter CLIs under
+// core/tree-sitter-<v>/ beyond ordinary Semgrep `make setup`. See the
+// README "Python / ABI tests" section.
 
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
-local uses = import 'libs/uses.libsonnet';
+local lib = import 'ocaml-tree-sitter.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
 
-local trigger_paths(ots_dir) =
-  local core_dir = ots_dir + '/core';
-  [
-    core_dir + '/**',
-    core_dir,
-    // The gitlink itself: bumping the pinned submodule commit only changes
-    // this single path, not anything under core/.
-    ots_dir,
-    '.github/workflows/ocaml-tree-sitter-ci.yml',
-  ];
+// Relative to the OSS workflow tree. Pro prefixes these with OSS/.
+local workflow_paths = [
+  '.github/workflows/ocaml-tree-sitter-ci.yml',
+  '.github/workflows/ocaml-tree-sitter-ci.jsonnet',
+  '.github/workflows/ocaml-tree-sitter.libsonnet',
+];
+
+local trigger_paths(ots_dir, extra_paths=[]) =
+  std.set(
+    [
+      // Whole OTS tree: OCaml core, Python scripts, lang registry, Makefile.
+      ots_dir + '/**',
+    ]
+    + lib.for_tree(ots_dir).integration_paths
+    + workflow_paths
+    + extra_paths
+  );
 
 local build_job(ots_dir) =
-  local core_dir = ots_dir + '/core';
+  local ots = lib.for_tree(ots_dir);
   {
     'runs-on': 'ubuntu-latest',
-    // Only init the public ots submodule
     steps: actions.checkout() + [
-      {
-        name: 'Checkout ocaml-tree-sitter-semgrep submodule',
-        run: 'git submodule update --init --depth 1 %s' % ots_dir,
-      },
-      // This core/ build has its own opam files, entirely separate from the
-      // main semgrep switch, so it keys its cache off core/*.opam rather
-      // than semgrep.opam_setup's default (which hashes the top-level
-      // opam-lockfiles and would never invalidate when core/'s deps change).
-      {
-        uses: uses.semgrep.setup_ocaml,
-        with: {
-          'cache-prefix': "v5-${{ hashFiles('%s/*.opam') }}" % core_dir,
-          'ocaml-compiler': semgrep.opam_switch,
-          'opam-pin': false,
-          'save-opam-post-run': true,
-        },
-      },
-      // tree-sitter's CLI is built from source with cargo.
-      // libclang is needed for its Rust bindgen step.
-      // m4, pkg-config and cargo are built-into the image
-      {
-        name: 'Set up build tools',
-        run: |||
-          sudo apt-get update
-          sudo apt-get install -y libclang-dev
-        |||,
-      },
-      {
-        name: 'Setup',
-        'working-directory': ots_dir,
-        run: 'opam exec -- make setup',
-      },
-      {
-        name: 'Install',
-        'working-directory': ots_dir,
-        run: 'opam exec -- make install',
-      },
-      {
-        name: 'Test',
-        'working-directory': ots_dir,
-        run: 'opam exec -- make test',
-      },
-    ],
+             // Same compiler / lockfile cache / pinned opam-repository as main CI.
+             semgrep.opam_setup(),
+             // Same uv + Python helper as main Semgrep CI (python_version 3.12).
+             actions.setup_python_step(semgrep.python_version),
+             // tree-sitter's CLI is built from source with cargo.
+             // libclang is needed for its Rust bindgen step.
+             // m4, pkg-config and cargo are built-into the image
+             {
+               name: 'Set up build tools',
+               run: |||
+                 sudo apt-get update
+                 sudo apt-get install -y libclang-dev
+               |||,
+             },
+             ots.cache_id_step,
+             ots.restore_core_cache('-tests'),
+             {
+               name: 'Install repository dependencies',
+               'working-directory': ots_dir + '/../..',
+               run: 'opam exec -- make install-deps',
+             },
+             {
+               name: 'Build grammar tools',
+               'working-directory': ots_dir + '/../..',
+               run: 'opam exec -- make grammar-tools',
+             },
+             {
+               name: 'Test (OCaml)',
+               'working-directory': ots_dir + '/../..',
+               run: 'opam exec -- make ots-test-ocaml',
+             },
+             ots.save_core_cache('-tests'),
+           ]
+           // Cached CLI provisioning → core/tree-sitter-<v>/bin
+           // (same layout Python ABI/version tests resolve).
+           + ots.provision_tree_sitter_steps
+           + [
+             {
+               name: 'Test (Python)',
+               'working-directory': ots_dir + '/../..',
+               // Reuse the CLI development environment and lockfile.
+               run: 'make ots-test-python',
+             },
+           ],
   };
 
 // ----------------------------------------------------------------------------
@@ -93,5 +106,6 @@ local ots_dir = 'libs/ocaml-tree-sitter-semgrep';
     // reused in semgrep-pro
     build: build_job,
     trigger_paths: trigger_paths,
+    workflow_paths: workflow_paths,
   },
 }

@@ -1,0 +1,12 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+https://github.com/saoudrizwan/Dance
+https://github.com/146BC/StyleKit
+https://github.com/ReactKit/ReactKit
+https://github.com/delba/JASON
+https://github.com/Yalantis/Side-Menu.iOS
+https://github.com/C4Labs/C4iOS
+https://github.com/izqui/Taylor
+https://github.com/thoughtbot/Runes
+https://github.com/saidsikira/Overdrive
+https://github.com/delba/Tactile

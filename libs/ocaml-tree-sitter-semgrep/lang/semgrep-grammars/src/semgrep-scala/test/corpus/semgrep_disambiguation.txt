@@ -1,0 +1,249 @@
+========================
+Metavariable vs regular identifier
+========================
+
+// Metavariable starts with uppercase after $
+// $FOO is a metavariable; $foo is not
+$FOO
+$foo
+
+---
+
+(compilation_unit
+  (comment)
+  (comment)
+  (semgrep_metavariable)
+  (identifier))
+
+========================
+Ellipsis vs operator
+========================
+
+// ... is an ellipsis pattern; other uses of dots are field access
+$OBJ.field
+...
+
+---
+
+(compilation_unit
+  (comment)
+  (field_expression
+    (semgrep_metavariable)
+    (identifier))
+  (semgrep_ellipsis))
+
+========================
+Metavariable with numeric suffix
+========================
+
+$VAR1 + $VAR2
+
+---
+
+(compilation_unit
+  (infix_expression
+    (semgrep_metavariable)
+    (operator_identifier)
+    (semgrep_metavariable)))
+
+========================
+Metavariable case sensitivity
+========================
+
+$UPPER
+$Upper
+$upper
+
+---
+
+(compilation_unit
+  (semgrep_metavariable)
+  (semgrep_metavariable)
+  (identifier))
+
+========================
+Ellipsis in arguments vs no arguments
+========================
+
+foo()
+foo(...)
+
+---
+
+(compilation_unit
+  (call_expression
+    (identifier)
+    (arguments))
+  (call_expression
+    (identifier)
+    (arguments
+      (semgrep_ellipsis))))
+
+========================
+Ellipsis in string literal is not ellipsis pattern
+========================
+
+"..."
+...
+
+---
+
+(compilation_unit
+  (string)
+  (semgrep_ellipsis))
+
+========================
+Wildcard vs ellipsis in match
+========================
+
+// _ is the Scala wildcard; ... is the semgrep ellipsis
+$X match { case _ => 1 }
+$X match { case $P => ... }
+
+---
+
+(compilation_unit
+  (comment)
+  (match_expression
+    (semgrep_metavariable)
+    (case_block
+      (case_clause
+        (wildcard)
+        (integer_literal))))
+  (match_expression
+    (semgrep_metavariable)
+    (case_block
+      (case_clause
+        (identifier)
+        (semgrep_ellipsis)))))
+
+========================
+Deep expression vs comparison operators
+========================
+
+// < and > are operators; <... ...> is deep expression
+$A < $B
+<... $X ...>
+
+---
+
+(compilation_unit
+  (comment)
+  (infix_expression
+    (semgrep_metavariable)
+    (operator_identifier)
+    (semgrep_metavariable))
+  (deep_expression
+    (semgrep_metavariable)))
+
+========================
+Named ellipsis vs regular identifier
+========================
+
+$...ARGS
+$...args
+
+---
+
+(compilation_unit
+  (semgrep_ellipsis_metavariable)
+  (semgrep_ellipsis_metavariable))
+
+========================
+Empty block vs ellipsis block
+========================
+
+{}
+{ ... }
+
+---
+
+(compilation_unit
+  (block)
+  (block
+    (semgrep_ellipsis)))
+
+========================
+Metavariable in interpolated string is not a metavariable pattern
+========================
+
+// s"$FOO" uses Scala's string interpolation, not a semgrep metavariable
+s"hello $FOO"
+$FOO
+
+---
+
+(compilation_unit
+  (comment)
+  (interpolated_string_expression
+    (identifier)
+    (interpolated_string
+      (interpolation
+        (identifier))))
+  (semgrep_metavariable))
+
+========================
+Single dot field access vs triple dot ellipsis
+========================
+
+foo.bar
+...
+
+---
+
+(compilation_unit
+  (field_expression
+    (identifier)
+    (identifier))
+  (semgrep_ellipsis))
+
+========================
+Metavariable in type position
+========================
+
+val x: $T = 1
+
+---
+
+(compilation_unit
+  (val_definition
+    (identifier)
+    (type_identifier)
+    (integer_literal)))
+
+========================
+Ellipsis reuse same name
+========================
+
+$X + $X
+
+---
+
+(compilation_unit
+  (infix_expression
+    (semgrep_metavariable)
+    (operator_identifier)
+    (semgrep_metavariable)))
+
+========================
+Method call vs infix call disambiguation
+========================
+
+// Both are call forms in Scala
+foo.bar($X)
+foo bar $X
+
+---
+
+(compilation_unit
+  (comment)
+  (call_expression
+    (field_expression
+      (identifier)
+      (identifier))
+    (arguments
+      (semgrep_metavariable)))
+  (infix_expression
+    (identifier)
+    (identifier)
+    (semgrep_metavariable)))

@@ -1,0 +1,6 @@
+# Git URLs of publicly-accessible CFML projects for parsing stats
+https://github.com/coldbox-modules/cborm
+https://github.com/Ortus-Solutions/commandbox
+https://github.com/framework-one/fw1
+https://github.com/coldbox-modules/cbsecurity
+https://github.com/Ortus-Solutions/ContentBox

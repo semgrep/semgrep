@@ -1,0 +1,22 @@
+/tree-sitter-*
+/semgrep-*/**/binding.gyp
+/semgrep-*/**/index.js
+/semgrep-*/**/src
+/semgrep-*/**/inherited
+/semgrep-*/**/test.log
+
+# tree-sitter generate (in 0.22+) emits these binding scaffolds next to
+# the parser sources, even when --no-bindings is passed.
+/semgrep-*/**/.editorconfig
+/semgrep-*/**/.gitattributes
+/semgrep-*/**/.gitignore
+/semgrep-*/**/Package.swift
+/semgrep-*/**/pyproject.toml
+/semgrep-*/**/setup.py
+
+# semgrep-powershell's prep script rewrites the upstream grammar from
+# ESM to CJS into this file.
+/semgrep-powershell/grammar-base.js
+
+# sed -i -e backups left on macOS by prep scripts (e.g. semgrep-c-sharp-pro).
+**/*.js-e

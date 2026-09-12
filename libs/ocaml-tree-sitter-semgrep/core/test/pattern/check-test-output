@@ -1,0 +1,17 @@
+#! /usr/bin/env bash
+#
+# Check the parsing output.
+#
+set -eu -o pipefail
+
+error() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+# Should parse as high_prec, not low_prec:
+out=test.out/ok/a.cst
+if grep -q Blank "$out"; then
+  ./parse --output-json test/ok/a
+  error "Found 'Blank' in parsing output [$out]"
+fi
