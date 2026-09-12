@@ -1,0 +1,6 @@
+#
+# Extensions for TypeScript files that we parse. This includes
+# the extension .d.ts used to stick types on functions from external
+# javascript libraries.
+#
+.ts

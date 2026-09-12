@@ -1,0 +1,43 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+# This is a generic script shared among all the languages with a simple
+# setup.
+#
+set -eu -o pipefail
+
+name=$(basename "$(pwd)" | sed -e 's/semgrep-//')
+# Language prep scripts symlink here; resolve so this is src/, then up to ots.
+if [[ -z "${PROJECT_ROOT:-}" ]]; then
+  PROJECT_ROOT=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)
+fi
+clone=$(python3 "$PROJECT_ROOT/scripts/grammar_registry.py" clone-for-wrapper "$name")
+
+mkdir -p src
+(
+  cd src
+  rm -f scanner.c scanner.cc
+  scanner_c=../../tree-sitter-"$clone"/src/scanner.c
+  scanner_cc="$scanner_c"c
+  unicode_h=../../tree-sitter-"$clone"/src/unicode.h
+  if [[ -e "$scanner_c" ]]; then
+    ln -sf "$scanner_c" .
+  elif [[ -e "$scanner_cc" ]]; then
+    ln -sf "$scanner_cc" .
+  fi
+)
+
+mkdir -p test/corpus
+(
+  cd test/corpus
+  rm -f inherited
+  # The root of the tests is either 'test/corpus' or 'corpus' as per
+  # tree-sitter documentation.
+  for dir in test/corpus corpus; do
+    corpus=../../../tree-sitter-"$clone"/$dir
+    if [[ -e "$corpus" ]]; then
+      ln -sf "$corpus" inherited
+    fi
+  done
+)

@@ -1,0 +1,2 @@
+# promql has no extension really; this is just to make the tooling happy
+.promql

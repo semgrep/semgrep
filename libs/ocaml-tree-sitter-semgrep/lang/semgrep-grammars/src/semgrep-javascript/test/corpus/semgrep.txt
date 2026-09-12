@@ -1,0 +1,16 @@
+============================================
+Bare '>' among JSX element children
+============================================
+
+const x = <div>a > b</div>;
+
+---
+
+(program
+  (lexical_declaration (variable_declarator
+    (identifier)
+    (jsx_element
+      (jsx_opening_element (identifier))
+      (jsx_text)
+      (jsx_text)
+      (jsx_closing_element (identifier))))))

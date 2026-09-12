@@ -1,0 +1,14 @@
+# javascript
+semgrep-grammars/src/tree-sitter-javascript/LICENSE
+semgrep-grammars/src/tree-sitter-javascript/grammar.js
+
+# typescript, extends javascript
+semgrep-grammars/src/tree-sitter-typescript/LICENSE
+semgrep-grammars/src/tree-sitter-typescript/common/define-grammar.js
+semgrep-grammars/src/tree-sitter-typescript/typescript/grammar.js
+
+# semgrep extension of typescript
+semgrep-grammars/src/semgrep-typescript/typescript/grammar.js
+
+# tsx, extends javascript
+semgrep-grammars/src/tree-sitter-typescript/tsx/grammar.js

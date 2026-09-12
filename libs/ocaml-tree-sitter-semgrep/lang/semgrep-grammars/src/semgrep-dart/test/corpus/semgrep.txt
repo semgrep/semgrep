@@ -1,0 +1,150 @@
+================================================================================
+Metavariable
+================================================================================
+
+void $F() {
+  $X = 2;
+  return $Y;
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (function_signature
+    (void_type)
+    (identifier)
+    (formal_parameter_list))
+  (function_body
+    (block
+      (expression_statement
+        (assignment_expression
+          (assignable_expression
+            (identifier))
+          (decimal_integer_literal)))
+      (return_statement
+        (identifier)))))
+
+================================================================================
+Ellipsis in expressions
+================================================================================
+
+void main() {
+  foo(1, ..., 3);
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (function_signature
+    (void_type)
+    (identifier)
+    (formal_parameter_list))
+  (function_body
+    (block
+      (expression_statement
+        (identifier)
+        (selector
+          (argument_part
+            (arguments
+              (argument
+                (decimal_integer_literal))
+              (argument
+                (semgrep_ellipsis))
+              (argument
+                (decimal_integer_literal)))))))))
+
+================================================================================
+Ellipsis in parameters
+================================================================================
+
+void foo(...) {
+  foo(1);
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (function_signature
+    (void_type)
+    (identifier)
+    (formal_parameter_list
+      (formal_parameter
+        (semgrep_ellipsis))))
+  (function_body
+    (block
+      (expression_statement
+        (identifier)
+        (selector
+          (argument_part
+            (arguments
+              (argument
+                (decimal_integer_literal)))))))))
+
+================================================================================
+Ellipsis in statements
+================================================================================
+
+void foo(...) {
+  foo(1);
+  ...
+  bar(1);
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (function_signature
+    (void_type)
+    (identifier)
+    (formal_parameter_list
+      (formal_parameter
+        (semgrep_ellipsis))))
+  (function_body
+    (block
+      (expression_statement
+        (identifier)
+        (selector
+          (argument_part
+            (arguments
+              (argument
+                (decimal_integer_literal))))))
+      (expression_statement
+        (semgrep_ellipsis))
+      (expression_statement
+        (identifier)
+        (selector
+          (argument_part
+            (arguments
+              (argument
+                (decimal_integer_literal)))))))))
+
+================================================================================
+Standalone expression
+================================================================================
+
+__SEMGREP_EXPRESSION foo($X, 2)
+
+--------------------------------------------------------------------------------
+
+(program
+  (semgrep_expression
+    (identifier)
+    (selector
+      (argument_part
+        (arguments
+          (argument
+            (identifier))
+          (argument
+            (decimal_integer_literal)))))))
+
+================================================================================
+Standalone metavariable ellipsis
+================================================================================
+
+__SEMGREP_EXPRESSION $...X
+
+--------------------------------------------------------------------------------
+
+(program
+  (semgrep_expression
+    (semgrep_named_ellipsis)))

@@ -1,0 +1,26 @@
+(library
+ (public_name tree-sitter.run)
+ (name tree_sitter_run)
+ (libraries
+  ANSITerminal
+  atdgen-runtime
+  cmdliner
+  sexplib
+  tree-sitter.gen
+  tree-sitter.bindings))
+
+; atdgen preprocessing for json support
+
+(rule
+ (targets Tree_sitter_error_j.ml Tree_sitter_error_j.mli)
+ (deps Tree_sitter_error.atd)
+ (action
+  (run atdgen -j -j-std %{deps})))
+
+; atdgen preprocessing for json support
+
+(rule
+ (targets Tree_sitter_error_t.ml Tree_sitter_error_t.mli)
+ (deps Tree_sitter_error.atd)
+ (action
+  (run atdgen -t %{deps})))

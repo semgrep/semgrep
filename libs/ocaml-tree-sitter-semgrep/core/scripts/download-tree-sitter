@@ -1,0 +1,117 @@
+#! /usr/bin/env bash
+#
+# Download the tree-sitter sources into TARGET_DIR.
+#
+set -eu -o pipefail
+
+prog_name=$(basename "$0")
+
+error() {
+  echo "Current directory: $(pwd)" >&2
+  echo "Error: $@" >&2
+  exit 1
+}
+
+usage() {
+  cat <<EOF
+Download the tree-sitter sources to TARGET_DIR
+Usage: $prog_name TARGET_DIR [OPTIONS]
+Options:
+  --lazy
+      Don't re-download the tree-sitter archive if its folder already
+      exists locally for the specified version.
+  --help
+      Show this message and exit.
+EOF
+}
+
+target_dir="$1"
+
+shift
+lazy=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --lazy)
+      lazy=true
+      ;;
+    --help)
+      usage
+      exit 0
+      ;;
+    *)
+      error "Invalid argument passed to '${prog_name}': '$1'"
+  esac
+  shift
+done
+
+version=$(cat tree-sitter-version)
+
+# SHA-256 checksums for tree-sitter release tarballs.
+# Update this when bumping tree-sitter-version.
+# Verify against: https://github.com/tree-sitter/tree-sitter/releases
+expected_checksum() {
+  case "$1" in
+    0.20.8) echo "6181ede0b7470bfca37e293e7d5dc1d16469b9485d13f13a605baec4a8b1f791" ;;
+    0.22.6) echo "e2b687f74358ab6404730b7fb1a1ced7ddb3780202d37595ecd7b20a8f41861f" ;;
+    0.26.3) echo "7f4a7cf0a2cd217444063fe2a4d800bc9d21ed609badc2ac20c0841d67166550" ;;
+    *) error "No checksum registered for tree-sitter $1. Add one to expected_checksum in this script." ;;
+  esac
+}
+
+verify_checksum() {
+  local file="$1"
+  local expected="$2"
+  local actual
+  actual=$(sha256sum "$file" | cut -d' ' -f1)
+  if [ "$actual" != "$expected" ]; then
+    error "Checksum mismatch for $file! Expected: $expected Actual: $actual This may indicate a compromised download."
+  fi
+  echo "Checksum verified for $file."
+}
+
+echo "Downloading tree-sitter $version (lazy = $lazy)."
+src_dir=tree-sitter-"$version"
+if [[ "$lazy" = false && -d "$src_dir" ]]; then
+  echo "Removing previous copy of tree-sitter."
+  rm -rf "$src_dir"
+fi
+
+if [[ -d "$src_dir" ]]; then
+  cat <<EOF
+Re-using tree-sitter sources found locally:
+  $(pwd)/$src_dir
+EOF
+else
+  echo "Fetching tarball for tree-sitter-$version."
+  curl -LO https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v"$version".tar.gz
+
+  verify_checksum "v${version}.tar.gz" "$(expected_checksum "$version")"
+
+  tar xf v"$version".tar.gz
+  if [[ ! -d "$src_dir" ]]; then
+    error "Archive didn't unpack into the expected folder '$src_dir'."
+  fi
+
+  case "$version" in
+    0.20.8)
+    ;;
+    0.22.6)
+      # See feat: Windows support using MinGW-w64
+      # https://github.com/tree-sitter/tree-sitter/pull/4201
+      # https://github.com/tree-sitter/tree-sitter/pull/4203
+      patch -N -b \
+        -i patch/tree-sitter-"$version"/0001-Makefile-backports.patch \
+        "$src_dir"/Makefile
+      ;;
+    0.26.3)
+    ;;
+    *)
+      cat >&2 <<EOF
+*** tree-sitter version: $version
+*** Warning: tree-sitter 0.22.6 required patching the Makefile!
+*** Remove this code once we're fully migrated to a version > 0.25.1
+EOF
+  esac
+fi
+
+mv "$src_dir" "$target_dir"

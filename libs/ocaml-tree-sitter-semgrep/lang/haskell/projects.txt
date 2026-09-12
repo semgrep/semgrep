@@ -1,0 +1,34 @@
+#
+# Top haskell projects from GitHub, sorted by stars.
+# Created by /Users/brandonspark/ocaml-tree-sitter-semgrep/scripts/most-starred-for-language.
+#
+https://github.com/koalaman/shellcheck
+https://github.com/jgm/pandoc
+https://github.com/PostgREST/postgrest
+https://github.com/github/semantic
+https://github.com/hadolint/hadolint
+https://github.com/purescript/purescript
+https://github.com/elm/compiler
+https://github.com/unisonweb/unison
+https://github.com/carp-lang/Carp
+https://github.com/facebook/Haxl
+https://github.com/system-f/fp-course
+https://github.com/digitallyinduced/ihp
+https://github.com/commercialhaskell/stack
+https://github.com/facebook/duckling
+https://github.com/input-output-hk/cardano-sl
+https://github.com/idris-lang/Idris-dev
+https://github.com/sdiehl/write-you-a-haskell
+https://github.com/input-output-hk/cardano-node
+https://github.com/krispo/awesome-haskell
+https://github.com/xmonad/xmonad
+https://github.com/ghc/ghc
+https://github.com/caiorss/Functional-Programming
+https://github.com/SimulaVR/Simula
+https://github.com/typelead/eta
+https://github.com/ghcjs/ghcjs
+https://github.com/jaspervdj/hakyll
+https://github.com/yesodweb/yesod
+https://github.com/wireapp/wire-server
+https://github.com/koka-lang/koka
+https://github.com/sdiehl/wiwinwlh

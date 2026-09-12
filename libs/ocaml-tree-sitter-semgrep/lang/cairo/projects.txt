@@ -1,0 +1,7 @@
+#
+# Cairo 1.0 is a new language so for now we only use OpenZeppelin as
+# a reference
+# 
+# TODO : Add more references
+#
+https://github.com/OpenZeppelin/cairo-contracts/tree/cairo-1

@@ -1,0 +1,36 @@
+===========================
+Basic sig
+===========================
+
+val foo: int -> bool
+
+---
+
+(compilation_unit
+      (value_specification
+        (value_name)
+        (function_type
+          (type_constructor_path
+            (type_constructor))
+          (type_constructor_path
+            (type_constructor)))))
+
+===========================
+Object types
+===========================
+
+val foo: < Network.t > -> bool
+
+---
+
+(compilation_unit
+      (value_specification
+        (value_name)
+        (function_type
+          (object_type
+            (type_constructor_path
+              (extended_module_path
+                (module_name))
+              (type_constructor)))
+          (type_constructor_path
+            (type_constructor)))))
