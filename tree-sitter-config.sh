@@ -20,6 +20,7 @@ export TREESITTER_OUT="$_ts_workspace/_build/default/$_ts_relpath"
 export TREESITTER_INCDIR="$TREESITTER_OUT/include"
 export TREESITTER_LIBDIR="$TREESITTER_OUT/lib"
 export TREESITTER_BINDIR="$TREESITTER_OUT/bin"
+export OCAMLPATH="$_ts_workspace/_build/install/default/lib${OCAMLPATH:+:$OCAMLPATH}"
 # So pkg-config (e.g. src/main/flags.sh) finds the dune-built libtree-sitter.
 export PKG_CONFIG_PATH="$TREESITTER_OUT/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 

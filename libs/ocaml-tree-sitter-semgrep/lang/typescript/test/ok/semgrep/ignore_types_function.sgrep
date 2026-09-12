@@ -1,0 +1,4 @@
+function foo($X) {
+  ...
+  return $X;
+}

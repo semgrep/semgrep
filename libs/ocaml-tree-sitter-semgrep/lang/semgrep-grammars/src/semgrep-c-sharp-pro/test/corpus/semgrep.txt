@@ -1,0 +1,484 @@
+================================================================================
+Metavariables
+================================================================================
+
+class $CLASS {
+  void $FUNC($TYPE $PARAM) {
+    int x = $COND ? $V1 : $V2;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (identifier)
+    (declaration_list
+      (method_declaration
+        (predefined_type)
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (identifier)))
+        (block
+          (local_declaration_statement
+            (variable_declaration
+              (predefined_type)
+              (variable_declarator
+                (identifier)
+                (conditional_expression
+                  (identifier)
+                  (identifier)
+                  (identifier))))))))))
+
+================================================================================
+Ellipsis for expression
+================================================================================
+
+class Foo {
+  void Bar() {
+    a = 0;
+    ...;
+    b = 0;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (identifier)
+    (declaration_list
+      (method_declaration
+        (predefined_type)
+        (identifier)
+        (parameter_list)
+        (block
+          (expression_statement
+            (assignment_expression
+              (identifier)
+              (integer_literal)))
+          (expression_statement
+            (ellipsis))
+          (expression_statement
+            (assignment_expression
+              (identifier)
+              (integer_literal))))))))
+
+================================================================================
+Ellipsis for statements
+================================================================================
+
+class Foo {
+  void Bar() {
+    a = 0;
+    ...
+    b = 0;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (identifier)
+    (declaration_list
+      (method_declaration
+        (predefined_type)
+        (identifier)
+        (parameter_list)
+        (block
+          (expression_statement
+            (assignment_expression
+              (identifier)
+              (integer_literal)))
+          (expression_statement
+            (ellipsis))
+          (expression_statement
+            (assignment_expression
+              (identifier)
+              (integer_literal))))))))
+
+================================================================================
+Deep expression ellipsis
+================================================================================
+
+class Foo {
+  void Bar() {
+    a = <... 0 ...>;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (identifier)
+    (declaration_list
+      (method_declaration
+        (predefined_type)
+        (identifier)
+        (parameter_list)
+        (block
+          (expression_statement
+            (assignment_expression
+              (identifier)
+              (deep_ellipsis
+                (integer_literal)))))))))
+
+================================================================================
+Toplevel expression
+================================================================================
+
+__SEMGREP_EXPRESSION
+42
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (semgrep_expression
+    (integer_literal)))
+
+================================================================================
+Ellipsis for enums
+================================================================================
+
+public enum $ENUM { ... }
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (enum_declaration
+    (modifier)
+    (identifier)
+    (enum_member_declaration_list
+      (enum_member_declaration
+        (ellipsis)))))
+
+================================================================================
+Argument ellipsis
+================================================================================
+
+__SEMGREP_EXPRESSION
+foo(...)
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (semgrep_expression
+    (invocation_expression
+      (identifier)
+      (argument_list
+        (argument
+          (ellipsis))))))
+
+================================================================================
+Parameter ellipsis in method definition
+================================================================================
+
+class A {
+  public void SomeMethod(..., string p, ...) {
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (identifier)
+    (declaration_list
+      (method_declaration
+        (modifier)
+        (predefined_type)
+        (identifier)
+        (parameter_list
+          (parameter
+            (ellipsis))
+          (parameter
+            (predefined_type)
+            (identifier))
+          (parameter
+            (ellipsis)))
+        (block)))))
+
+================================================================================
+Ellipsis in class declaration
+================================================================================
+
+class A {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (identifier)
+    (declaration_list
+      (ellipsis))))
+
+================================================================================
+Ellipsis in method chain
+================================================================================
+$X = $O.foo(). ... .bar();
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement
+      (assignment_expression
+        (identifier)
+        (invocation_expression
+          (member_access_expression
+            (member_access_ellipsis_expression
+              (invocation_expression
+                (member_access_expression
+                  (identifier)
+                  (identifier))
+                (argument_list))
+              (ellipsis))
+            (identifier))
+          (argument_list))))))
+
+================================================================================
+Typed metavariable
+================================================================================
+
+__SEMGREP_EXPRESSION
+(FooClass $FOO).method()
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (semgrep_expression
+    (invocation_expression
+      (member_access_expression
+        (typed_metavariable
+          (identifier))
+        (identifier))
+      (argument_list))))
+
+===============================================================================
+Typed metavariable 2
+===============================================================================
+
+__SEMGREP_EXPRESSION (T $X)
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (typed_metavariable
+      (identifier))))
+
+===============================================================================
+Typed metavariable 3
+===============================================================================
+
+__SEMGREP_EXPRESSION (List<T> $X)
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (typed_metavariable
+      (generic_name
+        (identifier)
+        (type_argument_list
+          (identifier))))))
+
+===============================================================================
+Cast expression
+===============================================================================
+
+__SEMGREP_EXPRESSION (List<T>) x
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (cast_expression
+      (generic_name
+        (identifier)
+        (type_argument_list
+          (identifier)))
+      (identifier))))
+
+================================================================================
+Ellipses + metavariables as args
+================================================================================
+
+foo($...ARGS, 3, $...ARGS);
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement
+      (invocation_expression
+        (identifier)
+        (argument_list
+          (argument
+            (semgrep_variadic_metavariable))
+          (argument
+            (integer_literal))
+          (argument
+            (semgrep_variadic_metavariable)))))))
+
+================================================================================
+Metavariable expression statement
+================================================================================
+
+$X;
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement)))
+
+================================================================================
+Typed metavariable expression statement
+================================================================================
+
+(int $X);
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement
+      (typed_metavariable
+        (predefined_type)))))
+
+================================================================================
+Deep ellipsis expression statement
+================================================================================
+
+<... foo ...>;
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement
+      (deep_ellipsis
+        (identifier)))))
+
+================================================================================
+Deep ellipsis expression statement
+================================================================================
+
+foo->...;
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement
+      (member_access_ellipsis_expression
+        (identifier)
+        (ellipsis)))))
+
+================================================================================
+Namespace declarations and ellipses
+================================================================================
+
+...
+namespace $N { };
+...
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement
+      (ellipsis)))
+  (namespace_declaration
+    (identifier)
+    (declaration_list))
+  (global_statement
+    (expression_statement
+      (ellipsis))))
+
+================================================================================
+File scoped namespace declarations and ellipses
+================================================================================
+
+...
+namespace $N;
+...
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (expression_statement
+      (ellipsis)))
+  (file_scoped_namespace_declaration
+    (identifier))
+  (global_statement
+    (expression_statement
+      (ellipsis))))
+
+================================================================================
+Preprocessor conditional with single statement
+================================================================================
+
+void F()
+{
+#if DEBUG
+    a();
+#endif
+}
+
+---
+
+(compilation_unit
+  (global_statement
+    (local_function_statement
+      (predefined_type)
+      (identifier)
+      (parameter_list)
+      (block
+        (preproc_if
+          (identifier)
+          (expression_statement
+            (invocation_expression
+              (identifier)
+              (argument_list))))))))
+
+===============================================================================
+Preprocessor conditional with multiple statements
+===============================================================================
+
+void F()
+{
+#if DEBUG
+    a();
+    b();
+#endif
+}
+
+---
+
+(compilation_unit
+  (global_statement
+    (local_function_statement
+      (predefined_type)
+      (identifier)
+      (parameter_list)
+      (block
+        (preproc_if
+          (identifier)
+          (expression_statement
+            (invocation_expression
+              (identifier)
+              (argument_list)))
+          (expression_statement
+            (invocation_expression
+              (identifier)
+              (argument_list))))))))
+

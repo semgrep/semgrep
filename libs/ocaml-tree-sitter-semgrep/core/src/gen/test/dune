@@ -1,0 +1,3 @@
+(library
+ (name test_tree_sitter_gen)
+ (libraries tree_sitter_gen alcotest yojson))

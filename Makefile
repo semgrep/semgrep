@@ -131,6 +131,8 @@ build-ojsonnet:
 .PHONY: clean
 clean:
 	dune clean
+	rm -rf libs/ocaml-tree-sitter-semgrep/core/bin
+	$(MAKE) -C libs/ocaml-tree-sitter-semgrep/lang clean
 # We still need to keep the nonempty opam files in git for
 # 'make setup', so we should only remove the empty opam files.
 # This removes the gitignored opam files.
@@ -158,7 +160,7 @@ uninstall:
 # Test target
 ###############################################################################
 
-# Note that this target is actually not used in CI; it's only for local dev
+# Core tests run locally and in platform CI jobs.
 .PHONY: test
 test: core-test
 
@@ -168,12 +170,34 @@ retest:
 	$(MAKE) build-core-test
 	./test run --lazy
 
-# Note that this target is actually not used in CI; it's only for local dev
+# Note that this target is actually not used in CI; it's only for local dev.
+# OTS unit tests are also covered in CI by ocaml-tree-sitter-ci.yml
+# (root `ots-test-ocaml` and `ots-test-python` targets).
 .PHONY: test-all
 test-all:
 	$(MAKE) core-test
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
+	$(MAKE) ots-test
+
+# Vendored ocaml-tree-sitter-semgrep unit tests (OCaml dune + Python pytest).
+# coupling: .github/workflows/ocaml-tree-sitter-ci.yml runs the same targets.
+.PHONY: ots-test
+ots-test:
+	$(MAKE) ots-test-ocaml
+	$(MAKE) ots-test-python
+
+.PHONY: ots-test-ocaml
+ots-test-ocaml: grammar-tools
+	PATH="$(abspath libs/ocaml-tree-sitter-semgrep/core/bin):$$PATH" dune runtest libs/ocaml-tree-sitter-semgrep/core
+
+.PHONY: ots-test-python
+ots-test-python: setup-tree-sitter-versions
+	uv run --project cli --locked pytest libs/ocaml-tree-sitter-semgrep/scripts/test_*.py
+
+.PHONY: setup-tree-sitter-versions
+setup-tree-sitter-versions:
+	./libs/ocaml-tree-sitter-semgrep/core/scripts/provision-tree-sitter-all
 
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test
@@ -264,10 +288,21 @@ install-deps-for-semgrep-core:
 # (see TREESITTER_INCDIR/TREESITTER_LIBDIR and tree-sitter-runtime above).
 	opam exec -- dune build $(_TS_DUNE)
 
+.PHONY: grammar-tools
+grammar-tools: tree-sitter-runtime
+	dune build libs/ocaml-tree-sitter-semgrep/core/bin/ocaml-tree-sitter libs/ocaml-tree-sitter-semgrep/core/tree-sitter.install
+
 # Regenerate an in-tree grammar, e.g. `make regen-grammar-python`.
 # Pattern rule (not LANG=) to avoid colliding with the LANG locale var.
-regen-grammar-%:
-	./scripts/regen-grammar $*
+regen-grammar-%: grammar-tools
+	./libs/ocaml-tree-sitter-semgrep/scripts/regen-grammar $*
+
+.PHONY: test-grammars
+test-grammars: grammar-tools
+	$(MAKE) -C libs/ocaml-tree-sitter-semgrep/lang test
+
+test-grammar-%: grammar-tools
+	./libs/ocaml-tree-sitter-semgrep/scripts/test-grammar $*
 
 # Pin the upstream opam-repository to a known-good commit.
 # coupling: keep this commit in sync with opam_repository_pin in

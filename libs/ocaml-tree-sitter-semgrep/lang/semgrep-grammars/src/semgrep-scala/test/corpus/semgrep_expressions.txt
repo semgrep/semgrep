@@ -1,0 +1,23 @@
+========================
+Test1
+========================
+
+__SEMGREP_EXPRESSION $X
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (semgrep_metavariable)))
+
+========================
+Test2
+========================
+
+__SEMGREP_EXPRESSION ...
+
+---
+
+(compilation_unit
+  (semgrep_expression
+    (semgrep_ellipsis)))

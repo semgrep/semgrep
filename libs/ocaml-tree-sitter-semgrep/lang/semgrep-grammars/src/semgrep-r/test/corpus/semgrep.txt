@@ -1,0 +1,8 @@
+=====================================
+Metavariables
+=====================================
+
+foo($X)
+
+---
+(program (call (identifier) (arguments (identifier)))) 

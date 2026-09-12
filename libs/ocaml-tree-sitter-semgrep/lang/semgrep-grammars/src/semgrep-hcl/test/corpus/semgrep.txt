@@ -1,0 +1,39 @@
+=====================================
+Simple Ellipsis
+=====================================
+
+resource "..." "..." {
+   ...
+}
+	 
+---
+
+(config_file
+   (body
+      (block (identifier)
+        (string_lit (quoted_template_start) (template_literal) (quoted_template_end))
+	(string_lit (quoted_template_start) (template_literal) (quoted_template_end))
+	(block_start)
+	(body (semgrep_ellipsis))
+	(block_end))))
+
+=====================================
+Object Ellipsis
+=====================================
+
+policy = jsonencode({
+   ...
+})
+
+	 
+---
+
+(config_file
+   (body (attribute (identifier)
+   (expression (function_call (identifier)
+      (function_arguments
+         (expression (collection_value
+	     (object
+	        (object_start)
+		(object_elem (semgrep_ellipsis))
+		(object_end))))))))))

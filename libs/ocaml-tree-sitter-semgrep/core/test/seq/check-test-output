@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+# Extra tests.
+#
+
+# Check that bash process substitution works.
+# The following should parse without an error.
+# Should be the same as just:
+#   ./parse test/ok/ex1
+#
+./parse <(cat test/ok/ex1)

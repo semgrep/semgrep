@@ -1,0 +1,54 @@
+#
+# Popular Ruby projects
+#
+git@github.com:helpyio/helpy.git
+git@github.com:rubygems/rubygems.org.git
+git@github.com:huginn/huginn.git
+
+# Ruby parts of Travis CI
+git@github.com:travis-ci/travis-build.git
+git@github.com:travis-ci/travis-api.git
+git@github.com:travis-ci/travis-cookbooks.git
+git@github.com:travis-ci/travis-hub.git
+git@github.com:travis-ci/travis-listener.git
+git@github.com:travis-ci/travis-logs.git
+git@github.com:travis-ci/travis-support.git
+git@github.com:travis-ci/travis-tasks.git
+
+git@github.com:OWASP/railsgoat.git
+
+# Most starred on GitHub:
+#   https://github.com/topics/ruby?l=ruby&o=desc&s=stars
+#
+# These were gathered by hand. Maybe next time we can automate this.
+#
+git@github.com:rails/rails.git
+git@github.com:jekyll/jekyll.git
+git@github.com:discourse/discourse.git
+git@github.com:fastlane/fastlane.git
+git@github.com:gitlabhq/gitlabhq.git
+git@github.com:Homebrew/brew.git
+git@github.com:heartcombo/devise.git
+git@github.com:hashicorp/vagrant.git
+git@github.com:ruby/ruby.git
+git@github.com:diaspora/diaspora.git
+git@github.com:capistrano/capistrano.git
+git@github.com:sinatra/sinatra.git
+git@github.com:rubocop-hq/rubocop.git
+git@github.com:spree/spree.git
+git@github.com:mperham/sidekiq.git
+git@github.com:postalhq/postal.git
+git@github.com:fluent/fluentd.git
+git@github.com:ruby-grape/grape.git
+git@github.com:activeadmin/activeadmin.git
+git@github.com:faker-ruby/faker.git
+git@github.com:kaminari/kaminari.git
+git@github.com:heartcombo/simple_form.git
+git@github.com:Homebrew/homebrew-core.git
+git@github.com:thoughtbot/factory_bot.git
+git@github.com:lewagon/setup.git
+git@github.com:realm/jazzy.git
+git@github.com:chef/chef.git
+git@github.com:puma/puma.git
+git@github.com:pry/pry.git
+git@github.com:github-changelog-generator/github-changelog-generator.git

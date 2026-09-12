@@ -1,8 +1,3 @@
-[submodule "OSS/libs/ocaml-tree-sitter-semgrep"]
-path = libs/ocaml-tree-sitter-semgrep
-url = https://github.com/semgrep/ocaml-tree-sitter-semgrep.git
-branch = malaverdiere-license-change
-
 [submodule "OSS/tests/semgrep-rules"]
 path = tests/semgrep-rules
 url = https://github.com/returntocorp/semgrep-rules.git

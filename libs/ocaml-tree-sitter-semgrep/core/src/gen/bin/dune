@@ -1,0 +1,6 @@
+(executable
+ (package tree-sitter)
+ (public_name ocaml-tree-sitter)
+ (name Ocaml_tree_sitter_main)
+ (modules Ocaml_tree_sitter_main)
+ (libraries cmdliner tree-sitter.gen))

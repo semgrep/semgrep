@@ -1,0 +1,12 @@
+# Sample large C# projects
+
+https://github.com/shadowsocks/shadowsocks-windows.git
+https://github.com/CodeHubApp/CodeHub.git
+https://github.com/PowerShell/PowerShell.git
+https://github.com/dotnet/aspnetcore.git
+https://github.com/Wox-launcher/Wox.git
+https://github.com/0xd4d/dnSpy.git
+https://github.com/mxgmn/WaveFunctionCollapse.git
+https://github.com/dotnet-architecture/eShopOnContainers.git
+https://github.com/ShareX/ShareX.git
+https://github.com/dotnet/roslyn.git

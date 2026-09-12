@@ -1,0 +1,9 @@
+#! /usr/bin/env bash
+# Provision the CLI versions declared in the grammar registry.
+set -eu -o pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+versions=$("$here/../../scripts/ts-versions")
+for v in $versions; do
+  "$here/provision-tree-sitter" "$v"
+done

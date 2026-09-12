@@ -1,0 +1,80 @@
+=====================================
+Semgrep ellipsis in statement position
+=====================================
+
+foo();
+...
+bar();
+
+---
+
+(program
+  (expression_statement
+    (call_expression
+      (identifier)
+      (arguments)))
+  (expression_statement
+    (semgrep_expression_ellipsis))
+  (expression_statement
+    (call_expression
+      (identifier)
+      (arguments))))
+
+=====================================
+Semgrep ellipsis in function parameters
+=====================================
+
+function test(...) {}
+
+---
+
+(program
+  (function_declaration
+    (identifier)
+    (formal_parameters
+      (semgrep_ellipsis))
+    (statement_block)))
+
+=====================================
+Semgrep metavariable
+=====================================
+
+$X = 1;
+
+---
+
+(program
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number))))
+
+=====================================
+Semgrep deep ellipsis
+=====================================
+
+<... foo() ...>
+
+---
+
+(program
+  (expression_statement
+    (deep_ellipsis
+      (call_expression
+        (identifier)
+        (arguments)))))
+
+=====================================
+Semgrep ellipsis in expression
+=====================================
+
+foo(...)
+
+---
+
+(program
+  (expression_statement
+    (call_expression
+      (identifier)
+      (arguments
+        (semgrep_expression_ellipsis)))))

@@ -1,0 +1,45 @@
+#! /usr/bin/env bash
+# Download a pinned CLI into core/tree-sitter-<version>/bin.
+set -eu -o pipefail
+
+version="${1:?usage: provision-tree-sitter <version>}"
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid version: $version" >&2; exit 1; }
+error() { echo "[provision-tree-sitter] Error: $*" >&2; exit 1; }
+core_root=$(cd "$(dirname "$0")/.." && pwd)
+prefix="$core_root/tree-sitter-$version"
+
+matches_version() {
+  local reported
+  reported=$("$1" --version) || return 1
+  [[ "$reported" == "tree-sitter $version" || "$reported" == "tree-sitter $version "* ]]
+}
+
+if [[ "${FORCE:-0}" != "1" && -x "$prefix/bin/tree-sitter" ]] \
+    && matches_version "$prefix/bin/tree-sitter"; then
+  echo "tree-sitter $version CLI already provisioned at $prefix"
+  exit 0
+fi
+
+os=$(uname -s | tr '[:upper:]' '[:lower:]')
+arch=$(uname -m)
+case "$os" in
+  linux)  os_tag="linux" ;;
+  darwin) os_tag="macos" ;;
+  *)      error "Unsupported OS: $os" ;;
+esac
+case "$arch" in
+  x86_64)        arch_tag="x64" ;;
+  aarch64|arm64) arch_tag="arm64" ;;
+  *)             error "Unsupported architecture: $arch" ;;
+esac
+
+cli_url="https://github.com/tree-sitter/tree-sitter/releases/download/v${version}/tree-sitter-${os_tag}-${arch_tag}.gz"
+echo "Downloading tree-sitter $version CLI ($os_tag-$arch_tag)."
+mkdir -p "$prefix/bin"
+work=$(mktemp -d "$prefix/bin/.download.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+curl -fL "$cli_url" | gunzip > "$work/tree-sitter"
+chmod +x "$work/tree-sitter"
+matches_version "$work/tree-sitter" || error "Downloaded CLI does not report version $version"
+mv -f "$work/tree-sitter" "$prefix/bin/tree-sitter"
+echo "tree-sitter $version CLI provisioned at $prefix"

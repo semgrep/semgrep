@@ -1,0 +1,4 @@
+__SEMGREP_EXPRESSION @Query(...)
+async qux(...){
+  ...
+}

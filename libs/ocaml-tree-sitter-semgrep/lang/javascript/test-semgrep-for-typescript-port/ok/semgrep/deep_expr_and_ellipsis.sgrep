@@ -1,0 +1,6 @@
+try {
+  ...
+  //ugly: need () and semicolon right now to be able to parse
+  (<... localStorage.$METHOD(...) ...>);
+  ...
+} catch ($ERR) { ... }

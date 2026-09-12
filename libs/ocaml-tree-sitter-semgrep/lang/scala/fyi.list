@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-scala/LICENSE
+semgrep-grammars/src/tree-sitter-scala/grammar.js
+semgrep-grammars/src/semgrep-scala/grammar.js

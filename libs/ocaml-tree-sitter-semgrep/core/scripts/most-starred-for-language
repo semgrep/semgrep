@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import requests
+import os
+import sys
+import urllib
+
+"""
+Gets the most starred github repositories for language Y.
+"""
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # add in the arguments for language and number of repositories you want.
+    parser.add_argument("lang", help="language that you want to get repositories for")
+
+    # add in arguments for github username and api key.
+    parser.add_argument("github_username", help="your github username")
+    parser.add_argument("api_key", help="you github personal token.")
+
+    args = parser.parse_args()
+
+    s = requests.Session()
+    s.auth = (args.github_username, args.api_key)
+    s.headers.update({'Accept': 'application/vnd.github.cloak-preview+json'})
+
+    url = ('https://api.github.com/search/repositories?'
+           'q={}&s=stars&type=Repositories'.format(
+               urllib.parse.quote('language:' + args.lang)
+           )
+    )
+    r = s.get(url, timeout=120)
+    pretty_json = json.loads(r.text)
+
+    with open('projects.txt', 'w') as f:
+        f.write('#\n'
+                '# Top {} projects from GitHub, sorted by stars.\n'
+                '# Created by {}.\n'
+                '#\n'.format(args.lang, sys.argv[0])
+        )
+        for repo in pretty_json["items"]:
+            f.write(repo["html_url"]+"\n")

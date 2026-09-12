@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+#
+# Print the tree-sitter version that should be used to build a given
+# language or grammar.
+#
+# The mapping lives in lang/upstream-grammars.json, which pins each
+# language or dialect name to a tree-sitter version.
+# Exits non-zero with an error message if the name is not listed.
+#
+# Usage: ts-version-for-lang <lang>
+#
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from grammar_registry import RegistryError  # noqa: E402
+from ts_versions import TsVersionError, version_for_lang  # noqa: E402
+
+
+def main() -> int:
+    """Print the tree-sitter version pinned for a language or dialect name."""
+    parser = argparse.ArgumentParser(
+        description="Print the tree-sitter version pinned for a language name."
+    )
+    parser.add_argument("lang", help="language or dialect name")
+    args = parser.parse_args()
+    try:
+        print(version_for_lang(args.lang))
+    except (TsVersionError, RegistryError) as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,553 @@
+=============================================
+Inter-instruction ellipsis
+=============================================
+
+RUN a
+...
+RUN b
+
+---
+
+(source_file
+  (run_instruction
+    (shell_command
+      (shell_fragment)))
+  (semgrep_ellipsis)
+  (run_instruction
+    (shell_command
+      (shell_fragment))))
+
+=============================================
+Whole-instruction metavariable
+=============================================
+
+RUN a
+$INSTR
+RUN b
+
+---
+
+(source_file
+  (run_instruction
+    (shell_command
+      (shell_fragment)))
+  (semgrep_metavariable)
+  (run_instruction
+    (shell_command
+      (shell_fragment))))
+
+=============================================
+Array ellipsis
+=============================================
+
+RUN ["a", ..., "b"]
+
+---
+
+(source_file
+  (run_instruction
+    (json_string_array
+      (json_string)
+      (semgrep_ellipsis)
+      (json_string))))
+
+=============================================
+Shell or argv ellipsis
+=============================================
+
+RUN ...
+
+---
+
+(source_file
+  (run_instruction
+    (shell_command
+      (semgrep_ellipsis))))
+
+=============================================
+Array metavariable
+=============================================
+
+RUN ["a", $X, "b"]
+
+---
+
+(source_file
+  (run_instruction
+    (json_string_array
+      (json_string)
+      (semgrep_metavariable)
+      (json_string))))
+
+=============================================
+Param metavariable
+=============================================
+
+FROM --platform=$PLATFORM debian
+ADD --chown=$USER_GROUP src dst
+
+---
+
+; '$PLATFORM' is already allowed as parameter value by the dockerfile syntax.
+;
+(source_file
+  (from_instruction
+    (param)
+    (image_spec
+      (image_name)))
+  (add_instruction
+    (param)
+    (path)
+    (path)))
+
+=============================================
+Image metavariable
+=============================================
+
+FROM $NAME:$TAG@$DIGEST
+FROM ${NAME}:${TAG}@${DIGEST}
+
+---
+
+; $NAME and ${NAME} are dockerfile variable expansions. We will use
+; the former syntax for metavariables in Semgrep patterns, like we do
+; with Bash.
+;
+(source_file
+  (from_instruction
+    (image_spec
+      (image_name
+        (expansion
+          (variable)))
+      (image_tag
+        (expansion
+          (variable)))
+      (image_digest
+        (expansion
+          (variable)))))
+  (from_instruction
+    (image_spec
+      (image_name
+        (expansion
+          (variable)))
+      (image_tag
+        (expansion
+          (variable)))
+      (image_digest
+        (expansion
+          (variable))))))
+
+=============================================
+Image alias metavariable
+=============================================
+
+FROM debian AS $ALIAS
+FROM debian as $ALIAS
+
+---
+
+(source_file
+  (from_instruction
+    (image_spec
+      (image_name))
+    (image_alias
+      (expansion
+        (variable))))
+  (from_instruction
+    (image_spec
+      (image_name))
+    (image_alias
+      (expansion
+        (variable)))))
+
+=============================================
+File metavariables
+=============================================
+
+ADD $A $B $DST
+COPY $A $B $DST
+VOLUME $A
+
+---
+
+(source_file
+  (add_instruction
+    (path
+      (expansion
+        (variable)))
+    (path
+      (expansion
+        (variable)))
+    (path
+      (expansion
+        (variable))))
+  (copy_instruction
+    (path
+      (expansion
+        (variable)))
+    (path
+      (expansion
+        (variable)))
+    (path
+      (expansion
+        (variable))))
+  (volume_instruction
+    (path
+      (expansion
+        (variable)))))
+
+=============================================
+File list ellipsis
+=============================================
+
+ADD ... dst
+COPY ... dst
+VOLUME ...
+
+---
+
+; '...' is a valid path. In Semgrep patterns, it will be interpreted
+; as an ellipsis.
+;
+(source_file
+  (add_instruction
+    (path)
+    (path))
+  (copy_instruction
+    (path)
+    (path))
+  (volume_instruction
+    (path)))
+
+=============================================
+WORKDIR metavariable
+=============================================
+
+WORKDIR $DIR
+
+---
+
+(source_file
+  (workdir_instruction
+    (path
+      (expansion
+        (variable)))))
+
+=============================================
+ARG metavariables
+=============================================
+
+ARG $KEY
+ARG $KEY=$DEFAULT
+
+---
+
+(source_file
+  (arg_instruction
+    (unquoted_string))
+  (arg_instruction
+    (unquoted_string)
+    (unquoted_string
+      (expansion
+        (variable)))))
+
+=============================================
+User and group metavariables
+=============================================
+
+USER $USER
+USER $USER:$GROUP
+
+---
+
+(source_file
+  (user_instruction
+    (unquoted_string
+      (expansion
+        (variable))))
+  (user_instruction
+    (unquoted_string
+      (expansion
+        (variable)))
+    (unquoted_string
+      (expansion
+        (variable)))))
+
+=============================================
+LABEL ellipsis
+=============================================
+
+LABEL ...
+LABEL version="1.0" ...
+LABEL com.example.label-with-value=foo ... version="1.0"
+
+---
+
+(source_file
+  (label_instruction
+    (label_pair
+      (semgrep_ellipsis)))
+  (label_instruction
+    (label_pair
+      (unquoted_string)
+      (double_quoted_string))
+    (label_pair
+      (semgrep_ellipsis)))
+  (label_instruction
+    (label_pair
+      (unquoted_string)
+      (unquoted_string))
+    (label_pair
+      (semgrep_ellipsis))
+    (label_pair
+      (unquoted_string)
+      (double_quoted_string))))
+
+=============================================
+LABEL metavariables
+=============================================
+
+LABEL foo=abc
+LABEL $NAME=abc
+LABEL foo=$VALUE
+LABEL $A=$B ... $C=$D
+
+---
+
+(source_file
+  (label_instruction
+    (label_pair
+      (unquoted_string)
+      (unquoted_string)))
+  (label_instruction
+    (label_pair
+      (semgrep_metavariable)
+      (unquoted_string)))
+  (label_instruction
+    (label_pair
+      (unquoted_string)
+      (unquoted_string
+        (expansion
+          (variable)))))
+  (label_instruction
+    (label_pair
+      (semgrep_metavariable)
+      (unquoted_string
+        (expansion
+          (variable))))
+    (label_pair
+      (semgrep_ellipsis))
+    (label_pair
+      (semgrep_metavariable)
+      (unquoted_string
+        (expansion
+          (variable))))))
+
+=============================================
+ENV ellipsis
+=============================================
+
+ENV ...
+ENV AA=42 ...
+ENV AA=42 ... BB=17
+
+---
+
+(source_file
+  (env_instruction
+    (env_pair
+      (semgrep_ellipsis)))
+  (env_instruction
+    (env_pair
+      (unquoted_string)
+      (unquoted_string))
+    (env_pair
+      (semgrep_ellipsis)))
+  (env_instruction
+    (env_pair
+      (unquoted_string)
+      (unquoted_string))
+    (env_pair
+      (semgrep_ellipsis))
+    (env_pair
+      (unquoted_string)
+      (unquoted_string))))
+
+=============================================
+ENV value metavariable
+=============================================
+
+ENV KEY=$VALUE KEY2=$VALUE2
+ENV KEY3 $VALUE3
+
+---
+
+(source_file
+  (env_instruction
+    (env_pair
+      (unquoted_string)
+      (unquoted_string
+        (expansion
+          (variable))))
+    (env_pair
+      (unquoted_string)
+      (unquoted_string
+        (expansion
+          (variable)))))
+  (env_instruction
+    (env_pair
+      (unquoted_string)
+      (unquoted_string
+        (expansion
+          (variable))))))
+
+=============================================
+MAINTAINER metavariable
+=============================================
+
+MAINTAINER Spongebob Squarepants <sponge@bb.net>
+MAINTAINER $NAME
+
+---
+
+; The maintainer string can be anything, including $NAME. It will need
+; to be interpreted as a metavariable in the context of Semgrep
+; patterns.
+;
+(source_file
+  (maintainer_instruction)
+  (maintainer_instruction))
+
+=============================================
+EXPOSE metavariable and ellipsis
+=============================================
+
+EXPOSE 80/udp 80/tcp
+EXPOSE ...
+EXPOSE ... $PORT_PROTO ...
+
+---
+
+(source_file
+  (expose_instruction
+    (expose_port)
+    (expose_port))
+  (expose_instruction
+    (expose_port
+      (semgrep_ellipsis)))
+  (expose_instruction
+    (expose_port
+      (semgrep_ellipsis))
+    (expansion
+      (variable))
+    (expose_port
+      (semgrep_ellipsis))))
+
+=============================================
+STOPSIGNAL metavariable
+=============================================
+
+STOPSIGNAL SIGFOO
+STOPSIGNAL $SIGNAL
+
+---
+
+(source_file
+  (stopsignal_instruction)
+  (stopsignal_instruction
+    (expansion
+      (variable))))
+
+=============================================
+HEALTHCHECK
+=============================================
+
+HEALTHCHECK NONE
+HEALTHCHECK --timeout=30s CMD echo hello
+HEALTHCHECK $X
+HEALTHCHECK ... CMD echo hello
+HEALTHCHECK --timeout=30s CMD ...
+HEALTHCHECK ... CMD ...
+HEALTHCHECK ...
+
+---
+
+(source_file
+  (healthcheck_instruction)
+  (healthcheck_instruction
+    (param)
+    (cmd_instruction
+      (shell_command
+        (shell_fragment))))
+  (healthcheck_instruction
+    (semgrep_metavariable))
+  (healthcheck_instruction
+    (semgrep_ellipsis)
+    (cmd_instruction
+      (shell_command
+        (shell_fragment))))
+  (healthcheck_instruction
+    (param)
+    (cmd_instruction
+      (shell_command
+        (semgrep_ellipsis))))
+  (healthcheck_instruction
+    (semgrep_ellipsis)
+    (cmd_instruction
+      (shell_command
+        (semgrep_ellipsis))))
+  (healthcheck_instruction
+    (semgrep_ellipsis)))
+
+
+=============================================
+Various string literals
+=============================================
+
+ARG key="\"a${VAR}b\"\\"
+ARG key='\'a\'\\'
+ARG key=a
+LABEL key="\"a${VAR}b\"\\"
+LABEL key='\'a\'\\'
+LABEL key=a
+
+---
+
+(source_file
+  (arg_instruction
+    (unquoted_string)
+    (double_quoted_string
+      (escape_sequence)
+      (expansion
+        (variable))
+      (escape_sequence)
+      (escape_sequence)))
+  (arg_instruction
+    (unquoted_string)
+    (single_quoted_string
+      (escape_sequence)
+      (escape_sequence)
+      (escape_sequence)))
+  (arg_instruction
+    (unquoted_string)
+    (unquoted_string))
+  (label_instruction
+    (label_pair
+      (unquoted_string)
+      (double_quoted_string
+        (escape_sequence)
+        (expansion
+          (variable))
+        (escape_sequence)
+        (escape_sequence))))
+  (label_instruction
+    (label_pair
+      (unquoted_string)
+      (single_quoted_string
+        (escape_sequence)
+        (escape_sequence)
+        (escape_sequence))))
+  (label_instruction
+    (label_pair
+      (unquoted_string)
+      (unquoted_string))))

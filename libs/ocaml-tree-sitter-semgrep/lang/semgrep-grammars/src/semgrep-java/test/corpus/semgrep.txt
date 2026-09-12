@@ -1,0 +1,540 @@
+================================================================================
+Ellipsis
+================================================================================
+
+...
+
+--------------------------------------------------------------------------------
+
+(program
+  (semgrep_ellipsis))
+
+================================================================================
+Top level statements
+================================================================================
+
+foo();
+...
+bar();
+
+--------------------------------------------------------------------------------
+
+(program
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list)))
+  (semgrep_ellipsis)
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list))))
+
+================================================================================
+Top level public constructor
+================================================================================
+
+public Foo(...) { }
+
+--------------------------------------------------------------------------------
+
+(program
+  (constructor_declaration
+    (modifiers)
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (constructor_body)))
+
+================================================================================
+Top level bare constructor
+================================================================================
+
+Foo(...) { }
+
+--------------------------------------------------------------------------------
+
+(program
+  (constructor_declaration
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (constructor_body)))
+
+================================================================================
+Top level record
+================================================================================
+
+public record $R(...) {
+   ...
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (record_declaration
+    (modifiers)
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (class_body
+      (semgrep_ellipsis))))
+
+================================================================================
+Method header
+================================================================================
+
+public int foo(...)
+
+--------------------------------------------------------------------------------
+
+(program
+  (partials
+    (partial_method
+      (modifiers)
+      (integral_type)
+      (identifier)
+      (formal_parameters
+        (formal_parameter
+          (semgrep_ellipsis))))))
+
+================================================================================
+Constructor body ellipsis
+================================================================================
+
+public Foo(...) {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (constructor_declaration
+    (modifiers)
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (constructor_body
+      (semgrep_ellipsis))))
+
+================================================================================
+Ellipsis args
+================================================================================
+
+foo(..., 5)
+
+--------------------------------------------------------------------------------
+
+(program
+  (method_invocation
+    (identifier)
+    (argument_list
+      (semgrep_ellipsis)
+      (decimal_integer_literal))))
+
+================================================================================
+Ellipsis in if
+================================================================================
+
+if (...) {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (if_statement
+    (parenthesized_expression
+      (semgrep_ellipsis))
+    (block
+      (semgrep_ellipsis))))
+
+================================================================================
+Metavariable
+================================================================================
+
+class $X {
+  $X() { }
+  void $ASDF() {
+    int $QWERTY = $UIOP;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (class_declaration
+    (identifier)
+    (class_body
+      (constructor_declaration
+        (identifier)
+        (formal_parameters)
+        (constructor_body))
+      (method_declaration
+        (void_type)
+        (identifier)
+        (formal_parameters)
+        (block
+          (local_variable_declaration
+            (integral_type)
+            (variable_declarator
+              (identifier)
+              (identifier))))))))
+
+================================================================================
+Named ellipsis parameter
+================================================================================
+
+class $X {
+  void $ASDF($...PARAMS) {
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (class_declaration
+    (identifier)
+    (class_body
+      (method_declaration
+        (void_type)
+        (identifier)
+        (formal_parameters
+          (formal_parameter
+            (semgrep_named_ellipsis)))
+        (block)))))
+
+================================================================================
+Named ellipsis statements
+================================================================================
+
+foo();
+$...STMTS
+bar();
+
+--------------------------------------------------------------------------------
+
+(program
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list)))
+  (semgrep_named_ellipsis)
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list))))
+
+================================================================================
+Named ellipsis expression
+================================================================================
+
+1 + $...NAMED;
+
+--------------------------------------------------------------------------------
+
+(program
+  (expression_statement
+    (binary_expression
+      (decimal_integer_literal)
+      (semgrep_named_ellipsis))))
+
+================================================================================
+Named ellipsis expression
+================================================================================
+
+int x = (void $X);
+
+--------------------------------------------------------------------------------
+
+(program
+  (local_variable_declaration
+    (integral_type)
+    (variable_declarator
+      (identifier)
+      (typed_metavariable
+        (void_type)
+        (identifier)))))
+
+
+================================================================================
+Deep ellipsis
+================================================================================
+
+int x = <... 1 ...>;
+
+--------------------------------------------------------------------------------
+
+(program
+  (local_variable_declaration
+    (integral_type)
+    (variable_declarator
+      (identifier)
+      (deep_ellipsis
+      (decimal_integer_literal)))))
+
+================================================================================
+Dot access ellipsis
+================================================================================
+
+foo. ... .bar
+
+--------------------------------------------------------------------------------
+
+(program
+  (field_access
+    (field_access
+      (identifier))
+    (identifier)))
+
+================================================================================
+Ellipses in annotation args
+================================================================================
+
+@$METHOD(..., produces = MediaType.TEXT_HTML, ...)
+$TYPE $FN(...) {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (method_declaration
+    (modifiers
+      (annotation
+        (identifier)
+        (annotation_argument_list
+          (element_value_pair
+            (semgrep_ellipsis))
+          (element_value_pair
+            (identifier)
+            (field_access
+              (identifier)
+              (identifier)))
+          (element_value_pair
+            (semgrep_ellipsis)))))
+    (type_identifier)
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (block
+      (semgrep_ellipsis))))
+
+================================================================================
+Single annotation
+================================================================================
+
+@Foo()
+
+--------------------------------------------------------------------------------
+
+(program
+  (partials
+    (annotation
+      (identifier)
+      (annotation_argument_list))))
+
+================================================================================
+Parens around LHS of assignment
+================================================================================
+
+(Saxreader $READER) = ...;
+
+--------------------------------------------------------------------------------
+
+(program
+  (toplevel_typed_metavariable_declaration
+    (type_identifier)
+    (identifier)
+    (semgrep_ellipsis)))
+
+================================================================================
+Parens around LHS of assignment with no semicolon
+================================================================================
+
+(Saxreader $READER) = ...
+
+--------------------------------------------------------------------------------
+
+(program
+  (toplevel_typed_metavariable_declaration
+    (type_identifier)
+    (identifier)
+    (semgrep_ellipsis)))
+
+================================================================================
+Dots in generics
+================================================================================
+
+class Foo<...> { ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (class_declaration
+    (identifier)
+        (type_parameters
+          (type_parameter
+            (semgrep_ellipsis)))
+        (class_body
+          (semgrep_ellipsis))))
+
+================================================================================
+Dots in for loop
+================================================================================
+
+for(...) { ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (for_statement
+    (semgrep_ellipsis)
+    (block
+      (semgrep_ellipsis))))
+
+================================================================================
+Dots in catch
+================================================================================
+
+try {
+        ...
+}
+catch (...) {
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (try_statement
+    (block
+      (semgrep_ellipsis))
+    (catch_clause
+      (catch_formal_parameter
+        (semgrep_ellipsis))
+      (block))))
+
+================================================================================
+Dots in interface
+================================================================================
+
+interface $INTERFACE extends Remote {
+  ...
+  $RETURNTYPE $METHOD(Object $PARAM) throws RemoteException;
+}
+
+--------------------------------------------------------------------------------
+
+(program
+  (interface_declaration
+    (identifier)
+    (extends_interfaces
+      (type_list
+        (type_identifier)))
+    (interface_body
+      (semgrep_ellipsis)
+      (method_declaration
+        (type_identifier)
+        (identifier)
+        (formal_parameters
+          (formal_parameter
+            (type_identifier)
+            (identifier)))
+        (throws
+          (type_identifier))))))
+
+================================================================================
+Dots in interface with at sign
+================================================================================
+
+public @interface $IF { ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (annotation_type_declaration
+    (modifiers)
+    (identifier)
+    (annotation_type_body
+      (annotation_type_element_declaration
+        (semgrep_ellipsis)))))
+
+================================================================================
+Dots in enum
+================================================================================
+
+@foo
+enum $A { ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (enum_declaration
+  (modifiers
+    (marker_annotation
+      (identifier)))
+    (identifier)
+    (enum_body
+      (enum_body_declarations
+        (semgrep_ellipsis)))))
+
+
+================================================================================
+Super call with ellipsis
+================================================================================
+
+super(...)
+
+--------------------------------------------------------------------------------
+
+(program
+  (toplevel_explicit_constructor_invocation
+    (super)
+    (argument_list
+      (semgrep_ellipsis))))
+
+================================================================================
+Dots in static
+================================================================================
+
+static { ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (static_initializer
+    (block
+      (semgrep_ellipsis))))
+
+================================================================================
+Partial finally
+================================================================================
+
+finally { ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (partials
+    (finally_clause
+      (block
+        (semgrep_ellipsis)))))
+
+================================================================================
+Partial try
+================================================================================
+
+try { ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (partials
+    (partial_try_statement
+      (block
+        (semgrep_ellipsis)))))

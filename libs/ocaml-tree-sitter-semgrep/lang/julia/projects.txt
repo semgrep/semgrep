@@ -1,0 +1,26 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+#
+https://github.com/fonsp/Pluto.jl
+https://github.com/FluxML/Flux.jl
+https://github.com/FluxML/Zygote.jl
+https://github.com/GenieFramework/Genie.jl
+https://github.com/GiovineItalia/Gadfly.jl
+https://github.com/SciML/DifferentialEquations.jl
+https://github.com/jump-dev/JuMP.jl
+https://github.com/probcomp/Gen.jl
+https://github.com/julialang/Pkg.jl
+https://github.com/JuliaLang/PackageCompiler.jl
+https://github.com/JuliaPlots/Makie.jl
+https://github.com/JuliaPlots/Plots.jl
+https://github.com/JuliaData/DataFrames.jl
+https://github.com/JuliaPy/PyCall.jl
+https://github.com/alan-turing-institute/MLJ.jl
+https://github.com/denizyuret/Knet.jl
+https://github.com/mossr/BeautifulAlgorithms.jl
+https://github.com/jonathan-laurent/AlphaZero.jl
+
+# commented for now as the compiler repository for the language
+# usually contains lots of test files exercising every corner
+# of the language, but are not representative of developer's code
+#https://github.com/julialang/julia
