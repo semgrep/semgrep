@@ -1,0 +1,2 @@
+# file extensions for Rust
+.rs

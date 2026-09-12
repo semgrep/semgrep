@@ -1,0 +1,27 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+# This is a Haskell-specific script, due to the `unicode.h` below. 
+#
+set -eu -o pipefail
+
+mkdir -p src
+(
+  cd src
+  rm -f scanner.c unicode.h 
+
+  cp ../../tree-sitter-haskell/src/scanner.c scanner.c
+  # The Haskell tree-sitter scanner has a dependency on a `unicode.h` file, so
+  # we have to bring it over here or we won't be able to make the parser.
+  cp ../../tree-sitter-haskell/src/unicode.h unicode.h
+)
+
+mkdir -p test/corpus
+(
+  cd test/corpus
+  rm -f inherited
+  # The root of the tests is either 'test/corpus' or 'corpus' as per
+  # tree-sitter documentation.
+  ln -sf ../../../tree-sitter-haskell/test/corpus inherited
+)

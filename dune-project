@@ -46,7 +46,8 @@ For more information see https://semgrep.dev
 
 ; note: vendored libs are listed here so we pull in their opam dependencies
 ; (e.g., ocaml-tree-sitter-core -> tsort). They are pinned in
-; semgrep.opam.template to the local version, so we don't have to worry about
+; semgrep.opam.template to the vendored path under
+; libs/ocaml-tree-sitter-semgrep/core, so we don't have to worry about
 ; publishing to opam. If you want to add another, add it below and pin it there
 ;
 ; coupling: because of the way we need to statically link on macOS, if you add a

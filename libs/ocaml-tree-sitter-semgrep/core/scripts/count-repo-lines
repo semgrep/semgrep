@@ -1,0 +1,46 @@
+#! /usr/bin/env bash
+#
+# Count the number of lines with a given extension found in git repo
+#
+set -eu
+
+prog_name=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Clone a git repo and count the lines of files with a specific extension.
+Usage: $prog_name FILE_EXT URL
+Example: $prog_name .ml https://github.com/semgrep/semgrep.git
+EOF
+}
+
+error() {
+  echo "Error: $*" >&2
+  usage >&2
+}
+
+if [[ $# != 2 ]]; then
+  error "Invalid number of arguments"
+fi
+
+ext=$1
+url=$2
+workspace="tmp"
+repo_name=$(basename "$url" .git)
+
+mkdir -p "$workspace"
+(
+  cd "$workspace"
+
+  if [[ ! -e "$repo_name" ]]; then
+    git clone --depth 1 "$url"
+  fi
+
+  (
+    cd "$repo_name"
+    num_lines=$(git ls-files | grep "$ext"'$' | xargs cat | wc -l)
+    echo "Found $num_lines lines in files ending in '$ext' in repo '$repo_name'."
+  )
+)
+
+echo "Leaving files in $workspace."

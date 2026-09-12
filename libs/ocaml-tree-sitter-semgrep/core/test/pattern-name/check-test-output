@@ -1,0 +1,50 @@
+#! /usr/bin/env bash
+#
+# Check test output
+#
+set -eu
+
+contains() {
+  str=$1
+  file=$2
+  if grep -F -q "$str" "$file"; then
+    echo "OK found '$str' in '$file'"
+  else
+    echo "FAIL couldn't find '$str' in '$file'"
+    return 1
+  fi
+}
+
+doesnt_contain() {
+  str=$1
+  file=$2
+  if grep -F -q "$str" "$file"; then
+    echo "FAIL found '$str' in '$file'"
+    return 1
+  else
+    echo "OK couldn't find '$str' in '$file'"
+  fi
+}
+
+contains 'type pat_lowe' ocaml-src/lib/CST.ml
+contains 'type pat_uppe' ocaml-src/lib/CST.ml
+contains 'type pat_mixed' ocaml-src/lib/CST.ml
+contains 'type pat_unde_sepa' ocaml-src/lib/CST.ml
+contains 'type pat_dash_sepa' ocaml-src/lib/CST.ml
+contains 'type pat_last_90_days' ocaml-src/lib/CST.ml
+
+# Collision resolution between /X/ and /x/ that both get normalized to 'x'.
+contains 'type pat_x' ocaml-src/lib/CST.ml
+contains 'type pat_x_' ocaml-src/lib/CST.ml
+
+# Collision resolution between /-/ and /_/ that both get normalized to '_'.
+contains 'type pat__' ocaml-src/lib/CST.ml
+contains 'type pat___' ocaml-src/lib/CST.ml
+
+# Collision resolution between /#/ and /01abfc7/ that both end up being named
+# "01abfc7".
+contains 'type pat_01abfc7' ocaml-src/lib/CST.ml
+contains 'type pat_01abfc7_' ocaml-src/lib/CST.ml
+
+# Identical patterns should get the same name
+doesnt_contain 'type pat_lowe_ ' ocaml-src/lib/CST.ml

@@ -1,0 +1,113 @@
+#! /usr/bin/env bash
+#
+# Build and test support for a language
+#
+set -eu -o pipefail
+
+prog_name=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Build and test support for a language. For example,
+
+  ./$prog_name typescript
+
+will take care of rebuilding and testing the components for the sublanguages
+'typescript' and 'tsx' whose original grammars are defined in the
+'tree-sitter-typescript' project.
+
+Usage: $prog_name LANG
+Options:
+  --help
+      Print this message and exit.
+EOF
+}
+
+error() {
+  echo "Error in '$prog_name': $*" >&2
+  exit 1
+}
+
+lang=''
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help)
+      usage
+      exit 0
+      ;;
+    *)
+      if [[ -n "$lang" ]]; then
+        error "Exactly one language must be specified on the command line"
+      fi
+      lang="$1"
+  esac
+  shift
+done
+
+if [[ -z "$lang" ]]; then
+  error "Missing language name."
+fi
+
+echo "Building the extended parser semgrep-$lang."
+(
+  cd semgrep-grammars/src/semgrep-"$lang"
+  make clean
+  make test
+)
+
+sublangs="$lang"
+# Another special case for typescript and apex.
+# It could be handled in a generic fashion by declaring the list of
+# dialects for each tree-sitter-X project.
+if [[ "$lang" = typescript ]]; then
+  sublangs="typescript tsx"
+elif [[ "$lang" = php ]]; then
+  sublangs="php php-only"
+elif [[ "$lang" = sfapex ]]; then
+  # sosl and soql are subgrammars of apex which have their own test suites
+  # but we don't care about them as standalone languages.
+  sublangs="apex"
+elif [[ "$lang" = cfml ]]; then
+  # cfscript and cfquery are subgrammars of cfml which have their own test
+  # suites but we only care about cfml as the standalone language.
+  sublangs="cfml"
+fi
+
+check_for_blanks() {
+  cst_ml=ocaml-src/lib/CST.ml
+  if grep -C 2 '\bBlank\b' "$cst_ml"; then
+    cat 2>&1 <<EOF
+
+found in $(pwd)/$cst_ml
+language: $sublang
+
+*** Warning: We have some Blank nodes, which will produce no tokens. ***
+
+This means there won't be any token or location information available
+at parsing time for these nodes.
+
+You should get back to the grammar and create named rules for these nodes
+to avoid this problem.
+EOF
+    else
+      echo "$sublang: OK"
+  fi
+}
+
+echo "Testing C/OCaml code generation for sublanguages: $sublangs"
+for sublang in $sublangs; do
+  (
+    cd "$sublang"
+    make clean
+    make test
+  )
+done
+
+for sublang in $sublangs; do
+  (
+    echo "$sublang: Checking for undesirable Blank nodes."
+    cd "$sublang"
+    check_for_blanks
+  )
+done

@@ -1,0 +1,34 @@
+#
+# Top C projects from GitHub, sorted by stars.
+# Created by ../../scripts/most-starred-for-language.
+#
+https://github.com/torvalds/linux
+# https://github.com/netdata/netdata
+# https://github.com/redis/redis
+# https://github.com/Genymobile/scrcpy
+# https://github.com/git/git
+# https://github.com/php/php-src
+# https://github.com/bilibili/ijkplayer
+# https://github.com/wg/wrk
+# https://github.com/obsproject/obs-studio
+# https://github.com/FFmpeg/FFmpeg
+# https://github.com/ggreer/the_silver_searcher
+# https://github.com/tmux/tmux
+# https://github.com/cfenollosa/os-tutorial
+# https://github.com/pjreddie/darknet
+# https://github.com/julycoding/The-Art-Of-Programming-By-July
+# https://github.com/curl/curl
+# https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System
+# https://github.com/stedolan/jq
+# https://github.com/libuv/libuv
+# https://github.com/Awesome-HarmonyOS/HarmonyOS
+# https://github.com/robertdavidgraham/masscan
+# https://github.com/coolsnowwolf/lede
+# https://github.com/nothings/stb
+# https://github.com/openssl/openssl
+# https://github.com/arendst/Tasmota
+# https://github.com/taosdata/TDengine
+# https://github.com/mpv-player/mpv
+# https://github.com/radareorg/radare2
+# https://github.com/facebook/zstd
+# https://github.com/ventoy/Ventoy

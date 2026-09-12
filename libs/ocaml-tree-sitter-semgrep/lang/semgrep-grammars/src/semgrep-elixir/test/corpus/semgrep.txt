@@ -1,0 +1,77 @@
+=====================================
+Metavariables
+=====================================
+
+def $FOO do
+  $BAR(1, 2)
+end
+
+---
+
+(source
+	(call (identifier)
+	      (arguments (identifier))
+	      (do_block (call (identifier) (arguments (integer) (integer))))))
+
+=====================================
+Metavariables as key value pairs
+=====================================
+
+%{$KEY: $VALUE}
+
+---
+
+(source
+  (map
+    (map_content
+      (keywords
+        (pair
+          (metavariable_keyword)
+          (identifier))))))
+
+=====================================
+Metavariables as atoms
+=====================================
+
+:$FOO
+
+---
+
+(source
+  (metavariable_atom))
+
+=====================================
+Ellipsis in calls
+=====================================
+
+def foo do
+  bar(1, ..., 2, ..., three: 3, ..., four: 4, ...)
+end
+
+---
+
+(source (call (identifier) (arguments (identifier))
+   (do_block
+	(call (identifier)
+	      (arguments (integer) (identifier) (integer)
+              (identifier)
+              (keywords
+                (pair (keyword) (integer))
+                (pair (semgrep_ellipsis))
+                (pair (keyword) (integer))
+                (pair (semgrep_ellipsis))))))))
+
+=====================================
+Deep Ellipsis
+=====================================
+
+def foo do
+  bar(1, <... 3 ...>, 2)
+end
+
+---
+(source
+  (call (identifier)
+    (arguments (identifier))
+    (do_block (call (identifier)
+    	      (arguments (integer) (deep_ellipsis (integer)) (integer))))))

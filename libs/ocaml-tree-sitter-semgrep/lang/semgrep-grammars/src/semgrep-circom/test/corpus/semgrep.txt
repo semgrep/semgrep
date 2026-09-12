@@ -1,0 +1,75 @@
+=====================================
+Metavariable for version
+=====================================
+pragma circom $VER;
+---
+(source_file
+      (pragma_directive
+        (circom_pragma_token
+          (identifier))))
+=====================================
+Template pattern
+=====================================
+template $NAME(...){
+  ...
+}
+---
+ (source_file
+      (template_definition
+        (identifier)
+        (parameter_list
+          (parameter
+            (ellipsis)))
+        (template_body
+          (expression_statement
+            (ellipsis)))))
+=====================================
+Ellipsis for 'for'
+=====================================
+
+for(...) {
+  ...
+}
+---
+(source_file
+      (for_statement
+        (ellipsis)
+        (block_statement
+          (expression_statement
+            (ellipsis)))))
+=====================================
+Ellipsis for 'if'
+=====================================
+
+if(...) {
+  ...
+}
+else{
+  ...
+}
+---
+(source_file
+      (if_statement
+        (ellipsis)
+        (block_statement
+          (expression_statement
+            (ellipsis)))
+        (block_statement
+          (expression_statement
+            (ellipsis)))))
+=====================================
+Function pattern
+=====================================
+function $FUNC(...) {
+    ...
+}
+---
+(source_file
+      (function_definition
+        (identifier)
+        (parameter_list
+          (parameter
+            (ellipsis)))
+        (function_body
+          (expression_statement
+            (ellipsis)))))

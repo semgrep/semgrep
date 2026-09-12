@@ -1,5 +1,5 @@
 // Per-language grammar build/test matrix for ocaml-tree-sitter-semgrep.
-// For each language from lang/scripts/list-languages, runs `./test-lang <lang>`.
+// For each language from scripts/list-languages, runs `./test-lang <lang>`.
 // All failures are fatal.
 
 local gha = import 'libs/gha.libsonnet';
@@ -12,16 +12,15 @@ local workflow_paths = [
   '.github/workflows/ocaml-tree-sitter.libsonnet',
 ];
 
-local trigger_paths(ots_dir, ots_is_submodule=true, extra_paths=[]) =
-  // TEMPORARY default — see ocaml-tree-sitter.libsonnet.
-  local ots = lib.for_tree(ots_dir, ots_is_submodule);
+local trigger_paths(ots_dir, extra_paths=[]) =
+  local ots = lib.for_tree(ots_dir);
   std.set(
     ots.core_paths
     + ots.grammar_paths
+    + ots.integration_paths
+    + [ots_dir + '/Makefile', ots_dir + '/dune']
     + workflow_paths
     + extra_paths
-    // TEMPORARY: URL/path edits in .gitmodules do not touch the gitlink.
-    + (if ots_is_submodule then ['.gitmodules'] else [])
   );
 
 // GitHub `foo/**` → git directory pathspec `foo`.
@@ -73,11 +72,11 @@ local detect_changes_job(paths) = {
 };
 
 local enumerate_job(ots) = {
-  name: 'Enumerate languages',
+  name: 'Enumerate languages and prepare tools',
   needs: 'detect-changes',
   'if': "${{ needs.detect-changes.outputs.should_test == 'true' }}",
   'runs-on': 'ubuntu-latest',
-  'timeout-minutes': 5,
+  'timeout-minutes': 60,
   outputs: {
     languages: '${{ steps.list.outputs.languages }}',
   },
@@ -87,10 +86,11 @@ local enumerate_job(ots) = {
       'working-directory': ots.ots_dir,
       run: |||
         set -euo pipefail
-        echo "languages=$(lang/scripts/list-languages | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
+        echo "languages=$(scripts/list-languages | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
       |||,
     },
-  ],
+    ots.setup_ocaml_step,
+  ] + ots.build_core_steps,
 };
 
 local test_language_job(ots) = {
@@ -159,11 +159,10 @@ local test_languages_job = {
   ],
 };
 
-local jobs(ots_dir, ots_is_submodule=true, extra_paths=[]) =
-  // TEMPORARY default — see ocaml-tree-sitter.libsonnet.
-  local ots = lib.for_tree(ots_dir, ots_is_submodule);
+local jobs(ots_dir, extra_paths=[]) =
+  local ots = lib.for_tree(ots_dir);
   {
-    'detect-changes': detect_changes_job(trigger_paths(ots_dir, ots_is_submodule, extra_paths)),
+    'detect-changes': detect_changes_job(trigger_paths(ots_dir, extra_paths)),
     enumerate: enumerate_job(ots),
     'test-language': test_language_job(ots),
     'test-languages': test_languages_job,

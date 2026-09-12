@@ -1,0 +1,156 @@
+==================================
+Expression Ellipsis
+==================================
+
+...
+foo(...);
+x + ...;
+switch (...) { }
+if (...) { }
+[..., 1, ...]
+
+---
+
+(program
+  (expression_statement
+    (semgrep_expression_ellipsis))
+  (expression_statement
+    (call_expression
+      (identifier)
+      (arguments
+        (semgrep_expression_ellipsis))))
+  (expression_statement
+    (binary_expression
+      (identifier)
+      (semgrep_expression_ellipsis)))
+  (switch_statement
+    (parenthesized_expression
+      (semgrep_expression_ellipsis))
+    (switch_body))
+  (if_statement
+    (parenthesized_expression
+      (semgrep_expression_ellipsis))
+    (statement_block))
+  (expression_statement
+    (array
+      (semgrep_expression_ellipsis)
+      (number)
+      (semgrep_expression_ellipsis))))
+
+==================================
+Case pattern
+==================================
+
+case "Foo":
+  ...
+
+---
+
+(program
+  (switch_case
+    (string
+      (string_fragment))
+    (expression_statement
+      (semgrep_expression_ellipsis))))
+
+==================================
+Ellipsis in class body
+==================================
+
+class $C {
+  ...
+  @$DEC(...)
+  $FUNC(@$PARAMDEC $BODY: $TYPE, ...) { ... }
+  ...
+}
+
+---
+
+(program
+  (class_declaration
+    (type_identifier)
+    (class_body
+      (semgrep_ellipsis)
+      (decorator
+        (call_expression
+          (identifier)
+          (arguments
+            (semgrep_expression_ellipsis))))
+      (method_definition
+        (property_identifier)
+        (formal_parameters
+          (required_parameter
+            (decorator
+              (identifier))
+            (identifier)
+            (type_annotation
+              (type_identifier)))
+          (semgrep_ellipsis))
+        (statement_block
+          (expression_statement
+            (semgrep_expression_ellipsis))))
+      (semgrep_ellipsis))))
+
+==================================
+Ellipsis in function params
+==================================
+
+function foo(...) { ... }
+function foo(..., a) { ... }
+function foo(a, ...) { ... }
+function foo(..., a, ...) { ... }
+function foo(..., @Bar(...) $X, ...) { ... }
+
+---
+
+(program
+  (function_declaration
+    (identifier)
+    (formal_parameters
+      (semgrep_ellipsis))
+    (statement_block
+      (expression_statement
+        (semgrep_expression_ellipsis))))
+  (function_declaration
+    (identifier)
+    (formal_parameters
+      (semgrep_ellipsis)
+      (required_parameter
+        (identifier)))
+    (statement_block
+      (expression_statement
+        (semgrep_expression_ellipsis))))
+  (function_declaration
+    (identifier)
+    (formal_parameters
+      (required_parameter
+        (identifier))
+      (semgrep_ellipsis))
+    (statement_block
+      (expression_statement
+        (semgrep_expression_ellipsis))))
+  (function_declaration
+    (identifier)
+    (formal_parameters
+      (semgrep_ellipsis)
+      (required_parameter
+        (identifier))
+      (semgrep_ellipsis))
+    (statement_block
+      (expression_statement
+        (semgrep_expression_ellipsis))))
+  (function_declaration
+    (identifier)
+    (formal_parameters
+      (semgrep_ellipsis)
+      (required_parameter
+        (decorator
+          (call_expression
+            (identifier)
+            (arguments
+              (semgrep_expression_ellipsis))))
+        (identifier))
+      (semgrep_ellipsis))
+    (statement_block
+      (expression_statement
+        (semgrep_expression_ellipsis)))))

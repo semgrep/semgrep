@@ -1,0 +1,334 @@
+========================
+Class definition with metavariable name
+========================
+
+__SEMGREP_STATEMENT class $NAME { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (class_definition
+      (identifier)
+      (template_body
+        (semgrep_ellipsis)))))
+
+========================
+Class definition extending metavariable
+========================
+
+__SEMGREP_STATEMENT class $NAME extends $BASE { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (class_definition
+      (identifier)
+      (extends_clause
+        (type_identifier))
+      (template_body
+        (semgrep_ellipsis)))))
+
+========================
+Class with ellipsis in body
+========================
+
+__SEMGREP_STATEMENT class Foo {
+  val x = 1
+  ...
+  def bar(): Unit = ()
+}
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (class_definition
+      (identifier)
+      (template_body
+        (val_definition
+          (identifier)
+          (integer_literal))
+        (semgrep_ellipsis)
+        (function_definition
+          (identifier)
+          (parameters)
+          (type_identifier)
+          (unit))))))
+
+========================
+Case class with metavariable fields
+========================
+
+__SEMGREP_STATEMENT case class $NAME($FIELD: $TYPE)
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (class_definition
+      (identifier)
+      (class_parameters
+        (class_parameter
+          (identifier)
+          (type_identifier))))))
+
+========================
+Case class with ellipsis in parameters
+========================
+
+__SEMGREP_STATEMENT case class Foo(..., $EXTRA: $T)
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (class_definition
+      (identifier)
+      (class_parameters
+        (class_parameter
+          (semgrep_ellipsis))
+        (class_parameter
+          (identifier)
+          (type_identifier))))))
+
+========================
+Object definition with metavariable name
+========================
+
+__SEMGREP_STATEMENT object $OBJ { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (object_definition
+      (identifier)
+      (template_body
+        (semgrep_ellipsis)))))
+
+========================
+Trait definition with metavariable name
+========================
+
+__SEMGREP_STATEMENT trait $T { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (trait_definition
+      (identifier)
+      (template_body
+        (semgrep_ellipsis)))))
+
+========================
+Trait with ellipsis and method
+========================
+
+__SEMGREP_STATEMENT trait $T {
+  ...
+  def $METHOD($X: $TYPE): $RET
+}
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (trait_definition
+      (identifier)
+      (template_body
+        (semgrep_ellipsis)
+        (function_declaration
+          (identifier)
+          (parameters
+            (parameter
+              (identifier)
+              (type_identifier)))
+          (type_identifier))))))
+
+========================
+Function definition with metavariable name
+========================
+
+__SEMGREP_STATEMENT def $METHOD($X: $T): $R = $BODY
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (function_definition
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier)))
+      (type_identifier)
+      (semgrep_metavariable))))
+
+========================
+Function definition with ellipsis parameters
+========================
+
+__SEMGREP_STATEMENT def foo(...): $T = $BODY
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (function_definition
+      (identifier)
+      (parameters
+        (parameter
+          (semgrep_ellipsis)))
+      (type_identifier)
+      (semgrep_metavariable))))
+
+========================
+Function definition with ellipsis body
+========================
+
+__SEMGREP_STATEMENT def foo($X: Int): Int = {
+  ...
+}
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (function_definition
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier)))
+      (type_identifier)
+      (block
+        (semgrep_ellipsis)))))
+
+========================
+Function definition with mixed parameters
+========================
+
+__SEMGREP_STATEMENT def $M($X: $T, ..., $Y: $S): $R = $BODY
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (function_definition
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier))
+        (parameter
+          (semgrep_ellipsis))
+        (parameter
+          (identifier)
+          (type_identifier)))
+      (type_identifier)
+      (semgrep_metavariable))))
+
+========================
+Val definition with complex pattern
+========================
+
+__SEMGREP_STATEMENT val ($A, $B) = $PAIR
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (val_definition
+      (tuple_pattern
+        (identifier)
+        (identifier))
+      (semgrep_metavariable))))
+
+========================
+Val definition with case class destructure
+========================
+
+__SEMGREP_STATEMENT val Point($X, $Y) = $P
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (val_definition
+      (case_class_pattern
+        (type_identifier)
+        (identifier)
+        (identifier))
+      (semgrep_metavariable))))
+
+========================
+Class body member declaration with ellipsis
+========================
+
+__SEMGREP_MEMBER_DECL
+def $METHOD(...): $T
+
+---
+
+(compilation_unit
+  (semgrep_member_decl
+    (function_declaration
+      (identifier)
+      (parameters
+        (parameter
+          (semgrep_ellipsis)))
+      (type_identifier))))
+
+========================
+Class body val declaration with ellipsis
+========================
+
+__SEMGREP_MEMBER_DECL
+val $FIELD: $T
+
+---
+
+(compilation_unit
+  (semgrep_member_decl
+    (val_declaration
+      (identifier)
+      (type_identifier))))
+
+========================
+Extension definition with metavariable
+========================
+
+__SEMGREP_STATEMENT extension ($X: $T) def $METHOD(): $R = $BODY
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (extension_definition
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier)))
+      (function_definition
+        (identifier)
+        (parameters)
+        (type_identifier)
+        (semgrep_metavariable)))))
+
+========================
+Given definition with metavariable
+========================
+
+__SEMGREP_STATEMENT given $NAME: $T = $BODY
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (given_definition
+      (identifier)
+      (type_identifier)
+      (semgrep_metavariable))))

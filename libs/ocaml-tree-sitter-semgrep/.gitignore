@@ -1,0 +1,49 @@
+/bin
+tmp
+
+# Dune build data
+_build
+
+# Merlin configuring file for Vim and Emacs
+.merlin
+
+# Dune generated files
+*.install
+
+# Local OPAM switch
+/_opam/
+
+/config.sh
+/config.mk
+
+# for codemap stuff of pad
+/skip_list.txt
+
+# products of 'tree-sitter generate' without '--no-bindings'
+# for tree-sitter >= 0.19.3
+Cargo.toml
+bindings/
+# ...but core/src/bindings/ is hand-written library source (tree-sitter.bindings),
+# not a 'tree-sitter generate' product, so keep it tracked.
+!/core/src/bindings/
+!/core/src/bindings/**
+
+# tree-sitter-cli download
+/downloads/
+
+# vim swap files
+*.swp
+
+# Python temps
+__pycache__
+
+# npm (local installs under ots)
+node_modules/
+package-lock.json
+
+# Ephemeral grammar clones (fetched via grammar_registry.py).
+# Also listed in lang/semgrep-grammars/src/.gitignore for that subtree.
+lang/semgrep-grammars/src/tree-sitter-*
+
+# uv local env
+.venv
