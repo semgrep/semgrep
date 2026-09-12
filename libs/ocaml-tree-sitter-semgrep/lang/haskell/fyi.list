@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-haskell/LICENSE
+semgrep-grammars/src/tree-sitter-haskell/grammar.js
+semgrep-grammars/src/semgrep-haskell/grammar.js

@@ -1,0 +1,50 @@
+=====================================
+Semgrep expression ellipsis in cfset
+=====================================
+
+<cfset x = foo(...)>
+
+---
+
+(program
+  (cf_set_tag
+    (assignment_expression
+      (identifier)
+      (call_expression
+        (identifier)
+        (arguments
+          (semgrep_expression_ellipsis))))
+    (cf_selfclose_void_tag_end)))
+
+=====================================
+Semgrep deep ellipsis in cfset
+=====================================
+
+<cfset $X = <... foo() ...>>
+
+---
+
+(program
+  (cf_set_tag
+    (assignment_expression
+      (identifier)
+      (deep_ellipsis
+        (call_expression
+          (identifier)
+          (arguments))))
+    (cf_selfclose_void_tag_end)))
+
+=====================================
+Semgrep metavariable in cfset
+=====================================
+
+<cfset $X = $Y>
+
+---
+
+(program
+  (cf_set_tag
+    (assignment_expression
+      (identifier)
+      (identifier))
+    (cf_selfclose_void_tag_end)))

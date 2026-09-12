@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+set -eu
+
+# Expect all xfail tests to produce a MISSING node:
+for x in test.out/xfail/*; do
+  echo "Check output $x"
+  pattern="Missing element in input code"
+  if ! grep -q "$pattern" "$x"; then
+    echo "File $x doesn't contain '$pattern'" >&2
+    exit 1
+  fi
+done

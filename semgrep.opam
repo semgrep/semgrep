@@ -125,7 +125,7 @@ pin-depends: [
   *)
   ["ocaml-variants.5.4.0" "git+https://github.com/semgrep/ocaml.git#4046c817ed2ed5c2431300902d1bd306230bf3dd"]
   ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#e88c082341e4ff278eed892c17032df83b26e585"]
-  ["tree-sitter.dev" "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#c4baff8d83b2e1f83f247acb11d0c9dafa5e48f7"]
+  ["tree-sitter.dev" "./libs/ocaml-tree-sitter-semgrep/core"]
   ["obackward.dev" "git+https://github.com/semgrep/obackward.git#e1c16766976b4fadd97097b96f96666e8e1cb98c"]
   (* coupling: update the submodule in cli/src/semgrep too *)
   ["semgrep-interfaces.dev" "git+https://github.com/semgrep/semgrep-interfaces.git#7e509db48c700cae49fe0372e2aa0410fa86d867"]

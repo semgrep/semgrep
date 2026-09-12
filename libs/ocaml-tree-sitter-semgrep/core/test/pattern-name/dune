@@ -1,0 +1,116 @@
+(dirs src ocaml-src test)
+
+(rule
+ (alias runtest)
+ (mode
+  (promote (until-clean)))
+ (target
+  (dir test.out))
+ (deps
+  (:parser ocaml-src/bin/Main.exe)
+  (source_tree test))
+ (action
+  (run %{project_root}/scripts/parse-examples %{parser} pattern_name)))
+
+(subdir
+ src
+ (rule
+  (targets
+   parser.c
+   grammar.json
+   grammar.json.orig
+   node-types.json
+   (dir tree_sitter))
+  (deps ../grammar.js ../../../tree-sitter)
+  (action
+   (chdir
+    ..
+    (progn
+     (bash "mkdir -p src")
+     (setenv
+      PATH
+      "../../:%{env:PATH=}"
+      (run %{project_root}/scripts/ocaml-tree-sitter-gen-c)))))))
+
+(subdir
+ ocaml-src
+ (rule
+  (deps
+   (:grammar ../src/grammar.json))
+  (target
+   (dir generated))
+  (action
+   (progn
+    (bash "mkdir -p generated/bin/ generated/lib/")
+    (run ocaml-tree-sitter gen pattern_name %{grammar} -d generated/))))
+ (subdir
+  bin
+  (executable
+   (name Main)
+   (libraries tree_sitter_pattern_name))
+  (copy_files ../generated/bin/*))
+ (subdir
+  config
+  (rule
+   (deps
+    (:template ../../../discover.template.ml))
+   (target discover.ml)
+   (action
+    (bash "sed s/%%LANGNAME%%/pattern_name/ %{template} > %{target}")))
+  (executable
+   (name discover)
+   (libraries base dune.configurator)))
+ (subdir
+  lib
+  (rule
+   (deps ../../src/tree_sitter)
+   (targets parser.c)
+   (action
+    (concurrent
+     (copy ../../src/parser.c parser.c)
+     ; NOTE: dune doesn't know about how to build these headers or that
+     ; they're deps. That's probably OK, but if we change how those are
+     ; created we may need to modify this.
+     ;
+     ; Ensure we don't try and copy the glob pattern if is is empty
+     (bash
+      "shopt -s nullglob; for file in ../../src/*.h; do cp $file .; done")
+     (progn
+      (bash "mkdir -p tree_sitter/")
+      (bash "cp ../../src/tree_sitter/*.h tree_sitter/")))))
+  (rule
+   (deps
+    (:template ../../../bindings.template.c))
+   (target bindings.c)
+   (action
+    (bash "sed s/%%LANGNAME%%/pattern_name/ %{template} > %{target}")))
+  (copy_files ../generated/lib/*)
+  (library
+   (name tree_sitter_pattern_name)
+   (libraries atdgen-runtime tree-sitter.run)
+   (foreign_stubs
+    (language c)
+    (names parser bindings)
+    (flags
+     :standard
+     (:include c_flags.sexp)))
+   (c_library_flags
+    :standard
+    -lstdc++
+    (:include c_library_flags.sexp))
+   (foreign_stubs
+    (language cxx)
+    (names)
+    (flags
+     :standard
+     -fPIC
+     -I
+     .
+     (:include c_flags.sexp))))
+  (rule
+   (targets c_flags.sexp c_library_flags.sexp)
+   (action
+    (setenv
+     PKG_CONFIG_PATH
+     "%{project_root}/tree-sitter-out/lib/pkgconfig:%{env:PKG_CONFIG_PATH=}"
+     (run ../config/discover.exe))))))

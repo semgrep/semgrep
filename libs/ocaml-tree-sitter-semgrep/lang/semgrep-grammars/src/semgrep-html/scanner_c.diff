@@ -1,0 +1,19 @@
+diff --git a/src/scanner.c b/src/scanner.c
+index eecef9a..eddc236 100644
+--- a/src/scanner.c
++++ b/src/scanner.c
+@@ -102,7 +102,13 @@ static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
+ 
+ static String scan_tag_name(TSLexer *lexer) {
+     String tag_name = array_new();
+-    while (iswalnum(lexer->lookahead) || lexer->lookahead == '-' || lexer->lookahead == ':') {
++    while (iswalnum(lexer->lookahead) ||
++           // to accept xml names!
++           lexer->lookahead == '.' ||
++           lexer->lookahead == '_' ||
++           // original html-only name
++           lexer->lookahead == '-' ||
++           lexer->lookahead == ':') {
+         array_push(&tag_name, towupper(lexer->lookahead));
+         advance(lexer);
+     }

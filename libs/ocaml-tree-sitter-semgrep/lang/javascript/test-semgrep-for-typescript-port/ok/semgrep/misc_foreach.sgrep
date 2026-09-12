@@ -1,0 +1,3 @@
+for ($X of $Y) {
+  return $X.fld;
+}

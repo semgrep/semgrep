@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Resolve a grammar name and run lang/test-lang."""
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+OTS = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(OTS / "scripts"))
+
+from grammar_registry import RegistryError, resolve  # noqa: E402
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Resolve a grammar name and run lang/test-lang."
+    )
+    parser.add_argument("name", help="registry key or regen dest (e.g. python)")
+    args = parser.parse_args()
+    try:
+        key = resolve(args.name)
+    except RegistryError as exc:
+        print(f"test-grammar: {exc}", file=sys.stderr)
+        return 1
+    test_lang = OTS / "lang" / "test-lang"
+    # Registry-validated key; fixed executable, no shell.
+    # nosemgrep: dangerous-subprocess-use-tainted-env-args
+    return subprocess.run([str(test_lang), key], cwd=OTS / "lang").returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

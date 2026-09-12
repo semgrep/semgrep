@@ -1,0 +1,131 @@
+#! /usr/bin/env python3
+#
+# Aggregate parse errors into classes so as to give a sense of which errors are
+# more common or serious for a given parser.
+#
+
+import csv
+import json
+import sys
+import argparse
+
+STAT_PATH = "stat.tmp/"
+NUM_EXAMPLES = 3
+
+'''
+Returns whether we should add another code example --
+we should return if there are less than the number of examples we want
+and the file name given actually exists.
+'''
+def add_to_code_lines(example_arr, file_name):
+    if len(example_arr) >= NUM_EXAMPLES:
+        return False
+
+    # check if the file name is in the example array
+    for example in example_arr:
+        if file_name in example:
+            return False
+
+    return True
+
+def get_code_lines(err):
+    # get the complete file path of the file from err array
+    split_file = err['file'].split('/')
+    if len(split_file) > 0:
+        complete_file_path = STAT_PATH + split_file[0] + '/' + err['file']
+    else:
+        complete_file_path = STAT_PATH + err['file']
+    with open(complete_file_path, 'r') as open_file:
+        try:
+            content = open_file.readlines()
+        except UnicodeDecodeError:
+            print(f"Broken UTF-8 in file {complete_file_path}", file=sys.stderr)
+            content = []
+        # get the surrounding lines
+        start_line = 0
+        end_line = 0
+        if err['start_pos']['row'] > 0:
+            start_line = err['start_pos']['row']-1
+        if err['end_pos']['row'] < len(content):
+            end_line = err['end_pos']['row']+1
+        return ''.join(content[start_line:end_line])
+
+'''
+Returns the specific file name and line numbers that the error
+started and ended on.
+'''
+def get_file_and_location(err):
+    file_and_location = (str(err['file']) +
+                    ': start -- ' +
+                    str(err['start_pos']['row']) + '; ' +
+                    str(err['start_pos']['column']) +
+                    '; end -- ' +
+                    str(err['end_pos']['row']) + '; ' +
+                    str(err['end_pos']['column']))
+    return file_and_location
+
+def parse_json_error_log():
+    clusters = {}
+    # We open as a binary, as the output that we get out may contain characters that
+    # a standard UTF-8 encoding cannot interpret.
+    # With the Haskell grammar, we were getting a "0xc0" byte, for some reason.
+    with open(0, 'rb') as open_file:
+      for line in open_file.readlines():
+          try:
+            # this can return a utf-8 encoding error, so we wrap this whole
+            # block in a try-except for UnicodeDecodeError
+            err = json.loads(line)
+            if 'error_class' in err:
+                key = err['error_class']
+                if not key in clusters:
+                    clus = {
+                        'error_class': key,
+                        'num_errors': 0,
+                        'num_lines': 0,
+                        'code_location': [],
+                        'code': [],
+                    }
+                    clusters[key] = clus
+                clus = clusters[key]
+                clus['num_errors'] = clus['num_errors'] + 1
+                err_num_lines = err['end_pos']['row'] - err['start_pos']['row'] + 1
+                clus['num_lines'] = clus['num_lines'] + err_num_lines
+
+                if add_to_code_lines(clus['code_location'], err['file']):
+                    clus['code_location'].append(get_file_and_location(err))
+                    clus['code'].append(get_code_lines(err))
+          except UnicodeDecodeError:
+              print(f"Broken UTF-8 in line {line}", file=sys.stderr)
+              pass
+
+    return clusters
+
+def print_csv_clusters(clusters):
+    writer = csv.writer(sys.stdout, quoting=csv.QUOTE_MINIMAL, escapechar='\\')
+    writer.writerow([
+        'number of errors',
+        'number of affected lines',
+        'error class',
+        'code location',
+        'code sample',
+    ])
+    for _key, clus in sorted(clusters.items(), key = lambda c: -c[1]['num_lines']):
+        code_locs_to_string = ';\n'.join(clus['code_location'])
+        all_code_lines = ';\n'.join(clus['code'])
+        row = [
+            clus['num_errors'],
+            clus['num_lines'],
+            clus['error_class'],
+            code_locs_to_string,
+            all_code_lines
+        ]
+        writer.writerow(row)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        clusters = parse_json_error_log()
+        print_csv_clusters(clusters)
+    else:
+        print("reads records from a parse-error.json file on stdin")
+        sys.exit(1)

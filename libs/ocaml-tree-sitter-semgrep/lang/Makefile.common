@@ -1,0 +1,117 @@
+#
+# Generic makefile to build and test a parser for a specific language.
+#
+# Each language uses its pinned CLI and the repository's shared runtime.
+
+LANG = $(shell basename "$$(pwd)")
+# Language Makefiles are symlinks here; realpath so this is lang/, then ots.
+PROJECT_ROOT ?= $(abspath $(dir $(realpath $(lastword $(MAKEFILE_LIST))))/..)
+export PROJECT_ROOT
+SCRIPTS = $(PROJECT_ROOT)/scripts
+
+# Resolve the tree-sitter version this language is pinned to.
+TS_VERSION := $(shell $(SCRIPTS)/ts-version-for-lang $(LANG))
+ifeq ($(TS_VERSION),)
+  $(error No tree-sitter version found for '$(LANG)'. Add it to upstream-grammars.json.)
+endif
+
+TS_PREFIX := $(PROJECT_ROOT)/core/tree-sitter-$(TS_VERSION)
+TREESITTER_BINDIR := $(TS_PREFIX)/bin
+TREESITTER_OUT := $(shell bash $(PROJECT_ROOT)/../../tree-sitter-config.sh)
+TREESITTER_INCDIR := $(TREESITTER_OUT)/include
+TREESITTER_LIBDIR := $(TREESITTER_OUT)/lib
+export TREESITTER_BINDIR
+export TREESITTER_INCDIR
+export TREESITTER_LIBDIR
+
+# Make tree-sitter, ocaml-tree-sitter, and pkg-config visible to recipes
+# (and to scripts invoked from them) without leaking into the rest of the
+# environment. Guard against re-prepending on recursive $(MAKE) invocations.
+OCAML_TREE_SITTER_BINDIR := $(PROJECT_ROOT)/core/bin
+ifeq ($(findstring $(OCAML_TREE_SITTER_BINDIR):,$(PATH)),)
+  export PATH := $(OCAML_TREE_SITTER_BINDIR):$(PATH)
+endif
+ifeq ($(findstring $(TREESITTER_BINDIR):,$(PATH)),)
+  export PATH := $(TREESITTER_BINDIR):$(PATH)
+endif
+ifeq ($(findstring $(TREESITTER_LIBDIR)/pkgconfig:,$(PKG_CONFIG_PATH)),)
+  export PKG_CONFIG_PATH := $(TREESITTER_LIBDIR)/pkgconfig:$(PKG_CONFIG_PATH)
+endif
+
+ifndef GEN_OCAML_OPTIONS
+  GEN_OCAML_OPTIONS =
+endif
+
+# Build the parsers.
+#
+.PHONY: build
+build: build-ocaml
+
+# Only generate source code without compiling it.
+#
+.PHONY: gen
+gen: gen-ocaml
+
+# Run the parsers on the collection of input programs in examples/
+# Optionally, run the command ./check-test-output to inspect the results
+# or run further tests.
+#
+.PHONY: test
+test: parse-examples
+	if [ -f 'check-test-output' ]; then ./check-test-output; fi
+
+# A source grammar.json in semgrep-grammars is not required by gen-c, that's
+# why the following recipe is complicated.
+TS_PARSER_SRC = ../semgrep-grammars/lang/$(LANG)/src/grammar.json
+.PHONY: grammar-tools wrapper
+grammar-tools:
+	$(MAKE) -C $(PROJECT_ROOT)/../.. grammar-tools
+
+wrapper:
+	wrapper=$$(python3 $(SCRIPTS)/grammar_registry.py wrapper-for-lang $(LANG)) && \
+	  $(MAKE) -C ../semgrep-grammars/src/$$wrapper build
+
+.PHONY: gen-c
+gen-c: grammar-tools wrapper
+	if [ ! -e src/parser.c ] \
+          || [ ! -e "$(TS_PARSER_SRC)" ] \
+          || [ "$(TS_PARSER_SRC)" -nt src/parser.c ] \
+          || [ $(SCRIPTS)/ocaml-tree-sitter-gen-c -nt src/parser.c ] \
+          || [ $(OCAML_TREE_SITTER_BINDIR)/ocaml-tree-sitter -nt src/parser.c ]; then \
+	  $(SCRIPTS)/ocaml-tree-sitter-gen-c; \
+	else \
+	  echo "src/parser.c for $(LANG) is up to date."; \
+	fi
+
+.PHONY: gen-ocaml
+gen-ocaml: gen-c
+	if [ ! -e ocaml-src/tree-sitter-lang.opam ] \
+	   || [ src/grammar.json -nt ocaml-src/tree-sitter-lang.opam ] \
+	   || [ $(OCAML_TREE_SITTER_BINDIR)/ocaml-tree-sitter -nt ocaml-src/tree-sitter-lang.opam ] \
+	   || [ $(SCRIPTS)/ocaml-tree-sitter-gen-ocaml -nt ocaml-src/tree-sitter-lang.opam ]; then \
+	  $(SCRIPTS)/ocaml-tree-sitter-gen-ocaml --lang $(LANG) $(GEN_OCAML_OPTIONS); \
+	fi
+
+.PHONY: build-ocaml
+build-ocaml: gen-ocaml
+	$(SCRIPTS)/build-ocaml
+	ln -sf ocaml-src/_build/install/default/bin/parse-$(LANG)
+	ln -sf parse-$(LANG) parse
+
+# Parse source using standalone executable and dump OCaml CST
+.PHONY: parse-examples
+parse-examples: build-ocaml
+	$(SCRIPTS)/parse-examples ./parse-$(LANG) $(LANG)
+
+.PHONY: stat
+stat: build-ocaml
+	$(SCRIPTS)/lang-stat $(LANG) projects.txt extensions.txt
+
+.PHONY: stat-priv
+stat-priv: build-ocaml
+	$(SCRIPTS)/lang-stat $(LANG) projects-priv.txt extensions.txt
+
+.PHONY: clean
+clean:
+	rm -rf src src.orig ocaml-src build stat.tmp
+	rm -f grammar.js grammar-rev.js grammar-rev.js.orig parse parse-$(LANG)

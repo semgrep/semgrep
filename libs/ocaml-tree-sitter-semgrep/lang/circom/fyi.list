@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-circom/LICENSE
+semgrep-grammars/src/tree-sitter-circom/grammar.js
+semgrep-grammars/src/semgrep-circom/grammar.js

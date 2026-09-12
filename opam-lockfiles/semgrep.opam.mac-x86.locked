@@ -325,7 +325,7 @@ pin-depends: [
   ]
   [
     "tree-sitter.dev"
-    "git+https://github.com/semgrep/ocaml-tree-sitter-core.git#c4baff8d83b2e1f83f247acb11d0c9dafa5e48f7"
+    "./libs/ocaml-tree-sitter-semgrep/core"
   ]
 ]
 x-maintenance-intent: ["(latest)"]

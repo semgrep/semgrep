@@ -1,0 +1,339 @@
+============
+Metavariable
+============
+
+__SEMGREP_EXPRESSION $X
+
+---
+
+(ql
+  (semgrep_expression
+    (variable
+      (varName
+        (simpleId
+          (semgrep_metavariable))))))
+
+============
+Ellipsis
+============
+
+__SEMGREP_EXPRESSION ...
+
+---
+
+(ql
+  (semgrep_expression
+    (semgrep_ellipsis)))
+
+============
+Metavariable ellipsis
+============
+
+__SEMGREP_EXPRESSION $...X
+
+---
+
+(ql
+  (semgrep_expression
+    (semgrep_ellipsis_metavar)))
+
+============
+Typed metavar
+============
+
+__SEMGREP_EXPRESSION (Foo $X)
+
+---
+
+(ql
+  (semgrep_expression
+    (par_expr
+      (simpleId)
+      (semgrep_metavariable))))
+
+============
+Sample query
+============
+
+from $TY $VAR
+where $FORMULA
+select $EXPR
+
+---
+
+(ql
+  (moduleMember
+    (select
+      (varDecl
+        (typeExpr
+          (className
+            (semgrep_metavariable)))
+        (varName
+          (simpleId
+            (semgrep_metavariable))))
+      (variable
+        (varName
+          (simpleId
+            (semgrep_metavariable))))
+      (asExprs
+        (asExpr
+          (variable
+            (varName
+              (simpleId
+                (semgrep_metavariable)))))))))
+
+============
+Metavariables as aggregate IDs
+============
+
+__SEMGREP_EXPRESSION $X[bar](2)
+
+---
+
+(ql
+  (semgrep_expression
+    (aggregate
+      (aggId
+        (semgrep_metavariable))
+      (variable
+        (varName
+          (simpleId)))
+      (expr_aggregate_body
+        (asExprs
+          (asExpr
+            (literal
+              (integer))))))))
+
+============
+Metavariables as complex aggregate IDs
+============
+
+__SEMGREP_EXPRESSION $X(Int x | true | false)
+
+---
+
+(ql
+  (semgrep_expression
+    (call_or_unqual_agg_expr
+      (aritylessPredicateExpr
+        (literalId
+          (semgrep_metavariable)))
+      (unqual_agg_body
+        (varDecl
+          (typeExpr
+            (className))
+          (varName
+            (simpleId)))
+        (literal
+          (bool
+            (true)))
+        (asExprs
+          (asExpr
+            (literal
+              (bool
+                (false)))))))))
+
+============
+Metavariables as predicates
+============
+
+predicate $FOO($TY $X) { 2 }
+
+---
+
+(ql
+  (moduleMember
+    (classlessPredicate
+      (predicate)
+      (predicateName
+        (semgrep_metavariable))
+      (varDecl
+        (typeExpr
+          (className
+            (semgrep_metavariable)))
+        (varName
+          (simpleId
+            (semgrep_metavariable))))
+      (body
+        (literal
+          (integer))))))
+
+============
+Metavariables as imports
+============
+
+import $X
+
+---
+
+(ql
+  (moduleMember
+    (importDirective
+      (importModuleExpr
+        (moduleExpr
+          (simpleId
+            (semgrep_metavariable)))))))
+
+============
+Metavariable as variable name
+============
+
+int getANumber() { $Z = 3 }
+
+---
+
+(ql
+  (moduleMember
+    (classlessPredicate
+      (typeExpr
+        (primitiveType))
+      (predicateName)
+      (body
+        (comp_term
+          (variable
+            (varName
+              (simpleId
+                (semgrep_metavariable))))
+          (compop)
+          (literal
+            (integer)))))))
+
+============
+Ellipsis as predicate body
+============
+
+predicate $FOO() {
+  ...
+}
+
+---
+
+(ql
+  (moduleMember
+    (classlessPredicate
+      (predicate)
+      (predicateName
+        (semgrep_metavariable))
+      (body
+        (semgrep_ellipsis)))))
+
+============
+Ellipsis as class body
+============
+
+class $FOO {
+  ...
+}
+
+---
+
+(ql
+  (moduleMember
+    (dataclass
+      (className
+        (semgrep_metavariable))
+      (classMember
+        (semgrep_ellipsis)))))
+
+============
+Ellipsis as module member
+============
+
+module $FOO {
+  ...
+}
+
+---
+
+(ql
+  (moduleMember
+    (module
+      (moduleName
+        (simpleId
+          (semgrep_metavariable)))
+      (moduleMember
+        (semgrep_ellipsis)))))
+
+============
+Ellipsis in vardecls
+============
+
+from ...
+where $Y
+select $X
+
+---
+
+(ql
+  (moduleMember
+    (select
+      (varDecl
+        (semgrep_ellipsis))
+      (variable
+        (varName
+          (simpleId
+            (semgrep_metavariable))))
+      (asExprs
+        (asExpr
+          (variable
+            (varName
+              (simpleId
+                (semgrep_metavariable)))))))))
+
+============
+Ellipsis in aggregate vardecls
+============
+
+__SEMGREP_EXPRESSION exists(... | $X)
+
+---
+
+(ql
+  (semgrep_expression
+    (quantified
+      (quantifier)
+      (varDecl
+        (semgrep_ellipsis))
+      (variable
+        (varName
+          (simpleId
+            (semgrep_metavariable)))))))
+
+============
+Ellipsis in call
+============
+
+__SEMGREP_EXPRESSION foo(..., 2)
+
+---
+
+(ql
+  (semgrep_expression
+    (call_or_unqual_agg_expr
+      (aritylessPredicateExpr
+        (literalId))
+      (call_body
+        (semgrep_ellipsis)
+        (literal
+          (integer))))))
+
+============
+Deep expression operator
+============
+
+__SEMGREP_EXPRESSION <... $X and $Y ...>
+
+---
+
+(ql
+  (semgrep_expression
+    (semgrep_deep_expression
+      (conjunction
+        (variable
+          (varName
+            (simpleId
+              (semgrep_metavariable))))
+        (variable
+          (varName
+            (simpleId
+              (semgrep_metavariable))))))))

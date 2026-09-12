@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Regenerate an in-tree parser using the vendored grammar generator."""
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+from grammar_registry import dests
+from grammar_registry import lang_dir_for_dest
+from grammar_registry import RegistryError
+from grammar_registry import resolve
+from grammar_registry import wrapper_dir
+
+OTS = Path(__file__).resolve().parent.parent
+OSS = OTS.parent.parent
+
+
+def destination(dest: str, key: str) -> Path:
+    """Validate a destination and locate its existing in-tree parser directory."""
+    valid_dests = dests(key)
+    if not valid_dests:
+        raise ValueError(f"'{dest}' has regen: [] (clone-only); nothing to regenerate")
+    if dest not in valid_dests:
+        raise ValueError(
+            f"'{dest}' is not a regeneration destination; use: {', '.join(valid_dests)}"
+        )
+    matches = [
+        path
+        for root in (OSS, OSS.parent)
+        for path in (root / "languages").glob(f"*/tree-sitter/semgrep-{dest}")
+    ]
+    if len(matches) > 1:
+        raise ValueError(f"expected one in-tree dest for '{dest}', found: {matches}")
+    if matches:
+        return matches[0]
+    raise ValueError(
+        f"no destination for '{dest}'; create languages/<language>/tree-sitter/semgrep-{dest} first"
+    )
+
+
+def generate(langdir: Path, wrapper: Path, options: str) -> Path:
+    """Rebuild wrapper and parser sources, returning the generated project directory."""
+    # Upstream pin changes do not update the wrapper grammar timestamp.
+    subprocess.run(
+        ["make", "-C", str(wrapper), f"PROJECT_ROOT={OTS}", "clean"], check=True
+    )
+    subprocess.run(
+        ["make", "-C", str(langdir), f"PROJECT_ROOT={OTS}", "clean"], check=True
+    )
+    subprocess.run(
+        [
+            "make",
+            "-C",
+            str(langdir),
+            f"PROJECT_ROOT={OTS}",
+            f"GEN_OCAML_OPTIONS={options}",
+            "gen",
+        ],
+        check=True,
+    )
+
+    src = langdir / "ocaml-src"
+    if not src.is_dir():
+        raise ValueError(f"generation produced no '{src}'")
+    return src
+
+
+def copy_generated(src: Path, dst: Path, langdir: Path) -> None:
+    """Copy generated parser files into the repository and refresh provenance."""
+    for name in ("lib", "bin", "config"):
+        if (dst / name).exists():
+            shutil.rmtree(dst / name)
+        shutil.copytree(src / name, dst / name, symlinks=True)
+    shutil.copy2(src / ".gitignore", dst / ".gitignore")
+    subprocess.run(
+        [
+            str(OTS / "scripts/sync-grammar-fyi.py"),
+            str(langdir),
+            str(dst),
+            str(src / "lib/parser.c"),
+        ],
+        check=True,
+    )
+    print(f"regen-grammar: regenerated {dst}")
+
+
+def regenerate(dest: str) -> None:
+    """Resolve a parser destination, generate its sources, and copy them in-tree."""
+    key = resolve(dest)
+    langdir = lang_dir_for_dest(OTS, dest)
+    wrapper = OTS / "lang/semgrep-grammars/src" / wrapper_dir(key)
+    for path in (langdir, wrapper):
+        if not path.is_dir():
+            raise ValueError(f"missing grammar directory: {path}")
+    dst = destination(dest, key)
+    options = (
+        ""
+        if dst.is_relative_to(OSS / "languages")
+        else "--package tree-sitter-lang-pro"
+    )
+    src = generate(langdir, wrapper, options)
+    copy_generated(src, dst, langdir)
+
+
+def main() -> int:
+    """Parse arguments and report regeneration failures with a nonzero exit status."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("dest", help="parser destination (e.g. python)")
+    args = parser.parse_args()
+    try:
+        regenerate(args.dest)
+    except (RegistryError, ValueError, OSError, subprocess.CalledProcessError) as exc:
+        print(f"regen-grammar: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

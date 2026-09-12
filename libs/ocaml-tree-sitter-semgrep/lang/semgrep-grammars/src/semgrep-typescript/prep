@@ -1,0 +1,31 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+set -eu -o pipefail
+
+echo `pwd`
+
+# Put all the C files in the same folder to facilitate packaging
+# for ocaml/dune.
+mkdir -p typescript/src
+ln -sf ../../common/scanner.h typescript/src
+cat ../tree-sitter-typescript/typescript/src/scanner.c \
+  | sed -e 's:"../../common/scanner.h":"scanner.h":' \
+  > typescript/src/scanner.c
+
+mkdir -p tsx/src
+ln -sf ../../common/scanner.h tsx/src
+cat ../tree-sitter-typescript/tsx/src/scanner.c \
+  | sed -e 's:"../../common/scanner.h":"scanner.h":' \
+  > tsx/src/scanner.c
+
+mkdir -p typescript/corpus
+rm -f typescript/corpus/inherited
+ln -sf ../../../tree-sitter-typescript/typescript/corpus \
+   typescript/corpus/inherited
+
+mkdir -p tsx/corpus
+rm -f tsx/corpus/inherited
+ln -sf ../../../tree-sitter-typescript/tsx/corpus \
+   tsx/corpus/inherited

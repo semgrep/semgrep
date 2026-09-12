@@ -1,0 +1,7 @@
+semgrep-grammars/src/tree-sitter-sfapex/LICENSE
+semgrep-grammars/src/tree-sitter-sfapex/sosl/grammar.js
+semgrep-grammars/src/tree-sitter-sfapex/soql/grammar.js
+semgrep-grammars/src/tree-sitter-sfapex/apex/grammar.js
+semgrep-grammars/src/semgrep-sfapex/sosl/grammar.js
+semgrep-grammars/src/semgrep-sfapex/soql/grammar.js
+semgrep-grammars/src/semgrep-sfapex/apex/grammar.js
