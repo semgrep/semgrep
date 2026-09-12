@@ -1,0 +1,15 @@
+(library
+ (public_name tree-sitter.gen)
+ (name tree_sitter_gen)
+ (preprocess (pps ppx_deriving.show ppx_deriving.ord ppx_deriving_yojson))
+ (libraries
+   unix
+   yojson
+   re
+   str
+   tsort
+   easy-format
+ )
+)
+
+(ocamllex Pattern_name)

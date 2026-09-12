@@ -1,0 +1,35 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+# Not the generic script because we provide a semgrep-specific scanner.c
+#
+set -eu -o pipefail
+
+name=$(basename "$(pwd)" | sed -e 's/semgrep-//')
+
+mkdir -p test/corpus
+(
+  cd test/corpus
+  rm -rf inherited
+  # Copy (not symlink) the upstream corpus so we can patch test expectations
+  # that differ due to grammar fixes applied in the extension layer.
+  for dir in test/corpus corpus; do
+    corpus=../../../tree-sitter-"$name"/$dir
+    if [[ -d "$corpus" ]]; then
+      cp -R "$corpus" inherited
+      break
+    fi
+  done
+
+  # Patch upstream test expectations that changed due to extension-layer fixes:
+  # - _constructor_annotation limits annotation to single argument list,
+  #   changing the tree structure for class definitions with annotations.
+  if [[ -f inherited/definitions.txt ]]; then
+    patch -s -p0 < ../../patches/definitions.patch || true
+  fi
+)
+echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+echo Note that semgrep-scala/src/scanner.c must be kept in sync with
+echo tree-sitter-scala/src/scanner.c except for the semgrep-ext changes.
+echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

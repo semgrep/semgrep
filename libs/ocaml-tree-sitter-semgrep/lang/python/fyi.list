@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-python/LICENSE
+semgrep-grammars/src/tree-sitter-python/grammar.js
+semgrep-grammars/src/semgrep-python/grammar.js

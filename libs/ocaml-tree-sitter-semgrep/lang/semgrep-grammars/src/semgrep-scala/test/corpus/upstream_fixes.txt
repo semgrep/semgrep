@@ -1,0 +1,96 @@
+================================================================================
+Constructor annotation with single argument list
+================================================================================
+
+class Foo @Inject()(val cc: ControllerComponents) extends Bar
+
+class Foo @Deprecated()(val x: Int)
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_definition
+    (identifier)
+    (type_identifier)
+    (arguments)
+    (class_parameters
+      (class_parameter
+        (identifier)
+        (type_identifier)))
+    (extends_clause
+      (type_identifier)))
+  (class_definition
+    (identifier)
+    (type_identifier)
+    (arguments)
+    (class_parameters
+      (class_parameter
+        (identifier)
+        (type_identifier)))))
+
+================================================================================
+Constructor annotation with arguments
+================================================================================
+
+class Foo @Inject()(val cc: String) extends Bar {
+  def hello(): Unit = println("hi")
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_definition
+    (identifier)
+    (type_identifier)
+    (arguments)
+    (class_parameters
+      (class_parameter
+        (identifier)
+        (type_identifier)))
+    (extends_clause
+      (type_identifier))
+    (template_body
+      (function_definition
+        (identifier)
+        (parameters)
+        (type_identifier)
+        (call_expression
+          (identifier)
+          (arguments
+            (string)))))))
+
+================================================================================
+Empty quote block
+================================================================================
+
+val x = '{ }
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (val_definition
+    (identifier)
+    (quote_expression)))
+
+================================================================================
+By-name repeated parameter type
+================================================================================
+
+trait Foo { def bar(x: => T*): Int = 3 }
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (trait_definition
+    (identifier)
+    (template_body
+      (function_definition
+        (identifier)
+        (parameters
+          (parameter
+            (identifier)
+            (repeated_parameter_type
+              (lazy_parameter_type
+                (type_identifier)))))
+        (type_identifier)
+        (integer_literal)))))

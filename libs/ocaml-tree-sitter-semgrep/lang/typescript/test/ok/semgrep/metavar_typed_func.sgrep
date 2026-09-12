@@ -1,0 +1,4 @@
+function $A() {
+    ...
+    return ($X : string)
+}

@@ -1,0 +1,10 @@
+# C
+semgrep-grammars/src/tree-sitter-c/LICENSE
+semgrep-grammars/src/tree-sitter-c/grammar.js
+
+# C++ extends C
+semgrep-grammars/src/tree-sitter-cpp/LICENSE
+semgrep-grammars/src/tree-sitter-cpp/grammar.js
+
+# semgrep extension to C++
+semgrep-grammars/src/semgrep-cpp/grammar.js

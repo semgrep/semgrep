@@ -9,8 +9,10 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-# languages/.*/semgrep-.* : vendored grammars, must stay untouched (see scripts/check-vendored-grammars)
-exclude: "^tests|^cli/tests/default/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b|^libs/ocaml-tree-sitter-semgrep|^libs/testo|^libs/pcre2|^cli/src/semgrep/semgrep_interfaces|languages/.*/semgrep-.*|tests/semgrep-rules|^cli/src/semgrep/semgrep_interfaces"
+# languages/.*/semgrep-.* : vendored grammars, must stay untouched (see scripts/check-vendored-ots)
+# libs/ocaml-tree-sitter-semgrep/{lang,core}: generated/upstream grammars + core
+# OCaml (historical indent); scripts/ follow the same hooks as the rest of OSS.
+exclude: "^tests|^cli/tests/default/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b|^libs/ocaml-tree-sitter-semgrep/(lang|core)/|^libs/testo|^libs/pcre2|^cli/src/semgrep/semgrep_interfaces|languages/.*/semgrep-.*|tests/semgrep-rules|^cli/src/semgrep/semgrep_interfaces"
 
 default_stages: [commit]
 
@@ -92,8 +94,8 @@ repos:
     rev: v1.7.1 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semgrep/console_scripts/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^perf/.+$|^js/language_server/targets/.+$|^.github/workflows/libs/bump-uses.py$
-        args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
+        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semgrep/console_scripts/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^perf/.+$|^js/language_server/targets/.+$|^.github/workflows/libs/bump-uses.py$|^libs/ocaml-tree-sitter-semgrep/scripts/test_.*\.py$
+        args: [--config, mypy.ini, --show-error-codes, --scripts-are-modules, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
           # - cli/setup.py lists dependencies

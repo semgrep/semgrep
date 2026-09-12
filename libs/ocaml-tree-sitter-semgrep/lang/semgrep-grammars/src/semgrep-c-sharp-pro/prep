@@ -1,0 +1,39 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+set -eu -o pipefail
+
+name=c-sharp-pro
+
+rm -rf src
+mkdir -p src
+(
+  cd src
+  rm -f scanner.c scanner.cc
+  # Special preparation: rename the functions with a dedicated prefix
+  # to avoid name clashes when both tree-sitter-c-sharp and
+  # tree-sitter-c-sharp-pro are used in the same program.
+  cp ../../tree-sitter-"$name"/src/scanner.c .
+  sed -i -e 's/tree_sitter_c_sharp/tree_sitter_c_sharp_pro/g' scanner.c
+)
+
+# Change the 'name' field in the grammar so as to match the C functions
+# renamed above.
+rm -f original-grammar.js
+cp ../tree-sitter-"$name"/grammar.js original-grammar.js
+sed -i -e 's/c_sharp/c_sharp_pro/g' original-grammar.js
+
+mkdir -p test/corpus
+(
+  cd test/corpus
+  rm -f inherited
+  # The root of the tests is either 'test/corpus' or 'corpus' as per
+  # tree-sitter documentation.
+  for dir in test/corpus corpus; do
+    corpus=../../../tree-sitter-"$name"/$dir
+    if [[ -e "$corpus" ]]; then
+      ln -sf "$corpus" inherited
+    fi
+  done
+)

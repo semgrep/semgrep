@@ -1,0 +1,151 @@
+=======================
+Function in Statement
+=======================
+
+fun $TEST (...) : ... { ... }
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (function_decl
+        (identifier)
+        (parameters
+          (parameter
+            (ellipsis)))
+        (type
+          (ellipsis))
+        (block
+          (ellipsis))))))
+
+=======================
+Declarations
+=======================
+
+use 0xabcd::ff;
+struct $STRUCT has ... { ... }
+const $CONST : ... = $FOO(...);
+...
+fun hello (...) {
+  let XXX = $STRUCT { ... };
+  ...
+}
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (use_decl
+        (module_ident
+          (numerical_addr
+            (number))
+          (identifier))))
+    (declaration
+      (struct_decl
+        (identifier)
+        (abilities
+          (ability
+            (ellipsis)))
+        (body
+          (field_annot
+            (ellipsis)))))
+      (declaration
+        (constant_decl
+          (identifier)
+          (type
+            (ellipsis))
+          (call_expr
+            (name_access_chain
+              (identifier))
+            (call_args
+              (ellipsis)))))
+    (ellipsis)
+    (declaration
+      (function_decl
+        (identifier)
+        (parameters
+          (parameter
+            (ellipsis)))
+        (block
+          (let_expr
+            (bind_list
+              (var_name
+                (identifier)))
+            (pack_expr
+              (name_access_chain
+                (identifier))
+              (expr_field
+                (ellipsis))))
+          (ellipsis))))))
+
+=======================
+Function Signature
+=======================
+
+#[test]
+public(friend) fun $FUNC (...)
+
+---
+
+(source_file
+  (semgrep_partial
+    (attributes
+      (attribute
+        (identifier)))
+    (module_member_modifier
+      (visibility))
+    (identifier)
+    (parameters
+      (parameter
+        (ellipsis)))))
+
+=======================
+Struct Signature
+=======================
+
+public native struct $STRUCT has ...
+
+---
+
+(source_file
+  (semgrep_partial
+    (module_member_modifier
+      (visibility))
+    (module_member_modifier)
+    (identifier)
+    (abilities
+      (ability
+        (ellipsis)))))
+
+=======================
+Function Attributes
+=======================
+
+#[attr(key = ...), attr2 = ..., attr3(...), ...]
+fun $FUN (...)
+
+---
+
+(source_file
+  (semgrep_partial
+    (attributes
+      (attribute
+        (identifier)
+        (attribute
+          (identifier)
+          (ellipsis)))
+      (attribute
+        (identifier)
+        (ellipsis))
+      (attribute
+        (identifier)
+        (attribute
+          (ellipsis)))
+      (attribute
+        (ellipsis)))
+    (identifier)
+    (parameters
+      (parameter
+        (ellipsis)))))

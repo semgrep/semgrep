@@ -1,0 +1,133 @@
+#! /usr/bin/env bash
+#
+# Run OCaml parsers on the json output of tree-sitter in examples/
+#
+set -eu -o pipefail
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") PARSER LANG
+Parse sample source files with PARSER, written in language LANG.
+
+Input files that are expected to parse successfully must be located in
+test/ok or in its subfolders. Files that are expected to fail must be
+placed under test/xfail.
+EOF
+}
+
+if [[ $# != 2 ]]; then
+  usage >&2
+  exit 1
+fi
+
+parser="$1"
+lang="$2"
+
+# Make the tree-sitter runtime library findable at load time.
+# Prefer TREESITTER_LIBDIR (set by lang/Makefile.common for the language's
+# shared runtime); fall back to core's tree-sitter-out layout used by dune tests.
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+ts_lib_dir="${TREESITTER_LIBDIR:-$script_dir/../tree-sitter-out/lib}"
+if [[ -d "$ts_lib_dir" ]]; then
+  ts_lib_dir="$(cd "$ts_lib_dir" && pwd)"
+  export LD_LIBRARY_PATH="$ts_lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  export DYLD_LIBRARY_PATH="$ts_lib_dir${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+fi
+
+# Run the parser from source to ocaml CST
+#
+# test/ok/      contains source files expected to be parsed successfully
+# test/xfail/   contains source files expected to fail parsing
+# test.out/     parsing results for the files in test/
+#
+outdir=test.out
+
+# Following pytest terminology, there are 2*2 possible outcomes for a test:
+#
+#   expected to succeed and succeeds: PASS  (good)
+#                       and fails   : FAIL  (bad, regression)
+#   expected to fail and fails      : XFAIL (ok)
+#                    and succeeds   : XPASS (possibly an improvement)
+#
+# These two lists accumulate the files that didn't yield the expected results:
+#
+fail_list=$outdir/fail.list
+xpass_list=$outdir/xpass.list
+
+rm -f "$fail_list"
+rm -f "$xpass_list"
+mkdir -p "$outdir"
+
+# Counts for each parsing outcome
+fail=0
+pass=0
+xpass=0
+xfail=0
+
+for expect in ok xfail; do
+  expect_dir=test/$expect
+  if [[ -d test/"$expect" ]]; then
+    for src in $(find test/"$expect" -type f); do
+      #
+      # Make a path that's independent from the expectation 'ok' or 'xfail'.
+      #
+      #   test/ok/foo/bar.js -> foo/bar.js
+      #
+      # Having such paths makes it easier to move files between 'ok' and
+      # 'xfail'.
+      #
+      common_path=${src#"$expect_dir/"}
+
+      cst=$outdir/$expect/$common_path.cst
+      mkdir -p $(dirname "$cst")
+      if [[ "$expect" = ok ]]; then
+        # Expect success
+        if "$parser" "$src" > "$cst" 2>&1; then
+          pass=$(( pass + 1 ))
+          echo "PASS: $src"
+        else
+          fail=$(( fail + 1 ))
+          echo "FAIL: $src"
+          echo "$common_path" >> "$fail_list"
+        fi
+      else
+        # Expect error status
+        if "$parser" "$src" > "$cst" 2>&1; then
+          xpass=$(( xpass + 1 ))
+          echo "XPASS: $src"
+          echo "$common_path" >> "$xpass_list"
+        else
+          xfail=$(( xfail + 1 ))
+          echo "XFAIL: $src"
+        fi
+      fi
+    done
+  fi
+done
+
+expected=$(( pass + xfail ))
+unexpected=$(( fail + xpass ))
+
+cat <<EOF
+
+expected results: $expected (pass: $pass, xfail: $xfail)
+unexpected results: $unexpected (fail: $fail, xpass: $xpass)
+EOF
+
+if [[ "$unexpected" != 0 ]]; then
+  cat >&2 <<EOF
+
+*** Some $lang parsing tests didn't meet the expectations.
+
+The lists of failing targets are here:
+  - '$fail_list': parsing was expected to succeed but failed
+  - '$xpass_list': parsing was expected to fail but succeeded
+
+The output of the parser for each file was put in '$outdir/'. Alternatively,
+you can run the parser '$parser' on an arbitrary file to see
+what the CST looks like. If a target fails but the parser can't be fixed
+right away, move it to 'test/xfail/'. You may create subfolders such as
+'test/xfail/todo' or 'text/xfail/experimental' to be more descriptive.
+EOF
+  exit 1
+fi

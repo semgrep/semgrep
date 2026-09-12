@@ -1,0 +1,374 @@
+{
+  "bash": {
+    "commit": "30d369ba45971a40160de34631ceea05358c9a48",
+    "regen": [
+      "bash"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-bash.git"
+  },
+  "c": {
+    "commit": "ecdd500806cf8154d944344f1df6418b32e0e9a7",
+    "regen": [],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-c.git"
+  },
+  "c-sharp": {
+    "commit": "e1384e2f132936019b43aaaae154cd780fb497ce",
+    "regen": [
+      "c-sharp"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-c-sharp.git"
+  },
+  "c-sharp-pro": {
+    "commit": "fd7f7402db6e66afd70b402fb2e367b2d71c10d6",
+    "regen": [
+      "c-sharp-pro"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-c-sharp.git"
+  },
+  "cairo": {
+    "commit": "7837e7b701a33884f66068ff2248b1d76a622f85",
+    "regen": [
+      "cairo"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/avnu-labs/tree-sitter-cairo"
+  },
+  "cfml": {
+    "commit": "5279bde9b31d54efa68efb77a4b18ee9508518e4",
+    "regen": [],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/cfmleditor/tree-sitter-cfml.git"
+  },
+  "circom": {
+    "commit": "c4df0664be207e2eae9f5507f9f5f00ea0a952c9",
+    "regen": [
+      "circom"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/Decurity/tree-sitter-circom.git"
+  },
+  "clojure": {
+    "commit": "8c23e0ec078af461ccad43fffbbfc204aa6bc238",
+    "regen": [
+      "clojure"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/sogaiu/tree-sitter-clojure"
+  },
+  "cpp": {
+    "commit": "4ca37be8e70e5a40ae95688bec56b886ba945888",
+    "depends_on": [
+      "c"
+    ],
+    "regen": [
+      "cpp"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-cpp.git"
+  },
+  "dart": {
+    "commit": "02e9bb191c7cb6c73cbd9e09a5d089e4496f9cff",
+    "regen": [
+      "dart"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/UserNobody14/tree-sitter-dart.git"
+  },
+  "dockerfile": {
+    "commit": "439c3e7b8a9bfdbf1f7d7c2beaae4173dc484cbf",
+    "regen": [
+      "dockerfile"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/returntocorp/tree-sitter-dockerfile.git"
+  },
+  "elixir": {
+    "commit": "b848e63e9f2a68accff0332392f07582c046295a",
+    "regen": [
+      "elixir"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/elixir-lang/tree-sitter-elixir.git"
+  },
+  "fga": {
+    "commit": "0fc6a930bee430daea05aefd79ff70703044011d",
+    "regen": [
+      "fga"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/semgrep/tree-sitter-fga.git"
+  },
+  "go": {
+    "commit": "05900faa3cdb5d2d8c8bd5e77ee698487e0a8611",
+    "regen": [
+      "go"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-go.git"
+  },
+  "gomod": {
+    "clone": "go-mod",
+    "commit": "2e886870578eeba1927a2dc4bd2e2b3f598c5f9a",
+    "regen": [
+      "gomod"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/camdencheek/tree-sitter-go-mod.git"
+  },
+  "gosu": {
+    "commit": "ba3f0466a01d821e32a1c1d9c4790a75fdb2e074",
+    "regen": [
+      "gosu"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tarides/tree-sitter-gosu.git"
+  },
+  "hack": {
+    "commit": "b6db7cf9dc191ce44fa18d7076a346da8c3efe28",
+    "regen": [
+      "hack"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/slackhq/tree-sitter-hack.git"
+  },
+  "haskell": {
+    "commit": "0da7f826e85b3e589e217adf69a6fd89ee4301b9",
+    "regen": [],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-haskell.git"
+  },
+  "hcl": {
+    "commit": "67a5c19755fdb997ff21c8a10fab6302cb45c89a",
+    "regen": [
+      "hcl"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/MichaHoffmann/tree-sitter-hcl.git"
+  },
+  "html": {
+    "commit": "14bdaf0da9e26e2de9b30178c2242539d2b0b285",
+    "regen": [
+      "html"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-html.git"
+  },
+  "java": {
+    "commit": "a7db5227ec40fcfe94489559d8c9bc7c8181e25a",
+    "regen": [
+      "java"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-java.git"
+  },
+  "javascript": {
+    "commit": "6fbef40512dcd9f0a61ce03a4c9ae7597b36ab5c",
+    "regen": [],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-javascript.git"
+  },
+  "jsonnet": {
+    "commit": "fdc775714afa27fdef823adbaba6ab98f5ae66f2",
+    "regen": [
+      "jsonnet"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/returntocorp/tree-sitter-jsonnet.git"
+  },
+  "julia": {
+    "commit": "87394e7ce3b1aca1a7c7912d2bbc599551591093",
+    "regen": [
+      "julia"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-julia"
+  },
+  "kotlin": {
+    "commit": "a1760ba7178fe76515e7cfe7577deae2335fa57d",
+    "regen": [
+      "kotlin"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/fwcd/tree-sitter-kotlin.git"
+  },
+  "lua": {
+    "commit": "a943944ec09c5e96f455bb166079de4ef3534457",
+    "regen": [
+      "lua"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/Azganoth/tree-sitter-lua"
+  },
+  "make": {
+    "commit": "5904dfb622a95a48f2be5cc17c6c9a70566b47ef",
+    "regen": [],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/returntocorp/tree-sitter-make"
+  },
+  "move-on-aptos": {
+    "commit": "d11dd2ca6c4c96e579b9860d577c6b2deb06443e",
+    "regen": [
+      "move-on-aptos"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/aptos-labs/tree-sitter-move-on-aptos.git"
+  },
+  "move-on-sui": {
+    "commit": "083b7d6ab4bd41327d3b6c56e46e3c720f48fbd9",
+    "regen": [
+      "move-on-sui"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/maxmysten/tree-sitter-move.git"
+  },
+  "ocaml": {
+    "commit": "4a885a615634dd447ae6b9d8f2cee4a3ea495087",
+    "regen": [
+      "ocaml"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-ocaml.git"
+  },
+  "php": {
+    "commit": "7d07b41ce2d442ca9a90ed85d0075eccc17ae315",
+    "regen": [
+      "php"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tree-sitter/tree-sitter-php.git"
+  },
+  "powershell": {
+    "commit": "da65ba3acc93777255781b447f5e7448245df4bf",
+    "regen": [
+      "powershell"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/airbus-cert/tree-sitter-powershell"
+  },
+  "promql": {
+    "commit": "ed9a12f6ae4e75d4622adef8fb1b1e4d0ac0a759",
+    "regen": [
+      "promql"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/MichaHoffmann/tree-sitter-promql.git"
+  },
+  "proto": {
+    "commit": "42d82fa18f8afe59b5fc0b16c207ee4f84cb185f",
+    "regen": [
+      "proto"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/mitchellh/tree-sitter-proto.git"
+  },
+  "python": {
+    "commit": "c5fca1a186e8e528115196178c28eefa8d86b0b0",
+    "regen": [
+      "python"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tree-sitter/tree-sitter-python.git"
+  },
+  "ql": {
+    "commit": "ff04ba61857ba05b80221e71b423b2728dbebe1e",
+    "regen": [
+      "ql"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-ql"
+  },
+  "r": {
+    "commit": "205c2877af33a814386ff275031f88400a011397",
+    "regen": [
+      "r"
+    ],
+    "tree_sitter": "0.20.8",
+    "url": "https://github.com/r-lib/tree-sitter-r"
+  },
+  "requirements": {
+    "commit": "728910099ddea7f1f94ea95a35a70d1ea76a1639",
+    "regen": [
+      "requirements"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter-grammars/tree-sitter-requirements.git"
+  },
+  "ruby": {
+    "commit": "71bd32fb7607035768799732addba884a37a6210",
+    "regen": [
+      "ruby"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tree-sitter/tree-sitter-ruby.git"
+  },
+  "rust": {
+    "commit": "8a1ccae7aaccdc11b04dbd803453e3e9cfd9159b",
+    "regen": [
+      "rust"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-rust"
+  },
+  "scala": {
+    "commit": "97aead18d97708190a51d4f551ea9b05b60641c9",
+    "regen": [
+      "scala"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-scala/"
+  },
+  "sfapex": {
+    "commit": "d6871791ff314ef6598b4bc609dae658abfffbc9",
+    "regen": [
+      "apex"
+    ],
+    "tree_sitter": "0.20.8",
+    "url": "https://github.com/aheber/tree-sitter-sfapex.git"
+  },
+  "solidity": {
+    "commit": "048fe686cb1fde267243739b8bdbec8fc3a55272",
+    "regen": [
+      "solidity"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/JoranHonig/tree-sitter-solidity.git"
+  },
+  "sqlite": {
+    "commit": "2e71f3a6f11cae37a3cabfab911ae17d74f1e801",
+    "regen": [],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/dhcmrlchtdj/tree-sitter-sqlite.git"
+  },
+  "swift": {
+    "commit": "597d544b3c93b2f67d2e143f27cc51ba874ec5c3",
+    "regen": [
+      "swift"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/alex-pinkus/tree-sitter-swift.git"
+  },
+  "toml": {
+    "commit": "64b56832c2cffe41758f28e05c756a3a98d16f41",
+    "regen": [
+      "toml"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter-grammars/tree-sitter-toml.git"
+  },
+  "typescript": {
+    "commit": "75b3874edb2dc714fb1fd77a32013d0f8699989f",
+    "depends_on": [
+      "javascript"
+    ],
+    "regen": [
+      "typescript",
+      "tsx"
+    ],
+    "tree_sitter": "0.22.6",
+    "url": "https://github.com/tree-sitter/tree-sitter-typescript.git"
+  }
+}
