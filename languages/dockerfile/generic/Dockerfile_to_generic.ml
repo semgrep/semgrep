@@ -362,6 +362,17 @@ let expose_port_expr (x : expose_port) : G.expr list =
               ] )
         |> G.e;
       ]
+  | Expose_port_fragment (port, protocol_tok) ->
+      [
+        G.Container
+          ( G.Tuple,
+            Tok.unsafe_fake_bracket
+              [
+                simple_docker_string_expr port;
+                unquoted_string_expr protocol_tok;
+              ] )
+        |> G.e;
+      ]
   | Expose_fragment x -> [ simple_docker_string_expr x ]
 
 let healthcheck env loc name (x : healthcheck) =
