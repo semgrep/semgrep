@@ -1,0 +1,5 @@
+FROM ubuntu:26.04
+ENV PORT=17777
+EXPOSE ${PORT}/udp
+# MATCH:
+ENTRYPOINT ["/bin/sh"]

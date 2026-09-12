@@ -374,6 +374,15 @@ let param (env : env) ((v1, v2, v3, v4) : CST.param) : param =
 let expose_port (env : env) (x : CST.expose_port) : expose_port =
   match x with
   | `Semg_ellips tok -> Expose_semgrep_ellipsis (token env tok (* "..." *))
+  | `Expa_choice_SLAS (v1, v2) ->
+      let port = expansion env v1 in
+      let protocol_tok =
+        match v2 with
+        | `SLAS_ce91595 tok -> token env tok (* "/tcp" *)
+        | `SLAS_c773c8d tok -> token env tok (* "/udp" *)
+      in
+      Expose_port_fragment
+        (port, (Tok.content_of_tok protocol_tok, protocol_tok))
   | `Pat_e0f3805_opt_choice_SLAS (v1, v2) ->
       let port_tok =
         token env v1
