@@ -1,0 +1,392 @@
+========================
+Ellipsis as statement
+========================
+
+__SEMGREP_STATEMENT ...
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (semgrep_ellipsis)))
+
+========================
+Metavariable as statement
+========================
+
+__SEMGREP_STATEMENT $X
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (semgrep_metavariable)))
+
+========================
+Val definition with metavariable
+========================
+
+__SEMGREP_STATEMENT val $X = $Y
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (val_definition
+      (identifier)
+      (semgrep_metavariable))))
+
+========================
+Val definition with type annotation
+========================
+
+__SEMGREP_STATEMENT val $X: $T = $Y
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (val_definition
+      (identifier)
+      (type_identifier)
+      (semgrep_metavariable))))
+
+========================
+Var definition with metavariable
+========================
+
+__SEMGREP_STATEMENT var $X = $Y
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (var_definition
+      (identifier)
+      (semgrep_metavariable))))
+
+========================
+Ellipsis between statements in block
+========================
+
+__SEMGREP_STATEMENT
+{
+  setup()
+  ...
+  execute()
+}
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (block
+      (call_expression
+        (identifier)
+        (arguments))
+      (semgrep_ellipsis)
+      (call_expression
+        (identifier)
+        (arguments)))))
+
+========================
+Ellipsis at start of block
+========================
+
+__SEMGREP_STATEMENT
+{
+  ...
+  foo($X)
+}
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (block
+      (semgrep_ellipsis)
+      (call_expression
+        (identifier)
+        (arguments
+          (semgrep_metavariable))))))
+
+========================
+Ellipsis at end of block
+========================
+
+__SEMGREP_STATEMENT
+{
+  foo($X)
+  ...
+}
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (block
+      (call_expression
+        (identifier)
+        (arguments
+          (semgrep_metavariable)))
+      (semgrep_ellipsis))))
+
+========================
+If with metavariable condition and ellipsis body
+========================
+
+__SEMGREP_STATEMENT if ($COND) { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (if_expression
+      (parenthesized_expression
+        (semgrep_metavariable))
+      (block
+        (semgrep_ellipsis)))))
+
+========================
+If-else with metavariables
+========================
+
+__SEMGREP_STATEMENT if ($COND) $THEN else $ELSE
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (if_expression
+      (parenthesized_expression
+        (semgrep_metavariable))
+      (semgrep_metavariable)
+      (semgrep_metavariable))))
+
+========================
+While with metavariable and ellipsis body
+========================
+
+__SEMGREP_STATEMENT while ($COND) { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (while_expression
+      (parenthesized_expression
+        (semgrep_metavariable))
+      (block
+        (semgrep_ellipsis)))))
+
+========================
+For loop with ellipsis body
+========================
+
+__SEMGREP_STATEMENT for ($X <- $COLL) { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (for_expression
+      (enumerators
+        (enumerator
+          (identifier)
+          (semgrep_metavariable)))
+      (block
+        (semgrep_ellipsis)))))
+
+========================
+For-yield with metavariable and guard
+========================
+
+__SEMGREP_STATEMENT for ($X <- $COLL if $COND) yield $RESULT
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (for_expression
+      (enumerators
+        (enumerator
+          (identifier)
+          (semgrep_metavariable)
+          (guard
+            (semgrep_metavariable))))
+      (semgrep_metavariable))))
+
+========================
+Try-catch with ellipsis body
+========================
+
+__SEMGREP_STATEMENT try { ... } catch { case $E => $HANDLER }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (try_expression
+      (block
+        (semgrep_ellipsis))
+      (catch_clause
+        (case_block
+          (case_clause
+            (identifier)
+            (semgrep_metavariable)))))))
+
+========================
+Try-finally with ellipsis
+========================
+
+__SEMGREP_STATEMENT try { $BODY } finally { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (try_expression
+      (block
+        (semgrep_metavariable))
+      (finally_clause
+        (block
+          (semgrep_ellipsis))))))
+
+========================
+Function definition with ellipsis in parameters
+========================
+
+__SEMGREP_STATEMENT def foo(...): $T = $BODY
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (function_definition
+      (identifier)
+      (parameters
+        (parameter
+          (semgrep_ellipsis)))
+      (type_identifier)
+      (semgrep_metavariable))))
+
+========================
+Function definition with metavariable body
+========================
+
+__SEMGREP_STATEMENT def $METHOD($X: $T): $R = $BODY
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (function_definition
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier)))
+      (type_identifier)
+      (semgrep_metavariable))))
+
+========================
+Function definition with ellipsis body
+========================
+
+__SEMGREP_STATEMENT def foo($X: Int): Int = { ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (function_definition
+      (identifier)
+      (parameters
+        (parameter
+          (identifier)
+          (type_identifier)))
+      (type_identifier)
+      (block
+        (semgrep_ellipsis)))))
+
+========================
+Import with metavariable
+========================
+
+__SEMGREP_STATEMENT import $PKG._
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (import_declaration
+      (identifier)
+      (namespace_wildcard))))
+
+========================
+Match expression as statement with ellipsis
+========================
+
+__SEMGREP_STATEMENT $X match { case $A => $B; ... }
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (match_expression
+      (semgrep_metavariable)
+      (case_block
+        (case_clause
+          (identifier)
+          (semgrep_metavariable)
+          (semgrep_ellipsis))))))
+
+========================
+Throw statement
+========================
+
+__SEMGREP_STATEMENT throw new $EXC($MSG)
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (throw_expression
+      (instance_expression
+        (type_identifier)
+        (arguments
+          (semgrep_metavariable))))))
+
+========================
+Return statement with metavariable
+========================
+
+__SEMGREP_STATEMENT return $X
+
+---
+
+(compilation_unit
+  (semgrep_statement
+    (return_expression
+      (semgrep_metavariable))))
+
+========================
+Multiple statements with ellipsis between
+========================
+
+foo($X)
+...
+bar($Y)
+
+---
+
+(compilation_unit
+  (call_expression
+    (identifier)
+    (arguments
+      (semgrep_metavariable)))
+  (semgrep_ellipsis)
+  (call_expression
+    (identifier)
+    (arguments
+      (semgrep_metavariable))))

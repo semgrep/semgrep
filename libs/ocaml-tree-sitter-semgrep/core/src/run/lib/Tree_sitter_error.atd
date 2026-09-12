@@ -1,0 +1,31 @@
+(*
+   Type definition for json errors exported by the test parsers.
+*)
+
+type node_kind <ocaml from="Tree_sitter_bindings.Tree_sitter_output"
+                      t="node_kind"> = abstract
+
+type position <ocaml from="Tree_sitter_bindings.Tree_sitter_output"
+                     t="position"> = abstract
+
+type error_kind = [
+  | Internal (* bug in the translation from one tree type to another *)
+  | Error_node (* a subtree that can be ignored while preserving the
+                  well-formedness of the CST *)
+  | Missing_node (* a fake node inserted by the parser to fix an ill-formed
+                    CST. *)
+] <ocaml repr="classic">
+
+(*
+   Simplified type suitable for json export.
+   The original type is Tree_sitter_error.t (in Tree_sitter_error.mli).
+*)
+type json_error = {
+  kind: error_kind;
+  msg: string;
+  file: string;
+  start_pos: position;
+  end_pos: position;
+  substring: string; (* empty for a Missing_node *)
+  ?error_class: string option;
+}

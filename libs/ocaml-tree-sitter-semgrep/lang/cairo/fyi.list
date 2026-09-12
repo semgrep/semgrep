@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-cairo/LICENSE
+semgrep-grammars/src/tree-sitter-cairo/grammar.js
+semgrep-grammars/src/semgrep-cairo/grammar.js

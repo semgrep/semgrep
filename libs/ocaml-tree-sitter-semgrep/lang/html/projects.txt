@@ -1,0 +1,3 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+#

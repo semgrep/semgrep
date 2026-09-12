@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-clojure/COPYING.txt
+semgrep-grammars/src/tree-sitter-clojure/grammar.js
+semgrep-grammars/src/semgrep-clojure/grammar.js

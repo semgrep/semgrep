@@ -1,0 +1,29 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files.
+#
+# Not the generic script because html use a special tag.h file
+#
+set -eu -o pipefail
+
+mkdir -p src
+
+(
+  cd src
+  rm -f scanner.cc scanner.c
+  cp ../../tree-sitter-html/src/scanner.c scanner.c
+)
+# to extend the HTML lexer to also accept XML tags
+patch -p1 < scanner_c.diff
+
+(
+  cd src
+  ln -sf ../../tree-sitter-html/src/tag.h .
+)
+
+mkdir -p test/corpus
+(
+  cd test/corpus
+  rm -f inherited
+  ln -sf ../../../tree-sitter-html/test/corpus inherited
+)

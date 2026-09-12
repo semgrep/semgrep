@@ -1,0 +1,10 @@
+# File extensions for the target language, one per line. This is used for
+# collecting parsing stats from the repos specified in 'projects.txt'. e.g.:
+#
+# .h
+# .c
+#
+.clj
+.cljs
+.cljc
+.edn

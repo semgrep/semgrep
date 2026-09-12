@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# Verify parser creation fails loudly on a tree-sitter ABI version mismatch
+# instead of silently returning an empty parse tree. We patch the generated
+# grammar's advertised ABI version out of range, rebuild, and assert ./parse
+# raises. (The happy path is covered by the normal parse-examples run.)
+#
+# No `set -e`: ./parse is expected to exit non-zero.
+set -uo pipefail
+
+parser_c=ocaml-src/lib/parser.c
+backup=$(mktemp)
+cp "$parser_c" "$backup"
+
+# Always leave the directory in a working state, even if an assertion fails.
+restore() {
+  cp "$backup" "$parser_c"
+  rm -f "$backup"
+  make build-ocaml >/dev/null 2>&1
+}
+trap restore EXIT
+
+# Force an out-of-range ABI version. The runtime supports
+# [TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION, TREE_SITTER_LANGUAGE_VERSION]
+# (13..14 as of tree-sitter 0.20.8); 99 is safely above any near-future value.
+# Rewrite via the backup so this works with both BSD and GNU sed.
+sed -E 's/(#define[[:space:]]+LANGUAGE_VERSION)[[:space:]]+[0-9]+/\1 99/' \
+  "$backup" > "$parser_c"
+if ! make build-ocaml >/dev/null 2>&1; then
+  echo "FAIL: rebuild with patched ABI version did not compile" >&2
+  exit 1
+fi
+
+output=$(./parse test/ok/ex1 2>&1)
+status=$?
+
+if [[ $status -eq 0 ]]; then
+  echo "FAIL: parser creation succeeded despite an ABI version mismatch" >&2
+  echo "$output" >&2
+  exit 1
+fi
+
+if ! grep -q "ABI version is incompatible" <<<"$output"; then
+  echo "FAIL: expected an ABI-mismatch error, got:" >&2
+  echo "$output" >&2
+  exit 1
+fi
+
+echo "PASS: ABI version mismatch raised loudly"

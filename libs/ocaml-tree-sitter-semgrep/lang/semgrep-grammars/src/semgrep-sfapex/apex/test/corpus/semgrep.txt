@@ -1,0 +1,755 @@
+==========================================
+Ellipsis
+==========================================
+
+...
+
+---
+
+(parser_output
+  (semgrep_ellipsis))
+
+==========================================
+Top-level statements
+==========================================
+
+foo();
+...
+bar();
+
+---
+
+(parser_output
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list)))
+  (semgrep_ellipsis)
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list))))
+
+==========================================
+Top-level public constructor
+==========================================
+
+public Foo(...) { }
+
+---
+
+(parser_output
+  (constructor_declaration
+    (modifiers
+      (modifier))
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (constructor_body)))
+
+==========================================
+Top-level bare constructor
+==========================================
+
+Foo(...) { }
+
+---
+
+(parser_output
+  (constructor_declaration
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (constructor_body)))
+
+==========================================
+Class body ellipsis
+==========================================
+
+class $X {
+  ...
+  f() {}
+}
+
+---
+
+(parser_output
+  (class_declaration
+    (identifier
+      (semgrep_metavar))
+    (class_body
+      (semgrep_ellipsis)
+      (constructor_declaration
+        (identifier)
+        (formal_parameters)
+        (constructor_body)))))
+
+==========================================
+Class interface body ellipsis
+==========================================
+
+interface $INTERFACE extends Remote {
+  ...
+  $RETURNTYPE $METHOD(Object $PARAM);
+}
+
+---
+
+(parser_output
+  (interface_declaration
+    (identifier
+      (semgrep_metavar))
+    (extends_interfaces
+      (type_list
+        (type_identifier)))
+    (interface_body
+      (semgrep_ellipsis)
+      (method_declaration
+        (type_identifier
+          (semgrep_metavar))
+        (identifier
+          (semgrep_metavar))
+        (formal_parameters
+          (formal_parameter
+            (type_identifier)
+            (identifier
+              (semgrep_metavar))))))))
+
+==========================================
+Constructor body ellipsis
+==========================================
+
+public Foo(...) {
+  ...
+}
+
+---
+
+(parser_output
+  (constructor_declaration
+    (modifiers
+      (modifier))
+    (identifier)
+    (formal_parameters
+      (formal_parameter
+        (semgrep_ellipsis)))
+    (constructor_body
+      (semgrep_ellipsis))))
+
+==========================================
+Ellipsis args
+==========================================
+
+foo(..., 5)
+
+---
+
+(parser_output
+  (method_invocation
+    (identifier)
+    (argument_list
+      (semgrep_ellipsis)
+      (int))))
+
+==========================================
+Metavariable in 'if'
+==========================================
+
+if ($COND) {
+  ...
+}
+
+---
+
+(parser_output
+  (if_statement
+    (parenthesized_expression
+      (identifier
+        (semgrep_metavar)))
+    (block
+      (semgrep_ellipsis))))
+
+==========================================
+Metavariable
+==========================================
+
+class $X {
+  $X() { }
+  void $ASDF() {
+    int $QWERTY = $UIOP;
+  }
+}
+
+---
+
+(parser_output
+  (class_declaration
+    (identifier
+      (semgrep_metavar))
+    (class_body
+      (constructor_declaration
+        (identifier
+          (semgrep_metavar))
+        (formal_parameters)
+        (constructor_body))
+      (method_declaration
+        (void_type)
+        (identifier
+          (semgrep_metavar))
+        (formal_parameters)
+        (block
+          (local_variable_declaration
+            (type_identifier)
+            (variable_declarator
+              (identifier
+                (semgrep_metavar))
+              (assignment_operator)
+              (identifier
+                (semgrep_metavar)))))))))
+
+==========================================
+Metavariable statement
+==========================================
+
+$X;
+
+---
+
+(parser_output
+  (expression_statement
+    (identifier
+      (semgrep_metavar))))
+
+==========================================
+Top-level lone annotation
+==========================================
+
+@Annotation
+
+---
+
+(parser_output
+  (annotation
+    (identifier)))
+
+==========================================
+Top-level lone annotation with args
+==========================================
+
+@Annotation(param1=false, param2='hello')
+
+---
+
+(parser_output
+  (annotation
+    (identifier)
+    (annotation_argument_list
+      (annotation_key_value
+        (identifier)
+        (assignment_operator)
+        (boolean))
+      (annotation_key_value
+        (identifier)
+        (assignment_operator)
+        (string_literal)))))
+
+==========================================
+Class header
+==========================================
+
+GlObAl without sharing cLaSs $A extends $SUPER implements $I1, $I2
+
+---
+
+(parser_output
+  (modifiers
+    (modifier)
+    (modifier))
+  (identifier
+    (semgrep_metavar))
+  (superclass
+    (type_identifier
+      (semgrep_metavar)))
+  (interfaces
+    (type_list
+      (type_identifier
+        (semgrep_metavar))
+      (type_identifier
+        (semgrep_metavar)))))
+
+==========================================
+Method header
+==========================================
+
+public override void printName()
+
+---
+
+(parser_output
+  (modifiers
+    (modifier)
+    (modifier))
+  (void_type)
+  (identifier)
+  (formal_parameters))
+
+==========================================
+'if' right-associativity
+==========================================
+
+if (true)
+  if (true)
+    x;
+  else
+    x;
+
+---
+
+(parser_output
+  (if_statement
+    (parenthesized_expression
+      (boolean))
+    (if_statement
+      (parenthesized_expression
+        (boolean))
+      (expression_statement
+        (identifier))
+      (expression_statement
+        (identifier)))))
+
+==========================================
+Partial 'if'
+==========================================
+
+iF (true)
+
+---
+
+(parser_output
+  (partial_if
+    (parenthesized_expression
+      (boolean))))
+
+==========================================
+Partial 'try'
+==========================================
+
+tRy {
+  insert a;
+}
+
+---
+
+(parser_output
+  (partial_try
+    (block
+      (expression_statement
+        (dml_expression
+          (dml_type)
+          (identifier))))))
+
+==========================================
+Lone 'catch'
+==========================================
+
+caTch(DmlException e) {}
+
+---
+
+(parser_output
+  (partial_catch
+    (catch_clause
+      (catch_formal_parameter
+        (type_identifier)
+        (identifier))
+      (block))))
+
+==========================================
+Lone 'finally'
+==========================================
+
+finallY {}
+
+---
+
+(parser_output
+  (partial_finally
+    (finally_clause
+      (block))))
+
+==========================================
+Ellipsis for type parameters
+==========================================
+
+class Foo<...> {}
+class Foo<...,T1,...> {}
+
+---
+
+(parser_output
+  (class_declaration
+    (identifier)
+    (type_parameters
+      (type_parameter
+        (semgrep_ellipsis)))
+    (class_body))
+  (class_declaration
+    (identifier)
+    (type_parameters
+      (type_parameter
+        (semgrep_ellipsis))
+      (type_parameter
+        (type_identifier))
+      (type_parameter
+        (semgrep_ellipsis)))
+    (class_body)))
+
+==========================================
+'for' ellipsis
+==========================================
+
+for(...) { ... }
+
+---
+
+(parser_output
+  (for_statement
+    (semgrep_ellipsis)
+    (block
+      (semgrep_ellipsis))))
+
+==========================================
+'catch' ellipsis
+==========================================
+
+try {}
+catch (...) {}
+
+---
+
+(parser_output
+  (try_statement
+    (block)
+    (catch_clause
+      (catch_formal_parameter
+        (semgrep_ellipsis))
+      (block))))
+
+==========================================
+Metavariable ellipsis in parameters
+==========================================
+
+public class ClassA {
+  public void func($...PARAMS) {
+    obj.writeObj('object');
+  }
+}
+
+---
+
+(parser_output
+  (class_declaration
+    (modifiers
+      (modifier))
+    (identifier)
+    (class_body
+      (method_declaration
+        (modifiers
+          (modifier))
+        (void_type)
+        (identifier)
+        (formal_parameters
+          (formal_parameter
+            (semgrep_metavar_ellipsis)))
+        (block
+          (expression_statement
+            (method_invocation
+              (identifier)
+              (identifier)
+              (argument_list
+                (string_literal)))))))))
+
+==========================================
+Metavariable ellipsis in arguments
+==========================================
+
+obj.writeObj(foo, $...X)
+
+---
+
+(parser_output
+  (method_invocation
+    (identifier)
+    (identifier)
+    (argument_list
+      (identifier)
+      (semgrep_metavar_ellipsis))))
+
+==========================================
+Deep expressions
+==========================================
+
+if (<... $X == true ...>) {
+  ...
+}
+
+foo(<... 42 ...>);
+
+---
+
+(parser_output
+  (if_statement
+    (parenthesized_expression
+      (semgrep_deep_expression
+        (binary_expression
+          (identifier
+            (semgrep_metavar))
+          (boolean))))
+    (block
+      (semgrep_ellipsis)))
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list
+        (semgrep_deep_expression
+          (int))))))
+
+==========================================
+SELECT ellipsis
+==========================================
+
+[ SELECT a, ... FROM x ]
+
+---
+
+(parser_output
+  (query_expression
+    (soql_query
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier))
+          (semgrep_ellipsis))
+        (from_clause
+          (storage_identifier
+            (identifier)))))))
+
+==========================================
+SELECT metavariable
+==========================================
+
+[ SELECT $A, $B FROM x ]
+
+---
+
+(parser_output
+  (query_expression
+    (soql_query
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier
+              (semgrep_metavar)))
+          (field_identifier
+            (identifier
+              (semgrep_metavar))))
+        (from_clause
+          (storage_identifier
+            (identifier)))))))
+
+==========================================
+FROM ellipsis
+==========================================
+
+[ SELECT a FROM x, ..., y ]
+
+---
+
+(parser_output
+  (query_expression
+    (soql_query
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier)))
+        (from_clause
+          (storage_identifier
+            (identifier))
+          (storage_identifier
+            (semgrep_ellipsis))
+          (storage_identifier
+            (identifier)))))))
+
+==========================================
+FROM metavariable
+==========================================
+
+[ SELECT x FROM $TBL ]
+
+---
+
+(parser_output
+  (query_expression
+    (soql_query
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier)))
+        (from_clause
+          (storage_identifier
+            (identifier
+              (semgrep_metavar))))))))
+
+==========================================
+WHERE metavariable
+==========================================
+
+[ SELECT a FROM b WHERE $COND AND $X < 42 ]
+
+---
+
+(parser_output
+  (query_expression
+    (soql_query
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier)))
+        (from_clause
+          (storage_identifier
+            (identifier)))
+        (where_clause
+          (and_expression
+            (semgrep_metavar)
+            (comparison_expression
+              (field_identifier
+                (identifier
+                  (semgrep_metavar)))
+              (value_comparison_operator)
+              (int))))))))
+
+==========================================
+Metavariables for Apex expressions embedded in SOQL
+==========================================
+
+[ SELECT Id FROM Account WHERE Name = :$X ]
+
+---
+
+(parser_output
+  (query_expression
+    (soql_query
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier)))
+        (from_clause
+          (storage_identifier
+            (identifier)))
+        (where_clause
+          (comparison_expression
+            (field_identifier
+              (identifier))
+            (value_comparison_operator)
+            (bound_apex_expression
+              (identifier
+                (semgrep_metavar)))))))))
+
+==========================================
+Top-level method declaration
+==========================================
+
+$TYPE $FUNC() {
+}
+
+---
+
+(parser_output
+  (method_declaration
+    (type_identifier
+      (semgrep_metavar))
+    (identifier
+      (semgrep_metavar))
+    (formal_parameters)
+    (block)))
+
+==========================================
+Local variable declaration
+==========================================
+
+int x = 42;
+
+---
+
+(parser_output
+  (local_variable_declaration
+    (type_identifier)
+    (variable_declarator
+      (identifier)
+      (assignment_operator)
+      (int))))
+
+
+==========================================
+Enum ellipsis
+==========================================
+
+enum E { ... }
+
+---
+
+(parser_output
+  (enum_declaration
+    (identifier)
+    (enum_body
+      (enum_constant
+        (semgrep_ellipsis)))))
+
+==========================================
+Annotation argument ellipsis
+==========================================
+
+@SomeAnnot(..., a=b)
+
+---
+
+(parser_output
+  (annotation
+    (identifier)
+    (annotation_argument_list
+      (annotation_key_value
+        (semgrep_ellipsis))
+      (annotation_key_value
+        (identifier)
+        (assignment_operator)
+        (identifier)))))
+
+==========================================
+Switch body ellipsis
+==========================================
+
+switch on x {
+  ...
+  when 42 {
+    ...
+  }
+  ...
+}
+
+---
+
+(parser_output
+  (switch_expression
+    (identifier)
+    (switch_block
+      (switch_rule
+        (semgrep_ellipsis))
+      (switch_rule
+        (switch_label
+          (int))
+        (block
+          (semgrep_ellipsis)))
+      (switch_rule
+        (semgrep_ellipsis)))))

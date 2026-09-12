@@ -1,0 +1,694 @@
+=======================
+Package Visibility
+=======================
+
+public(package) fun foo() { ... }
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (module_member_modifier
+        (visibility))
+      (function_decl
+        (identifier)
+        (parameters)
+        (block
+          (ellipsis))))))
+
+
+=======================
+Basic Enum
+=======================
+
+enum CommonFields has key {
+    Foo{x: u64, y: u8},
+    Bar{x: u64, z: u32, ...},
+    $VARIANT,
+    ...
+}
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (enum_decl
+        (identifier)
+        (abilities
+          (ability))
+        (enum_body
+          (enum_variant_struct
+            (identifier)
+            (struct_body
+              (field_annot
+                (identifier)
+                (type
+                  (primitive_type
+                    (number_type))))
+              (field_annot
+                (identifier)
+                (type
+                  (primitive_type
+                    (number_type))))))
+          (enum_variant_struct
+            (identifier)
+            (struct_body
+              (field_annot
+                (identifier)
+                (type
+                  (primitive_type
+                    (number_type))))
+              (field_annot
+                (identifier)
+                (type
+                  (primitive_type
+                    (number_type))))
+              (field_annot
+                (ellipsis))))
+          (enum_variant
+            (identifier))
+          (ellipsis))))))
+
+=======================
+Match Is a Contextual Keyword
+=======================
+
+match (c) {
+    Foo{x, y: _} => {
+        let match = x > t;
+        match
+    },
+    ...,
+    _ => false
+}
+
+---
+
+(source_file
+  (semgrep_expression
+    (match_expr
+      (var
+        (name_access_chain
+          (identifier)))
+      (match_arm
+        (pattern
+          (name_access_chain
+            (identifier))
+          (fields
+            (bind_field
+              (shorthand_field_identifier
+                (identifier)))
+            (bind_field
+              (var_name
+                (identifier))
+              (var_name
+                (identifier)))))
+        (result
+          (block
+            (let_expr
+              (bind_list
+                (var_name
+                  (discouraged_name)))
+              (bin_op_expr
+                (var
+                  (name_access_chain
+                    (identifier)))
+                (binary_operator)
+                (var
+                  (name_access_chain
+                    (identifier)))))
+            (var
+              (name_access_chain
+                (discouraged_name))))))
+      (match_arm
+        (ellipsis))
+      (match_arm
+        (pattern
+          (var_name
+            (identifier)))
+        (result
+          (value
+            (bool_literal)))))))
+
+=======================
+Complex Match with Condition
+=======================
+
+match ($VAR) {
+  VariantA => $SOME,
+  VariantB{
+    field1: x,
+    field2,
+    nested: $NESTED {
+      ff,
+      ok: nak,
+    },
+    ...
+  } if ff >= 0 => {}
+  _ => ...,
+}
+
+---
+
+(source_file
+  (semgrep_expression
+    (match_expr
+      (var
+        (name_access_chain
+          (identifier)))
+      (match_arm
+        (pattern
+          (var_name
+            (identifier)))
+        (result
+          (var
+            (name_access_chain
+              (identifier)))))
+      (match_arm
+        (pattern
+          (name_access_chain
+            (identifier))
+          (fields
+            (bind_field
+              (var_name
+                (identifier))
+              (var_name
+                (identifier)))
+            (bind_field
+              (shorthand_field_identifier
+                (identifier)))
+            (bind_field
+              (var_name
+                (identifier))
+              (name_access_chain
+                (identifier))
+              (fields
+                (bind_field
+                  (shorthand_field_identifier
+                    (identifier)))
+                (bind_field
+                  (var_name
+                    (identifier))
+                  (var_name
+                    (identifier)))))
+            (bind_field
+              (ellipsis))))
+        (condition
+          (bin_op_expr
+            (var
+              (name_access_chain
+                (identifier)))
+            (binary_operator)
+            (value
+              (number))))
+        (result
+          (block)))
+      (match_arm
+        (pattern
+          (var_name
+            (identifier)))
+        (result
+          (ellipsis))))))
+
+=======================
+Alternative Enum Syntax
+=======================
+
+enum SomeEnum<T> {
+  Some {
+    value: T,
+    ...
+  },
+  None,
+} has store, key, ...;
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (enum_decl
+        (identifier)
+        (type_params
+          (type_param
+            (type_param
+              (identifier))))
+        (enum_body
+          (enum_variant_struct
+            (identifier)
+            (struct_body
+              (field_annot
+                (identifier)
+                (type
+                  (name_access_chain
+                    (identifier))))
+              (field_annot
+                (ellipsis))))
+          (enum_variant
+            (identifier)))
+        (abilities
+          (ability)
+          (ability)
+          (ability
+            (ellipsis)))))))
+
+=======================
+Alternative Struct Syntax
+=======================
+
+struct AltStruct<K, V> {
+  key: Option<K>,
+  value: V,
+} has ...;
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (struct_decl
+        (identifier)
+        (type_params
+          (type_param
+            (type_param
+              (identifier)))
+          (type_param
+            (type_param
+              (identifier))))
+        (struct_body
+          (field_annot
+            (identifier)
+            (type
+              (name_access_chain
+                (identifier))
+              (type_args
+                (type
+                  (name_access_chain
+                    (identifier))))))
+          (field_annot
+            (identifier)
+            (type
+              (name_access_chain
+                (identifier)))))
+        (abilities
+          (ability
+            (ellipsis)))))))
+
+=======================
+Struct Positional Fields
+=======================
+
+struct Simple<T>(u64, T) has key;
+
+fun test_fun() {
+  let var = Simple<bool> (0, false);
+
+  var.1 = 5;
+  var.0 = 3;
+}
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (struct_decl
+        (identifier)
+        (type_params
+          (type_param
+            (type_param
+              (identifier))))
+        (anon_fields
+          (type
+            (primitive_type
+              (number_type)))
+          (type
+            (name_access_chain
+              (identifier))))
+        (abilities
+          (ability))))
+    (declaration
+      (function_decl
+        (identifier)
+        (parameters)
+        (block
+          (let_expr
+            (bind_list
+              (var_name
+                (identifier)))
+            (call_expr
+              (name_access_chain
+                (identifier))
+              (type_args
+                (type
+                  (primitive_type)))
+              (call_args
+                (value
+                  (number))
+                (value
+                  (bool_literal)))))
+          (assignment
+            (access_field
+              (var
+                (name_access_chain
+                  (identifier)))
+              (anon_field_index))
+            (value
+              (number)))
+          (assignment
+            (access_field
+              (var
+                (name_access_chain
+                  (identifier)))
+              (anon_field_index))
+            (value
+              (number))))))))
+
+=======================
+Enum Positional-field Variant
+=======================
+
+enum Option<T> {
+  None,
+  Some(T),
+} has key;
+
+fun test_fun() {
+  let $X = Option::Some(...);
+
+  match ($X) {
+    None => false,
+    Some($INNER) if $INNER > 10 => true,
+    _ => false,
+  }
+}
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (enum_decl
+        (identifier)
+        (type_params
+          (type_param
+            (type_param
+              (identifier))))
+        (enum_body
+          (enum_variant
+            (identifier))
+          (enum_variant_posit
+            (identifier)
+            (anon_fields
+              (type
+                (name_access_chain
+                  (identifier))))))
+        (abilities
+          (ability))))
+    (declaration
+      (function_decl
+        (identifier)
+        (parameters)
+        (block
+          (let_expr
+            (bind_list
+              (var_name
+                (identifier)))
+            (call_expr
+              (name_access_chain
+                (identifier)
+                (identifier))
+              (call_args
+                (ellipsis))))
+          (match_expr
+            (var
+              (name_access_chain
+                (identifier)))
+            (match_arm
+              (pattern
+                (var_name
+                  (identifier)))
+              (result
+                (value
+                  (bool_literal))))
+            (match_arm
+              (pattern
+                (name_access_chain
+                  (identifier))
+                (tuple
+                  (var_name
+                    (identifier))))
+              (condition
+                (bin_op_expr
+                  (var
+                    (name_access_chain
+                      (identifier)))
+                  (binary_operator)
+                  (value
+                    (number))))
+              (result
+                (value
+                  (bool_literal))))
+            (match_arm
+              (pattern
+                (var_name
+                  (identifier)))
+              (result
+                (value
+                  (bool_literal))))))))))
+
+
+=======================
+Complex Enum and Structs
+=======================
+
+struct S3(S2, S0, S2, ...);
+
+enum E {
+    V1(u8, bool),
+    V2(S3),
+    ...
+}
+
+fun assign_chained(x: S3) {
+    x.0.$FIELD.x + x.1.x + x.2.0.x;
+    x.0.0.x = 0;
+    x.1.x = 1;
+    x.2.0.x = 2;
+}
+
+fun assign_enum(x: &mut E) {
+    match (x) {
+        E::V1($VAR, y, ...) => {
+            *$VAR = 42;
+            *y = true;
+        },
+        E::V2(x) => {
+            x.0.0.x = 0;
+            x.1.x = 1;
+            x.2.0.x = 2;
+        },
+        ...
+    }
+}
+
+---
+
+(source_file
+  (semgrep_statement
+    (declaration
+      (struct_decl
+        (identifier)
+        (anon_fields
+          (type
+            (name_access_chain
+              (identifier)))
+          (type
+            (name_access_chain
+              (identifier)))
+          (type
+            (name_access_chain
+              (identifier)))
+          (type
+            (ellipsis)))))
+    (declaration
+      (enum_decl
+        (identifier)
+        (enum_body
+          (enum_variant_posit
+            (identifier)
+            (anon_fields
+              (type
+                (primitive_type
+                  (number_type)))
+              (type
+                (primitive_type))))
+          (enum_variant_posit
+            (identifier)
+            (anon_fields
+              (type
+                (name_access_chain
+                  (identifier)))))
+          (ellipsis))))
+    (declaration
+      (function_decl
+        (identifier)
+        (parameters
+          (parameter
+            (identifier)
+            (type
+              (name_access_chain
+                (identifier)))))
+        (block
+          (bin_op_expr
+            (bin_op_expr
+              (access_field
+                (access_field
+                  (access_field
+                    (var
+                      (name_access_chain
+                        (identifier)))
+                    (anon_field_index))
+                  (identifier))
+                (identifier))
+              (binary_operator)
+              (access_field
+                (access_field
+                  (var
+                    (name_access_chain
+                      (identifier)))
+                  (anon_field_index))
+                (identifier)))
+            (binary_operator)
+            (access_field
+              (access_field
+                (access_field
+                  (var
+                    (name_access_chain
+                      (identifier)))
+                  (anon_field_index))
+                (anon_field_index))
+              (identifier)))
+          (assignment
+            (access_field
+              (access_field
+                (access_field
+                  (var
+                    (name_access_chain
+                      (identifier)))
+                  (anon_field_index))
+                (anon_field_index))
+              (identifier))
+            (value
+              (number)))
+          (assignment
+            (access_field
+              (access_field
+                (var
+                  (name_access_chain
+                    (identifier)))
+                (anon_field_index))
+              (identifier))
+            (value
+              (number)))
+          (assignment
+            (access_field
+              (access_field
+                (access_field
+                  (var
+                    (name_access_chain
+                      (identifier)))
+                  (anon_field_index))
+                (anon_field_index))
+              (identifier))
+            (value
+              (number))))))
+    (declaration
+      (function_decl
+        (identifier)
+        (parameters
+          (parameter
+            (identifier)
+            (type
+              (name_access_chain
+                (identifier)))))
+        (block
+          (match_expr
+            (var
+              (name_access_chain
+                (identifier)))
+            (match_arm
+              (pattern
+                (name_access_chain
+                  (identifier)
+                  (identifier))
+                (tuple
+                  (var_name
+                    (identifier))
+                  (var_name
+                    (identifier))
+                  (ellipsis)))
+              (result
+                (block
+                  (assignment
+                    (deref_expr
+                      (var
+                        (name_access_chain
+                          (identifier))))
+                    (value
+                      (number)))
+                  (assignment
+                    (deref_expr
+                      (var
+                        (name_access_chain
+                          (identifier))))
+                    (value
+                      (bool_literal))))))
+            (match_arm
+              (pattern
+                (name_access_chain
+                  (identifier)
+                  (identifier))
+                (tuple
+                  (var_name
+                    (identifier))))
+              (result
+                (block
+                  (assignment
+                    (access_field
+                      (access_field
+                        (access_field
+                          (var
+                            (name_access_chain
+                              (identifier)))
+                          (anon_field_index))
+                        (anon_field_index))
+                      (identifier))
+                    (value
+                      (number)))
+                  (assignment
+                    (access_field
+                      (access_field
+                        (var
+                          (name_access_chain
+                            (identifier)))
+                        (anon_field_index))
+                      (identifier))
+                    (value
+                      (number)))
+                  (assignment
+                    (access_field
+                      (access_field
+                        (access_field
+                          (var
+                            (name_access_chain
+                              (identifier)))
+                          (anon_field_index))
+                        (anon_field_index))
+                      (identifier))
+                    (value
+                      (number))))))
+            (match_arm
+              (ellipsis))))))))

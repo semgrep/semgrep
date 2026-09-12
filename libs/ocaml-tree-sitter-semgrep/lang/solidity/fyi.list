@@ -1,0 +1,3 @@
+semgrep-grammars/src/tree-sitter-solidity/LICENSE
+semgrep-grammars/src/tree-sitter-solidity/grammar.js
+semgrep-grammars/src/semgrep-solidity/grammar.js

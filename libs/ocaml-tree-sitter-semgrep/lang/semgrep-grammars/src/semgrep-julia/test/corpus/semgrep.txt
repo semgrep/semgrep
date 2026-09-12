@@ -1,0 +1,258 @@
+================================================================================
+Ellipsis
+================================================================================
+
+...
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (semgrep_ellipsis))
+
+================================================================================
+Top level statements
+================================================================================
+
+foo()
+...
+bar()
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (identifier)
+    (argument_list))
+  (semgrep_ellipsis)
+  (call_expression
+    (identifier)
+    (argument_list)))
+
+================================================================================
+Top level public constructor
+================================================================================
+
+function f(...)
+  return 1
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (signature
+      (call_expression
+        (identifier)
+        (argument_list
+            (semgrep_ellipsis))))
+    (return_statement
+      (integer_literal))))
+
+================================================================================
+Abstract type metavariable
+================================================================================
+
+abstract type $TY end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (abstract_definition
+    (interpolation_expression
+      (identifier))))
+
+================================================================================
+Struct metavariable
+================================================================================
+
+struct $FOO
+  a
+  b
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    (interpolation_expression
+      (identifier))
+    (identifier)
+    (identifier)))
+
+================================================================================
+Ellipsis args
+================================================================================
+
+foo(..., 5)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (identifier)
+    (argument_list
+      (semgrep_ellipsis)
+      (integer_literal))))
+
+================================================================================
+Ellipsis in if
+================================================================================
+
+if (...)
+  ...
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (if_statement
+    (parenthesized_expression
+      (semgrep_ellipsis))
+    (semgrep_ellipsis)))
+
+================================================================================
+Metavariable
+================================================================================
+
+function $F()
+  $X = 2
+  return $Y
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (signature
+      (call_expression
+        (interpolation_expression
+          (identifier))
+        (argument_list)))
+    (assignment
+      (interpolation_expression
+        (identifier))
+      (operator)
+      (integer_literal))
+    (return_statement
+      (interpolation_expression
+        (identifier)))))
+
+================================================================================
+Catch ellipsis
+================================================================================
+
+try
+  x = 3
+catch ...
+  ...
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (try_statement
+    (assignment
+      (identifier)
+      (operator)
+      (integer_literal))
+    (catch_clause
+      (catch_ellipsis)
+      (semgrep_ellipsis))))
+
+================================================================================
+Empty catch followed by ellipsis
+================================================================================
+
+try
+  x = 3
+catch
+  ...
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (try_statement
+    (assignment
+      (identifier)
+      (operator)
+      (integer_literal))
+    (catch_clause
+      (semgrep_ellipsis))))
+
+================================================================================
+Metavariable in import
+================================================================================
+
+using $MODULE: $X
+using $MODULE: $X as $Y
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_statement
+    (selected_import
+      (interpolation_expression
+        (identifier))
+      (interpolation_expression
+        (identifier))))
+  (import_statement
+    (selected_import
+      (interpolation_expression
+        (identifier))
+      (import_alias
+        (interpolation_expression
+          (identifier))
+        (identifier
+          (semgrep_extended_metavariable))))))
+
+================================================================================
+Metavariable in do block
+================================================================================
+
+map([]) do $X
+    return x
+end
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (identifier)
+    (argument_list
+      (vector_expression))
+    (do_clause
+      (argument_list
+        (identifier
+          (semgrep_extended_metavariable)))
+      (return_statement
+        (identifier)))))
+
+================================================================================
+Deep expression
+================================================================================
+
+<... 1 ...>
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (deep_expression
+    (integer_literal)))
+
+================================================================================
+Deep expression
+================================================================================
+
+x = <... foo() ...>
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (assignment
+    (identifier)
+    (operator)
+    (deep_expression
+      (call_expression
+        (identifier)
+        (argument_list)))))

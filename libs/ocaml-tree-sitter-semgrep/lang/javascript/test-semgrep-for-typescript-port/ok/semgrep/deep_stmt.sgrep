@@ -1,0 +1,4 @@
+function $F() {
+  ...
+  console.log(...);
+}

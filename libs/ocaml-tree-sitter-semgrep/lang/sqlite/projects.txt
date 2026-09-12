@@ -1,0 +1,21 @@
+#
+# These are repos identified as a majority of "SQL" by GitHub.
+# They're not necessarily compatible with the SQLite dialect.
+# We try to exclude projects that contain large database dumps.
+#
+https://github.com/longwall/voynich_manchu_oradb.git
+https://github.com/hacker9/Donor9.git
+https://github.com/echlebek/nutes.git
+https://github.com/thunderdome-data/ballot.git
+https://github.com/wetory/SQL-Server-Maintenance.git
+https://github.com/ChispasHK/Dating-App-DataBase.git
+https://github.com/sartorileonardo/CRUD-REST-auto-with-WSO2-Data-Services-Server.git
+https://github.com/spektom/vertica-utilities.git
+https://github.com/viirya/puppet-hive.git
+https://github.com/moreda/saltstack-formulas-set.git
+https://github.com/vincentclee/mh370_satellite_data_communication_logs.git
+https://github.com/MarcosRigal/Bdd.git
+https://github.com/joaohenriqueluz/FEUP-BDAD.git
+https://github.com/fganzFR/qgis_styles.git
+https://github.com/tumbo/admin.git
+https://github.com/jotegui/geo-taxo-quality.git

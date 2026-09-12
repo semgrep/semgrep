@@ -1,0 +1,50 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files for the cfml multi-grammar.
+# Follows the same pattern as semgrep-typescript/prep.
+#
+# The tree-sitter-cfml grammar is fetched into:
+#   ../tree-sitter-cfml (relative to this semgrep-cfml/ directory)
+#
+set -eu -o pipefail
+
+# Link the common directory at this level for tree-sitter generate/test
+# (scanner.c uses #include "../../common/scanner.h" which resolves to
+# semgrep-cfml/common/ when compiling from semgrep-cfml/cfml/src/)
+rm -f common
+ln -sf ../tree-sitter-cfml/common common
+
+for dialect in cfml cfscript cfquery; do
+  mkdir -p "$dialect/src"
+  (
+    cd "$dialect/src"
+    rm -f scanner.c scanner.cc scanner.h tag.h
+
+    scanner_c=../../../tree-sitter-cfml/$dialect/src/scanner.c
+    if [[ -e "$scanner_c" ]]; then
+      # Copy scanner and rewrite the include to reference a local header.
+      # Link the required headers into src/ so the compiler finds them.
+      ln -sf ../../../tree-sitter-cfml/common/scanner.h .
+      ln -sf ../../../tree-sitter-cfml/common/tag.h .
+      cat "$scanner_c" \
+        | sed -e 's:"../../common/scanner.h":"scanner.h":' \
+        | sed -e 's:"../../common/tag.h":"tag.h":' \
+        > scanner.c
+    fi
+
+    scanner_cc="../../../tree-sitter-cfml/$dialect/src/scanner.cc"
+    if [[ ! -e scanner.c ]] && [[ -e "$scanner_cc" ]]; then
+      ln -sf "$scanner_cc" .
+    fi
+  )
+
+  mkdir -p "$dialect/test/corpus"
+  (
+    cd "$dialect/test/corpus"
+    rm -f inherited
+    corpus=../../../../tree-sitter-cfml/$dialect/test/corpus
+    if [[ -e "$corpus" ]]; then
+      ln -sf "$corpus" inherited
+    fi
+  )
+done
