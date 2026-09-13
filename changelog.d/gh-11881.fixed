@@ -1,0 +1,1 @@
+Allow `semgrep scan --severity CRITICAL` to select rules with critical severity.
