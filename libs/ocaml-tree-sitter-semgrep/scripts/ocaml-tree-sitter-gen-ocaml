@@ -266,7 +266,7 @@ cat > "$dst_dir"/lib/dune <<EOF
   (foreign_stubs
     (language c)
     (names ${c_files})
-    (flags -std=c99
+    (flags -std=c11
            -fPIC
            -I %{env:TREESITTER_INCDIR=/usr/local/include}
            -I .)
