@@ -102,10 +102,12 @@ CAMLprim value octs_parser_parse(value vParser, value vTree, value vRead) {
     oldTree = t->tree;
   }
 
-  TSInput input;
-  input.payload = (void *)vRead;
-  input.read = &octs_read;
-  input.encoding = TSInputEncodingUTF8;
+  TSInput input = {
+    .payload = (void *)vRead,
+    .read = &octs_read,
+    .encoding = TSInputEncodingUTF8,
+    .decode = NULL,
+  };
 
   TSTree *tree = ts_parser_parse(tsparser, oldTree, input);
 
