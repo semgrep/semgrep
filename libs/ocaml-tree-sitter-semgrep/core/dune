@@ -5,7 +5,6 @@
   (promote (until-clean)))
  (deps
   tree-sitter-version
-  (source_tree patch)
   (source_tree scripts))
  (target
   (dir tree-sitter-repo))

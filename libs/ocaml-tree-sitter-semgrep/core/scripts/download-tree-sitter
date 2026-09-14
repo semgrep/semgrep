@@ -91,27 +91,6 @@ else
   if [[ ! -d "$src_dir" ]]; then
     error "Archive didn't unpack into the expected folder '$src_dir'."
   fi
-
-  case "$version" in
-    0.20.8)
-    ;;
-    0.22.6)
-      # See feat: Windows support using MinGW-w64
-      # https://github.com/tree-sitter/tree-sitter/pull/4201
-      # https://github.com/tree-sitter/tree-sitter/pull/4203
-      patch -N -b \
-        -i patch/tree-sitter-"$version"/0001-Makefile-backports.patch \
-        "$src_dir"/Makefile
-      ;;
-    0.26.3)
-    ;;
-    *)
-      cat >&2 <<EOF
-*** tree-sitter version: $version
-*** Warning: tree-sitter 0.22.6 required patching the Makefile!
-*** Remove this code once we're fully migrated to a version > 0.25.1
-EOF
-  esac
 fi
 
 mv "$src_dir" "$target_dir"
