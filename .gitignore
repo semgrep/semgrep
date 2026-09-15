@@ -230,3 +230,6 @@ result
 libs/ocaml-tree-sitter-semgrep/**
 !libs/ocaml-tree-sitter-semgrep/core
 !libs/ocaml-tree-sitter-semgrep/core/**
+
+# Local Tekton PipelineRuns (ECR details, not for upstream)
+.tekton/
