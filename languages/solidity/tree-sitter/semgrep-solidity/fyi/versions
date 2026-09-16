@@ -2,40 +2,176 @@ File: semgrep-grammars/src/tree-sitter-solidity/LICENSE
 Git repo name: tree-sitter-solidity
 Latest commit in repo: 048fe686cb1fde267243739b8bdbec8fc3a55272
 Last change in file:
-  commit 048fe686cb1fde267243739b8bdbec8fc3a55272
-  Author: JoranHonig <JoranHonig@users.noreply.github.com>
-  Date:   Wed Feb 11 10:25:14 2026 +0100
+  commit 890735f6ba1246c33cb833af40746ee0c036e97c
+  Author: Joran Honig <joran.honig@gmail.com>
+  Date:   Sun Aug 30 22:28:00 2020 +0200
   
-      test: add test for yul function definitions
+      add license
 ---
 File: semgrep-grammars/src/tree-sitter-solidity/grammar.js
 Git repo name: tree-sitter-solidity
 Latest commit in repo: 048fe686cb1fde267243739b8bdbec8fc3a55272
 Last change in file:
-  commit 048fe686cb1fde267243739b8bdbec8fc3a55272
+  commit d96d47507aa6ddbc7c4ad5100e4705df73fe15b1
   Author: JoranHonig <JoranHonig@users.noreply.github.com>
-  Date:   Wed Feb 11 10:25:14 2026 +0100
+  Date:   Mon Aug 4 12:58:13 2025 +0200
   
-      test: add test for yul function definitions
+      feat(grammar): add support for hex string literals in Yul assembly
+      
+        - Add yul_hex_string_literal rule to support hex"" and hex'' syntax in inline assembly
+        - Include the new literal type in _yul_literal choices
+        - Add test cases for hex string literals with underscores, empty strings, and single quotes
+      
+        Fixes #75
 ---
 File: semgrep-grammars/src/semgrep-solidity/grammar.js
-Git repo name: medan
-Latest commit in repo: eac4949a19c4af1da00f77e96d37257f22a78127
+Git repo name: workspace
+Latest commit in repo: b4061fa81baf4f69101698a66827fc84fb5ad2f5
 Last change in file:
-  commit eac4949a19c4af1da00f77e96d37257f22a78127
+  commit f8e6c96e50156031e3e7552477ae914e25506fba
   Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Thu Jun 11 16:53:35 2026 -0600
+  Date:   Fri Sep 11 20:44:29 2026 -0600
   
-      feat: update tree-sitter-solidity grammar
+      feat: ots grammar operator (registry, test/regen, check-vendored-ots) (#7026)
       
-      Bump the tree-sitter-solidity submodule to 048fe68 and update the
-      semgrep extension grammar to match upstream rule renames:
-      _statement -> statement, _expression -> expression, the event_paramater
-      typo fix -> event_parameter, and the new enum_body rule (replacing the
-      copy-pasted enum_declaration). event_definition is now a top-level
-      declaration upstream, so it was dropped from the source_file override to
-      avoid a grammar conflict. Solidity moves to the 0.22.6 language list and
-      the test corpus is updated for the new parse trees.
+      ## Summary
       
-      Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+      Converts the ocaml-tree-sitter-semgrep submodule into a part of the
+      Semgrep code base.
+      Most files are copied as-is, but some modifications are necessary.
+      
+      ## Details
+      
+      1. Registry: we no longer include and pin upstream grammars as
+      .gitmodules because that creates large checkouts for a part of code
+      that's not needed in the build. Instead, we have a registry
+      (`upstream-grammars.json`) and a command-line utility for querying it
+      (`grammar_registry.py`). Relevant scripts now use the registry CLI.
+      
+      2. Integrity check: we check the integrity of what's copied using
+      `scripts/check-vendored-ots`. That script also lists the exclusions -
+      files that were not needed in the new repo or needed to be updated along
+      the way.
+      
+      3. CI updates:
+      
+      * `ots_is_submodule=false` now set, and increased conformity with the
+      rest of the repo for pinning and caching
+      * Improved dependencies caching for grammar tests, which were otherwise
+      flaky due to too many jobs hitting OPAM at once.
+      
+      5. Script updates: besides what is mentioned in 1., we also ensured that
+      all relevant scripts are in `OSS/lib/ocaml-tree-sitter-semgrep/scripts`
+      
+      6. Intentional omissions and removal:
+      
+      * Nothing related to update automation. This will be included in a
+      future PR.
+      * Removed temporary CI workflows that are no longer needed after the
+      integration of the semgrep-LANG submodules.
+      
+      ## Test plan
+      
+      - [x] CI tests passing
+      
+      --- Text above this line is public. Place SENSITIVE info below! ---
+      
+      Dogfood follow-ups: CODE-9919, CODE-9921.
+      Closes CODE-9913.
+      
+      ## Reviewer guide: pre-existing files
+      
+      Compared with the merge base of `origin/develop` and HEAD. Excludes
+      newly added files and all contents of the former OTS submodule. Small
+      but behavior-changing integration edits are included as substantive.
+      Generated files and deletions are listed separately so none of the
+      pre-existing changed paths are hidden.
+      
+      ### Substantive integration changes
+      
+      | File | Lines | Review focus |
+      |---|---:|---|
+      | `.github/workflows/ocaml-tree-sitter-ci.jsonnet` | +6/−2 | Include
+      shared OSS workflow changes in triggers. |
+      | `.github/workflows/ocaml-tree-sitter-test-languages.jsonnet` | +2/−2 |
+      Switch from submodule checkout to in-tree grammar tooling. |
+      | `.github/workflows/regen-grammar.jsonnet` | +11/−7 | Use integrated
+      generator and shared build setup for Solidity canary. |
+      | `.gitignore` | +0/−6 | Remove temporary OTS Docker-context exclusion.
+      |
+      | `.gitmodules` | +0/−4 | Remove OTS submodule configuration. |
+      | `.pre-commit-config.yaml` | +7/−4 | Keep upstream core/lang excluded;
+      lint integration scripts; test typing exclusions. |
+      | `OSS/.github/workflows/ocaml-tree-sitter-ci.jsonnet` | +74/−58 | Root
+      OCaml/Python test targets, shared setup and build caching. |
+      | `OSS/.github/workflows/ocaml-tree-sitter-test-languages.jsonnet` |
+      +6/−6 | In-tree grammar checkout and script paths. |
+      | `OSS/.github/workflows/ocaml-tree-sitter.libsonnet` | +67/−50 | Shared
+      dependency setup, build paths, CLI/build caches, lockfile hashes and
+      triggers. |
+      | `OSS/.gitignore` | +2/−5 | Replace broad OTS exclusion with ephemeral
+      grammar-clone exclusion. |
+      | `OSS/.gitmodules` | +0/−5 | Remove OTS submodule configuration. |
+      | `OSS/.pre-commit-config.yaml` | +5/−3 | Keep upstream core/lang
+      excluded; lint integration scripts; test typing exclusions. |
+      | `OSS/Makefile` | +39/−4 | Root grammar build/test/setup targets; OTS
+      tests in test-all; cleanup integration. |
+      | `OSS/semgrep.opam.template` | +1/−1 | Pin tree-sitter to the vendored
+      local core instead of a remote repository. |
+      
+      ### Removed or replaced files
+      
+      | File | Lines | Review focus |
+      |---|---:|---|
+      | `.github/workflows/check-vendored-grammars.jsonnet` | +0/−145 |
+      Replaced by the in-tree OTS tooling/documentation. |
+      | `.github/workflows/check-vendored-grammars.yml` | +0/−98 | Replaced by
+      the in-tree OTS tooling/documentation. |
+      | `OSS/languages/GRAMMAR_INTEGRATION.md` | +0/−136 | Replaced by the
+      in-tree OTS tooling/documentation. |
+      | `OSS/libs/ocaml-tree-sitter-semgrep` | +0/−1 | Gitlink replaced by
+      ordinary vendored files; this was not an ordinary source file. |
+      | `OSS/scripts/regen-grammar` | +0/−168 | Replaced by the in-tree OTS
+      tooling/documentation. |
+      | `scripts/check-vendored-grammars` | +0/−133 | Replaced by the in-tree
+      OTS tooling/documentation. |
+      | `scripts/newly-vendored-grammars` | +0/−31 | Replaced by the in-tree
+      OTS tooling/documentation. |
+      
+      
+      ### Small supporting edits
+      
+      | File | Lines | Review focus |
+      |---|---:|---|
+      | `.github/workflows/Makefile` | +1/−1 | Documentation, comment, or
+      build wiring update. |
+      | `AGENTS.md` | +6/−0 | Documentation, comment, or build wiring update.
+      |
+      | `Makefile` | +1/−0 | Documentation, comment, or build wiring update. |
+      | `OSS/AGENTS.md` | +7/−0 | Documentation, comment, or build wiring
+      update. |
+      | `OSS/dune-project` | +2/−1 | Documentation, comment, or build wiring
+      update. |
+      | `README.md` | +1/−5 | Documentation, comment, or build wiring update.
+      |
+      | `WINDOWS.md` | +1/−5 | Documentation, comment, or build wiring update.
+      |
+      
+      PR checklist:
+      
+      - [x] Documentation is up-to-date
+      * Updated `OSS/libs/ocaml-tree-sitter-semgrep/README.md`,
+      `doc/add-or-update-grammar.md`, `OSS/AGENTS.md`
+        * Removed OSS/languages/GRAMMAR_INTEGRATION.md
+        * TODO PR for website update
+      - [x] An entry was added to
+      [changelog.d](https://semgrep.dev/docs/contributing/contributing-code/#adding-a-changelog-entry)
+      for user-facing changes, and to [CLI
+      notes](https://golinks.io/cli-notes) for customer support (if needed)
+      - [x] Change has no security implications (otherwise, ping security
+      team)
+      - [x] Change does not log any sensitive information to the INFO,
+      WARNING, or ERROR log levels (e.g. tokens, analyzed source code)
+      
+      See [go/saf-pr](http://go/saf-pr) for a guide on our code review process
 ---
