@@ -29,7 +29,10 @@ val unix_diff : string -> string -> string list
 
 (* regression testing *)
 type score_result = Ok | Pb of string
-type score = (string (* usually a filename *), score_result) Hashtbl.t
+
+(* output_value'd to *.marshalled regression files (see [regression_testing]);
+ * a Base table raises under Marshal, so this stays Stdlib.Hashtbl. *)
+type score = (string (* usually a filename *), score_result) Stdlib.Hashtbl.t
 type score_list = (string (* usually a filename *) * score_result) list
 
 val empty_score : unit -> score

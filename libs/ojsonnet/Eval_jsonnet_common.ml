@@ -172,7 +172,7 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
           | NamedArg (id, _tk, ei) -> Right (fst id, ei))
       in
       (* opti? use a hashtbl? but for < 5 elts, probably worse? *)
-      let hnamed_args = Hashtbl_.hash_of_list named_args in
+      let hnamed_args = Hashtbl_.Base.hash_of_list named_args in
       let basic_args = Array.of_list basic_args in
       let m = Array.length basic_args in
       let binds =
@@ -181,8 +181,8 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
             let ei'' =
               match i with
               | _ when i < m -> basic_args.(i) (* ei *)
-              | _ when Hashtbl.mem hnamed_args (fst id) ->
-                  Hashtbl.find hnamed_args (fst id)
+              | _ when Base.Hashtbl.mem hnamed_args (fst id) ->
+                  Hashtbl_.Base.find hnamed_args (fst id)
               | _else_ -> ei'
             in
             B (id, teq, ei''))
