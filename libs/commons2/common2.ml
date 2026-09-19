@@ -406,28 +406,28 @@ let ( $+$ ) = union_set
 (*****************************************************************************)
 
 let group_assoc_bykey_eff xs =
-  let h = Hashtbl.create 101 in
-  xs |> List.iter (fun (k, v) -> Hashtbl_.push h k v);
-  let keys = Hashtbl_.hkeys h in
-  keys |> List.map (fun k -> (k, Hashtbl_.get_stack h k))
+  let h = Base.Hashtbl.Poly.create ~size:101 () in
+  xs |> List.iter (fun (k, v) -> Hashtbl_.Base.push h k v);
+  let keys = Hashtbl_.Base.hkeys h in
+  keys |> List.map (fun k -> (k, Hashtbl_.Base.get_stack h k))
 
 let diff_set_eff xs1 xs2 =
-  let h1 = Hashtbl_.hashset_of_list xs1 in
-  let h2 = Hashtbl_.hashset_of_list xs2 in
-  let hcommon = Hashtbl.create 101 in
-  let honly_in_h1 = Hashtbl.create 101 in
-  let honly_in_h2 = Hashtbl.create 101 in
+  let h1 = Hashtbl_.Base.hashset_of_list xs1 in
+  let h2 = Hashtbl_.Base.hashset_of_list xs2 in
+  let hcommon = Base.Hashtbl.Poly.create ~size:101 () in
+  let honly_in_h1 = Base.Hashtbl.Poly.create ~size:101 () in
+  let honly_in_h2 = Base.Hashtbl.Poly.create ~size:101 () in
   h1
-  |> Hashtbl.iter (fun k _ ->
-      if Hashtbl.mem h2 k then Hashtbl.replace hcommon k true
-      else Hashtbl.add honly_in_h1 k true);
+  |> Base.Hashtbl.iteri ~f:(fun ~key:k ~data:_ ->
+      if Base.Hashtbl.mem h2 k then Base.Hashtbl.set hcommon ~key:k ~data:true
+      else Base.Hashtbl.set honly_in_h1 ~key:k ~data:true);
   h2
-  |> Hashtbl.iter (fun k _ ->
-      if Hashtbl.mem h1 k then Hashtbl.replace hcommon k true
-      else Hashtbl.add honly_in_h2 k true);
-  ( Hashtbl_.hashset_to_list hcommon,
-    Hashtbl_.hashset_to_list honly_in_h1,
-    Hashtbl_.hashset_to_list honly_in_h2 )
+  |> Base.Hashtbl.iteri ~f:(fun ~key:k ~data:_ ->
+      if Base.Hashtbl.mem h1 k then Base.Hashtbl.set hcommon ~key:k ~data:true
+      else Base.Hashtbl.set honly_in_h2 ~key:k ~data:true);
+  ( Hashtbl_.Base.hashset_to_list hcommon,
+    Hashtbl_.Base.hashset_to_list honly_in_h1,
+    Hashtbl_.Base.hashset_to_list honly_in_h2 )
 
 (*****************************************************************************)
 (* Regression testing bis (cocci) *)
@@ -448,13 +448,15 @@ let diff_set_eff xs1 xs2 =
 type score_result = Ok | Pb of string
 
 (* with sexp *)
-type score = (string (* usually a filename *), score_result) Hashtbl.t
+(* output_value'd to *.marshalled regression files (see [regression_testing]);
+ * a Base table raises under Marshal, so this stays Stdlib.Hashtbl. *)
+type score = (string (* usually a filename *), score_result) Stdlib.Hashtbl.t
 
 (* with sexp *)
 type score_list = (string (* usually a filename *) * score_result) list
 (* with sexp *)
 
-let empty_score () : score = Hashtbl.create 101
+let empty_score () : score = Stdlib.Hashtbl.create 101
 
 let regression_testing_vs newscore bestscore =
   let newbestscore = empty_score () in
@@ -466,25 +468,28 @@ let regression_testing_vs newscore bestscore =
   in
   allres
   |> List.iter (fun res ->
-      match (Hashtbl.find_opt newscore res, Hashtbl.find_opt bestscore res) with
+      match
+        ( Stdlib.Hashtbl.find_opt newscore res,
+          Stdlib.Hashtbl.find_opt bestscore res )
+      with
       | None, None -> raise Common.Impossible
       | Some x, None ->
           Printf.printf "new test file appeared: %s\n" res;
-          Hashtbl.add newbestscore res x
+          Stdlib.Hashtbl.add newbestscore res x
       | None, Some _x -> Printf.printf "old test file disappeared: %s\n" res
       | Some newone, Some bestone -> (
           match (newone, bestone) with
-          | Ok, Ok -> Hashtbl.add newbestscore res Ok
+          | Ok, Ok -> Stdlib.Hashtbl.add newbestscore res Ok
           | Pb x, Ok ->
               Printf.printf
                 "PBBBBBBBB: a test file does not work anymore!!! : %s\n" res;
               Printf.printf "Error : %s\n" x;
-              Hashtbl.add newbestscore res Ok
+              Stdlib.Hashtbl.add newbestscore res Ok
           | Ok, Pb _x ->
               Printf.printf "Great: a test file now works: %s\n" res;
-              Hashtbl.add newbestscore res Ok
+              Stdlib.Hashtbl.add newbestscore res Ok
           | Pb x, Pb y ->
-              Hashtbl.add newbestscore res (Pb x);
+              Stdlib.Hashtbl.add newbestscore res (Pb x);
               if not (x = y) then (
                 Printf.printf "Semipb: still error but not same error : %s\n"
                   res;
