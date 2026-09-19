@@ -283,9 +283,11 @@ let bash_non_arg_keywords =
   ]
 
 let is_bash_keyword =
-  let tbl = Hashtbl.create 50 in
-  List.iter (fun kw -> Hashtbl.replace tbl kw ()) bash_non_arg_keywords;
-  fun str -> Hashtbl.mem tbl str
+  let tbl = Base.Hashtbl.Poly.create ~size:50 () in
+  List.iter
+    (fun kw -> Base.Hashtbl.set tbl ~key:kw ~data:())
+    bash_non_arg_keywords;
+  fun str -> Base.Hashtbl.mem tbl str
 
 let is_safe_arg str =
   String.length str > 0

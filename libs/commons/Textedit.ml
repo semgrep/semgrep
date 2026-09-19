@@ -74,15 +74,15 @@ let overlaps_with_an_interval (intervals : t list) (e1 : t) =
    than in the order in which they appear in the file.
 *)
 let remove_overlapping_edits edits =
-  let already_applied_edits = Hashtbl.create 100 in
+  let already_applied_edits = Base.Hashtbl.Poly.create ~size:100 () in
   let accepted_edits, redundant_edits, conflicting_edits =
     List.fold_left
       (fun (accepted_edits, redundant_edits, conflicting_edits) edit ->
         let key : t = edit in
-        if Hashtbl.mem already_applied_edits key then
+        if Base.Hashtbl.mem already_applied_edits key then
           (accepted_edits, edit :: redundant_edits, conflicting_edits)
         else (
-          Hashtbl.replace already_applied_edits key ();
+          Base.Hashtbl.set already_applied_edits ~key ~data:();
           if overlaps_with_an_interval accepted_edits edit then
             (accepted_edits, redundant_edits, edit :: conflicting_edits)
           else (edit :: accepted_edits, redundant_edits, conflicting_edits)))
@@ -107,22 +107,21 @@ let partition_edits_by_file edits =
   (* TODO Consider using Common.group_by if we update it to return edits in
    * order and add a comment specifying that changes to it must maintain that
    * behavior. *)
-  let edits_by_file = Hashtbl.create 8 in
+  let edits_by_file = Base.Hashtbl.Poly.create ~size:8 () in
   List.iter
     (fun edit ->
       let prev =
-        match Hashtbl.find_opt edits_by_file edit.path with
+        match Base.Hashtbl.find edits_by_file edit.path with
         | Some lst -> lst
         | None -> []
       in
-      Hashtbl.replace edits_by_file edit.path (edit :: prev))
+      Base.Hashtbl.set edits_by_file ~key:edit.path ~data:(edit :: prev))
     edits;
   (* Restore the original order of the edits as they appeared in the input list.
    * This is important so that we consistently choose to apply the first edit in
    * the original input when there are edits for an identical span. *)
-  Hashtbl.filter_map_inplace
-    (fun _file edits -> Some (List.rev edits))
-    edits_by_file;
+  Base.Hashtbl.filter_mapi_inplace edits_by_file
+    ~f:(fun ~key:_file ~data:edits -> Some (List.rev edits));
   edits_by_file
 
 (*****************************************************************************)
@@ -171,8 +170,8 @@ let apply_edits_to_text path text edits =
 let apply_edits ~dryrun edits =
   let edits_by_file = partition_edits_by_file edits in
   let all_conflicting_edits = ref [] in
-  Hashtbl.iter
-    (fun (path : Fpath.t) file_edits ->
+  Base.Hashtbl.iteri edits_by_file
+    ~f:(fun ~key:(path : Fpath.t) ~data:file_edits ->
       let file_text = UFile.read_file path in
       let file_edits =
         List.map (remove_newline_for_empty_replacement file_text) file_edits
@@ -185,8 +184,7 @@ let apply_edits ~dryrun edits =
             partial_result
       in
       (* TOPORT: when dryrun, report fixed lines *)
-      if not dryrun then UFile.write_file ~file:path new_text)
-    edits_by_file;
-  let modified_files = Hashtbl.to_seq_keys edits_by_file |> List.of_seq in
+      if not dryrun then UFile.write_file ~file:path new_text);
+  let modified_files = Base.Hashtbl.keys edits_by_file in
   let conflicting_edits = List_.flatten !all_conflicting_edits in
   (modified_files, conflicting_edits)
