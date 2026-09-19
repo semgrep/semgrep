@@ -43,7 +43,7 @@ type 'a env = {
 (* coupling: mostly a copy-paste of Pos.full_charpos_to_pos_large *)
 let line_col_to_pos file =
   let size = UFile.filesize_exn file + 2 in
-  let h = Hashtbl.create size in
+  let h = Base.Hashtbl.Poly.create ~size () in
   UFile.with_open_in file (fun chan ->
       let charpos = ref 0 in
       let line = ref 0 in
@@ -57,7 +57,7 @@ let line_col_to_pos file =
 
             (* '... +1 do'  cos input_line does not return the trailing \n *)
             for i = 0 to String.length s - 1 + 1 do
-              Hashtbl.add h (!line, i) (!charpos + i)
+              Base.Hashtbl.set h ~key:(!line, i) ~data:(!charpos + i)
             done;
             charpos := !charpos + String.length s + 1
           done
@@ -65,10 +65,10 @@ let line_col_to_pos file =
         | End_of_file ->
             (* We need to add this in case there is a trailing \n in the
                end of the file *)
-            Hashtbl.add h (!line + 1, 0) !charpos
+            Base.Hashtbl.set h ~key:(!line + 1, 0) ~data:!charpos
       in
       full_charpos_to_pos_aux ());
-  Hashtbl.find h
+  Hashtbl_.Base.find h
 
 (* Patterns are given as a one line string with '\n' characters (huh?)
    TODO: Explain the desired behavior *)

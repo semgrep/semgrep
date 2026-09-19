@@ -67,14 +67,14 @@ type index_entry = {
    with its [pattern_idx] and sorts before emitting, so the final event
    order matches the gitignore spec regardless of insertion order. *)
 type tables = {
-  basename_table : (string, index_entry list) Hashtbl.t;
-  literal_table : (string, index_entry list) Hashtbl.t;
-  extension_table : (string, index_entry list) Hashtbl.t;
+  basename_table : (string, index_entry list) Base.Hashtbl.t;
+  literal_table : (string, index_entry list) Base.Hashtbl.t;
+  extension_table : (string, index_entry list) Base.Hashtbl.t;
   (* required_extension_table cannot determine whether a path is a match directly,
    * so does not need dir_only, is_negated, etc. Hashtable holds only the
    * indices into [patterns_array] of each pattern that has the given
    * extension key. *)
-  required_extension_table : (string, int list) Hashtbl.t;
+  required_extension_table : (string, int list) Base.Hashtbl.t;
   regex_indices : int list;
 }
 
@@ -212,17 +212,17 @@ let classify (pat : Glob.Pattern.t) : strategy =
    singleton if [key] isn't yet present. [select_level] sorts all hits by
    [pattern_idx] before emitting, so the order of entries within a bucket
    does not affect the final result. *)
-let add_to_list_table (table : ('k, 'v list) Hashtbl.t) (key : 'k) (v : 'v) :
-    unit =
-  let existing = Option.value (Hashtbl.find_opt table key) ~default:[] in
-  Hashtbl.replace table key (v :: existing)
+let add_to_list_table (table : ('k, 'v list) Base.Hashtbl.t) (key : 'k) (v : 'v)
+    : unit =
+  let existing = Option.value (Base.Hashtbl.find table key) ~default:[] in
+  Base.Hashtbl.set table ~key ~data:(v :: existing)
 
 let create_index (classified : (strategy * bool * Glob.Match.loc) list) : tables
     =
-  let basename_table = Hashtbl.create 16 in
-  let literal_table = Hashtbl.create 4 in
-  let extension_table = Hashtbl.create 4 in
-  let required_extension_table = Hashtbl.create 4 in
+  let basename_table = Base.Hashtbl.Poly.create ~size:16 () in
+  let literal_table = Base.Hashtbl.Poly.create ~size:4 () in
+  let extension_table = Base.Hashtbl.Poly.create ~size:4 () in
+  let required_extension_table = Base.Hashtbl.Poly.create ~size:4 () in
   let regex_indices = ref [] in
   List.iteri
     (fun pattern_idx (strategy, is_negated, loc) ->
@@ -309,7 +309,7 @@ let select_level (il : t) (path : Ppath.t) : Gitignore.selection_event list =
     (e.pattern_idx, ev)
   in
   let lookup table key ~filter_dir_only =
-    Option.value (Hashtbl.find_opt table key) ~default:[]
+    Option.value (Base.Hashtbl.find table key) ~default:[]
     |> List.filter_map (fun (e : index_entry) ->
         if filter_dir_only && e.dir_only then None else Some (hit_of_entry e))
   in
@@ -339,7 +339,7 @@ let select_level (il : t) (path : Ppath.t) : Gitignore.selection_event list =
         (* Required extension: extension check gates regex *)
         (if ext <> "" then
            Option.value
-             (Hashtbl.find_opt index.required_extension_table ext)
+             (Base.Hashtbl.find index.required_extension_table ext)
              ~default:[]
            |> List.filter_map try_match
          else []);

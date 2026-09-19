@@ -23,8 +23,7 @@ type ('k, 'v) t
     pass it to [make_with_state]. *)
 
 val create : ?initial_size:int -> unit -> ('k, 'v) t
-(** Create an empty cache.  [initial_size] defaults to 101.  The underlying
-    hashtable uses randomized hashing. *)
+(** Create an empty cache.  [initial_size] defaults to 101. *)
 
 val remove : ('k, 'v) t -> 'k -> unit
 (** Remove the binding for the given key, if present. *)
@@ -80,10 +79,3 @@ val make_with_key_fn :
    types you could make the hashtable key type dependent on whether or not
    key_fn was provided, but sadly we don't have that.)
  *)
-
-val make_with_state_legacy :
-  Mutex.t -> ('a, 'b) Hashtbl.t -> ('a -> 'b) -> 'a -> 'b
-(** Deprecated migration shim preserving the pre-[t] API that exposed the
-    raw [Mutex.t] / [Hashtbl.t].  New code should use [make_with_state]
-    with a cache from [create].  This shim will be removed once all
-    in-tree callers have migrated. *)

@@ -4,6 +4,8 @@
  (public_name profiling)
  (wrapped false)
  (libraries
+   base
+   collections
    unix
    commons
    process_limits ; for Time_limit.Timeout special handling
