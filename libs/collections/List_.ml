@@ -206,16 +206,16 @@ let uniq_by eq xs =
   uniq_by [] xs |> List.rev
 
 let deduplicate_gen ~get_key xs =
-  let tbl = Hashtbl.create (List.length xs) in
+  let tbl = Base.Hashtbl.Poly.create ~size:(List.length xs) () in
   (* We could use List.filter but it's not guaranteed to proceed from
      left to right which would result in not necessarily selecting the first
      occurrence of each element *)
   List.fold_left
     (fun acc x ->
       let key = get_key x in
-      if Hashtbl.mem tbl key then acc
+      if Base.Hashtbl.mem tbl key then acc
       else (
-        Hashtbl.replace tbl key ();
+        Base.Hashtbl.set tbl ~key ~data:();
         x :: acc))
     [] xs
   |> List.rev

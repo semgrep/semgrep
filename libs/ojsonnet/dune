@@ -3,6 +3,7 @@
  (public_name ojsonnet)
  (wrapped false)
  (libraries
+   base
    logs
    unix
    commons

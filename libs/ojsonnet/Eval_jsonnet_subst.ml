@@ -484,7 +484,7 @@ and eval_std_filter_element env (tk : tok) (f : function_definition)
 and eval_obj_inside env (l, x, r) : V.t =
   match x with
   | Object (assertsTODO, fields) ->
-      let hdupes = Hashtbl.create 16 in
+      let hdupes = Base.Hashtbl.Poly.create ~size:16 () in
       let fields =
         fields
         |> List.filter_map
@@ -492,9 +492,9 @@ and eval_obj_inside env (l, x, r) : V.t =
                match eval_expr env ei with
                | Primitive (Null _) -> None
                | Primitive (Str ((str, _) as fld_name)) ->
-                   if Hashtbl.mem hdupes str then
+                   if Base.Hashtbl.mem hdupes str then
                      error tk (spf "duplicate field name: \"%s\"" str)
-                   else Hashtbl.add hdupes str true;
+                   else Base.Hashtbl.set hdupes ~key:str ~data:true;
                    Some
                      {
                        V.fld_name;
@@ -521,19 +521,19 @@ and eval_plus_object env _tk objl objr =
   let hash_of_right_field_names =
     rflds
     |> List.map (fun { V.fld_name = s, _; _ } -> s)
-    |> Hashtbl_.hashset_of_list
+    |> Hashtbl_.Base.hashset_of_list
   in
 
   let lflds_no_overlap =
     lflds
     |> List.filter (fun { V.fld_name = s, _; _ } ->
-        not (Hashtbl.mem hash_of_right_field_names s))
+        not (Base.Hashtbl.mem hash_of_right_field_names s))
   in
 
   let lflds_overlap_hidden =
     lflds
     |> List.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
-    |> List.to_seq |> Hashtbl.of_seq
+    |> Hashtbl_.Base.hash_of_list
   in
 
   let super = freshvar () in
@@ -598,9 +598,9 @@ and eval_plus_object env _tk objl objr =
             (* implements hidden inheritance as defined in spec *)
             let hidden, _ = fld_hidden in
             let new_hidden =
-              if Hashtbl.mem lflds_overlap_hidden name then
+              if Base.Hashtbl.mem lflds_overlap_hidden name then
                 match hidden with
-                | Visible -> Hashtbl.find lflds_overlap_hidden name
+                | Visible -> Hashtbl_.Base.find lflds_overlap_hidden name
                 | _ -> fld_hidden
               else fld_hidden
             in
