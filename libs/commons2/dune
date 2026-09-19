@@ -2,6 +2,8 @@
  (public_name commons2)
  (wrapped false)
  (libraries
+    base
+    collections
     commons
  )
  (preprocess

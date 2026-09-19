@@ -196,12 +196,13 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
   let hobjr =
     rflds
     |> List.map (fun { V.fld_name = s, _; _ } -> s)
-    |> Hashtbl_.hashset_of_list
+    |> Hashtbl_.Base.hashset_of_list
   in
   let asserts = lassert @ rassert in
   let lflds' =
     lflds
-    |> List.filter (fun { V.fld_name = s, _; _ } -> not (Hashtbl.mem hobjr s))
+    |> List.filter (fun { V.fld_name = s, _; _ } ->
+        not (Base.Hashtbl.mem hobjr s))
   in
   (* Add Super to the environment of the right fields *)
   let rflds' =
@@ -235,7 +236,7 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
 and eval_obj_inside env (l, x, r) : V.t =
   match x with
   | Object (assertsTODO, fields) ->
-      let hdupes = Hashtbl.create 16 in
+      let hdupes = Base.Hashtbl.Poly.create ~size:16 () in
       let fields =
         fields
         |> List.filter_map
@@ -243,9 +244,9 @@ and eval_obj_inside env (l, x, r) : V.t =
                match eval_expr env ei with
                | Primitive (Null _) -> None
                | Primitive (Str ((str, _) as fld_name)) ->
-                   if Hashtbl.mem hdupes str then
+                   if Base.Hashtbl.mem hdupes str then
                      error tk (spf "duplicate field name: \"%s\"" str)
-                   else Hashtbl.add hdupes str true;
+                   else Base.Hashtbl.set hdupes ~key:str ~data:true;
                    Some
                      {
                        V.fld_name;
