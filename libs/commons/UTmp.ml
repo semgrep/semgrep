@@ -31,7 +31,9 @@ module TempId = Gensym.MkId ()
 (* TODO: eliminate these globals and enforce the use of 'with_temp_file' *)
 (* SAFETY: All accesses to [temp_files_created] must occur while holding
  * [created_lock]. *)
-let temp_files_created : (Fpath.t, unit) Hashtbl.t = Hashtbl.create 101
+let temp_files_created : (Fpath.t, unit) Base.Hashtbl.t =
+  Base.Hashtbl.Poly.create ~size:101 ()
+
 let created_lock = Mutex.create ()
 
 (* old: was in Common2.cmdline_flags_devel()
@@ -46,11 +48,10 @@ let save_temp_files = ref false
 let erase_temp_files () =
   if not !save_temp_files then
     Mutex.protect created_lock (fun () ->
-        temp_files_created
-        |> Hashtbl.iter (fun path () ->
+        Base.Hashtbl.iteri temp_files_created ~f:(fun ~key:path ~data:() ->
             Log.info (fun m -> m "deleting: %s" !!path);
             Sys.remove !!path);
-        Hashtbl.clear temp_files_created)
+        Base.Hashtbl.clear temp_files_created)
 
 (* hooks for with_temp_file() *)
 (* nosemgrep: no-ref-declarations-at-top-scope *)
@@ -59,12 +60,12 @@ let temp_file_cleanup_hooks = ref []
 (* See the .mli for a long explanation.
  *
  * alt: define your own with_temp_file wrapper, for example:
- * let hmemo = Hashtbl.create 101
+ * let hmemo = Base.Hashtbl.Poly.create ~size:101 ()
  * ...
  * let with_temp_file ~str ~ext f =
  *  Tmp.with_temp_file ~str ~ext (fun file ->
  *     Common.protect
- *       ~finally:(fun () -> Hashtbl.remove hmemo file)
+ *       ~finally:(fun () -> Base.Hashtbl.remove hmemo file)
  *       (fun () -> f file))
  *)
 let register_temp_file_cleanup_hook f = Stack_.push f temp_file_cleanup_hooks
@@ -83,13 +84,14 @@ let new_temp_file ?(prefix = default_temp_file_prefix) ?(suffix = "") ?temp_dir
       (spf "%s%d-" prefix pid) suffix
     |> Fpath.v
   in
-  Mutex.protect created_lock (Hashtbl.replace temp_files_created temp_file);
+  Mutex.protect created_lock (fun () ->
+      Base.Hashtbl.set temp_files_created ~key:temp_file ~data:());
   temp_file
 
 let erase_this_temp_file f =
   if not !save_temp_files then
     Mutex.protect created_lock (fun () ->
-        Hashtbl.remove temp_files_created f;
+        Base.Hashtbl.remove temp_files_created f;
         Log.info (fun m -> m "deleting: %s" !!f);
         Sys.remove !!f)
 

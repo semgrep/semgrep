@@ -23,16 +23,16 @@ open Printf
 module Log = Log_commons.Log
 
 let check_prerequisites prerequisites : string -> bool =
-  let tbl = Hashtbl.create 100 in
+  let tbl = Base.Hashtbl.Poly.create ~size:100 () in
   List.iter
     (fun (name, check) ->
-      if Hashtbl.mem tbl name then
+      if Base.Hashtbl.mem tbl name then
         invalid_arg
           (sprintf "check_prerequisites: prerequisite '%s' is duplicated" name)
-      else Hashtbl.add tbl name (check ()))
+      else Base.Hashtbl.set tbl ~key:name ~data:(check ()))
     prerequisites;
   let is_available name =
-    match Hashtbl.find_opt tbl name with
+    match Base.Hashtbl.find tbl name with
     | Some res -> res
     | None ->
         failwith

@@ -157,13 +157,7 @@ let save_excursion_atomic atom newv f =
 
 let memoized ?(use_cache = true) h k f =
   (* TODO(SAF-1940): experiment with weak refs *)
-  if not use_cache then f ()
-  else
-    try Hashtbl.find h k with
-    | Not_found ->
-        let v = f () in
-        Hashtbl.replace h k v;
-        v
+  if not use_cache then f () else Base.Hashtbl.find_or_add h k ~default:f
 
 exception Todo
 exception Impossible
@@ -307,12 +301,13 @@ let matched7 s =
     matched 6 s,
     matched 7 s )
 
-let _memo_compiled_regexp = Hashtbl.create 101
+let _memo_compiled_regexp = Base.Hashtbl.Poly.create ~size:101 ()
 
 (* Ideally this would be a use of a [SharedMemo].  However, TSAN reports possibly-
  * spurious data races within `strstubs.c` when regexps are shared between threads.
  * Therefore, we are conservative here and make our backing hashtable per-domain. *)
-let _memo_compiled_regexp = Domain.DLS.new_key (fun () -> Hashtbl.create 101)
+let _memo_compiled_regexp =
+  Domain.DLS.new_key (fun () -> Base.Hashtbl.Poly.create ~size:101 ())
 
 let match_func s re =
   let compile_re =
