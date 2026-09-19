@@ -54,16 +54,16 @@ let check_profile category =
   | ProfSome l -> List.mem category l
 
 let table_lock = Mutex.create ()
-let profile_table = Hashtbl.create 100
+let profile_table = Base.Hashtbl.Poly.create ~size:100 ()
 
 let adjust_profile_entry category difftime =
   Mutex.protect table_lock @@ fun () ->
   let xtime, xcount =
-    try Hashtbl.find profile_table category with
+    try Hashtbl_.Base.find profile_table category with
     | Not_found ->
         let xtime = ref 0.0 in
         let xcount = ref 0 in
-        Hashtbl.add profile_table category (xtime, xcount);
+        Base.Hashtbl.set profile_table ~key:category ~data:(xtime, xcount);
         (xtime, xcount)
   in
   xtime := !xtime +. difftime;
@@ -111,10 +111,9 @@ type entry = { name : string; total_time : float; count : int }
 
 let export () : entry list =
   Mutex.protect table_lock @@ fun () ->
-  Hashtbl.fold
-    (fun name (total_time, count) acc ->
+  Base.Hashtbl.fold profile_table ~init:[]
+    ~f:(fun ~key:name ~data:(total_time, count) acc ->
       { name; total_time = !total_time; count = !count } :: acc)
-    profile_table []
   |> List.sort (fun a b -> Float.compare b.total_time a.total_time)
 
 (* todo: also put  % ? also add % to see if coherent numbers *)

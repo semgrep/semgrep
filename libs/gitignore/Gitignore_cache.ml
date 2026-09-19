@@ -16,9 +16,9 @@
    Design: the cache is built eagerly during [create] by walking every
    directory under the project root (skipping [.git/]) and parsing any
    gitignore-like files we find. After [create] returns, the underlying
-   [Hashtbl] is sealed as a [ROHashtbl] so that subsequent [find] calls
-   are read-only. This lets us share the cache safely across domains in
-   parallel target-filtering code.
+   [Base.Hashtbl] is sealed as a [ROHashtbl.Base] so that subsequent [find]
+   calls are read-only. This lets us share the cache safely across domains
+   in parallel target-filtering code.
 *)
 open Gitignore
 
@@ -28,7 +28,7 @@ type t = {
      source folders. *)
   gitignore_filenames : gitignore_filename list;
   (* Sealed cache; built in [create]. *)
-  cache : (string, Gitignore_level_index.t option) ROHashtbl.t;
+  cache : (string, Gitignore_level_index.t option) ROHashtbl.Base.t;
 }
 
 let anchor_of_git_path git_path =
@@ -60,7 +60,7 @@ let load_level_for_dir ~project_root ~gitignore_filenames dir_path =
 
 let create ?(gitignore_filenames = [ Gitignore.default_gitignore_filename ])
     ~project_root () =
-  let mut = Hashtbl.create 256 in
+  let mut = Base.Hashtbl.Poly.create ~size:256 () in
   let root : Fppath.t = { fpath = project_root; ppath = Ppath.root } in
   Fppath.walk_dirs
     ~should_recurse:(fun ppath -> Ppath.last_segment ppath <> ".git")
@@ -83,11 +83,11 @@ let create ?(gitignore_filenames = [ Gitignore.default_gitignore_filename ])
                   (Printexc.to_string e));
             None
       in
-      Hashtbl.add mut key level);
-  { project_root; gitignore_filenames; cache = ROHashtbl.of_hashtbl mut }
+      Base.Hashtbl.set mut ~key ~data:level);
+  { project_root; gitignore_filenames; cache = ROHashtbl.Base.of_hashtbl mut }
 
 let find t dir_path =
   let key = Ppath.to_string_fast dir_path in
-  match ROHashtbl.find_opt t.cache key with
+  match ROHashtbl.Base.find_opt t.cache key with
   | Some inner -> inner
   | None -> None
