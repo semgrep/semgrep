@@ -240,7 +240,7 @@ let lines_around_error_line ~context (file, line) =
 let recurring_problematic_tokens (xs : t list) : string =
   Buffer_.with_buffer_to_string (fun buf ->
       let prf fmt = Printf.bprintf buf fmt in
-      let h = Hashtbl.create 101 in
+      let h = Base.Hashtbl.Poly.create ~size:101 () in
       xs
       |> List.iter (fun x ->
           let file = x.filename in
@@ -248,14 +248,14 @@ let recurring_problematic_tokens (xs : t list) : string =
           |> List.iter (fun (xs, line_error) ->
               xs
               |> List.iter (fun s ->
-                  Hashtbl_.update_default s
+                  Hashtbl_.Base.update_default s
                     (fun (old, example) -> (old + 1, example))
                     (fun () -> (0, (file, line_error)))
                     h)));
       prf "-------------------------------";
       prf "maybe 10 most problematic tokens";
       prf "-------------------------------";
-      Hashtbl_.hash_to_list h
+      Hashtbl_.Base.hash_to_list h
       |> List.sort (fun (_k1, (v1, _)) (_k2, (v2, _)) -> compare v2 v1)
       |> List_.take_safe 10
       |> List.iter (fun (k, (i, (file_ex, line_ex))) ->

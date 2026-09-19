@@ -3,6 +3,8 @@
  (name lib_parsing)
  (wrapped false)
  (libraries
+   base
+   collections
    fpath
    sexplib
    paths
