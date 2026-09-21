@@ -213,6 +213,8 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file [ TreeSitter Parse_solidity_tree_sitter.parse ] (fun x -> x)
   | Lang.Swift ->
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
+  | Lang.Objc ->
+      run file [ TreeSitter Parse_objc_tree_sitter.parse ] (fun x -> x)
   | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
   | Lang.Move_on_sui ->
       run file [ TreeSitter Parse_move_on_sui_tree_sitter.parse ] (fun x -> x)

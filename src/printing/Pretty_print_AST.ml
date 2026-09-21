@@ -95,6 +95,7 @@ type lang_kind = CLikeSemiColon | Other
 let _lang_kind = function
   | Lang.C
   | Lang.Cpp
+  | Lang.Objc
   | Lang.Java
   | Lang.Apex
   | Lang.Csharp
@@ -250,6 +251,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Go
     | Lang.C
     | Lang.Cpp
+    | Lang.Objc
     | Lang.Csharp
     | Lang.Json
     | Lang.Jsonnet
@@ -332,6 +334,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Java
     | Lang.C
     | Lang.Cpp
+    | Lang.Objc
     | Lang.Csharp
     | Lang.Kotlin
     | Lang.Json
@@ -385,6 +388,7 @@ and do_while stmt env (s, e) =
     | Lang.Java
     | Lang.C
     | Lang.Cpp
+    | Lang.Objc
     | Lang.Csharp
     | Lang.Kotlin
     | Lang.Js
@@ -440,6 +444,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Java
     | Lang.C
     | Lang.Cpp
+    | Lang.Objc
     | Lang.Csharp
     | Lang.Kotlin
     | Lang.Js
@@ -665,6 +670,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Java
       | Lang.C
       | Lang.Cpp
+      | Lang.Objc
       | Lang.Csharp
       | Lang.Kotlin ->
           ( (fun typ id _e -> F.sprintf "%s %s;" typ id),

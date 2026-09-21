@@ -242,6 +242,9 @@ let parse_pattern_by_lang options lang str =
   | Lang.Swift ->
       let res = Parse_swift_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res
+  | Lang.Objc ->
+      let res = Parse_objc_tree_sitter.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res
   (* external plugins *)
   | Lang.Apex ->
       let res = Parsing_plugin.Apex.parse_pattern str in

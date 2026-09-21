@@ -67,6 +67,7 @@ type t = Language.t =
   | Lua
   | Move_on_sui
   | Move_on_aptos
+  | Objc
   | Ocaml
   | Php
   | Powershell
@@ -159,6 +160,7 @@ let langs_of_filename filename =
   | FT.PL FT.R -> [ R ]
   | FT.PL FT.Scala -> [ Scala ]
   | FT.PL FT.Swift -> [ Swift ]
+  | FT.PL (FT.ObjectiveC "m") -> [ Objc ]
   | FT.PL (FT.Web FT.Html) -> [ Html ]
   | FT.PL FT.Elixir -> [ Elixir ]
   | _ -> []
