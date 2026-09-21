@@ -1,0 +1,11 @@
+#! /usr/bin/env bash
+#
+# tree-sitter-objc requires tree-sitter-c >= 0.23 (`extension_expression`),
+# while the shared `c` registry entry stays pinned older for the C and C++
+# grammars. Expose the newer copy (registry entry `c-0.23`) to
+# tree-sitter-objc's require() chain only, without shadowing resolution for
+# any other grammar.
+set -eu
+mkdir -p ../tree-sitter-objc/node_modules
+ln -sfn ../../tree-sitter-c-0.23 ../tree-sitter-objc/node_modules/tree-sitter-c
+exec ../prep.common

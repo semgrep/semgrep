@@ -13,6 +13,12 @@
     "tree_sitter": "0.22.6",
     "url": "https://github.com/tree-sitter/tree-sitter-c.git"
   },
+  "c-0.23": {
+    "commit": "3efee11f784605d44623d7dadd6cd12a0f73ea92",
+    "regen": [],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tree-sitter/tree-sitter-c.git"
+  },
   "c-sharp": {
     "commit": "e1384e2f132936019b43aaaae154cd780fb497ce",
     "regen": [
@@ -224,6 +230,17 @@
     ],
     "tree_sitter": "0.22.6",
     "url": "https://github.com/maxmysten/tree-sitter-move.git"
+  },
+  "objc": {
+    "commit": "18802acf31d0b5c1c1d50bdbc9eb0e1636cab9ed",
+    "depends_on": [
+      "c-0.23"
+    ],
+    "regen": [
+      "objc"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tree-sitter-grammars/tree-sitter-objc.git"
   },
   "ocaml": {
     "commit": "4a885a615634dd447ae6b9d8f2cee4a3ea495087",
