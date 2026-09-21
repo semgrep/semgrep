@@ -225,6 +225,17 @@
     "tree_sitter": "0.22.6",
     "url": "https://github.com/maxmysten/tree-sitter-move.git"
   },
+  "objc": {
+    "commit": "18802acf31d0b5c1c1d50bdbc9eb0e1636cab9ed",
+    "depends_on": [
+      "c"
+    ],
+    "regen": [
+      "objc"
+    ],
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tree-sitter-grammars/tree-sitter-objc.git"
+  },
   "ocaml": {
     "commit": "4a885a615634dd447ae6b9d8f2cee4a3ea495087",
     "regen": [
