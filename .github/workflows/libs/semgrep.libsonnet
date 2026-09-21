@@ -142,7 +142,7 @@ local slack = {
 //
 // coupling: if you modify the compiler pin sha you will need to bump this
 // prefix (or similar) to invalidate the cache
-local opam_cache_version = 'v6';
+local opam_cache_version = 'v7';
 
 // We pin the upstream opam-repository to a commit rather than
 // tracking its HEAD.
@@ -161,7 +161,11 @@ local opam_repository_pin = '78d29aba187e8362b8ab86c189790c0af9153d4b';
 // step, otherwise the lockfile globs below won't match and the cache prefix
 // silently collapses to a static value (poisoning the cache across switches).
 // Defaults to '' for the common case of checking out at the workspace root.
-local opam_setup = function(opam_switch=opam_switch_default, checkout_path='') {
+//
+// 'cache_profile' names the installed dependency set (format, grammar,
+// semgrep, interfaces, lockfiles). It is part of the opam cache key so
+// those sets never share one switch.
+local opam_setup = function(opam_switch=opam_switch_default, checkout_path='', cache_profile='semgrep') {
   // normalize to a glob prefix: '' -> '', 'foo' -> 'foo/'
   local p = if checkout_path == '' then '' else checkout_path + '/',
   uses: uses.semgrep.setup_ocaml,
@@ -185,10 +189,18 @@ local opam_setup = function(opam_switch=opam_switch_default, checkout_path='') {
     ||| % opam_repository_pin,
     // Save the cache post run instead of after installing the compiler
     'save-opam-post-run': true,
-    // cache by lockfiles instead of `.opam` files; this is useful since we might
-    // not update a `.opam` file; if we don't update a `a.opam` file but update
-    // `a.opam.locked`, we'd have a poisoned cache.
-    'cache-prefix': "%s-${{ hashFiles('%sopam-lockfiles/*.locked', '%sOSS/opam-lockfiles/*.locked') }}" % [opam_cache_version, p, p],
+    // Different installed dependency sets must never share an immutable cache.
+    'cache-prefix': '%s-%s-${{ hashFiles(%s) }}' % [
+      opam_cache_version,
+      cache_profile,
+      std.join(', ', ["'" + p + tree + file + "'" for tree in ['', 'OSS/'] for file in [
+        'opam-lockfiles/*.locked',
+        '*.opam',
+        'dev/required.opam',
+        'libs/ocaml-tree-sitter-semgrep/core/tree-sitter.opam',
+        'cli/src/semgrep/semgrep_interfaces/semgrep-interfaces.opam',
+      ]]),
+    ],
   },
 };
 

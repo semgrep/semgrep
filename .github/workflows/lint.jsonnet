@@ -22,7 +22,7 @@ local uses = import 'libs/uses.libsonnet';
 // pre-commit config. You have been warned!!
 local pre_commit_steps() = [
   actions.setup_python_step(cache=true),
-  semgrep.opam_setup(),
+  semgrep.opam_setup(cache_profile='format'),
   { run: 'opam install -y ocamlformat.0.29.0' },
   {
     name: 'Cache pre-commit hook envs',
