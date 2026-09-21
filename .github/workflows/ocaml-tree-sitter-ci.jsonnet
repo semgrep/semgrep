@@ -38,8 +38,8 @@ local build_job(ots_dir) =
   {
     'runs-on': 'ubuntu-latest',
     steps: actions.checkout() + [
-             // Same compiler / lockfile cache / pinned opam-repository as main CI.
-             semgrep.opam_setup(),
+             // Same compiler and pinned opam repository; separate grammar cache.
+             ots.setup_ocaml_step,
              // Same uv + Python helper as main Semgrep CI (python_version 3.12).
              actions.setup_python_step(semgrep.python_version),
              // tree-sitter's CLI is built from source with cargo.
@@ -54,11 +54,7 @@ local build_job(ots_dir) =
              },
              ots.cache_id_step,
              ots.restore_core_cache('-tests'),
-             {
-               name: 'Install repository dependencies',
-               'working-directory': ots_dir + '/../..',
-               run: 'opam exec -- make install-deps',
-             },
+             ots.install_deps_step,
              {
                name: 'Build grammar tools',
                'working-directory': ots_dir + '/../..',

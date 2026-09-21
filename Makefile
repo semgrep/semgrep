@@ -288,6 +288,11 @@ install-deps-for-semgrep-core:
 # (see TREESITTER_INCDIR/TREESITTER_LIBDIR and tree-sitter-runtime above).
 	opam exec -- dune build $(_TS_DUNE)
 
+# Standalone grammar jobs only; full setup solves all dependencies together.
+.PHONY: install-grammar-deps
+install-grammar-deps:
+	opam install --yes --deps-only ./libs/ocaml-tree-sitter-semgrep/core/tree-sitter.opam
+
 .PHONY: grammar-tools
 grammar-tools: tree-sitter-runtime
 	dune build libs/ocaml-tree-sitter-semgrep/core/bin/ocaml-tree-sitter libs/ocaml-tree-sitter-semgrep/core/tree-sitter.install

@@ -71,8 +71,9 @@ local for_tree(ots_dir) =
     },
   ];
 
+  // Reuse compiled workspace artifacts across grammar jobs; opam caches installed dependencies.
   local core_cache_paths = std.join('\n', ['_build', core_dir + '/bin']);
-  local core_cache_key = 'grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles(' + std.join(', ', ["'" + p + "'" for p in integration_paths]) + ') }}';
+  local core_cache_key = 'grammar-core-v3-tools-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles(' + std.join(', ', ["'" + p + "'" for p in integration_paths]) + ') }}';
 
   local save_core_cache(suffix='') = {
     'if': "steps.core-cache.outputs.cache-hit != 'true'",
@@ -94,14 +95,15 @@ local for_tree(ots_dir) =
     },
   };
 
-  // Dependencies come from the repository lockfiles.
+  local install_deps_step = {
+    name: 'Install grammar dependencies',
+    'working-directory': if root == '' then '.' else std.rstripChars(root, '/'),
+    run: 'opam exec -- make install-grammar-deps',
+  };
+
   local build_install_core_steps = [
     restore_core_cache(),
-    {
-      name: 'Install repository dependencies',
-      'working-directory': ots_dir + '/../..',
-      run: 'opam exec -- make install-deps',
-    },
+    install_deps_step,
     {
       name: 'Build grammar tools',
       'working-directory': ots_dir + '/../..',
@@ -127,8 +129,8 @@ local for_tree(ots_dir) =
     // registry / version / ABI tooling those builds invoke.
     grammar_paths: [lang_dir + '/**', ots_dir + '/scripts/**'],
 
-    // Same OCaml switch config as main Semgrep CI (lockfiles + pinned opam-repo).
-    setup_ocaml_step: semgrep.opam_setup(),
+    // Grammar jobs install only the generator dependencies.
+    setup_ocaml_step: semgrep.opam_setup(cache_profile='grammar'),
 
     // lfs=true: every caller builds the tree, and lib/parser.c is
     // LFS-tracked, so plain `git diff`/`git status` need real content.
@@ -136,6 +138,7 @@ local for_tree(ots_dir) =
 
     cache_id_step: cache_id_step,
     provision_tree_sitter_steps: provision_tree_sitter_steps,
+    install_deps_step: install_deps_step,
     build_core_steps: build_core_steps,
   };
 

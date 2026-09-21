@@ -10,7 +10,7 @@ jobs:
           GIT_CONFIG_VALUE_0: "false"
         uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
         with:
-          cache-prefix: v6-${{ hashFiles('opam-lockfiles/*.locked', 'OSS/opam-lockfiles/*.locked') }}
+          cache-prefix: v7-grammar-${{ hashFiles('opam-lockfiles/*.locked', '*.opam', 'dev/required.opam', 'libs/ocaml-tree-sitter-semgrep/core/tree-sitter.opam', 'cli/src/semgrep/semgrep_interfaces/semgrep-interfaces.opam', 'OSS/opam-lockfiles/*.locked', 'OSS/*.opam', 'OSS/dev/required.opam', 'OSS/libs/ocaml-tree-sitter-semgrep/core/tree-sitter.opam', 'OSS/cli/src/semgrep/semgrep_interfaces/semgrep-interfaces.opam') }}
           ocaml-compiler: ocaml-variants.5.4.0+options,ocaml-option-flambda
           opam-pin: false
           opam-repositories: |
@@ -32,13 +32,13 @@ jobs:
       - id: core-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
-          key: grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}-tests
+          key: grammar-core-v3-tools-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}-tests
           path: |-
             _build
             libs/ocaml-tree-sitter-semgrep/core/bin
-      - name: Install repository dependencies
-        run: opam exec -- make install-deps
-        working-directory: libs/ocaml-tree-sitter-semgrep/../..
+      - name: Install grammar dependencies
+        run: opam exec -- make install-grammar-deps
+        working-directory: .
       - name: Build grammar tools
         run: opam exec -- make grammar-tools
         working-directory: libs/ocaml-tree-sitter-semgrep/../..
@@ -48,7 +48,7 @@ jobs:
       - if: steps.core-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
-          key: grammar-core-v2-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}-tests
+          key: grammar-core-v3-tools-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}-tests
           path: |-
             _build
             libs/ocaml-tree-sitter-semgrep/core/bin
