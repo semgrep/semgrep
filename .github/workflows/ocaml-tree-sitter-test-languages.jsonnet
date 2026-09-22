@@ -85,7 +85,7 @@ local selection_script(paths) = |||
   # Caller responsible to ensure the registry exists.
   select_languages_changed_since() {
     local comparison_base="$1"
-    local all_language_changes base_registry
+    local all_language_changes
     all_language_changes=$(
       git diff --no-renames --name-only "$comparison_base" HEAD -- %(all_language_pathspecs)s
     )
@@ -94,8 +94,8 @@ local selection_script(paths) = |||
       write_all_languages_and_exit 'Testing every grammar'
     fi
 
+    # The runner's filesystem is ephemeral; an EXIT trap would outlive this function.
     base_registry=$(mktemp)
-    trap 'rm -f "$base_registry"' EXIT
     git show "$comparison_base:$OTS_DIR/lang/upstream-grammars.json" \
       > "$base_registry"
     git diff --no-renames --name-only "$comparison_base" HEAD -- %(grammar_pathspecs)s \
