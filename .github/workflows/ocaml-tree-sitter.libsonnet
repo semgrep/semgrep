@@ -23,6 +23,8 @@ local for_tree(ots_dir) =
   ]]);
   local core_dir = ots_dir + '/core';
   local lang_dir = ots_dir + '/lang';
+  local language_paths = [lang_dir + '/**'];
+  local grammar_tool_paths = [ots_dir + '/scripts/**'];
 
   local ts_cache_path = core_dir + '/tree-sitter-*.*.*';
   // Include the tree SHA so provisioning changes invalidate the CLI cache.
@@ -127,7 +129,9 @@ local for_tree(ots_dir) =
 
     // lang/ is the grammar sources + test-lang harness; scripts/ holds the
     // registry / version / ABI tooling those builds invoke.
-    grammar_paths: [lang_dir + '/**', ots_dir + '/scripts/**'],
+    language_paths: language_paths,
+    grammar_tool_paths: grammar_tool_paths,
+    grammar_paths: language_paths + grammar_tool_paths,
 
     // Grammar jobs install only the generator dependencies.
     setup_ocaml_step: semgrep.opam_setup(cache_profile='grammar'),

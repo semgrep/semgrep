@@ -6,25 +6,32 @@
 # grammar dir (sfapex's soql/sosl, cfml's cfquery/cfscript) aren't
 # standalone targets, so they're not listed.
 #
-# Usage: list-languages
+# Usage: list-languages [--json]
 #
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
+import json
+
+from grammar_registry import grammar_test_targets
+from grammar_registry import RegistryError
 
 
 def main() -> int:
-    """Print each standalone language on its own line."""
-    argparse.ArgumentParser(
-        description="Print each standalone language on its own line."
-    ).parse_args()
-    sg_src = (
-        Path(__file__).resolve().parent.parent / "lang" / "semgrep-grammars" / "src"
-    )
-    for path in sorted(sg_src.glob("semgrep-*")):
-        if path.is_dir():
-            print(path.name.removeprefix("semgrep-"))
+    """Print valid test-lang targets."""
+    parser = argparse.ArgumentParser(description="Print valid test-lang targets.")
+    parser.add_argument("--json", action="store_true", help="print a JSON array")
+    args = parser.parse_args()
+    try:
+        targets = grammar_test_targets()
+    except RegistryError as exc:
+        parser.error(str(exc))
+    if not targets:
+        parser.error("no grammar test targets found")
+    if args.json:
+        print(json.dumps(targets, separators=(",", ":")))
+    else:
+        print(*targets, sep="\n")
     return 0
 
 

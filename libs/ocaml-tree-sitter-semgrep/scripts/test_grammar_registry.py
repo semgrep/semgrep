@@ -22,6 +22,7 @@ import pytest
 from grammar_registry import clone_for_wrapper_name
 from grammar_registry import clone_name
 from grammar_registry import dests
+from grammar_registry import grammar_test_targets
 from grammar_registry import load
 from grammar_registry import RegistryError
 from grammar_registry import resolve
@@ -48,6 +49,32 @@ def test_clone_name_gomod():
 
 def test_wrapper_dir():
     assert wrapper_dir("sfapex", LANG_DIR) == "semgrep-sfapex"
+
+
+def test_grammar_test_targets():
+    """List registry keys accepted by test-lang."""
+    assert {"python", "typescript"} <= set(grammar_test_targets(LANG_DIR))
+
+
+def test_grammar_test_targets_rejects_orphaned_wrapper(tmp_path):
+    """Reject a wrapper directory with no matching registry key."""
+    (tmp_path / "upstream-grammars.json").write_text(
+        json.dumps(
+            {
+                "python": {
+                    "url": "https://example.com/grammar.git",
+                    "commit": "a" * 40,
+                    "tree_sitter": "0.22.6",
+                    "regen": ["python"],
+                }
+            }
+        )
+    )
+    src = tmp_path / "semgrep-grammars" / "src"
+    (src / "semgrep-python").mkdir(parents=True)
+    (src / "semgrep-orphan").mkdir(parents=True)
+    with pytest.raises(RegistryError, match="orphan"):
+        grammar_test_targets(tmp_path)
 
 
 def test_clone_for_wrapper():

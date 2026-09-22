@@ -6,108 +6,152 @@ jobs:
   detect-changes:
     name: Detect grammar or core changes
     outputs:
-      should_test: ${{ steps.filter.outputs.should_test }}
+      languages: ${{ steps.push_or_pull_request.outputs.languages || steps.workflow_dispatch.outputs.languages }}
     permissions:
       contents: read
-      id-token: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - if: ${{ github.event_name != 'workflow_dispatch' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
-          fetch-depth: 2
+          fetch-depth: "2"
       - env:
+          BEFORE_SHA: ${{ github.event.before }}
           EVENT_NAME: ${{ github.event_name }}
-        id: filter
-        name: Filter changed paths
+          OTS_DIR: libs/ocaml-tree-sitter-semgrep
+        id: push_or_pull_request
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        name: Select languages for push or pull request
         run: |
           set -euo pipefail
-          # Push / workflow_dispatch: this workflow's on.push.paths already
-          # narrowed the run; always test.
-          if [ "$EVENT_NAME" != "pull_request" ]; then
-            echo "should_test=true" >> "$GITHUB_OUTPUT"
+
+          write_all_languages_and_exit() {
+            echo "$1"
+            {
+              printf "languages="
+              "$OTS_DIR/scripts/list-languages" --json
+            } >> "$GITHUB_OUTPUT"
             exit 0
-          fi
-          # --quiet exits 1 when any of these paths changed; 0 when none did.
-          if git diff --quiet --name-only HEAD^ HEAD -- '*.opam' '.github/workflows/libs/actions.libsonnet' '.github/workflows/libs/semgrep.libsonnet' '.github/workflows/libs/uses.libsonnet' '.github/workflows/ocaml-tree-sitter-test-languages.jsonnet' '.github/workflows/ocaml-tree-sitter-test-languages.yml' '.github/workflows/ocaml-tree-sitter.libsonnet' 'Makefile' 'cli/pyproject.toml' 'cli/uv.lock' 'dune-project' 'dune-workspace' 'libs/ocaml-tree-sitter-semgrep/Makefile' 'libs/ocaml-tree-sitter-semgrep/core' 'libs/ocaml-tree-sitter-semgrep/dune' 'libs/ocaml-tree-sitter-semgrep/lang' 'libs/ocaml-tree-sitter-semgrep/scripts' 'opam-lockfiles/*.locked' 'tree-sitter-config.mk' 'tree-sitter-config.sh'; then
-            echo "should_test=false" >> "$GITHUB_OUTPUT"
+          }
+
+          # Caller responsible to ensure the registry exists.
+          select_languages_changed_since() {
+            local comparison_base="$1"
+            local all_language_changes base_registry
+            all_language_changes=$(
+              git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)*.opam' ':(top,glob).github/workflows/libs/actions.libsonnet' ':(top,glob).github/workflows/libs/semgrep.libsonnet' ':(top,glob).github/workflows/libs/uses.libsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.jsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.yml' ':(top,glob).github/workflows/ocaml-tree-sitter.libsonnet' ':(top,glob)Makefile' ':(top,glob)cli/pyproject.toml' ':(top,glob)cli/uv.lock' ':(top,glob)dune-project' ':(top,glob)dune-workspace' ':(top,glob)libs/ocaml-tree-sitter-semgrep/Makefile' ':(top,glob)libs/ocaml-tree-sitter-semgrep/core/**' ':(top,glob)libs/ocaml-tree-sitter-semgrep/dune' ':(top,glob)libs/ocaml-tree-sitter-semgrep/scripts/**' ':(top,glob)opam-lockfiles/*.locked' ':(top,glob)tree-sitter-config.mk' ':(top,glob)tree-sitter-config.sh' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/doc/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/test/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/README.md' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/scripts/test_*.py'
+            )
+            if [ -n "$all_language_changes" ]; then
+              printf 'Full-matrix trigger paths changed:\n%s\n' "$all_language_changes"
+              write_all_languages_and_exit 'Testing every grammar'
+            fi
+
+            base_registry=$(mktemp)
+            trap 'rm -f "$base_registry"' EXIT
+            git show "$comparison_base:$OTS_DIR/lang/upstream-grammars.json" \
+              > "$base_registry"
+            git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)libs/ocaml-tree-sitter-semgrep/lang/**' \
+              | sed "s|^$OTS_DIR/||" \
+              | "$OTS_DIR/scripts/select_grammar_tests.py" "$base_registry" \
+              >> "$GITHUB_OUTPUT"
+          }
+
+          # No diff base, or the registry did not exist yet: test every language.
+          comparison_base=
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            comparison_base='HEAD^'
           else
-            echo "should_test=true" >> "$GITHUB_OUTPUT"
+            before="$BEFORE_SHA"
+            # Branch creation has an all-zero before SHA and no diff base.
+            if [[ -n "$before" && ! "$before" =~ ^0+$ ]]; then
+              # A multi-commit push may put before outside checkout's depth.
+              if git cat-file -e "$before^{commit}" 2>/dev/null \
+                || git fetch --no-tags --depth=1 origin "$before"; then
+                comparison_base="$before"
+              fi
+            fi
           fi
-    timeout-minutes: 5
-  enumerate:
-    if: ${{ needs.detect-changes.outputs.should_test == 'true' }}
-    name: Enumerate languages and prepare tools
-    needs: detect-changes
-    outputs:
-      languages: ${{ steps.list.outputs.languages }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+          if [ -z "$comparison_base" ]; then
+            write_all_languages_and_exit 'No comparison commit; testing every grammar'
+          fi
+          if ! git show "$comparison_base:$OTS_DIR/lang/upstream-grammars.json" \
+            >/dev/null; then
+            write_all_languages_and_exit 'No base registry; testing every grammar'
+          fi
+          select_languages_changed_since "$comparison_base"
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
-          lfs: true
-      - id: list
+          fetch-depth: ${{ github.event.inputs.mode == 'auto' && '0' || '2' }}
+      - env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          OTS_DIR: libs/ocaml-tree-sitter-semgrep
+        id: workflow_dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        name: Select languages for manual run
         run: |
           set -euo pipefail
-          echo "languages=$(scripts/list-languages | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
-        working-directory: libs/ocaml-tree-sitter-semgrep
-      - env:
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: maintenance.auto
-          GIT_CONFIG_VALUE_0: "false"
-        uses: semgrep/setup-ocaml@a739c5405d73c42ef15a9dc995efc0f87396cc36
-        with:
-          cache-prefix: v7-grammar-${{ hashFiles('opam-lockfiles/*.locked', '*.opam', 'dev/required.opam', 'libs/ocaml-tree-sitter-semgrep/core/tree-sitter.opam', 'cli/src/semgrep/semgrep_interfaces/semgrep-interfaces.opam', 'OSS/opam-lockfiles/*.locked', 'OSS/*.opam', 'OSS/dev/required.opam', 'OSS/libs/ocaml-tree-sitter-semgrep/core/tree-sitter.opam', 'OSS/cli/src/semgrep/semgrep_interfaces/semgrep-interfaces.opam') }}
-          ocaml-compiler: ocaml-variants.5.4.0+options,ocaml-option-flambda
-          opam-pin: false
-          opam-repositories: |
-            default: https://github.com/ocaml/opam-repository.git#78d29aba187e8362b8ab86c189790c0af9153d4b
-          save-opam-post-run: true
-      - id: cache-id
-        run: |
-          echo "sha=$(git rev-parse HEAD:libs/ocaml-tree-sitter-semgrep/core)" >> "$GITHUB_OUTPUT"
-          echo "ocaml=$(opam exec -- ocamlc -version)" >> "$GITHUB_OUTPUT"
-      - id: core-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          key: grammar-core-v3-tools-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}
-          path: |-
-            _build
-            libs/ocaml-tree-sitter-semgrep/core/bin
-      - name: Install grammar dependencies
-        run: opam exec -- make install-grammar-deps
-        working-directory: .
-      - name: Build grammar tools
-        run: opam exec -- make grammar-tools
-        working-directory: libs/ocaml-tree-sitter-semgrep/../..
-      - if: steps.core-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          key: grammar-core-v3-tools-${{ runner.os }}-${{ steps.cache-id.outputs.ocaml }}-${{ steps.cache-id.outputs.sha }}-${{ hashFiles('*.opam', '.github/workflows/libs/actions.libsonnet', '.github/workflows/libs/semgrep.libsonnet', '.github/workflows/libs/uses.libsonnet', 'Makefile', 'cli/pyproject.toml', 'cli/uv.lock', 'dune-project', 'dune-workspace', 'opam-lockfiles/*.locked', 'tree-sitter-config.mk', 'tree-sitter-config.sh') }}
-          path: |-
-            _build
-            libs/ocaml-tree-sitter-semgrep/core/bin
-      - id: ts-versions
-        name: Resolve pinned tree-sitter versions
-        run: |
-          echo "versions=$(./scripts/ts-versions | tr '\n' '-')" >> "$GITHUB_OUTPUT"
-        working-directory: libs/ocaml-tree-sitter-semgrep
-      - id: ts-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          key: tree-sitter-${{ runner.os }}-${{ steps.ts-versions.outputs.versions }}-${{ steps.cache-id.outputs.sha }}
-          path: libs/ocaml-tree-sitter-semgrep/core/tree-sitter-*.*.*
-      - name: Setup tree-sitter versions
-        run: ./core/scripts/provision-tree-sitter-all
-        working-directory: libs/ocaml-tree-sitter-semgrep
-      - if: steps.ts-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          key: tree-sitter-${{ runner.os }}-${{ steps.ts-versions.outputs.versions }}-${{ steps.cache-id.outputs.sha }}
-          path: libs/ocaml-tree-sitter-semgrep/core/tree-sitter-*.*.*
-    timeout-minutes: 60
+
+          write_all_languages_and_exit() {
+            echo "$1"
+            {
+              printf "languages="
+              "$OTS_DIR/scripts/list-languages" --json
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          # Caller responsible to ensure the registry exists.
+          select_languages_changed_since() {
+            local comparison_base="$1"
+            local all_language_changes base_registry
+            all_language_changes=$(
+              git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)*.opam' ':(top,glob).github/workflows/libs/actions.libsonnet' ':(top,glob).github/workflows/libs/semgrep.libsonnet' ':(top,glob).github/workflows/libs/uses.libsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.jsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.yml' ':(top,glob).github/workflows/ocaml-tree-sitter.libsonnet' ':(top,glob)Makefile' ':(top,glob)cli/pyproject.toml' ':(top,glob)cli/uv.lock' ':(top,glob)dune-project' ':(top,glob)dune-workspace' ':(top,glob)libs/ocaml-tree-sitter-semgrep/Makefile' ':(top,glob)libs/ocaml-tree-sitter-semgrep/core/**' ':(top,glob)libs/ocaml-tree-sitter-semgrep/dune' ':(top,glob)libs/ocaml-tree-sitter-semgrep/scripts/**' ':(top,glob)opam-lockfiles/*.locked' ':(top,glob)tree-sitter-config.mk' ':(top,glob)tree-sitter-config.sh' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/doc/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/test/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/README.md' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/scripts/test_*.py'
+            )
+            if [ -n "$all_language_changes" ]; then
+              printf 'Full-matrix trigger paths changed:\n%s\n' "$all_language_changes"
+              write_all_languages_and_exit 'Testing every grammar'
+            fi
+
+            base_registry=$(mktemp)
+            trap 'rm -f "$base_registry"' EXIT
+            git show "$comparison_base:$OTS_DIR/lang/upstream-grammars.json" \
+              > "$base_registry"
+            git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)libs/ocaml-tree-sitter-semgrep/lang/**' \
+              | sed "s|^$OTS_DIR/||" \
+              | "$OTS_DIR/scripts/select_grammar_tests.py" "$base_registry" \
+              >> "$GITHUB_OUTPUT"
+          }
+
+          dispatch_mode="${DISPATCH_MODE:-auto}"
+          case "$dispatch_mode" in
+            all)
+              write_all_languages_and_exit 'Manual mode all; testing every grammar'
+              ;;
+            auto)
+              git fetch --no-tags origin "$DEFAULT_BRANCH"
+              if ! comparison_base=$(git merge-base HEAD "origin/$DEFAULT_BRANCH"); then
+                echo "error: no merge base with $DEFAULT_BRANCH; rerun with mode all" >&2
+                exit 1
+              fi
+              # The registry did not exist yet: test every language.
+              if ! git show "$comparison_base:$OTS_DIR/lang/upstream-grammars.json" \
+                >/dev/null; then
+                write_all_languages_and_exit 'No base registry; testing every grammar'
+              fi
+              select_languages_changed_since "$comparison_base"
+              ;;
+            *)
+              echo "error: unknown mode '$dispatch_mode' (expected auto or all)" >&2
+              exit 1
+              ;;
+          esac
+    timeout-minutes: 5
   test-language:
+    if: ${{ needs.detect-changes.outputs.languages != '[]' }}
     name: test-lang ${{ matrix.language }}
-    needs: enumerate
+    needs: detect-changes
     runs-on: ${{ (matrix.language == 'c-sharp-pro' || matrix.language == 'c-sharp' || matrix.language == 'hack') && fromJSON('{"group":"Default Larger Runners","labels":"ubuntu-latest-8-core"}') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -177,7 +221,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ${{ fromJSON(needs.enumerate.outputs.languages) }}
+        language: ${{ fromJSON(needs.detect-changes.outputs.languages) }}
       max-parallel: 8
     timeout-minutes: 60
   test-languages:
@@ -190,17 +234,17 @@ jobs:
     steps:
       - env:
           DETECT: ${{ needs.detect-changes.result }}
+          LANGUAGES: ${{ needs.detect-changes.outputs.languages }}
           RESULT: ${{ needs.test-language.result }}
-          SHOULD_TEST: ${{ needs.detect-changes.outputs.should_test }}
         name: All languages passed
         run: |
           set -euo pipefail
-          echo "detect-changes=$DETECT should_test=$SHOULD_TEST matrix=$RESULT"
+          echo "detect-changes=$DETECT languages=$LANGUAGES matrix=$RESULT"
           if [ "$DETECT" != "success" ]; then
             exit 1
           fi
-          if [ "$SHOULD_TEST" != "true" ]; then
-            echo "No grammar, core, or workflow changes; skipping"
+          if [ "$LANGUAGES" = "[]" ]; then
+            echo "No grammars selected; skipping"
             exit 0
           fi
           test "$RESULT" = "success"
@@ -231,4 +275,17 @@ on:
       - opam-lockfiles/*.locked
       - tree-sitter-config.mk
       - tree-sitter-config.sh
-  workflow_dispatch: null
+      - '!libs/ocaml-tree-sitter-semgrep/core/doc/**'
+      - '!libs/ocaml-tree-sitter-semgrep/core/test/**'
+      - '!libs/ocaml-tree-sitter-semgrep/core/README.md'
+      - '!libs/ocaml-tree-sitter-semgrep/scripts/test_*.py'
+  workflow_dispatch:
+    inputs:
+      mode:
+        default: auto
+        description: 'auto: grammars affected since the default branch. all: every grammar.'
+        options:
+          - auto
+          - all
+        required: true
+        type: choice

@@ -60,11 +60,16 @@ def _read_registry(path: Path) -> dict[str, dict[str, Any]]:
     return cast(dict[str, dict[str, Any]], raw)
 
 
-@lru_cache(maxsize=1)
-def _load_default() -> dict[str, dict[str, Any]]:
-    reg = _read_registry(registry_path(default_lang_dir()))
+def load_file(path: Path) -> dict[str, dict[str, Any]]:
+    """Load and validate a registry file."""
+    reg = _read_registry(path)
     validate(reg)
     return reg
+
+
+@lru_cache(maxsize=1)
+def _load_default() -> dict[str, dict[str, Any]]:
+    return load_file(registry_path(default_lang_dir()))
 
 
 def clear_load_cache() -> None:
@@ -74,9 +79,7 @@ def clear_load_cache() -> None:
 def load(lang_dir: Path | None = None) -> dict[str, dict[str, Any]]:
     if lang_dir is None:
         return _load_default()
-    reg = _read_registry(registry_path(lang_dir))
-    validate(reg)
-    return reg
+    return load_file(registry_path(lang_dir))
 
 
 def validate(reg: dict[str, dict[str, Any]]) -> None:
@@ -111,16 +114,23 @@ def _assert_no_cycle(
             _assert_no_cycle(reg, start, dep, seen | {dep})
 
 
-def resolve(name: str, lang_dir: Path | None = None) -> str:
-    reg = load(lang_dir)
-    if name in reg:
+def resolve_in_registry(name: str, registry: dict[str, dict[str, Any]]) -> str | None:
+    """Resolve a key, destination, or alias in a loaded registry."""
+    if name in registry:
         return name
-    for key, entry in reg.items():
+    for key, entry in registry.items():
         if name in entry["regen"]:
             return key
     alias = _ALIASES.get(name)
-    if alias is not None and alias in reg:
+    if alias is not None and alias in registry:
         return alias
+    return None
+
+
+def resolve(name: str, lang_dir: Path | None = None) -> str:
+    key = resolve_in_registry(name, load(lang_dir))
+    if key is not None:
+        return key
     raise UnknownGrammarError(f"unknown grammar name: {name}")
 
 
@@ -134,6 +144,26 @@ def clone_name(key: str, lang_dir: Path | None = None) -> str:
 
 def wrapper_dir(key: str, lang_dir: Path | None = None) -> str:
     return f"semgrep-{key}"
+
+
+def grammar_test_targets(lang_dir: Path | None = None) -> list[str]:
+    """Return registry keys accepted by test-lang.
+
+    Every semgrep-* wrapper must have a matching registry key; an orphaned
+    wrapper means a forgotten registry entry.
+    """
+    lang_dir = lang_dir or default_lang_dir()
+    src = lang_dir / "semgrep-grammars" / "src"
+    wrappers = {
+        p.name.removeprefix("semgrep-") for p in src.glob("semgrep-*") if p.is_dir()
+    }
+    registry = load(lang_dir)
+    orphaned = sorted(wrappers - registry.keys())
+    if orphaned:
+        raise RegistryError(
+            f"grammar wrappers with no registry entry: {', '.join(orphaned)}"
+        )
+    return sorted(registry.keys() & wrappers)
 
 
 def entry_for(name: str, lang_dir: Path | None = None) -> tuple[str, dict[str, Any]]:
