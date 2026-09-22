@@ -3,6 +3,8 @@
  (name parser_cpp_menhir)
  (wrapped false)
  (libraries
+   base
+   collections
    commons
    lib_parsing
    parser_cpp.ast

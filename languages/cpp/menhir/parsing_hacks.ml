@@ -139,14 +139,14 @@ let fix_tokens_fuzzy toks =
         { Lib_ast_fuzzy.tokf = TH.info_of_tok; kind = TH.token_kind_of_tok }
         toks
     in
-    let retag_lambda = Hashtbl.create 101 in
+    let retag_lambda = Base.Hashtbl.Poly.create ~size:101 () in
 
     let rec aux env trees =
       match trees with
       | [] -> ()
       (* [...] { } *)
       | F.Bracket (l, xs, _r) :: F.Braces _ :: ys ->
-          Hashtbl.replace retag_lambda l true;
+          Base.Hashtbl.set retag_lambda ~key:l ~data:true;
           aux env xs;
           aux env ys
       | x :: xs ->
@@ -171,7 +171,8 @@ let fix_tokens_fuzzy toks =
     (* use the tagged information and transform tokens *)
     toks
     |> List.map (function
-      | T.TOCro info when Hashtbl.mem retag_lambda info -> T.TOCro_Lambda info
+      | T.TOCro info when Base.Hashtbl.mem retag_lambda info ->
+          T.TOCro_Lambda info
       | x -> x)
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->

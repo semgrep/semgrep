@@ -43,7 +43,7 @@ type env_lbody = InIfHeader | Normal
  * everything in the Tok category?
  *)
 let is_identifier horigin (info : Tok.t) =
-  match Hashtbl.find_opt horigin info with
+  match Base.Hashtbl.find horigin info with
   | Some (T.LNAME _) -> true
   | _ -> false
 
@@ -102,22 +102,24 @@ let fix_tokens_lbody toks =
         toks
     in
     let horigin =
-      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Hashtbl_.hash_of_list
+      toks
+      |> List.map (fun t -> (TH.info_of_tok t, t))
+      |> Hashtbl_.Base.hash_of_list
     in
 
-    let retag_lbrace = Hashtbl.create 101 in
-    let retag_lbrace_semgrep = Hashtbl.create 1 in
-    let retag_lcolon_semgrep = Hashtbl.create 1 in
-    let retag_lparen_semgrep = Hashtbl.create 1 in
+    let retag_lbrace = Base.Hashtbl.Poly.create ~size:101 () in
+    let retag_lbrace_semgrep = Base.Hashtbl.Poly.create ~size:1 () in
+    let retag_lcolon_semgrep = Base.Hashtbl.Poly.create ~size:1 () in
+    let retag_lparen_semgrep = Base.Hashtbl.Poly.create ~size:1 () in
 
     (match trees with
     (* TODO: check that actually a composite literal in it? *)
     | F.Braces (t1, _body, _) :: _ when Hook.get Flag_parsing.sgrep_mode ->
-        Hashtbl.replace retag_lbrace_semgrep t1 true
+        Base.Hashtbl.set retag_lbrace_semgrep ~key:t1 ~data:true
     (* no way it's a label *)
     | F.Tok (_s, info) :: F.Tok (":", t2) :: _
       when Hook.get Flag_parsing.sgrep_mode && is_identifier horigin info ->
-        Hashtbl.replace retag_lcolon_semgrep t2 true
+        Base.Hashtbl.set retag_lcolon_semgrep ~key:t2 ~data:true
     (* TODO: could check that xs looks like a parameter list
      * TODO what comes after Parens could be a symbol part of a type
      * instead of just a single type like 'int'?
@@ -126,7 +128,7 @@ let fix_tokens_lbody toks =
       when Hook.get Flag_parsing.sgrep_mode
            && is_identifier horigin info
            && is_identifier horigin info2 ->
-        Hashtbl.replace retag_lparen_semgrep l true
+        Base.Hashtbl.set retag_lparen_semgrep ~key:l ~data:true
     | _ -> ());
 
     let rec aux env trees =
@@ -138,7 +140,7 @@ let fix_tokens_lbody toks =
         :: F.Braces (lb3, xs3, _rb3)
         :: ys
         when env =*= InIfHeader ->
-          Hashtbl.replace retag_lbrace lb3 true;
+          Base.Hashtbl.set retag_lbrace ~key:lb3 ~data:true;
           aux Normal xs1;
           xs2
           |> List.iter (function
@@ -152,7 +154,7 @@ let fix_tokens_lbody toks =
         :: F.Braces (lb3, xs3, _rb3)
         :: ys
         when env =*= InIfHeader ->
-          Hashtbl.replace retag_lbrace lb3 true;
+          Base.Hashtbl.set retag_lbrace ~key:lb3 ~data:true;
           aux Normal xs1;
           aux Normal xs2;
           aux Normal xs3;
@@ -166,7 +168,7 @@ let fix_tokens_lbody toks =
       (* for a := range []int{...} { ... } *)
       | F.Braces (_lb1, xs1, _rb1) :: F.Braces (lb2, xs2, _rb2) :: ys
         when env =*= InIfHeader ->
-          Hashtbl.replace retag_lbrace lb2 true;
+          Base.Hashtbl.set retag_lbrace ~key:lb2 ~data:true;
           aux Normal xs1;
           aux Normal xs2;
           aux Normal ys (* False Positive (FP): for ... {}[...] *)
@@ -182,7 +184,8 @@ let fix_tokens_lbody toks =
           aux env zs
       | F.Braces (lb, xs, _rb) :: ys ->
           (* for ... { ... } *)
-          if env =*= InIfHeader then Hashtbl.replace retag_lbrace lb true;
+          if env =*= InIfHeader then
+            Base.Hashtbl.set retag_lbrace ~key:lb ~data:true;
           aux Normal xs;
           aux Normal ys
       | F.Tok (("if" | "for" | "switch" | "select"), _) :: xs ->
@@ -202,13 +205,13 @@ let fix_tokens_lbody toks =
     (* use the tagged information and transform tokens *)
     toks
     |> List.map (function
-      | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
-      | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
-      | T.LBRACE info when Hashtbl.mem retag_lbrace_semgrep info ->
+      | T.LBRACE info when Base.Hashtbl.mem retag_lbrace info -> T.LBODY info
+      | T.LBRACE info when Base.Hashtbl.mem retag_lbrace info -> T.LBODY info
+      | T.LBRACE info when Base.Hashtbl.mem retag_lbrace_semgrep info ->
           T.LBRACE_SEMGREP info
-      | T.LCOLON info when Hashtbl.mem retag_lcolon_semgrep info ->
+      | T.LCOLON info when Base.Hashtbl.mem retag_lcolon_semgrep info ->
           T.LCOLON_SEMGREP info
-      | T.LPAREN info when Hashtbl.mem retag_lparen_semgrep info ->
+      | T.LPAREN info when Base.Hashtbl.mem retag_lparen_semgrep info ->
           T.LPAREN_SEMGREP info
       | x -> x)
   with

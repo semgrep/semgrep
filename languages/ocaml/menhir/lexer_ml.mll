@@ -37,7 +37,7 @@ let error = Parsing_error.lexical_error
 (* Keywords *)
 (* ---------------------------------------------------------------------- *)
 (* src: http://caml.inria.fr/pub/docs/manual-ocaml/lex.html *)
-let keyword_table = Hashtbl_.hash_of_list [
+let keyword_table = Hashtbl_.Base.hash_of_list [
 
   "fun", (fun ii -> Tfun ii);
   "function", (fun ii -> Tfunction ii);
@@ -293,7 +293,7 @@ rule token = parse
   | ident {
       let info = tokinfo lexbuf in
       let s = tok lexbuf in
-      match Hashtbl.find_opt keyword_table s with
+      match Base.Hashtbl.find keyword_table s with
       | Some f -> f info
       | None -> TLowerIdent (s, info)
     }

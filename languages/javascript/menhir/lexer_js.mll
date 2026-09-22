@@ -54,7 +54,7 @@ let hexa_to_int = function
 (* ---------------------------------------------------------------------- *)
 (* Keywords *)
 (* ---------------------------------------------------------------------- *)
-let keyword_table = Hashtbl_.hash_of_list [
+let keyword_table = Hashtbl_.Base.hash_of_list [
 
   "if",         (fun ii -> T_IF ii);
   "else",       (fun ii -> T_ELSE ii);
@@ -369,7 +369,7 @@ rule initial = parse
       let s = tok lexbuf in
       let info = tokinfo lexbuf in
       match
-        Hashtbl.find_opt keyword_table s (* need case insensitive ? *)
+        Base.Hashtbl.find keyword_table s (* need case insensitive ? *)
       with
       | Some f -> f info
       | None -> T_ID (s, info)

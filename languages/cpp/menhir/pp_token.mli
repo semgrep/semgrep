@@ -64,6 +64,6 @@ val apply_macro_defs :
   ?evaluate_concatop:bool ->
   ?inplace_when_single:bool ->
 *)
-  (string, define_body (* define_def *)) Hashtbl.t ->
+  (string, define_body (* define_def *)) Base.Hashtbl.t ->
   Token_views_cpp.paren_grouped list ->
   unit

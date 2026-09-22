@@ -92,7 +92,7 @@ let rparens_of_if toks =
  * everything in the Tok category?
  *)
 let is_identifier horigin (info : Tok.t) =
-  match Hashtbl.find_opt horigin info with
+  match Base.Hashtbl.find horigin info with
   | Some (T.T_ID _) -> true
   | _ -> false
 
@@ -114,24 +114,26 @@ let fix_tokens toks =
         toks
     in
     let horigin =
-      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Hashtbl_.hash_of_list
+      toks
+      |> List.map (fun t -> (TH.info_of_tok t, t))
+      |> Hashtbl_.Base.hash_of_list
     in
 
-    let retag_lparen_arrow = Hashtbl.create 101 in
-    let retag_lparen_method = Hashtbl.create 101 in
-    let retag_keywords = Hashtbl.create 101 in
-    let retag_lbrace = Hashtbl.create 101 in
+    let retag_lparen_arrow = Base.Hashtbl.Poly.create ~size:101 () in
+    let retag_lparen_method = Base.Hashtbl.Poly.create ~size:101 () in
+    let retag_keywords = Base.Hashtbl.Poly.create ~size:101 () in
+    let retag_lbrace = Base.Hashtbl.Poly.create ~size:101 () in
 
     (match trees with
     (* probably an object pattern
      * TODO: check that no stmt-like keywords inside body?
      *)
     | F.Braces (t1, _body, _) :: _ when Hook.get Flag_parsing.sgrep_mode ->
-        Hashtbl.replace retag_lbrace t1 true
+        Base.Hashtbl.set retag_lbrace ~key:t1 ~data:true
     (* TODO: skip keywords, attributes that may be before the method id *)
     | F.Tok (_s, info) :: F.Parens (i1, _, _) :: F.Braces (_, _, _) :: _
       when Hook.get Flag_parsing.sgrep_mode && is_identifier horigin info ->
-        Hashtbl.replace retag_lparen_method i1 true
+        Base.Hashtbl.set retag_lparen_method ~key:i1 ~data:true
     | _ -> ());
 
     (* visit and tag *)
@@ -143,10 +145,10 @@ let fix_tokens toks =
             (fun (k, _) xs ->
               (match xs with
               | F.Parens (i1, _, _) :: F.Tok ("=>", _) :: _res ->
-                  Hashtbl.replace retag_lparen_arrow i1 true
+                  Base.Hashtbl.set retag_lparen_arrow ~key:i1 ~data:true
               (* TODO: also handle typed arrows! *)
               | F.Tok ("import", i1) :: F.Parens _ :: _res ->
-                  Hashtbl.replace retag_keywords i1 true
+                  Base.Hashtbl.set retag_keywords ~key:i1 ~data:true
               | _ -> ());
               k xs);
         }
@@ -156,13 +158,13 @@ let fix_tokens toks =
     (* use the tagged information and transform tokens *)
     toks
     |> List.map (function
-      | T.T_LPAREN info when Hashtbl.mem retag_lparen_arrow info ->
+      | T.T_LPAREN info when Base.Hashtbl.mem retag_lparen_arrow info ->
           T.T_LPAREN_ARROW info
-      | T.T_LPAREN info when Hashtbl.mem retag_lparen_method info ->
+      | T.T_LPAREN info when Base.Hashtbl.mem retag_lparen_method info ->
           T.T_LPAREN_METHOD_SEMGREP info
-      | T.T_LCURLY info when Hashtbl.mem retag_lbrace info ->
+      | T.T_LCURLY info when Base.Hashtbl.mem retag_lbrace info ->
           T.T_LCURLY_SEMGREP info
-      | T.T_IMPORT info when Hashtbl.mem retag_keywords info ->
+      | T.T_IMPORT info when Base.Hashtbl.mem retag_keywords info ->
           T.T_ID (Tok.content_of_tok info, info)
       | x -> x)
   with

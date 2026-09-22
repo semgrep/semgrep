@@ -5,6 +5,7 @@
  (libraries
    yaml
 
+   base
    commons
    lib_parsing
    ast_generic ; is_metavar_name

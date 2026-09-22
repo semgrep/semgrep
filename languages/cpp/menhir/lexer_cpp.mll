@@ -61,7 +61,7 @@ let tok_add_s = Tok.tok_add_s
 (* ---------------------------------------------------------------------- *)
 
 (* opti: less convenient, but using a hash is faster than using a match *)
-let keyword_table = Hashtbl_.hash_of_list [
+let keyword_table = Hashtbl_.Base.hash_of_list [
 
   "void",   (fun ii -> Tvoid ii);
   "char",   (fun ii -> Tchar ii);
@@ -472,7 +472,7 @@ rule token = parse
       { let info = tokinfo lexbuf in
         let s = tok lexbuf in
         Profiling.measure "C parsing.lex_ident" (fun () ->
-          match Hashtbl.find_opt keyword_table s with
+          match Base.Hashtbl.find keyword_table s with
           | Some f -> f info
 
            (* typedef_hack. note: now this is no more useful, cos
