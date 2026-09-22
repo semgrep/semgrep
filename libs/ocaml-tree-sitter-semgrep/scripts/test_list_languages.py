@@ -13,6 +13,7 @@
 """Unit tests for scripts/list-languages."""
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -26,3 +27,8 @@ def test_list_languages_excludes_nested_sub_dialects():
     langs = proc.stdout.splitlines()
     assert {"cfml", "sfapex"} <= set(langs)
     assert not {"cfquery", "cfscript", "soql", "sosl"} & set(langs)
+
+    json_proc = subprocess.run(
+        [SCRIPT, "--json"], capture_output=True, text=True, check=True
+    )
+    assert json.loads(json_proc.stdout) == langs
