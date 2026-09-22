@@ -1,14 +1,8 @@
 /*
-  semgrep-php
-
-  Extends the standard php grammar with semgrep pattern constructs.
-*/
-
-const base_grammar = require('tree-sitter-php/grammar');
-
-module.exports = grammar(base_grammar, {
-  name: 'php',
-
+ * Semgrep extensions for PHP grammar.
+ * These extensions are shared between both php and php_only variants.
+ */
+module.exports = {
   conflicts: ($, previous) => previous.concat([
   ]),
 
@@ -28,4 +22,4 @@ module.exports = grammar(base_grammar, {
     }
   */
   }
-});
+};

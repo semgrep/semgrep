@@ -1825,19 +1825,12 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
       v2
       |> List.map (fun (a, b) -> Import { i_tok = v1; i_path = b; i_kind = a })
 
-let source_file (env : env) (xs : CST.source_file) : program =
-  List.concat_map
-    (fun x ->
-      match x with
-      | `Stmt_choice_LF (v1, v2) ->
-          let v1 = statement env v1 in
-          let _v2 = anon_choice_LF_249c99f env v2 in
-          [ STop v1 ]
-      | `Choice_pack_clause_opt_choice_LF (v1, v2) ->
-          let v1 = top_level_declaration env v1 in
-          let _v2 = trailing_terminator env v2 in
-          v1)
-    xs
+let source_file (env : env) ((items, last) : CST.source_file) : program =
+  let top_level = function
+    | `Stmt stmt -> [ STop (statement env stmt) ]
+    | `Choice_pack_clause decl -> top_level_declaration env decl
+  in
+  List.concat_map top_level (List.map fst items @ Option.to_list last)
 
 (*****************************************************************************)
 (* Entry point *)
