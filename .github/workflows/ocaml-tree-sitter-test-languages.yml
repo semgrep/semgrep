@@ -37,7 +37,7 @@ jobs:
           # Caller responsible to ensure the registry exists.
           select_languages_changed_since() {
             local comparison_base="$1"
-            local all_language_changes base_registry
+            local all_language_changes
             all_language_changes=$(
               git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)*.opam' ':(top,glob).github/workflows/libs/actions.libsonnet' ':(top,glob).github/workflows/libs/semgrep.libsonnet' ':(top,glob).github/workflows/libs/uses.libsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.jsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.yml' ':(top,glob).github/workflows/ocaml-tree-sitter.libsonnet' ':(top,glob)Makefile' ':(top,glob)cli/pyproject.toml' ':(top,glob)cli/uv.lock' ':(top,glob)dune-project' ':(top,glob)dune-workspace' ':(top,glob)libs/ocaml-tree-sitter-semgrep/Makefile' ':(top,glob)libs/ocaml-tree-sitter-semgrep/core/**' ':(top,glob)libs/ocaml-tree-sitter-semgrep/dune' ':(top,glob)libs/ocaml-tree-sitter-semgrep/scripts/**' ':(top,glob)opam-lockfiles/*.locked' ':(top,glob)tree-sitter-config.mk' ':(top,glob)tree-sitter-config.sh' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/doc/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/test/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/README.md' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/scripts/test_*.py'
             )
@@ -46,8 +46,8 @@ jobs:
               write_all_languages_and_exit 'Testing every grammar'
             fi
 
+            # The runner's filesystem is ephemeral; an EXIT trap would outlive this function.
             base_registry=$(mktemp)
-            trap 'rm -f "$base_registry"' EXIT
             git show "$comparison_base:$OTS_DIR/lang/upstream-grammars.json" \
               > "$base_registry"
             git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)libs/ocaml-tree-sitter-semgrep/lang/**' \
@@ -105,7 +105,7 @@ jobs:
           # Caller responsible to ensure the registry exists.
           select_languages_changed_since() {
             local comparison_base="$1"
-            local all_language_changes base_registry
+            local all_language_changes
             all_language_changes=$(
               git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)*.opam' ':(top,glob).github/workflows/libs/actions.libsonnet' ':(top,glob).github/workflows/libs/semgrep.libsonnet' ':(top,glob).github/workflows/libs/uses.libsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.jsonnet' ':(top,glob).github/workflows/ocaml-tree-sitter-test-languages.yml' ':(top,glob).github/workflows/ocaml-tree-sitter.libsonnet' ':(top,glob)Makefile' ':(top,glob)cli/pyproject.toml' ':(top,glob)cli/uv.lock' ':(top,glob)dune-project' ':(top,glob)dune-workspace' ':(top,glob)libs/ocaml-tree-sitter-semgrep/Makefile' ':(top,glob)libs/ocaml-tree-sitter-semgrep/core/**' ':(top,glob)libs/ocaml-tree-sitter-semgrep/dune' ':(top,glob)libs/ocaml-tree-sitter-semgrep/scripts/**' ':(top,glob)opam-lockfiles/*.locked' ':(top,glob)tree-sitter-config.mk' ':(top,glob)tree-sitter-config.sh' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/doc/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/test/**' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/core/README.md' ':(top,exclude,glob)libs/ocaml-tree-sitter-semgrep/scripts/test_*.py'
             )
@@ -114,8 +114,8 @@ jobs:
               write_all_languages_and_exit 'Testing every grammar'
             fi
 
+            # The runner's filesystem is ephemeral; an EXIT trap would outlive this function.
             base_registry=$(mktemp)
-            trap 'rm -f "$base_registry"' EXIT
             git show "$comparison_base:$OTS_DIR/lang/upstream-grammars.json" \
               > "$base_registry"
             git diff --no-renames --name-only "$comparison_base" HEAD -- ':(top,glob)libs/ocaml-tree-sitter-semgrep/lang/**' \
