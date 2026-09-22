@@ -1,7 +1,7 @@
 /*
   semgrep-go
 
-  Extends the standard go grammar with semgrep pattern constructs.
+  Accepts Go source snippets for Semgrep.
 */
 
 const base_grammar = require('tree-sitter-go/grammar');
@@ -9,23 +9,15 @@ const base_grammar = require('tree-sitter-go/grammar');
 module.exports = grammar(base_grammar, {
   name: 'go',
 
-  conflicts: ($, previous) => previous.concat([
-  ]),
-
-  /*
-     Support for semgrep ellipsis ('...') and metavariables ('$FOO'),
-     if they're not already part of the base grammar.
-  */
   rules: {
-  /*
-    semgrep_ellipsis: $ => '...',
-
-    _expression: ($, previous) => {
-      return choice(
-        $.semgrep_ellipsis,
-        ...previous.members
-      );
-    }
-  */
+    // Snippets may end in a statement without a newline. Avoid synthetic EOF
+    // tokens, which have no source text for typed-CST recovery.
+    source_file: $ => seq(
+      repeat(seq(
+        choice($._statement, $._top_level_declaration),
+        choice(/\n/, ';'),
+      )),
+      optional(choice($._statement, $._top_level_declaration)),
+    ),
   }
 });

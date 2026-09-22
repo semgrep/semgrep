@@ -1,0 +1,10 @@
+==================
+Top-level statement at EOF
+==================
+value := f()
+---
+(source_file
+  (short_var_declaration
+    (expression_list (identifier))
+    (expression_list
+      (call_expression (identifier) (argument_list)))))

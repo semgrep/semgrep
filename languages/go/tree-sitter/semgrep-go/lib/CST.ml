@@ -8,50 +8,39 @@
 open! Sexplib.Conv
 open Tree_sitter_run
 
-type float_literal = Token.t
+type interpreted_string_literal_basic_content =
+  Token.t (* pattern "[^\"\\n\\\\]+" *)
+
+type escape_sequence = Token.t
 
 type anon_choice_LF_249c99f = [
     `LF of Token.t (* "\n" *)
   | `SEMI of Token.t (* ";" *)
 ]
 
+type imaginary_literal = Token.t
+
 type anon_choice_new_0342769 = [
     `New of Token.t (* "new" *)
   | `Make of Token.t (* "make" *)
 ]
 
-type identifier = Token.t
+type pat_1d78758 = Token.t (* pattern \n *)
 
-type raw_string_literal = Token.t
+type float_literal = Token.t
 
 type int_literal = Token.t
 
-type escape_sequence = Token.t
+type raw_string_literal = Token.t
 
-type imaginary_literal = Token.t
-
-type rune_literal = Token.t
+type identifier = Token.t
 
 type anon_choice_EQ_4ccabd6 = [
     `EQ of Token.t (* "=" *)
   | `COLONEQ of Token.t (* ":=" *)
 ]
 
-type interpreted_string_literal_basic_content =
-  Token.t (* pattern "[^\"\\n\\\\]+" *)
-
-type constraint_term = (Token.t (* "~" *) option * identifier (*tok*))
-
-type empty_labeled_statement = (identifier (*tok*) * Token.t (* ":" *))
-
-type field_name_list = (
-    identifier (*tok*)
-  * (Token.t (* "," *) * identifier (*tok*)) list (* zero or more *)
-)
-
-type qualified_type = (
-    identifier (*tok*) * Token.t (* "." *) * identifier (*tok*)
-)
+type rune_literal = Token.t
 
 type string_literal = [
     `Raw_str_lit of raw_string_literal (*tok*)
@@ -67,10 +56,18 @@ type string_literal = [
     )
 ]
 
-type interface_type_name = [
-    `Id of identifier (*tok*)
-  | `Qual_type of qualified_type
-]
+type field_name_list = (
+    identifier (*tok*)
+  * (Token.t (* "," *) * identifier (*tok*)) list (* zero or more *)
+)
+
+type empty_labeled_statement = (identifier (*tok*) * Token.t (* ":" *))
+
+type constraint_term = (Token.t (* "~" *) option * identifier (*tok*))
+
+type qualified_type = (
+    identifier (*tok*) * Token.t (* "." *) * identifier (*tok*)
+)
 
 type import_spec = (
     [
@@ -80,6 +77,17 @@ type import_spec = (
     ]
       option
   * string_literal
+)
+
+type interface_type_name = [
+    `Id of identifier (*tok*)
+  | `Qual_type of qualified_type
+]
+
+type import_spec_list = (
+    Token.t (* "(" *)
+  * (import_spec * anon_choice_LF_249c99f) list (* zero or more *)
+  * Token.t (* ")" *)
 )
 
 type anon_choice_exp_047b57a = [
@@ -641,12 +649,6 @@ and var_spec = (
     ]
 )
 
-type import_spec_list = (
-    Token.t (* "(" *)
-  * (import_spec * anon_choice_LF_249c99f) list (* zero or more *)
-  * Token.t (* ")" *)
-)
-
 type top_level_declaration = [
     `Pack_clause of (Token.t (* "package" *) * identifier (*tok*))
   | `Func_decl of (
@@ -674,39 +676,37 @@ type top_level_declaration = [
     )
 ]
 
-type source_file =
-  [
-      `Stmt_choice_LF of (statement * anon_choice_LF_249c99f)
-    | `Choice_pack_clause_opt_choice_LF of (
-          top_level_declaration
-        * anon_choice_LF_249c99f option
-      )
-  ]
-    list (* zero or more *)
+type anon_choice_stmt_6d4e9e7 = [
+    `Stmt of statement
+  | `Choice_pack_clause of top_level_declaration
+]
 
-type blank_identifier (* inlined *) = Token.t (* "_" *)
-
-type iota (* inlined *) = Token.t (* "iota" *)
+type source_file = (
+    (
+        anon_choice_stmt_6d4e9e7
+      * [ `Pat_1d78758 of pat_1d78758 | `SEMI of Token.t (* ";" *) ]
+    )
+      list (* zero or more *)
+  * anon_choice_stmt_6d4e9e7 option
+)
 
 type fallthrough_statement (* inlined *) = Token.t (* "fallthrough" *)
 
+type iota (* inlined *) = Token.t (* "iota" *)
+
 type false_ (* inlined *) = Token.t (* "false" *)
 
+type dot (* inlined *) = Token.t (* "." *)
+
 type empty_statement (* inlined *) = Token.t (* ";" *)
+
+type blank_identifier (* inlined *) = Token.t (* "_" *)
 
 type nil (* inlined *) = Token.t (* "nil" *)
 
 type comment (* inlined *) = Token.t
 
 type true_ (* inlined *) = Token.t (* "true" *)
-
-type dot (* inlined *) = Token.t (* "." *)
-
-type field_identifier (* inlined *) = identifier (*tok*)
-
-type package_identifier (* inlined *) = identifier (*tok*)
-
-type type_identifier (* inlined *) = identifier (*tok*)
 
 type interpreted_string_literal (* inlined *) = (
     Token.t (* "\"" *)
@@ -719,9 +719,14 @@ type interpreted_string_literal (* inlined *) = (
   * Token.t (* "\"" *)
 )
 
-type continue_statement (* inlined *) = (
-    Token.t (* "continue" *)
-  * identifier (*tok*) option
+type field_identifier (* inlined *) = identifier (*tok*)
+
+type type_identifier (* inlined *) = identifier (*tok*)
+
+type package_identifier (* inlined *) = identifier (*tok*)
+
+type goto_statement (* inlined *) = (
+    Token.t (* "goto" *) * identifier (*tok*)
 )
 
 type break_statement (* inlined *) = (
@@ -733,8 +738,9 @@ type package_clause (* inlined *) = (
     Token.t (* "package" *) * identifier (*tok*)
 )
 
-type goto_statement (* inlined *) = (
-    Token.t (* "goto" *) * identifier (*tok*)
+type continue_statement (* inlined *) = (
+    Token.t (* "continue" *)
+  * identifier (*tok*) option
 )
 
 type constraint_elem (* inlined *) = (
@@ -987,6 +993,11 @@ type variadic_parameter_declaration (* inlined *) = (
   * type_
 )
 
+type import_declaration (* inlined *) = (
+    Token.t (* "import" *)
+  * [ `Import_spec of import_spec | `Import_spec_list of import_spec_list ]
+)
+
 type method_declaration (* inlined *) = (
     Token.t (* "func" *)
   * parameter_list
@@ -1003,11 +1014,6 @@ type function_declaration (* inlined *) = (
   * parameter_list
   * anon_choice_param_list_29faba4 option
   * block option
-)
-
-type import_declaration (* inlined *) = (
-    Token.t (* "import" *)
-  * [ `Import_spec of import_spec | `Import_spec_list of import_spec_list ]
 )
 
 type extra = [ `Comment of Loc.t * comment ]

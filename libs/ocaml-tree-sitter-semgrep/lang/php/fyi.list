@@ -2,3 +2,4 @@ semgrep-grammars/src/tree-sitter-php/LICENSE
 semgrep-grammars/src/tree-sitter-php/common/define-grammar.js
 semgrep-grammars/src/tree-sitter-php/php/grammar.js
 semgrep-grammars/src/semgrep-php/php/grammar.js
+semgrep-grammars/src/semgrep-php/common/semgrep-ext.js

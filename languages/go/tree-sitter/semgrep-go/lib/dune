@@ -12,7 +12,7 @@
   (foreign_stubs
     (language c)
     (names parser bindings)
-    (flags -std=c99
+    (flags -std=c11
            -fPIC
            -I %{env:TREESITTER_INCDIR=/usr/local/include}
            -I .)
