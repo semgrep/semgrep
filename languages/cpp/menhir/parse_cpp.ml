@@ -181,8 +181,8 @@ let extract_macros file =
 (* less: pass it as a parameter to parse_program instead ?
  * old: was a ref, but a hashtbl.t is actually already a kind of ref
  *)
-let (_defs : (string, Pp_token.define_body) Hashtbl.t Domain.DLS.key) =
-  Domain.DLS.new_key (const (Hashtbl.create 101))
+let (_defs : (string, Pp_token.define_body) Base.Hashtbl.t Domain.DLS.key) =
+  Domain.DLS.new_key (const (Base.Hashtbl.Poly.create ~size:101 ()))
 
 (* We used to have also a init_defs_builtins() so that we could use a
  * standard.h containing macros that were always useful, and a macros.h
@@ -195,10 +195,12 @@ let add_defs file =
     failwith (spf "Could not find %s, have you set PFFF_HOME correctly?" !!file);
   Log.info (fun m -> m "Using %s macro file" !!file);
   let xs = extract_macros file in
-  xs |> List.iter (fun (k, v) -> Hashtbl.replace (Domain.DLS.get _defs) k v)
+  xs
+  |> List.iter (fun (k, v) ->
+      Base.Hashtbl.set (Domain.DLS.get _defs) ~key:k ~data:v)
 
 let init_defs file =
-  _defs |> Domain.DLS.get |> Hashtbl.clear;
+  _defs |> Domain.DLS.get |> Base.Hashtbl.clear;
   add_defs file
 
 (*****************************************************************************)

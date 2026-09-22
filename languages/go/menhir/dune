@@ -3,6 +3,8 @@
  (name pfff_lang_go)
  (wrapped false)
  (libraries
+   base
+   collections
    commons
    lib_parsing
    parser_go.ast

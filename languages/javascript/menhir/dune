@@ -4,6 +4,8 @@
  (wrapped false)
  (libraries
    menhirLib ; this is needed when using --table
+   base
+   collections
    commons
    process_limits
    lib_parsing

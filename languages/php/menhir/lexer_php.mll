@@ -86,7 +86,7 @@ let t_variable_or_metavar s info =
  *
  * todo: callable, goto
  *)
-let keyword_table = Hashtbl_.hash_of_list [
+let keyword_table = Hashtbl_.Base.hash_of_list [
 
   "while",   (fun ii -> T_WHILE ii);   "endwhile", (fun ii -> T_ENDWHILE ii);
   "do",      (fun ii -> T_DO ii);
@@ -189,7 +189,7 @@ let keyword_table = Hashtbl_.hash_of_list [
   "enum", (fun ii -> T_ENUM ii);
 ]
 
-let _ = assert ((Hashtbl_.hkeys keyword_table) |>
+let _ = assert ((Hashtbl_.Base.hkeys keyword_table) |>
                  List.for_all (fun s -> s = String.lowercase_ascii s))
 
 (* ---------------------------------------------------------------------- *)
@@ -597,7 +597,7 @@ rule st_in_scripting = parse
           let s = tok lexbuf in
           match
             (* PHP is case insensitive ... it's ok to write IF(...) { ... } *)
-            Hashtbl.find_opt keyword_table (String.lowercase_ascii s)
+            Base.Hashtbl.find keyword_table (String.lowercase_ascii s)
           with
           | Some f -> f info
           (* was called T_STRING in original grammar *)

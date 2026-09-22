@@ -3,7 +3,8 @@
  (name parser_ocaml_menhir)
  (wrapped false)
  (libraries
-
+   base
+   collections
    commons
    lib_parsing
    parser_ocaml.ast

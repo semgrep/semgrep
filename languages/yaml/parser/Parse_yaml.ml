@@ -78,7 +78,7 @@ type env = {
   (* From yaml.mli: "[parser] tracks the state of generating {!Event.t}
    * values" *)
   parser : S.parser;
-  anchors : (string, A.value * E.pos) Hashtbl.t;
+  anchors : (string, A.value * E.pos) Base.Hashtbl.t;
   mutable last_event : (E.t * E.pos) option;
   is_target : bool;
 }
@@ -219,13 +219,13 @@ let do_parse (env : env) : E.t * E.pos =
 let make_node f anchor args env =
   let node_expr = f args env in
   (match anchor with
-  | Some anchor -> Hashtbl.replace env.anchors anchor node_expr
+  | Some anchor -> Base.Hashtbl.set env.anchors ~key:anchor ~data:node_expr
   | None -> ());
   node_expr
 
 let make_alias anchor pos env =
   let t = mk_tok pos anchor env in
-  match Hashtbl.find_opt env.anchors anchor with
+  match Base.Hashtbl.find env.anchors anchor with
   | Some (expr, _p) -> (A.Alias ((anchor, t), expr), pos)
   | None -> raise (UnrecognizedAlias t)
 
@@ -727,7 +727,7 @@ let parse_yaml_file ~is_target (file : Fpath.t) (str : string) : A.document =
       text = str;
       bytepos_to_pos;
       parser;
-      anchors = Hashtbl.create 1;
+      anchors = Base.Hashtbl.Poly.create ~size:1 ();
       last_event = None;
       is_target;
     }
@@ -752,7 +752,7 @@ let any ?(src_path = Fpath.v "<pattern_file>") (str : string) : A.any =
       text = str;
       bytepos_to_pos = None;
       parser;
-      anchors = Hashtbl.create 1;
+      anchors = Base.Hashtbl.Poly.create ~size:1 ();
       last_event = None;
       is_target = false;
     }

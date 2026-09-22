@@ -124,9 +124,9 @@ let apply_macro_defs defs xs =
     | PToken ({ t = TIdent (s, _i1); _ } as id)
       :: Parenthised (xxs, info_parens)
       :: xs
-      when Hashtbl.mem defs s ->
+      when Base.Hashtbl.mem defs s ->
         Hack.pr2_pp ("MACRO: found known macro = " ^ s);
-        (match Hashtbl.find defs s with
+        (match Hashtbl_.Base.find defs s with
         | Either.Left (), bodymacro ->
             pr2 ("macro without param used before parenthize, wierd: " ^ s);
             (* ex: PRINTP("NCR53C400 card%s detected\n" ANDP(((struct ... *)
@@ -154,9 +154,10 @@ let apply_macro_defs defs xs =
             |> iter_token_paren (Hack.set_as_comment Token_cpp.CppMacroExpanded);
             Hack.set_as_comment Token_cpp.CppMacroExpanded id);
         apply_macro_defs xs
-    | PToken ({ t = TIdent (s, _i1); _ } as id) :: xs when Hashtbl.mem defs s ->
+    | PToken ({ t = TIdent (s, _i1); _ } as id) :: xs
+      when Base.Hashtbl.mem defs s ->
         Hack.pr2_pp ("MACRO: found known macro = " ^ s);
-        (match Hashtbl.find defs s with
+        (match Hashtbl_.Base.find defs s with
         | Either.Right _params, _bodymacro ->
             pr2 ("macro with params but no parens found, wierd: " ^ s);
             (* dont apply the macro, perhaps a redefinition *)
