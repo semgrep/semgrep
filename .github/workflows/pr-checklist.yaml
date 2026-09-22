@@ -22,7 +22,9 @@
 name: PR-checklist
 
 on:
-  pull_request:
+  # pull_request_target gives fork PRs a writable token. Safe only because this
+  # job never checks out or runs PR code; keep it that way.
+  pull_request_target:
     types: [opened, edited]
 
 env:
