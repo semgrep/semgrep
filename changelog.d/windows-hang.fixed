@@ -1,1 +1,0 @@
-Fixed an occasional hang when `semgrep-core` exited on Windows.
