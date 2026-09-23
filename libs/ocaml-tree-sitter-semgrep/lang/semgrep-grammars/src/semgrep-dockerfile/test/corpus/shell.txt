@@ -1,0 +1,26 @@
+=============================================
+Square brackets in shell commands
+=============================================
+
+RUN python3 --version | grep 'Python [0-9]*\.[0-9]*\.[0-9]*'
+
+---
+
+(source_file
+  (run_instruction
+    (shell_command
+      (shell_fragment))))
+
+=============================================
+Square brackets in JSON commands
+=============================================
+
+RUN ["printf", "[ok]"]
+
+---
+
+(source_file
+  (run_instruction
+    (json_string_array
+      (json_string)
+      (json_string))))
