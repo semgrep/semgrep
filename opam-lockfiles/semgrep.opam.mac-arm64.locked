@@ -281,7 +281,7 @@ pin-depends: [
   ]
   [
     "obackward.dev"
-    "git+https://github.com/semgrep/obackward.git#e1c16766976b4fadd97097b96f96666e8e1cb98c"
+    "git+https://github.com/semgrep/obackward.git#6efca08b2a98317b1d705c1e88b8342ec558205c"
   ]
   [
     "ocaml-variants.5.4.0"
