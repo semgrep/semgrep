@@ -33,7 +33,7 @@ type pat_stop =
 
 type pat_8165e5f = Token.t (* pattern [^@:\s\$-] *)
 
-type pat_b1120d3 = Token.t (* pattern [,=-] *)
+type pat_as = Token.t (* pattern [aA][sS] *)
 
 type imm_tok_pat_f46f69d = Token.t (* pattern [^\s=,]+ *)
 
@@ -58,7 +58,7 @@ type pat_4128122 = Token.t (* pattern [-a-zA-Z0-9\._]+ *)
 
 type heredoc_end = Token.t
 
-type pat_eda9032 = Token.t (* pattern \\[^\n,=-] *)
+type pat_ea34a52 = Token.t (* pattern [ \t]* *)
 
 type pat_work = Token.t (* pattern [wW][oO][rR][kK][dD][iI][rR] *)
 
@@ -68,7 +68,7 @@ type pat_2b6adbc = Token.t (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
 
 type imm_tok_pat_f6e1de8 = Token.t (* pattern [^\s]+ *)
 
-type pat_a667757 = Token.t (* pattern <[^<] *)
+type pat_9ada80d = Token.t (* pattern \\[^\n,=-]\[? *)
 
 type pat_heal =
   Token.t (* pattern [hH][eE][aA][lL][tT][hH][cC][hH][eE][cC][kK] *)
@@ -86,7 +86,7 @@ type imm_tok_pat_9a14b5c = Token.t (* pattern [-a-zA-Z0-9_]+ *)
 
 type pat_user = Token.t (* pattern [uU][sS][eE][rR] *)
 
-type pat_cmd = Token.t (* pattern [cC][mM][dD] *)
+type pat_b1120d3 = Token.t (* pattern [,=-] *)
 
 type imm_tok_lcurl = Token.t (* "{" *)
 
@@ -96,7 +96,7 @@ type heredoc_nl = Token.t
 
 type imm_tok_dollar = Token.t (* "$" *)
 
-type pat_arg = Token.t (* pattern [aA][rR][gG] *)
+type pat_add = Token.t (* pattern [aA][dD][dD] *)
 
 type imm_tok_rcurl = Token.t (* "}" *)
 
@@ -116,7 +116,7 @@ type imm_tok_pat_441cd81 = Token.t (* pattern [A-Z0-9]+ *)
 
 type imm_tok_pat_2b37705 = Token.t (* pattern [^@:\s\$]+ *)
 
-type pat_copy = Token.t (* pattern [cC][oO][pP][yY] *)
+type pat_cmd = Token.t (* pattern [cC][mM][dD] *)
 
 type pat_expose = Token.t (* pattern [eE][xX][pP][oO][sS][eE] *)
 
@@ -126,7 +126,7 @@ type pat_from = Token.t (* pattern [fF][rR][oO][mM] *)
 
 type imm_tok_comma = Token.t (* "," *)
 
-type pat_ea34a52 = Token.t (* pattern [ \t]* *)
+type pat_e0f3805 = Token.t (* pattern \d+(-\d+)? *)
 
 type single_quoted_escape_sequence = Token.t
 
@@ -135,7 +135,7 @@ type imm_tok_mount = Token.t (* "mount" *)
 type pat_entr =
   Token.t (* pattern [eE][nN][tT][rR][yY][pP][oO][iI][nN][tT] *)
 
-type pat_e0f3805 = Token.t (* pattern \d+(-\d+)? *)
+type pat_copy = Token.t (* pattern [cC][oO][pP][yY] *)
 
 type semgrep_metavariable = Token.t (* pattern \$[A-Z_][A-Z_0-9]* *)
 
@@ -149,13 +149,13 @@ type imm_tok_eq = Token.t (* "=" *)
 
 type pat_9873c86 = Token.t (* pattern [^-\s\$<] *)
 
-type pat_as = Token.t (* pattern [aA][sS] *)
+type pat_arg = Token.t (* pattern [aA][rR][gG] *)
 
 type imm_tok_bslashspace = Token.t (* "\\ " *)
 
 type imm_tok_pat_0c7fc22 = Token.t (* pattern [^\s\$]+ *)
 
-type pat_add = Token.t (* pattern [aA][dD][dD] *)
+type pat_a667757 = Token.t (* pattern <[^<] *)
 
 type maintainer_instruction = (pat_main * pat_4fd4a56)
 
@@ -175,16 +175,6 @@ type expansion_body = [
         imm_tok_lcurl (*tok*) * imm_tok_pat_8713919 * imm_tok_rcurl (*tok*)
     )
 ]
-
-type shell_fragment =
-  [
-      `Here_marker_pat_ea34a52 of (heredoc_marker (*tok*) * pat_ea34a52)
-    | `Pat_b1120d3 of pat_b1120d3
-    | `Pat_f8ab07f of pat_f8ab07f
-    | `Pat_eda9032 of pat_eda9032
-    | `Pat_a667757 of pat_a667757
-  ]
-    list (* one or more *)
 
 type expose_port = [
     `Semg_ellips of Token.t (* "..." *)
@@ -218,6 +208,16 @@ type param = (
   * imm_tok_pat_f6e1de8
 )
 
+type shell_fragment =
+  [
+      `Here_marker_pat_ea34a52 of (heredoc_marker (*tok*) * pat_ea34a52)
+    | `Pat_b1120d3 of pat_b1120d3
+    | `Pat_f8ab07f of pat_f8ab07f
+    | `Pat_9ada80d of pat_9ada80d
+    | `Pat_a667757 of pat_a667757
+  ]
+    list (* one or more *)
+
 type array_element = [
     `Json_str of (
         Token.t (* "\"" *)
@@ -236,14 +236,6 @@ type expansion = (Token.t (* "$" *) * expansion_body)
 
 type imm_expansion = (imm_tok_dollar (*tok*) * expansion_body)
 
-type shell_command = [
-    `Semg_ellips of Token.t (* "..." *)
-  | `Shell_frag_rep_requ_line_cont_shell_frag of (
-        shell_fragment
-      * (Token.t (* "\\\n" *) * shell_fragment) list (* zero or more *)
-    )
-]
-
 type mount_param = (
     Token.t (* "--" *)
   * imm_tok_mount (*tok*)
@@ -251,6 +243,14 @@ type mount_param = (
   * mount_param_param
   * (imm_tok_comma (*tok*) * mount_param_param) list (* zero or more *)
 )
+
+type shell_command = [
+    `Semg_ellips of Token.t (* "..." *)
+  | `Shell_frag_rep_requ_line_cont_shell_frag of (
+        shell_fragment
+      * (Token.t (* "\\\n" *) * shell_fragment) list (* zero or more *)
+    )
+]
 
 type json_string_array = (
     Token.t (* "[" *)
