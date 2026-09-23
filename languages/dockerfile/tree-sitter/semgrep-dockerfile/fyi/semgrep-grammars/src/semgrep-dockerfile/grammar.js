@@ -117,6 +117,16 @@ module.exports = grammar(base_grammar, {
       previous
     ),
 
+    // Keep an opening bracket after an escaped character in the same token.
+    // Otherwise it cannot begin the next shell fragment.
+    shell_fragment: ($) => repeat1(choice(
+      seq($.heredoc_marker, /[ \t]*/),
+      /[,=-]/,
+      /[^\\\[\n#\s,=-][^\\\n<]*/,
+      /\\[^\n,=-]\[?/,
+      /<[^<]/,
+    )),
+
     /*
       Metavariable syntax vs. ARG expansions:
 

@@ -42,8 +42,8 @@ let children_regexps : (string * Run.exp option) list = [
   "pat_shell", None;
   "pat_work", None;
   "semgrep_ellipsis", None;
-  "pat_a667757", None;
-  "pat_e0f3805", None;
+  "pat_9ada80d", None;
+  "pat_copy", None;
   "pat_8165e5f", None;
   "imm_tok_at", None;
   "pat_run", None;
@@ -61,21 +61,21 @@ let children_regexps : (string * Run.exp option) list = [
   "required_line_continuation", None;
   "imm_tok_eq", None;
   "pat_4a2f38a", None;
-  "pat_as", None;
+  "pat_arg", None;
   "pat_onbu", None;
   "pat_label", None;
   "pat_volume", None;
   "imm_tok_pat_d2727a0", None;
   "variable", None;
   "imm_tok_bslashspace", None;
-  "pat_ea34a52", None;
+  "pat_e0f3805", None;
   "imm_tok_pat_0c7fc22", None;
   "imm_tok_rcurl", None;
   "json_escape_sequence", None;
   "single_quoted_escape_sequence", None;
   "imm_tok_mount", None;
-  "pat_cmd", None;
-  "pat_arg", None;
+  "pat_b1120d3", None;
+  "pat_add", None;
   "imm_tok_comma", None;
   "pat_4128122", None;
   "semgrep_metavariable", None;
@@ -88,7 +88,7 @@ let children_regexps : (string * Run.exp option) list = [
   "imm_tok_pat_8713919", None;
   "pat_2b6adbc", None;
   "imm_tok_pat_441cd81", None;
-  "pat_eda9032", None;
+  "pat_ea34a52", None;
   "pat_heal", None;
   "pat_0851d06", None;
   "pat_main", None;
@@ -101,27 +101,12 @@ let children_regexps : (string * Run.exp option) list = [
   "imm_tok_pat_3a2a380", None;
   "imm_tok_pat_7642c4f", None;
   "imm_tok_pat_0ab9261", None;
-  "pat_add", None;
+  "pat_a667757", None;
   "double_quoted_escape_sequence", None;
-  "pat_copy", None;
+  "pat_cmd", None;
   "imm_tok_dollar", None;
   "imm_tok_pat_3d340f6", None;
-  "pat_b1120d3", None;
-  "expose_port",
-  Some (
-    Alt [|
-      Token (Name "semgrep_ellipsis");
-      Seq [
-        Token (Name "pat_e0f3805");
-        Opt (
-          Alt [|
-            Token (Literal "/tcp");
-            Token (Literal "/udp");
-          |];
-        );
-      ];
-    |];
-  );
+  "pat_as", None;
   "param",
   Some (
     Seq [
@@ -137,6 +122,21 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "pat_4a2f38a");
       Token (Name "pat_4fd4a56");
     ];
+  );
+  "expose_port",
+  Some (
+    Alt [|
+      Token (Name "semgrep_ellipsis");
+      Seq [
+        Token (Name "pat_e0f3805");
+        Opt (
+          Alt [|
+            Token (Literal "/tcp");
+            Token (Literal "/udp");
+          |];
+        );
+      ];
+    |];
   );
   "heredoc_block",
   Some (
@@ -215,7 +215,7 @@ let children_regexps : (string * Run.exp option) list = [
         ];
         Token (Name "pat_b1120d3");
         Token (Name "pat_f8ab07f");
-        Token (Name "pat_eda9032");
+        Token (Name "pat_9ada80d");
         Token (Name "pat_a667757");
       |];
     );
@@ -820,12 +820,12 @@ let trans_semgrep_ellipsis ((kind, body) : mt) : CST.semgrep_ellipsis =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_a667757 ((kind, body) : mt) : CST.pat_a667757 =
+let trans_pat_9ada80d ((kind, body) : mt) : CST.pat_9ada80d =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_e0f3805 ((kind, body) : mt) : CST.pat_e0f3805 =
+let trans_pat_copy ((kind, body) : mt) : CST.pat_copy =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -915,7 +915,7 @@ let trans_pat_4a2f38a ((kind, body) : mt) : CST.pat_4a2f38a =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_as ((kind, body) : mt) : CST.pat_as =
+let trans_pat_arg ((kind, body) : mt) : CST.pat_arg =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -951,7 +951,7 @@ let trans_imm_tok_bslashspace ((kind, body) : mt) : CST.imm_tok_bslashspace =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_ea34a52 ((kind, body) : mt) : CST.pat_ea34a52 =
+let trans_pat_e0f3805 ((kind, body) : mt) : CST.pat_e0f3805 =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -981,12 +981,12 @@ let trans_imm_tok_mount ((kind, body) : mt) : CST.imm_tok_mount =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_cmd ((kind, body) : mt) : CST.pat_cmd =
+let trans_pat_b1120d3 ((kind, body) : mt) : CST.pat_b1120d3 =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_arg ((kind, body) : mt) : CST.pat_arg =
+let trans_pat_add ((kind, body) : mt) : CST.pat_add =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -1051,7 +1051,7 @@ let trans_imm_tok_pat_441cd81 ((kind, body) : mt) : CST.imm_tok_pat_441cd81 =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_eda9032 ((kind, body) : mt) : CST.pat_eda9032 =
+let trans_pat_ea34a52 ((kind, body) : mt) : CST.pat_ea34a52 =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -1116,7 +1116,7 @@ let trans_imm_tok_pat_0ab9261 ((kind, body) : mt) : CST.imm_tok_pat_0ab9261 =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_add ((kind, body) : mt) : CST.pat_add =
+let trans_pat_a667757 ((kind, body) : mt) : CST.pat_a667757 =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -1126,7 +1126,7 @@ let trans_double_quoted_escape_sequence ((kind, body) : mt) : CST.double_quoted_
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_copy ((kind, body) : mt) : CST.pat_copy =
+let trans_pat_cmd ((kind, body) : mt) : CST.pat_cmd =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
@@ -1141,10 +1141,38 @@ let trans_imm_tok_pat_3d340f6 ((kind, body) : mt) : CST.imm_tok_pat_3d340f6 =
   | Leaf v -> v
   | Children _ -> assert false
 
-let trans_pat_b1120d3 ((kind, body) : mt) : CST.pat_b1120d3 =
+let trans_pat_as ((kind, body) : mt) : CST.pat_as =
   match body with
   | Leaf v -> v
   | Children _ -> assert false
+
+let trans_param ((kind, body) : mt) : CST.param =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1; v2; v3] ->
+          (
+            Run.trans_token (Run.matcher_token v0),
+            trans_imm_tok_pat_f43f746 (Run.matcher_token v1),
+            trans_imm_tok_eq (Run.matcher_token v2),
+            trans_imm_tok_pat_f6e1de8 (Run.matcher_token v3)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_cross_build_instruction ((kind, body) : mt) : CST.cross_build_instruction =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            trans_pat_4a2f38a (Run.matcher_token v0),
+            trans_pat_4fd4a56 (Run.matcher_token v1)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
 
 let trans_expose_port ((kind, body) : mt) : CST.expose_port =
   match body with
@@ -1178,34 +1206,6 @@ let trans_expose_port ((kind, body) : mt) : CST.expose_port =
                 )
             | _ -> assert false
             )
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
-let trans_param ((kind, body) : mt) : CST.param =
-  match body with
-  | Children v ->
-      (match v with
-      | Seq [v0; v1; v2; v3] ->
-          (
-            Run.trans_token (Run.matcher_token v0),
-            trans_imm_tok_pat_f43f746 (Run.matcher_token v1),
-            trans_imm_tok_eq (Run.matcher_token v2),
-            trans_imm_tok_pat_f6e1de8 (Run.matcher_token v3)
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
-let trans_cross_build_instruction ((kind, body) : mt) : CST.cross_build_instruction =
-  match body with
-  | Children v ->
-      (match v with
-      | Seq [v0; v1] ->
-          (
-            trans_pat_4a2f38a (Run.matcher_token v0),
-            trans_pat_4fd4a56 (Run.matcher_token v1)
           )
       | _ -> assert false
       )
@@ -1382,8 +1382,8 @@ let trans_shell_fragment ((kind, body) : mt) : CST.shell_fragment =
                 trans_pat_f8ab07f (Run.matcher_token v)
               )
           | Alt (3, v) ->
-              `Pat_eda9032 (
-                trans_pat_eda9032 (Run.matcher_token v)
+              `Pat_9ada80d (
+                trans_pat_9ada80d (Run.matcher_token v)
               )
           | Alt (4, v) ->
               `Pat_a667757 (
