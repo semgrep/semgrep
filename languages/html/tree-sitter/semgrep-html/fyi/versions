@@ -1,34 +1,38 @@
 File: semgrep-grammars/src/tree-sitter-html/LICENSE
 Git repo name: tree-sitter-html
-Latest commit in repo: 14bdaf0da9e26e2de9b30178c2242539d2b0b285
+Latest commit in repo: 5a5ca8551a179998360b4a4ca2c0f366a35acc03
 Last change in file:
-  commit e4d834eb4918df01dcad5c27d1b15d56e3bd94cd
-  Author: Amaan Qureshi <amaanq12@gmail.com>
-  Date:   Sat May 4 03:34:13 2024 -0400
+  commit e74d96c27b307860be340cfcfebf367114b0fd65
+  Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
+  Date:   Mon Jun 11 13:18:00 2018 -0700
   
-      0.20.3
+      Initial commit
+      
+      Co-Authored-By: Ashi Krishan <queerviolet@github.com>
 ---
 File: semgrep-grammars/src/tree-sitter-html/grammar.js
 Git repo name: tree-sitter-html
-Latest commit in repo: 14bdaf0da9e26e2de9b30178c2242539d2b0b285
+Latest commit in repo: 5a5ca8551a179998360b4a4ca2c0f366a35acc03
 Last change in file:
-  commit e4d834eb4918df01dcad5c27d1b15d56e3bd94cd
-  Author: Amaan Qureshi <amaanq12@gmail.com>
-  Date:   Sat May 4 03:34:13 2024 -0400
+  commit 266f2e4785f4a66dd22b46ad39f8b4d332a682bb
+  Author: ObserverOfTime <chronobserver@disroot.org>
+  Date:   Wed Apr 10 18:05:05 2024 +0300
   
-      0.20.3
+      build: update bindings
 ---
 File: semgrep-grammars/src/semgrep-html/grammar.js
-Git repo name: ocaml-tree-sitter-semgrep
-Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Git repo name: nouakchott
+Latest commit in repo: c452d3048037ce77791905ae7f9ca4e2463ee767
 Last change in file:
-  commit 73bf69829157592bb38781ef9dc47001a7eee117
-  Author: Martin Jambon <martin@r2c.dev>
-  Date:   Mon Sep 16 16:57:03 2024 -0700
+  commit 60d03c6d94ae675854a715308949e98dab7fc63d
+  Author: Cursor Agent <cursoragent@cursor.com>
+  Date:   Fri Aug 28 21:36:21 2026 +0000
   
-      Update HTML parser (#509)
+      refactor: vendor ocaml-tree-sitter-semgrep
       
-      * Update HTML parser
+      Fold the ots git submodule into regular files. Flip ots CI to
+      ots_is_submodule=false. Keep batch-oriented regen-grammar /
+      check-vendored-grammars workflows.
       
-      * Fix the release script so as to delete files that we no longer release
+      Co-authored-by: Marc-André Laverdière <malaverdiere@users.noreply.github.com>
 ---
