@@ -876,10 +876,12 @@ async def get_abstract_syntax_tree(
         with open(temp_file_path, "w", encoding=ENCODING) as f:
             f.write(code)
 
+        # `semgrep --experimental --dump-ast -l LANG --json FILE` was removed in
+        # Semgrep 1.146.0; the replacement is `semgrep show dump-ast LANG FILE --json`.
+        # Output is JSON-identical between the two forms on supported languages.
         args = [
-            "--experimental",
-            "--dump-ast",
-            "-l",
+            "show",
+            "dump-ast",
             language,
             "--json",
             temp_file_path,
