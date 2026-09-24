@@ -1407,10 +1407,9 @@ Exception raised: `{e}`
         )
 
     def validate_configs(
-        self,
-        configs: Tuple[str, ...],
+        self, resolved_config: "Config", no_python_schema_validation: bool = False
     ) -> Sequence[SemgrepError]:
-        if self._binary_path is None:  # should never happen, doing this for mypy
+        if self._binary_path is None:
             raise SemgrepError("semgrep engine not found.")
 
         # The metacheck pack is Semgrep-bundled (not user input), so its
@@ -1423,25 +1422,38 @@ Exception raised: `{e}`
         )[0].get_rules(True)
 
         parsed_errors = []
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
+        rules_to_validate = resolved_config.get_rules(True)
+        
+        if not rules_to_validate:
+            return []
+        
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as metacheck_file:
             yaml = YAML()
             yaml.dump(
-                {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file
+                {"rules": [metacheck._raw for metacheck in metachecks]}, metacheck_file
             )
-            rule_file.flush()
+            metacheck_file.flush()
+            metacheck_path = metacheck_file.name
 
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as rules_file:
+            yaml = YAML()
+            yaml.dump(
+                {"rules": [rule._raw for rule in rules_to_validate]}, rules_file
+            )
+            rules_file.flush()
+            rules_path = rules_file.name
+
+        try:
             cmd = [
                 str(self._binary_path),
                 "-json",
                 "-check_rules",
-                rule_file.name,
-                *configs,
+                metacheck_path,
+                rules_path,
             ]
             if self._jobs is not None:
                 cmd.extend(["-j", str(self._jobs)])
 
-            # only scanning combined rules. Only 1 target, but total is 3 to account for
-            # Pro Engine
             total = 3
 
             runner = StreamingSemgrepCore(
@@ -1449,7 +1461,6 @@ Exception raised: `{e}`
             )
             returncode = runner.execute()
 
-            # Process output
             output_json = self._extract_core_output(
                 metachecks, returncode, " ".join(cmd), runner.stdout, runner.stderr
             )
@@ -1458,5 +1469,8 @@ Exception raised: `{e}`
             parsed_errors += [
                 core_error_to_semgrep_error(e) for e in core_output.errors
             ]
+        finally:
+            os.unlink(metacheck_path)
+            os.unlink(rules_path)
 
         return dedup_errors(parsed_errors)
