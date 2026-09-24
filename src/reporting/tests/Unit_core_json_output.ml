@@ -19,7 +19,8 @@ let key = Alcotest.testable Core_json_output.pp_key ( = )
 let key_not_equal = Alcotest.testable Core_json_output.pp_key ( <> )
 
 let make_core_match ?(check_id = "fake-rule-id") ?annotated_rule_id
-    ?(src = "unchanged") () : Out.core_match =
+    ?(src = "unchanged") ?(message = None) ?(metavars = []) () : Out.core_match
+    =
   let annotated_rule_id = Option.value annotated_rule_id ~default:check_id in
   let metadata : JSON.t =
     JSON.(
@@ -36,10 +37,10 @@ let make_core_match ?(check_id = "fake-rule-id") ?annotated_rule_id
   let extra : Out.core_match_extra =
     Out.
       {
-        message = None;
+        message;
         metadata = Some (JSON.to_yojson metadata);
         severity = None;
-        metavars = [];
+        metavars;
         fix = None;
         engine_kind = `OSS;
         dataflow_trace = None;
@@ -57,6 +58,15 @@ let make_core_match ?(check_id = "fake-rule-id") ?annotated_rule_id
       start = { line = 1; col = 1; offset = 1 };
       end_ = { line = 1; col = 2; offset = 2 };
       extra;
+    }
+
+let make_metavar abstract_content =
+  Out.
+    {
+      start = { line = 1; col = 1; offset = 1 };
+      end_ = { line = 1; col = 2; offset = 2 };
+      abstract_content;
+      propagated_value = None;
     }
 
 let make_test_case test_name key_testable msg match1 match2 =
@@ -86,4 +96,36 @@ let test_core_unique_key =
           "keys should not match" match1 match2);
      ]
 
-let tests = Testo.categorize "Core_json_output" test_core_unique_key
+let test_dedup_keeps_distinct_metavars_with_constant_or_interpolated_messages =
+  Testo.create "distinct metavariables are kept regardless of message"
+    (fun () ->
+      let make_matches messages =
+        List.map2
+          (fun abstract_content message ->
+            make_core_match ~message:(Some message)
+              ~metavars:[ ("$KEY_SIZE", make_metavar abstract_content) ]
+              ())
+          [ "192"; "256" ] messages
+      in
+      let constant_message_count =
+        Core_json_output.dedup_and_sort
+          (make_matches [ "bug demo"; "bug demo" ])
+        |> List.length
+      in
+      let interpolated_message_count =
+        Core_json_output.dedup_and_sort
+          (make_matches [ "bug demo 192"; "bug demo 256" ])
+        |> List.length
+      in
+      Alcotest.(check int)
+        "constant message preserves both findings" 2 constant_message_count;
+      Alcotest.(check int)
+        "interpolated message preserves both findings" 2
+        interpolated_message_count)
+
+let tests =
+  Testo.categorize "Core_json_output"
+    (test_core_unique_key
+    @ [
+        test_dedup_keeps_distinct_metavars_with_constant_or_interpolated_messages;
+      ])
