@@ -1,0 +1,1 @@
+__asm__ __volatile__(R"(op)" : "=r" ($OUT) : "r" ($IN) : R"(memory)", "c" "c");

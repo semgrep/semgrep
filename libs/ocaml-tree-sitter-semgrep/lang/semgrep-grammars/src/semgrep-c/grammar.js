@@ -17,6 +17,11 @@ module.exports = grammar(base_grammar, {
      if they're not already part of the base grammar.
   */
   rules: {
+    // C hexadecimal escapes consume all following hexadecimal digits.
+    escape_sequence: ($, previous) => choice(
+      previous,
+      token.immediate(prec(1, seq('\\', /x[0-9a-fA-F]+/))),
+    ),
   /*
     semgrep_ellipsis: $ => '...',
 

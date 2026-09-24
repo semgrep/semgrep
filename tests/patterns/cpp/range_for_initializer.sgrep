@@ -1,0 +1,1 @@
+for (int $INIT; int $VALUE : $RANGE) { consume($VALUE); }
