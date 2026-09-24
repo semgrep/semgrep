@@ -476,6 +476,7 @@ and stmt =
   | Jump of jump * sc
   (* labeled *)
   | Label of a_label * tok (* : *) * stmt
+  | LabelDecl of a_label * tok (* : *) * decl
   (* TODO: only inside Switch in theory *)
   | Case of tok * expr * tok (* : *) * case_body
   (* gccext: *)
@@ -563,9 +564,9 @@ and exception_declaration = ExnDecl of parameter
 and assembler = {
   (* Should only be a literal string or ConcatString *)
   a_template : expr;
-  a_outputs : ident asm_operand list;
+  a_outputs : expr asm_operand list;
   a_inputs : expr asm_operand list;
-  a_clobbers : ident list;
+  a_clobbers : expr list;
   a_gotos : ident list;
 }
 
@@ -634,6 +635,7 @@ and decl =
       tok (*'namespace'*) * ident * tok (*=*) * a_namespace_name * sc
   (* the namespace can be unnamed *)
   | Namespace of tok * name option * declarations
+  | NamespaceAttributed of tok * attribute * name option * declarations
   (* the list can be empty *)
   | ExternDecl of tok * string wrap (* usually "C" *) * decl
   | ExternList of tok * string wrap * declarations
@@ -644,6 +646,7 @@ and decl =
   (* since c++20 *)
   | Concept of tok (*'concept'*) * ident * tok (*'='*) * expr * sc
   | Friend of tok (* 'friend' *) * decl (* Func or DeclList *)
+  | ConstexprFriend of tok (* 'constexpr' *) * tok (* 'friend' *) * decl
   (* gccext: allow redundant ';' *)
   | EmptyDef of sc
   | NotParsedCorrectly of tok list
@@ -934,6 +937,10 @@ and type_qualifier =
   | Constinit
   | Consteval
   | NoReturn
+  | Nonnull
+  | StaticArray
+  | MsCallQualifier of string wrap
+  | AlignAsQualifier of argument bracket
   (* https://stackoverflow.com/questions/5323478/how-to-use-extension-and-typeof-in-a-minified-example-in-c *)
   | Extension
 

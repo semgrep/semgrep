@@ -401,7 +401,7 @@ and map_sized_type env (kind, t) : G.type_ =
 and map_type_qualifiers env v : G.attribute list =
   map_of_list (map_qualifier_wrap env) v
 
-and map_qualifier_wrap _env (qu, t) : G.attribute =
+and map_qualifier_wrap env (qu, t) : G.attribute =
   (* old: (map_wrap env (map_type_qualifier env)) *)
   match qu with
   | Const -> G.attr G.Const t
@@ -413,6 +413,12 @@ and map_qualifier_wrap _env (qu, t) : G.attribute =
   | Constinit -> G.unhandled_keywordattr ("ConstInit", t)
   | Consteval -> G.unhandled_keywordattr ("ConstEval", t)
   | NoReturn -> G.unhandled_keywordattr ("noreturn", t)
+  | Nonnull -> G.unhandled_keywordattr ("_Nonnull", t)
+  | StaticArray -> G.unhandled_keywordattr ("static", t)
+  | MsCallQualifier name -> G.unhandled_keywordattr name
+  | AlignAsQualifier (l, arg, r) ->
+      let arg = map_argument env arg in
+      OtherAttribute (("AlignAs", t), [ G.Tk l; G.Ar arg; G.Tk r ])
   | Extension -> G.unhandled_keywordattr ("extension", t)
 
 and map_expr env x : G.expr =
@@ -917,9 +923,9 @@ and map_stmt env x : G.stmt =
         (_l, { a_template; a_outputs; a_inputs; a_clobbers; a_gotos }, _r),
         sc ) ->
       let a_template = [ G.E (map_expr env a_template) ] in
-      let a_outputs = List.concat_map (map_name_asm_operand env) a_outputs in
+      let a_outputs = List.concat_map (map_expr_asm_operand env) a_outputs in
       let a_inputs = List.concat_map (map_expr_asm_operand env) a_inputs in
-      let a_clobbers = List.map (fun x -> G.I (map_ident env x)) a_clobbers in
+      let a_clobbers = List.map (fun x -> G.E (map_expr env x)) a_clobbers in
       let a_gotos = List.map (fun x -> G.I (map_ident env x)) a_gotos in
       G.OtherStmt
         ( G.OS_Asm,
@@ -934,6 +940,11 @@ and map_stmt env x : G.stmt =
       and _v2 = map_tok env v2
       and v3 = map_stmt env v3 in
       G.Label (v1, v3) |> G.s
+  | LabelDecl (v1, v2, v3) ->
+      let v1 = map_a_label env v1
+      and _v2 = map_tok env v2
+      and v3 = map_decl env v3 in
+      G.Label (v1, G.Block (fb v3) |> G.s) |> G.s
   (* should be handled in map_cases *)
   | Case _
   | CaseRange _
@@ -997,15 +1008,6 @@ and map_expr_asm_operand env (v1, v2, v3) =
   in
   let _, v3, _ = map_bracket env (map_expr env) v3 in
   v1 @ [ G.I v2 ] @ [ G.E v3 ]
-
-and map_name_asm_operand _env (v1, v2, v3) =
-  let v1 =
-    match v1 with
-    | None -> []
-    | Some (_, n, _) -> [ G.I n ]
-  in
-  let _, v3, _ = v3 in
-  v1 @ [ G.I v2 ] @ [ G.I v3 ]
 
 (* similar to Ast_c_build.cases()
  * TODO: CaseEllipsis?
@@ -1400,6 +1402,19 @@ and map_decl env x : G.stmt list =
       let dir1 = G.Package (v1, dotted) |> G.d in
       let dir2 = G.PackageEnd r |> G.d in
       [ G.DirectiveStmt dir1 |> G.s ] @ v3 @ [ G.DirectiveStmt dir2 |> G.s ]
+  | NamespaceAttributed (v1, vattr, v2, v3) ->
+      let v1 = map_tok env v1
+      and vattr = map_attribute env vattr
+      and v2 = map_of_option (map_name env) v2
+      and _l, v3, r = map_declarations env v3 in
+      let dotted =
+        match v2 with
+        | None -> []
+        | Some x -> H.dotted_ident_of_name x
+      in
+      let dir1 = { (G.Package (v1, dotted) |> G.d) with d_attrs = [ vattr ] } in
+      let dir2 = G.PackageEnd r |> G.d in
+      ((G.DirectiveStmt dir1 |> G.s) :: v3) @ [ G.DirectiveStmt dir2 |> G.s ]
   | StaticAssert (v1, v2) ->
       let v1 = map_tok env v1
       and v2 = map_paren env (map_of_list (map_argument env)) v2 in
@@ -1407,6 +1422,14 @@ and map_decl env x : G.stmt list =
   | Friend (v1, v2) ->
       let _v1TODO = map_tok env v1 and v2 = map_decl env v2 in
       v2
+  | ConstexprFriend (vconstexpr, v1, v2) ->
+      let _v1TODO = map_tok env v1
+      and attr = map_qualifier_wrap env (Constexpr, vconstexpr)
+      and v2 = map_decl env v2 in
+      v2
+      |> List.map
+           (map_def_in_stmt (fun (ent, def) ->
+                ({ ent with attrs = attr :: ent.attrs }, def)))
   | EmptyDef v1 ->
       let v1 = map_sc env v1 in
       [ G.emptystmt v1 ]
