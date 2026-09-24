@@ -1,0 +1,1 @@
+alignas(16) int $NAME;

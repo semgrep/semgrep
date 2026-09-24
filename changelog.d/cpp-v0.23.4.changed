@@ -1,0 +1,8 @@
+cpp grammar update (v0.23.4):
+
+- C++ target parsing now supports attributes on namespace definitions and preserves their arguments in the AST.
+- C++ target parsing now supports reference typedef declarators, including references to arrays and functions.
+- C++ target parsing now supports C++20 lambda pack init-captures such as [...values = args] and [&...values = args]. Capture-sensitive matching remains an existing limitation.
+- C++ target parsing now supports GNU inline-assembly output operands that are expressions, including pointer dereferences and array accesses.
+- C++ target parsing now supports composite type arguments in alignas declarations, such as alignas(int *), while preserving the alignment argument.
+- C++ target parsing now accepts single-digit hexadecimal escapes in string literals, such as "\xA", while retaining support for longer hexadecimal escapes.

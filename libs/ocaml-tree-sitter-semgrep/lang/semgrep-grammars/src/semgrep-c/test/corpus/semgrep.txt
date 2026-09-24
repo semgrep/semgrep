@@ -1,0 +1,33 @@
+==================
+Hexadecimal escape boundaries
+==================
+char *s = "\x1\x0041\x00000041";
+int a = '\x1';
+int b = '\x0041';
+int c = '\x00000041';
+
+---
+
+(translation_unit
+  (declaration (primitive_type) (init_declarator (pointer_declarator (identifier)) (string_literal (escape_sequence) (escape_sequence) (escape_sequence))))
+  (declaration (primitive_type) (init_declarator (identifier) (char_literal (escape_sequence))))
+  (declaration (primitive_type) (init_declarator (identifier) (char_literal (escape_sequence))))
+  (declaration (primitive_type) (init_declarator (identifier) (char_literal (escape_sequence)))))
+
+==================
+Metavariables in declarations and composed expressions
+==================
+$TYPE $F($TYPE $X, ...);
+void f() {
+  $F($X, &$Y, ($Z));
+  const char *s = $PREFIX "text";
+}
+
+---
+
+(translation_unit
+  (declaration (type_identifier) (function_declarator (identifier) (parameter_list (parameter_declaration (type_identifier) (identifier)) (variadic_parameter))))
+  (function_definition (primitive_type) (function_declarator (identifier) (parameter_list))
+    (compound_statement
+      (expression_statement (call_expression (identifier) (argument_list (identifier) (pointer_expression (identifier)) (parenthesized_expression (identifier)))))
+      (declaration (type_qualifier) (primitive_type) (init_declarator (pointer_declarator (identifier)) (concatenated_string (identifier) (string_literal (string_content))))))))

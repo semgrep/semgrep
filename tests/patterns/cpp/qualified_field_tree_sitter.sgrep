@@ -1,0 +1,1 @@
+namespace [[gnu::visibility("default")]] $NS { void $F($TYPE $OBJ) { $OBJ.Base::method(); } }

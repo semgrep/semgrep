@@ -1,12 +1,10 @@
 /**
  * @file C grammar for tree-sitter
- * @author Max Brunsfeld
+ * @author Max Brunsfeld <maxbrunsfeld@gmail.com>
+ * @author Amaan Qureshi <amaanq12@gmail.com>
  * @license MIT
  */
 
-/* eslint-disable arrow-parens */
-/* eslint-disable camelcase */
-/* eslint-disable-next-line spaced-comment */
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
@@ -37,36 +35,48 @@ const PREC = {
 module.exports = grammar({
   name: 'c',
 
+  conflicts: $ => [
+    [$.type_specifier, $._declarator],
+    [$.type_specifier, $._declarator, $.macro_type_specifier],
+    [$.type_specifier, $.expression],
+    [$.type_specifier, $.expression, $.macro_type_specifier],
+    [$.type_specifier, $.macro_type_specifier],
+    [$.type_specifier, $.sized_type_specifier],
+    [$.sized_type_specifier],
+    [$.attributed_statement],
+    [$._declaration_modifiers, $.attributed_statement],
+    [$.enum_specifier],
+    [$.type_specifier, $._old_style_parameter_list],
+    [$.parameter_list, $._old_style_parameter_list],
+    [$.function_declarator, $._function_declaration_declarator],
+    [$._block_item, $.statement],
+    [$._top_level_item, $._top_level_statement],
+    [$.type_specifier, $._top_level_expression_statement],
+    [$.type_qualifier, $.extension_expression],
+  ],
+
   extras: $ => [
     /\s|\\\r?\n/,
     $.comment,
   ],
 
   inline: $ => [
-    $._statement,
-    $._block_item,
-    $._top_level_item,
-    $._top_level_statement,
     $._type_identifier,
     $._field_identifier,
     $._statement_identifier,
     $._non_case_statement,
     $._assignment_left_expression,
+    $._expression_not_binary,
   ],
 
-  conflicts: $ => [
-    [$._type_specifier, $._declarator],
-    [$._type_specifier, $._declarator, $.macro_type_specifier],
-    [$._type_specifier, $._expression_not_binary],
-    [$._type_specifier, $._expression_not_binary, $.macro_type_specifier],
-    [$._type_specifier, $.macro_type_specifier],
-    [$._type_specifier, $.sized_type_specifier],
-    [$.sized_type_specifier],
-    [$.attributed_statement],
-    [$._declaration_modifiers, $.attributed_statement],
-    [$.enum_specifier],
-    [$._type_specifier, $._old_style_parameter_list],
-    [$.parameter_list, $._old_style_parameter_list],
+  supertypes: $ => [
+    $.expression,
+    $.statement,
+    $.type_specifier,
+    $._declarator,
+    $._field_declarator,
+    $._type_declarator,
+    $._abstract_declarator,
   ],
 
   word: $ => $.identifier,
@@ -97,7 +107,7 @@ module.exports = grammar({
       alias($._old_style_function_definition, $.function_definition),
       $.linkage_specification,
       $.declaration,
-      $._statement,
+      $.statement,
       $.attributed_statement,
       $.type_definition,
       $._empty_declaration,
@@ -230,6 +240,7 @@ module.exports = grammar({
     function_definition: $ => seq(
       optional($.ms_call_modifier),
       $._declaration_specifiers,
+      optional($.ms_call_modifier),
       field('declarator', $._declarator),
       field('body', $.compound_statement),
     ),
@@ -238,19 +249,22 @@ module.exports = grammar({
       optional($.ms_call_modifier),
       $._declaration_specifiers,
       field('declarator', alias($._old_style_function_declarator, $.function_declarator)),
-      repeat($.declaration),
+      repeat1($.declaration),
       field('body', $.compound_statement),
     ),
 
     declaration: $ => seq(
       $._declaration_specifiers,
-      $._declaration_declarator,
+      commaSep1(field('declarator', choice(
+        seq(
+          optional($.ms_call_modifier),
+          $._declaration_declarator,
+          optional($.gnu_asm_expression),
+        ),
+        $.init_declarator,
+      ))),
       ';',
     ),
-    _declaration_declarator: $ => commaSep1(field('declarator', choice(
-      seq($._declarator, optional($.gnu_asm_expression)),
-      $.init_declarator,
-    ))),
 
     type_definition: $ => seq(
       optional('__extension__'),
@@ -260,7 +274,7 @@ module.exports = grammar({
       repeat($.attribute_specifier),
       ';',
     ),
-    _type_definition_type: $ => seq(repeat($.type_qualifier), field('type', $._type_specifier), repeat($.type_qualifier)),
+    _type_definition_type: $ => seq(repeat($.type_qualifier), field('type', $.type_specifier), repeat($.type_qualifier)),
     _type_definition_declarators: $ => commaSep1(field('declarator', $._type_declarator)),
 
     _declaration_modifiers: $ => choice(
@@ -273,7 +287,7 @@ module.exports = grammar({
 
     _declaration_specifiers: $ => prec.right(seq(
       repeat($._declaration_modifiers),
-      field('type', $._type_specifier),
+      field('type', $.type_specifier),
       repeat($._declaration_modifiers),
     )),
 
@@ -288,7 +302,7 @@ module.exports = grammar({
     ),
 
     attribute_specifier: $ => seq(
-      '__attribute__',
+      choice('__attribute__', '__attribute'),
       '(',
       $.argument_list,
       ')',
@@ -357,6 +371,15 @@ module.exports = grammar({
       $.identifier,
     ),
 
+    _declaration_declarator: $ => choice(
+      $.attributed_declarator,
+      $.pointer_declarator,
+      alias($._function_declaration_declarator, $.function_declarator),
+      $.array_declarator,
+      $.parenthesized_declarator,
+      $.identifier,
+    ),
+
     _field_declarator: $ => choice(
       alias($.attributed_field_declarator, $.attributed_declarator),
       alias($.pointer_field_declarator, $.pointer_declarator),
@@ -386,21 +409,25 @@ module.exports = grammar({
 
     parenthesized_declarator: $ => prec.dynamic(PREC.PAREN_DECLARATOR, seq(
       '(',
+      optional($.ms_call_modifier),
       $._declarator,
       ')',
     )),
     parenthesized_field_declarator: $ => prec.dynamic(PREC.PAREN_DECLARATOR, seq(
       '(',
+      optional($.ms_call_modifier),
       $._field_declarator,
       ')',
     )),
     parenthesized_type_declarator: $ => prec.dynamic(PREC.PAREN_DECLARATOR, seq(
       '(',
+      optional($.ms_call_modifier),
       $._type_declarator,
       ')',
     )),
     abstract_parenthesized_declarator: $ => prec(1, seq(
       '(',
+      optional($.ms_call_modifier),
       $._abstract_declarator,
       ')',
     )),
@@ -441,6 +468,7 @@ module.exports = grammar({
       field('declarator', $._type_declarator),
     ))),
     abstract_pointer_declarator: $ => prec.dynamic(1, prec.right(seq('*',
+      repeat($.ms_pointer_modifier),
       repeat($.type_qualifier),
       field('declarator', optional($._abstract_declarator)),
     ))),
@@ -450,8 +478,22 @@ module.exports = grammar({
         field('declarator', $._declarator),
         field('parameters', $.parameter_list),
         optional($.gnu_asm_expression),
+        repeat(choice(
+          $.attribute_specifier,
+          $.identifier,
+          alias($.preproc_call_expression, $.call_expression),
+        )),
+      ),
+    ),
+
+    _function_declaration_declarator: $ => prec.right(1,
+      seq(
+        field('declarator', $._declarator),
+        field('parameters', $.parameter_list),
+        optional($.gnu_asm_expression),
         repeat($.attribute_specifier),
       )),
+
     function_field_declarator: $ => prec(1, seq(
       field('declarator', $._field_declarator),
       field('parameters', $.parameter_list),
@@ -473,36 +515,36 @@ module.exports = grammar({
     array_declarator: $ => prec(1, seq(
       field('declarator', $._declarator),
       '[',
-      repeat($.type_qualifier),
-      field('size', optional(choice($._expression, '*'))),
+      repeat(choice($.type_qualifier, 'static')),
+      field('size', optional(choice($.expression, '*'))),
       ']',
     )),
     array_field_declarator: $ => prec(1, seq(
       field('declarator', $._field_declarator),
       '[',
-      repeat($.type_qualifier),
-      field('size', optional(choice($._expression, '*'))),
+      repeat(choice($.type_qualifier, 'static')),
+      field('size', optional(choice($.expression, '*'))),
       ']',
     )),
     array_type_declarator: $ => prec(1, seq(
       field('declarator', $._type_declarator),
       '[',
-      repeat($.type_qualifier),
-      field('size', optional(choice($._expression, '*'))),
+      repeat(choice($.type_qualifier, 'static')),
+      field('size', optional(choice($.expression, '*'))),
       ']',
     )),
     abstract_array_declarator: $ => prec(1, seq(
       field('declarator', optional($._abstract_declarator)),
       '[',
-      repeat($.type_qualifier),
-      field('size', optional(choice($._expression, '*'))),
+      repeat(choice($.type_qualifier, 'static')),
+      field('size', optional(choice($.expression, '*'))),
       ']',
     )),
 
     init_declarator: $ => seq(
       field('declarator', $._declarator),
       '=',
-      field('value', choice($.initializer_list, $._expression)),
+      field('value', choice($.initializer_list, $.expression)),
     ),
 
     compound_statement: $ => seq(
@@ -524,7 +566,7 @@ module.exports = grammar({
       '__thread',
     ),
 
-    type_qualifier: _ => choice(
+    type_qualifier: $ => choice(
       'const',
       'constexpr',
       'volatile',
@@ -534,9 +576,18 @@ module.exports = grammar({
       '_Atomic',
       '_Noreturn',
       'noreturn',
+      '_Nonnull',
+      $.alignas_qualifier,
     ),
 
-    _type_specifier: $ => choice(
+    alignas_qualifier: $ => seq(
+      choice('alignas', '_Alignas'),
+      '(',
+      choice($.expression, $.type_descriptor),
+      ')',
+    ),
+
+    type_specifier: $ => choice(
       $.struct_specifier,
       $.union_specifier,
       $.enum_specifier,
@@ -572,6 +623,7 @@ module.exports = grammar({
           'long',
           'short',
         )),
+        repeat($.type_qualifier),
         field('type', optional(choice(
           prec.dynamic(-1, $._type_identifier),
           $.primitive_type,
@@ -690,20 +742,21 @@ module.exports = grammar({
       optional($.bitfield_clause),
     )),
 
-    bitfield_clause: $ => seq(':', $._expression),
+    bitfield_clause: $ => seq(':', $.expression),
 
     enumerator: $ => seq(
       field('name', $.identifier),
-      optional(seq('=', field('value', $._expression))),
+      optional(seq('=', field('value', $.expression))),
     ),
 
-    variadic_parameter: _ => seq(
-      '...',
-    ),
+    variadic_parameter: _ => '...',
 
     parameter_list: $ => seq(
       '(',
-      commaSep(choice($.parameter_declaration, $.variadic_parameter)),
+      choice(
+        commaSep(choice($.parameter_declaration, $.variadic_parameter)),
+        $.compound_statement,
+      ),
       ')',
     ),
     _old_style_parameter_list: $ => seq(
@@ -718,16 +771,17 @@ module.exports = grammar({
         $._declarator,
         $._abstract_declarator,
       ))),
+      repeat($.attribute_specifier),
     ),
 
     // Statements
 
     attributed_statement: $ => seq(
       repeat1($.attribute_declaration),
-      $._statement,
+      $.statement,
     ),
 
-    _statement: $ => choice(
+    statement: $ => choice(
       $.case_statement,
       $._non_case_statement,
     ),
@@ -770,18 +824,18 @@ module.exports = grammar({
     labeled_statement: $ => seq(
       field('label', $._statement_identifier),
       ':',
-      $._statement,
+      choice($.declaration, $.statement),
     ),
 
     // This is missing binary expressions, others were kept so that macro code can be parsed better and code examples
     _top_level_expression_statement: $ => seq(
-      $._expression_not_binary,
+      optional($._expression_not_binary),
       ';',
     ),
 
     expression_statement: $ => seq(
       optional(choice(
-        $._expression,
+        $.expression,
         $.comma_expression,
       )),
       ';',
@@ -790,11 +844,11 @@ module.exports = grammar({
     if_statement: $ => prec.right(seq(
       'if',
       field('condition', $.parenthesized_expression),
-      field('consequence', $._statement),
+      field('consequence', $.statement),
       optional(field('alternative', $.else_clause)),
     )),
 
-    else_clause: $ => seq('else', $._statement),
+    else_clause: $ => seq('else', $.statement),
 
     switch_statement: $ => seq(
       'switch',
@@ -804,7 +858,7 @@ module.exports = grammar({
 
     case_statement: $ => prec.right(seq(
       choice(
-        seq('case', field('value', $._expression)),
+        seq('case', field('value', $.expression)),
         'default',
       ),
       ':',
@@ -818,12 +872,12 @@ module.exports = grammar({
     while_statement: $ => seq(
       'while',
       field('condition', $.parenthesized_expression),
-      field('body', $._statement),
+      field('body', $.statement),
     ),
 
     do_statement: $ => seq(
       'do',
-      field('body', $._statement),
+      field('body', $.statement),
       'while',
       field('condition', $.parenthesized_expression),
       ';',
@@ -834,21 +888,21 @@ module.exports = grammar({
       '(',
       $._for_statement_body,
       ')',
-      field('body', $._statement),
+      field('body', $.statement),
     ),
     _for_statement_body: $ => seq(
       choice(
         field('initializer', $.declaration),
-        seq(field('initializer', optional(choice($._expression, $.comma_expression))), ';'),
+        seq(field('initializer', optional(choice($.expression, $.comma_expression))), ';'),
       ),
-      field('condition', optional(choice($._expression, $.comma_expression))),
+      field('condition', optional(choice($.expression, $.comma_expression))),
       ';',
-      field('update', optional(choice($._expression, $.comma_expression))),
+      field('update', optional(choice($.expression, $.comma_expression))),
     ),
 
     return_statement: $ => seq(
       'return',
-      optional(choice($._expression, $.comma_expression)),
+      optional(choice($.expression, $.comma_expression)),
       ';',
     ),
 
@@ -889,7 +943,7 @@ module.exports = grammar({
 
     // Expressions
 
-    _expression: $ => choice(
+    expression: $ => choice(
       $._expression_not_binary,
       $.binary_expression,
     ),
@@ -911,28 +965,33 @@ module.exports = grammar({
       $.compound_literal_expression,
       $.identifier,
       $.number_literal,
-      $.string_literal,
+      $._string,
       $.true,
       $.false,
       $.null,
-      $.concatenated_string,
       $.char_literal,
       $.parenthesized_expression,
       $.gnu_asm_expression,
+      $.extension_expression,
     ),
 
+    _string: $ => prec.left(choice(
+      $.string_literal,
+      $.concatenated_string,
+    )),
+
     comma_expression: $ => seq(
-      field('left', $._expression),
+      field('left', $.expression),
       ',',
-      field('right', choice($._expression, $.comma_expression)),
+      field('right', choice($.expression, $.comma_expression)),
     ),
 
     conditional_expression: $ => prec.right(PREC.CONDITIONAL, seq(
-      field('condition', $._expression),
+      field('condition', $.expression),
       '?',
-      optional(field('consequence', $._expression)),
+      optional(field('consequence', choice($.expression, $.comma_expression))),
       ':',
-      field('alternative', $._expression),
+      field('alternative', $.expression),
     )),
 
     _assignment_left_expression: $ => choice(
@@ -959,17 +1018,17 @@ module.exports = grammar({
         '^=',
         '|=',
       )),
-      field('right', $._expression),
+      field('right', $.expression),
     )),
 
     pointer_expression: $ => prec.left(PREC.CAST, seq(
       field('operator', choice('*', '&')),
-      field('argument', $._expression),
+      field('argument', $.expression),
     )),
 
     unary_expression: $ => prec.left(PREC.UNARY, seq(
       field('operator', choice('!', '~', '-', '+')),
-      field('argument', $._expression),
+      field('argument', $.expression),
     )),
 
     binary_expression: $ => {
@@ -996,16 +1055,16 @@ module.exports = grammar({
 
       return choice(...table.map(([operator, precedence]) => {
         return prec.left(precedence, seq(
-          field('left', $._expression),
+          field('left', $.expression),
           // @ts-ignore
           field('operator', operator),
-          field('right', $._expression),
+          field('right', $.expression),
         ));
       }));
     },
 
     update_expression: $ => {
-      const argument = field('argument', $._expression);
+      const argument = field('argument', $.expression);
       const operator = field('operator', choice('--', '++'));
       return prec.right(PREC.UNARY, choice(
         seq(operator, argument),
@@ -1017,12 +1076,12 @@ module.exports = grammar({
       '(',
       field('type', $.type_descriptor),
       ')',
-      field('value', $._expression),
+      field('value', $.expression),
     )),
 
     type_descriptor: $ => seq(
       repeat($.type_qualifier),
-      field('type', $._type_specifier),
+      field('type', $.type_specifier),
       repeat($.type_qualifier),
       field('declarator', optional($._abstract_declarator)),
     ),
@@ -1030,7 +1089,7 @@ module.exports = grammar({
     sizeof_expression: $ => prec(PREC.SIZEOF, seq(
       'sizeof',
       choice(
-        field('value', $._expression),
+        field('value', $.expression),
         seq('(', field('type', $.type_descriptor), ')'),
       ),
     )),
@@ -1048,29 +1107,29 @@ module.exports = grammar({
     generic_expression: $ => prec(PREC.CALL, seq(
       '_Generic',
       '(',
-      $._expression,
+      $.expression,
       ',',
-      commaSep1(seq($.type_descriptor, ':', $._expression)),
+      commaSep1(seq($.type_descriptor, ':', $.expression)),
       ')',
     )),
 
     subscript_expression: $ => prec(PREC.SUBSCRIPT, seq(
-      field('argument', $._expression),
+      field('argument', $.expression),
       '[',
-      field('index', $._expression),
+      field('index', $.expression),
       ']',
     )),
 
     call_expression: $ => prec(PREC.CALL, seq(
-      field('function', $._expression),
+      field('function', $.expression),
       field('arguments', $.argument_list),
     )),
 
     gnu_asm_expression: $ => prec(PREC.CALL, seq(
-      choice('asm', '__asm__'),
+      choice('asm', '__asm__', '__asm'),
       repeat($.gnu_asm_qualifier),
       '(',
-      field('assembly_code', choice($.string_literal, $.concatenated_string)),
+      field('assembly_code', $._string),
       optional(seq(
         field('output_operands', $.gnu_asm_output_operand_list),
         optional(seq(
@@ -1086,6 +1145,7 @@ module.exports = grammar({
 
     gnu_asm_qualifier: _ => choice(
       'volatile',
+      '__volatile__',
       'inline',
       'goto',
     ),
@@ -1103,7 +1163,7 @@ module.exports = grammar({
       )),
       field('constraint', $.string_literal),
       '(',
-      field('value', $.identifier),
+      field('value', $.expression),
       ')',
     ),
 
@@ -1120,13 +1180,13 @@ module.exports = grammar({
       )),
       field('constraint', $.string_literal),
       '(',
-      field('value', $._expression),
+      field('value', $.expression),
       ')',
     ),
 
     gnu_asm_clobber_list: $ => seq(
       ':',
-      commaSep(field('register', $.string_literal)),
+      commaSep(field('register', $._string)),
     ),
 
     gnu_asm_goto_list: $ => seq(
@@ -1134,12 +1194,14 @@ module.exports = grammar({
       commaSep(field('label', $.identifier)),
     ),
 
+    extension_expression: $ => seq('__extension__', $.expression),
+
     // The compound_statement is added to parse macros taking statements as arguments, e.g. MYFORLOOP(1, 10, i, { foo(i); bar(i); })
-    argument_list: $ => seq('(', commaSep(choice(seq(optional('__extension__'), $._expression), $.compound_statement)), ')'),
+    argument_list: $ => seq('(', commaSep(choice($.expression, $.compound_statement)), ')'),
 
     field_expression: $ => seq(
       prec(PREC.FIELD, seq(
-        field('argument', $._expression),
+        field('argument', $.expression),
         field('operator', choice('.', '->')),
       )),
       field('field', $._field_identifier),
@@ -1154,7 +1216,7 @@ module.exports = grammar({
 
     parenthesized_expression: $ => seq(
       '(',
-      choice($._expression, $.comma_expression),
+      choice($.expression, $.comma_expression, $.compound_statement),
       ')',
     ),
 
@@ -1162,7 +1224,7 @@ module.exports = grammar({
       '{',
       commaSep(choice(
         $.initializer_pair,
-        $._expression,
+        $.expression,
         $.initializer_list,
       )),
       optional(','),
@@ -1177,18 +1239,18 @@ module.exports = grammar({
           $.subscript_range_designator,
         ))),
         '=',
-        field('value', choice($._expression, $.initializer_list)),
+        field('value', choice($.expression, $.initializer_list)),
       ),
       seq(
         field('designator', $._field_identifier),
         ':',
-        field('value', choice($._expression, $.initializer_list)),
+        field('value', choice($.expression, $.initializer_list)),
       ),
     ),
 
-    subscript_designator: $ => seq('[', $._expression, ']'),
+    subscript_designator: $ => seq('[', $.expression, ']'),
 
-    subscript_range_designator: $ => seq('[', field('start', $._expression), '...', field('end', $._expression), ']'),
+    subscript_range_designator: $ => seq('[', field('start', $.expression), '...', field('end', $.expression), ']'),
 
     field_designator: $ => seq('.', $._field_identifier),
 
@@ -1232,10 +1294,15 @@ module.exports = grammar({
       '\'',
     ),
 
+    // Must concatenate at least 2 nodes, one of which must be a string_literal.
+    // Identifier is added to parse macros that are strings, like PRIu64.
     concatenated_string: $ => prec.right(seq(
-      choice($.identifier, $.string_literal),
-      $.string_literal,
-      repeat(choice($.string_literal, $.identifier)), // Identifier is added to parse macros that are strings, like PRIu64
+      choice(
+        seq($.identifier, $.string_literal),
+        seq($.string_literal, $.string_literal),
+        seq($.string_literal, $.identifier),
+      ),
+      repeat(choice($.string_literal, $.identifier)),
     )),
 
     string_literal: $ => seq(
@@ -1252,7 +1319,7 @@ module.exports = grammar({
       choice(
         /[^xuU]/,
         /\d{2,3}/,
-        /x[0-9a-fA-F]{2,}/,
+        /x[0-9a-fA-F]{1,4}/,
         /u[0-9a-fA-F]{4}/,
         /U[0-9a-fA-F]{8}/,
       ),
@@ -1269,7 +1336,6 @@ module.exports = grammar({
     null: _ => choice('NULL', 'nullptr'),
 
     identifier: _ =>
-      // eslint-disable-next-line max-len
       /(\p{XID_Start}|\$|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\$|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})*/,
 
     _type_identifier: $ => alias(
@@ -1280,7 +1346,7 @@ module.exports = grammar({
     _statement_identifier: $ => alias($.identifier, $.statement_identifier),
 
     _empty_declaration: $ => seq(
-      $._type_specifier,
+      $.type_specifier,
       ';',
     ),
 
@@ -1301,19 +1367,7 @@ module.exports = grammar({
       ),
     )),
   },
-
-  supertypes: $ => [
-    $._expression,
-    $._statement,
-    $._type_specifier,
-    $._declarator,
-    $._field_declarator,
-    $._type_declarator,
-    $._abstract_declarator,
-  ],
 });
-
-module.exports.PREC = PREC;
 
 /**
  *
@@ -1323,32 +1377,21 @@ module.exports.PREC = PREC;
  *
  * @param {number} precedence
  *
- * @return {RuleBuilders<string, string>}
+ * @returns {RuleBuilders<string, string>}
  */
 function preprocIf(suffix, content, precedence = 0) {
   /**
-    *
-    * @param {GrammarSymbols<string>} $
-    *
-    * @return {ChoiceRule}
-    *
-    */
-  function elseBlock($) {
+   *
+   * @param {GrammarSymbols<string>} $
+   *
+   * @returns {ChoiceRule}
+   */
+  function alternativeBlock($) {
     return choice(
       suffix ? alias($['preproc_else' + suffix], $.preproc_else) : $.preproc_else,
       suffix ? alias($['preproc_elif' + suffix], $.preproc_elif) : $.preproc_elif,
+      suffix ? alias($['preproc_elifdef' + suffix], $.preproc_elifdef) : $.preproc_elifdef,
     );
-  }
-
-  /**
-    *
-    * @param {GrammarSymbols<string>} $
-    *
-    * @return {AliasRule | SymbolRule<string>}
-    *
-    */
-  function elifBlock($) {
-    return suffix ? alias($['preproc_elifdef' + suffix], $.preproc_elifdef) : $.preproc_elifdef;
   }
 
   return {
@@ -1357,7 +1400,7 @@ function preprocIf(suffix, content, precedence = 0) {
       field('condition', $._preproc_expression),
       '\n',
       repeat(content($)),
-      field('alternative', optional(elseBlock($))),
+      field('alternative', optional(alternativeBlock($))),
       preprocessor('endif'),
     )),
 
@@ -1365,7 +1408,7 @@ function preprocIf(suffix, content, precedence = 0) {
       choice(preprocessor('ifdef'), preprocessor('ifndef')),
       field('name', $.identifier),
       repeat(content($)),
-      field('alternative', optional(choice(elseBlock($), elifBlock($)))),
+      field('alternative', optional(alternativeBlock($))),
       preprocessor('endif'),
     )),
 
@@ -1379,25 +1422,25 @@ function preprocIf(suffix, content, precedence = 0) {
       field('condition', $._preproc_expression),
       '\n',
       repeat(content($)),
-      field('alternative', optional(elseBlock($))),
+      field('alternative', optional(alternativeBlock($))),
     )),
 
     ['preproc_elifdef' + suffix]: $ => prec(precedence, seq(
       choice(preprocessor('elifdef'), preprocessor('elifndef')),
       field('name', $.identifier),
       repeat(content($)),
-      field('alternative', optional(elseBlock($))),
+      field('alternative', optional(alternativeBlock($))),
     )),
   };
 }
 
 /**
-  * Creates a preprocessor regex rule
-  *
-  * @param {RegExp|Rule|String} command
-  *
-  * @return {AliasRule}
-  */
+ * Creates a preprocessor regex rule
+ *
+ * @param {RegExp | Rule | string} command
+ *
+ * @returns {AliasRule}
+ */
 function preprocessor(command) {
   return alias(new RegExp('#[ \t]*' + command), '#' + command);
 }
@@ -1407,8 +1450,7 @@ function preprocessor(command) {
  *
  * @param {Rule} rule
  *
- * @return {ChoiceRule}
- *
+ * @returns {ChoiceRule}
  */
 function commaSep(rule) {
   return optional(commaSep1(rule));
@@ -1419,9 +1461,14 @@ function commaSep(rule) {
  *
  * @param {Rule} rule
  *
- * @return {SeqRule}
- *
+ * @returns {SeqRule}
  */
 function commaSep1(rule) {
   return seq(rule, repeat(seq(',', rule)));
 }
+
+module.exports.PREC = PREC;
+module.exports.preprocIf = preprocIf;
+module.exports.preprocessor = preprocessor;
+module.exports.commaSep = commaSep;
+module.exports.commaSep1 = commaSep1;

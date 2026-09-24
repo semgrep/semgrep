@@ -1,0 +1,1 @@
+namespace [[gnu::visibility("default")]] $NS { void $F(int $ARG __attribute((unused))); }

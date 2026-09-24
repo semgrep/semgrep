@@ -1,0 +1,1 @@
+__asm __volatile__ ("" : "=r" (*$PTR));

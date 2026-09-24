@@ -1,0 +1,1 @@
+([$CAP]() { return $VALUE; })
