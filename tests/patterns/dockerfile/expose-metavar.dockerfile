@@ -8,3 +8,8 @@ EXPOSE 42/tcp
 EXPOSE 42/udp
 
 EXPOSE 111/tcp 222/udp
+
+ENV PORT=17777
+
+# MATCH:
+EXPOSE ${PORT}/udp

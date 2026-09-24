@@ -121,6 +121,8 @@ let expose_port_loc = function
   | Expose_semgrep_ellipsis tok -> (tok, tok)
   | Expose_port ((_, tok1), Some (_, tok2)) -> (tok1, tok2)
   | Expose_port ((_, tok), None) -> (tok, tok)
+  | Expose_port_fragment (port, (_, protocol_tok)) ->
+      (fst (docker_string_fragment_loc port), protocol_tok)
   | Expose_fragment x -> docker_string_fragment_loc x
 
 let instruction_loc = function

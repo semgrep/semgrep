@@ -225,6 +225,7 @@ type healthcheck =
 
 type expose_port =
   | Expose_port of (* port/protocol *) string wrap * string wrap option
+  | Expose_port_fragment of docker_string_fragment * string wrap
   | Expose_fragment of docker_string_fragment
   | Expose_semgrep_ellipsis of tok
 

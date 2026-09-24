@@ -2,11 +2,11 @@ File: semgrep-grammars/src/tree-sitter-dockerfile/LICENSE
 Git repo name: tree-sitter-dockerfile
 Latest commit in repo: 439c3e7b8a9bfdbf1f7d7c2beaae4173dc484cbf
 Last change in file:
-  commit 439c3e7b8a9bfdbf1f7d7c2beaae4173dc484cbf
+  commit b25f86c3b2ec4192d040432a1a279861df390762
   Author: Camden Cheek <camden@ccheek.com>
-  Date:   Fri Apr 19 15:28:09 2024 -0600
+  Date:   Tue May 11 20:01:30 2021 -0600
   
-      use extra to allow comments anywhere
+      Add MIT license
 ---
 File: semgrep-grammars/src/tree-sitter-dockerfile/grammar.js
 Git repo name: tree-sitter-dockerfile
@@ -20,19 +20,11 @@ Last change in file:
 ---
 File: semgrep-grammars/src/semgrep-dockerfile/grammar.js
 Git repo name: ocaml-tree-sitter-semgrep
-Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Latest commit in repo: 5123a89494083cc372fb89b6fe79e700a288e3bf
 Last change in file:
-  commit a13431ef4496acf7f7fa9d10e0bed4cc9899cff0
-  Author: Nat Mote <nat@semgrep.com>
-  Date:   Wed Jul 31 15:55:53 2024 -0700
+  commit 5123a89494083cc372fb89b6fe79e700a288e3bf
+  Author: Carlos Acosta <93443910+charle-z@users.noreply.github.com>
+  Date:   Fri Aug 21 00:07:04 2026 +0000
   
-      fix(dockerfile): Allow Semgrep ellipsis in healthcheck instruction
-      
-      This had previously been omitted, so the test cases that I've added here
-      failed to parse. When parsing dockerfile patterns, we fall back to
-      parsing them as Bash if they fail to parse as Dockerfile. These examples
-      parsed successfully as Bash, but the trees generated did not match, so
-      these silently failed to match where they should.
-      
-      Test plan: Automated tests.
+      fix(dockerfile): parse env ports with protocol in EXPOSE
 ---
