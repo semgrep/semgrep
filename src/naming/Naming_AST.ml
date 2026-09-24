@@ -263,6 +263,11 @@ type env = {
   in_lvalue : bool ref;
   in_type : bool ref;
   lang : Lang.t;
+  (* Dart-only (empty for every other language, see compute_dart_unsafe_canonicals):
+   * canonical library prefixes that [dart_canonical_segments] must not
+   * collapse to in this file, because more than one distinct import
+   * would otherwise reduce to the same prefix. *)
+  dart_unsafe_canonicals : string list;
 }
 
 let default_env lang =
@@ -272,6 +277,7 @@ let default_env lang =
     in_lvalue = ref false;
     in_type = ref false;
     lang;
+    dart_unsafe_canonicals = [];
   }
 
 (*****************************************************************************)
@@ -423,6 +429,7 @@ let is_resolvable_name_ctx env lang =
       | Lang.Kotlin
       | Lang.Apex
       | Lang.Csharp
+      | Lang.Dart
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Js
       | Lang.Ts
@@ -781,8 +788,31 @@ let resolution_visitor =
               | _ -> ())
             imported_names
       | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
-          (* for python *)
           let sid = SId.mk () in
+          (* The Dart mapper expands an import URI like
+             `package:http/http.dart` into the dotted segments
+             ["package"; "http"; "http.dart"]. Reduce that to the
+             conventional library-prefix basename (here ["http"]) so a
+             pattern written as `http.get(...)` matches code that
+             imports the library under any local alias. Other languages
+             keep the python-style behavior of treating the dotted name
+             as the canonical entity.
+
+             Guarded by dart_unsafe_canonicals (computed once per file by
+             compute_dart_unsafe_canonicals): if this file also imports a
+             *different* library that would collapse to the same prefix
+             (e.g. `package:http/http.dart` and `package:other/http.dart`
+             both naively reduce to "http"), collapsing either would make
+             a pattern written against one match calls through the other.
+             Fall back to the unreduced import for both in that case. *)
+          let xs =
+            match env.lang with
+            | Lang.Dart ->
+                let reduced = dart_canonical_segments xs in
+                let key = String.concat "." (dotted_to_canonical reduced) in
+                if List.mem key env.dart_unsafe_canonicals then xs else reduced
+            | _ -> xs
+          in
           let canonical = dotted_to_canonical xs in
           let resolved = untyped_ent (ImportedModule canonical, sid) in
           set_resolved env id_info resolved;
@@ -1014,8 +1044,34 @@ let resolution_visitor =
 (* Entry point *)
 (*****************************************************************************)
 
+(* Pre-pass, Dart-only: collect the file's top-level `import '...' as p;`
+ * directives (Dart imports are always top-level per the language spec, so
+ * no recursive walk is needed) and flag any canonical library prefix that
+ * more than one distinct import URI would collapse to. visit_directive
+ * below consults the result to avoid conflating two different imports --
+ * see Naming_utils.unsafe_canonicals and dart_canonical_segments. *)
+let compute_dart_unsafe_canonicals lang (prog : AST_generic.program) :
+    string list =
+  if not (lang =*= Lang.Dart) then []
+  else
+    prog
+    |> List.filter_map (fun st ->
+        match st.s with
+        | DirectiveStmt { d = ImportAs (_, DottedName xs, Some _); _ } ->
+            Some xs
+        | _ -> None)
+    |> unsafe_canonicals
+         ~full_identity:(fun xs -> String.concat "." (dotted_to_canonical xs))
+         ~candidate_canonical:(fun xs ->
+           String.concat "." (dotted_to_canonical (dart_canonical_segments xs)))
+
 let resolve lang prog =
-  let env = default_env lang in
+  let env =
+    {
+      (default_env lang) with
+      dart_unsafe_canonicals = compute_dart_unsafe_canonicals lang prog;
+    }
+  in
   resolution_visitor#visit_program env prog;
   ()
 [@@profiling]

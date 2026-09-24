@@ -1,0 +1,11 @@
+rules:
+- id: metavar-regex-dart
+  message: variable name starts with insecure_
+  severity: ERROR
+  languages:
+  - dart
+  patterns:
+  - pattern: var $NAME = $VAL;
+  - metavariable-regex:
+      metavariable: $NAME
+      regex: ^insecure_.*

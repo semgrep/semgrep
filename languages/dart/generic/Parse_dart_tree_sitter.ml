@@ -517,37 +517,58 @@ let map_additive_operator (env : env) x =
   | "-", t -> (Minus, t)
   | _, t -> (Plus, t)
 
+(* Build a fresh id_info with id_type populated when a syntactic type
+ * annotation is available. Naming_AST will propagate this further from
+ * declarations to use sites. *)
+let id_info_with_type (tyopt : G.type_ option) : G.id_info =
+  let info = G.empty_id_info () in
+  info.id_type := tyopt;
+  info
+
+(* Attach explicit type arguments from a Dart generic call, e.g.
+ * `obj.method<int>(arg)` or a bare `method<int>(arg)`, onto the call's
+ * target so a pattern like `$O.method<int>($X)` can see them, instead of
+ * silently dropping them. Mirrors how Rust/Move-on-Sui/Move-on-Aptos
+ * attach turbofish-style type arguments to [name_last] for the same
+ * "generic call target" problem. Returns [None] when the callee has no
+ * name to qualify (e.g. a computed or parenthesized callee), in which
+ * case the caller should just drop the type arguments as before. *)
+let add_type_arguments_to_callee (callee : G.expr) (tyargs : G.type_arguments) :
+    G.expr option =
+  let qualify (id : G.ident) (info : G.id_info) : G.name =
+    IdQualified
+      {
+        name_last = (id, Some tyargs);
+        name_middle = None;
+        name_top = None;
+        name_info = info;
+      }
+  in
+  match callee.e with
+  | N (Id (id, info)) -> Some { callee with e = N (qualify id info) }
+  | DotAccess (obj, tok, FN (Id (id, info))) ->
+      Some { callee with e = DotAccess (obj, tok, FN (qualify id info)) }
+  | _ -> None
+
 let rec map_additive_expression (env : env) (x : CST.additive_expression) =
   match x with
-  | `Real_exp_rep1_addi_op_real_exp (v1, v2) ->
+  | `Real_exp_addi_op_real_exp (v1, v2, v3) ->
       let v1 = map_real_expression env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = map_additive_operator env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      List.fold_left
-        (fun acc ((op, t), rhs) ->
-          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
-        v1 v2
-  | `Super_rep1_addi_op_real_exp (v1, v2) ->
+      let op, t = map_additive_operator env v2 in
+      let v3 = map_real_expression env v3 in
+      Call (Special (Op op, t) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+  | `Super_addi_op_real_exp (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = (* additive_operator_ *) map_additive_operator env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      List.fold_left
-        (fun acc ((op, t), rhs) ->
-          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
-        (N (IdSpecial ((Super, v1), G.empty_id_info ())) |> G.e)
-        v2
+      let op, t = (* additive_operator_ *) map_additive_operator env v2 in
+      let v3 = map_real_expression env v3 in
+      Call
+        ( Special (Op op, t) |> G.e,
+          fb
+            [
+              Arg (N (IdSpecial ((Super, v1), G.empty_id_info ())) |> G.e);
+              Arg v3;
+            ] )
+      |> G.e
 
 and map_annotation (env : env) ((v1, v2, v3) : CST.annotation) =
   let v1 = (* "@" *) token env v1 in
@@ -770,84 +791,48 @@ and map_bitwise_expression_base (_env : env) op base after =
 and map_bitwise_and_expression (env : env) (x : CST.bitwise_and_expression) :
     expr =
   match x with
-  | `Real_exp_rep1_AMP_real_exp (v1, v2) ->
+  | `Real_exp_AMP_real_exp (v1, v2, v3) ->
       let v1 = map_real_expression env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = (* "&" *) token env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      map_bitwise_expression_base env BitAnd v1 v2
-  | `Super_rep1_AMP_real_exp (v1, v2) ->
+      let v2 = (* "&" *) token env v2 in
+      let v3 = map_real_expression env v3 in
+      map_bitwise_expression_base env BitAnd v1 [ (v2, v3) ]
+  | `Super_AMP_real_exp (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = (* "&" *) token env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
+      let v2 = (* "&" *) token env v2 in
+      let v3 = map_real_expression env v3 in
       map_bitwise_expression_base env BitAnd
         (N (IdSpecial ((Super, v1), empty_id_info ())) |> G.e)
-        v2
+        [ (v2, v3) ]
 
 and map_bitwise_or_expression (env : env) (x : CST.bitwise_or_expression) =
   match x with
-  | `Real_exp_rep1_BAR_real_exp (v1, v2) ->
+  | `Real_exp_BAR_real_exp (v1, v2, v3) ->
       let v1 = map_real_expression env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = (* "|" *) token env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      map_bitwise_expression_base env BitOr v1 v2
-  | `Super_rep1_BAR_real_exp (v1, v2) ->
+      let v2 = (* "|" *) token env v2 in
+      let v3 = map_real_expression env v3 in
+      map_bitwise_expression_base env BitOr v1 [ (v2, v3) ]
+  | `Super_BAR_real_exp (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = (* "|" *) token env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
+      let v2 = (* "|" *) token env v2 in
+      let v3 = map_real_expression env v3 in
       map_bitwise_expression_base env BitOr
         (N (IdSpecial ((Super, v1), empty_id_info ())) |> G.e)
-        v2
+        [ (v2, v3) ]
 
 and map_bitwise_xor_expression (env : env) (x : CST.bitwise_xor_expression) =
   match x with
-  | `Real_exp_rep1_HAT_real_exp (v1, v2) ->
+  | `Real_exp_HAT_real_exp (v1, v2, v3) ->
       let v1 = map_real_expression env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = (* "|" *) token env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      map_bitwise_expression_base env BitXor v1 v2
-  | `Super_rep1_HAT_real_exp (v1, v2) ->
+      let v2 = (* "^" *) token env v2 in
+      let v3 = map_real_expression env v3 in
+      map_bitwise_expression_base env BitXor v1 [ (v2, v3) ]
+  | `Super_HAT_real_exp (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = (* "|" *) token env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
+      let v2 = (* "^" *) token env v2 in
+      let v3 = map_real_expression env v3 in
       map_bitwise_expression_base env BitXor
         (N (IdSpecial ((Super, v1), empty_id_info ())) |> G.e)
-        v2
+        [ (v2, v3) ]
 
 and map_block (env : env) ((v1, v2, v3) : CST.block) : stmt list bracket =
   let v1 = (* "{" *) token env v1 in
@@ -1451,6 +1436,16 @@ and map_function_formal_parameter (env : env)
   *)
   let _tparams, _params = map_formal_parameter_part env v4 in
   let param = G.param_of_id ~pattrs ?ptype v3 in
+  (* When ptype is present, propagate it through pinfo.id_type so
+     Naming_AST can carry the type to use sites. Mutate the existing
+     id_type ref rather than replacing pinfo wholesale so the
+     `Some (Parameter, unsafe_default)` id_resolved that param_of_id
+     installed is preserved — important for OtherParam-wrapped Dart
+     optional/named parameters that Naming_AST.params_of_parameters
+     doesn't recurse into. *)
+  (match ptype with
+  | None -> ()
+  | Some _ -> param.G.pinfo.id_type := ptype);
   let v5 =
     match v5 with
     | Some tok ->
@@ -1664,7 +1659,9 @@ and map_initialized_variable_definition_unwrapped (env : env)
   in
   List.map
     (fun (id, vinit) ->
-      (basic_entity ~attrs id, { vtype; vinit; vtok = G.no_sc }))
+      let idinfo = id_info_with_type vtype in
+      let ent = { G.name = G.EN (G.Id (id, idinfo)); attrs; tparams = None } in
+      (ent, { G.vtype; vinit; vtok = G.no_sc }))
     inits
 
 and map_initialized_variable_definition (env : env)
@@ -1995,35 +1992,17 @@ and map_metadata (env : env) (xs : CST.metadata) : G.attribute list =
 and map_multiplicative_expression (env : env)
     (x : CST.multiplicative_expression) =
   match x with
-  | `Un_exp_rep1_mult_op_un_exp (v1, v2) ->
-      let v1 = map_unary_expression env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = map_multiplicative_operator env v1 in
-            let v2 = map_unary_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      List.fold_left
-        (fun acc ((op, t), rhs) ->
-          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
-        v1 v2
-  | `Super_rep1_mult_op_un_exp (v1, v2) ->
+  | `Real_exp_mult_op_real_exp (v1, v2, v3) ->
+      let v1 = map_real_expression env v1 in
+      let op, t = map_multiplicative_operator env v2 in
+      let v3 = map_real_expression env v3 in
+      Call (Special (Op op, t) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+  | `Super_mult_op_real_exp (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
       let v1 = N (IdSpecial ((Super, v1), empty_id_info ())) |> G.e in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = map_multiplicative_operator env v1 in
-            let v2 = map_unary_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      List.fold_left
-        (fun acc ((op, t), rhs) ->
-          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
-        v1 v2
+      let op, t = map_multiplicative_operator env v2 in
+      let v3 = map_real_expression env v3 in
+      Call (Special (Op op, t) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
 
 and map_named_argument (env : env) ((v1, v2) : CST.named_argument) =
   let v1 = map_label env v1 in
@@ -2737,13 +2716,34 @@ and map_relational_pattern (env : env) (x : CST.relational_pattern) : pattern =
 and map_selector (env : env) (x : CST.selector) : expr -> expr =
  fun expr ->
   match x with
+  | `Choice_excl_op c -> map_selector_choice env c expr
+  | `Semg_dot_ellips_sele (_dot, ellipsis_tok) ->
+      (* `. ...` as a chained-call selector — used by the polyglot
+         dots_method_chaining pattern `$X = $O.foo(). ... .bar(). ...`.
+         Emit `DotAccessEllipsis` (the same Generic AST node that C#'s
+         `member_access_ellipsis_expression` produces) so the existing
+         matcher logic handles it. *)
+      let t = token env ellipsis_tok in
+      G.DotAccessEllipsis (expr, t) |> G.e
+
+and map_selector_choice (env : env)
+    (x :
+      [ `Excl_op of Tree_sitter_run.Token.t
+      | `Assi_sele of CST.assignable_selector
+      | `Arg_part of CST.argument_part
+      | `Type_args of CST.type_arguments ]) : expr -> expr =
+ fun expr ->
+  match x with
   (* Seems to be a null-assert pattern.
      https://dart.dev/language/pattern-types#null-assert
   *)
   | `Excl_op tok -> Ref ((* "!" *) token env tok, expr) |> G.e
   | `Assi_sele x -> map_assignable_selector env x expr
   | `Arg_part x -> (
-      let _tyargs_TODO, args = map_argument_part env x in
+      (* map_argument_part always returns a (possibly-empty) bracket, not
+         an option -- Dart's grammar has no explicit type arguments when
+         the '<...>' is simply absent, rather than a None case. *)
+      let ((_, ta_list, _) as tyargs), args = map_argument_part env x in
       (* In Dart the 'new' keyword is optional, so the syntax of a call and
          a constructor invocation are identical. The compiler relies on the
          type checker to disambiguate; we use Dart's universal naming
@@ -2754,11 +2754,34 @@ and map_selector (env : env) (x : CST.selector) : expr -> expr =
       match expr.e with
       | N (Id ((s, _), id_info) as n)
         when String.length s > 0 && s.[0] >= 'A' && s.[0] <= 'Z' ->
-          G.New (fake "new", TyN n |> G.t, id_info, args) |> G.e
-      | _ -> G.Call (expr, args) |> G.e)
-  | `Type_args x ->
-      let _tyargs_TODO = map_type_arguments env x in
-      expr
+          (* `Foo<int>(x)` -- a generic constructor invocation. *)
+          let ty =
+            match ta_list with
+            | [] -> TyN n |> G.t
+            | _ :: _ -> TyApply (TyN n |> G.t, tyargs) |> G.t
+          in
+          G.New (fake "new", ty, id_info, args) |> G.e
+      | _ -> (
+          match ta_list with
+          | [] -> G.Call (expr, args) |> G.e
+          | _ :: _ -> (
+              (* `obj.method<int>(x)` / bare `method<int>(x)` -- see
+                 add_type_arguments_to_callee. *)
+              match add_type_arguments_to_callee expr tyargs with
+              | Some callee -> G.Call (callee, args) |> G.e
+              | None ->
+                  (* No name to qualify on this callee shape (e.g. a
+                     computed/parenthesized callee); drop the type
+                     arguments rather than fail, as before. *)
+                  G.Call (expr, args) |> G.e)))
+  | `Type_args x -> (
+      (* A type-argument list not immediately followed by a call, e.g. a
+         bare `obj.field<int>` selector. Rarer than the Arg_part case
+         above; same attachment, best-effort. *)
+      let tyargs = map_type_arguments env x in
+      match add_type_arguments_to_callee expr tyargs with
+      | Some e -> e
+      | None -> expr)
 
 and map_selectors (env : env) (x : CST.selector list) : expr -> expr =
   x
@@ -2777,35 +2800,17 @@ and map_selectors (env : env) (x : CST.selector list) : expr -> expr =
 
 and map_shift_expression (env : env) (x : CST.shift_expression) =
   match x with
-  | `Real_exp_rep1_shift_op_real_exp (v1, v2) ->
+  | `Real_exp_shift_op_real_exp (v1, v2, v3) ->
       let v1 = map_real_expression env v1 in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = map_shift_operator env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      List.fold_left
-        (fun acc ((op, t), rhs) ->
-          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
-        v1 v2
-  | `Super_rep1_shift_op_real_exp (v1, v2) ->
+      let op, t = map_shift_operator env v2 in
+      let v3 = map_real_expression env v3 in
+      Call (Special (Op op, t) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+  | `Super_shift_op_real_exp (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
       let v1 = N (IdSpecial ((Super, v1), empty_id_info ())) |> G.e in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let v1 = map_shift_operator env v1 in
-            let v2 = map_real_expression env v2 in
-            (v1, v2))
-          v2
-      in
-      List.fold_left
-        (fun acc ((op, t), rhs) ->
-          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
-        v1 v2
+      let op, t = map_shift_operator env v2 in
+      let v3 = map_real_expression env v3 in
+      Call (Special (Op op, t) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
 
 and map_simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
     parameter =
@@ -2837,6 +2842,11 @@ and map_statement_as_stmt env x =
 and map_statement (env : env) (x : CST.statement) : stmt list =
   match x with
   | `Blk x -> [ Block (map_block env x) |> G.s ]
+  | `Labe_stmt (v1, v2, v3) ->
+      let v1 = map_identifier env v1 in
+      let _v2 = (* ":" *) token env v2 in
+      let v3 = map_statement_as_stmt env v3 in
+      [ Label (v1, v3) |> G.s ]
   | `Local_func_decl (v1, v2) ->
       let attrs =
         match v1 with
@@ -4803,19 +4813,26 @@ let map_import_or_export (env : env) (x : CST.import_or_export) : stmt =
 let map_class_member_definition (env : env) (x : CST.class_member_definition) :
     field =
   match x with
-  | `Decl__semi (v1, v2) ->
-      let v1 = map_declaration_as_stmt env v1 in
-      let _sc = map_semicolon env v2 in
-      G.F v1
-  | `Meth_sign_func_body (v1, v2) ->
-      let v1 = map_method_signature env v1 in
-      let fattrs, v2 = map_function_body env v2 in
-      G.F (v1 (fattrs, v2))
+  | `Choice_decl__semi c -> (
+      match c with
+      | `Decl__semi (v1, v2) ->
+          let v1 = map_declaration_as_stmt env v1 in
+          let _sc = map_semicolon env v2 in
+          G.F v1
+      | `Meth_sign_func_body (v1, v2) ->
+          let v1 = map_method_signature env v1 in
+          let fattrs, v2 = map_function_body env v2 in
+          G.F (v1 (fattrs, v2)))
+  | `Semg_ellips tok ->
+      (* `...` as a class body member, used by the polyglot pattern
+         `class $X { ... }` to match any sequence of members. *)
+      let t = token env tok in
+      G.F (G.ExprStmt (G.Ellipsis t |> G.e, G.sc) |> G.s)
 
-let map_anon_choice_opt_meta_class_member_defi_44d3600 (env : env)
-    (x : CST.anon_choice_opt_meta_class_member_defi_44d3600) : G.field =
+let map_anon_choice_opt_meta_class_member_defi_15eaa47 (env : env)
+    (x : CST.anon_choice_opt_meta_class_member_defi_15eaa47) : G.field =
   match x with
-  | `Opt_meta_choice_decl__semi (v1, v2) ->
+  | `Opt_meta_choice_choice_decl__semi (v1, v2) ->
       let _v1 =
         match v1 with
         | Some x -> map_metadata env x
@@ -4845,7 +4862,7 @@ let map_enum_body ~attrs ~enum_tok ~enum_id ~mixins ~implements (env : env)
     match v5 with
     | Some (v1, v2) ->
         let _v1 = (* ";" *) token env v1 in
-        List.map (map_anon_choice_opt_meta_class_member_defi_44d3600 env) v2
+        List.map (map_anon_choice_opt_meta_class_member_defi_15eaa47 env) v2
     | None -> []
   in
   let v6 = (* "}" *) token env v6 in
@@ -4892,7 +4909,7 @@ let map_class_body (env : env) ((v1, v2, v3) : CST.class_body) :
     field list bracket =
   let v1 = (* "{" *) token env v1 in
   let v2 =
-    List.map (map_anon_choice_opt_meta_class_member_defi_44d3600 env) v2
+    List.map (map_anon_choice_opt_meta_class_member_defi_15eaa47 env) v2
   in
   let v3 = (* "}" *) token env v3 in
   (v1, v2, v3)
@@ -5250,11 +5267,28 @@ let map_top_level_definition (env : env) (x : CST.top_level_definition) :
         G.ExprStmt (G.Ellipsis ((* "..." *) token env tok) |> G.e, G.fake "")
         |> G.s;
       ]
+  | `Exp_stmt x ->
+      (* Bare expression statement at top level. Real Dart forbids this,
+         but the semgrep-dart wrapper grammar accepts it so polyglot
+         patterns like
+           $V = get();
+           ...
+           eval($V);
+         parse as a sequence of statements without a containing function
+         body. Delegate to the existing expression-statement mapper. *)
+      [ map_expression_statement env x ]
 
 let map_semgrep_pattern (env : env) (x : CST.semgrep_pattern) =
   match x with
   | `Exp x -> E (map_expression env x)
   | `Stmt x -> Pr (map_statement env x)
+  | `Semg_stmt_list (first, rest) ->
+      (* Multi-statement pattern (`__SEMGREP_EXPRESSION s1; s2; …`) used
+         by polyglot patterns like `dots_stmts` and `metavar_equality_var`
+         that consist of a sequence of statements. Produce a `Pr [stmts]`
+         shape — same as a real Dart program — so the matcher can search
+         for the sequence anywhere in the target AST. *)
+      Pr (List.concat_map (map_statement env) (first :: rest))
 
 let map_program (env : env) (prog : CST.program) =
   match prog with

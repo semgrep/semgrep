@@ -1,0 +1,15 @@
+rules:
+- id: stmt-sequence-pattern-dart
+  message: data acquired from get() reaches eval() with no sanitize() in between
+  severity: ERROR
+  languages: [dart]
+  patterns:
+    - pattern: |
+        $V = get();
+        ...
+        eval($V);
+    # NOTE: this is just a basic positive-only rule — true "no sanitize
+    # in between" would need pattern-not-inside / focus-metavariable
+    # support around the ellipsis, which is out of scope here. The point
+    # of this fixture is just to confirm the multi-statement
+    # __SEMGREP_EXPRESSION path threads through to the engine.
