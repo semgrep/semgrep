@@ -80,9 +80,10 @@ and 'a preproc_else_poly =
     * CST.preproc_expression
     * Tree_sitter_run.Token.t (* "\n" *)
     * 'a list (* zero or more *)
-    * 'a preproc_else_poly option ]
+    * 'a preproc_else_poly option
+  | `Prep_elifdef_poly of 'a preproc_elifdef_poly ]
 
-type 'a preproc_ifdef_poly =
+and 'a preproc_ifdef_poly =
   ifdef_token
   * Tree_sitter_run.Token.t (* identifier *)
   * 'a list (* zero or more *)
@@ -115,8 +116,9 @@ let ifdef_token_to_poly (x : CST.anon_choice_pat_25b90ba_4a37f8c) =
 (* preprocIf(block_item) *)
 let rec choice_to_poly x =
   match x with
-  | `Choice_prep_else x -> `Choice_prep_else_poly (preproc_else_to_poly x)
-  | `Prep_elif x -> `Prep_elif_poly (preproc_elifdef_to_poly x)
+  | (`Prep_else _ | `Prep_elif_5b2d46e _) as x ->
+      `Choice_prep_else_poly (preproc_else_to_poly x)
+  | `Prep_elif_b56056c x -> `Prep_elif_poly (preproc_elifdef_to_poly x)
 
 and preproc_elifdef_to_poly ((v1, v2, v3, v4) : CST.preproc_elifdef) :
     CST.block_item preproc_elifdef_poly =
@@ -130,19 +132,23 @@ and preproc_ifdef_to_poly ((v1, v2, v3, v4, v5) : CST.preproc_ifdef) :
     CST.block_item preproc_ifdef_poly =
   (ifdef_token_to_poly v1, v2, v3, Option.map choice_to_poly v4, v5)
 
-and preproc_else_to_poly (x : CST.anon_choice_prep_else_8b52b0f) :
+and preproc_else_to_poly (x : CST.anon_choice_prep_else_6b6e391) :
     CST.block_item preproc_else_poly =
   match x with
   | `Prep_else (v1, v2) -> `Prep_else_poly (v1, v2)
-  | `Prep_elif (v1, v2, v3, v4, v5) ->
+  | `Prep_elif_5b2d46e (v1, v2, v3, v4, v5) ->
       `Prep_elif_poly (v1, v2, v3, v4, Option.map preproc_else_to_poly v5)
+  | `Prep_elif_b56056c (v1, v2, v3, v4) ->
+      `Prep_elifdef_poly
+        (elifdef_token_to_poly v1, v2, v3, Option.map preproc_else_to_poly v4)
 
 (* preprocIf(field_declaration_list_to_poly_item) *)
 let rec choice_in_field_declaration_list_to_poly x =
   match x with
-  | `Choice_prep_else_in_field_decl_list x ->
+  | (`Prep_else_in_field_decl_list _ | `Prep_elif_in_field_decl_list_65bc06e _)
+    as x ->
       `Choice_prep_else_poly (preproc_else_in_field_declaration_list_to_poly x)
-  | `Prep_elif_in_field_decl_list x ->
+  | `Prep_elif_in_field_decl_list_3f47a97 x ->
       `Prep_elif_poly (preproc_elifdef_in_field_declaration_list_to_poly x)
 
 and preproc_elifdef_in_field_declaration_list_to_poly
@@ -173,24 +179,30 @@ and preproc_ifdef_in_field_declaration_list_to_poly
     v5 )
 
 and preproc_else_in_field_declaration_list_to_poly
-    (x : CST.anon_choice_prep_else_in_field_decl_list_97ea65e) :
+    (x : CST.anon_choice_prep_else_in_field_decl_list_1fef6b2) :
     CST.field_declaration_list_item preproc_else_poly =
   match x with
   | `Prep_else_in_field_decl_list (v1, v2) -> `Prep_else_poly (v1, v2)
-  | `Prep_elif_in_field_decl_list (v1, v2, v3, v4, v5) ->
+  | `Prep_elif_in_field_decl_list_65bc06e (v1, v2, v3, v4, v5) ->
       `Prep_elif_poly
         ( v1,
           v2,
           v3,
           v4,
           Option.map preproc_else_in_field_declaration_list_to_poly v5 )
+  | `Prep_elif_in_field_decl_list_3f47a97 (v1, v2, v3, v4) ->
+      `Prep_elifdef_poly
+        ( elifdef_token_to_poly v1,
+          v2,
+          v3,
+          Option.map preproc_else_in_field_declaration_list_to_poly v4 )
 
 (* preprocIf(seq(enumerator, ",")) *)
 let rec choice_in_enumerator_list_to_poly x =
   match x with
-  | `Choice_prep_else_in_enum_list x ->
+  | (`Prep_else_in_enum_list _ | `Prep_elif_in_enum_list_1680e39 _) as x ->
       `Choice_prep_else_poly (preproc_else_in_enumerator_list_to_poly x)
-  | `Prep_elif_in_enum_list x ->
+  | `Prep_elif_in_enum_list_8fab4d0 x ->
       `Prep_elif_poly (preproc_elifdef_in_enumerator_list_to_poly x)
 
 and preproc_elifdef_in_enumerator_list_to_poly
@@ -216,21 +228,28 @@ and preproc_ifdef_in_enumerator_list_to_poly
     v5 )
 
 and preproc_else_in_enumerator_list_to_poly
-    (x : CST.anon_choice_prep_else_in_enum_list_8258275) :
+    (x : CST.anon_choice_prep_else_in_enum_list_a31466c) :
     (CST.enumerator * Tree_sitter_run.Token.t) preproc_else_poly =
   match x with
   | `Prep_else_in_enum_list (v1, v2) -> `Prep_else_poly (v1, v2)
-  | `Prep_elif_in_enum_list (v1, v2, v3, v4, v5) ->
+  | `Prep_elif_in_enum_list_1680e39 (v1, v2, v3, v4, v5) ->
       `Prep_elif_poly
         (v1, v2, v3, v4, Option.map preproc_else_in_enumerator_list_to_poly v5)
+  | `Prep_elif_in_enum_list_8fab4d0 (v1, v2, v3, v4) ->
+      `Prep_elifdef_poly
+        ( elifdef_token_to_poly v1,
+          v2,
+          v3,
+          Option.map preproc_else_in_enumerator_list_to_poly v4 )
 
 (* preprocIf(enumerator) *)
 let rec choice_in_enumerator_list_no_comma_to_poly x =
   match x with
-  | `Choice_prep_else_in_enum_list_no_comma x ->
+  | ( `Prep_else_in_enum_list_no_comma _
+    | `Prep_elif_in_enum_list_no_comma_0776021 _ ) as x ->
       `Choice_prep_else_poly
         (preproc_else_in_enumerator_list_no_comma_to_poly x)
-  | `Prep_elif_in_enum_list_no_comma x ->
+  | `Prep_elif_in_enum_list_no_comma_b3ccc22 x ->
       `Prep_elif_poly (preproc_elifdef_in_enumerator_list_no_comma_to_poly x)
 
 and preproc_elifdef_in_enumerator_list_no_comma_to_poly
@@ -261,14 +280,20 @@ and preproc_ifdef_in_enumerator_list_no_comma_to_poly
     v5 )
 
 and preproc_else_in_enumerator_list_no_comma_to_poly
-    (x : CST.anon_choice_prep_else_in_enum_list_no_comma_04fd5a5) :
+    (x : CST.anon_choice_prep_else_in_enum_list_no_comma_aaec454) :
     CST.enumerator preproc_else_poly =
   match x with
   | `Prep_else_in_enum_list_no_comma (v1, v2) -> `Prep_else_poly (v1, v2)
-  | `Prep_elif_in_enum_list_no_comma (v1, v2, v3, v4, v5) ->
+  | `Prep_elif_in_enum_list_no_comma_0776021 (v1, v2, v3, v4, v5) ->
       `Prep_elif_poly
         ( v1,
           v2,
           v3,
           v4,
           Option.map preproc_else_in_enumerator_list_no_comma_to_poly v5 )
+  | `Prep_elif_in_enum_list_no_comma_b3ccc22 (v1, v2, v3, v4) ->
+      `Prep_elifdef_poly
+        ( elifdef_token_to_poly v1,
+          v2,
+          v3,
+          Option.map preproc_else_in_enumerator_list_no_comma_to_poly v4 )

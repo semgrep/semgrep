@@ -1,0 +1,99 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("strings", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]);
+                 id_type =
+                 ref ((Some { t =
+                              (TyPointer (_,
+                                 { t =
+                                   (TyN
+                                      (Id (("char", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (Unknown);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [(KeywordAttr (Const, _))] }
+                                 ));
+                              t_attrs = [] }));
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
+               )));
+         attrs = []; tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e = (L (String (_, ("prefix(raw)suffix", _), _)));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> });
+            vtype =
+            (Some { t =
+                    (TyPointer (_,
+                       { t =
+                         (TyN
+                            (Id (("char", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         t_attrs = [(KeywordAttr (Const, _))] }
+                       ));
+                    t_attrs = [] });
+            vtok = (Some _) })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("escape", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyPointer (_,
+                                  { t =
+                                    (TyN
+                                       (Id (("char", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (Unknown);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    t_attrs = [(KeywordAttr (Const, _))] }
+                                  ));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (String (_, ("\\x1", _), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype =
+             (Some { t =
+                     (TyPointer (_,
+                        { t =
+                          (TyN
+                             (Id (("char", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          t_attrs = [(KeywordAttr (Const, _))] }
+                        ));
+                     t_attrs = [] });
+             vtok = (Some _) })));
+    s_range = None }
+  ]
