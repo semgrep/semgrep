@@ -615,11 +615,13 @@ try_stmt:
       { TryExcept ($1, $3, [], None, Some ($4, $6)) }
 
 excepthandler:
-  | EXCEPT              ":" suite { ExceptHandler ($1, None, None, $3) }
-  | EXCEPT test         ":" suite { ExceptHandler ($1, Some $2, None, $4) }
-  | EXCEPT test AS NAME ":" suite { ExceptHandler ($1, Some $2, Some $4, $6)}
-  (* python2: *)
-  | EXCEPT test "," NAME ":" suite { ExceptHandler ($1, Some $2, Some $4, $6) }
+  | EXCEPT                  ":" suite { ExceptHandler ($1, None, None, $3) }
+  (* python3-ext: https://peps.python.org/pep-0758/ (was 'except A, e:' in python2) *)
+  | EXCEPT     tuple(test)  ":" suite { ExceptHandler ($1, Some (tuple_expr $2), None, $4) }
+  | EXCEPT     test AS NAME ":" suite { ExceptHandler ($1, Some $2, Some $4, $6) }
+  (* python3-ext: https://peps.python.org/pep-0654/ *)
+  | EXCEPT "*" tuple(test)  ":" suite { ExceptHandler ($1, Some (tuple_expr $3), None, $5) }
+  | EXCEPT "*" test AS NAME ":" suite { ExceptHandler ($1, Some $3, Some $5, $7) }
 
 with_stmt:
   | WITH with_inner ":" suite                         { $2 ($1, $4) }

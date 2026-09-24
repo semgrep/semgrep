@@ -1,0 +1,11 @@
+Python: `except A, B:` and `except A, B, C:` (PEP 758, Python 3.14) and the
+`except*` forms of both are now parsed as a tuple of exception types, like
+`except (A, B):`, rather than as the Python 2 `except A as B:` or a parse
+error. `except*` is now handled by Semgrep's primary Python parser too, so
+exception groups no longer depend on the fallback parser. Note that Python
+2's `except A, e:` is no longer read as `except A as e:`, even for `python2`.
+One limitation remains: the vendored tree-sitter Python grammar still accepts
+only a single comma, so `except A, B, C:` is still a parse error there. The
+menhir parser runs first and handles it, so this only surfaces if the
+tree-sitter fallback is reached; upgrading the vendored grammar is follow-up
+work.

@@ -36,6 +36,7 @@ annotated `.py` target). Patterns use the pfff parser and may lag tree-sitter ta
 | 3.12 | Type parameters — `type X = …`, `class C[T]`, `def f[T]` | `type_alias_stmt`, `generic_class`, `generic_function` |
 | 3.12 | f-string nested quotes (PEP 701) | `fstring_pep701` |
 | 3.13 | Type-parameter defaults | UNSUPPORTED — `type X[T = …] = …` → `ERROR` (LANG-545) |
+| 3.14 | Unparenthesized exception type lists in `except` / `except*` (PEP 758) | `pep758_except`, `pep758_except_no_alias`, `pep758_except_dotted` |
 | 3.14 | t-strings | UNSUPPORTED — `t"…"` → `ERROR` (`parsing_todo/python/t_strings.py`, LANG-544) |
 
 ## Pattern-language limitations
