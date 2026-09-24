@@ -1,0 +1,1 @@
+namespace [[gnu::visibility("default")]] $NS { struct $TYPE { constexpr friend bool operator==($TYPE, $TYPE) { ... } }; }

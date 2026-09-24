@@ -1,0 +1,418 @@
+================================================================================
+Capture pattern operands
+================================================================================
+__SEMGREP_EXPRESSION [$X, ..., $...XS, <... $Y ...>, (int $Z), &$R, &..., &$...RS, &<... $S ...>, &(int $T)]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (identifier)
+        (semgrep_ellipsis)
+        (semgrep_named_ellipsis)
+        (deep_ellipsis
+          (identifier))
+        (parenthesized_expression
+          (semgrep_typed_metavar
+            (type_descriptor
+              (primitive_type))
+            (semgrep_metavar)))
+        (identifier)
+        (pointer_expression
+          (semgrep_ellipsis))
+        (pointer_expression
+          (semgrep_named_ellipsis))
+        (pointer_expression
+          (deep_ellipsis
+            (identifier)))
+        (pointer_expression
+          (parenthesized_expression
+            (semgrep_typed_metavar
+              (type_descriptor
+                (primitive_type))
+              (semgrep_metavar)))))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Default reference capture patterns
+================================================================================
+__SEMGREP_EXPRESSION [&, ..., $...XS, <... $Y ...>, (int $Z)]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (lambda_default_capture)
+        (semgrep_ellipsis)
+        (semgrep_named_ellipsis)
+        (deep_ellipsis
+          (identifier))
+        (parenthesized_expression
+          (semgrep_typed_metavar
+            (type_descriptor
+              (primitive_type))
+            (semgrep_metavar))))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Default value capture patterns
+================================================================================
+__SEMGREP_EXPRESSION [=, &..., &$...XS, &<... $Y ...>, &(int $Z)]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (lambda_default_capture)
+        (pointer_expression
+          (semgrep_ellipsis))
+        (pointer_expression
+          (semgrep_named_ellipsis))
+        (pointer_expression
+          (deep_ellipsis
+            (identifier)))
+        (pointer_expression
+          (parenthesized_expression
+            (semgrep_typed_metavar
+              (type_descriptor
+                (primitive_type))
+              (semgrep_metavar)))))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Native captures
+================================================================================
+__SEMGREP_EXPRESSION [this, *this, x, &y, xs..., &ys..., z = foo(), &r = y]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (this)
+        (this)
+        (identifier)
+        (identifier)
+        (parameter_pack_expansion
+          (identifier))
+        (parameter_pack_expansion
+          (identifier))
+        (lambda_capture_initializer
+          (identifier)
+          (call_expression
+            (identifier)
+            (argument_list)))
+        (lambda_capture_initializer
+          (identifier)
+          (identifier)))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Hexadecimal escape boundaries
+================================================================================
+const char *s = "\x1" "\x41" "\x0041" "\x00041" "\x00000041";
+char a = '\x1', b = '\x41', c = '\x0041', d = '\x00041', e = '\x00000041';
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (type_qualifier)
+    (primitive_type)
+    (init_declarator
+      (pointer_declarator
+        (identifier))
+      (concatenated_string
+        (string_literal
+          (escape_sequence))
+        (string_literal
+          (escape_sequence))
+        (string_literal
+          (escape_sequence))
+        (string_literal
+          (escape_sequence))
+        (string_literal
+          (escape_sequence)))))
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (identifier)
+      (char_literal
+        (escape_sequence)))
+    (init_declarator
+      (identifier)
+      (char_literal
+        (escape_sequence)))
+    (init_declarator
+      (identifier)
+      (char_literal
+        (escape_sequence)))
+    (init_declarator
+      (identifier)
+      (char_literal
+        (escape_sequence)))
+    (init_declarator
+      (identifier)
+      (char_literal
+        (escape_sequence)))))
+
+================================================================================
+Single capture $X
+================================================================================
+__SEMGREP_EXPRESSION [$X]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (identifier))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture ...
+================================================================================
+__SEMGREP_EXPRESSION [...]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (semgrep_ellipsis))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture $...XS
+================================================================================
+__SEMGREP_EXPRESSION [$...XS]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (semgrep_named_ellipsis))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture <... $X ...>
+================================================================================
+__SEMGREP_EXPRESSION [<... $X ...>]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (deep_ellipsis
+          (identifier)))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture (int $X)
+================================================================================
+__SEMGREP_EXPRESSION [(int $X)]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (parenthesized_expression
+          (semgrep_typed_metavar
+            (type_descriptor
+              (primitive_type))
+            (semgrep_metavar))))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture &$X
+================================================================================
+__SEMGREP_EXPRESSION [&$X]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (identifier))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture &...
+================================================================================
+__SEMGREP_EXPRESSION [&...]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (pointer_expression
+          (semgrep_ellipsis)))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture &$...XS
+================================================================================
+__SEMGREP_EXPRESSION [&$...XS]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (pointer_expression
+          (semgrep_named_ellipsis)))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture &<... $X ...>
+================================================================================
+__SEMGREP_EXPRESSION [&<... $X ...>]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (pointer_expression
+          (deep_ellipsis
+            (identifier))))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Single capture &(int $X)
+================================================================================
+__SEMGREP_EXPRESSION [&(int $X)]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (pointer_expression
+          (parenthesized_expression
+            (semgrep_typed_metavar
+              (type_descriptor
+                (primitive_type))
+              (semgrep_metavar)))))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Capture initializer patterns
+================================================================================
+__SEMGREP_EXPRESSION [x = ..., &y = $...YS, z = <... $Z ...>, t = (int $T)]() {}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (lambda_expression
+      (lambda_capture_specifier
+        (lambda_capture_initializer
+          (identifier)
+          (semgrep_ellipsis))
+        (lambda_capture_initializer
+          (identifier)
+          (semgrep_named_ellipsis))
+        (lambda_capture_initializer
+          (identifier)
+          (deep_ellipsis
+            (identifier)))
+        (lambda_capture_initializer
+          (identifier)
+          (parenthesized_expression
+            (semgrep_typed_metavar
+              (type_descriptor
+                (primitive_type))
+              (semgrep_metavar)))))
+      (abstract_function_declarator
+        (parameter_list))
+      (compound_statement))))
+
+================================================================================
+Template method ellipsis
+================================================================================
+__SEMGREP_EXPRESSION foo. ... <int>()
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (call_expression
+      (field_expression
+        (identifier)
+        (template_method
+          (semgrep_ellipsis)
+          (template_argument_list
+            (type_descriptor
+              (primitive_type)))))
+      (argument_list))))
+
+================================================================================
+Qualified template method ellipsis
+================================================================================
+__SEMGREP_EXPRESSION foo.Bar:: ... <int>()
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (call_expression
+      (field_expression
+        (identifier)
+        (qualified_identifier
+          (namespace_identifier)
+          (template_method
+            (semgrep_ellipsis)
+            (template_argument_list
+              (type_descriptor
+                (primitive_type))))))
+      (argument_list))))
