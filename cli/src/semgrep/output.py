@@ -603,6 +603,16 @@ class OutputHandler:
             console.print(Title("Scan Summary"))
             logger.info(output_text)
 
+        if (
+            any_findings_not_ignored
+            and self.settings.error_on_findings
+            and not self.final_error
+        ):
+            logger.info(
+                "Exiting with error status because --error is set and there are findings."
+                ' Look for the "Code Finding" section of the output for details.'
+            )
+
         self._final_raise(final_error)
 
     def _save_output(self, destination: str, output: str) -> None:
