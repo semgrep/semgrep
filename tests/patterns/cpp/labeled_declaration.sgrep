@@ -1,0 +1,1 @@
+selected: int $NAME = $VALUE;
