@@ -9,6 +9,7 @@
 #include <caml/bigarray.h>
 #include <caml/callback.h>
 #include <caml/custom.h>
+#include <caml/fail.h>
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
 #include <caml/threads.h>
@@ -40,12 +41,26 @@ CAMLprim value octs_create_parser_dockerfile(value unit) {
   CAMLparam0();
   CAMLlocal1(v);
 
-  parser_W parserWrapper;
   TSParser *parser = ts_parser_new();
+
+  // Fail loudly on an ABI version mismatch: ts_parser_set_language returns
+  // false (and assigns no language) when the compiled grammar's ABI version
+  // is outside the linked runtime's supported range. Raising here -- before
+  // allocating the boxed parser value -- avoids silently handing back a
+  // parser that yields empty parse trees, and keeps the cleanup path
+  // unambiguous (no half-initialized custom block for the finalizer to see).
+  if (!ts_parser_set_language(parser, tree_sitter_dockerfile())) {
+    ts_parser_delete(parser);
+    caml_failwith(
+      "ts_parser_set_language failed for dockerfile: the compiled "
+      "grammar's ABI version is incompatible with the linked tree-sitter "
+      "runtime");
+  }
+
+  parser_W parserWrapper;
   parserWrapper.parser = parser;
 
   v = caml_alloc_custom(&parser_custom_ops, sizeof(parser_W), 0, 1);
   memcpy(Data_custom_val(v), &parserWrapper, sizeof(parser_W));
-  ts_parser_set_language(parser, tree_sitter_dockerfile());
   CAMLreturn(v);
 };
