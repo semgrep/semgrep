@@ -16,6 +16,17 @@
 type tin = {
   mv : Metavariable.bindings;
   stmts_matched : AST_generic.stmt list;
+  deep_expr_matched : AST_generic.expr option;
+      (** When an ExprStmt pattern such as 'foo();' matches a subexpression
+          of a statement thanks to the implicit deep matching of
+          m_expr_deep_implict (e.g., inside 'print(foo());'), this records
+          the (innermost) deep-matched subexpression so that Match_patterns
+          can report just its range instead of the whole statement's
+          (see #2199). *)
+  deep_expr_matched_stmt : AST_generic.stmt option;
+      (** The ExprStmt target statement whose implicit deep matching recorded
+          deep_expr_matched above. Match_patterns narrows the reported range
+          only when this is physically the statement being reported. *)
   (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   lang : Lang.t;
   config : Rule_options.t;
