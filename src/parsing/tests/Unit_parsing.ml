@@ -275,6 +275,7 @@ let langs_with_error_tolerance =
     (Lang.Jsonnet, Strict);
     (Lang.Dart, Strict);
     (Lang.Fga, Strict);
+    (Lang.Objc, Strict);
     (* here we have both a Pfff and tree-sitter parser *)
     (Lang.Java, Strict);
     (Lang.Go, Strict);

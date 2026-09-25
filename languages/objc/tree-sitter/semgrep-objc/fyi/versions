@@ -1,0 +1,26 @@
+File: semgrep-grammars/src/tree-sitter-objc/LICENSE
+Git repo name: tree-sitter-objc
+Latest commit in repo: 18802acf31d0b5c1c1d50bdbc9eb0e1636cab9ed
+Last change in file:
+  commit a360943e0f108b7d0935924a4eb772ce1a6aaec7
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Wed May 17 19:59:20 2023 -0400
+  
+      feat: Initial working parser
+---
+File: semgrep-grammars/src/tree-sitter-objc/grammar.js
+Git repo name: tree-sitter-objc
+Latest commit in repo: 18802acf31d0b5c1c1d50bdbc9eb0e1636cab9ed
+Last change in file:
+  commit 79d20da9a62d4f9996e034f47bf026c593c8a27a
+  Author: Amaan Qureshi <amaanq12@gmail.com>
+  Date:   Sun Dec 15 17:00:33 2024 -0500
+  
+      feat: upgrade tree-sitter-c, reduce state count
+---
+File: semgrep-grammars/src/semgrep-objc/grammar.js
+Git repo name: semgrep
+Latest commit in repo: 594a78a0589ec7a4a15feb25eb3f12d47008a28d
+Last change in file:
+
+---

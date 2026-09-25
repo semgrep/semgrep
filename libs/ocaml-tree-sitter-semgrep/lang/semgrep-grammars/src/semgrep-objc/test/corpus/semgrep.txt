@@ -1,0 +1,123 @@
+================================================================================
+Metavariables
+================================================================================
+
+$VAR = 1;
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number_literal))))
+
+================================================================================
+Metavariable expression pattern
+================================================================================
+
+__SEMGREP_EXPRESSION $X
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (identifier)))
+
+================================================================================
+Typed metavariable
+================================================================================
+
+int x = (int $FOO);
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (identifier)
+      (parenthesized_expression
+        (semgrep_typed_metavar
+          (type_descriptor
+            (primitive_type))
+          (semgrep_metavar))))))
+
+================================================================================
+Ellipsis as statement
+================================================================================
+
+void f() { ...; }
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (semgrep_ellipsis)
+      (expression_statement))))
+
+================================================================================
+Deep ellipsis
+================================================================================
+
+__SEMGREP_EXPRESSION <... [req url] ...>
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (deep_ellipsis
+      (message_expression
+        (identifier)
+        (identifier)))))
+
+================================================================================
+Message send with metavariable receiver and ellipsis argument
+================================================================================
+
+[$APP openURL:$U ...];
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (expression_statement
+    (message_expression
+      (identifier)
+      (identifier)
+      (identifier)
+      (semgrep_ellipsis))))
+
+================================================================================
+Named ellipsis
+================================================================================
+
+__SEMGREP_EXPRESSION $...ARGS
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (semgrep_expression
+    (semgrep_named_ellipsis)))
+
+================================================================================
+Message send with ellipsis between keyword arguments
+================================================================================
+
+[$APP openURL:$U ... completionHandler:$H];
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (expression_statement
+    (message_expression
+      (identifier)
+      (identifier)
+      (range_expression
+        (identifier)
+        (identifier))
+      (identifier))))

@@ -450,6 +450,15 @@ not ambiguous is welcome here.
     ),
     Language(
         comment="",
+        id_="objc",
+        name="Objective-C",
+        keys=["objc", "objectivec", "objective-c"],
+        exts=[".m"],
+        maturity=Maturity.ALPHA,
+        shebangs=[]
+    ),
+    Language(
+        comment="",
         id_="ocaml",
         name="OCaml",
         keys=["ocaml"],
