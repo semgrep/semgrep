@@ -43,3 +43,66 @@ let go_package_alias s =
     matched1 pkgbase
   else (* default convention *)
     pkgbase
+
+(* Pick the canonical library-prefix name from a Dart import URI's dotted
+ * segments. The Dart language spec (§17.2 "URI references in imports")
+ * does not define a "package name", but real-world Dart code follows the
+ * convention that the library prefix matches the imported file's basename
+ * without its `.dart` extension — e.g. `import 'package:http/http.dart'
+ * as http;`, `import 'dart:async' as async;`. We mirror that convention
+ * so a pattern written as `http.get(...)` matches code that imports
+ * `package:http/http.dart` under any local alias.
+ *
+ * Input: dotted segments produced by Parse_dart_tree_sitter.map_uri,
+ * e.g. ["package"; "http"; "http.dart"] or ["dart"; "async"]. For
+ * `package:` and `dart:` URIs, map_uri splits on `/` so the last segment
+ * is already path-component-free (`"http.dart"`, `"async"`). For
+ * relative-path imports like `'./util/helper.dart'`, map_uri's
+ * else-branch leaves the whole URI as a single segment containing `/`
+ * characters, so we run Filename.basename before chop_extension to
+ * isolate `helper` from `./util/helper.dart`.
+ *
+ * Output: the conventional library prefix as a single segment,
+ * e.g. ["http"] or ["async"]. Falls back to the original segments when
+ * the input has no recognizable basename (defensive — keeps name
+ * resolution at parity with the previous behavior).
+ *)
+let dart_canonical_segments (xs : (string * 'tok) list) : (string * 'tok) list =
+  match List.rev xs with
+  | [] -> xs
+  | (last_str, t) :: _ ->
+      let base = Filename.basename last_str in
+      let stem =
+        try Filename.chop_extension base with
+        | Invalid_argument _ -> base
+      in
+      if stem = "" then xs else [ (stem, t) ]
+
+(* Group [items] by the canonical name each would collapse to (via
+ * [candidate_canonical]), and return the canonical names claimed by more
+ * than one *distinct* [full_identity] -- i.e., names that are unsafe to
+ * collapse to, because doing so would silently conflate two different
+ * imports. Multiple occurrences sharing the same [full_identity] (e.g.
+ * several local aliases of the very same import) are not a collision.
+ *
+ * Language-agnostic: callers supply how to compute each item's full
+ * identity and its candidate canonical name. Used by Naming_AST to guard
+ * Dart's [dart_canonical_segments]: within a single file,
+ * `package:http/http.dart` and `package:other/http.dart` both naively
+ * reduce to the prefix `http`, so a pattern written against `http` could
+ * otherwise match calls through the unrelated `other` package. Flagging
+ * `http` as unsafe here lets the caller fall back to each import's
+ * unreduced identity instead of conflating them. The same shape of
+ * collision affects Go and other languages that reduce an import to a
+ * bare basename; this helper isn't Dart-specific so it can be reused
+ * there too.
+ *)
+let unsafe_canonicals ~(full_identity : 'a -> string)
+    ~(candidate_canonical : 'a -> string) (items : 'a list) : string list =
+  items
+  |> List.map (fun x -> (candidate_canonical x, full_identity x))
+  |> Common2.group_assoc_bykey_eff
+  |> List.filter_map (fun (canonical, identities) ->
+      if identities |> List.sort_uniq String.compare |> List.length > 1 then
+        Some canonical
+      else None)

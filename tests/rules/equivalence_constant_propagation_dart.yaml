@@ -1,0 +1,7 @@
+rules:
+- id: equivalence-constant-propagation-dart
+  message: foo called with "password" (possibly via constant propagation)
+  severity: ERROR
+  languages:
+  - dart
+  pattern: foo("password")

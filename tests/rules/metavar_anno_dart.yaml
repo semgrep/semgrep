@@ -1,0 +1,9 @@
+rules:
+- id: metavar-anno-dart
+  message: class is annotated with @$X
+  severity: ERROR
+  languages:
+  - dart
+  pattern: |
+    @$X
+    class $CLASS { }

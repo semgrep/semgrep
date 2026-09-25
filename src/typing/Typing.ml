@@ -29,7 +29,8 @@ let operation_Or_implies_bool_expr = function
   (* more ? *)
   | Lang.Ocaml
   | Lang.Java
-  | Lang.Php ->
+  | Lang.Php
+  | Lang.Dart ->
       true
   | __else__ -> false
 
@@ -40,7 +41,8 @@ let operation_And_implies_bool_expr = function
   (* more ? *)
   | Lang.Ocaml
   | Lang.Java
-  | Lang.Php ->
+  | Lang.Php
+  | Lang.Dart ->
       true
   | __else__ -> false
 

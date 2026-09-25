@@ -1,0 +1,14 @@
+rules:
+- id: import-alias-taint-dart
+  mode: taint
+  languages: [dart]
+  message: untrusted HTTP response flows into eval through aliased imports
+  severity: WARNING
+  pattern-sources:
+    # `http.get(...)` — the rule writes the pattern using the canonical
+    # library prefix `http`, but the target code imports
+    # `package:http/http.dart` under arbitrary aliases. The Dart
+    # equivalence_naming_import wiring lets this match aliased calls.
+    - pattern: http.get(...)
+  pattern-sinks:
+    - pattern: eval($X)
