@@ -2198,7 +2198,7 @@ and map_expression_ending_with_block (env : env)
         (* "match" *)
       in
       let expr = map_expression env v2 in
-      let actions = map_match_block env v3 |> List.map G.case_of_pat_and_expr in
+      let actions = map_match_block env v3 in
       let st = G.Switch (t, Some (G.Cond expr), actions) |> G.s in
       G.stmt_to_expr st
   | `While_exp (v1, v2, v3, v4) ->
@@ -2848,17 +2848,19 @@ and map_inner_attribute_item (env : env)
   in
   attr
 
-and map_last_match_arm (env : env) ((v1, v2, v3, v4, v5) : CST.last_match_arm) :
-    G.pattern * G.expr =
-  let _outer_attrs = List.map (map_anon_choice_attr_item_cf43dc1 env) v1 in
-  let pattern = map_match_pattern env v2 in
-  let _arrow =
-    token env v3
-    (* "=>" *)
-  in
-  let expr = map_expression env v4 in
-  let _comma = Option.map (fun tok -> token env tok) v5 in
-  (pattern, expr)
+and map_last_match_arm (env : env) (x : CST.last_match_arm) : G.case_and_body =
+  match x with
+  | `Rep_choice_attr_item_match_pat_EQGT_exp_opt_COMMA (v1, v2, v3, v4, v5) ->
+      let _outer_attrs = List.map (map_anon_choice_attr_item_cf43dc1 env) v1 in
+      let pattern = map_match_pattern env v2 in
+      let _arrow =
+        token env v3
+        (* "=>" *)
+      in
+      let expr = map_expression env v4 in
+      let _comma = Option.map (fun tok -> token env tok) v5 in
+      G.case_of_pat_and_expr (pattern, expr)
+  | `Ellips tok -> G.CaseEllipsis (token env tok (* "..." *))
 
 and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     G.expr =
@@ -2895,29 +2897,36 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
   in
   G.Call (G.N name |> G.e, (l, args, r)) |> G.e
 
-and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) :
-    G.pattern * G.expr =
-  let _outer_attrs = List.map (map_anon_choice_attr_item_cf43dc1 env) v1 in
-  let pattern = map_match_pattern env v2 in
-  let _arrow =
-    token env v3
-    (* "=>" *)
-  in
-  let expr =
-    match v4 with
-    | `Exp_COMMA (v1, v2) ->
-        let expr = map_expression env v1 in
-        let _comma =
-          token env v2
-          (* "," *)
-        in
-        expr
-    | `Choice_unsafe_blk x -> map_expression_ending_with_block env x
-  in
-  (pattern, expr)
+and map_match_arm (env : env) (x : CST.match_arm) : G.case_and_body =
+  match x with
+  | `Rep_choice_attr_item_match_pat_EQGT_choice_exp_COMMA (v1, v2, v3, v4) ->
+      let _outer_attrs = List.map (map_anon_choice_attr_item_cf43dc1 env) v1 in
+      let pattern = map_match_pattern env v2 in
+      let _arrow =
+        token env v3
+        (* "=>" *)
+      in
+      let expr =
+        match v4 with
+        | `Exp_COMMA (v1, v2) ->
+            let expr = map_expression env v1 in
+            let _comma =
+              token env v2
+              (* "," *)
+            in
+            expr
+        | `Choice_unsafe_blk x -> map_expression_ending_with_block env x
+      in
+      G.case_of_pat_and_expr (pattern, expr)
+  | `Ellips_COMMA (v1, v2) ->
+      let _comma =
+        token env v2
+        (* "," *)
+      in
+      G.CaseEllipsis (token env v1 (* "..." *))
 
 and map_match_block (env : env) ((v1, v2, v3) : CST.match_block) :
-    (G.pattern * G.expr) list =
+    G.case_and_body list =
   let _lbrace =
     token env v1
     (* "{" *)
