@@ -39,7 +39,14 @@ type t = {
   do_hover : bool; [@default false]
   pro_intrafile : bool; [@default false]
 }
-[@@deriving yojson]
+(* strict = false: the "scan" object the extension sends always includes every
+   key VS Code's package.json declares a default for, not just the ones this
+   record knows about (e.g. "secrets"). Under the default strict mode, any
+   key here without a matching field fails deserialization of the whole
+   object, so t_of_yojson silently falls back to `default` one level up in
+   Legacy_initialize_request.ml, discarding user settings like
+   `configuration` along with it. *)
+[@@deriving yojson { strict = false }]
 
 let default = Yojson.Safe.from_string "{}" |> of_yojson |> Result.get_ok
 let t_of_yojson json = of_yojson json
