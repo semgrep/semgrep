@@ -1,0 +1,1 @@
+Fixed an `IndexError` crash in `semgrep scan --test` when a single rule file was passed with `-c` and the test targets lived in a subdirectory.
