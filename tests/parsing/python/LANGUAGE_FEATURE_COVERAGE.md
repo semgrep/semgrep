@@ -43,6 +43,7 @@ superseded by the language reference.
 | 3.12 | [Type-parameter syntax — `type X = …`, `def f[T]`, `class C[T]`](https://docs.python.org/3/reference/compound_stmts.html#type-params) (PEP 695) | `type_parameters.py` |
 | 3.12 | [f-string formalization — nested quotes, multiline, backslashes](https://docs.python.org/3/reference/lexical_analysis.html#f-strings) (PEP 701) | UNTESTED |
 | 3.13 | [Type-parameter defaults](https://docs.python.org/3/reference/compound_stmts.html#type-params) (PEP 696) | UNTESTED |
+| 3.14 | [Unparenthesized exception type lists in `except` / `except*`](https://docs.python.org/3/reference/compound_stmts.html#the-try-statement) (PEP 758) | `pep758_except.py` |
 | 3.14 | [Template strings — t-strings](https://docs.python.org/3/library/string.templatelib.html#template-strings) (PEP 750) | `parsing_todo/python/t_strings.py` (not yet supported — `t"…"` parses to `ERROR`) |
 
 ## Other parsing tests in this directory
