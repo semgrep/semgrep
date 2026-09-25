@@ -265,6 +265,16 @@ rule token = parse
   | "[%"   { TBracketPercent(tokinfo lexbuf) }
   | "[%%"  { TBracketPercentPercent(tokinfo lexbuf) }
 
+  (* sgrep-ext: this rule must come before the infix_symbol rule below.
+   * infix_symbol also matches "<..." exactly ('<' start, then operator_char*
+   * where '.' qualifies), and ocamllex resolves equal-length matches by rule
+   * order, so with the rules the other way around LDots is never produced
+   * (issue #11338). Longer real operators such as "<...=" still lex as
+   * TInfixOperator via longest-match, and in target mode "<..." itself
+   * remains a regular infix operator. *)
+  | "<..." { if Hook.get Flag.sgrep_mode
+             then LDots (tokinfo lexbuf)
+             else TInfixOperator (tok lexbuf, tokinfo lexbuf) }
   | prefix_symbol { TPrefixOperator (tok lexbuf, tokinfo lexbuf) }
   | infix_symbol { TInfixOperator (tok lexbuf, tokinfo lexbuf) }
   (* pad: used in js_of_ocaml, not sure why not part of infix_symbol *)
@@ -283,7 +293,6 @@ rule token = parse
   (* sgrep-ext: *)
   | "..." { Flag_parsing.sgrep_guard (TDots (tokinfo lexbuf)) }
   (* sgrep-ext: *)
-  | "<..."  { Flag_parsing.sgrep_guard (LDots (tokinfo lexbuf)) }
   | "...>"  { Flag_parsing.sgrep_guard (RDots (tokinfo lexbuf)) }
 
 
