@@ -1,0 +1,1 @@
+Fixed a `PermissionError: [Errno 13] Permission denied` crash on Windows when running join-mode rules (rules using the `join:` key), caused by handing a still-open temporary rule file to a nested scan.

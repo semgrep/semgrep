@@ -11,6 +11,7 @@
 # LICENSE for more details.
 #
 import json
+import os
 import tempfile
 from collections import defaultdict
 from enum import Enum
@@ -407,6 +408,25 @@ def json_to_rule_match(
     )
 
 
+def _write_temp_rule_file(raw_rules: List[Any]) -> Path:
+    """
+    Write the combined join-rule parts to a closed temporary YAML file and
+    return its path. The caller is responsible for deleting the file (e.g.
+    via `os.unlink`) once done with it.
+
+    The file is created with delete=False and is fully closed before its
+    path is returned: a `NamedTemporaryFile`'s path cannot be reopened while
+    the original handle is still open on Windows (POSIX allows this), so a
+    caller that hands this path to a nested scan must not receive it while
+    still open, or that nested scan fails with
+    `PermissionError: [Errno 13] Permission denied` on Windows.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as rule_file:
+        yaml.dump({"rules": raw_rules}, rule_file)
+        rule_path = Path(rule_file.name)
+    return rule_path
+
+
 def run_join_rule(
     join_rule: Dict[str, Any],
     scanning_roots: List[Path],
@@ -487,25 +507,23 @@ def run_join_rule(
         return [], [e]
 
     # Run Semgrep
-    with tempfile.NamedTemporaryFile() as rule_path:
-        # Combine inline rules and refs
-        raw_rules = [rule.raw for rule in inline_rules]
-        raw_rules.extend([rule.raw for rule in config_map.values()])
-        yaml.dump({"rules": raw_rules}, rule_path)
-        rule_path.flush()
-        rule_path.seek(0)
-
+    raw_rules = [rule.raw for rule in inline_rules]
+    raw_rules.extend([rule.raw for rule in config_map.values()])
+    rule_path = _write_temp_rule_file(raw_rules)
+    try:
         logger.debug(
             f"Running join mode rule {join_rule.get('id')} on {len(scanning_roots)} files."
         )
         output = semgrep.run_scan.run_scan_and_return_json(
-            config=Path(rule_path.name),
+            config=rule_path,
             scanning_roots=scanning_roots,
             no_rewrite_rule_ids=True,
             optimizations="all",
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
         )
+    finally:
+        os.unlink(rule_path)
 
     assert isinstance(output, dict)  # placate mypy
 
