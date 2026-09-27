@@ -998,6 +998,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.N (G.Id ((str, _), _)), B.Special (B.ConcatString _, _)
   | G.N (G.Id ((str, _), _)), B.Special (B.Instanceof, _)
+  | G.N (G.Id ((str, _), _)), B.Special (B.NextArrayIndex, _)
     when Mvar.is_metavar_name str ->
       fail ()
   (* Important to bind to MV.Id when we can, so this must be before
