@@ -1120,7 +1120,8 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Str x -> (
       let t1, s, t2 = map_string_ env x in
       let l = Tok.content_of_tok t1 in
-      if String.starts_with "f" l then InterpolatedString (t1, s, t2)
+      if String.exists (function 'f' | 'F' -> true | _ -> false) l then
+        InterpolatedString (t1, s, t2)
       else
         match s with
         | [] -> Literal (Str ("", t1))
