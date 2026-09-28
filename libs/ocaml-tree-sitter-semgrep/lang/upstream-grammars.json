@@ -83,7 +83,7 @@
     "regen": [
       "dockerfile"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/returntocorp/tree-sitter-dockerfile.git"
   },
   "elixir": {
