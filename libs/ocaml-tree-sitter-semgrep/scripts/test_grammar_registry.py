@@ -104,9 +104,9 @@ def test_clone_only_empty_regen():
 
 
 def test_version_aliases():
-    assert version_for_lang("soql", LANG_DIR) == "0.20.8"
+    assert version_for_lang("soql", LANG_DIR) == "0.26.3"
     assert version_for_lang("php-only", LANG_DIR) == "0.26.3"
-    assert version_for_lang("apex", LANG_DIR) == "0.20.8"
+    assert version_for_lang("apex", LANG_DIR) == "0.26.3"
 
 
 def test_resolve_unknown():
