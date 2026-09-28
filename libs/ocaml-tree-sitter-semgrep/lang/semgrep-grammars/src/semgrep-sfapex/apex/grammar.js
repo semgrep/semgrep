@@ -28,6 +28,9 @@ module.exports = grammar(base_grammar, {
     [$.primary_expression, $.formal_parameter],
     [$.primary_expression, $.statement],
     [$.argument_list, $.formal_parameter],
+    // A separated '?' may start either navigation or a ternary expression.
+    [$.expression, $.field_access, $.method_invocation],
+    [$.primary_expression, $.version_expression],
   ]),
 
   // This is the so-called "word token". It must be a terminal symbol.
@@ -43,7 +46,6 @@ module.exports = grammar(base_grammar, {
       $.constructor_declaration,
       $.expression,
       $.annotation,
-      $.method_declaration,
       prec(100, $.local_variable_declaration),
 
       ///// Partial definitions
@@ -92,6 +94,8 @@ module.exports = grammar(base_grammar, {
     primary_expression: ($, previous) => choice(
       previous,
       $.semgrep_deep_expression,
+      // Keep generic field/method patterns reachable after the reserved prefix.
+      alias(ci("Package"), $.identifier),
     ),
 
     statement: ($, previous) => choice(
@@ -127,6 +131,31 @@ module.exports = grammar(base_grammar, {
     // foo. ... .bar
     // TODO. See method_invocation
 
+    // Keep pattern bodies reachable even where Apex requires a block.
+    do_statement: ($) => seq(
+      ci("do"),
+      field("body", $.statement),
+      ci("while"),
+      field("condition", $.parenthesized_expression),
+      ";"
+    ),
+
+    // Prefer the dedicated native tree when a generic field access also fits.
+    version_expression: ($, previous) => prec.dynamic(1, previous),
+
+    // Navigation and multi-word keywords must allow intervening extras.
+    safe_navigation_operator: ($) => seq("?", "."),
+    before_insert: ($) => seq(ci("before"), ci("insert")),
+    before_update: ($) => seq(ci("before"), ci("update")),
+    before_delete: ($) => seq(ci("before"), ci("delete")),
+    after_insert: ($) => seq(ci("after"), ci("insert")),
+    after_update: ($) => seq(ci("after"), ci("update")),
+    after_delete: ($) => seq(ci("after"), ci("delete")),
+    after_undelete: ($) => seq(ci("after"), ci("undelete")),
+    with_sharing: ($) => seq(ci("with"), ci("sharing")),
+    without_sharing: ($) => seq(ci("without"), ci("sharing")),
+    inherited_sharing: ($) => seq(ci("inherited"), ci("sharing")),
+
     // for(...) {}
     for_statement: ($) => seq(
       ci("for"),
@@ -145,12 +174,6 @@ module.exports = grammar(base_grammar, {
       ),
       ")",
       field("body", $.statement)
-    ),
-
-    // catch(...) {}
-    catch_formal_parameter: ($, previous) => choice(
-      $.semgrep_ellipsis,
-      previous
     ),
 
     // class X { ... }
@@ -174,6 +197,17 @@ module.exports = grammar(base_grammar, {
         )
       ),
       "}"
+    ),
+
+    // Commas are intentional in Semgrep annotation patterns, alongside Apex's
+    // whitespace-separated key/value arguments.
+    annotation_argument_list: ($) => seq(
+      "(",
+      choice(
+        field("value", $._element_value),
+        optional(joined(optional(","), $.annotation_key_value))
+      ),
+      ")"
     ),
 
     // @SomeAnnot(...)
@@ -232,6 +266,21 @@ module.exports = grammar(base_grammar, {
 */
 
     ////////////// Semgrep extensions for SOQL
+
+    // Embedded queries share Apex's comment extras between keyword words.
+    soql_using_clause: ($) => seq(ci("USING"), ci("SCOPE"), $.using_scope_type),
+    group_by_clause: ($) => seq(
+      ci("GROUP"), ci("BY"), $._group_by_expression, optional($.having_clause)
+    ),
+    with_data_cat_expression: ($) => seq(
+      ci("DATA"), ci("CATEGORY"), joined(ci("AND"), $.with_data_cat_filter)
+    ),
+    order_by_clause: ($) => seq(ci("ORDER"), ci("BY"), commaJoined1($.order_expression)),
+    order_null_direction: ($) => seq(ci("NULLS"), choice(ci("FIRST"), ci("LAST"))),
+    all_rows_clause: ($) => seq(ci("ALL"), ci("ROWS")),
+    set_comparison_operator: ($) => choice(
+      ci("IN"), seq(ci("NOT"), ci("IN")), ci("INCLUDES"), ci("EXCLUDES")
+    ),
 
     // SELECT ...
     _selectable_expression: ($, previous) => choice(

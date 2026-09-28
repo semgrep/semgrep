@@ -322,11 +322,14 @@
     "url": "https://github.com/tree-sitter/tree-sitter-scala/"
   },
   "sfapex": {
-    "commit": "d6871791ff314ef6598b4bc609dae658abfffbc9",
+    "commit": "f5a1d2188ff711a06c6a8daa65bbf2f17c8378a5",
     "regen": [
       "apex"
     ],
-    "tree_sitter": "0.20.8",
+    "test_sublangs": [
+      "apex"
+    ],
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/aheber/tree-sitter-sfapex.git"
   },
   "solidity": {
