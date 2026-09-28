@@ -727,7 +727,7 @@ let shell_fragment_parts (env : env) (xs : CST.shell_fragment) :
       | `Here_marker_pat_ea34a52 (v1, _v2) -> Some (Shell_heredoc_marker v1)
       | `Pat_b1120d3 tok
       | `Pat_f8ab07f tok
-      | `Pat_eda9032 tok
+      | `Pat_9ada80d tok
       | `Pat_a667757 tok ->
           Some (Shell_tok (token env tok)))
     xs
