@@ -1,0 +1,4 @@
+TypeScript: a line that starts with an identifier beginning with `in` or
+`instanceof` followed by a digit, `_` or `$` (such as an `in_b` member on its
+own line in an interface) now parses. No automatic semicolon was inserted
+before it, so the surrounding code failed to parse.
