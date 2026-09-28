@@ -15,7 +15,7 @@
 #include <caml/threads.h>
 
 // Implemented by parser.c
-TSLanguage *tree_sitter_dockerfile();
+const TSLanguage *tree_sitter_dockerfile(void);
 
 typedef struct _parser {
   TSParser *parser;
@@ -38,6 +38,7 @@ static struct custom_operations parser_custom_ops = {
 
 // OCaml function
 CAMLprim value octs_create_parser_dockerfile(value unit) {
+  (void)unit;
   CAMLparam0();
   CAMLlocal1(v);
 
@@ -63,4 +64,4 @@ CAMLprim value octs_create_parser_dockerfile(value unit) {
   v = caml_alloc_custom(&parser_custom_ops, sizeof(parser_W), 0, 1);
   memcpy(Data_custom_val(v), &parserWrapper, sizeof(parser_W));
   CAMLreturn(v);
-};
+}
