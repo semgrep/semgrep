@@ -41,7 +41,8 @@ public Foo(...) { }
 (parser_output
   (constructor_declaration
     (modifiers
-      (modifier))
+      (modifier
+        (public)))
     (identifier)
     (formal_parameters
       (formal_parameter
@@ -130,7 +131,8 @@ public Foo(...) {
 (parser_output
   (constructor_declaration
     (modifiers
-      (modifier))
+      (modifier
+        (public)))
     (identifier)
     (formal_parameters
       (formal_parameter
@@ -265,8 +267,10 @@ GlObAl without sharing cLaSs $A extends $SUPER implements $I1, $I2
 
 (parser_output
   (modifiers
-    (modifier)
-    (modifier))
+    (modifier
+      (global))
+    (modifier
+      (without_sharing)))
   (identifier
     (semgrep_metavar))
   (superclass
@@ -289,8 +293,10 @@ public override void printName()
 
 (parser_output
   (modifiers
-    (modifier)
-    (modifier))
+    (modifier
+      (public))
+    (modifier
+      (override)))
   (void_type)
   (identifier)
   (formal_parameters))
@@ -347,7 +353,8 @@ tRy {
     (block
       (expression_statement
         (dml_expression
-          (dml_type)
+          (dml_type
+            (insert))
           (identifier))))))
 
 ==========================================
@@ -361,7 +368,7 @@ caTch(DmlException e) {}
 (parser_output
   (partial_catch
     (catch_clause
-      (catch_formal_parameter
+      (formal_parameter
         (type_identifier)
         (identifier))
       (block))))
@@ -433,7 +440,7 @@ catch (...) {}
   (try_statement
     (block)
     (catch_clause
-      (catch_formal_parameter
+      (formal_parameter
         (semgrep_ellipsis))
       (block))))
 
@@ -452,12 +459,14 @@ public class ClassA {
 (parser_output
   (class_declaration
     (modifiers
-      (modifier))
+      (modifier
+        (public)))
     (identifier)
     (class_body
       (method_declaration
         (modifiers
-          (modifier))
+          (modifier
+            (public)))
         (void_type)
         (identifier)
         (formal_parameters
@@ -526,15 +535,14 @@ SELECT ellipsis
 
 (parser_output
   (query_expression
-    (soql_query
-      (soql_query_body
-        (select_clause
-          (field_identifier
-            (identifier))
-          (semgrep_ellipsis))
-        (from_clause
-          (storage_identifier
-            (identifier)))))))
+    (soql_query_body
+      (select_clause
+        (field_identifier
+          (identifier))
+        (semgrep_ellipsis))
+      (from_clause
+        (storage_identifier
+          (identifier))))))
 
 ==========================================
 SELECT metavariable
@@ -546,18 +554,17 @@ SELECT metavariable
 
 (parser_output
   (query_expression
-    (soql_query
-      (soql_query_body
-        (select_clause
-          (field_identifier
-            (identifier
-              (semgrep_metavar)))
-          (field_identifier
-            (identifier
-              (semgrep_metavar))))
-        (from_clause
-          (storage_identifier
-            (identifier)))))))
+    (soql_query_body
+      (select_clause
+        (field_identifier
+          (identifier
+            (semgrep_metavar)))
+        (field_identifier
+          (identifier
+            (semgrep_metavar))))
+      (from_clause
+        (storage_identifier
+          (identifier))))))
 
 ==========================================
 FROM ellipsis
@@ -569,18 +576,17 @@ FROM ellipsis
 
 (parser_output
   (query_expression
-    (soql_query
-      (soql_query_body
-        (select_clause
-          (field_identifier
-            (identifier)))
-        (from_clause
-          (storage_identifier
-            (identifier))
-          (storage_identifier
-            (semgrep_ellipsis))
-          (storage_identifier
-            (identifier)))))))
+    (soql_query_body
+      (select_clause
+        (field_identifier
+          (identifier)))
+      (from_clause
+        (storage_identifier
+          (identifier))
+        (storage_identifier
+          (semgrep_ellipsis))
+        (storage_identifier
+          (identifier))))))
 
 ==========================================
 FROM metavariable
@@ -592,15 +598,14 @@ FROM metavariable
 
 (parser_output
   (query_expression
-    (soql_query
-      (soql_query_body
-        (select_clause
-          (field_identifier
-            (identifier)))
-        (from_clause
-          (storage_identifier
-            (identifier
-              (semgrep_metavar))))))))
+    (soql_query_body
+      (select_clause
+        (field_identifier
+          (identifier)))
+      (from_clause
+        (storage_identifier
+          (identifier
+            (semgrep_metavar)))))))
 
 ==========================================
 WHERE metavariable
@@ -612,23 +617,22 @@ WHERE metavariable
 
 (parser_output
   (query_expression
-    (soql_query
-      (soql_query_body
-        (select_clause
-          (field_identifier
-            (identifier)))
-        (from_clause
-          (storage_identifier
-            (identifier)))
-        (where_clause
-          (and_expression
-            (semgrep_metavar)
-            (comparison_expression
-              (field_identifier
-                (identifier
-                  (semgrep_metavar)))
-              (value_comparison_operator)
-              (int))))))))
+    (soql_query_body
+      (select_clause
+        (field_identifier
+          (identifier)))
+      (from_clause
+        (storage_identifier
+          (identifier)))
+      (where_clause
+        (and_expression
+          (semgrep_metavar)
+          (comparison_expression
+            (field_identifier
+              (identifier
+                (semgrep_metavar)))
+            (value_comparison_operator)
+            (int)))))))
 
 ==========================================
 Metavariables for Apex expressions embedded in SOQL
@@ -640,22 +644,21 @@ Metavariables for Apex expressions embedded in SOQL
 
 (parser_output
   (query_expression
-    (soql_query
-      (soql_query_body
-        (select_clause
+    (soql_query_body
+      (select_clause
+        (field_identifier
+          (identifier)))
+      (from_clause
+        (storage_identifier
+          (identifier)))
+      (where_clause
+        (comparison_expression
           (field_identifier
-            (identifier)))
-        (from_clause
-          (storage_identifier
-            (identifier)))
-        (where_clause
-          (comparison_expression
-            (field_identifier
-              (identifier))
-            (value_comparison_operator)
-            (bound_apex_expression
-              (identifier
-                (semgrep_metavar)))))))))
+            (identifier))
+          (value_comparison_operator)
+          (bound_apex_expression
+            (identifier
+              (semgrep_metavar))))))))
 
 ==========================================
 Top-level method declaration
@@ -690,7 +693,6 @@ int x = 42;
       (identifier)
       (assignment_operator)
       (int))))
-
 
 ==========================================
 Enum ellipsis
@@ -752,4 +754,454 @@ switch on x {
         (block
           (semgrep_ellipsis)))
       (switch_rule
+        (semgrep_ellipsis)))))
+
+==========================================
+Package version patterns and compositions
+==========================================
+
+Package.$MEMBER.Request;
+Package.Version.$VALUE;
+$PACKAGE.Version.Request;
+Package.$MEMBER.$VALUE;
+foo(Package.Version.$VALUE, <... Package.$MEMBER.Request ...>, $...ARGS);
+Package.Version.Request;
+Package.Version.1.0;
+foo(Package.Version.Request, Package.Version.10.20);
+
+---
+
+(parser_output
+  (expression_statement
+    (field_access
+      (field_access
+        (identifier)
+        (identifier
+          (semgrep_metavar)))
+      (identifier)))
+  (expression_statement
+    (field_access
+      (field_access
+        (identifier)
+        (identifier))
+      (identifier
+        (semgrep_metavar))))
+  (expression_statement
+    (field_access
+      (field_access
+        (identifier
+          (semgrep_metavar))
+        (identifier))
+      (identifier)))
+  (expression_statement
+    (field_access
+      (field_access
+        (identifier)
+        (identifier
+          (semgrep_metavar)))
+      (identifier
+        (semgrep_metavar))))
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list
+        (field_access
+          (field_access
+            (identifier)
+            (identifier))
+          (identifier
+            (semgrep_metavar)))
+        (semgrep_deep_expression
+          (field_access
+            (field_access
+              (identifier)
+              (identifier
+                (semgrep_metavar)))
+            (identifier)))
+        (semgrep_metavar_ellipsis))))
+  (expression_statement
+    (version_expression))
+  (expression_statement
+    (version_expression
+      (version_number)))
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list
+        (version_expression)
+        (version_expression
+          (version_number))))))
+
+==========================================
+Do statement pattern bodies
+==========================================
+
+do ... while ($COND);
+do $BODY; while ($COND);
+do { ... } while (<... $COND ...>);
+do { foo(); } while (true);
+
+---
+
+(parser_output
+  (do_statement
+    (semgrep_ellipsis)
+    (parenthesized_expression
+      (identifier
+        (semgrep_metavar))))
+  (do_statement
+    (expression_statement
+      (identifier
+        (semgrep_metavar)))
+    (parenthesized_expression
+      (identifier
+        (semgrep_metavar))))
+  (do_statement
+    (block
+      (semgrep_ellipsis))
+    (parenthesized_expression
+      (semgrep_deep_expression
+        (identifier
+          (semgrep_metavar)))))
+  (do_statement
+    (block
+      (expression_statement
+        (method_invocation
+          (identifier)
+          (argument_list))))
+    (parenthesized_expression
+      (boolean))))
+
+==========================================
+Catch and switch pattern compatibility
+==========================================
+
+try {} catch ($TYPE $EX) { ... }
+try {} catch ($...PARAM) { ... }
+switch on $X { when $TYPE $OBJ { ... } when $VAL, <... $OTHER ...> { ... } }
+
+---
+
+(parser_output
+  (try_statement
+    (block)
+    (catch_clause
+      (formal_parameter
+        (type_identifier
+          (semgrep_metavar))
+        (identifier
+          (semgrep_metavar)))
+      (block
+        (semgrep_ellipsis))))
+  (try_statement
+    (block)
+    (catch_clause
+      (formal_parameter
+        (semgrep_metavar_ellipsis))
+      (block
+        (semgrep_ellipsis))))
+  (switch_expression
+    (identifier
+      (semgrep_metavar))
+    (switch_block
+      (switch_rule
+        (switch_label
+          (when_sobject_type
+            (type_identifier
+              (semgrep_metavar))
+            (identifier
+              (semgrep_metavar))))
+        (block
+          (semgrep_ellipsis)))
+      (switch_rule
+        (switch_label
+          (identifier
+            (semgrep_metavar))
+          (semgrep_deep_expression
+            (identifier
+              (semgrep_metavar))))
+        (block
+          (semgrep_ellipsis))))))
+
+==========================================
+Trigger event keyword boundaries
+==========================================
+
+trigger T on Account (
+  before /* insert */ insert,
+  before // update
+  update,
+  before	delete,
+  after /* insert */ insert,
+  after // update
+  update,
+  after	delete,
+  after /* undelete */ undelete
+) {}
+
+---
+
+(parser_output
+  (trigger_declaration
+    (identifier)
+    (identifier)
+    (trigger_event
+      (before_insert
+        (block_comment)))
+    (trigger_event
+      (before_update
+        (line_comment)))
+    (trigger_event
+      (before_delete))
+    (trigger_event
+      (after_insert
+        (block_comment)))
+    (trigger_event
+      (after_update
+        (line_comment)))
+    (trigger_event
+      (after_delete))
+    (trigger_event
+      (after_undelete
+        (block_comment)))
+    (trigger_body
+      (block))))
+
+==========================================
+Sharing keyword boundaries
+==========================================
+
+with /* c */ sharing class C {}
+without // c
+sharing class D {}
+inherited	sharing class E {}
+
+---
+
+(parser_output
+  (class_declaration
+    (modifiers
+      (modifier
+        (with_sharing
+          (block_comment))))
+    (identifier)
+    (class_body))
+  (class_declaration
+    (modifiers
+      (modifier
+        (without_sharing
+          (line_comment))))
+    (identifier)
+    (class_body))
+  (class_declaration
+    (modifiers
+      (modifier
+        (inherited_sharing)))
+    (identifier)
+    (class_body)))
+
+==========================================
+Safe navigation boundaries and patterns
+==========================================
+
+$OBJ?.$FIELD;
+$OBJ ? /* c */ . $FIELD;
+$OBJ ?
+. $METHOD(..., $...ARGS, <... $X ...>);
+
+---
+
+(parser_output
+  (expression_statement
+    (field_access
+      (identifier
+        (semgrep_metavar))
+      (safe_navigation_operator)
+      (identifier
+        (semgrep_metavar))))
+  (expression_statement
+    (field_access
+      (identifier
+        (semgrep_metavar))
+      (safe_navigation_operator
+        (block_comment))
+      (identifier
+        (semgrep_metavar))))
+  (expression_statement
+    (method_invocation
+      (identifier
+        (semgrep_metavar))
+      (safe_navigation_operator)
+      (identifier
+        (semgrep_metavar))
+      (argument_list
+        (semgrep_ellipsis)
+        (semgrep_metavar_ellipsis)
+        (semgrep_deep_expression
+          (identifier
+            (semgrep_metavar)))))))
+
+==========================================
+Embedded query keyword boundaries
+==========================================
+
+[SELECT Id FROM Account USING /* c */ SCOPE Everything WHERE Id NOT /* c */ IN :$IDS GROUP /* c */ BY Id HAVING $COND ORDER /* c */ BY Id NULLS /* c */ FIRST, Name NULLS // c
+LAST ALL /* c */ ROWS];
+[SELECT Id FROM Knowledge__kav WITH DATA /* c */ CATEGORY Geography__c AT usa__c];
+
+---
+
+(parser_output
+  (expression_statement
+    (query_expression
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier)))
+        (from_clause
+          (storage_identifier
+            (identifier)))
+        (using_clause
+          (block_comment)
+          (using_scope_type))
+        (where_clause
+          (comparison_expression
+            (field_identifier
+              (identifier))
+            (set_comparison_operator
+              (block_comment))
+            (bound_apex_expression
+              (identifier
+                (semgrep_metavar)))))
+        (group_by_clause
+          (block_comment)
+          (field_identifier
+            (identifier))
+          (having_clause
+            (semgrep_metavar)))
+        (order_by_clause
+          (block_comment)
+          (order_expression
+            (field_identifier
+              (identifier))
+            (order_null_direction
+              (block_comment)))
+          (order_expression
+            (field_identifier
+              (identifier))
+            (order_null_direction
+              (line_comment))))
+        (all_rows_clause
+          (block_comment)))))
+  (expression_statement
+    (query_expression
+      (soql_query_body
+        (select_clause
+          (field_identifier
+            (identifier)))
+        (from_clause
+          (storage_identifier
+            (identifier)))
+        (with_clause
+          (with_type
+            (with_data_cat_expression
+              (block_comment)
+              (with_data_cat_filter
+                (identifier)
+                (with_data_cat_filter_type)
+                (identifier)))))))))
+
+==========================================
+Annotation native and pattern argument lists
+==========================================
+
+@Annotation(a=$A b=$B)
+
+---
+
+(parser_output
+  (annotation
+    (identifier)
+    (annotation_argument_list
+      (annotation_key_value
+        (identifier)
+        (assignment_operator)
+        (identifier
+          (semgrep_metavar)))
+      (annotation_key_value
+        (identifier)
+        (assignment_operator)
+        (identifier
+          (semgrep_metavar))))))
+
+==========================================
+Empty annotation arguments
+==========================================
+
+@Annotation()
+
+---
+
+(parser_output
+  (annotation
+    (identifier)
+    (annotation_argument_list)))
+
+==========================================
+Ternary versus separated safe navigation
+==========================================
+
+$COND ? $YES : $NO;
+
+---
+
+(parser_output
+  (expression_statement
+    (ternary_expression
+      (identifier
+        (semgrep_metavar))
+      (identifier
+        (semgrep_metavar))
+      (identifier
+        (semgrep_metavar)))))
+
+==========================================
+Package prefix field and method patterns
+==========================================
+
+Package.$X;
+Package.Version;
+foo(Package.$X, <... Package.Version ...>);
+Package.$M(...);
+
+---
+
+(parser_output
+  (expression_statement
+    (field_access
+      (identifier)
+      (identifier
+        (semgrep_metavar))))
+  (expression_statement
+    (field_access
+      (identifier)
+      (identifier)))
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (argument_list
+        (field_access
+          (identifier)
+          (identifier
+            (semgrep_metavar)))
+        (semgrep_deep_expression
+          (field_access
+            (identifier)
+            (identifier))))))
+  (expression_statement
+    (method_invocation
+      (identifier)
+      (identifier
+        (semgrep_metavar))
+      (argument_list
         (semgrep_ellipsis)))))
