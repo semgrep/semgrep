@@ -309,9 +309,11 @@ let magic_by_ext : (string * string list) list =
     ("woff2", [ "wOF2" ]);
   ]
 
-let magic_by_ext_tbl : (string, string list) Hashtbl.t =
-  let tbl = Hashtbl.create 64 in
-  List.iter (fun (ext, magics) -> Hashtbl.replace tbl ext magics) magic_by_ext;
+let magic_by_ext_tbl : (string, string list) Base.Hashtbl.t =
+  let tbl = Base.Hashtbl.Poly.create ~size:64 () in
+  List.iter
+    (fun (ext, magics) -> Base.Hashtbl.set tbl ~key:ext ~data:magics)
+    magic_by_ext;
   tbl
 
 (* Signatures for formats with no distinguishing extension; only consulted in
@@ -381,7 +383,7 @@ let is_binary (path : Fpath.t) =
       | None -> Ok path
       | Some s ->
           let looks_binary =
-            match Hashtbl.find_opt magic_by_ext_tbl e with
+            match Base.Hashtbl.find magic_by_ext_tbl e with
             (* Known binary extension: check only that format's signature(s). *)
             | Some prefixes -> starts_with_any prefixes s
             (* Extension-less: the size heuristic may have put this in Obj

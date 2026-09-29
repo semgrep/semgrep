@@ -27,33 +27,34 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-type t = { ht : (string, value) Hashtbl.t; mtx : Mutex.t }
+type t = { ht : (string, value) Base.Hashtbl.t; mtx : Mutex.t }
 and value = Start of float | Recorded of float
 
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
-let make () = { ht = Hashtbl.create 0x100; mtx = Mutex.create () }
+let make () =
+  { ht = Base.Hashtbl.Poly.create ~size:0x100 (); mtx = Mutex.create () }
 
 let start { ht; mtx } ~name =
   Mutex.protect mtx @@ fun () ->
-  match Hashtbl.find_opt ht name with
+  match Base.Hashtbl.find ht name with
   | Some (Start start_time) ->
       let now = Unix.gettimeofday () in
-      Hashtbl.replace ht name (Recorded (now -. start_time))
+      Base.Hashtbl.set ht ~key:name ~data:(Recorded (now -. start_time))
   | Some (Recorded _) -> invalid_arg "%s was already profiled"
   | None ->
       let now = Unix.gettimeofday () in
-      Hashtbl.add ht name (Start now)
+      Base.Hashtbl.set ht ~key:name ~data:(Start now)
 
 let stop profiler ~name =
   let { ht; mtx } = profiler in
   Mutex.protect mtx @@ fun () ->
-  match Hashtbl.find_opt ht name with
+  match Base.Hashtbl.find ht name with
   | Some (Start _) ->
       let now = Unix.gettimeofday () in
-      Hashtbl.replace ht name (Start now)
+      Base.Hashtbl.set ht ~key:name ~data:(Start now)
   | Some (Recorded _) ->
       invalid_arg (spf "Profiler.stop: %s already recorded" name)
   | None -> invalid_arg (spf "Profiler.stop: %s does not exist" name)
@@ -67,15 +68,14 @@ let record profiler ~name fn =
   let t0 = Unix.gettimeofday () in
   let finally () =
     let t1 = Unix.gettimeofday () in
-    Mutex.protect mtx @@ fun () -> Hashtbl.replace ht name (Recorded (t1 -. t0))
+    Mutex.protect mtx @@ fun () ->
+    Base.Hashtbl.set ht ~key:name ~data:(Recorded (t1 -. t0))
   in
   Common.protect ~finally fn
 
 let dump { ht; mtx } =
   Mutex.protect mtx @@ fun () ->
-  Hashtbl.fold
-    (fun name value acc ->
+  Base.Hashtbl.fold ht ~init:[] ~f:(fun ~key:name ~data:value acc ->
       match value with
       | Recorded time -> (name, time) :: acc
       | _ -> acc)
-    ht []

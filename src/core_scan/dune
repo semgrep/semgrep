@@ -4,6 +4,9 @@
  (name semgrep_core_scan)
  (wrapped false)
  (libraries
+    base
+    collections
+
     parallelism
 
     commons

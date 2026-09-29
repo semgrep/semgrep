@@ -91,11 +91,11 @@ type t = Language.t =
 [@@deriving eq, hash, ord, show { with_path = false }, yojson]
 
 let has_tag tag_name =
-  let tbl = Hashtbl.create 50 in
+  let tbl = Base.Hashtbl.Poly.create ~size:50 () in
   Language.list
   |> List.iter (fun (x : Language.info) ->
-      if List.mem tag_name x.tags then Hashtbl.add tbl x.id ());
-  fun lang -> Hashtbl.mem tbl lang
+      if List.mem tag_name x.tags then Base.Hashtbl.set tbl ~key:x.id ~data:());
+  fun lang -> Base.Hashtbl.mem tbl lang
 
 let is_js = has_tag "is_js"
 let is_proprietary = has_tag "is_proprietary"
@@ -109,9 +109,9 @@ let info : t -> Language.info =
   let assoc =
     List.map (fun (info : Language.info) -> (info.id, info)) Language.list
   in
-  let tbl = Hashtbl_.hash_of_list assoc in
+  let tbl = Hashtbl_.Base.hash_of_list assoc in
   fun key ->
-    try Hashtbl.find tbl key with
+    try Hashtbl_.Base.find tbl key with
     | Not_found ->
         (* code generation guarantees that there's one info entry per language *)
         assert false
@@ -122,9 +122,12 @@ let assoc =
       List.map (fun key -> (key, info.id)) info.keys)
     Language.list
 
-let lang_map = ROHashtbl.of_seq (List.to_seq assoc)
-let of_string_opt x = ROHashtbl.find_opt lang_map (String.lowercase_ascii x)
-let keys = lang_map |> ROHashtbl.to_seq_keys |> List.of_seq
+let lang_map = ROHashtbl.Base.of_seq (List.to_seq assoc)
+
+let of_string_opt x =
+  ROHashtbl.Base.find_opt lang_map (String.lowercase_ascii x)
+
+let keys = ROHashtbl.Base.keys lang_map
 let supported_langs : string = String.concat ", " keys
 
 (* TODO: move file identification to lang.json *)

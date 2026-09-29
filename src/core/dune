@@ -6,6 +6,9 @@
  (name semgrep_core)
  (wrapped false)
  (libraries
+   base
+   collections
+
    ; standard libraries
    str
    uri

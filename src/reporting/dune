@@ -3,6 +3,9 @@
  (name semgrep_reporting)
  (wrapped false)
  (libraries
+   base
+   collections
+
    yaml
    commons
    lib_parsing

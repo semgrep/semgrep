@@ -171,11 +171,11 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     |> List.filter_map (fun (file, xs) ->
         if List.length xs > max_match_per_file then Some file else None)
   in
-  let offending_files = Hashtbl_.hashset_of_list offending_file_list in
+  let offending_files = Hashtbl_.Base.hashset_of_list offending_file_list in
   let new_matches =
     matches
     |> List_.exclude (fun ({ pm; _ } : Core_result.processed_match) ->
-        Hashtbl.mem offending_files pm.path.internal_path_to_content)
+        Base.Hashtbl.mem offending_files pm.path.internal_path_to_content)
   in
   let new_errors, new_skipped =
     offending_file_list

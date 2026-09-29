@@ -166,7 +166,7 @@ let dedup_and_sort (xs : Out.core_match list) : Out.core_match list =
         | _ -> true)
     | _ -> false
   in
-  let seen = Hashtbl.create 101 in
+  let seen = Base.Hashtbl.Poly.create ~size:101 () in
   xs |> OutUtils.sort_core_matches
   (* This deduplication logic used to live in Pysemgrep, which would assume that
      the matches had already been sorted via sort_core_matches.
@@ -175,9 +175,10 @@ let dedup_and_sort (xs : Out.core_match list) : Out.core_match list =
   *)
   |> List.iter (fun x ->
       let key = core_unique_key x in
-      match Hashtbl.find_opt seen key with
-      | None -> Hashtbl.add seen key x
-      | Some y when should_report_instead (x, y) -> Hashtbl.replace seen key x
+      match Base.Hashtbl.find seen key with
+      | None -> Base.Hashtbl.set seen ~key ~data:x
+      | Some y when should_report_instead (x, y) ->
+          Base.Hashtbl.set seen ~key ~data:x
       | _ -> ());
   (* Here, we must sort again, though.
      This is because we yet again need to enforce that when Pysemgrep receives these
@@ -186,7 +187,7 @@ let dedup_and_sort (xs : Out.core_match list) : Out.core_match list =
      So we end up sorting twice. Such is life.
      LATER: Can optimize if necessary
   *)
-  Hashtbl.to_seq_values seen |> List.of_seq |> OutUtils.sort_core_matches
+  Base.Hashtbl.data seen |> OutUtils.sort_core_matches
 
 (*****************************************************************************)
 (* Converters *)
@@ -632,11 +633,11 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
       profiling_data.file_times
       |> List.map (fun { Core_profiling.file = target; rule_times; run_time } ->
           let (rule_id_to_rule_prof
-                : (Rule_ID.t, Core_profiling.rule_profiling) Hashtbl.t) =
+                : (Rule_ID.t, Core_profiling.rule_profiling) Base.Hashtbl.t) =
             rule_times ||| []
             |> List.map (fun (rp : Core_profiling.rule_profiling) ->
                 (rp.rule_id, rp))
-            |> Hashtbl_.hash_of_list
+            |> Hashtbl_.Base.hash_of_list
           in
 
           Out.
@@ -647,7 +648,7 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
                 |> List.map (fun rule_id ->
                     try
                       let rprof : Core_profiling.rule_profiling =
-                        Hashtbl.find rule_id_to_rule_prof rule_id
+                        Hashtbl_.Base.find rule_id_to_rule_prof rule_id
                       in
                       rprof.rule_match_time
                     with
@@ -661,7 +662,7 @@ let profiling_to_profiling (opt_quick_profiling : QProf.t option)
                 |> List.map (fun rule_id ->
                     try
                       let rprof : Core_profiling.rule_profiling =
-                        Hashtbl.find rule_id_to_rule_prof rule_id
+                        Hashtbl_.Base.find rule_id_to_rule_prof rule_id
                       in
                       rprof.rule_parse_time
                     with
