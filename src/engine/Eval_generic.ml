@@ -51,7 +51,7 @@ type value =
 [@@deriving show]
 
 type env = {
-  mvars : (MV.mvar, value) Hashtbl.t;
+  mvars : (MV.mvar, value) Base.Hashtbl.t;
   constant_propagation : bool;
   file : Fpath.t;
       (** The file that we are currently matching the AST of. We need this so that
@@ -107,7 +107,7 @@ let parse_json (file : string) : env * code =
           in
           let env =
             {
-              mvars = Hashtbl_.hash_of_list metavars;
+              mvars = Hashtbl_.Base.hash_of_list metavars;
               constant_propagation = true;
               file = Fpath.v file;
             }
@@ -263,7 +263,7 @@ let rec eval env code =
       String (eval_concat_string_op env code op args)
   | G.N (G.Id ((s, _t), _idinfo))
     when Mvar.is_metavar_name s || Mvar.is_metavar_ellipsis s -> (
-      try Hashtbl.find env.mvars s with
+      try Hashtbl_.Base.find env.mvars s with
       | Not_found ->
           Log.warn (fun m -> m "could not find a value for %s in env" s);
           raise (NotInEnv s))
@@ -535,8 +535,13 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
           try
             Some
               ( mvar,
-                eval { mvars = Hashtbl.create 0; constant_propagation; file } e
-              )
+                eval
+                  {
+                    mvars = Base.Hashtbl.Poly.create ~size:0 ();
+                    constant_propagation;
+                    file;
+                  }
+                  e )
           with
           | NotHandled _
           | NotInEnv _ ->
@@ -559,7 +564,7 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
         | MV.E e -> try_bind_to_exp e
         | MV.Text (s, _, _) -> Some (mvar, String s)
         | x -> string_of_binding mvar x)
-    |> Hashtbl_.hash_of_list
+    |> Hashtbl_.Base.hash_of_list
   in
 
   { mvars; constant_propagation; file }
@@ -568,7 +573,7 @@ let bindings_to_env_just_strings (config : Rule_options.t) ~file xs =
   let mvars =
     xs
     |> List.filter_map (fun (mvar, mval) -> string_of_binding mvar mval)
-    |> Hashtbl_.hash_of_list
+    |> Hashtbl_.Base.hash_of_list
   in
 
   { mvars; constant_propagation = config.constant_propagation; file }

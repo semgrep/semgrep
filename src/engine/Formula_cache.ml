@@ -24,7 +24,7 @@ module ME = Matching_explanation
    In particular, because of hardcoded propagators, we expect to see lots of
    sharing from Semgrep Pro Engine.
 *)
-module Formula_tbl = Hashtbl.Make (struct
+module Formula_tbl = Stdlib.Hashtbl.Make (struct
   type t = R.formula
 
   let equal = R.equal_formula

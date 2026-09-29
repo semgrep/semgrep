@@ -42,12 +42,13 @@ type 'spec spec_stats = {
 }
 
 type rule_stats = {
-  source_stats : (Rule.taint_spec_id, Rule.taint_source spec_stats) Hashtbl.t;
-  sink_stats : (Rule.taint_spec_id, Rule.taint_sink spec_stats) Hashtbl.t;
+  source_stats :
+    (Rule.taint_spec_id, Rule.taint_source spec_stats) Base.Hashtbl.t;
+  sink_stats : (Rule.taint_spec_id, Rule.taint_sink spec_stats) Base.Hashtbl.t;
 }
 (** Per-rule stats accumulated across all files. *)
 
-type t = (Rule_ID.t, rule_stats) Hashtbl.t
+type t = (Rule_ID.t, rule_stats) Base.Hashtbl.t
 (** Coverage stats table. *)
 
 val create : unit -> t

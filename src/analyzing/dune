@@ -7,6 +7,8 @@
  (name pfff_lang_GENERIC_analyze)
  (wrapped false)
  (libraries
+   base
+   collections
    commons
    ast_generic
    parallelism

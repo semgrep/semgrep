@@ -14,8 +14,8 @@ type var = string * AST_generic.sid
 
 type env = {
   lang : Lang.t option;
-  constants : (var, AST_generic.svalue) Hashtbl.t;
-  attributes : (var, AST_generic.attribute list) Hashtbl.t;
+  constants : (var, AST_generic.svalue) Base.Hashtbl.t;
+  attributes : (var, AST_generic.attribute list) Base.Hashtbl.t;
 }
 
 val default_env : Lang.t option -> env
