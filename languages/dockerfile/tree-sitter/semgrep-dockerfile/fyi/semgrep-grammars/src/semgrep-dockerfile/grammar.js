@@ -95,7 +95,6 @@ module.exports = grammar(base_grammar, {
 
     expose_port: ($, previous) => choice(
       $.semgrep_ellipsis,
-      seq($.expansion, choice("/tcp", "/udp")),
       previous
     ),
 
