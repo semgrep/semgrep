@@ -47,16 +47,16 @@ let pattern_has_bytes (pat : Pattern_AST.t) =
 let lowercase = String.lowercase_ascii
 
 type atom_table = {
-  words : (string, unit) Hashtbl.t;
-  chars : (char, unit) Hashtbl.t; (* could use an array of 256 booleans *)
+  words : (string, unit) Base.Hashtbl.t;
+  chars : (char, unit) Base.Hashtbl.t; (* could use an array of 256 booleans *)
 }
 
 let build_atom_table ~case_sensitive (pat : Pattern_AST.t) =
   let open Pattern_AST in
   (* Initial sizes for these hash tables reduced based on a memtrace
    * investigation. Increase them only with caution. *)
-  let words = Hashtbl.create 64 in
-  let chars = Hashtbl.create 32 in
+  let words = Base.Hashtbl.Poly.create ~size:64 () in
+  let chars = Base.Hashtbl.Poly.create ~size:32 () in
   let rec index nodes = List.iter index_node nodes
   and index_node = function
     | Atom (_, atom) -> index_atom atom
@@ -67,10 +67,10 @@ let build_atom_table ~case_sensitive (pat : Pattern_AST.t) =
   and index_atom = function
     | Word word ->
         let k = if case_sensitive then word else lowercase word in
-        Hashtbl.replace words k ()
+        Base.Hashtbl.set words ~key:k ~data:()
     | Punct k
     | Byte k ->
-        Hashtbl.replace chars k ()
+        Base.Hashtbl.set chars ~key:k ~data:()
     | Metavar _ -> ()
   in
   index pat;
@@ -89,14 +89,14 @@ let doc_has_all_required_atoms ~case_sensitive ~check_bytes atom_tbl
     | Atom (_, atom) -> check_atom atom
     | List nodes -> check nodes
   and check_atom = function
-    | Byte k -> if check_bytes then Hashtbl.remove chars k
+    | Byte k -> if check_bytes then Base.Hashtbl.remove chars k
     | Word word ->
         let k = if case_sensitive then word else lowercase word in
-        Hashtbl.remove words k
-    | Punct k -> Hashtbl.remove chars k
+        Base.Hashtbl.remove words k
+    | Punct k -> Base.Hashtbl.remove chars k
   in
   check doc;
-  Hashtbl.length words = 0 && Hashtbl.length chars = 0
+  Base.Hashtbl.length words = 0 && Base.Hashtbl.length chars = 0
 
 let may_match ~case_sensitive pat doc =
   let atom_tbl = build_atom_table ~case_sensitive pat in

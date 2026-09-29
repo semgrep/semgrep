@@ -27,9 +27,9 @@
 (*****************************************************************************)
 
 (* Mapping of file path to a list of ranges affected by previous autofixes. *)
-type env = (Fpath.t, (int * int) list) Hashtbl.t
+type env = (Fpath.t, (int * int) list) Base.Hashtbl.t
 
-let mk_env () = Hashtbl.create 13
+let mk_env () = Base.Hashtbl.Poly.create ~size:13 ()
 
 (*****************************************************************************)
 (* Entry points *)
@@ -37,7 +37,7 @@ let mk_env () = Hashtbl.create 13
 
 let make_fixed_lines_of_string env file_contents (edit : Textedit.t) =
   let previous_edits =
-    match Hashtbl.find_opt env edit.path with
+    match Base.Hashtbl.find env edit.path with
     | Some xs -> xs
     | None -> []
   in
@@ -61,7 +61,8 @@ let make_fixed_lines_of_string env file_contents (edit : Textedit.t) =
     let lines = String_.lines_of_range (start, end_) updated_contents in
     (* Record that we did this edit, so that subsequent overlapping edits can be
      * omitted. *)
-    Hashtbl.replace env edit.path ((edit.start, edit.end_) :: previous_edits);
+    Base.Hashtbl.set env ~key:edit.path
+      ~data:((edit.start, edit.end_) :: previous_edits);
     match lines with
     (* If we are deleting whole line(s) only, we omit fixed_lines. This is odd
      * behavior, but it matches pysemgrep and is exercised by e2e tests. *)

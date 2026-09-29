@@ -70,7 +70,7 @@ let replace metavar_tbl pattern_ast =
         let map_arg arg =
           match arg with
           | Arg { e = N (Id ((id_str, _), _)); _ } -> (
-              match Hashtbl.find_opt metavar_tbl id_str with
+              match Base.Hashtbl.find metavar_tbl id_str with
               | Some (MV.Args args) -> args
               | _ -> [ arg ])
           | _ -> [ arg ]
@@ -82,7 +82,7 @@ let replace metavar_tbl pattern_ast =
         let replacement =
           match orig.e with
           | N (Id ((id_str, _), _)) -> (
-              match Hashtbl.find_opt metavar_tbl id_str with
+              match Base.Hashtbl.find metavar_tbl id_str with
               | Some (MV.E e) -> Some e
               | _ -> None)
           | _ -> None
@@ -101,7 +101,7 @@ let replace metavar_tbl pattern_ast =
         | String (_l, (str, _), _r) -> (
             (* TODO handle the case where the metavar appears within the
              * string but is not the entire contents of the string *)
-            match Hashtbl.find_opt metavar_tbl str with
+            match Base.Hashtbl.find metavar_tbl str with
             | Some (MV.Text (str, _info, originfo)) ->
                 (* Don't use `Metavariable.mvalue_to_any` here. It uses
                  * the modified token info, which drops the quotes. *)
@@ -113,7 +113,7 @@ let replace metavar_tbl pattern_ast =
       method! visit_name env name =
         match name with
         | Id ((id_str, _), _) -> (
-            match Hashtbl.find_opt metavar_tbl id_str with
+            match Base.Hashtbl.find metavar_tbl id_str with
             | Some (MV.Id (id, info)) ->
                 let info =
                   match info with
@@ -134,14 +134,14 @@ let replace metavar_tbl pattern_ast =
  * subparts.
  *)
 let mk_str_metavars_regexp metavar_tbl =
-  if Hashtbl.length metavar_tbl =|= 0 then
+  if Base.Hashtbl.length metavar_tbl =|= 0 then
     Log.warn (fun m ->
         m "no metavariables, mk_str_metavars_regexp should not be called");
   lazy_safe
     ((* List of metavars that were bound in this match, quoted so that they
       * can be used safely in a regex *)
      let quoted_metavars =
-       Hashtbl.to_seq_keys metavar_tbl |> Seq.map Str.quote |> List.of_seq
+       Base.Hashtbl.keys metavar_tbl |> List.map Str.quote
      in
      (* One regex string that will match any of the metavars *)
      let regex_body = String.concat "\\|" quoted_metavars in
@@ -152,7 +152,7 @@ let mk_str_metavars_regexp metavar_tbl =
 
 (* Stores context and mutable results for use with the visitor below. *)
 type find_remaining_metavars_env = {
-  metavar_tbl : (string, MV.mvalue) Hashtbl.t;
+  metavar_tbl : (string, MV.mvalue) Base.Hashtbl.t;
   seen_metavars : string list ref;
   str_metavars_regexp : string Lazy_safe.t;
 }
@@ -163,7 +163,7 @@ let find_remaining_metavars_visitor =
 
     method! visit_ident env id =
       let idstr, _ = id in
-      if Hashtbl.mem env.metavar_tbl idstr then
+      if Base.Hashtbl.mem env.metavar_tbl idstr then
         Stack_.push idstr env.seen_metavars;
       super#visit_ident env id
 
@@ -221,7 +221,7 @@ let replace_metavars (metavars : MV.bindings) (pattern_ast : AST_generic.any) :
     (AST_generic.any, string) result =
   if List_.null metavars then Ok pattern_ast
   else
-    let metavar_tbl = Hashtbl_.hash_of_list metavars in
+    let metavar_tbl = Hashtbl_.Base.hash_of_list metavars in
     let res = replace metavar_tbl pattern_ast in
     match find_remaining_metavars metavar_tbl res with
     | [] -> Ok res

@@ -102,7 +102,7 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
   Rule_ID_map.fold
     (fun rule_id n acc ->
       let res =
-        try Hashtbl.find res.hrules rule_id with
+        try Hashtbl_.Base.find res.hrules rule_id with
         | Not_found ->
             failwith
               (spf "could not find rule_id %s in hash"
@@ -227,7 +227,7 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     core_matches
     |> List.map (fun (cm : Out.core_match) ->
         let rule =
-          try Hashtbl.find hrules cm.check_id with
+          try Hashtbl_.Base.find hrules cm.check_id with
           | Not_found ->
               (* should never happen; the core_matches are derived from
                * the passed rules

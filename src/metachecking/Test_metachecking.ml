@@ -97,14 +97,17 @@ let test_rules ?(unit_testing = false) xs =
       |> List.iter (fun e ->
           Logs.err (fun m ->
               m "test_rules: found error: %s" (E.string_of_error e)));
+      (* newscore is a Common2.score, output_value'd to *.marshalled
+       * regression files; a Base table raises under Marshal, so this
+       * stays Stdlib.Hashtbl. *)
       match
         TCM.compare_actual_to_expected ~to_location:TCM.location_of_core_error
           actual_errors expected_error_lines
       with
-      | Ok () -> Hashtbl.add newscore !!file Common2.Ok
+      | Ok () -> Stdlib.Hashtbl.add newscore !!file Common2.Ok
       | Error (num_errors, msg) ->
           Logs.err (fun m -> m "%s" msg);
-          Hashtbl.add newscore !!file (Common2.Pb msg);
+          Stdlib.Hashtbl.add newscore !!file (Common2.Pb msg);
           total_mismatch := !total_mismatch + num_errors;
           if unit_testing then Alcotest.fail msg);
   if not unit_testing then

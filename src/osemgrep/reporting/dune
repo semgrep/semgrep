@@ -4,6 +4,8 @@
  (name osemgrep_reporting)
  (wrapped false)
  (libraries
+   base
+   collections
    commons
    fmt ; TODO: get rid of this dependency
    terminal_size

@@ -498,7 +498,7 @@ let really_search param src pat doc =
     in
     { src; word_equal; param }
   in
-  let end_loc_tbl = Hashtbl.create 100 in
+  let end_loc_tbl = Base.Hashtbl.Poly.create ~size:100 () in
   let fold = if starts_with_dots pat then fold_block_starts else fold_all in
   let prefer_longer_match = ends_with_dots pat in
   fold [] doc (fun matches start_loc doc ->
@@ -516,20 +516,20 @@ let really_search param src pat doc =
           in
           if prefer_longer_match then
             (* rule 5: prefer the longer match that's already in the table. *)
-            match Hashtbl.mem end_loc_tbl last_loc with
+            match Base.Hashtbl.mem end_loc_tbl last_loc with
             | true -> ()
-            | false -> Hashtbl.add end_loc_tbl last_loc match_
+            | false -> Base.Hashtbl.set end_loc_tbl ~key:last_loc ~data:match_
           else
             (* rule 4 (default case)
                If two matches end at the same location, prefer the shorter one.
                The replacement in the table marks any earlier, longer match
                as undesirable. *)
-            Hashtbl.replace end_loc_tbl last_loc match_;
+            Base.Hashtbl.set end_loc_tbl ~key:last_loc ~data:match_;
           match_ :: matches
       | Fail -> matches)
   |> List.rev
   |> List.filter (fun match_ ->
-      match Hashtbl.find_opt end_loc_tbl (snd match_.region) with
+      match Base.Hashtbl.find end_loc_tbl (snd match_.region) with
       | None -> assert false
       | Some selected_match -> phys_eq match_ selected_match)
 

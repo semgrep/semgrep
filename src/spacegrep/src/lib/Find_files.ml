@@ -13,14 +13,14 @@ type visit_tracker = {
 
 (* XXX: Common.memoized ? *)
 let memoize f =
-  let tbl = Hashtbl.create 100 in
+  let tbl = Base.Hashtbl.Poly.create ~size:100 () in
   fun x ->
     let run =
-      match Hashtbl.find_opt tbl x with
+      match Base.Hashtbl.find tbl x with
       | Some run -> run
       | None ->
           let run = lazy_safe (f x) in
-          Hashtbl.add tbl x run;
+          Base.Hashtbl.set tbl ~key:x ~data:run;
           run
     in
     Lazy_safe.force run
@@ -40,7 +40,7 @@ let stat = memoize stat
    by symbolic links.
 *)
 let create_visit_tracker () =
-  let tbl = Hashtbl.create 100 in
+  let tbl = Base.Hashtbl.Poly.create ~size:100 () in
   let get_id path =
     match stat path with
     | Ok { st_ino; _ } -> Some st_ino
@@ -49,12 +49,12 @@ let create_visit_tracker () =
   let was_visited path =
     match get_id path with
     | None -> true
-    | Some id -> Hashtbl.mem tbl id
+    | Some id -> Base.Hashtbl.mem tbl id
   in
   let mark_visited path =
     match get_id path with
     | None -> ()
-    | Some id -> Hashtbl.replace tbl id ()
+    | Some id -> Base.Hashtbl.set tbl ~key:id ~data:()
   in
   { was_visited; mark_visited }
 

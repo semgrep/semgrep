@@ -499,7 +499,7 @@ let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
   let show_dataflow_traces = ctx.is_logged_in && show_dataflow_traces in
   let run =
     let rules =
-      hrules |> Hashtbl.to_seq |> List.of_seq
+      hrules |> Base.Hashtbl.to_alist
       (* sorting for snapshot stability *)
       |> List.sort (fun (aid, _) (bid, _) -> Rule_ID.compare aid bid)
       |> List.map (fun (_ruleid, r) -> rule ~hide_nudge ctx r)

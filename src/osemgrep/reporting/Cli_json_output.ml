@@ -605,7 +605,7 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
           matches
           |> List.map (fun (cm : Out.core_match) ->
               let rule =
-                try Hashtbl.find hrules cm.check_id with
+                try Hashtbl_.Base.find hrules cm.check_id with
                 | Not_found -> raise Impossible
               in
               cli_match_of_core_match ~fips_mode fixed_env_opt rule cm)

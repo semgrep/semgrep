@@ -6,6 +6,7 @@
  (wrapped false)
  (libraries
    base
+   collections
    commons
    git_wrapper
    paths
