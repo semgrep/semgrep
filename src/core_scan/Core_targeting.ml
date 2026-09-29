@@ -45,7 +45,7 @@ let group_rules_by_target_language (rules : Rule.t list) :
     (Analyzer.t * Rule.t list) list =
   (* target language -> rules *)
   (* TODO: use Assoc.group_by *)
-  let tbl = Hashtbl.create 100 in
+  let tbl = Base.Hashtbl.Poly.create ~size:100 () in
   rules
   |> List.iter (fun (rule : Rule.t) ->
       let pattern_lang = rule.target_analyzer in
@@ -53,12 +53,13 @@ let group_rules_by_target_language (rules : Rule.t list) :
       target_langs
       |> List.iter (fun lang ->
           let rules =
-            match Hashtbl.find_opt tbl lang with
+            match Base.Hashtbl.find tbl lang with
             | None -> []
             | Some rules -> rules
           in
-          Hashtbl.replace tbl lang (rule :: rules)));
-  Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
+          Base.Hashtbl.set tbl ~key:lang ~data:(rule :: rules)));
+  Base.Hashtbl.fold tbl ~init:[] ~f:(fun ~key:lang ~data:rules acc ->
+      (lang, rules) :: acc)
 
 (* If Javascript is one of the rule languages, we should also run on
    Typescript files. This implementation mimics the hack in `rule.py`.

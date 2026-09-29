@@ -8,6 +8,9 @@
  (name semgrep_targeting)
  (wrapped false)
  (libraries
+   base
+   collections
+
    commons
 
    fpath

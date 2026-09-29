@@ -268,8 +268,7 @@ let mk_env (session : Legacy_session.t) (params : Request_params.t) =
     List.map Scanning_root.of_fpath session.workspace_folders
   in
   let files =
-    session.cached_workspace_targets |> Hashtbl.to_seq_values |> List.of_seq
-    |> List_.flatten
+    session.cached_workspace_targets |> Base.Hashtbl.data |> List_.flatten
   in
   let project_root =
     match
@@ -294,13 +293,15 @@ let mk_env (session : Legacy_session.t) (params : Request_params.t) =
    path relativity stuff, I think.
 *)
 let get_relevant_analyzers (env : env) : Analyzer.t list =
-  let lang_set = Hashtbl.create 10 in
+  let lang_set = Base.Hashtbl.Poly.create ~size:10 () in
   List.iter
     (fun file ->
       let file_langs = Lang.langs_of_filename file in
-      List.iter (fun lang -> Hashtbl.replace lang_set lang ()) file_langs)
+      List.iter
+        (fun lang -> Base.Hashtbl.set lang_set ~key:lang ~data:())
+        file_langs)
     env.initial_files;
-  Hashtbl.to_seq_keys lang_set |> List.of_seq |> List.map Analyzer.of_lang
+  Base.Hashtbl.keys lang_set |> List.map Analyzer.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)

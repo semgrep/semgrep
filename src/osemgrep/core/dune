@@ -8,6 +8,9 @@
   (name osemgrep_core)
   (wrapped false)
   (libraries
+    base
+    collections
+
     cmdliner
     uri
     uuidm

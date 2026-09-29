@@ -3,6 +3,8 @@
  (name osemgrep_language_server_custom_requests)
  (wrapped false)
  (libraries
+   base
+
    semgrep.legacy_language_server.util
    semgrep.legacy_language_server.server
    semgrep.osemgrep_cli_scan

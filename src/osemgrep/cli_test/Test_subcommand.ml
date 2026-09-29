@@ -550,7 +550,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
   (* expected matches *)
   let expected_by_ruleid_and_file :
       (Rule_ID.t, (Fpath.t, A.linenb list) Assoc.t) Assoc.t =
-    let h = Hashtbl.create 101 in
+    let h = Base.Hashtbl.Poly.create ~size:101 () in
     annots
     |> List.iter (fun (file, annotations) ->
         let expected_by_rule_id : (Rule_ID.t, A.linenb list) Assoc.t =
@@ -558,8 +558,8 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
         in
         expected_by_rule_id
         |> List.iter (fun (rule_id, lines) ->
-            Hashtbl_.push h rule_id (file, lines)));
-    h |> Hashtbl_.map (fun _k vref -> !vref) |> Hashtbl_.hash_to_list
+            Hashtbl_.Base.push h rule_id (file, lines)));
+    h |> Hashtbl_.Base.map (fun _k vref -> !vref) |> Hashtbl_.Base.hash_to_list
   in
 
   let all_rule_ids : Rule_ID.t list =
