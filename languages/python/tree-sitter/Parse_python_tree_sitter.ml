@@ -41,6 +41,20 @@ let no_ctx = Param
 let fb = Tok.unsafe_fake_bracket
 let invalid () = raise (Tok.NoTokenLocation "Invalid program")
 
+let is_f_string_start tok =
+  let s = Tok.content_of_tok tok |> String.lowercase_ascii in
+  let is_quote = function
+    | '\''
+    | '"' ->
+        true
+    | _ -> false
+  in
+  let len = String.length s in
+  (len >= 2 && s.[0] = 'f' && is_quote s.[1])
+  || len >= 3
+     && ((s.[0] = 'f' && s.[1] = 'r') || (s.[0] = 'r' && s.[1] = 'f'))
+     && is_quote s.[2]
+
 (* AST builders helpers
  * less: could be moved in AST_Python.ml to factorize things with
  * parser_python.mly
@@ -1119,8 +1133,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
       name_of_id id
   | `Str x -> (
       let t1, s, t2 = map_string_ env x in
-      let l = Tok.content_of_tok t1 in
-      if String.starts_with "f" l then InterpolatedString (t1, s, t2)
+      if is_f_string_start t1 then InterpolatedString (t1, s, t2)
       else
         match s with
         | [] -> Literal (Str ("", t1))
