@@ -41,6 +41,11 @@ let no_ctx = Param
 let fb = Tok.unsafe_fake_bracket
 let invalid () = raise (Tok.NoTokenLocation "Invalid program")
 
+(* The upstream tree-sitter scanner accepts broader flag combinations, but
+ * Python f-strings only allow f, fr, and rf prefixes (case-insensitively).
+ * Keep this check exact so invalid forms such as ff, fb, or uf do not become
+ * valid simply because the scanner saw an f flag.
+ *)
 let is_f_string_start tok =
   let s = Tok.content_of_tok tok |> String.lowercase_ascii in
   let is_quote = function
