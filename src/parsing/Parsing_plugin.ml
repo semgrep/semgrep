@@ -46,7 +46,8 @@ end
 exception Missing_plugin of string
 
 (* Table of missing plugins that are not optional *)
-let missing_plugins : (Lang.t, unit) Hashtbl.t = Hashtbl.create 10
+let missing_plugins : (Lang.t, unit) Base.Hashtbl.t =
+  Base.Hashtbl.Poly.create ~size:10 ()
 
 (*****************************************************************************)
 (* Helpers *)
@@ -59,7 +60,7 @@ let missing_plugin_msg lang =
     (Lang.to_string lang)
 
 let check_if_missing lang =
-  if Hashtbl.mem missing_plugins lang then Error (missing_plugin_msg lang)
+  if Base.Hashtbl.mem missing_plugins lang then Error (missing_plugin_msg lang)
   else Ok ()
 
 let check_if_missing_analyzer (analyzer : Analyzer.t) =
@@ -87,12 +88,12 @@ let all_possible_plugins = Atomic.make []
 let make ?(optional = false) lang =
   Atomic_.cons lang all_possible_plugins;
   let parsers = ref None in
-  if not optional then Hashtbl.replace missing_plugins lang ();
+  if not optional then Base.Hashtbl.set missing_plugins ~key:lang ~data:();
   let register ~parse_pattern ~parse_target =
     match !parsers with
     | None ->
         parsers := Some (parse_pattern, parse_target);
-        Hashtbl.remove missing_plugins lang
+        Base.Hashtbl.remove missing_plugins lang
     | Some _existing_parsers ->
         (* This is a bug
          * update: this is slightly annoying though because in tests

@@ -843,7 +843,7 @@ and parse_formula_from_dict env dict =
   let/ as_metavariable = take_opt dict env parse_string "as" in
   let/ fix = take_opt dict env parse_string "fix" in
   (* There should be only one key left, which is the pattern. *)
-  if Hashtbl.length dict.h <> 1 then
+  if Base.Hashtbl.length dict.h <> 1 then
     error env.id dict.first_tok
       "Expected exactly one key of `pattern`, `all`, `any`, `regex`, `not`, or \
        `inside`"

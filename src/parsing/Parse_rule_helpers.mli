@@ -32,12 +32,12 @@ type env = {
 }
 
 type dict = private {
-  (* Do not use directly Hashtbl.find_opt on this field!
+  (* Do not use directly Base.Hashtbl.find on this field!
    * Use instead dict_take_opt() or take_opt_no_env() otherwise
    * warn_if_remaining_unparsed_fields() will not work.
    * This is mutated!
    *)
-  h : (string, key * AST_generic.expr) Hashtbl.t;
+  h : (string, key * AST_generic.expr) Base.Hashtbl.t;
   first_tok : Rule.tok;
 }
 

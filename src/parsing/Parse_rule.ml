@@ -205,7 +205,7 @@ let parse_paths env key value =
   (* alt: we could use H.warn_if_remaining_unparsed_fields() but better to
    * raise an error for now to be compatible with pysemgrep.
    *)
-  if Hashtbl.length paths_dict.h > 0 then
+  if Base.Hashtbl.length paths_dict.h > 0 then
     error_at_key env.id key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
        supported)"
@@ -636,7 +636,7 @@ let parse_rules_to_run_with_extract env key value =
   let/ inc_opt = parse_rule_ids ruleids_dict env "include" in
   let/ exc_opt = parse_rule_ids ruleids_dict env "exclude" in
   (* to be compatible with pysemgrep *)
-  if Hashtbl.length ruleids_dict.h > 0 then
+  if Base.Hashtbl.length ruleids_dict.h > 0 then
     error_at_key env.id key
       "Additional properties are not allowed (only 'include' and 'exclude' are \
        supported)"
@@ -740,7 +740,7 @@ let parse_step_fields env key (value : G.expr) : (R.step, Rule_error.t) result =
 
   (* TODO: factorize with parse_mode *)
   let/ mode_opt = take_opt rd env parse_string_wrap "mode" in
-  let has_taint_key = Option.is_some (Hashtbl.find_opt rd.h "taint") in
+  let has_taint_key = Option.is_some (Base.Hashtbl.find rd.h "taint") in
   let/ step_mode =
     match (mode_opt, has_taint_key) with
     | None, false
@@ -770,7 +770,7 @@ let parse_rename env key (value : G.expr) : (Rule.rename, Rule_error.t) result =
   let/ rd = parse_dict env key value in
   let/ from_ = take_key rd env parse_string "from" in
   let/ to_ = take_key rd env parse_string "to" in
-  if Hashtbl.length rd.h > 0 then
+  if Base.Hashtbl.length rd.h > 0 then
     error_at_key env.id key
       "Additional properties are not allowed in 'renames' (only 'from' and \
        'to')"
@@ -788,7 +788,7 @@ let parse_join_ref env key (value : G.expr) :
       "renames"
     |> Result.map (Option.value ~default:[])
   in
-  if Hashtbl.length rd.h > 0 then
+  if Base.Hashtbl.length rd.h > 0 then
     error_at_key env.id key
       "Additional properties are not allowed in 'refs' items (only 'rule', \
        'as', and 'renames')"
@@ -827,7 +827,7 @@ let parse_join env key (value : G.expr) : (Rule.join, Rule_error.t) result =
         parse_list env key (fun env' -> parse_string env' key) v)
       "on"
   in
-  if Hashtbl.length rd.h > 0 then
+  if Base.Hashtbl.length rd.h > 0 then
     error_at_key env.id key
       "Additional properties are not allowed in 'join' (only 'refs', 'rules' \
        and 'on')"
@@ -850,12 +850,10 @@ let parse_http_request env key value : (Rule.request, Rule_error.t) result =
   let/ headers = take_key req env parse_dict "headers" in
   let/ headers =
     headers |> fun { h; _ } ->
-    Hashtbl.fold
-      (fun name value lst ->
+    Base.Hashtbl.fold h ~init:(Ok []) ~f:(fun ~key:name ~data:value lst ->
         let/ lst = lst in
         let/ value = parse_string env (fst value) (snd value) in
         Ok ({ Rule.name; value } :: lst))
-      h (Ok [])
   in
   let/ body = take_opt req env parse_string "body" in
   let/ auth = take_opt req env parse_auth "auth" in
@@ -951,7 +949,7 @@ let parse_aws_validator env key value : (Rule.validator, Rule_error.t) result =
 
 let parse_validator key env value =
   let/ dict = parse_dict env key value in
-  match List_.find_some_opt (Hashtbl.find_opt dict.h) [ "http"; "aws" ] with
+  match List_.find_some_opt (Base.Hashtbl.find dict.h) [ "http"; "aws" ] with
   | Some (("http", _), value) -> parse_http_validator env key value
   | Some (("aws", _), value) -> parse_aws_validator env key value
   | Some _
@@ -1001,7 +999,7 @@ let parse_dependency_pattern key env value :
 let parse_dependency_formula env key value :
     (R.sca_dependency_formula, Rule_error.t) result =
   let/ rd = parse_dict env key value in
-  if Hashtbl.mem rd.h "depends-on-either" then
+  if Base.Hashtbl.mem rd.h "depends-on-either" then
     take_key rd env
       (fun env key -> parse_list env key (parse_dependency_pattern key))
       "depends-on-either"
@@ -1019,7 +1017,7 @@ let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) :
   (* We do this because we should only assume that we have a search mode rule
      if there is not a `taint` key present in the rule dict.
   *)
-  let has_taint_key = Option.is_some (Hashtbl.find_opt rule_dict.h "taint") in
+  let has_taint_key = Option.is_some (Base.Hashtbl.find rule_dict.h "taint") in
   (* TODO? maybe have also has_extract_key, has_steps_key, has_secrets_key *)
   match (mode_opt, has_taint_key, dep_fml_opt) with
   (* no mode:, no taint:, default to look for match: *)

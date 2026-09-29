@@ -784,7 +784,7 @@ type rule = mode rule_info [@@deriving show, eq]
 (* aliases *)
 type t = rule [@@deriving show, eq]
 type rules = rule list [@@deriving show, eq]
-type hrules = (Rule_ID.t, t) Hashtbl.t
+type hrules = (Rule_ID.t, t) Base.Hashtbl.t
 
 (* If you know your function accepts only a certain kind of rule,
  * you can use those precise types below.
@@ -801,13 +801,12 @@ type join_rule = join_mode rule_info [@@deriving show]
 
 (* old: was t list -> hrules, but nice to allow for more precise hrules *)
 let hrules_of_rules (rules : 'mode rule_info list) :
-    (Rule_ID.t, 'mode rule_info) Hashtbl.t =
-  rules |> List.map (fun r -> (fst r.id, r)) |> Hashtbl_.hash_of_list
+    (Rule_ID.t, 'mode rule_info) Base.Hashtbl.t =
+  rules |> List.map (fun r -> (fst r.id, r)) |> Hashtbl_.Base.hash_of_list
 
 let rules_of_hrules (hrules : hrules) : string list =
-  hrules |> Hashtbl.to_seq
-  |> Seq.map (fun (rule_id, _) -> Rule_ID.to_string rule_id)
-  |> List.of_seq
+  hrules |> Base.Hashtbl.to_alist
+  |> List.map (fun (rule_id, _) -> Rule_ID.to_string rule_id)
 
 let partition_rules (rules : rules) :
     search_rule list * taint_rule list * extract_rule list * steps_rule list =

@@ -17,6 +17,8 @@
    atdgen-runtime
 
    ; in libs/
+   base
+   collections
    commons
    glob
    lib_parsing
