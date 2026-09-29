@@ -3,6 +3,8 @@
  (name semgrep_tainting)
  (wrapped false)
  (libraries
+   base
+   collections
    pfff-lang_GENERIC-analyze
    semgrep_core
    semgrep.matching

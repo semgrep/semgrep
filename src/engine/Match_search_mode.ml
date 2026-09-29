@@ -131,11 +131,11 @@ let partition_xpatterns xs =
 
 let group_matches_per_pattern_id (xs : Core_match.t list) : id_to_match_results
     =
-  let h = Hashtbl.create 101 in
+  let h = Base.Hashtbl.Poly.create ~size:101 () in
   xs
   |> List.iter (fun (m : PM.t) ->
       let id = int_of_string (Rule_ID.to_string m.rule_id.id) in
-      Hashtbl_.push h id m);
+      Hashtbl_.Base.push h id m);
   h
 
 let error_with_rule_id rule_id (error : Core_error.t) =
@@ -958,7 +958,7 @@ and evaluate_formula env opt_context
 and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
   match kind with
   | R.P ({ XP.pid = id; pstr = pstr, tok; _ } as xpat) ->
-      let match_results = Hashtbl_.get_stack env.pattern_matches id in
+      let match_results = Hashtbl_.Base.get_stack env.pattern_matches id in
       let kind = if Xpattern.is_regexp xpat then RM.Regexp else RM.Plain in
       let ranges =
         match_results
