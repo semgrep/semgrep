@@ -1,0 +1,1 @@
+Semgrep Supply Chain now parses Bun `bun.lock` lockfiles (text format, `lockfileVersion` 1) paired with a `package.json` manifest, including the dependency relationships between packages. The deprecated binary `bun.lockb` format is still unsupported.
