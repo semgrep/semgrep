@@ -148,7 +148,12 @@ _scan_options: List[Callable] = [
         default=None,
     ),
     optgroup.option(
+        "--semgrepignore-file",
         "--x-semgrepignore-filename",
+        "x_semgrepignore_filename",
+        type=click.Path(dir_okay=False),
+        metavar="PATH",
+        help="Use PATH instead of .semgrepignore for file targeting.",
     ),
     optgroup.option(
         "--exclude",
