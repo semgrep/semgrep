@@ -641,6 +641,15 @@ let resolution_visitor =
        * TODO handle more cases than just the simple identifier pattern. *)
       | ( { name = EPattern (PatId (id, id_info)); _ },
           VarDef { vinit; vtype; vtok = _ } )
+        when is_resolvable_name_ctx env env.lang ->
+          (* Only visit vinit/vtype then declare_var once. Calling
+           * super#visit_definition here recurses into the LHS pattern and
+           * declares the var prematurely, minting an orphan sid that a
+           * self-shadowing `let x = x` binds to, losing taint (gh-11467).
+           *)
+          Option.iter (self#visit_expr env) vinit;
+          Option.iter (self#visit_type_ env) vtype;
+          declare_var env env.lang id id_info ~explicit:true vinit vtype
       | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype; vtok = _ }
       (* note that some languages such as Python do not have VarDef
        * construct
