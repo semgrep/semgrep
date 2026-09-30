@@ -75,6 +75,7 @@ ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (None, out.LockfileKind(out.NpmPackageLockJson())),
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
+    (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.BunLock())),
 ]
 
 # Gradle builds resolved from their build files without a lockfile. With
