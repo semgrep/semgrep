@@ -1,0 +1,10 @@
+r"---(hello)---"
+r"(hello)"
+R"[hello]"
+r"{hello}"
+"hello"
+"two
+lines"
+'\x1'
+'\u123'
+'\U0001F600'

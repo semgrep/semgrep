@@ -282,11 +282,11 @@
     "url": "https://github.com/tree-sitter/tree-sitter-ql"
   },
   "r": {
-    "commit": "205c2877af33a814386ff275031f88400a011397",
+    "commit": "346d3707b8c9301f1051e8f6e32666e67529f7d2",
     "regen": [
       "r"
     ],
-    "tree_sitter": "0.20.8",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/r-lib/tree-sitter-r"
   },
   "requirements": {

@@ -17,13 +17,12 @@ module.exports = grammar(standard_grammar, {
 
     // Metavariables
     identifier: ($, previous) => {
-      return choice(
+      // The upstream word rule must remain a single lexical token.
+      return token(choice(
         previous,
-        $._semgrep_metavariable
-      );
+        /\$[A-Z_][A-Z_0-9]*/
+      ));
     },
-
-    _semgrep_metavariable: $ => token(/\$[A-Z_][A-Z_0-9]*/),
 
     // Expression ellipsis
     //_expression: ($, previous) => {
