@@ -10,13 +10,18 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import json
 import os
 import subprocess
+from datetime import datetime
+from datetime import timezone
 from http.cookiejar import MozillaCookieJar
 from pathlib import Path
 from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import Set
+from urllib.parse import urlsplit
 
 import requests
 import urllib3
@@ -155,6 +160,7 @@ class AppSession(requests.Session):
         super().__init__(*args, **kwargs)
         self.user_agent = UserAgent()
         self.token: Optional[str] = None
+        self._job_observations: Optional[Dict[str, Dict[str, str]]] = None
         if os.getenv("SEMGREP_COOKIES_PATH"):
             cookies = MozillaCookieJar(os.environ["SEMGREP_COOKIES_PATH"])
             cookies.load()
@@ -179,6 +185,69 @@ class AppSession(requests.Session):
 
         self.mount("https://", retry_adapter)
         self.mount("http://", retry_adapter)
+
+    def job_observations(self) -> Dict[str, Dict[str, str]]:
+        from semgrep.state import get_state
+
+        if self._job_observations is None:
+            self._job_observations = {}
+            try:
+                initial = json.loads(get_state().env.job_observations or "{}")
+                clone = initial.get("clone_repository", {})
+                if isinstance(clone, dict):
+                    for event in ("started_at", "completed_at"):
+                        value = clone.get(event)
+                        if isinstance(value, str):
+                            parsed = datetime.fromisoformat(
+                                value.replace("Z", "+00:00")
+                            )
+                            if parsed.tzinfo is not None:
+                                self._job_observations.setdefault(
+                                    "clone_repository", {}
+                                )[event] = value
+            except (ValueError, TypeError, AttributeError):
+                self._job_observations = {}
+        return self._job_observations
+
+    def record_job_scan_started(self) -> None:
+        self.job_observations()["run_scan"] = {
+            "started_at": datetime.now(timezone.utc).isoformat()
+        }
+
+    def record_job_scan_completed(self) -> None:
+        scan = self.job_observations().get("run_scan")
+        if scan is not None:
+            scan["completed_at"] = datetime.now(timezone.utc).isoformat()
+
+    def _is_job_scan_url(self, url: str) -> bool:
+        from semgrep.state import get_state
+
+        try:
+            target = urlsplit(url)
+            backend = urlsplit(get_state().env.semgrep_url)
+
+            def origin(parts: Any) -> Any:
+                return (
+                    parts.scheme,
+                    parts.hostname,
+                    parts.port or (443 if parts.scheme == "https" else 80),
+                )
+
+            return origin(target) == origin(backend) and any(
+                target.path == path or target.path.startswith(path + "/")
+                for path in ("/api/cli/scans", "/api/cli/v2/scans", "/api/agent/scans")
+            )
+        except ValueError:
+            return False
+
+    def rebuild_auth(
+        self, prepared_request: requests.PreparedRequest, response: requests.Response
+    ) -> None:
+        super().rebuild_auth(prepared_request, response)  # type: ignore[no-untyped-call]
+        # Requests copies custom headers on redirects, including across origins.
+        if not self._is_job_scan_url(prepared_request.url or ""):
+            prepared_request.headers.pop("X-Semgrep-Job-ID", None)
+            prepared_request.headers.pop("X-Semgrep-Job-Observations", None)
 
     def authenticate(self) -> None:
         # avoid circular imports in semgrep.state
@@ -216,6 +285,22 @@ class AppSession(requests.Session):
         # refactor such that the logic is shared
         if self.token and is_semgrep_url(url, state.env.semgrep_url):
             kwargs["headers"].setdefault("Authorization", f"Bearer {self.token}")
+
+        job_id = state.env.job_id
+        if job_id and self._is_job_scan_url(url):
+            # Invalid optional context must not prevent the scan request.
+            try:
+                requests.utils.check_header_validity(("X-Semgrep-Job-ID", job_id))
+                job_id.encode("latin-1")
+            except (requests.exceptions.InvalidHeader, UnicodeEncodeError):
+                pass
+            else:
+                kwargs["headers"]["X-Semgrep-Job-ID"] = job_id
+                observations = self.job_observations()
+                if observations:
+                    kwargs["headers"]["X-Semgrep-Job-Observations"] = json.dumps(
+                        observations
+                    )
 
         error_handler = state.error_handler
         error_handler.push_request(method, url, **kwargs)

@@ -976,6 +976,20 @@ def ci(
             ),
         }
 
+        observe_full_scan = not any(
+            (
+                partial_config,
+                partial_output,
+                x_partial_scan_rule_ids,
+                x_dump_symbol_analysis,
+                dump_command_for_core,
+                dump_rule_partitions_params,
+                x_dump_subprojects_and_exit,
+                x_dump_scan_config_path,
+                x_use_saved_scan_config_path,
+            )
+        )
+        analysis_completed = True
         try:
             start = time.time()
 
@@ -984,6 +998,9 @@ def ci(
                     raise SemgrepError(
                         "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
                     )
+
+            if observe_full_scan:
+                state.app_session.record_job_scan_started()
 
             # TODO? we're not passing time_flag below (or matching_explanations),
             # is it intended?
@@ -1088,6 +1105,7 @@ def ci(
                 filtered_rules.extend(historical_filtered_rules)
 
             except SemgrepError as e:
+                analysis_completed = False
                 # We know the non-historical scan completed successfully (since
                 # otherwise the program would exit), so we can just inform the
                 # user of the issue here.
@@ -1096,6 +1114,9 @@ def ci(
                     f"Encountered error when running rules for historical scan: {e}"
                 )
                 logger.info(f"Finalizing non-historical results")
+
+        if observe_full_scan and analysis_completed:
+            state.app_session.record_job_scan_completed()
 
         total_time = time.time() - start
 

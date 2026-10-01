@@ -969,6 +969,8 @@ def test_full_run(
     upload_results_mock_maker,
     complete_scan_mock_maker,
 ):
+    env["SEMGREP_JOB_ID"] = "MixedCase-Job-ID"
+
     repo_copy_base, base_commit, head_commit = git_tmp_path_with_commit
 
     # Set envvars that depend on commit hashes:
@@ -1099,6 +1101,16 @@ def test_full_run(
             prj_meta_json["base_sha"] = "sanitized"
 
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
+
+    assert (
+        start_scan_mock.last_request.headers["X-Semgrep-Job-ID"] == "MixedCase-Job-ID"
+    )
+    assert "X-Semgrep-Job-Observations" not in start_scan_mock.last_request.headers
+    observations = json.loads(
+        upload_results_mock.last_request.headers["X-Semgrep-Job-Observations"]
+    )
+    assert observations["run_scan"]["started_at"]
+    assert observations["run_scan"]["completed_at"]
 
     findings_and_ignores_json = upload_results_mock.last_request.json()
     for f in findings_and_ignores_json["findings"]:
