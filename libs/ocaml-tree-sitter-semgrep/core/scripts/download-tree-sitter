@@ -51,7 +51,6 @@ version=$(cat tree-sitter-version)
 # Verify against: https://github.com/tree-sitter/tree-sitter/releases
 expected_checksum() {
   case "$1" in
-    0.20.8) echo "6181ede0b7470bfca37e293e7d5dc1d16469b9485d13f13a605baec4a8b1f791" ;;
     0.22.6) echo "e2b687f74358ab6404730b7fb1a1ced7ddb3780202d37595ecd7b20a8f41861f" ;;
     0.26.3) echo "7f4a7cf0a2cd217444063fe2a4d800bc9d21ed609badc2ac20c0841d67166550" ;;
     *) error "No checksum registered for tree-sitter $1. Add one to expected_checksum in this script." ;;

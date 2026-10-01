@@ -22,7 +22,7 @@ trap restore EXIT
 
 # Force an out-of-range ABI version. The runtime supports
 # [TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION, TREE_SITTER_LANGUAGE_VERSION]
-# (13..14 as of tree-sitter 0.20.8); 99 is safely above any near-future value.
+# (13..15 for supported releases); 99 is safely above any near-future value.
 # Rewrite via the backup so this works with both BSD and GNU sed.
 sed -E 's/(#define[[:space:]]+LANGUAGE_VERSION)[[:space:]]+[0-9]+/\1 99/' \
   "$backup" > "$parser_c"
