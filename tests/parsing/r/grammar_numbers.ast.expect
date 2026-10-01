@@ -1,0 +1,61 @@
+[{ s =
+   (ExprStmt (
+      { e = (L (Float ((Some 6.), _))); e_id = 0; e_range = None;
+        is_implicit_return = false; facts = <opaque> },
+      _));
+   s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Int ((Some 1L), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Int ((Some 100L), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Int ((Some 4L), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Imag ("0x1.8p2", _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Imag (".1", _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Float ((Some 0.1), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Float ((Some 1.5), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Float ((Some 2147483648.), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (Int ((Some 12L), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None }
+  ]

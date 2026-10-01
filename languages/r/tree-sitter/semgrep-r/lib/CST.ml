@@ -8,404 +8,627 @@
 open! Sexplib.Conv
 open Tree_sitter_run
 
-type integer = Token.t
+type external_close_bracket = Token.t
 
-type pat_de5d470 = Token.t (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *)
+type external_open_parenthesis = Token.t
 
-type pat_4ad362e = Token.t (* pattern [^`\\\n]+|\\\r?\n *)
+type pat_dc28280 = Token.t (* pattern "[^'\\\\]+" *)
 
-type raw_string_literal = Token.t
+type raw_string_close = Token.t
 
-type float_ = Token.t
+type identifier = Token.t
 
-type na = [
-    `NA of Token.t (* "NA" *)
-  | `NA_char_ of Token.t (* "NA_character_" *)
-  | `NA_comp_ of Token.t (* "NA_complex_" *)
-  | `NA_int_ of Token.t (* "NA_integer_" *)
-  | `NA_real_ of Token.t (* "NA_real_" *)
-]
+type raw_string_open = Token.t
 
-type pat_3e41275 =
-  Token.t (* pattern [.\p{XID_Start}][._\p{XID_Continue}]* *)
-
-type semgrep_metavariable = Token.t
-
-type pat_5e7ac5f = Token.t (* pattern [^%\\\n]+|\\\r?\n *)
+type external_open_bracket = Token.t
 
 type escape_sequence = Token.t
 
-type pat_3e57880 = Token.t (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *)
+type external_open_bracket2 = Token.t
 
-type special = (
-    Token.t (* "%" *)
-  * [ `Pat_5e7ac5f of pat_5e7ac5f | `Esc_seq of escape_sequence (*tok*) ]
-      list (* zero or more *)
-  * Token.t (* "%" *)
-)
+type external_else = Token.t
 
-type identifier = [
-    `Choice_pat_3e41275 of [
-        `Pat_3e41275 of pat_3e41275
-      | `BQUOT_rep_choice_pat_4ad362e_BQUOT of (
-            Token.t (* "`" *)
-          * [
-                `Pat_4ad362e of pat_4ad362e
-              | `Esc_seq of escape_sequence (*tok*)
-            ]
-              list (* zero or more *)
-          * Token.t (* "`" *)
-        )
-    ]
-  | `Semg_meta of semgrep_metavariable (*tok*)
+type external_close_bracket2 = Token.t
+
+type external_close_brace = Token.t
+
+type number_literal =
+  Token.t (* pattern (?:(?:\d+(?:\.\d*\
+  )?)|(?:\.\d+))(?:[eE][+-]?\d*\
+  )? *)
+
+type semicolon = Token.t
+
+type start = Token.t
+
+type na = [
+    `NA of Token.t (* "NA" *)
+  | `NA_int_ of Token.t (* "NA_integer_" *)
+  | `NA_real_ of Token.t (* "NA_real_" *)
+  | `NA_comp_ of Token.t (* "NA_complex_" *)
+  | `NA_char_ of Token.t (* "NA_character_" *)
 ]
+
+type pat_43ed24e = Token.t (* pattern %[^%\\\n]*% *)
+
+type external_open_brace = Token.t
+
+type raw_string_content = Token.t
+
+type pat_3a2a380 = Token.t (* pattern "[^\"\\\\]+" *)
+
+type newline = Token.t
+
+type dot_dot_i = Token.t (* pattern [.][.]\d+ *)
+
+type hex_literal =
+  Token.t (* pattern 0[xX](([0-9a-fA-F]+(\.[0-9a-fA-F]*\
+  )?)|(\.[0-9a-fA-F]*\
+  ))([pP][+-]?[0-9]+)? *)
+
+type external_close_parenthesis = Token.t
+
+type single_quoted_string_content =
+  [ `Pat_dc28280 of pat_dc28280 | `Esc_seq of escape_sequence (*tok*) ]
+    list (* one or more *)
+
+type double_quoted_string_content =
+  [ `Pat_3a2a380 of pat_3a2a380 | `Esc_seq of escape_sequence (*tok*) ]
+    list (* one or more *)
+
+type parameter_name = [
+    `Dots of Token.t (* "..." *)
+  | `Dot_dot_i of dot_dot_i (*tok*)
+  | `Id of identifier (*tok*)
+]
+
+type float_literal = [
+    `Hex_lit of hex_literal (*tok*)
+  | `Num_lit of number_literal (*tok*)
+]
+
+type parameter_without_default = parameter_name
+
+type float_ = float_literal
 
 type string_ = [
-    `Raw_str_lit of raw_string_literal (*tok*)
-  | `DQUOT_rep_choice_pat_de5d470_DQUOT of (
-        Token.t (* "\"" *)
-      * [ `Pat_de5d470 of pat_de5d470 | `Esc_seq of escape_sequence (*tok*) ]
-          list (* zero or more *)
-      * Token.t (* "\"" *)
+    `Raw_str of (
+        raw_string_open (*tok*)
+      * raw_string_content (*tok*) option
+      * raw_string_close (*tok*)
     )
-  | `SQUOT_rep_choice_pat_3e57880_SQUOT of (
+  | `Single_quoted_str of (
         Token.t (* "'" *)
-      * [ `Pat_3e57880 of pat_3e57880 | `Esc_seq of escape_sequence (*tok*) ]
-          list (* zero or more *)
+      * single_quoted_string_content option
       * Token.t (* "'" *)
     )
+  | `Double_quoted_str of (
+        Token.t (* "\"" *)
+      * double_quoted_string_content option
+      * Token.t (* "\"" *)
+    )
 ]
 
-type argument = [ `Exp of expression | `Defa_arg of default_argument ]
-
-and arguments =
-  [ `Arg of argument | `COMMA of Token.t (* "," *) ] list (* one or more *)
-
-and assignment = [
-    `Equals_assign of (expression * Token.t (* "=" *) * expression)
-  | `Left_assign of (expression * Token.t (* "<-" *) * expression)
-  | `Left_assign2 of (expression * Token.t (* ":=" *) * expression)
-  | `Right_assign of (expression * Token.t (* "->" *) * expression)
-  | `Super_assign of (expression * Token.t (* "<<-" *) * expression)
-  | `Super_right_assign of (expression * Token.t (* "->>" *) * expression)
+type string_or_identifier = [
+    `Str of string_
+  | `Choice_dots of parameter_without_default
 ]
 
-and binary = [
-    `Exp_choice_PLUS_exp of (
-        expression
-      * [ `PLUS of Token.t (* "+" *) | `DASH of Token.t (* "-" *) ]
-      * expression
-    )
-  | `Exp_choice_STAR_exp of (
-        expression
-      * [ `STAR of Token.t (* "*" *) | `SLASH of Token.t (* "/" *) ]
-      * expression
-    )
-  | `Exp_HAT_exp of (expression * Token.t (* "^" *) * expression)
-  | `Exp_choice_LT_exp of (
-        expression
-      * [
-            `LT of Token.t (* "<" *)
-          | `GT of Token.t (* ">" *)
-          | `LTEQ of Token.t (* "<=" *)
-          | `GTEQ of Token.t (* ">=" *)
-          | `EQEQ of Token.t (* "==" *)
-          | `BANGEQ of Token.t (* "!=" *)
-        ]
-      * expression
-    )
-  | `Exp_choice_BARBAR_exp of (
-        expression
-      * [ `BARBAR of Token.t (* "||" *) | `BAR of Token.t (* "|" *) ]
-      * expression
-    )
-  | `Exp_choice_AMPAMP_exp of (
-        expression
-      * [ `AMPAMP of Token.t (* "&&" *) | `AMP of Token.t (* "&" *) ]
-      * expression
-    )
-  | `Exp_spec_exp of (expression * special * expression)
-  | `Exp_COLON_exp of (expression * Token.t (* ":" *) * expression)
-  | `Exp_TILDE_exp of (expression * Token.t (* "~" *) * expression)
+type argument_name_string_or_identifier_or_null = [
+    `Choice_str of string_or_identifier
+  | `Null of Token.t (* "NULL" *)
 ]
 
-and default_argument = (
-    [ `Id of identifier | `Str of string_ | `Dots of Token.t (* "..." *) ]
-  * Token.t (* "=" *)
-  * expression option
+type namespace_operator = [
+    `Choice_str_COLONCOLON_opt_choice_str of (
+        string_or_identifier
+      * Token.t (* "::" *)
+      * string_or_identifier option
+    )
+  | `Choice_str_COLONCOLONCOLON_opt_choice_str of (
+        string_or_identifier
+      * Token.t (* ":::" *)
+      * string_or_identifier option
+    )
+]
+
+type anon_choice_arg_value_c460aa0 = [
+    `Exp of argument_unnamed
+  | `Semi of semicolon (*tok*)
+  | `Nl of newline (*tok*)
+]
+
+and anon_rep_comma_opt_arg_59635e2 =
+  (Token.t (* "," *) * argument option) list (* zero or more *)
+
+and argument = [
+    `Arg_named of (
+        argument_name_string_or_identifier_or_null
+      * Token.t (* "=" *)
+      * argument_unnamed option
+    )
+  | `Arg_unna of argument_unnamed
+]
+
+and argument_unnamed = argument_value
+
+and argument_value = expression
+
+and binary_operator = [
+    `Exp_QMARK_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "?" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_TILDE_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "~" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_LTDASH_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "<-" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_LTLTDASH_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "<<-" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_COLONEQ_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* ":=" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_DASHGT_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "->" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_DASHGTGT_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "->>" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_EQ_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "=" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_BAR_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "|" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_AMP_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "&" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_BARBAR_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "||" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_AMPAMP_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "&&" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_LT_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "<" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_LTEQ_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "<=" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_GT_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* ">" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_GTEQ_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* ">=" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_EQEQ_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "==" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_BANGEQ_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "!=" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_PLUS_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "+" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_DASH_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "-" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_STAR_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "*" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_SLASH_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "/" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_STARSTAR_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "**" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_HAT_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "^" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_pat_43ed24e_rep_nl_exp of (
+        argument_unnamed
+      * pat_43ed24e
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_BARGT_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* "|>" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `Exp_COLON_rep_nl_exp of (
+        argument_unnamed
+      * Token.t (* ":" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+]
+
+and call_arguments = (
+    external_open_parenthesis (*tok*)
+  * argument option
+  * anon_rep_comma_opt_arg_59635e2
+  * external_close_parenthesis (*tok*)
 )
 
 and expression = [
-    `Id of identifier
-  | `Int of integer (*tok*)
-  | `Float of float_ (*tok*)
-  | `Comp of (float_ (*tok*) * Token.t (* "i" *))
-  | `Str of string_
-  | `Call of (
-        expression
-      * Token.t (* "(" *)
-      * arguments option
-      * Token.t (* ")" *)
+    `Func_defi of (
+        [ `BSLASH of Token.t (* "\\" *) | `Func of Token.t (* "function" *) ]
+      * newline (*tok*) list (* zero or more *)
+      * parameters
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
     )
-  | `Func_defi of function_definition
-  | `Lambda_func of lambda_function
-  | `Assign of assignment
-  | `Brace_list of (Token.t (* "{" *) * program * Token.t (* "}" *))
-  | `Paren_list of (
-        Token.t (* "(" *)
-      * expression list (* zero or more *)
-      * Token.t (* ")" *)
-    )
-  | `Bin of binary
-  | `Un of unary
-  | `Pipe of (expression * Token.t (* "|>" *) * pipe_rhs)
-  | `Subset of (
-        expression
-      * Token.t (* "[" *)
-      * arguments option
-      * Token.t (* "]" *)
-    )
-  | `Subset2 of (
-        expression
-      * Token.t (* "[[" *)
-      * arguments option
-      * Token.t (* "]]" *)
-    )
-  | `Dollar of (
-        expression
-      * Token.t (* "$" *)
-      * [ `Id of identifier | `Str of string_ ]
-    )
-  | `Slot of (expression * Token.t (* "@" *) * identifier)
-  | `Name_get of (identifier * Token.t (* "::" *) * identifier)
-  | `Name_get_inte of (identifier * Token.t (* ":::" *) * identifier)
-  | `If of (
+  | `If_stmt of (
         Token.t (* "if" *)
-      * Token.t (* "(" *)
-      * expression
-      * Token.t (* ")" *)
-      * expression
-      * (Token.t (* "else" *) * expression) option
+      * newline (*tok*) list (* zero or more *)
+      * external_open_parenthesis (*tok*)
+      * argument_unnamed
+      * external_close_parenthesis (*tok*)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+      * (
+            external_else (*tok*)
+          * newline (*tok*) list (* zero or more *)
+          * argument_unnamed
+        )
+          option
     )
-  | `For of (
-        Token.t (* "for" *) * Token.t (* "(" *) * identifier
-      * Token.t (* "in" *) * expression * Token.t (* ")" *) * expression
+  | `For_stmt of (
+        Token.t (* "for" *)
+      * newline (*tok*) list (* zero or more *)
+      * external_open_parenthesis (*tok*)
+      * parameter_without_default
+      * Token.t (* "in" *)
+      * argument_unnamed
+      * external_close_parenthesis (*tok*)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
     )
-  | `While of (
-        Token.t (* "while" *) * Token.t (* "(" *) * expression
-      * Token.t (* ")" *) * expression
+  | `While_stmt of (
+        Token.t (* "while" *)
+      * newline (*tok*) list (* zero or more *)
+      * external_open_parenthesis (*tok*)
+      * argument_unnamed
+      * external_close_parenthesis (*tok*)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
     )
-  | `Repeat of (Token.t (* "repeat" *) * expression)
-  | `Switch of (
-        Token.t (* "switch" *) * Token.t (* "(" *) * expression
-      * Token.t (* "," *) * arguments * Token.t (* ")" *)
+  | `Repeat_stmt of (
+        Token.t (* "repeat" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
     )
-  | `Brk of Token.t (* "break" *)
+  | `Braced_exp of (
+        external_open_brace (*tok*)
+      * anon_choice_arg_value_c460aa0 list (* zero or more *)
+      * external_close_brace (*tok*)
+    )
+  | `Paren_exp of (
+        external_open_parenthesis (*tok*) * argument_unnamed
+      * external_close_parenthesis (*tok*)
+    )
+  | `Call of (argument_unnamed * call_arguments)
+  | `Subset of (argument_unnamed * subset_arguments)
+  | `Subset2 of (argument_unnamed * subset2_arguments)
+  | `Un_op of unary_operator
+  | `Bin_op of binary_operator
+  | `Extr_op of extract_operator
+  | `Name_op of namespace_operator
+  | `Int of (float_ * Token.t (* "L" *))
+  | `Comp of (float_ * Token.t (* "i" *))
+  | `Float of float_
+  | `Str of string_
+  | `Id of identifier (*tok*)
+  | `Dots of Token.t (* "..." *)
+  | `Dot_dot_i of dot_dot_i (*tok*)
   | `Next of Token.t (* "next" *)
+  | `Brk of Token.t (* "break" *)
   | `True of Token.t (* "TRUE" *)
   | `False of Token.t (* "FALSE" *)
   | `Null of Token.t (* "NULL" *)
   | `Inf of Token.t (* "Inf" *)
   | `Nan of Token.t (* "NaN" *)
   | `Na of na
-  | `Dots of Token.t (* "..." *)
 ]
 
-and formal_parameter = [
-    `Id of identifier
-  | `Defa_param of (identifier * Token.t (* "=" *) * expression)
-  | `Dots of Token.t (* "..." *)
-]
-
-and formal_parameters = (
-    Token.t (* "(" *)
-  * (
-        formal_parameter
-      * (Token.t (* "," *) * formal_parameter) list (* zero or more *)
-      * Token.t (* "," *) option
+and extract_operator = [
+    `Exp_DOLLAR_rep_nl_opt_choice_str of (
+        argument_unnamed
+      * Token.t (* "$" *)
+      * newline (*tok*) list (* zero or more *)
+      * string_or_identifier option
     )
+  | `Exp_AT_rep_nl_opt_choice_str of (
+        argument_unnamed
+      * Token.t (* "@" *)
+      * newline (*tok*) list (* zero or more *)
+      * string_or_identifier option
+    )
+]
+
+and parameter = [
+    `Param_with_defa_d9d11f1 of (
+        parameter_without_default * Token.t (* "=" *) * argument_unnamed
+    )
+  | `Param_with_defa_6e24c8f of parameter_without_default
+]
+
+and parameters = (
+    external_open_parenthesis (*tok*)
+  * (parameter * (Token.t (* "," *) * parameter) list (* zero or more *))
       option
-  * Token.t (* ")" *)
+  * external_close_parenthesis (*tok*)
 )
 
-and function_definition = (
-    Token.t (* "function" *) * formal_parameters * expression
+and subset2_arguments = (
+    external_open_bracket2 (*tok*)
+  * argument option
+  * anon_rep_comma_opt_arg_59635e2
+  * external_close_bracket2 (*tok*)
 )
 
-and lambda_function = (Token.t (* "\\" *) * formal_parameters * expression)
-
-and pipe_rhs = (
-    expression
-  * Token.t (* "(" *)
-  * pipe_rhs_arguments option
-  * Token.t (* ")" *)
+and subset_arguments = (
+    external_open_bracket (*tok*)
+  * argument option
+  * anon_rep_comma_opt_arg_59635e2
+  * external_close_bracket (*tok*)
 )
 
-and pipe_rhs_argument = [
-    `Exp of expression
-  | `Defa_arg of default_argument
-  | `Pipe_plac_arg of (identifier * Token.t (* "=" *) * Token.t (* "_" *))
-]
-
-and pipe_rhs_arguments =
-  [ `Pipe_rhs_arg of pipe_rhs_argument | `COMMA of Token.t (* "," *) ]
-    list (* one or more *)
-
-and program =
-  (
-      expression
-    * [ `LF of Token.t (* "\n" *) | `SEMI of Token.t (* ";" *) ] option
-  )
-    list (* zero or more *)
-
-and unary = [
-    `Choice_DASH_exp of (
-        [ `DASH of Token.t (* "-" *) | `PLUS of Token.t (* "+" *) ]
-      * expression
+and unary_operator = [
+    `QMARK_rep_nl_exp of (
+        Token.t (* "?" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
     )
-  | `BANG_exp of (Token.t (* "!" *) * expression)
-  | `TILDE_exp of (Token.t (* "~" *) * expression)
+  | `TILDE_rep_nl_exp of (
+        Token.t (* "~" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `BANG_rep_nl_exp of (
+        Token.t (* "!" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `PLUS_rep_nl_exp of (
+        Token.t (* "+" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+  | `DASH_rep_nl_exp of (
+        Token.t (* "-" *)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
 ]
 
-type null (* inlined *) = Token.t (* "NULL" *)
+type program = (
+    start (*tok*)
+  * anon_choice_arg_value_c460aa0 list (* zero or more *)
+)
 
-type placeholder (* inlined *) = Token.t (* "_" *)
-
-type true_ (* inlined *) = Token.t (* "TRUE" *)
-
-type false_ (* inlined *) = Token.t (* "FALSE" *)
+type error_sentinel (* inlined *) = Token.t
 
 type comment (* inlined *) = Token.t
 
 type nan (* inlined *) = Token.t (* "NaN" *)
 
+type false_ (* inlined *) = Token.t (* "FALSE" *)
+
+type dots (* inlined *) = Token.t (* "..." *)
+
 type inf (* inlined *) = Token.t (* "Inf" *)
 
 type next (* inlined *) = Token.t (* "next" *)
 
-type dots (* inlined *) = Token.t (* "..." *)
+type true_ (* inlined *) = Token.t (* "TRUE" *)
+
+type null (* inlined *) = Token.t (* "NULL" *)
+
+type comma (* inlined *) = Token.t (* "," *)
 
 type break (* inlined *) = Token.t (* "break" *)
 
-type complex (* inlined *) = (float_ (*tok*) * Token.t (* "i" *))
+type close_bracket (* inlined *) = external_close_bracket (*tok*)
 
-type namespace_get (* inlined *) = (
-    identifier * Token.t (* "::" *) * identifier
+type open_parenthesis (* inlined *) = external_open_parenthesis (*tok*)
+
+type open_bracket (* inlined *) = external_open_bracket (*tok*)
+
+type open_bracket2 (* inlined *) = external_open_bracket2 (*tok*)
+
+type else_ (* inlined *) = external_else (*tok*)
+
+type close_bracket2 (* inlined *) = external_close_bracket2 (*tok*)
+
+type close_brace (* inlined *) = external_close_brace (*tok*)
+
+type open_brace (* inlined *) = external_open_brace (*tok*)
+
+type raw_string (* inlined *) = (
+    raw_string_open (*tok*)
+  * raw_string_content (*tok*) option
+  * raw_string_close (*tok*)
 )
 
-type namespace_get_internal (* inlined *) = (
-    identifier * Token.t (* ":::" *) * identifier
-)
-
-type pipe_placeholder_argument (* inlined *) = (
-    identifier * Token.t (* "=" *) * Token.t (* "_" *)
-)
-
-type brace_list (* inlined *) = (
-    Token.t (* "{" *) * program * Token.t (* "}" *)
-)
-
-type call (* inlined *) = (
-    expression
-  * Token.t (* "(" *)
-  * arguments option
-  * Token.t (* ")" *)
-)
-
-type default_parameter (* inlined *) = (
-    identifier * Token.t (* "=" *) * expression
-)
-
-type dollar (* inlined *) = (
-    expression
-  * Token.t (* "$" *)
-  * [ `Id of identifier | `Str of string_ ]
-)
-
-type equals_assignment (* inlined *) = (
-    expression * Token.t (* "=" *) * expression
-)
-
-type for_ (* inlined *) = (
-    Token.t (* "for" *) * Token.t (* "(" *) * identifier * Token.t (* "in" *)
-  * expression * Token.t (* ")" *) * expression
-)
-
-type if_ (* inlined *) = (
-    Token.t (* "if" *)
-  * Token.t (* "(" *)
-  * expression
-  * Token.t (* ")" *)
-  * expression
-  * (Token.t (* "else" *) * expression) option
-)
-
-type left_assignment (* inlined *) = (
-    expression * Token.t (* "<-" *) * expression
-)
-
-type left_assignment2 (* inlined *) = (
-    expression * Token.t (* ":=" *) * expression
-)
-
-type paren_list (* inlined *) = (
-    Token.t (* "(" *)
-  * expression list (* zero or more *)
-  * Token.t (* ")" *)
-)
-
-type pipe (* inlined *) = (expression * Token.t (* "|>" *) * pipe_rhs)
-
-type repeat (* inlined *) = (Token.t (* "repeat" *) * expression)
-
-type right_assignment (* inlined *) = (
-    expression * Token.t (* "->" *) * expression
-)
-
-type slot (* inlined *) = (expression * Token.t (* "@" *) * identifier)
-
-type subset (* inlined *) = (
-    expression
-  * Token.t (* "[" *)
-  * arguments option
-  * Token.t (* "]" *)
-)
-
-type subset2 (* inlined *) = (
-    expression
-  * Token.t (* "[[" *)
-  * arguments option
-  * Token.t (* "]]" *)
-)
-
-type super_assignment (* inlined *) = (
-    expression * Token.t (* "<<-" *) * expression
-)
-
-type super_right_assignment (* inlined *) = (
-    expression * Token.t (* "->>" *) * expression
-)
-
-type switch (* inlined *) = (
-    Token.t (* "switch" *) * Token.t (* "(" *) * expression
-  * Token.t (* "," *) * arguments * Token.t (* ")" *)
-)
-
-type while_ (* inlined *) = (
-    Token.t (* "while" *) * Token.t (* "(" *) * expression
-  * Token.t (* ")" *) * expression
-)
-
-type block (* inlined *) = (
-    Token.t (* "{" *)
-  * expression list (* zero or more *)
-  * Token.t (* "}" *)
-)
-
-type definition (* inlined *) = [
-    `Func_defi of function_definition
-  | `Lambda_func of lambda_function
+type identifier_ (* inlined *) = [
+    `Dots of Token.t (* "..." *)
+  | `Dot_dot_i of dot_dot_i (*tok*)
+  | `Id of identifier (*tok*)
 ]
+
+type close_parenthesis (* inlined *) = external_close_parenthesis (*tok*)
+
+type single_quoted_string (* inlined *) = (
+    Token.t (* "'" *)
+  * single_quoted_string_content option
+  * Token.t (* "'" *)
+)
+
+type double_quoted_string (* inlined *) = (
+    Token.t (* "\"" *)
+  * double_quoted_string_content option
+  * Token.t (* "\"" *)
+)
+
+type complex (* inlined *) = (float_ * Token.t (* "i" *))
+
+type integer (* inlined *) = (float_ * Token.t (* "L" *))
+
+type argument_named (* inlined *) = (
+    argument_name_string_or_identifier_or_null
+  * Token.t (* "=" *)
+  * argument_unnamed option
+)
+
+type braced_expression (* inlined *) = (
+    external_open_brace (*tok*)
+  * anon_choice_arg_value_c460aa0 list (* zero or more *)
+  * external_close_brace (*tok*)
+)
+
+type call (* inlined *) = (argument_unnamed * call_arguments)
+
+type for_statement (* inlined *) = (
+    Token.t (* "for" *)
+  * newline (*tok*) list (* zero or more *)
+  * external_open_parenthesis (*tok*)
+  * parameter_without_default
+  * Token.t (* "in" *)
+  * argument_unnamed
+  * external_close_parenthesis (*tok*)
+  * newline (*tok*) list (* zero or more *)
+  * argument_unnamed
+)
+
+type function_definition (* inlined *) = (
+    [ `BSLASH of Token.t (* "\\" *) | `Func of Token.t (* "function" *) ]
+  * newline (*tok*) list (* zero or more *)
+  * parameters
+  * newline (*tok*) list (* zero or more *)
+  * argument_unnamed
+)
+
+type if_statement (* inlined *) = (
+    Token.t (* "if" *)
+  * newline (*tok*) list (* zero or more *)
+  * external_open_parenthesis (*tok*)
+  * argument_unnamed
+  * external_close_parenthesis (*tok*)
+  * newline (*tok*) list (* zero or more *)
+  * argument_unnamed
+  * (
+        external_else (*tok*)
+      * newline (*tok*) list (* zero or more *)
+      * argument_unnamed
+    )
+      option
+)
+
+type parameter_with_default (* inlined *) = (
+    parameter_without_default * Token.t (* "=" *) * argument_unnamed
+)
+
+type parenthesized_expression (* inlined *) = (
+    external_open_parenthesis (*tok*) * argument_unnamed
+  * external_close_parenthesis (*tok*)
+)
+
+type repeat_statement (* inlined *) = (
+    Token.t (* "repeat" *)
+  * newline (*tok*) list (* zero or more *)
+  * argument_unnamed
+)
+
+type subset (* inlined *) = (argument_unnamed * subset_arguments)
+
+type subset2 (* inlined *) = (argument_unnamed * subset2_arguments)
+
+type while_statement (* inlined *) = (
+    Token.t (* "while" *)
+  * newline (*tok*) list (* zero or more *)
+  * external_open_parenthesis (*tok*)
+  * argument_unnamed
+  * external_close_parenthesis (*tok*)
+  * newline (*tok*) list (* zero or more *)
+  * argument_unnamed
+)
 
 type extra = [ `Comment of Loc.t * comment ]
 

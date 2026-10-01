@@ -1,0 +1,55 @@
+[{ s =
+   (ExprStmt (
+      { e = (L (String (_, ("hello", _), _))); e_id = 0; e_range = None;
+        is_implicit_return = false; facts = <opaque> },
+      _));
+   s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("hello", _), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("hello", _), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("hello", _), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("hello", _), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("two\nlines", _), _))); e_id = 0;
+         e_range = None; is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("\\x1", _), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("\\u123", _), _))); e_id = 0; e_range = None;
+         is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e = (L (String (_, ("\\U0001F600", _), _))); e_id = 0;
+         e_range = None; is_implicit_return = false; facts = <opaque> },
+       _));
+    s_range = None }
+  ]

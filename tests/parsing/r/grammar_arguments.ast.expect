@@ -1,0 +1,301 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Call (
+           { e =
+             (N
+                (Id (("f", _),
+                   { id_resolved = ref (None);
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (Unknown);
+                     id_flags = ref (0); id_info_id = _ }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           (_,
+            [(OtherArg (("Missing argument", _), []));
+              (Arg
+                 { e =
+                   (N
+                      (Id (("x", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> });
+              (OtherArg (("Missing argument", _), []));
+              (OtherArg (("Missing argument", _), []))],
+            _)
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("f", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             [(OtherArg (("Empty =", _), [(I ("x", _))]));
+               (OtherArg (("Empty =", _), [(I ("NULL", _))]))],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("ArrayAccess[xs]", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (Args [(OtherArg (("Missing argument", _), []))])]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("ArrayAccess[xs]", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (Args
+                 [(OtherArg (("Missing argument", _), []));
+                   (Arg
+                      { e = (L (Float ((Some 1.), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                   ])
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("ArrayAccess[xs]", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (Args
+                 [(Arg
+                     { e = (L (Float ((Some 1.), _))); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> });
+                   (OtherArg (("Missing argument", _), []))])
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (ArrayAccess (
+            { e =
+              (N
+                 (Id (("x", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             { e = (L (Float ((Some 1.), _))); e_id = 0; e_range = None;
+               is_implicit_return = false; facts = <opaque> },
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("ArrayAccess[[xs]]", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (Args [(OtherArg (("Missing argument", _), []))])]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("ArrayAccess[[xs]]", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (Args
+                 [(Arg
+                     { e = (L (Float ((Some 1.), _))); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> })
+                   ])
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("switch", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (N
+                      (Id (("x", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> });
+               (ArgKwd (("a", _),
+                  { e = (L (Float ((Some 1.), _))); e_id = 0; e_range = None;
+                    is_implicit_return = false; facts = <opaque> }
+                  ));
+               (ArgKwd (("b", _),
+                  { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                    is_implicit_return = false; facts = <opaque> }
+                  ))
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("|>", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (E
+                 { e =
+                   (Call (
+                      { e =
+                        (N
+                           (Id (("f", _),
+                              { id_resolved = ref (None);
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
+                                id_flags = ref (0); id_info_id = _ }
+                              )));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> },
+                      (_,
+                       [(ArgKwd (("value", _),
+                           { e =
+                             (N
+                                (Id (("_", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (Unknown);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   )));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> }
+                           ))
+                         ],
+                       _)
+                      ));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None }
+  ]
