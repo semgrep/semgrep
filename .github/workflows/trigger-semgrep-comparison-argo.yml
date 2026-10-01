@@ -59,7 +59,7 @@ jobs:
         run: |
           echo "Repository: $REPOSITORY"
           echo "SHA: $SHA"
-          curl --fail-with-body -X POST https://argoworkflows-dev2.corp.semgrep.dev/api/v1/events/security-research/semgrep-compare \
+          curl --fail-with-body -X POST https://argoworkflows.dev2.corp.semgrep.dev/api/v1/events/security-research/semgrep-compare \
             -H "Authorization: Bearer $TOKEN" \
             -d "{\"container_image_base\": \"$CONTAINER_IMAGE_BASE\", \"container_image_development\": \"$CONTAINER_IMAGE_DEVELOPMENT\", \"issue_number\": \"$ISSUE_NUMBER\", \"repository\": \"$REPOSITORY\", \"ruleset\": \"$RULESET\", \"sha\": \"$SHA\", \"timeout_in_minutes\": \"$TIMEOUT_IN_MINUTES\"}"
 name: trigger-semgrep-comparison-argo
