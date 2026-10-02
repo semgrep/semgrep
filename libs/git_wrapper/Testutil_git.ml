@@ -28,8 +28,6 @@ let create_git_repo ?(force_add_gitignored_files = false)
   flush stdout;
   flush stderr;
   Git_wrapper.init_exn ();
-  (* Background maintenance can race with temporary repository cleanup. *)
-  Git_wrapper.config_set_exn "maintenance.auto" "false";
   (* We set user name and email to avoid warnings in some git
      versions. *)
   Git_wrapper.config_set_exn "user.name" user_name;

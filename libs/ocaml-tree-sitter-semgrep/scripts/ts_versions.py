@@ -19,6 +19,7 @@ from pathlib import Path
 from grammar_registry import load
 from grammar_registry import resolve
 from grammar_registry import UnknownGrammarError
+from grammar_registry import wrapper_name_from_path
 
 JSON_NAME_RE = re.compile(r'"name"\s*:\s*"([^"]+)"')
 
@@ -82,4 +83,21 @@ def extract_grammar_name(grammar_dir: Path) -> str:
 def version_for_grammar_dir(
     grammar_dir: Path | str, lang_dir: Path | None = None
 ) -> str:
-    return version_for_lang(extract_grammar_name(Path(grammar_dir)), lang_dir)
+    """Return the tree-sitter version pinned for a grammar directory.
+
+    Resolves the grammar's own name first. If that name is not listed
+    (nested co-built grammars such as soql under semgrep-sfapex), fall
+    back to the enclosing wrapper package pin.
+    """
+    path = Path(grammar_dir)
+    name = extract_grammar_name(path)
+    try:
+        return version_for_lang(name, lang_dir)
+    except TsVersionError as leaf_err:
+        wrapper = wrapper_name_from_path(path, lang_dir)
+        if wrapper is None or wrapper == name:
+            raise leaf_err
+        try:
+            return version_for_lang(wrapper, lang_dir)
+        except TsVersionError:
+            raise leaf_err from None
