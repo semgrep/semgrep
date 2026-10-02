@@ -1,0 +1,1 @@
+Expose `--semgrepignore-file PATH` as the public option for selecting an alternate semgrepignore file, while keeping the experimental option as a compatibility alias.
