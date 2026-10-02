@@ -69,6 +69,7 @@ ENGINE_KIND_ATTR = "scan.engine_type"
 _PYRO_CAML_TAGS = "PYRO_CAML_TAGS"
 _PYRO_CAML_SERVICE_NAME = "PYRO_CAML_SERVICE_NAME"
 _PYRO_CAML_SERVER_ADDRESS = "PYRO_CAML_SERVER_ADDRESS"
+_PYRO_CAML_MEMPROF_SAMPLING_RATE = "PYRO_CAML_MEMPROF_SAMPLING_RATE"
 _SEMGREP_TRACE_PARENT_TRACE_ID = "SEMGREP_TRACE_PARENT_TRACE_ID"
 _SEMGREP_TRACE_PARENT_SPAN_ID = "SEMGREP_TRACE_PARENT_SPAN_ID"
 
@@ -402,6 +403,7 @@ class Telemetry:
             + attrs_to_kv_strs(filter_attrs_for_inject(self.resource.attributes))
         )
         os.environ[_PYRO_CAML_SERVICE_NAME] = "semgrep-core"
+        os.environ.setdefault(_PYRO_CAML_MEMPROF_SAMPLING_RATE, "1e-4")
         os.environ[_PYRO_CAML_SERVER_ADDRESS] = (
             _PYROSCOPE_ENDPOINT_ALIASES.get(self.trace_endpoint, self.trace_endpoint)
             if self.trace_endpoint

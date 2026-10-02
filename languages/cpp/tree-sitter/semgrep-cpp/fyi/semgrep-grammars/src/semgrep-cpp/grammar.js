@@ -10,6 +10,9 @@ module.exports = grammar(base_grammar, {
   name: 'cpp',
 
   conflicts: ($, previous) => previous.concat([
+      [$.field_expression, $.template_method],
+      [$.template_method, $.qualified_field_identifier],
+      [$.expression, $.assignment_expression, $.lambda_capture_initializer],
       // C++ allows 'sizeof ...(id)' hence the conflict
       [$.sizeof_expression, $.semgrep_ellipsis],
       // C allows ... in parameters
@@ -29,7 +32,7 @@ module.exports = grammar(base_grammar, {
     ),
 
     // Alternate "entry point". Allows parsing a standalone expression.
-    semgrep_expression: $ => seq('__SEMGREP_EXPRESSION', $._expression),
+    semgrep_expression: $ => seq('__SEMGREP_EXPRESSION', $.expression),
 
     // Typed metavariables
 
@@ -66,9 +69,22 @@ module.exports = grammar(base_grammar, {
       // defined in tree-sitter-c
       /\$?(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})*/,
 
+    // Keep expression patterns reachable in captures, but prefer native capture
+    // productions for this, references, initializers, and parameter packs.
+    _lambda_capture: ($, previous) => choice(previous, prec.dynamic(-1, prec(-1, $.expression))),
+
+    // Keep reference capture initialization in competition with expressions.
+    lambda_capture_initializer: ($, previous) => prec(1, previous),
+
+    // Hexadecimal escapes consume all digits, including leading zeros.
+    escape_sequence: ($, previous) => choice(
+      previous,
+      token.immediate(prec(1, /\\x[0-9a-fA-F]+/))
+    ),
+
     // Ellipsis
 
-    _expression: ($, previous) => {
+    expression: ($, previous) => {
       return choice(
         previous,
         $.semgrep_ellipsis,
@@ -129,7 +145,7 @@ module.exports = grammar(base_grammar, {
     _fold_operator: ($, previous) => prec(13, previous),
 
     semgrep_ellipsis: $ => '...',
-    deep_ellipsis: $ => seq('<...', $._expression, '...>'),
+    deep_ellipsis: $ => seq('<...', $.expression, '...>'),
     semgrep_named_ellipsis: $ => /\$\.\.\.[A-Z_][A-Z_0-9]*/,
   }
 });

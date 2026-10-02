@@ -3,6 +3,8 @@
  (name semgrep_fixing)
  (wrapped false)
  (libraries
+   base
+   collections
    commons
    semgrep.parsing
    semgrep.printing

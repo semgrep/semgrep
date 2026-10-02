@@ -12,6 +12,8 @@
    Semgrep_output_v1_j
    Target_selector)
  (libraries
+   base
+   collections
    atdgen-runtime
    yojson
    commons

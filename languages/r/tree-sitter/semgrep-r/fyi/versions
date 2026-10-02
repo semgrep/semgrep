@@ -1,23 +1,30 @@
 File: semgrep-grammars/src/tree-sitter-r/grammar.js
 Git repo name: tree-sitter-r
-Latest commit in repo: 205c2877af33a814386ff275031f88400a011397
+Latest commit in repo: 346d3707b8c9301f1051e8f6e32666e67529f7d2
 Last change in file:
-  commit 205c2877af33a814386ff275031f88400a011397
-  Author: Jim Hester <james.f.hester@gmail.com>
-  Date:   Wed May 25 11:20:55 2022 -0400
+  commit 959be9ba3b6bce2b942199f53fcc92db3573d47d
+  Author: Felix Andreas <felix.andreas95@googlemail.com>
+  Date:   Wed Jun 17 20:19:27 2026 +0200
   
-      Merge branch 'feature/raw-string-literals'
+      Exclude trailing `\r` from comment nodes in CRLF files (#184)
+      
+      * fix: Don't include \r in comments
+      
+      * Add R test
+      
+      * Mention other grammars
+      
+      ---------
+      
+      Co-authored-by: Davis Vaughan <davis@posit.co>
 ---
 File: semgrep-grammars/src/semgrep-r/grammar.js
-Git repo name: ocaml-tree-sitter-semgrep
-Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Git repo name: semgrep-proprietary
+Latest commit in repo: c6612b885937e0916883811adfd2f9b530cf30e7
 Last change in file:
-  commit dc268d053bbda7c7863e3bbd3420440fa5e8857c
-  Author: pad <pad@r2c.dev>
-  Date:   Tue Jun 14 16:05:45 2022 +0200
+  commit c6612b885937e0916883811adfd2f9b530cf30e7
+  Author: t <t@example.com>
+  Date:   Thu Sep 24 20:58:26 2026 -0600
   
-      R: allow metavariable in semgrep-r
-      
-      test plan:
-      ./test-lang r
+      fix: probe patterns under newly reserved grammar prefixes
 ---

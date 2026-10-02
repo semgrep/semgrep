@@ -286,11 +286,11 @@ let merge_source_mvars (options : Rule_options.t) bindings =
   let bindings_tbl =
     flat_bindings
     |> List.map (fun (mvar, _) -> (mvar, None))
-    |> List.to_seq |> Hashtbl.of_seq
+    |> Hashtbl_.Base.hash_of_list
   in
   flat_bindings
   |> List.iter (fun (mvar, mval) ->
-      match Hashtbl.find_opt bindings_tbl mvar with
+      match Base.Hashtbl.find bindings_tbl mvar with
       | None ->
           (* This should only happen if we've previously found that
                 there is a conflict between bound values at `mvar` in
@@ -301,14 +301,14 @@ let merge_source_mvars (options : Rule_options.t) bindings =
           (* This is our first time seeing this value, let's just
                 add it in.
              *)
-          Hashtbl.replace bindings_tbl mvar (Some mval)
+          Base.Hashtbl.set bindings_tbl ~key:mvar ~data:(Some mval)
       | Some (Some mval') ->
           if not (Matching_generic.equal_ast_bound_code options mval mval') then
-            Hashtbl.remove bindings_tbl mvar);
+            Base.Hashtbl.remove bindings_tbl mvar);
   (* After this, the only surviving bindings should be those where
      there was no conflict between bindings in different sources.
   *)
-  bindings_tbl |> Hashtbl.to_seq |> List.of_seq
+  bindings_tbl |> Base.Hashtbl.to_alist
   |> List.filter_map (fun (mvar, mval_opt) ->
       match mval_opt with
       | None ->
@@ -876,7 +876,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
         in
         let prop_name =
           match
-            Hashtbl.find_opt env.func.taint_inst.muts.java_props_cache
+            Base.Hashtbl.find env.func.taint_inst.muts.java_props_cache
               (prop_str, sid)
           with
           | Some prop_name -> prop_name
@@ -889,8 +889,8 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
                     id_info = G.empty_id_info ();
                   }
                 in
-                Hashtbl.add env.func.taint_inst.muts.java_props_cache
-                  (prop_str, sid) prop_name;
+                Base.Hashtbl.set env.func.taint_inst.muts.java_props_cache
+                  ~key:(prop_str, sid) ~data:prop_name;
                 prop_name
               in
               mk_default_prop_name ()

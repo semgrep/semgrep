@@ -73,12 +73,15 @@ let default_lr_stats () = { lvalue = ref 0; rvalue = ref 0 }
 type class_stats = { mutable num_constructors : int }
 
 type stats = {
-  var_stats : (Eval.var, lr_stats) Hashtbl.t;
-  class_stats : (string, class_stats) Hashtbl.t;
+  var_stats : (Eval.var, lr_stats) Base.Hashtbl.t;
+  class_stats : (string, class_stats) Base.Hashtbl.t;
 }
 
 let new_stats () =
-  { var_stats = Hashtbl.create 100; class_stats = Hashtbl.create 1 }
+  {
+    var_stats = Base.Hashtbl.Poly.create ~size:100 ();
+    class_stats = Base.Hashtbl.Poly.create ~size:1 ();
+  }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -161,14 +164,16 @@ let add_constant_env ident (sid, svalue) (env : Eval.env) =
   | Sym _ ->
       Log.debug (fun m ->
           m ~tags "adding constant in env %s" (H.str_of_ident ident));
-      Hashtbl.add env.constants (H.str_of_ident ident, sid) svalue
+      Base.Hashtbl.set env.constants
+        ~key:(H.str_of_ident ident, sid)
+        ~data:svalue
   | NotCst
   | Unknown ->
       ()
 
 let is_assigned_just_once stats var =
   let id_str, sid = var in
-  match Hashtbl.find_opt stats var with
+  match Base.Hashtbl.find stats var with
   | Some stats -> !(stats.lvalue) = 1
   | None ->
       Log.debug (fun m ->
@@ -178,16 +183,16 @@ let is_assigned_just_once stats var =
 let incr_num_constructors stats cid =
   let stats_cid =
     let cstr, _tok = cid in
-    try Hashtbl.find stats.class_stats cstr with
+    try Hashtbl_.Base.find stats.class_stats cstr with
     | Not_found ->
         let stats_cid = { num_constructors = 0 } in
-        Hashtbl.add stats.class_stats cstr stats_cid;
+        Base.Hashtbl.set stats.class_stats ~key:cstr ~data:stats_cid;
         stats_cid
   in
   stats_cid.num_constructors <- stats_cid.num_constructors + 1
 
 let has_just_one_constructor stats cstr =
-  match Hashtbl.find_opt stats cstr with
+  match Base.Hashtbl.find stats cstr with
   | Some stats -> stats.num_constructors = 1
   | None ->
       Log.debug (fun m -> m ~tags "No stats for %s" cstr);
@@ -215,10 +220,10 @@ let obj_creation_mtx = Mutex.create ()
 let stats_of_prog prog : stats =
   let stats = new_stats () in
   let get_stat_or_create var h =
-    try Hashtbl.find h var with
+    try Hashtbl_.Base.find h var with
     | Not_found ->
         let stat = default_lr_stats () in
-        Hashtbl.add h var stat;
+        Base.Hashtbl.set h ~key:var ~data:stat;
         stat
   in
 
@@ -495,7 +500,7 @@ let propagate_basic lang prog =
                    * it's attributes so check them later, e.g. to know whether it has
                    * `private` visibility. An example of this is a class field that
                    * is initialized in the constructor or in a `static` block. *)
-                  Hashtbl.replace env.attributes (fst id, sid) attrs;
+                  Base.Hashtbl.set env.attributes ~key:(fst id, sid) ~data:attrs;
                 super#visit_definition (env, ctx) x
             | ( {
                   name =
@@ -584,7 +589,7 @@ let propagate_basic lang prog =
                   FN (Id ((str, _tk), id_info)) )
               when lang = Lang.Terraform && not ctx.in_lvalue ->
                 let var = (prefix ^ "." ^ str, terraform_sid) in
-                let/ svalue = Hashtbl.find_opt env.constants var in
+                let/ svalue = Base.Hashtbl.find env.constants var in
                 Dataflow_svalue.set_svalue_ref id_info svalue
             | Assign
                 (* Assign that is really a hidden VarDef (e.g., in Python) *)
@@ -616,7 +621,7 @@ let propagate_basic lang prog =
                   rexp ) ->
                 let opt_svalue = Eval.eval env rexp in
                 let is_private_class_field =
-                  match Hashtbl.find_opt env.attributes (fst id, sid) with
+                  match Base.Hashtbl.find env.attributes (fst id, sid) with
                   | None -> false
                   | Some attrs ->
                       List.exists is_private attrs && is_class_field env kind

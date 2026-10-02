@@ -48,12 +48,12 @@ type env = {
  * This is useful for warn_if_remaining_unparsed_fields() below.
  *)
 type dict = {
-  (* Do not use directly Hashtbl.find_opt on this field!
+  (* Do not use directly Base.Hashtbl.find on this field!
    * Use instead dict_take_opt() or take_opt_no_env() otherwise
    * warn_if_remaining_unparsed_fields() will not work.
    * This is mutated!
    *)
-  h : (string, key * AST_generic.expr) Hashtbl.t;
+  h : (string, key * AST_generic.expr) Base.Hashtbl.t;
   (* for error reports on missing fields *)
   first_tok : R.tok;
 }
@@ -126,9 +126,9 @@ let parse_pattern_with_rule_error env (str, t) ?rule_options lang s =
       Rule_error.mk_error ~rule_id:env.id (InvalidRule (error_kind, env.id, t)))
 
 let check_that_dict_is_empty (dict : dict) : (unit, Rule_error.t) Result.t =
-  if Hashtbl.length dict.h > 0 then
+  if Base.Hashtbl.length dict.h > 0 then
     let remaining_keys =
-      dict.h |> Hashtbl.to_seq_keys |> List.of_seq |> List.sort String.compare
+      dict.h |> Base.Hashtbl.keys |> List.sort String.compare
       |> String.concat ", "
     in
     yaml_error dict.first_tok
@@ -140,7 +140,7 @@ let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
   (* less: we could return an error, but better to be fault-tolerant
    * to future extensions to the rule format
    *)
-  rd.h |> Hashtbl_.hash_to_list
+  rd.h |> Hashtbl_.Base.hash_to_list
   |> List.iter (fun (k, _) ->
       (* nosemgrep: no-logs-in-library *)
       Logs.warn (fun m ->
@@ -221,7 +221,7 @@ let parse_dict_helper opt_rule_id error_fun_f error_fun_d
     (dict, Rule_error.t) Result.t =
   match rule.G.e with
   | G.Container (Dict, (l, fields, _r)) ->
-      let dict = Hashtbl.create 10 in
+      let dict = Base.Hashtbl.Poly.create ~size:10 () in
       let result =
         fields
         |> List.fold_left
@@ -233,26 +233,28 @@ let parse_dict_helper opt_rule_id error_fun_f error_fun_d
                      ( _,
                        [ { e = L (String (_, (key_str, t), _)); _ }; value ],
                        _ ) ) ->
-                   if Hashtbl.mem dict key_str then
+                   if Base.Hashtbl.mem dict key_str then
                      Error
                        (Rule_error.mk_error ?rule_id:opt_rule_id
                           (DuplicateYamlKey
                              (spf "duplicate key '%s' in dictionary" key_str, t)))
                    else (
-                     Hashtbl.add dict key_str ((key_str, t), value);
+                     Base.Hashtbl.set dict ~key:key_str
+                       ~data:((key_str, t), value);
                      Ok ())
                (* special case for YAML 'on' keys *)
                | G.Container
                    (G.Tuple, (_, [ { e = L (Bool (true, t)); _ }; value ], _))
                  ->
                    let key_str = "on" in
-                   if Hashtbl.mem dict key_str then
+                   if Base.Hashtbl.mem dict key_str then
                      Error
                        (Rule_error.mk_error ?rule_id:opt_rule_id
                           (DuplicateYamlKey
                              (spf "duplicate key '%s' in dictionary" key_str, t)))
                    else (
-                     Hashtbl.add dict key_str ((key_str, t), value);
+                     Base.Hashtbl.set dict ~key:key_str
+                       ~data:((key_str, t), value);
                      Ok ())
                | _ -> error_fun_f field "Not a valid key value pair")
              (Ok ())
@@ -265,8 +267,8 @@ let parse_dict_helper opt_rule_id error_fun_f error_fun_d
 (* Lookup a key from dict and remove it. *)
 let dict_take_opt (dict : dict) (key_str : string) : (key * G.expr) option =
   let tbl = dict.h in
-  let res = Hashtbl.find_opt tbl key_str in
-  Hashtbl.remove tbl key_str;
+  let res = Base.Hashtbl.find tbl key_str in
+  Base.Hashtbl.remove tbl key_str;
   res
 
 (* Mutates the Hashtbl! *)
@@ -290,7 +292,8 @@ let take_key ?default (dict : dict) (env : env)
       | None -> error env.id dict.first_tok ("Missing required field " ^ key_str)
       )
 
-let fold_dict f dict x = Hashtbl.fold f dict.h x
+let fold_dict f dict x =
+  Base.Hashtbl.fold dict.h ~init:x ~f:(fun ~key ~data acc -> f key data acc)
 
 let parse_dict (env : env) (enclosing_obj_name : string G.wrap) expr =
   parse_dict_helper (Some env.id) (error_at_expr env.id) (error_at_expr env.id)
@@ -304,10 +307,10 @@ let parse_dict (env : env) (enclosing_obj_name : string G.wrap) expr =
 let take_opt_no_env (dict : dict)
     (f : key -> G.expr -> ('a, Rule_error.t) Result.t) (key_str : string) :
     ('a option, Rule_error.t) Result.t =
-  match Hashtbl.find_opt dict.h key_str with
+  match Base.Hashtbl.find dict.h key_str with
   | Some (key, value) ->
       let result = f key value in
-      Hashtbl.remove dict.h key_str;
+      Base.Hashtbl.remove dict.h key_str;
       result |> Result.map (fun x -> Some x)
   | None -> Ok None
 

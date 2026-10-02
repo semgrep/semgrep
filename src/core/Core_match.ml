@@ -202,18 +202,20 @@ let hash_with_bindings bindings acc0 =
   |> List.fold_left
        (fun acc (mvar, mval) ->
          acc
-         |> Hashtbl_.combine_hash (Hashtbl.hash mvar)
-         |> Hashtbl_.combine_hash (Hashtbl.hash mval))
+         |> Hashtbl_.combine_hash (Stdlib.Hashtbl.hash mvar)
+         |> Hashtbl_.combine_hash (Stdlib.Hashtbl.hash mval))
        acc0
 
 (* perf: Make sure the 'env' is part of the hash. Otherwise, if we had a pattern
     generating lots of matches at the same location, but with different 'env's,
     all those matches would get the same 'hash' causing perf problems. *)
 let hash m =
-  Hashtbl.hash (m.rule_id.id, m.range_loc, m) |> hash_with_bindings m.env
+  Stdlib.Hashtbl.hash (m.rule_id.id, m.range_loc, m) |> hash_with_bindings m.env
 [@@profiling]
 
-module Tbl = Hashtbl.Make (struct
+(* TODO Migrate to Base. Out of scope for first pass due to custom equality and
+ * hash function. *)
+module Tbl = Stdlib.Hashtbl.Make (struct
   type nonrec t = t
 
   let equal = equal
@@ -261,7 +263,7 @@ let no_submatches pms =
   (* Initial hash table size based on memory profiling with memtrace. Increase
    * only with caution. *)
   let num_pms = List.length pms in
-  let matches_tbl = Hashtbl.create num_pms in
+  let matches_tbl = Base.Hashtbl.Poly.create ~size:num_pms () in
   let removed_set = Tbl.create num_pms in
   pms
   |> List.iter (fun pm ->
@@ -269,8 +271,8 @@ let no_submatches pms =
        * there should not be too many matches per file; but if perf
        * is a problem, consider using a specialized data structure. *)
       let k = (pm.rule_id, pm.path.internal_path_to_content) in
-      match Hashtbl.find_opt matches_tbl k with
-      | None -> Hashtbl.add matches_tbl k [ pm ]
+      match Base.Hashtbl.find matches_tbl k with
+      | None -> Base.Hashtbl.set matches_tbl ~key:k ~data:[ pm ]
       | Some ys -> (
           match List.find_opt (fun y -> submatch pm y) ys with
           | Some _ -> Tbl.add removed_set pm ()
@@ -279,7 +281,7 @@ let no_submatches pms =
                 List.partition (fun y -> not (submatch y pm)) ys
               in
               removed |> List.iter (fun rm -> Tbl.add removed_set rm ());
-              Hashtbl.replace matches_tbl k (pm :: ys')));
+              Base.Hashtbl.set matches_tbl ~key:k ~data:(pm :: ys')));
   (* NOTE: Must use `List.filter` to preserve order. *)
   pms |> List.filter (fun pm -> not (Tbl.mem removed_set pm))
 [@@profiling]

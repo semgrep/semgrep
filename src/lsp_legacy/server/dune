@@ -3,6 +3,8 @@
  (name osemgrep_language_server_server)
  (wrapped false)
  (libraries
+   base
+
    lsp
    lwt
 

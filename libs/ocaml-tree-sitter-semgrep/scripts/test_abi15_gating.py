@@ -156,7 +156,7 @@ def grammar_dirs(tmp_path):
         (True, "0.26.3", "false", "--abi=14"),
         (False, "0.26.3", "1", "--abi=14"),
         (False, "0.24.0", None, "--abi=14"),
-        (False, "0.20.8", None, "--no-bindings"),
+        (False, "0.22.6", None, "--no-bindings"),
     ],
     ids=[
         "json+abi15-on",
@@ -165,7 +165,7 @@ def grammar_dirs(tmp_path):
         "json+abi15=false",
         "no-json+abi15-on",
         "no-json-0.24.0",
-        "no-json-0.20.8",
+        "no-json-0.22.6",
     ],
 )
 def test_generate_abi_args(grammar_dirs, has_json, ts_version, abi15, expected):
@@ -180,7 +180,7 @@ def test_generate_abi_args(grammar_dirs, has_json, ts_version, abi15, expected):
     [
         (True, "0.26.3", "1", "--abi=15"),
         (True, "0.26.3", None, "--abi=14"),
-        (False, "0.20.8", None, "--no-bindings"),
+        (False, "0.22.6", None, "--no-bindings"),
     ],
 )
 def test_generate_abi_args_cli(grammar_dirs, has_json, ts_version, abi15, expected):

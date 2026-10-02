@@ -11,7 +11,7 @@
    LICENSE for more details.
 *)
 (* See make_fixed_lines for an explanation
- * Note that this internally uses a (mutable) Hashtbl.t.
+ * Note that this internally uses a (mutable) Base.Hashtbl.t.
  *)
 type env
 

@@ -1,0 +1,3 @@
+# ERROR: match
+f(0x1.8p2)
+f(0x1.4p2)

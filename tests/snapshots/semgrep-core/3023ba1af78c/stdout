@@ -2,9 +2,13 @@
    (OtherStmt (OS_Asm,
       [(Tk _);
         (E
+           { e = (L (String (_, ("leal (%0,%0,4),%0", _), _))); e_id = 0;
+             e_range = None; is_implicit_return = false; facts = <opaque> });
+        (I ("=r", _));
+        (E
            { e =
              (N
-                (Id (("leal (%0,%0,4),%0", _),
+                (Id (("n", _),
                    { id_resolved = ref (None);
                      id_resolved_alternatives = ref ([]);
                      id_type = ref (None); id_svalue = ref (Unknown);
@@ -12,7 +16,7 @@
                    )));
              e_id = 0; e_range = None; is_implicit_return = false;
              facts = <opaque> });
-        (I ("=r", _)); (I ("n", _)); (I ("0", _));
+        (I ("0", _));
         (E
            { e =
              (N
@@ -60,8 +64,17 @@
                             [(Tk _);
                               (E
                                  { e =
+                                   (L
+                                      (String
+                                         (_, ("leal (%0,%0,4),%0", _), _)));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> });
+                              (I ("=r", _));
+                              (E
+                                 { e =
                                    (N
-                                      (Id (("leal (%0,%0,4),%0", _),
+                                      (Id (("n", _),
                                          { id_resolved = ref (None);
                                            id_resolved_alternatives =
                                            ref ([]); id_type = ref (None);
@@ -72,7 +85,7 @@
                                    e_id = 0; e_range = None;
                                    is_implicit_return = false;
                                    facts = <opaque> });
-                              (I ("=r", _)); (I ("n", _)); (I ("0", _));
+                              (I ("0", _));
                               (E
                                  { e =
                                    (N

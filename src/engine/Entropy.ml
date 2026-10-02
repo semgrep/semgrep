@@ -55,7 +55,7 @@ let english_trigrams = Entropy_data.english_trigrams
 let load_trigrams () =
   let ar = english_trigrams in
   (* Load trigram frequencies *)
-  let trigram_entropies = Hashtbl.create (Array.length ar) in
+  let trigram_entropies = Base.Hashtbl.Poly.create ~size:(Array.length ar) () in
   (* we explicitly use int64 here to avoid overflow *)
   (* on 32 bit systems (like Js_of_ocaml), trigram_total_count *)
   (* overflows :( *)
@@ -74,7 +74,7 @@ let load_trigrams () =
       in
       (* Ensure is not nan *)
       assert (not Float.(is_nan trigram_entropy));
-      Hashtbl.add trigram_entropies trigram trigram_entropy)
+      Base.Hashtbl.set trigram_entropies ~key:trigram ~data:trigram_entropy)
     ar;
   (* Load character frequencies *)
   let char_total_count = Int64.mul 3L trigram_total_count in
@@ -118,7 +118,7 @@ let get_substring_entropy s =
   match String.length s with
   | 3 ->
       let trigram_entropy =
-        match Hashtbl.find_opt trigram_entropies s with
+        match Base.Hashtbl.find trigram_entropies s with
         | Some x -> x
         | None ->
             let e1 = s.[0] |> Char.code |> Array.get char_entropies in

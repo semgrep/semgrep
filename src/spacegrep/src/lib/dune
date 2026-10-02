@@ -3,6 +3,7 @@
   (name spacegrep)
   (libraries
      ANSITerminal
+     base
      unix
      commons
      parallelism

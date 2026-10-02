@@ -91,7 +91,7 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] 
     ),
     out.LockfileKind(out.MixLock()): DependencyParser(parse_mix),
     out.LockfileKind(out.ConanLock()): None,  # No parser support yet
-    out.LockfileKind(out.BunLock()): None,  # No parser support yet
+    out.LockfileKind(out.BunLock()): None,  # Parsed in OCaml only
 }
 
 

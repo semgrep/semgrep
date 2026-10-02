@@ -45,7 +45,7 @@ def test_version_for_lang_known_language():
 
 def test_version_for_lang_dialect_alias():
     assert version_for_lang("php-only", LANG_DIR) == "0.26.3"
-    assert version_for_lang("soql", LANG_DIR) == "0.20.8"
+    assert version_for_lang("soql", LANG_DIR) == "0.26.3"
 
 
 def test_version_for_lang_missing():

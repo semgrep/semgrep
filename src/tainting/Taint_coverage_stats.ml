@@ -74,30 +74,34 @@ type 'spec spec_stats = {
 }
 
 type rule_stats = {
-  source_stats : (Rule.taint_spec_id, Rule.taint_source spec_stats) Hashtbl.t;
-  sink_stats : (Rule.taint_spec_id, Rule.taint_sink spec_stats) Hashtbl.t;
+  source_stats :
+    (Rule.taint_spec_id, Rule.taint_source spec_stats) Base.Hashtbl.t;
+  sink_stats : (Rule.taint_spec_id, Rule.taint_sink spec_stats) Base.Hashtbl.t;
 }
 (** Per-rule stats accumulated across all files. *)
 
 let create_rule_stats () =
-  { source_stats = Hashtbl.create 1; sink_stats = Hashtbl.create 1 }
+  {
+    source_stats = Base.Hashtbl.Poly.create ~size:1 ();
+    sink_stats = Base.Hashtbl.Poly.create ~size:1 ();
+  }
 
 let add_file_stats_into stats file_stats =
   file_stats.file_source_stats
   |> SourceMap.iter (fun (source : Rule.taint_source) total_matches ->
-      match Hashtbl.find_opt stats.source_stats source.source_id with
+      match Base.Hashtbl.find stats.source_stats source.source_id with
       | None ->
-          Hashtbl.add stats.source_stats source.source_id
-            { spec = source; total_matches; num_files = 1 }
+          Base.Hashtbl.set stats.source_stats ~key:source.source_id
+            ~data:{ spec = source; total_matches; num_files = 1 }
       | Some ss ->
           ss.total_matches <- ss.total_matches + total_matches;
           ss.num_files <- ss.num_files + 1);
   file_stats.file_sink_stats
   |> SinkMap.iter (fun (sink : Rule.taint_sink) total_matches ->
-      match Hashtbl.find_opt stats.sink_stats sink.sink_id with
+      match Base.Hashtbl.find stats.sink_stats sink.sink_id with
       | None ->
-          Hashtbl.add stats.sink_stats sink.sink_id
-            { spec = sink; total_matches; num_files = 1 }
+          Base.Hashtbl.set stats.sink_stats ~key:sink.sink_id
+            ~data:{ spec = sink; total_matches; num_files = 1 }
       | Some ss ->
           ss.total_matches <- ss.total_matches + total_matches;
           ss.num_files <- ss.num_files + 1)
@@ -106,17 +110,17 @@ let add_file_stats_into stats file_stats =
 (* Coverage stats *)
 (*****************************************************************************)
 
-type t = (Rule_ID.t, rule_stats) Hashtbl.t
+type t = (Rule_ID.t, rule_stats) Base.Hashtbl.t
 (** Stats table mapping rule IDs to per-rule stats across all files. *)
 
-let create () : t = Hashtbl.create 100
+let create () : t = Base.Hashtbl.Poly.create ~size:100 ()
 
 let add (stats : t) ~rule (file_rule_stats : file_rule_stats) =
   let rule_stats =
-    match Hashtbl.find_opt stats rule with
+    match Base.Hashtbl.find stats rule with
     | None ->
         let rule_stats = create_rule_stats () in
-        Hashtbl.add stats rule rule_stats;
+        Base.Hashtbl.set stats ~key:rule ~data:rule_stats;
         rule_stats
     | Some rule_stats -> rule_stats
   in
@@ -124,37 +128,39 @@ let add (stats : t) ~rule (file_rule_stats : file_rule_stats) =
 
 let merge_rule_stats ~(src : rule_stats) ~(dst : rule_stats) =
   src.source_stats
-  |> Hashtbl.iter (fun id ss ->
-      match Hashtbl.find_opt dst.source_stats id with
+  |> Base.Hashtbl.iteri ~f:(fun ~key:id ~data:ss ->
+      match Base.Hashtbl.find dst.source_stats id with
       | None ->
-          Hashtbl.add dst.source_stats id
-            {
-              spec = ss.spec;
-              total_matches = ss.total_matches;
-              num_files = ss.num_files;
-            }
+          Base.Hashtbl.set dst.source_stats ~key:id
+            ~data:
+              {
+                spec = ss.spec;
+                total_matches = ss.total_matches;
+                num_files = ss.num_files;
+              }
       | Some dst_ss ->
           dst_ss.total_matches <- dst_ss.total_matches + ss.total_matches;
           dst_ss.num_files <- dst_ss.num_files + ss.num_files);
   src.sink_stats
-  |> Hashtbl.iter (fun id ss ->
-      match Hashtbl.find_opt dst.sink_stats id with
+  |> Base.Hashtbl.iteri ~f:(fun ~key:id ~data:ss ->
+      match Base.Hashtbl.find dst.sink_stats id with
       | None ->
-          Hashtbl.add dst.sink_stats id
-            {
-              spec = ss.spec;
-              total_matches = ss.total_matches;
-              num_files = ss.num_files;
-            }
+          Base.Hashtbl.set dst.sink_stats ~key:id
+            ~data:
+              {
+                spec = ss.spec;
+                total_matches = ss.total_matches;
+                num_files = ss.num_files;
+              }
       | Some dst_ss ->
           dst_ss.total_matches <- dst_ss.total_matches + ss.total_matches;
           dst_ss.num_files <- dst_ss.num_files + ss.num_files)
 
 let merge ~(src : t) ~(dst : t) =
   src
-  |> Hashtbl.iter (fun rule_id src_rule_stats ->
-      match Hashtbl.find_opt dst rule_id with
-      | None -> Hashtbl.add dst rule_id src_rule_stats
+  |> Base.Hashtbl.iteri ~f:(fun ~key:rule_id ~data:src_rule_stats ->
+      match Base.Hashtbl.find dst rule_id with
+      | None -> Base.Hashtbl.set dst ~key:rule_id ~data:src_rule_stats
       | Some dst_rule_stats ->
           merge_rule_stats ~src:src_rule_stats ~dst:dst_rule_stats)
 
@@ -180,14 +186,14 @@ let merge ~(src : t) ~(dst : t) =
 
 let is_applicable (r : rule_stats) =
   let has_unconstrained_sources =
-    r.source_stats |> Hashtbl.to_seq
-    |> Seq.exists (fun (_id, ss) -> ss.spec.Rule.source_requires = None)
+    r.source_stats |> Base.Hashtbl.to_alist
+    |> List.exists (fun (_id, ss) -> ss.spec.Rule.source_requires = None)
   in
-  let has_any_sinks = Hashtbl.length r.sink_stats > 0 in
+  let has_any_sinks = Base.Hashtbl.length r.sink_stats > 0 in
   has_unconstrained_sources && has_any_sinks
 
 let rule_is_applicable (tbl : t) (rule_id : Rule_ID.t) =
-  match Hashtbl.find_opt tbl rule_id with
+  match Base.Hashtbl.find tbl rule_id with
   | None -> true (* in case of doubt, keep it *)
   | Some r -> is_applicable r
 
@@ -211,21 +217,19 @@ let pretty (stats : t) =
   in
   let num_not_applicable = ref 0 in
   let buf = Buffer.create 512 in
-  stats |> Hashtbl.to_seq |> List.of_seq
+  stats |> Base.Hashtbl.to_alist
   |> List.sort (fun (id1, _) (id2, _) -> Rule_ID.compare id1 id2)
   |> List.iter (fun (rule_id, r) ->
       if not (is_applicable r) then incr num_not_applicable
       else begin
         let sources =
-          r.source_stats |> Hashtbl.to_seq
-          |> Seq.filter (fun (_id, ss) ->
+          r.source_stats |> Base.Hashtbl.to_alist
+          |> List.filter (fun (_id, ss) ->
               (* Necessary sources (no 'requires:') *)
               ss.spec.Rule.source_requires = None)
-          |> List.of_seq |> sort_by_id
+          |> sort_by_id
         in
-        let sinks =
-          r.sink_stats |> Hashtbl.to_seq |> List.of_seq |> sort_by_id
-        in
+        let sinks = r.sink_stats |> Base.Hashtbl.to_alist |> sort_by_id in
         Buffer.add_string buf
           (Printf.sprintf "Rule %s:\n" (Rule_ID.to_string rule_id));
         print_spec_stats buf ~kind:"source" sources;
@@ -259,9 +263,9 @@ let summary ~lang (tbl : t) =
   let sinks_but_no_sources = ref 0 in
   let no_sources_no_sinks = ref 0 in
   tbl
-  |> Hashtbl.iter (fun _rule_id r ->
-      let has_any_sources = Hashtbl.length r.source_stats > 0 in
-      let has_any_sinks = Hashtbl.length r.sink_stats > 0 in
+  |> Base.Hashtbl.iteri ~f:(fun ~key:_rule_id ~data:r ->
+      let has_any_sources = Base.Hashtbl.length r.source_stats > 0 in
+      let has_any_sinks = Base.Hashtbl.length r.sink_stats > 0 in
       if is_applicable r then incr may_produce_findings
       else
         match (has_any_sources, has_any_sinks) with

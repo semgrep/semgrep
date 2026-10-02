@@ -444,6 +444,67 @@ EXPOSE ... $PORT_PROTO ...
       (semgrep_ellipsis))))
 
 =============================================
+EXPOSE environment replacement with protocol
+=============================================
+
+EXPOSE $PORT/udp
+EXPOSE ${PORT}/tcp
+EXPOSE 80/tcp $PORT/udp ${PORT}/tcp 443/udp
+ENTRYPOINT ["/bin/sh"]
+
+---
+
+(source_file
+  (expose_instruction
+    (expose_port
+      (expansion
+        (variable))))
+  (expose_instruction
+    (expose_port
+      (expansion
+        (variable))))
+  (expose_instruction
+    (expose_port)
+    (expose_port
+      (expansion
+        (variable)))
+    (expose_port
+      (expansion
+        (variable)))
+    (expose_port))
+  (entrypoint_instruction
+    (json_string_array
+      (json_string))))
+
+=============================================
+EXPOSE rejects unsupported protocol after environment replacement
+=============================================
+
+EXPOSE ${PORT}/icmp
+
+---
+
+(source_file
+  (ERROR
+    (expose_instruction
+      (expansion
+        (variable)))))
+
+=============================================
+EXPOSE rejects empty protocol after environment replacement
+=============================================
+
+EXPOSE ${PORT}/
+
+---
+
+(source_file
+  (ERROR
+    (expose_instruction
+      (expansion
+        (variable)))))
+
+=============================================
 STOPSIGNAL metavariable
 =============================================
 

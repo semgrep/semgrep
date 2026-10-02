@@ -1,0 +1,926 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (OtherExpr (("?", _),
+           [(E
+               { e =
+                 (N
+                    (Id (("mean", _),
+                       { id_resolved = ref (None);
+                         id_resolved_alternatives = ref ([]);
+                         id_type = ref (None); id_svalue = ref (Unknown);
+                         id_flags = ref (0); id_info_id = _ }
+                       )));
+                 e_id = 0; e_range = None; is_implicit_return = false;
+                 facts = <opaque> })
+             ]
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("?", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("utils", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (E
+                 { e =
+                   (N
+                      (Id (("help", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op Pow), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> });
+               (Arg
+                  { e = (L (Float ((Some 3.), _))); e_id = 0; e_range = None;
+                    is_implicit_return = false; facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("x", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special ((Op Plus), _)); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (N
+                           (Id (("a", _),
+                              { id_resolved = ref (None);
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
+                                id_flags = ref (0); id_info_id = _ }
+                              )));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (N
+                            (Id (("b", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("<<=", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None);
+                          id_svalue =
+                          ref ((Sym
+                                  { e =
+                                    (Call (
+                                       { e = (Special ((Op Plus), _));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> },
+                                       (_,
+                                        [(Arg
+                                            { e =
+                                              (N
+                                                 (Id (("a", _),
+                                                    { id_resolved =
+                                                      ref (None);
+                                                      id_resolved_alternatives =
+                                                      ref ([]);
+                                                      id_type = ref (None);
+                                                      id_svalue =
+                                                      ref (Unknown);
+                                                      id_flags = ref (0);
+                                                      id_info_id = _ }
+                                                    )));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> });
+                                          (Arg
+                                             { e =
+                                               (N
+                                                  (Id (("b", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> })
+                                          ],
+                                        _)
+                                       ));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> }));
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (E
+                 { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("->", _),
+            [(E
+                { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                  is_implicit_return = false; facts = <opaque> });
+              (E
+                 { e =
+                   (N
+                      (Id (("x", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None);
+                           id_svalue =
+                           ref ((Sym
+                                   { e =
+                                     (Call (
+                                        { e = (Special ((Op Plus), _));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> },
+                                        (_,
+                                         [(Arg
+                                             { e =
+                                               (N
+                                                  (Id (("a", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> });
+                                           (Arg
+                                              { e =
+                                                (N
+                                                   (Id (("b", _),
+                                                      { id_resolved =
+                                                        ref (None);
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (Unknown);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      )));
+                                                e_id = 0; e_range = None;
+                                                is_implicit_return = false;
+                                                facts = <opaque> })
+                                           ],
+                                         _)
+                                        ));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> }));
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("->>", _),
+            [(E
+                { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                  is_implicit_return = false; facts = <opaque> });
+              (E
+                 { e =
+                   (N
+                      (Id (("x", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None);
+                           id_svalue =
+                           ref ((Sym
+                                   { e =
+                                     (Call (
+                                        { e = (Special ((Op Plus), _));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> },
+                                        (_,
+                                         [(Arg
+                                             { e =
+                                               (N
+                                                  (Id (("a", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> });
+                                           (Arg
+                                              { e =
+                                                (N
+                                                   (Id (("b", _),
+                                                      { id_resolved =
+                                                        ref (None);
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (Unknown);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      )));
+                                                e_id = 0; e_range = None;
+                                                is_implicit_return = false;
+                                                facts = <opaque> })
+                                           ],
+                                         _)
+                                        ));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> }));
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr ((":=", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None);
+                          id_svalue =
+                          ref ((Sym
+                                  { e =
+                                    (Call (
+                                       { e = (Special ((Op Plus), _));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> },
+                                       (_,
+                                        [(Arg
+                                            { e =
+                                              (N
+                                                 (Id (("a", _),
+                                                    { id_resolved =
+                                                      ref (None);
+                                                      id_resolved_alternatives =
+                                                      ref ([]);
+                                                      id_type = ref (None);
+                                                      id_svalue =
+                                                      ref (Unknown);
+                                                      id_flags = ref (0);
+                                                      id_info_id = _ }
+                                                    )));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> });
+                                          (Arg
+                                             { e =
+                                               (N
+                                                  (Id (("b", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> })
+                                          ],
+                                        _)
+                                       ));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> }));
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (E
+                 { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op Eq), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (N
+                      (Id (("x", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None);
+                           id_svalue =
+                           ref ((Sym
+                                   { e =
+                                     (Call (
+                                        { e = (Special ((Op Plus), _));
+                                          e_id = 0; e_range = None;
+                                          is_implicit_return = false;
+                                          facts = <opaque> },
+                                        (_,
+                                         [(Arg
+                                             { e =
+                                               (N
+                                                  (Id (("a", _),
+                                                     { id_resolved =
+                                                       ref (None);
+                                                       id_resolved_alternatives =
+                                                       ref ([]);
+                                                       id_type = ref (None);
+                                                       id_svalue =
+                                                       ref (Unknown);
+                                                       id_flags = ref (0);
+                                                       id_info_id = _ }
+                                                     )));
+                                               e_id = 0; e_range = None;
+                                               is_implicit_return = false;
+                                               facts = <opaque> });
+                                           (Arg
+                                              { e =
+                                                (N
+                                                   (Id (("b", _),
+                                                      { id_resolved =
+                                                        ref (None);
+                                                        id_resolved_alternatives =
+                                                        ref ([]);
+                                                        id_type = ref (None);
+                                                        id_svalue =
+                                                        ref (Unknown);
+                                                        id_flags = ref (0);
+                                                        id_info_id = _ }
+                                                      )));
+                                                e_id = 0; e_range = None;
+                                                is_implicit_return = false;
+                                                facts = <opaque> })
+                                           ],
+                                         _)
+                                        ));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> }));
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> });
+               (Arg
+                  { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                    is_implicit_return = false; facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("|>", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("x", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (E
+                 { e =
+                   (Call (
+                      { e =
+                        (N
+                           (Id (("f", _),
+                              { id_resolved = ref (None);
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
+                                id_flags = ref (0); id_info_id = _ }
+                              )));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> },
+                      (_,
+                       [(ArgKwd (("value", _),
+                           { e =
+                             (N
+                                (Id (("_", _),
+                                   { id_resolved = ref (None);
+                                     id_resolved_alternatives = ref ([]);
+                                     id_type = ref (None);
+                                     id_svalue = ref (Unknown);
+                                     id_flags = ref (0); id_info_id = _ }
+                                   )));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> }
+                           ))
+                         ],
+                       _)
+                      ));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("%custom%", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (N
+                      (Id (("a", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> });
+               (Arg
+                  { e =
+                    (N
+                       (Id (("b", _),
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (Unknown);
+                            id_flags = ref (0); id_info_id = _ }
+                          )));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("~", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("a", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (E
+                 { e =
+                   (N
+                      (Id (("b", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op BitNot), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (N
+                      (Id (("x", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op Plus), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e = (L (Float ((Some 1.), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> });
+               (Arg
+                  { e =
+                    (Call (
+                       { e = (Special ((Op Mult), _)); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> },
+                       (_,
+                        [(Arg
+                            { e = (L (Float ((Some 2.), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> });
+                          (Arg
+                             { e = (L (Float ((Some 3.), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> })
+                          ],
+                        _)
+                       ));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op Minus), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (Call (
+                      { e = (Special ((Op Pow), _)); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> },
+                      (_,
+                       [(Arg
+                           { e = (L (Float ((Some 2.), _))); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> });
+                         (Arg
+                            { e = (L (Float ((Some 2.), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> })
+                         ],
+                       _)
+                      ));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op Pow), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e = (L (Float ((Some 2.), _))); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> });
+               (Arg
+                  { e =
+                    (Call (
+                       { e = (Special ((Op Pow), _)); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> },
+                       (_,
+                        [(Arg
+                            { e = (L (Float ((Some 3.), _))); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> });
+                          (Arg
+                             { e = (L (Float ((Some 2.), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> })
+                          ],
+                        _)
+                       ));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (Call (
+                 { e = (Special ((Op Eq), _)); e_id = 0; e_range = None;
+                   is_implicit_return = false; facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (N
+                           (Id (("a", _),
+                              { id_resolved = ref (None);
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None);
+                                id_svalue = ref (Unknown);
+                                id_flags = ref (0); id_info_id = _ }
+                              )));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (N
+                            (Id (("b", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (N
+                 (Id (("c", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (OtherExpr (("?", _),
+            [(E
+                { e =
+                  (N
+                     (Id (("a", _),
+                        { id_resolved = ref (None);
+                          id_resolved_alternatives = ref ([]);
+                          id_type = ref (None); id_svalue = ref (Unknown);
+                          id_flags = ref (0); id_info_id = _ }
+                        )));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> });
+              (E
+                 { e =
+                   (Assign (
+                      { e =
+                        (N
+                           (Id (("b", _),
+                              { id_resolved = ref (None);
+                                id_resolved_alternatives = ref ([]);
+                                id_type = ref (None);
+                                id_svalue =
+                                ref ((Lit (Float ((Some 1.), _))));
+                                id_flags = ref (0); id_info_id = _ }
+                              )));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> },
+                      _,
+                      { e = (L (Float ((Some 1.), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> }
+                      ));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+              ]
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e = (Special ((Op Plus), _)); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (OtherExpr (("|>", _),
+                      [(E
+                          { e =
+                            (N
+                               (Id (("x", _),
+                                  { id_resolved = ref (None);
+                                    id_resolved_alternatives = ref ([]);
+                                    id_type = ref (None);
+                                    id_svalue = ref (Unknown);
+                                    id_flags = ref (0); id_info_id = _ }
+                                  )));
+                            e_id = 0; e_range = None;
+                            is_implicit_return = false; facts = <opaque> });
+                        (E
+                           { e =
+                             (Call (
+                                { e =
+                                  (N
+                                     (Id (("f", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (Unknown);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> },
+                                (_, [], _)));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> })
+                        ]
+                      ));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> });
+               (Arg
+                  { e =
+                    (Call (
+                       { e =
+                         (N
+                            (Id (("g", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> },
+                       (_, [], _)));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None }
+  ]

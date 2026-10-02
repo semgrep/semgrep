@@ -30,14 +30,15 @@
 open Common
 module E = Core_error
 
-type java_props_cache = (string * AST_generic.SId.t, IL.name) Hashtbl.t
+type java_props_cache = (string * AST_generic.SId.t, IL.name) Base.Hashtbl.t
 
 type file_timeout_var_stats = {
   first_rule : Rule_ID.t;
   mutable num_rules : int;
 }
 
-type file_timeout_stats = (IL.name option, file_timeout_var_stats) Hashtbl.t
+type file_timeout_stats =
+  (IL.name option, file_timeout_var_stats) Base.Hashtbl.t
 
 (* components of a taint rule that are immutable and sharable. *)
 type file = {
@@ -98,9 +99,10 @@ let of_config (c : config) ~muts : 'muts t =
 
 let record_timeout ~(timeouts : file_timeout_stats) ~(rule : Rule_ID.t) opt_name
     =
-  match Hashtbl.find_opt timeouts opt_name with
+  match Base.Hashtbl.find timeouts opt_name with
   | None ->
-      Hashtbl.add timeouts opt_name { first_rule = rule; num_rules = 1 };
+      Base.Hashtbl.set timeouts ~key:opt_name
+        ~data:{ first_rule = rule; num_rules = 1 };
       ()
   | Some stats ->
       stats.num_rules <- stats.num_rules + 1;
@@ -108,8 +110,8 @@ let record_timeout ~(timeouts : file_timeout_stats) ~(rule : Rule_ID.t) opt_name
 
 let check_timeouts_and_warn ~interfile file (timeouts : file_timeout_stats) :
     E.ErrorSet.t =
-  Hashtbl.fold
-    (fun opt_name stats errors_acc ->
+  Base.Hashtbl.fold timeouts ~init:E.ErrorSet.empty
+    ~f:(fun ~key:opt_name ~data:stats errors_acc ->
       (* TODO: Hash 'opt_name' and show it *)
       let loc = IL_helpers.loc_of_name file.path opt_name in
       let msg =
@@ -125,4 +127,3 @@ let check_timeouts_and_warn ~interfile file (timeouts : file_timeout_stats) :
       Logs.warn (fun m -> m "%s" msg);
       let err = E.mk_error ~msg ~loc Semgrep_output_v1_t.FixpointTimeout in
       errors_acc |> E.ErrorSet.add err)
-    timeouts E.ErrorSet.empty

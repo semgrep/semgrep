@@ -38,7 +38,7 @@ module MV = Metavariable
 (* This lets us avoid the polymorphic hash function and polymorphic equality,
  * which will take into account extraneous information such as e_range, leading
  * to failed lookups. *)
-module ASTTable = Hashtbl.Make (struct
+module ASTTable = Stdlib.Hashtbl.Make (struct
   type t = AST_generic.any
 
   let equal = AST_generic.equal_any

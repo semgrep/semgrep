@@ -30,7 +30,7 @@ module Log = Log_engine.Log
  * the matching results corresponding to this id.
  *)
 type pattern_id = Xpattern.pattern_id
-type id_to_match_results = (pattern_id, Core_match.t list ref) Hashtbl.t
+type id_to_match_results = (pattern_id, Core_match.t list ref) Base.Hashtbl.t
 
 type prefilter_policy =
   (* The policy for when we wish to prefilter (conditional on whether we are
@@ -41,8 +41,8 @@ type prefilter_policy =
 
 (* Build a prefilter policy whose per-rule prefilters are precomputed
    eagerly, then served read-only to the matching engine across multiple
-   domains.  Produced an immutable [ROHashtbl] view; safe to share between
-   threads.
+   domains.  Produced an immutable [ROHashtbl.Base] view; safe to share
+   between threads.
 
    The [intrafile] table is always built (every scan does an intrafile
    matching pass).  The [interfile] table is built only when
@@ -59,7 +59,7 @@ type prefilter_policy =
 let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
     ?(par : (Parallelism_config.eio_state * int) option) () =
   let mk ~interfile =
-    let h = Hashtbl.create (List.length rules) in
+    let h = Base.Hashtbl.Poly.create ~size:(List.length rules) () in
     let compute_kv (r : Rule.t) =
       (fst r.id, Prefiltering.File.of_rule ~interfile r)
     in
@@ -68,7 +68,7 @@ let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
         List.iter
           (fun r ->
             let k, v = compute_kv r in
-            Hashtbl.replace h k v)
+            Base.Hashtbl.set h ~key:k ~data:v)
           rules
     | Some (conf, domain_count) ->
         (* The serial path lets exceptions propagate; the parallel path
@@ -79,12 +79,12 @@ let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
         *)
         Concurrent.map ~conf ~domain_count compute_kv rules
         |> List.iter (function
-          | Ok (k, v) -> Hashtbl.replace h k v
+          | Ok (k, v) -> Base.Hashtbl.set h ~key:k ~data:v
           | Error ((r : Rule.t), exn) ->
               Log.warn (fun m ->
                   m "Prefilter creation failed for %a: %s" Rule_ID.pp (fst r.id)
                     (Printexc.to_string exn))));
-    ROHashtbl.of_hashtbl h
+    ROHashtbl.Base.of_hashtbl h
   in
   let intrafile_table = mk ~interfile:false in
   let interfile_table =
@@ -94,12 +94,12 @@ let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
     (fun ~interfile (r : Rule.t) ->
       let key = fst r.id in
       match (interfile, interfile_table) with
-      | true, Some t -> ROHashtbl.find_opt t key |> Option.join
+      | true, Some t -> ROHashtbl.Base.find_opt t key |> Option.join
       | true, None ->
           (* Caller asked for interfile but didn't request the build.
              Treat as "no prefilter": file is scanned. *)
           None
-      | false, _ -> ROHashtbl.find_opt intrafile_table key |> Option.join)
+      | false, _ -> ROHashtbl.Base.find_opt intrafile_table key |> Option.join)
 
 (* eXtended config.*)
 type xconfig = {

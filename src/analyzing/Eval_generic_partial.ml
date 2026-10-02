@@ -37,15 +37,19 @@ type var = string * G.sid
 type env = {
   lang : Lang.t option;
   (* basic constant propagation of literals for semgrep *)
-  constants : (var, G.svalue) Hashtbl.t;
+  constants : (var, G.svalue) Base.Hashtbl.t;
   (* TODO: this is actually used only in Constant_propagation.ml, but
    * put here so we can reuse the same env in Constant_propagation.ml
    *)
-  attributes : (var, G.attribute list) Hashtbl.t;
+  attributes : (var, G.attribute list) Base.Hashtbl.t;
 }
 
 let default_env lang =
-  { lang; constants = Hashtbl.create 100; attributes = Hashtbl.create 100 }
+  {
+    lang;
+    constants = Base.Hashtbl.Poly.create ~size:100 ();
+    attributes = Base.Hashtbl.Poly.create ~size:100 ();
+  }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -67,7 +71,7 @@ let find_id env id id_info =
   match id_info with
   | { id_resolved = { contents = Some (_kind, sid) }; _ } ->
       let s = H.str_of_ident id in
-      Hashtbl.find_opt env.constants (s, sid)
+      Base.Hashtbl.find env.constants (s, sid)
   | __else__ -> None
 
 let find_name env name =

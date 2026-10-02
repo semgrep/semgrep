@@ -57,8 +57,8 @@ type t = {
         fun fmt c ->
           Yojson.Safe.pretty_print fmt (ServerCapabilities.yojson_of_t c)]
   workspace_folders : Fpath.t list;
-  cached_workspace_targets : (Fpath.t, Fpath.t list) Hashtbl.t; [@opaque]
-  cached_scans : (Fpath.t, Out.cli_match list) Hashtbl.t; [@opaque]
+  cached_workspace_targets : (Fpath.t, Fpath.t list) Base.Hashtbl.t; [@opaque]
+  cached_scans : (Fpath.t, Out.cli_match list) Base.Hashtbl.t; [@opaque]
   cached_session : session_cache;
   skipped_local_fingerprints : string list;
   user_settings : Legacy_user_settings.t;
@@ -86,8 +86,8 @@ let create capabilities =
   {
     capabilities;
     workspace_folders = [];
-    cached_workspace_targets = Hashtbl.create 10;
-    cached_scans = Hashtbl.create 10;
+    cached_workspace_targets = Base.Hashtbl.Poly.create ~size:10 ();
+    cached_scans = Base.Hashtbl.Poly.create ~size:10 ();
     cached_session;
     skipped_local_fingerprints = [];
     user_settings = Legacy_user_settings.default;
@@ -289,7 +289,8 @@ let cache_workspace_targets session =
   let targets = List.map (fun f -> (f, get_targets session f)) folders in
   List.iter
     (fun (folder, targets) ->
-      Hashtbl.replace session.cached_workspace_targets folder targets)
+      Base.Hashtbl.set session.cached_workspace_targets ~key:folder
+        ~data:targets)
     targets
 
 (* This is dynamic so if the targets file is updated we don't have to restart
@@ -320,7 +321,7 @@ let targets session : Fpath.t list =
     List.exists (fun f -> member_workspace_folder t f) session.workspace_folders
   in
   let workspace_targets f =
-    Hashtbl.find_opt session.cached_workspace_targets f
+    Base.Hashtbl.find session.cached_workspace_targets f
     |> Option.value ~default:[]
   in
   let targets =
@@ -413,7 +414,8 @@ let fetch_skipped_app_fingerprints () =
 (* Useful for when we need to reset diagnostics, such as when changing what
  * rules we've run *)
 let scanned_files session =
-  Hashtbl.fold (fun file _ acc -> file :: acc) session.cached_scans []
+  Base.Hashtbl.fold session.cached_scans ~init:[]
+    ~f:(fun ~key:file ~data:_ acc -> file :: acc)
   |> List.sort_uniq Fpath.compare
 
 let skipped_fingerprints session =
@@ -427,7 +429,7 @@ let runner_conf session =
   Legacy_user_settings.core_runner_conf_of_t session.user_settings
 
 let previous_scan_of_file session file =
-  Hashtbl.find_opt session.cached_scans file
+  Base.Hashtbl.find session.cached_scans file
 
 let save_local_skipped_fingerprints session =
   let save_dir =
@@ -528,8 +530,11 @@ let record_results session results files =
   let results_by_file =
     Assoc.group_by (fun (r : Out.cli_match) -> r.path) results
   in
-  List.iter (fun f -> Hashtbl.replace session.cached_scans f []) files;
   List.iter
-    (fun (f, results) -> Hashtbl.replace session.cached_scans f results)
+    (fun f -> Base.Hashtbl.set session.cached_scans ~key:f ~data:[])
+    files;
+  List.iter
+    (fun (f, results) ->
+      Base.Hashtbl.set session.cached_scans ~key:f ~data:results)
     results_by_file;
   ()

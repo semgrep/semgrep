@@ -123,21 +123,6 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "pat_4fd4a56");
     ];
   );
-  "expose_port",
-  Some (
-    Alt [|
-      Token (Name "semgrep_ellipsis");
-      Seq [
-        Token (Name "pat_e0f3805");
-        Opt (
-          Alt [|
-            Token (Literal "/tcp");
-            Token (Literal "/udp");
-          |];
-        );
-      ];
-    |];
-  );
   "heredoc_block",
   Some (
     Seq [
@@ -273,17 +258,27 @@ let children_regexps : (string * Run.exp option) list = [
     |];
   );
   "immediate_expansion", Some (Token (Name "imm_expansion"););
-  "expose_instruction",
+  "expose_port",
   Some (
-    Seq [
-      Token (Name "pat_expose");
-      Repeat1 (
+    Alt [|
+      Token (Name "semgrep_ellipsis");
+      Seq [
+        Token (Name "expansion");
         Alt [|
-          Token (Name "expose_port");
-          Token (Name "expansion");
+          Token (Literal "/tcp");
+          Token (Literal "/udp");
         |];
-      );
-    ];
+      ];
+      Seq [
+        Token (Name "pat_e0f3805");
+        Opt (
+          Alt [|
+            Token (Literal "/tcp");
+            Token (Literal "/udp");
+          |];
+        );
+      ];
+    |];
   );
   "json_string_array",
   Some (
@@ -435,6 +430,18 @@ let children_regexps : (string * Run.exp option) list = [
         Alt [|
           Token (Name "imm_tok_pat_bcfc287");
           Token (Name "immediate_expansion");
+        |];
+      );
+    ];
+  );
+  "expose_instruction",
+  Some (
+    Seq [
+      Token (Name "pat_expose");
+      Repeat1 (
+        Alt [|
+          Token (Name "expose_port");
+          Token (Name "expansion");
         |];
       );
     ];
@@ -1174,43 +1181,6 @@ let trans_cross_build_instruction ((kind, body) : mt) : CST.cross_build_instruct
       )
   | Leaf _ -> assert false
 
-let trans_expose_port ((kind, body) : mt) : CST.expose_port =
-  match body with
-  | Children v ->
-      (match v with
-      | Alt (0, v) ->
-          `Semg_ellips (
-            trans_semgrep_ellipsis (Run.matcher_token v)
-          )
-      | Alt (1, v) ->
-          `Pat_e0f3805_opt_choice_SLAS (
-            (match v with
-            | Seq [v0; v1] ->
-                (
-                  trans_pat_e0f3805 (Run.matcher_token v0),
-                  Run.opt
-                    (fun v ->
-                      (match v with
-                      | Alt (0, v) ->
-                          `SLAS_ce91595 (
-                            Run.trans_token (Run.matcher_token v)
-                          )
-                      | Alt (1, v) ->
-                          `SLAS_c773c8d (
-                            Run.trans_token (Run.matcher_token v)
-                          )
-                      | _ -> assert false
-                      )
-                    )
-                    v1
-                )
-            | _ -> assert false
-            )
-          )
-      | _ -> assert false
-      )
-  | Leaf _ -> assert false
-
 let trans_heredoc_block ((kind, body) : mt) : CST.heredoc_block =
   match body with
   | Children v ->
@@ -1508,28 +1478,59 @@ let trans_immediate_expansion ((kind, body) : mt) : CST.immediate_expansion =
       trans_imm_expansion (Run.matcher_token v)
   | Leaf _ -> assert false
 
-let trans_expose_instruction ((kind, body) : mt) : CST.expose_instruction =
+let trans_expose_port ((kind, body) : mt) : CST.expose_port =
   match body with
   | Children v ->
       (match v with
-      | Seq [v0; v1] ->
-          (
-            trans_pat_expose (Run.matcher_token v0),
-            Run.repeat1
-              (fun v ->
-                (match v with
-                | Alt (0, v) ->
-                    `Expose_port (
-                      trans_expose_port (Run.matcher_token v)
-                    )
-                | Alt (1, v) ->
-                    `Expa (
-                      trans_expansion (Run.matcher_token v)
-                    )
-                | _ -> assert false
+      | Alt (0, v) ->
+          `Semg_ellips (
+            trans_semgrep_ellipsis (Run.matcher_token v)
+          )
+      | Alt (1, v) ->
+          `Expa_choice_SLAS (
+            (match v with
+            | Seq [v0; v1] ->
+                (
+                  trans_expansion (Run.matcher_token v0),
+                  (match v1 with
+                  | Alt (0, v) ->
+                      `SLAS_ce91595 (
+                        Run.trans_token (Run.matcher_token v)
+                      )
+                  | Alt (1, v) ->
+                      `SLAS_c773c8d (
+                        Run.trans_token (Run.matcher_token v)
+                      )
+                  | _ -> assert false
+                  )
                 )
-              )
-              v1
+            | _ -> assert false
+            )
+          )
+      | Alt (2, v) ->
+          `Pat_e0f3805_opt_choice_SLAS (
+            (match v with
+            | Seq [v0; v1] ->
+                (
+                  trans_pat_e0f3805 (Run.matcher_token v0),
+                  Run.opt
+                    (fun v ->
+                      (match v with
+                      | Alt (0, v) ->
+                          `SLAS_ce91595 (
+                            Run.trans_token (Run.matcher_token v)
+                          )
+                      | Alt (1, v) ->
+                          `SLAS_c773c8d (
+                            Run.trans_token (Run.matcher_token v)
+                          )
+                      | _ -> assert false
+                      )
+                    )
+                    v1
+                )
+            | _ -> assert false
+            )
           )
       | _ -> assert false
       )
@@ -1901,6 +1902,33 @@ let trans_image_tag ((kind, body) : mt) : CST.image_tag =
                 | Alt (1, v) ->
                     `Imme_expa (
                       trans_immediate_expansion (Run.matcher_token v)
+                    )
+                | _ -> assert false
+                )
+              )
+              v1
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+let trans_expose_instruction ((kind, body) : mt) : CST.expose_instruction =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            trans_pat_expose (Run.matcher_token v0),
+            Run.repeat1
+              (fun v ->
+                (match v with
+                | Alt (0, v) ->
+                    `Expose_port (
+                      trans_expose_port (Run.matcher_token v)
+                    )
+                | Alt (1, v) ->
+                    `Expa (
+                      trans_expansion (Run.matcher_token v)
                     )
                 | _ -> assert false
                 )

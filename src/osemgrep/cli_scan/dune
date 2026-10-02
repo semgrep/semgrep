@@ -5,9 +5,11 @@
   (name osemgrep_cli_scan)
   (wrapped false)
   (libraries
+    base
     cmdliner
     logs
     bos
+    collections
     commons
     parmap
     parallelism

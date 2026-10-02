@@ -1,0 +1,8 @@
+r grammar update (v1.3.0):
+
+- R target parsing now supports unary and binary help expressions (?) and exponentiation written with **.
+- R target parsing correctly represents hexadecimal fractional and exponent literals, including imaginary forms, and decimal or exponent notation with the L suffix.
+- R target parsing now supports quoted namespace and slot names, such as "base"::"mean" and x@"slot".
+- R parsing preserves else branches placed on a new line within braced expressions.
+- R string parsing preserves literal newlines and excludes raw-string delimiters from string values. Short hexadecimal and Unicode escape spellings are accepted; escape decoding remains unchanged.
+- R parsing preserves omitted argument positions in calls and subscripts, and retains the indexed expression for single-index subscripts.

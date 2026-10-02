@@ -15,7 +15,7 @@ authors = [
   { name = "Semgrep Inc.", email = "support@semgrep.com" }
 ]
 name = "semgrep"
-version = "1.177.0"
+version = "1.178.0"
 description = "Lightweight static analysis for many languages. Find bug variants with patterns that look like source code."
 # README.md is a symlink to the canonical ../README.md.
 readme = "README.md"
@@ -70,7 +70,7 @@ dependencies = [
   "opentelemetry-instrumentation-threading~=0.58b0",
   "packaging>=21.0",
   "peewee~=3.14",
-  "pyjwt[crypto]~=2.13.0",
+  "pyjwt[crypto]>=2.15.0,<3",
   "requests~=2.22",
   "rich>=13.5.2",
   "ruamel.yaml>=0.18.15",

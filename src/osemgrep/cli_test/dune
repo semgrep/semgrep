@@ -5,6 +5,9 @@
   (name osemgrep_cli_test)
   (wrapped false)
   (libraries
+    base
+    collections
+
     cmdliner
     commons
 

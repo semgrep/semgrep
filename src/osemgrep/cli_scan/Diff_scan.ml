@@ -80,25 +80,25 @@ let remove_matches_in_baseline (commit : string) (baseline : Core_result.t)
      it (a multiset). Consuming a signature decrements its count and drops the
      entry at 0, so a signature seen N times in the baseline can suppress at
      most N head matches. *)
-  let sigs = Hashtbl.create 10 in
+  let sigs = Base.Hashtbl.Poly.create ~size:10 () in
   Git_wrapper.run_with_worktree_exn ~commit (fun () ->
       List.iter
         (fun ({ pm; _ } : Core_result.processed_match) ->
           pm |> extract_sig None |> fun x ->
-          let count = Hashtbl.find_opt sigs x |> Option.value ~default:0 in
-          Hashtbl.replace sigs x (count + 1))
+          let count = Base.Hashtbl.find sigs x |> Option.value ~default:0 in
+          Base.Hashtbl.set sigs ~key:x ~data:(count + 1))
         baseline.processed_matches);
   let removed = ref 0 in
   let processed_matches =
     List.filter_map
       (fun (pm : Core_result.processed_match) ->
         let s = extract_sig (Some renamed) pm.pm in
-        if Hashtbl.mem sigs s then (
-          (match Hashtbl.find_opt sigs s with
-          | Some n when n > 1 -> Hashtbl.replace sigs s (n - 1)
+        if Base.Hashtbl.mem sigs s then (
+          (match Base.Hashtbl.find sigs s with
+          | Some n when n > 1 -> Base.Hashtbl.set sigs ~key:s ~data:(n - 1)
           | Some _
           | None ->
-              Hashtbl.remove sigs s);
+              Base.Hashtbl.remove sigs s);
           incr removed;
           None)
         else Some pm)

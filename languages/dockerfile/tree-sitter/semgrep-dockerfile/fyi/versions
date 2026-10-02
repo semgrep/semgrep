@@ -19,8 +19,8 @@ Last change in file:
       use extra to allow comments anywhere
 ---
 File: semgrep-grammars/src/semgrep-dockerfile/grammar.js
-Git repo name: semgrep
-Latest commit in repo: 0de5b2a33d6c0d3e1ea94d6ee03f0a5136ea46ab
+Git repo name: semgrep-pr11924-reconcile20261002
+Latest commit in repo: 5d0d2514330105edecd4566392dbd9572415459e
 Last change in file:
   commit 0de5b2a33d6c0d3e1ea94d6ee03f0a5136ea46ab
   Author: Jeff <jeff@fusiontsi.com>

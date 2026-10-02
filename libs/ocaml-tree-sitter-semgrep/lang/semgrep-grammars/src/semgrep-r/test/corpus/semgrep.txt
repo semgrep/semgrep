@@ -5,4 +5,70 @@ Metavariables
 foo($X)
 
 ---
-(program (call (identifier) (arguments (identifier)))) 
+(program (call (identifier) (arguments (argument (identifier)))))
+
+=====================================
+Metavariable identifier positions and ellipses
+=====================================
+
+$X
+...
+$F($X, ..., $ARG = $VALUE)
+function($PARAM = $DEFAULT, ...) { $BODY; ... }
+for ($ITEM in $SEQ) $BODY
+$OBJ$$FIELD
+$OBJ@$SLOT
+$PKG::$FUN($X)
+$PKG:::$FUN(...)
+$X[$INDEX, ...]
+$X[[$INDEX]]
+($X)
+
+---
+
+(program
+  (identifier)
+  (dots)
+  (call (identifier) (arguments (argument (identifier)) (comma) (argument (dots)) (comma) (argument (identifier) (identifier))))
+  (function_definition (parameters (parameter (identifier) (identifier)) (comma) (parameter (dots))) (braced_expression (identifier) (dots)))
+  (for_statement (identifier) (identifier) (identifier))
+  (extract_operator (identifier) (identifier))
+  (extract_operator (identifier) (identifier))
+  (call (namespace_operator (identifier) (identifier)) (arguments (argument (identifier))))
+  (call (namespace_operator (identifier) (identifier)) (arguments (argument (dots))))
+  (subset (identifier) (arguments (argument (identifier)) (comma) (argument (dots))))
+  (subset2 (identifier) (arguments (argument (identifier))))
+  (parenthesized_expression (identifier)))
+
+=====================================
+Native identifiers and lexical boundaries
+=====================================
+
+function(x = 1, ...) { x; ..1; ... }
+pkg::fun(x$name, x@slot)
+`a b`
+.1i
+.1L
+0x1p2
+'\x1'
+"\x41"
+'\x00000041'
+"\x00000041"
+'\u1\u0041\U00000041'
+"\u{1}\u{0041}\U{00000041}"
+
+---
+
+(program
+  (function_definition (parameters (parameter (identifier) (float)) (comma) (parameter (dots))) (braced_expression (identifier) (dot_dot_i) (dots)))
+  (call (namespace_operator (identifier) (identifier)) (arguments (argument (extract_operator (identifier) (identifier))) (comma) (argument (extract_operator (identifier) (identifier)))))
+  (identifier)
+  (complex)
+  (integer)
+  (float)
+  (string (string_open) (string_content (escape_sequence)) (string_close))
+  (string (string_open) (string_content (escape_sequence)) (string_close))
+  (string (string_open) (string_content (escape_sequence)) (string_close))
+  (string (string_open) (string_content (escape_sequence)) (string_close))
+  (string (string_open) (string_content (escape_sequence) (escape_sequence) (escape_sequence)) (string_close))
+  (string (string_open) (string_content (escape_sequence) (escape_sequence) (escape_sequence)) (string_close)))

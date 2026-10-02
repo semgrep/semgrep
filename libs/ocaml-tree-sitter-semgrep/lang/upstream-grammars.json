@@ -8,9 +8,9 @@
     "url": "https://github.com/tree-sitter/tree-sitter-bash.git"
   },
   "c": {
-    "commit": "ecdd500806cf8154d944344f1df6418b32e0e9a7",
+    "commit": "b780e47fc780ddc8da13afa35a3f4ed5c157823d",
     "regen": [],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-c.git"
   },
   "c-sharp": {
@@ -60,14 +60,14 @@
     "url": "https://github.com/sogaiu/tree-sitter-clojure"
   },
   "cpp": {
-    "commit": "4ca37be8e70e5a40ae95688bec56b886ba945888",
+    "commit": "f41e1a044c8a84ea9fa8577fdd2eab92ec96de02",
     "depends_on": [
       "c"
     ],
     "regen": [
       "cpp"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-cpp.git"
   },
   "dart": {
@@ -150,11 +150,11 @@
     "url": "https://github.com/MichaHoffmann/tree-sitter-hcl.git"
   },
   "html": {
-    "commit": "14bdaf0da9e26e2de9b30178c2242539d2b0b285",
+    "commit": "5a5ca8551a179998360b4a4ca2c0f366a35acc03",
     "regen": [
       "html"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-html.git"
   },
   "java": {
@@ -282,11 +282,11 @@
     "url": "https://github.com/tree-sitter/tree-sitter-ql"
   },
   "r": {
-    "commit": "205c2877af33a814386ff275031f88400a011397",
+    "commit": "346d3707b8c9301f1051e8f6e32666e67529f7d2",
     "regen": [
       "r"
     ],
-    "tree_sitter": "0.20.8",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/r-lib/tree-sitter-r"
   },
   "requirements": {
@@ -322,11 +322,14 @@
     "url": "https://github.com/tree-sitter/tree-sitter-scala/"
   },
   "sfapex": {
-    "commit": "d6871791ff314ef6598b4bc609dae658abfffbc9",
+    "commit": "f5a1d2188ff711a06c6a8daa65bbf2f17c8378a5",
     "regen": [
       "apex"
     ],
-    "tree_sitter": "0.20.8",
+    "test_sublangs": [
+      "apex"
+    ],
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/aheber/tree-sitter-sfapex.git"
   },
   "solidity": {
