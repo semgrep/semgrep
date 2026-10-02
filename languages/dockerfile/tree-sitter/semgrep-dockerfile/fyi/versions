@@ -19,12 +19,12 @@ Last change in file:
       use extra to allow comments anywhere
 ---
 File: semgrep-grammars/src/semgrep-dockerfile/grammar.js
-Git repo name: workspace
-Latest commit in repo: 41551908f12ba0143ee3bbad449af82f71943d04
+Git repo name: semgrep-pr11924-reconcile20261002
+Latest commit in repo: 5d0d2514330105edecd4566392dbd9572415459e
 Last change in file:
-  commit 821d00a136532d3f36308d244c7f6a490d810342
-  Author: Carlos Acosta <93443910+charle-z@users.noreply.github.com>
-  Date:   Fri Sep 25 14:15:36 2026 +0000
+  commit 0de5b2a33d6c0d3e1ea94d6ee03f0a5136ea46ab
+  Author: Jeff <jeff@fusiontsi.com>
+  Date:   Wed Sep 23 13:12:56 2026 -0400
   
-      fix(dockerfile): parse EXPOSE env ports with protocols
+      fix(dockerfile): parse bracket expressions after escapes
 ---
