@@ -25,13 +25,13 @@ let e2e = Testo.Tag.declare "e2e"
 (* Curated smoke-test subset; see Test_tags.mli and 'make test-osx-smoke'. *)
 let smoke = Testo.Tag.declare "smoke"
 
-(* "lang.none" would be shorter but possibly confusing since we're using
+(* "lang_none" would be shorter but possibly confusing since we're using
    the term "generic" everywhere. *)
-let lang_generic = Testo.Tag.declare "lang.generic"
+let lang_generic = Testo.Tag.declare "lang_generic"
 let lang_tags = Base.Hashtbl.Poly.create ~size:100 ()
 
 let make_lang_tag lang =
-  let tag = spf "lang.%s" (Lang.to_lowercase_alnum lang) |> Testo.Tag.declare in
+  let tag = spf "lang_%s" (Lang.to_lowercase_alnum lang) |> Testo.Tag.declare in
   Base.Hashtbl.set lang_tags ~key:lang ~data:tag
 
 let get_lang_tag lang =

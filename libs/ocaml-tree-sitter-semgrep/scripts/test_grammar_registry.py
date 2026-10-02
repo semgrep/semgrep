@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -26,6 +27,7 @@ from grammar_registry import grammar_test_targets
 from grammar_registry import load
 from grammar_registry import RegistryError
 from grammar_registry import resolve
+from grammar_registry import test_sublangs as grammar_test_sublangs
 from grammar_registry import UnknownGrammarError
 from grammar_registry import validate
 from grammar_registry import wrapper_dir
@@ -193,6 +195,7 @@ def test_alias_resolution_and_cli(name, key, clone):
     assert resolve(name, LANG_DIR) == key
     assert version_for_lang(name, LANG_DIR) == version_for_lang(key, LANG_DIR)
     for command, expected in [
+        ("resolve", key),
         ("wrapper-for-lang", f"semgrep-{key}"),
         ("clone-for-wrapper", clone),
     ]:
@@ -222,3 +225,44 @@ def test_version_preserves_registry_error(tmp_path, name, invalid):
     (tmp_path / "upstream-grammars.json").write_text(json.dumps(reg))
     with pytest.raises(RegistryError, match=message):
         version_for_lang(name, tmp_path)
+
+
+def test_pin_commit_invalidates_cache(tmp_path, monkeypatch):
+    import grammar_registry as gr
+
+    dest_dir = tmp_path / "lang"
+    dest_dir.mkdir()
+    shutil.copy(
+        LANG_DIR / "upstream-grammars.json", dest_dir / "upstream-grammars.json"
+    )
+    monkeypatch.setattr(gr, "default_lang_dir", lambda: dest_dir)
+    gr.clear_load_cache()
+    gr.load()
+    gr.pin_commit("python", "a" * 40, "0.22.6")
+    assert gr.load()["python"]["commit"] == "a" * 40
+    assert gr.load()["python"]["tree_sitter"] == "0.22.6"
+
+
+@pytest.mark.parametrize("dependencies", [{"a": ["b"], "b": ["a"]}, {"a": ["a"]}])
+def test_dependency_cycles(dependencies):
+    """Reject both direct and indirect dependency cycles."""
+    registry = {
+        key: {
+            "url": "u",
+            "commit": "c",
+            "tree_sitter": "0.22.6",
+            "regen": [],
+            "depends_on": deps,
+        }
+        for key, deps in dependencies.items()
+    }
+    with pytest.raises(RegistryError, match="cycle"):
+        validate(registry)
+
+
+def test_registry_test_sublanguages():
+    assert grammar_test_sublangs("typescript", LANG_DIR) == ["typescript", "tsx"]
+    assert grammar_test_sublangs("php", LANG_DIR) == ["php", "php-only"]
+    assert grammar_test_sublangs("sfapex", LANG_DIR) == ["apex"]
+    assert grammar_test_sublangs("python", LANG_DIR) == ["python"]
+    assert grammar_test_sublangs("cfml", LANG_DIR) == ["cfml"]

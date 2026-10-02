@@ -56,26 +56,23 @@ echo "Building the extended parser semgrep-$lang."
   make test
 )
 
-sublangs="$lang"
-# Another special case for typescript and apex.
-# It could be handled in a generic fashion by declaring the list of
-# dialects for each tree-sitter-X project.
-if [[ "$lang" = typescript ]]; then
-  sublangs="typescript tsx"
-elif [[ "$lang" = php ]]; then
-  sublangs="php php-only"
-elif [[ "$lang" = sfapex ]]; then
-  # sosl and soql are subgrammars of apex which have their own test suites
-  # but we don't care about them as standalone languages.
-  sublangs="apex"
-elif [[ "$lang" = cfml ]]; then
-  # cfscript and cfquery are subgrammars of cfml which have their own test
-  # suites but we only care about cfml as the standalone language.
-  sublangs="cfml"
-fi
+sublangs="$(python3 ../scripts/grammar_registry.py test-sublangs "$lang")"
 
 check_for_blanks() {
   cst_ml=ocaml-src/lib/CST.ml
+  # Emit one BLANK-NODE <sublanguage> <CST type> record per occurrence.
+  # Update tooling compares these counts with the pre-bump baseline to catch
+  # new token/location loss without rejecting existing Blank nodes.
+  awk -v lang="$sublang" '
+    /^(type|and) / { node = $2 }
+    {
+      rest = $0
+      while (match(rest, /(^|[^[:alnum:]_])Blank([^[:alnum:]_]|$)/)) {
+        print "BLANK-NODE " lang " " node
+        rest = substr(rest, RSTART + RLENGTH - 1)
+      }
+    }
+  ' "$cst_ml"
   if grep -C 2 '\bBlank\b' "$cst_ml"; then
     cat 2>&1 <<EOF
 

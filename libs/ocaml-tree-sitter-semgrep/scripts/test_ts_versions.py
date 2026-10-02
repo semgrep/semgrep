@@ -13,11 +13,13 @@
 """Unit tests for scripts/ts_versions.py and its CLI entry points."""
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from grammar_registry import key_for_package_name
 from ts_versions import extract_grammar_name
 from ts_versions import list_pinned_versions
 from ts_versions import TsVersionError
@@ -71,6 +73,55 @@ def test_extract_grammar_name_from_directory_basename(tmp_path):
 def test_version_for_grammar_dir_delegates_to_registry():
     grammar_dir = LANG_DIR / "semgrep-grammars/src/semgrep-php/php"
     assert version_for_grammar_dir(grammar_dir, lang_dir=LANG_DIR) == "0.26.3"
+
+
+def test_version_for_grammar_dir_inherits_wrapper_pin(tmp_path):
+    """Unlisted nested grammars inherit the enclosing semgrep-<wrapper> pin."""
+    grammar_dir = tmp_path / "semgrep-php" / "mystery-dialect"
+    grammar_dir.mkdir(parents=True)
+    (grammar_dir / "tree-sitter.json").write_text(
+        '{"grammars": [{"name": "mystery-dialect", "scope": "source.x", "path": "."}]}'
+    )
+    assert version_for_grammar_dir(grammar_dir, lang_dir=LANG_DIR) == "0.26.3"
+
+
+def test_version_for_grammar_dir_unlisted_without_wrapper(tmp_path):
+    """Unlisted names outside a wrapper package still raise TsVersionError."""
+    grammar_dir = tmp_path / "orphan" / "mystery-dialect"
+    grammar_dir.mkdir(parents=True)
+    with pytest.raises(TsVersionError, match="not in upstream-grammars"):
+        version_for_grammar_dir(grammar_dir, lang_dir=LANG_DIR)
+
+
+def test_key_for_package_name_clone_suffix_is_not_the_registry_key():
+    """tree-sitter-go-mod maps to gomod, not the clone dirname."""
+    assert key_for_package_name("go-mod", LANG_DIR) == "gomod"
+
+
+def test_version_for_grammar_dir_inherits_clone_name(tmp_path):
+    """Nested dirs under tree-sitter-<clone> inherit that entry's pin."""
+    lang_dir = tmp_path / "lang"
+    lang_dir.mkdir()
+    (lang_dir / "upstream-grammars.json").write_text(
+        json.dumps(
+            {
+                "mywrap": {
+                    "url": "https://example.com/x.git",
+                    "commit": "abc",
+                    "tree_sitter": "0.22.6",
+                    "regen": ["dest"],
+                    "clone": "my-wrap",
+                }
+            }
+        )
+    )
+    grammar_dir = tmp_path / "tree-sitter-my-wrap" / "nested"
+    grammar_dir.mkdir(parents=True)
+    (grammar_dir / "tree-sitter.json").write_text(
+        '{"grammars": [{"name": "mystery-nested", "scope": "source.x", "path": "."}]}'
+    )
+    assert key_for_package_name("my-wrap", lang_dir) == "mywrap"
+    assert version_for_grammar_dir(grammar_dir, lang_dir=lang_dir) == "0.22.6"
 
 
 @pytest.mark.parametrize(
