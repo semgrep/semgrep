@@ -28,6 +28,7 @@ type t =
 | Lua
 | Move_on_sui
 | Move_on_aptos
+| Objc
 | Ocaml
 | Php
 | Powershell
@@ -425,6 +426,19 @@ let list = [
   keys = [{|move_on_aptos|}];
   exts = [{|.move|}];
   maturity = Develop;
+  example_ext = None;
+  excluded_exts = [];
+  reverse_exts = None;
+  shebangs = [];
+  tags = [];
+};
+{
+  id = Objc;
+  id_string = "objc";
+  name = "Objective-C";
+  keys = [{|objc|}; {|objectivec|}; {|objective-c|}];
+  exts = [{|.m|}];
+  maturity = Alpha;
   example_ext = None;
   excluded_exts = [];
   reverse_exts = None;

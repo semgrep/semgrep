@@ -508,6 +508,25 @@
     "tags": []
   },
   {
+    "id": "objc",
+    "name": "Objective-C",
+    "keys": [
+      "objc",
+      "objectivec",
+      "objective-c"
+    ],
+    "maturity": "alpha",
+    "exts": [
+      ".m"
+    ],
+    "example_ext": null,
+    "excluded_exts": [],
+    "reverse_exts": null,
+    "shebangs": [],
+    "is_target_language": true,
+    "tags": []
+  },
+  {
     "id": "ocaml",
     "name": "OCaml",
     "keys": [

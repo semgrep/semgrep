@@ -53,6 +53,7 @@ type t = Language.t =
   | Lua
   | Move_on_sui
   | Move_on_aptos
+  | Objc
   | Ocaml
   | Php
   | Powershell
