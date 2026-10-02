@@ -443,9 +443,11 @@ let o_timeout_interfile : int Term.t =
   let info =
     Arg.info [ "interfile-timeout" ]
       ~doc:
-        {|Maximum time to spend on interfile analysis. If set to 0 will not
-have time limit. Defaults to 0 s for all CLI scans. For CI scans, it defaults
-to 3 hours.|}
+        {|Maximum time to spend on interfile analysis. The time budget
+        is enforced by being divided among analysis steps, so scans may
+        take less time than the specified timeout. If set to 0, a blanket
+        higher timeout is used for each analysis step.
+        Defaults to 0 s for all CLI scans. For CI scans, it defaults to 3 hours.|}
   in
   Arg.value (Arg.opt Arg.int default info)
 
