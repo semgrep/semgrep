@@ -339,6 +339,13 @@ def relatively_eq(
     rel1 = target.relative_to(parent_target).parts
     rel2 = config.relative_to(parent_config).parts
     s = len(rel2)
+    if s == 0:
+        # The config is the parent config itself (a single rule file passed via
+        # -c). There is no relative stem to compare, so every target under the
+        # target tree matches, the same as the directory case. Without this
+        # guard `s -= 1` below would make `s == -1` and the final `rel2[s]`
+        # would index an empty tuple and raise IndexError (see GH issue 11391).
+        return True
     if len(rel1) < s:
         return False
     s -= 1
