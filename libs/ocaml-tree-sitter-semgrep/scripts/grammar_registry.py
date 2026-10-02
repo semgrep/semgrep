@@ -49,6 +49,33 @@ def default_lang_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "lang"
 
 
+def key_for_package_name(name: str, lang_dir: Path | None = None) -> str | None:
+    """Map a semgrep-/tree-sitter- dirname suffix to a registry key."""
+    root = lang_dir or default_lang_dir()
+    try:
+        return resolve(name, root)
+    except UnknownGrammarError:
+        pass
+    for key in load(root):
+        if clone_name(key, root) == name:
+            return key
+    return None
+
+
+def wrapper_name_from_path(
+    grammar_dir: Path, lang_dir: Path | None = None
+) -> str | None:
+    """Return enclosing wrapper registry key, if any."""
+    for parent in Path(grammar_dir).resolve().parents:
+        raw = parent.name
+        for prefix in ("semgrep-", "tree-sitter-"):
+            if raw.startswith(prefix) and len(raw) > len(prefix):
+                key = key_for_package_name(raw[len(prefix) :], lang_dir)
+                if key is not None:
+                    return key
+    return None
+
+
 def registry_path(lang_dir: Path | None = None) -> Path:
     return (lang_dir or default_lang_dir()) / "upstream-grammars.json"
 
@@ -91,6 +118,8 @@ def validate(reg: dict[str, dict[str, Any]]) -> None:
         if not isinstance(entry["regen"], list):
             raise RegistryError(f"{key}: regen must be a list")
         for dep in entry.get("depends_on", []):
+            if dep == key:
+                raise RegistryError(f"depends_on cycle involving {key}")
             if dep not in reg:
                 raise RegistryError(f"{key}: unknown depends_on {dep}")
         for dest in entry["regen"]:
@@ -136,6 +165,11 @@ def resolve(name: str, lang_dir: Path | None = None) -> str:
 
 def dests(key: str, lang_dir: Path | None = None) -> list[str]:
     return list(load(lang_dir)[key]["regen"])
+
+
+def test_sublangs(key: str, lang_dir: Path | None = None) -> list[str]:
+    """Standalone grammar test directories; distinct from regeneration destinations."""
+    return list(load(lang_dir)[key].get("test_sublangs", [key]))
 
 
 def clone_name(key: str, lang_dir: Path | None = None) -> str:
@@ -231,7 +265,15 @@ def fetch(ots_root: Path, key: str, lang_dir: Path | None = None) -> Path:
     )
     if not cached:
         _git_run(dest, "fetch", "--quiet", "origin", pin)
-    _git_run(dest, "checkout", "--quiet", pin)
+    # Never force-reset a dirty upstream clone; fail clearly and leave it.
+    try:
+        _git_run(dest, "checkout", "--quiet", pin)
+    except subprocess.CalledProcessError as e:
+        detail = (e.stderr or e.stdout or "").strip() or str(e)
+        raise RegistryError(
+            f"{key}: cannot check out {pin} in {dest} (clone left unchanged; "
+            f"resolve local conflicts manually): {detail}"
+        ) from e
     return dest
 
 
@@ -244,6 +286,29 @@ def fetch_with_deps(ots_root: Path, name: str, lang_dir: Path | None = None) -> 
     return key
 
 
+def grammar_url(key: str, lang_dir: Path | None = None) -> str:
+    return _https_url(cast(str, load(lang_dir)[key]["url"]))
+
+
+def pin_commit(
+    key: str,
+    commit: str,
+    tree_sitter: str,
+    lang_dir: Path | None = None,
+) -> None:
+    root = lang_dir or default_lang_dir()
+    path = registry_path(root)
+    reg = _read_registry(path)
+    if key not in reg:
+        raise RegistryError(f"unknown key: {key}")
+    entry = dict(reg[key])
+    entry["commit"] = commit
+    entry["tree_sitter"] = tree_sitter
+    reg[key] = entry
+    path.write_text(json.dumps(reg, indent=2, sort_keys=True) + "\n")
+    clear_load_cache()
+
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Grammar registry utilities")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -254,14 +319,24 @@ def _main() -> int:
     clone_p.add_argument("wrapper_name", help="semgrep-* basename without prefix")
     wrapper_p = sub.add_parser("wrapper-for-lang")
     wrapper_p.add_argument("name")
+    resolve_p = sub.add_parser("resolve")
+    resolve_p.add_argument("name")
+    sublangs_p = sub.add_parser("test-sublangs")
+    sublangs_p.add_argument("name")
     args = parser.parse_args()
     lang_dir = default_lang_dir()
     ots_root = lang_dir.parent
+    if args.cmd == "test-sublangs":
+        print(" ".join(test_sublangs(resolve(args.name, lang_dir), lang_dir)))
+        return 0
     if args.cmd == "validate":
         load(lang_dir)
         return 0
     if args.cmd == "fetch":
         fetch_with_deps(ots_root, args.name, lang_dir)
+        return 0
+    if args.cmd == "resolve":
+        print(resolve(args.name, lang_dir))
         return 0
     if args.cmd == "wrapper-for-lang":
         print(wrapper_dir(resolve(args.name, lang_dir), lang_dir))

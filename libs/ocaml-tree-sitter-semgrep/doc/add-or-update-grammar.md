@@ -19,7 +19,11 @@ A registry **key** identifies an upstream grammar. A **destination** identifies
 one generated parser. They are usually identical (`python`), but one key can
 produce several destinations (`typescript` produces `typescript` and `tsx`).
 `test-grammar` tests a key and its dialects; `regen-grammar` writes one destination
-from that key's `regen` list.
+from that key's `regen` list. Optional `test_sublangs` lists standalone test
+directories (defaults to the key); it includes test-only dialects such as
+`php-only` that are absent from `regen`. Nested grammars under `semgrep-<key>/` that are
+not registry keys (e.g. soql/sosl under sfapex) inherit that key's
+`tree_sitter` pin.
 
 ## Prepare the tools
 
