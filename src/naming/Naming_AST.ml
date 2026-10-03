@@ -825,6 +825,22 @@ let resolution_visitor =
       (* do not recurse here, we don't want the PatId case above
        * to overwrite the job done here
        *)
+      | PatTyped
+          ( OtherPat (("ExprToPattern", _), [ E { e = Record (_, _, _); _ } ]),
+            ty )
+        when Lang.is_js env.lang ->
+          (* Keep JS/TS object-destructuring parameters consistent with their
+             untyped representation. Walking the type's record fields here
+             would treat them as value bindings, but the annotation itself
+             still needs normal name resolution. *)
+          Common.save_excursion env.in_type true (fun () ->
+              let visitor =
+                object
+                  inherit [_] AST_generic.iter_no_id_info
+                  method! visit_name env x = self#visit_name env x
+                end
+              in
+              visitor#visit_type_ env ty)
       | OtherPat _
       (* This interacts badly with implicit JS/TS declarations. It causes
          * `foo` in `function f({ foo }) { ... }` to be resolved as a global
