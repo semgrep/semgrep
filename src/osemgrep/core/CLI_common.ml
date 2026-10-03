@@ -180,7 +180,8 @@ let o_profile : bool Term.t =
   let info =
     Arg.info [ "profile" ] ~docs:Cmdliner.Manpage.s_common_options
       ~doc:
-        {|Record profiles via Pyro Caml. By default sends them to localhost:4040|}
+        {|Record scan performance profiles via Pyro Caml. By default, profiles
+are sent to localhost:4040.|}
   in
   Arg.value (Arg.flag info)
 
