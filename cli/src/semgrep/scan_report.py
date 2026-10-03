@@ -135,9 +135,7 @@ def _print_scan_plan_header(
     summary_line = f"Scanning {unit_str(target_count, 'file')}"
 
     if target_manager.respect_git_ignore:
-        summary_line += (
-            f" {'tracked by git' if legacy_cli_ux else '(only git-tracked)'}"
-        )
+        summary_line += " (respecting .gitignore)"
 
     if simple_ux:  # We skip printing the rule count with new simple CLI UX
         console.print(f"{summary_line} with:")
