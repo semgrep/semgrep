@@ -933,13 +933,18 @@ let o_severity : Rule.severity list Term.t =
       ~doc:
         {|Report findings only from rules matching the supplied severity
 level. By default all applicable rules are run. Can add multiple times.
-Each should be one of INFO, WARNING, or ERROR.
+Each should be one of INFO, WARNING, ERROR, or CRITICAL.
 |}
   in
   Arg.value
     (Arg.opt_all
        (Cmdliner.Arg.enum
-          [ ("INFO", `Info); ("WARNING", `Warning); ("ERROR", `Error) ])
+          [
+            ("INFO", `Info);
+            ("WARNING", `Warning);
+            ("ERROR", `Error);
+            ("CRITICAL", `Critical);
+          ])
        [] info)
 
 let o_exclude_rule_ids : string list Term.t =
