@@ -279,8 +279,8 @@ let file_type_of_file file =
       Config Terraform
   | "toml" -> Config Toml
   (* sometimes people use foo.Dockerfile *)
-  | "Dockerfile"
-  | "Containerfile" ->
+  | "dockerfile"
+  | "containerfile" ->
       Config Dockerfile
   | "sql" -> PL (Web Sql)
   | "sqlite" -> PL (Web Sql)
