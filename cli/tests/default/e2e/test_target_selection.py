@@ -530,7 +530,7 @@ NOVCS_INCLUDE_EXPECTATIONS = [
     ),
 ]
 
-# Test --x-semgrepignore-filename
+# Test --semgrepignore-file
 ALT_SEMGREPIGNORE_EXPECTATIONS = [
     Expect(
         selected=True,
@@ -656,7 +656,7 @@ ALT_SEMGREPIGNORE_EXPECTATIONS = [
         (
             Config.ALT_SEMGREPIGNORE,
             [
-                "--x-semgrepignore-filename",
+                "--semgrepignore-file",
                 "alt-semgrepignore",
             ],
             [],
