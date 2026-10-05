@@ -22,15 +22,9 @@ const DART_PREC = {
     Bitwise_AND: 12, // & Left
     Bitwise_XOR: 11, // ˆ Left
     Bitwise_Or: 10, // | Left
-    // Dart nominally puts `as`/`is`/`is!` at relational precedence, but their
-    // right operand is a *type*, not an expression. They must bind tighter than
-    // every bitwise tier so that `x as T | y as T` groups as
-    // `(x as T) | (y as T)` rather than the cast/test swallowing the bitwise
-    // expression — hence 13 (above Bitwise_AND:12), still below Additive:14 so
-    // `a + b as C` stays `(a + b) as C`. Cast and test share this tier.
-    RelationalTypeCast: 13, // as
-    RelationalTypeTest: 13, // is, is!
-    Relational: 8, // <, >, <=, >=
+    RelationalTypeCast: 9, // <, >, <=, >=, as, is, is! None 8
+    RelationalTypeTest: 9,
+    Relational: 8, // <, >, <=, >=, as, is, is! None 8
     Equality: 7, // ==, != None 7
     Logical_AND: 6, // AND && Left
     Logical_OR: 5, // Or || Left
@@ -120,6 +114,7 @@ module.exports = grammar({
         [$._primary, $.constructor_param],
         [$._normal_formal_parameters],
         [$._declared_identifier],
+        [$.equality_expression],
         [$.record_type_field, $._function_formal_parameter, $._var_or_type],
         [$.typed_identifier, $._var_or_type, $._function_formal_parameter],
         [$._type_name, $._simple_formal_parameter],
@@ -181,6 +176,7 @@ module.exports = grammar({
         [$._type_name, $.function_signature],
         // [$.relational_operator, $._shift_operator],
         [$.declaration, $._external],
+        [$.relational_expression],
         [$._function_type_tail],
         [$._type_not_void_not_function, $._function_type_tail],
         [$._type_not_void],
@@ -867,10 +863,6 @@ module.exports = grammar({
             )
         ),
 
-        // logical_or/and intentionally keep the flat sep2 run shape
-        // (`a || b || c` => one node with sibling operands), unlike the
-        // binaryLeft operators which are 2-operand left-nested. prec still
-        // orders all of them via DART_PREC; the shape difference is benign.
         logical_or_expression: $ => prec.left( //left
             DART_PREC.Logical_OR,
             sep2($._real_expression, $.logical_or_operator)
@@ -881,7 +873,7 @@ module.exports = grammar({
             sep2($._real_expression, $.logical_and_operator)
         ),
 
-        equality_expression: $ => prec.left( // left-assoc (Dart spec: non-associative; tree-sitter has no non-assoc primitive)
+        equality_expression: $ => prec( //neither
             DART_PREC.Equality,
             choice(
                 seq(
@@ -919,7 +911,7 @@ module.exports = grammar({
                 $.type_cast,
             )
         ),
-        type_test_expression: $ => prec.left(
+        type_test_expression: $ => prec(
             DART_PREC.RelationalTypeTest,
             seq(
                 // $._below_relational_type_cast_expression,
@@ -934,7 +926,7 @@ module.exports = grammar({
         //     )
         // ),
 
-        relational_expression: $ => prec.left( // left-assoc (Dart spec: non-associative; tree-sitter has no non-assoc primitive)
+        relational_expression: $ => prec( // neither
             DART_PREC.Relational,
             choice(
                 // $._raw_type_cast,
@@ -986,12 +978,12 @@ module.exports = grammar({
         ),
 
         //BITWISE EXPRESSIONS
-        bitwise_or_expression: $ => binaryLeft($._real_expression, '|', $.super, DART_PREC.Bitwise_Or),
-        bitwise_xor_expression: $ => binaryLeft($._real_expression, '^', $.super, DART_PREC.Bitwise_XOR),
-        bitwise_and_expression: $ => binaryLeft($._real_expression, '&', $.super, DART_PREC.Bitwise_AND),
-        shift_expression: $ => binaryLeft($._real_expression, $.shift_operator, $.super, DART_PREC.Shift),
-        additive_expression: $ => binaryLeft($._real_expression, $.additive_operator, $.super, DART_PREC.Additive),
-        multiplicative_expression: $ => binaryLeft($._real_expression, $.multiplicative_operator, $.super, DART_PREC.Multiplicative),
+        bitwise_or_expression: $ => binaryRunLeft($._real_expression, '|', $.super, DART_PREC.Bitwise_Or),
+        bitwise_xor_expression: $ => binaryRunLeft($._real_expression, '^', $.super, DART_PREC.Bitwise_XOR),
+        bitwise_and_expression: $ => binaryRunLeft($._real_expression, '&', $.super, DART_PREC.Bitwise_AND),
+        shift_expression: $ => binaryRunLeft($._real_expression, $.shift_operator, $.super, DART_PREC.Shift),
+        additive_expression: $ => binaryRunLeft($._real_expression, $.additive_operator, $.super, DART_PREC.Additive),
+        multiplicative_expression: $ => binaryRunLeft($._unary_expression, $.multiplicative_operator, $.super, DART_PREC.Multiplicative),
         bitwise_operator: $ => $._bitwise_operator,
         _bitwise_operator: $ => choice(
             '&',
@@ -1274,13 +1266,7 @@ module.exports = grammar({
             ),
             $.identifier
         ),
-        // Dart resolves the `x.field<int>(arg)` ambiguity in favour of a
-        // generic method invocation rather than the chained comparison
-        // `(x.field < int) > (arg)`. The positive dynamic precedence makes the
-        // GLR parser prefer this `type_arguments arguments` reading over the
-        // relational_expression one (see conflict [$.type_arguments,
-        // $.relational_operator]). Issue #103.
-        argument_part: $ => prec.dynamic(1, seq(
+        argument_part: $ => seq(
             optional(
                 $.type_arguments
             ),
@@ -1289,7 +1275,7 @@ module.exports = grammar({
             //     $.arguments
             // ),
             $.arguments
-        )),
+        ),
 
         unconditional_assignable_selector: $ => choice(
             $.index_selector,
@@ -1357,7 +1343,7 @@ module.exports = grammar({
             $.expression_statement,
             $.empty_statement,
             $.assert_statement,
-            $.labeled_statement,
+            // $.labeled_statement,
         ),
 
         local_function_declaration: $ => seq(
@@ -1378,14 +1364,9 @@ module.exports = grammar({
         // `if (cond) ;` or as a no-op body.
         empty_statement: $ => ';',
 
-        // `prec(1, ...)` ensures tree-sitter resolves an `identifier ':'
-        // statement' prefix as a labeled_statement rather than dropping
-        // the label into an ERROR node. Without this disambiguation,
-        // `label: while (true) { break label; }` parses as ERROR(label)
-        // followed by an unlabeled while_statement.
-        labeled_statement: $ => prec(1, seq(
+        labeled_statement: $ => seq(
             $.identifier, ':', $._statement
-        )),
+        ),
 
         assert_statement: $ => seq($.assertion, ';'),
 
@@ -3204,23 +3185,34 @@ function commaSepTrailingComma(rule) {
     return optional(commaSep1TrailingComma(rule))
 }
 
-// Left-associative 2-operand binary rule. The plain `seq(left, op, right)`
-// (rather than a `repeat1` run) is what lets tree-sitter surface the
-// shift/reduce conflict between operators so `prec.left` + DART_PREC can
-// resolve precedence. A `super`-headed variant is allowed as the left operand.
-function binaryLeft(rule, separator, superItem, precedence) {
+function pureBinaryRun(rule, separator, precedence) {
     return prec.left(
         precedence,
         choice(
-            seq(
+            sep2(
                 rule,
-                separator,
-                rule
+                separator
+            )))
+}
+
+function binaryRunLeft(rule, separator, superItem, precedence) {
+    return prec.left( //left
+        precedence,
+        choice(
+            sep2(
+                // $.bitwise_xor_expression,
+                rule,
+                separator
             ),
             seq(
                 superItem,
-                separator,
-                rule
+                repeat1(
+                    seq(
+                        separator,
+                        rule,
+                        // $.bitwise_xor_expression
+                    )
+                )
             )
         )
     )
