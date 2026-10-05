@@ -1,2 +1,0 @@
-__SEMGREP_EXPRESSION
-$X = $O.foo(). ... .bar(). ...;

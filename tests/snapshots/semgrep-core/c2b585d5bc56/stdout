@@ -3,7 +3,8 @@
       { d =
         (ImportAs (_, (DottedName [("dart", _); ("math", _)]),
            (Some (("math", _),
-                  { id_resolved = ref ((Some ((ImportedModule ["math"]), _)));
+                  { id_resolved =
+                    ref ((Some ((ImportedModule ["dart"; "math"]), _)));
                     id_resolved_alternatives = ref ([]);
                     id_type = ref (None); id_svalue = ref (Unknown);
                     id_flags = ref (0); id_info_id = _ }))
@@ -35,27 +36,9 @@
                               ({ name =
                                  (EN
                                     (Id (("x", _),
-                                       { id_resolved =
-                                         ref ((Some (EnclosedVar, _)));
+                                       { id_resolved = ref (None);
                                          id_resolved_alternatives = ref ([]);
-                                         id_type =
-                                         ref ((Some { t =
-                                                      (TyN
-                                                         (Id (("num", _),
-                                                            { id_resolved =
-                                                              ref (None);
-                                                              id_resolved_alternatives =
-                                                              ref ([]);
-                                                              id_type =
-                                                              ref (None);
-                                                              id_svalue =
-                                                              ref (Unknown);
-                                                              id_flags =
-                                                              ref (0);
-                                                              id_info_id = _
-                                                              }
-                                                            )));
-                                                      t_attrs = [] }));
+                                         id_type = ref (None);
                                          id_svalue = ref (Unknown);
                                          id_flags = ref (0); id_info_id = _ }
                                        )));
@@ -83,27 +66,9 @@
                                ({ name =
                                   (EN
                                      (Id (("y", _),
-                                        { id_resolved =
-                                          ref ((Some (EnclosedVar, _)));
+                                        { id_resolved = ref (None);
                                           id_resolved_alternatives = ref ([]);
-                                          id_type =
-                                          ref ((Some { t =
-                                                       (TyN
-                                                          (Id (("num", _),
-                                                             { id_resolved =
-                                                               ref (None);
-                                                               id_resolved_alternatives =
-                                                               ref ([]);
-                                                               id_type =
-                                                               ref (None);
-                                                               id_svalue =
-                                                               ref (Unknown);
-                                                               id_flags =
-                                                               ref (0);
-                                                               id_info_id = _
-                                                               }
-                                                             )));
-                                                       t_attrs = [] }));
+                                          id_type = ref (None);
                                           id_svalue = ref (Unknown);
                                           id_flags = ref (0); id_info_id = _
                                           }
@@ -224,33 +189,12 @@
                                                            (N
                                                               (Id (("x", _),
                                                                  { id_resolved =
-                                                                   ref ((Some (
-                                                                   EnclosedVar,
-                                                                   _)));
+                                                                   ref (None);
                                                                    id_resolved_alternatives =
                                                                    ref (
                                                                    []);
                                                                    id_type =
-                                                                   ref ((Some 
-                                                                   { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
-                                                                    ref (None);
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
+                                                                   ref (None);
                                                                    id_svalue =
                                                                    ref (Unknown);
                                                                    id_flags =
@@ -291,33 +235,12 @@
                                                                (Id ((
                                                                   "y", _),
                                                                   { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -476,33 +399,12 @@
                                                                     (Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -572,33 +474,12 @@
                                                                     (Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -667,33 +548,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -763,33 +623,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -833,7 +672,8 @@
                                                                     ref ((Some (
                                                                     (
                                                                     ImportedModule
-                                                                    ["math"]),
+                                                                    ["dart";
+                                                                    "math"]),
                                                                     _)));
                                                                     id_resolved_alternatives =
                                                                     ref (
@@ -965,33 +805,12 @@
                                                                     (Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1061,33 +880,12 @@
                                                                     (Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1161,33 +959,12 @@
                                                                     (Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1257,33 +1034,12 @@
                                                                     (Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1382,33 +1138,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1478,33 +1213,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1578,33 +1292,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1674,33 +1367,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1804,7 +1476,8 @@
                                                 (Id (("math", _),
                                                    { id_resolved =
                                                      ref ((Some ((ImportedModule
-                                                                    ["math"]),
+                                                                    ["dart";
+                                                                    "math"]),
                                                                  _)));
                                                      id_resolved_alternatives =
                                                      ref ([]);
@@ -1878,33 +1551,12 @@
                                                                     Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1924,33 +1576,12 @@
                                                                     (Id (
                                                                     ("x", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -1991,33 +1622,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =
@@ -2037,33 +1647,12 @@
                                                                     (Id (
                                                                     ("y", _),
                                                                     { id_resolved =
-                                                                    ref ((Some (
-                                                                    EnclosedVar,
-                                                                    _)));
-                                                                    id_resolved_alternatives =
-                                                                    ref (
-                                                                    []);
-                                                                    id_type =
-                                                                    ref ((Some 
-                                                                    { t =
-                                                                    (TyN
-                                                                    (Id (
-                                                                    ("num", _),
-                                                                    { id_resolved =
                                                                     ref (None);
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
                                                                     id_type =
                                                                     ref (None);
-                                                                    id_svalue =
-                                                                    ref (Unknown);
-                                                                    id_flags =
-                                                                    ref (0);
-                                                                    id_info_id =
-                                                                    _ })));
-                                                                    t_attrs =
-                                                                    [] }));
                                                                     id_svalue =
                                                                     ref (Unknown);
                                                                     id_flags =

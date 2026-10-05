@@ -255,8 +255,6 @@ let language_exceptions =
     (Lang.Jsonnet, [ "dots_stmts"; "deep_exprstmt"; "dots_nested_stmts" ]);
     (* TODO *)
     (Lang.Clojure, [ "deep_exprstmt"; "dots_nested_stmts" ]);
-    (* good boy *)
-    (Lang.Dart, []);
   ]
 
 (* TODO: infer dir and ext from lang using Lang helper functions *)
@@ -304,7 +302,6 @@ let maturity_tests () =
       make_maturity_tests Lang.Ruby "ruby" ".rb" GA;
       make_maturity_tests Lang.Ts "ts" ".ts" GA;
       make_maturity_tests Lang.Scala "scala" ".scala" GA;
-      make_maturity_tests Lang.Dart "dart" ".dart" GA;
       (* Beta *)
       make_maturity_tests Lang.Hack "hack" ".hack" Beta;
       make_maturity_tests Lang.Kotlin "kotlin" ".kt" Beta;
@@ -330,7 +327,7 @@ let maturity_tests () =
       make_maturity_tests Lang.Jsonnet "jsonnet" ".jsonnet" Experimental;
       make_maturity_tests Lang.Clojure "clojure" ".clj" Experimental
       (* Not even experimental yet *)
-      (* HTML, XML *);
+      (* HTML, XML, Dart *);
     ]
 
 (*****************************************************************************)
