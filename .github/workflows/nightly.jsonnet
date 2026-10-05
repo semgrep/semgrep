@@ -39,15 +39,12 @@ local brew_build_job = {
       env: env,
     },
     {
-      // Avoid reacquiring the openssl@3 dependency lock when linking openssl@4.
-      run: 'brew unlink openssl@3',
-      env: env,
-    },
-    {
       // See https://github.com/Homebrew/brew/issues/1742 for context on the
       // brew link step.
-      run: 'brew install --yes semgrep --HEAD --debug || brew link --overwrite semgrep',
-      env: env,
+      run: 'brew install semgrep --HEAD --debug || brew link --overwrite semgrep',
+      env: env {
+        NONINTERACTIVE: 1,
+      },
     },
     {
       name: 'Check installed correctly',
