@@ -9,10 +9,8 @@ jobs:
         run: brew update --debug --verbose
       - env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
-        run: brew unlink openssl@3
-      - env:
-          HOMEBREW_NO_INSTALL_FROM_API: 1
-        run: brew install --yes semgrep --HEAD --debug || brew link --overwrite semgrep
+          NONINTERACTIVE: 1
+        run: brew install semgrep --HEAD --debug || brew link --overwrite semgrep
       - env:
           HOMEBREW_NO_INSTALL_FROM_API: 1
         name: Check installed correctly
