@@ -38,6 +38,8 @@ local job = {
       with: {
         repository: 'semgrep/semgrep-proprietary',
         path: 'PRO',
+        ref: '${{ inputs.pro_ref }}',
+        lfs: true,
         token: semgrep.github_bot.token_ref,
       },
     },
@@ -55,11 +57,8 @@ local job = {
         gh pr view $PR_NUMBER --json title --jq .title > /tmp/pr_title
         gh pr view $PR_NUMBER --json body --jq .body > /tmp/pr_body
 
-        BASE_BRANCH=$(gh pr view $PR_NUMBER --json baseRefName --jq .baseRefName)
-
-        # Get the merge base and current HEAD
-        git fetch origin $BASE_BRANCH
-        MERGE_BASE=$(git merge-base origin/$BASE_BRANCH HEAD)
+        # Use the PR's original commits, including after it has been merged.
+        COMMITS=$(gh pr view $PR_NUMBER --json commits --jq '.commits[].oid')
 
         # Author's GitHub username
         AUTHOR=$(gh pr view $PR_NUMBER --json author --jq .author.login)
@@ -77,27 +76,26 @@ local job = {
         # author's name and email, not their GitHub username.
         #
         # coupling: "OSS-sync-author" also appears in our sync script.
-        FIRST_COMMIT_AUTHOR=$(git log "$MERGE_BASE..HEAD" --format='format:%aN <%aE>' | tail -n 1)
+        FIRST_COMMIT_AUTHOR=$(git show -s --format='%aN <%aE>' "${COMMITS%%$'\n'*}")
         echo "OSS-sync-author: $FIRST_COMMIT_AUTHOR" >> /tmp/pr_body
 
         # Check if any commits are already synced from Pro
-        if git log $MERGE_BASE..HEAD --oneline | grep -q "synced from Pro"; then
+        if git log --no-walk=unsorted $COMMITS --oneline | grep -q "synced from Pro"; then
            echo "error: PR contains commits that already come from Pro and cannot be synced"
            exit 1
         fi
 
-        # Generate patches for all commits in the PR
-        PATCHES=$(git format-patch $MERGE_BASE..HEAD)
+        # Keep individual source commits and make their metadata available below.
+        SOURCE_HEAD=$(git rev-parse HEAD)
 
         cd PRO
         git config --global user.name "GitHub Actions Bot"
         git config --global user.email "<>"
         git checkout -b $BRANCHNAME
 
-        # Apply all patches
-        for patch in $PATCHES; do
-          git am --directory=OSS "../$patch"
-        done
+        git fetch --no-tags --no-recurse-submodules .. "$SOURCE_HEAD"
+        # Commit IDs contain no whitespace; preserve their original order.
+        bash OSS/scripts/import-oss-patches.sh OSS $COMMITS
 
         git push origin $BRANCHNAME
       |||,
@@ -159,6 +157,12 @@ local job = {
           description: 'PR number to sync to PRO (e.g. "11420")',
           required: true,
           type: 'number',
+        },
+        pro_ref: {
+          description: 'Destination PRO branch or commit',
+          default: 'develop',
+          required: true,
+          type: 'string',
         },
       },
     },
