@@ -18,6 +18,7 @@ OBJS = \
   build-test-docker.yml \
   ocaml-tree-sitter-ci.yml \
   ocaml-tree-sitter-test-languages.yml \
+  scanner-memory-safety.yml \
   trigger-semgrep-comparison-argo.yml \
   sync-with-PRO.yml
 

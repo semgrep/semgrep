@@ -1,0 +1,19 @@
+Applied by ../prep.common to upstream's src/scanner.c on every regen.
+Regen fails if this patch no longer applies. If upstream has fixed the bug,
+delete this file.
+
+SECENG-77: create() allocates zero bytes with calloc(0, ...) and the scanner
+then reads and writes the 4-byte state through that pointer. Fixed upstream in
+alex-pinkus/tree-sitter-swift@8abb3e8b3325, which is newer than our pin.
+
+--- a/scanner.c
++++ b/scanner.c
+@@ -203,7 +203,7 @@
+ };
+ 
+ void *tree_sitter_swift_external_scanner_create() {
+-    return calloc(0, sizeof(struct ScannerState));
++    return calloc(1, sizeof(struct ScannerState));
+ }
+ 
+ void tree_sitter_swift_external_scanner_destroy(void *payload) {
