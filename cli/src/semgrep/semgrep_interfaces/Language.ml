@@ -36,7 +36,6 @@ type t =
 | Python2
 | Python3
 | Python
-| Ql
 | R
 | Ruby
 | Rust
@@ -534,19 +533,6 @@ let list = [
   reverse_exts = None;
   shebangs = [{|python|}; {|python2|}; {|python3|}];
   tags = [{|is_python|}];
-};
-{
-  id = Ql;
-  id_string = "ql";
-  name = "QL";
-  keys = [{|ql|}];
-  exts = [{|.ql|}; {|.qll|}];
-  maturity = Alpha;
-  example_ext = Some {|.ql|};
-  excluded_exts = [];
-  reverse_exts = None;
-  shebangs = [];
-  tags = [];
 };
 {
   id = R;

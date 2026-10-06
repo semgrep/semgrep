@@ -161,8 +161,6 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file
         [ TreeSitter Parse_jsonnet_tree_sitter.parse ]
         Jsonnet_to_generic.program
-  | Lang.Ql ->
-      run file [ TreeSitter Parse_ql_tree_sitter.parse ] QL_to_generic.program
   | Lang.Terraform ->
       run file
         [ TreeSitter Parse_terraform_tree_sitter.parse ]
