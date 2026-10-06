@@ -43,7 +43,6 @@ let lang_has_no_dollar_ids =
     | Swift
     | Html
     | Xml
-    | Ql
     | Fga
     | Move_on_aptos ->
         true

@@ -277,14 +277,6 @@
     "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-python.git"
   },
-  "ql": {
-    "commit": "ff04ba61857ba05b80221e71b423b2728dbebe1e",
-    "regen": [
-      "ql"
-    ],
-    "tree_sitter": "0.22.6",
-    "url": "https://github.com/tree-sitter/tree-sitter-ql"
-  },
   "r": {
     "commit": "346d3707b8c9301f1051e8f6e32666e67529f7d2",
     "regen": [

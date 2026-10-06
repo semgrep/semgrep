@@ -287,7 +287,6 @@ let inspect_file_p (lang : Lang.t) path =
     | Python2
     | Python3
     | Python
-    | Ql
     | R
     | Ruby
     | Rust
