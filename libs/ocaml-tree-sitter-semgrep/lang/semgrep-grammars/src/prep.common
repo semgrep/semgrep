@@ -21,7 +21,17 @@ mkdir -p src
   scanner_c=../../tree-sitter-"$clone"/src/scanner.c
   scanner_cc="$scanner_c"c
   unicode_h=../../tree-sitter-"$clone"/src/unicode.h
-  if [[ -e "$scanner_c" ]]; then
+  # If there's a patch present in patches/scanner.patch, copy the upstream
+  # scanner.c, then apply the patch to it. This can help when we need a fix
+  # that isn't in our pinned upstream version, but do not want to pull in
+  # all the upstream updates at once.
+  # If the patch no longer applies, this script fails. That usually means
+  # upstream already has the fix after a pin bump: delete the patch.
+  scanner_patch=../patches/scanner.patch
+  if [[ -e "$scanner_patch" ]]; then
+    cp "$scanner_c" scanner.c
+    patch -N -s scanner.c "$scanner_patch"
+  elif [[ -e "$scanner_c" ]]; then
     ln -sf "$scanner_c" .
   elif [[ -e "$scanner_cc" ]]; then
     ln -sf "$scanner_cc" .

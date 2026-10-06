@@ -203,7 +203,7 @@ struct ScannerState {
 };
 
 void *tree_sitter_swift_external_scanner_create() {
-    return calloc(0, sizeof(struct ScannerState));
+    return calloc(1, sizeof(struct ScannerState));
 }
 
 void tree_sitter_swift_external_scanner_destroy(void *payload) {
