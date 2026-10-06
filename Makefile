@@ -175,6 +175,7 @@ retest:
 # (root `ots-test-ocaml` and `ots-test-python` targets).
 .PHONY: test-all
 test-all:
+	$(MAKE) test-scripts
 	$(MAKE) core-test
 	$(MAKE) -C cli test
 	$(MAKE) -C cli osempass
@@ -528,3 +529,8 @@ check_with_docker:
 dev:
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
+
+# Script tests include local Git repositories and require Git LFS.
+.PHONY: test-scripts
+test-scripts:
+	uv run --project cli --locked pytest scripts/tests
