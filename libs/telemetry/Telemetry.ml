@@ -175,6 +175,41 @@ let find_global_attrs attr_keys = List.filter_map get_global_attr_opt attr_keys
 (*****************************************************************************)
 (* Entry points for setting up telemetry *)
 (*****************************************************************************)
+(* The exporter workers must belong to the shutdown race's switch: timing out
+   remove_exporter alone leaves the caller's switch waiting for HTTP requests.
+   Start the deadline only when shutdown is requested, not during the scan. *)
+let create_eio_exporter ~(config : Opentelemetry_client_cohttp_eio.Config.t)
+    ~(sw : Eio.Switch.t) ~(env : Eio_unix.Stdenv.base) () :
+    Otel.Exporter.t * (unit -> unit) =
+  let exporter, publish_exporter = Eio.Promise.create () in
+  let stop, request_stop = Eio.Promise.create () in
+  let drained, finish_drain = Eio.Promise.create () in
+  let stopped, finish_stop = Eio.Promise.create () in
+  Eio.Fiber.fork ~sw (fun () ->
+      Eio.Fiber.first
+        (fun () ->
+          Eio.Switch.run (fun sw ->
+              let exporter =
+                Opentelemetry_client_cohttp_eio.create_exporter ~config ~sw ~env
+                  ()
+              in
+              Eio.Promise.resolve publish_exporter exporter;
+              Eio.Promise.await drained))
+        (fun () ->
+          Eio.Promise.await stop;
+          Eio.Time.Mono.sleep env#mono_clock
+            (float_of_int (max 0 config.timeout_ms) /. 1000.);
+          Log.debug (fun m ->
+              m "Tracing shutdown timed out; dropping remaining telemetry"));
+      Eio.Promise.resolve finish_stop ());
+  let remove_exporter () : unit =
+    (* Detach the SDK before starting the deadline, including a zero timeout. *)
+    Otel.Sdk.remove ~on_done:(Eio.Promise.resolve finish_drain) ();
+    Eio.Promise.resolve request_stop ();
+    Eio.Promise.await stopped
+  in
+  (Eio.Promise.await exporter, remove_exporter)
+
 (* Safe to call whenever *)
 let stop_otel () =
   if Otel.Sdk.present () then (
@@ -200,10 +235,10 @@ let setup_otel ?eio_sw_base trace_endpoint =
         (* If we are provided an eio switch + base let's use the eio backend
            since the curl backend has been known to segfault *)
         let config = Opentelemetry_client_cohttp_eio.Config.make ~url () in
-        ( Opentelemetry_client_cohttp_eio.create_exporter ~config ~sw ~env:base
-            (),
-          Opentelemetry_client_cohttp_eio.remove_exporter,
-          config )
+        let exporter, remove_exporter =
+          create_eio_exporter ~config ~sw ~env:base ()
+        in
+        (exporter, remove_exporter, config)
   in
   (* hack: let's just keep track of the endpoint for if we restart tracing
      instead of having to pass it down everywhere. We will assume that we will
