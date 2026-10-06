@@ -100,6 +100,9 @@ val stop_otel : unit -> unit
     safe to call multiple times in a row. See [restart_otel] to continue
     tracing after calling this.
 
+    The Eio collector drains for at most [OTEL_EXPORTER_OTLP_TIMEOUT]
+    milliseconds (default 10000), then cancels outstanding exports.
+
     Example:
     {[
       stop_otel ();
