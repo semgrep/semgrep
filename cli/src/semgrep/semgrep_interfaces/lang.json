@@ -674,24 +674,6 @@
     ]
   },
   {
-    "id": "ql",
-    "name": "QL",
-    "keys": [
-      "ql"
-    ],
-    "maturity": "alpha",
-    "exts": [
-      ".ql",
-      ".qll"
-    ],
-    "example_ext": ".ql",
-    "excluded_exts": [],
-    "reverse_exts": null,
-    "shebangs": [],
-    "is_target_language": true,
-    "tags": []
-  },
-  {
     "id": "r",
     "name": "R",
     "keys": [
