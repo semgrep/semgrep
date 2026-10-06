@@ -1,28 +1,12 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "release"
 version = "0.1.0"
-description = "Describe your project here"
 requires-python = ">=3.10"
-
-# NOTE: not sure why these deps are seperate; just doing a
-# 1-1 translation from Pipfile
 dependencies = [
-    "pre-commit",
-    "virtualenv",
-]
-
-[project.optional-dependencies]
-dev = [
-    "sh",
-    "click==8.1.8",
-    "requests",
-    "towncrier~=21.9.0",
+    "pre-commit==4.6.2",
+    "towncrier==25.8.0",
 ]
 
 [tool.uv]
-exclude-newer = "1 week"  # nosemgrep: uv-missing-dependency-cooldown -- "1 week" == 7-day cooldown (SEC-1765); rule only matches "N days"
+exclude-newer = "7 days"
 required-version = ">=0.10.0"
