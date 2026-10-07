@@ -154,6 +154,7 @@ def cli_args_to_attrs(locals: dict[str, object]) -> Attributes:
         "jobs",
         "max_memory",
         "max_target_bytes",
+        "secrets",
         "supply_chain",
         "timeout_threshold",
         "timeout",
@@ -163,7 +164,7 @@ def cli_args_to_attrs(locals: dict[str, object]) -> Attributes:
     # prefix all with scan.args
     info: dict[str, str | int] = {}
     for arg in args_to_include:
-        value = locals.get(arg)
+        value = locals.get("run_secrets_flag" if arg == "secrets" else arg)
         if isinstance(value, int) or isinstance(value, str):
             attr_value = value
         elif value is not None:
