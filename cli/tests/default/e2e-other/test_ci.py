@@ -52,6 +52,7 @@ from tests.fixtures import RunSemgrep
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
+from semgrep import telemetry
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
@@ -67,8 +68,10 @@ from semgrep.output import OutputHandler
 from semgrep.output_extra import OutputExtra
 from semgrep.rpc import RpcSession
 from semgrep.rule import Rule
+from semgrep.rule_lang import RuleValidationMode
 from semgrep.rule_match import RuleMatchMap
 from semgrep.settings import generate_anonymous_user_id
+from semgrep.state import get_state
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.symbol_analysis import SubprojectSymbolAnalysis
 from semgrep.target_manager import SAST_PRODUCT
@@ -525,10 +528,13 @@ def start_scan_mock_maker(
         semgrep_url: str = "https://semgrep.dev",
         product_ignored_files: Mapping[out.Product, List[str]] = {},  # noqa
         project_merge_base: Optional[str] = None,
+        enabled_products: Optional[List[str]] = None,
     ):
         scan_info = {
             **({"id": mocked_scan_id} if mocked_scan_id else {}),
-            "enabled_products": ["sast", "sca"],
+            "enabled_products": (
+                enabled_products if enabled_products is not None else ["sast", "sca"]
+            ),
             "deployment_id": DEPLOYMENT_ID,
             "deployment_name": "org_name",
         }
@@ -1812,6 +1818,197 @@ def test_nosem_config_precedence(
     )
 
     assert captured["disable_nosem"] is expected_disable_nosem
+
+
+@pytest.mark.osemfail  # This test inspects Python-only telemetry via a mock.
+@pytest.mark.parametrize(
+    ("app_products", "options", "expected_products"),
+    [
+        (["sast", "sca", "secrets"], [], (True, True, True)),
+        (["sast", "sca", "secrets"], ["--oss-only"], (True, True, False)),
+        (["sast"], ["--supply-chain"], (True, True, False)),
+        (["sca"], ["--code"], (True, True, False)),
+        (["sast"], ["--secrets"], (True, False, True)),
+        (["sca"], [], (False, True, False)),
+    ],
+)
+def test_scan_product_telemetry_from_flags_and_app(
+    git_tmp_path_with_commit,
+    mocker,
+    app_products,
+    options,
+    expected_products,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+):
+    start_scan_mock_maker(enabled_products=app_products)
+    mocker.patch.object(EngineType, "check_if_installed", return_value=True)
+    mocker.patch.object(EngineType, "get_pro_version", return_value="test")
+    mocker.patch.object(EngineType, "get_binary_path", return_value=Path("/tmp/core"))
+
+    def fake_run_scan(**kwargs):
+        raise SemgrepError("stop after capturing telemetry", code=2)
+
+    product_attrs = mocker.spy(telemetry, "scan_product_attrs")
+    mocker.patch.object(semgrep.run_scan, "run_scan", side_effect=fake_run_scan)
+
+    run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors", *options],
+        target_name=None,
+        strict=False,
+        assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    product_attrs.assert_called_once_with(
+        code=expected_products[0],
+        supply_chain=expected_products[1],
+        secrets=expected_products[2],
+    )
+
+
+@pytest.mark.osemfail  # This test inspects Python-only telemetry via a mock.
+@pytest.mark.parametrize(
+    ("rule_body", "options", "expected_products"),
+    [
+        ("pattern: foo", [], (True, False, False)),
+        (
+            "r2c-internal-project-depends-on:\n"
+            "    namespace: pypi\n"
+            "    package: badlib\n"
+            '    version: "== 99.99.99"',
+            [],
+            (False, True, False),
+        ),
+        (
+            "r2c-internal-project-depends-on:\n"
+            "    namespace: pypi\n"
+            "    package: badlib\n"
+            '    version: "== 99.99.99"',
+            ["--code"],
+            (True, True, False),
+        ),
+    ],
+)
+def test_scan_product_telemetry_from_explicit_config(
+    git_tmp_path_with_commit,
+    tmp_path,
+    mocker,
+    run_semgrep: RunSemgrep,
+    rule_body,
+    options,
+    expected_products,
+):
+    rule_file = tmp_path / "rule.yaml"
+    rule_file.write_text(
+        "rules:\n"
+        "- id: product-rule\n"
+        "  message: product rule\n"
+        "  languages: [python]\n"
+        "  severity: ERROR\n"
+        f"  {rule_body}\n"
+    )
+    observed = []
+    real_product_attrs = telemetry.scan_product_attrs
+
+    def capture_product_attrs(*, code, supply_chain, secrets):
+        observed.append((code, supply_chain, secrets))
+        if len(observed) == 2:
+            raise SemgrepError("stop after resolving products", code=2)
+        return real_product_attrs(code=code, supply_chain=supply_chain, secrets=secrets)
+
+    mocker.patch.object(
+        telemetry, "scan_product_attrs", side_effect=capture_product_attrs
+    )
+
+    run_semgrep(
+        subcommand="ci",
+        options=[
+            "--config",
+            str(rule_file),
+            "--x-rule-validation",
+            "none",
+            "--no-suppress-errors",
+            *options,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": ""},
+        use_click_runner=True,
+    )
+
+    assert len(observed) == 2
+    assert observed[-1] == expected_products
+
+
+@pytest.mark.osemfail  # This test inspects Python-only telemetry via mocks.
+def test_nested_join_scan_preserves_ci_product_telemetry(
+    git_tmp_path_with_commit,
+    tmp_path,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+):
+    start_scan_mock_maker(enabled_products=["sast", "sca"])
+    mocker.patch.object(EngineType, "check_if_installed", return_value=True)
+    mocker.patch.object(EngineType, "get_pro_version", return_value="test")
+    mocker.patch.object(EngineType, "get_binary_path", return_value=Path("/tmp/core"))
+
+    rule_file = tmp_path / "join-part.yaml"
+    rule_file.write_text(
+        "rules:\n"
+        "- id: join-part\n"
+        "  pattern: foo\n"
+        "  message: join rule part\n"
+        "  languages: [python]\n"
+        "  severity: ERROR\n"
+    )
+    real_run_scan = semgrep.run_scan.run_scan
+
+    class StopNestedScan(Exception):
+        pass
+
+    mocker.patch.object(
+        semgrep.run_scan, "add_metrics_part1", side_effect=StopNestedScan
+    )
+
+    def fake_run_scan(**kwargs):
+        resource = get_state().telemetry.resource
+        assert resource is not None
+        attrs = resource.attributes
+        assert attrs is not None
+        before = dict(attrs)
+
+        with pytest.raises(StopNestedScan):
+            real_run_scan(
+                output_handler=kwargs["output_handler"],
+                scanning_roots=kwargs["scanning_roots"],
+                pattern=None,
+                lang=None,
+                config_strs=[str(rule_file)],
+                validation_mode=RuleValidationMode.NONE,
+                record_scan_product_attrs=False,
+            )
+
+        attrs = resource.attributes
+        assert attrs is not None
+        assert attrs["scan.product.supply_chain"] == before["scan.product.supply_chain"]
+        raise SemgrepError("stop after checking telemetry", code=2)
+
+    mocker.patch.object(semgrep.run_scan, "run_scan", side_effect=fake_run_scan)
+
+    run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=2,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
 
 
 # Regression for ENGINE-1824: `semgrep ci --sarif-output` must preserve

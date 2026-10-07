@@ -106,6 +106,7 @@ from semgrep.semgrep_types import JOIN_MODE
 from semgrep.simple_profiling import profiling
 from semgrep.simple_profiling import simple_profiling
 from semgrep.state import get_state
+from semgrep.state import SemgrepState
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_all_source_files
 from semgrep.subproject import iter_found_dependencies
@@ -1346,6 +1347,9 @@ def run_scan(
     x_dump_subprojects_and_exit: Path | None = None,
     x_computed_dependencies_dir: Path | None = None,
     code_enabled: Optional[bool] = None,
+    # Internal scans (such as join-rule scans) must not replace the outer
+    # invocation's product attributes with their temporary rule selection.
+    record_scan_product_attrs: bool = True,
     # True when only a restricted set of rules is being run
     # (see --x-partial-scan-rule-id): dependency resolution is then limited to
     # the ecosystems those rules evaluate.
@@ -1420,10 +1424,32 @@ def run_scan(
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
 
+    state = get_state()
+    # Logged-out `semgrep ci --config` has no App scan handler, so its products
+    # must be inferred from the resolved rules just like `semgrep scan`.
+    # App-backed CI scans have code_enabled set and retain the App's values.
+    if record_scan_product_attrs and (
+        state.is_scan_invocation() or code_enabled is None
+    ):
+        rule_products = {rule.product.to_json() for rule in all_rules}
+        state.telemetry.add_resource_attrs(
+            telemetry.scan_product_attrs(
+                code=bool(SemgrepState.cli_arg("code"))
+                or "sast" in rule_products
+                or "code" in (config_strs or ()),
+                supply_chain=bool(SemgrepState.cli_arg("supply_chain"))
+                or "sca" in rule_products
+                or configs_obj.with_supply_chain,
+                secrets=run_secrets
+                or "secrets" in rule_products
+                or configs_obj.with_secrets,
+            )
+        )
+
     # Metrics send part 1: add environment information
     # Must happen after configs are resolved because it is determined
     # then whether metrics are sent or not
-    metrics = get_state().metrics
+    metrics = state.metrics
     add_metrics_part1(
         metrics,
         project_url,
