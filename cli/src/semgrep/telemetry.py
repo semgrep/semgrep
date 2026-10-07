@@ -174,6 +174,15 @@ def cli_args_to_attrs(locals: dict[str, object]) -> Attributes:
     return info
 
 
+def scan_product_attrs(*, code: bool, supply_chain: bool, secrets: bool) -> Attributes:
+    """Attributes for products enabled by a scan's resolved configuration."""
+    return {
+        "scan.product.code": code,
+        "scan.product.supply_chain": supply_chain,
+        "scan.product.secrets": secrets,
+    }
+
+
 def scan_info_to_attrs(scan_info: ScanInfo) -> Attributes:
     info: Attributes = {
         "scan.deployment_id": scan_info.deployment_id,

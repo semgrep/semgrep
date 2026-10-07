@@ -750,6 +750,14 @@ def ci(
             and scan_handler
             and "secrets" in scan_handler.enabled_products
         )
+        enabled_products = set(scan_handler.enabled_products) if scan_handler else set()
+        state.telemetry.add_resource_attrs(
+            telemetry.scan_product_attrs(
+                code=code or "sast" in enabled_products,
+                supply_chain=supply_chain or "sca" in enabled_products,
+                secrets=run_secrets,
+            )
+        )
 
         if not run_secrets and historical_secrets:
             logger.info("Cannot run historical secrets scan without secrets enabled.")

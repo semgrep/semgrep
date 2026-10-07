@@ -505,6 +505,7 @@ def run_join_rule(
             optimizations="all",
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
+            record_scan_product_attrs=False,
         )
 
     assert isinstance(output, dict)  # placate mypy

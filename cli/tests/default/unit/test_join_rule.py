@@ -12,12 +12,33 @@
 #
 import pytest
 
+import semgrep.run_scan
 from semgrep.join_rule import Condition
 from semgrep.join_rule import create_collection_set_from_conditions
 from semgrep.join_rule import create_model_map
 from semgrep.join_rule import InvalidConditionError
 from semgrep.join_rule import JoinOperator
 from semgrep.join_rule import model_factory
+from semgrep.join_rule import run_join_rule
+
+
+@pytest.mark.kinda_slow
+def test_join_rule_disables_product_telemetry_for_nested_scan(mocker):
+    nested_scan = mocker.patch.object(
+        semgrep.run_scan,
+        "run_scan_and_return_json",
+        return_value={"results": [], "errors": []},
+    )
+    join_rule = {
+        "id": "join-test",
+        "join": {
+            "rules": [{"id": "join-part", "pattern": "foo", "languages": ["python"]}],
+            "on": ["join-part.$X == join-part.$X"],
+        },
+    }
+
+    assert run_join_rule(join_rule, scanning_roots=[], fips_mode=False) == ([], [])
+    assert nested_scan.call_args.kwargs["record_scan_product_attrs"] is False
 
 
 @pytest.mark.quick
