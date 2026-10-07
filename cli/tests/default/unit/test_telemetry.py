@@ -14,6 +14,7 @@
 import pytest
 
 from semgrep.telemetry import _env_from_app_url
+from semgrep.telemetry import cli_args_to_attrs
 
 
 class TestEnvFromAppUrl:
@@ -50,3 +51,19 @@ class TestEnvFromAppUrl:
     @pytest.mark.quick
     def test_invalid_url(self) -> None:
         assert _env_from_app_url("not a url at all ://???") == "unknown"
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize("secrets_enabled", [False, True])
+def test_secrets_scan_arg_attribute(secrets_enabled: bool) -> None:
+    attrs = cli_args_to_attrs(
+        {
+            "code": True,
+            "run_secrets_flag": secrets_enabled,
+            "disable_secrets_validation_flag": True,
+        }
+    )
+
+    assert attrs is not None
+    assert attrs["scan.args.code"] is True
+    assert attrs["scan.args.secrets"] is secrets_enabled
