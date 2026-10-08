@@ -7,6 +7,7 @@
     uri
     yojson
     logs
+    lwt
     opentelemetry
     opentelemetry-client-ocurl
     opentelemetry-client-cohttp-eio
