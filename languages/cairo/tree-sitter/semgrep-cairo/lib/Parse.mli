@@ -20,12 +20,6 @@ val file :
   string ->
   (CST.source_file, CST.extra) Tree_sitter_run.Parsing_result.t
 
-(** Whether to print debugging information. Default: false. *)
-val debug : bool ref
-
-(** The original tree-sitter parser. *)
-val ts_parser : Tree_sitter_bindings.Tree_sitter_API.ts_parser
-
 (** Parse a program into a tree-sitter CST. *)
 val parse_source_string :
    ?src_file:string -> string -> Tree_sitter_run.Tree_sitter_parsing.t
