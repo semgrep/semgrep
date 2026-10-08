@@ -216,19 +216,20 @@ let remote_repo_name url =
    whole traversal. Each function additionally returns the number of skipped
    references so the caller can report a single aggregate warning. *)
 type blob_resolution = { blobs : blob_with_extra list; missing : int }
+type blob_memo = (string * string, blob_with_extra list) Base.Hashtbl.t
 
-let rec blobs_of_tree ?(path_prefix = "") (objects : object_table)
-    (tree : Tree.t) : blob_resolution =
+let rec blobs_of_tree ?(path_prefix : string = "") ~(memo : blob_memo)
+    (objects : object_table) (tree : Tree.t) : blob_resolution =
   let results =
-    tree |> Tree.to_list |> List.map (blobs_of_entry ~path_prefix objects)
+    tree |> Tree.to_list |> List.map (blobs_of_entry ~path_prefix ~memo objects)
   in
   {
     blobs = List.concat_map (fun result -> result.blobs) results;
     missing = List.fold_left (fun acc result -> acc + result.missing) 0 results;
   }
 
-and blobs_of_entry ?(path_prefix = "") (objects : object_table)
-    (entry : Tree.entry) : blob_resolution =
+and blobs_of_entry ?(path_prefix : string = "") ~(memo : blob_memo)
+    (objects : object_table) (entry : Tree.entry) : blob_resolution =
   match entry with
   | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash }
     -> (
@@ -244,33 +245,46 @@ and blobs_of_entry ?(path_prefix = "") (objects : object_table)
               m "could not resolve blob %s at %s; skipping" (Hash.to_hex hash)
                 (Filename.concat path_prefix path_segment));
           { blobs = []; missing = 1 })
-  | { perm = `Dir; name = path_segment; node = hash } -> (
+  | { perm = `Dir; name = path_segment; node = hash } ->
       let path = Filename.concat path_prefix path_segment in
-      match ROHashtbl.Base.find_opt objects hash with
-      | Some (Git.Value.Tree tree) ->
-          blobs_of_tree ~path_prefix:path objects tree
-      | Some _
-      | None ->
-          Log.debug (fun m ->
-              m "could not resolve tree %s at %s; skipping" (Hash.to_hex hash)
-                path);
-          { blobs = []; missing = 1 })
+      blobs_of_tree_hash ~path_prefix:path ~memo objects hash
   | { perm = `Link; _ }
   | { perm = `Commit; _ } ->
       { blobs = []; missing = 0 }
 
-let blobs_by_commit objects commits =
-  let results =
-    commits
-    |> List.map (fun commit ->
-        match Commit.tree commit |> ROHashtbl.Base.find_opt objects with
-        | Some (Git.Value.Tree tree) -> (commit, blobs_of_tree objects tree)
+(* Walk each distinct (path prefix, tree sha) once and share the resulting
+   (immutable) list across all commits containing that subtree. The prefix is
+   part of the key since the computed paths depend on it. Skipped references
+   are counted once per distinct key. *)
+and blobs_of_tree_hash ~(path_prefix : string) ~(memo : blob_memo)
+    (objects : object_table) (hash : hash) : blob_resolution =
+  let key = (path_prefix, Hash.to_raw_string hash) in
+  Base.Hashtbl.find_and_call memo key
+    ~if_found:(fun blobs -> { blobs; missing = 0 })
+    ~if_not_found:(fun key ->
+      let result =
+        match ROHashtbl.Base.find_opt objects hash with
+        | Some (Git.Value.Tree tree) ->
+            blobs_of_tree ~path_prefix ~memo objects tree
         | Some _
         | None ->
             Log.debug (fun m ->
-                m "could not resolve tree of commit %s; skipping"
-                  (Hash.to_hex (Commit.digest commit)));
-            (commit, { blobs = []; missing = 1 }))
+                m "could not resolve tree %s at %s; skipping" (Hash.to_hex hash)
+                  path_prefix);
+            { blobs = []; missing = 1 }
+      in
+      Base.Hashtbl.set memo ~key ~data:result.blobs;
+      result)
+
+let blobs_by_commit (objects : object_table) (commits : commit list) :
+    (commit * blob_with_extra list) list =
+  let memo = Base.Hashtbl.Poly.create ~size:1024 () in
+  let results =
+    commits
+    |> List.map (fun commit ->
+        ( commit,
+          blobs_of_tree_hash ~path_prefix:"" ~memo objects (Commit.tree commit)
+        ))
   in
   let missing =
     List.fold_left (fun acc (_, result) -> acc + result.missing) 0 results
