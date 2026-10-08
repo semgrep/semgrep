@@ -265,10 +265,16 @@ type value = hash Git.Value.t [@@deriving show, eq, ord]
 type commit = hash Git.Commit.t [@@deriving show, eq, ord]
 type author = Git.User.t [@@deriving show, eq, ord]
 type blob = Git.Blob.t [@@deriving show, eq, ord]
-type object_table = (hash, value) ROHashtbl.Base.t
+type tree = hash Git.Tree.t
 
-type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
-[@@deriving show]
+type object_kind = [ `Commit | `Tree | `Blob | `Tag ]
+(** The four Git object kinds. *)
+
+type object_metadata = { hash : hash; kind : object_kind; size : int }
+(** Metadata reported by Git for an object without reading its contents. *)
+
+type blob_info = { hash : hash; path : Fpath.t; size : int } [@@deriving show]
+(** A blob reference found while walking a commit tree. *)
 
 val commit_digest : commit -> hash
 (** [commit_digest commit] is the SHA of the commit*)
@@ -285,8 +291,16 @@ val string_of_blob : blob -> string
 val hex_of_hash : hash -> string
 (** [hex_of_hash hash] is the hexadecimal representation of the hash*)
 
-val commit_blobs_by_date : object_table -> (commit * blob_with_extra list) list
-(** [commit_blobs_by_date store] is the list of commits and the blobs they reference, ordered by date, newest first*)
+val commit_blobs_by_date :
+  find_tree:(hash -> tree option) ->
+  find_blob_size:(hash -> int option) ->
+  commit list ->
+  (commit * blob_info list) list
+(** [commit_blobs_by_date ~find_tree ~find_blob_size commits] lists the commits
+    and the blobs they reference, ordered by date, newest first. References
+    which cannot be resolved by the supplied lookup functions are skipped.
+    [find_tree] resolves a tree hash, and [find_blob_size] resolves a blob hash
+    to the size of its contents in bytes. *)
 
 val cat_file_blob : ?cwd:Fpath.t -> hash -> (string, string) result
 (** [cat_file_blob sha] will run [git cat-file blob sha] and return either
@@ -299,6 +313,12 @@ val cat_file_blob : ?cwd:Fpath.t -> hash -> (string, string) result
  *)
 
 val cat_file_blob_exn : ?cwd:Fpath.t -> hash -> string
+
+val list_object_metadata :
+  ?cwd:Fpath.t -> unit -> (object_metadata list, string) result
+(** [list_object_metadata ()] returns metadata for every object in the
+    repository's object store (reachable or not), without reading any object
+    contents. For a blob, [size] is the size of its contents in bytes. *)
 
 val remote_repo_name : string -> string option
 (** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)
