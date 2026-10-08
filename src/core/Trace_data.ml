@@ -88,6 +88,11 @@ module Attributes = struct
   let phase_jobs_count = "scan.phase.jobs.count"
   let phase_timeout = "scan.phase.timeout_s"
   let phase_memory_limit = "scan.phase.memory_limit_mb"
+
+  (* Per-rule attrs *)
+  let rule_id = "rule_id"
+  let rule_analyzer = "analyzer"
+  let rule_taint = "taint"
 end
 (*****************************************************************************)
 (* Types *)
@@ -156,6 +161,22 @@ let record_phase_data ?(timeout = 0.0) ?(memory_limit = 0) ?(jobs = 1) ~fpaths
     ]
   in
   Tracing.add_data_to_span sp attrs
+
+let data_of_rule (rule : Rule.t) : (string * Telemetry.user_data) list =
+  [
+    (Attributes.rule_id, `String (Rule_ID.to_string (fst rule.id)));
+    (Attributes.rule_analyzer, `String (Analyzer.to_string rule.target_analyzer));
+    ( Attributes.rule_taint,
+      `Bool
+        (match rule.mode with
+        | `Taint _ -> true
+        | `Search _
+        | `Extract _
+        | `Steps _
+        | `SCA _
+        | `Join _ ->
+            false) );
+  ]
 
 (* NOTE: If this IS NOT semgrep specific stick it in Tracing.ml *)
 (* WARNING: Let's be careful what we add as a resource attribute. TL;DR; these

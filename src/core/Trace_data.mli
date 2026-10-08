@@ -64,6 +64,10 @@ val record_phase_data :
     long time, which might be an indication of a perf issue somewhere silly.
 *)
 
+val data_of_rule : Rule.t -> (string * Telemetry.user_data) list
+(** Attributes identifying a rule on a span: its ID, analyzer, and whether it
+    is a taint rule. *)
+
 val get_resource_attrs :
   ?env:string ->
   engine:string ->

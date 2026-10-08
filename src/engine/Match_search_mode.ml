@@ -1144,10 +1144,7 @@ let check_rule ~matches_hook ({ R.mode = `Search formula; _ } as r) xconf
   let rule_id = fst r.id in
 
   let%trace_debug sp = "Match_search_mode.check_rule" in
-  Tracing.add_data_to_span sp
-    [
-      ("rule_id", `String (rule_id |> Rule_ID.to_string)); ("taint", `Bool false);
-    ];
+  Tracing.add_data_to_span sp (Trace_data.data_of_rule (r :> R.t));
 
   let res, final_ranges = matches_of_formula xconf r xtarget formula None in
   let errors = res.errors |> E.ErrorSet.map (error_with_rule_id rule_id) in
