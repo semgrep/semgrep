@@ -359,6 +359,9 @@ let check ~matches_hook ~(timeout : timeout_config option)
   in
   {
     res with
-    quick_profiling = Some profiling;
+    (* Combine rather than replace, so that per-rule stats (e.g. match times)
+       recorded in the rule results are preserved. *)
+    quick_profiling =
+      Core_quick_profiling.combine_opt res.quick_profiling (Some profiling);
     errors = res.errors |> E.ErrorSet.union errors;
   }
