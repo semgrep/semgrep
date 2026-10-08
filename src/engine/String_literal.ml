@@ -19,10 +19,14 @@
    \" -> "
 *)
 let approximate_unescape =
-  let rex = Pcre2_.regexp "\\\\[\\\\'\"]" in
+  let re = Pcre2_.compile_exn {|\\[\\'"]|} in
   fun s ->
-    Pcre2_.substitute ~rex
-      ~subst:(fun s ->
-        assert (String.length s = 2);
-        String.sub s 1 1)
-      s
+    match
+      Pcre2_.replace_fn re
+        (fun s ->
+          assert (String.length s = 2);
+          String.sub s 1 1)
+        s
+    with
+    | Ok x -> x
+    | Error _ -> s

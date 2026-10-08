@@ -189,7 +189,7 @@ let test_explicit_brackets () =
   check slconf {|(...)|} {|([)]|} [ Num_matches 0 ];
   check slconf {|(...)|} {|[([)]|} [ Num_matches 0 ]
 
-(* If this starts segfaulting again instead of returning DepthLimit, check
+(* If this starts segfaulting again instead of returning DEPTHLIMIT, check
    that Pcre2_.depth_limit is still set. PCRE2 uses heap rather than the C
    stack for backtracking, so segfaults are unlikely, but a missing depth
    limit can still let pathological aliengrep patterns chew through memory.
@@ -199,13 +199,17 @@ let test_recursion_limit () =
   let pat = Pat_compile.from_string slconf {|(...)|} in
   let nesting = Pcre2_.depth_limit + 100 in
   let target = String.make nesting '(' ^ "x" ^ String.make nesting ')' in
-  (match Pcre2_.exec_all ~rex:pat.pcre target with
-  | Error Pcre2.DepthLimit -> ()
-  | Error err ->
-      Alcotest.failf "expected DepthLimit, got %s" (Pcre2_.show_error err)
-  | Ok matches ->
-      Alcotest.failf "expected DepthLimit, got %d matches"
-        (Array.length matches));
+  (match
+     Pcre2_.captures_iter pat.pcre target
+     |> Seq.find_map (function
+       | Error e -> Some e
+       | Ok _ -> None)
+   with
+  | Some Pcre2.DEPTHLIMIT -> ()
+  | Some err ->
+      Alcotest.failf "expected DEPTHLIMIT, got %s"
+        (Format.asprintf "%a" Pcre2.pp_match_error err)
+  | None -> Alcotest.fail "expected DEPTHLIMIT, but matching succeeded");
   let matches = Match.search pat target in
   Alcotest.(check int)
     "recursion limit returns no matches" 0 (List.length matches)
@@ -390,6 +394,12 @@ let test_caseless () =
     "hello" "HeLLo, world"
     [ Num_matches 1; Match_value "HeLLo" ]
 
+let test_invalid_utf () =
+  let invalid_utf = String.make 1 (Char.chr 0xff) in
+  check slconf "hello"
+    (invalid_utf ^ "hello" ^ invalid_utf)
+    [ Num_matches 1; Match_value "hello" ]
+
 let tests =
   Testo.categorize "matching"
     [
@@ -410,4 +420,5 @@ let tests =
       t "right-anchored ellipses" test_right_anchored_ellipses;
       t "pure ellipsis" test_pure_ellipsis;
       t "caseless" test_caseless;
+      t "invalid UTF" test_invalid_utf;
     ]

@@ -152,16 +152,16 @@ let print_expectations () =
     !fn !tn
 
 let test_pcre2_pattern_explosion ~pat ~input expected =
-  let rex = Pcre2_.regexp pat in
+  let rex = Pcre2_.compile_exn pat in
   let res =
-    match Pcre2_.pmatch ~rex input with
+    match Pcre2_.is_match rex input with
     | Ok _ -> Succeeds
-    | Error MatchLimit
-    | Error DepthLimit ->
+    | Error Pcre2.MATCHLIMIT
+    | Error Pcre2.DEPTHLIMIT ->
         Blows_up
     | Error err ->
         Alcotest.failf "unexpected PCRE2 error on %S: %s" pat
-          (Pcre2_.show_error err)
+          (Format.asprintf "%a" Pcre2.pp_match_error err)
   in
   printf "pattern: '%s' %s\n%!" pat (string_of_result res);
   Alcotest.(check string)
@@ -175,6 +175,27 @@ let test_pcre2_pattern_explosions () =
     (fun (pat, input, pcre2_expected, _, _) ->
       test_pcre2_pattern_explosion ~pat ~input pcre2_expected)
     pattern_expectations
+
+let test_pattern_regexp_discards_partial_matches_on_error () =
+  let input = "x" ^ aa in
+  let rex = Pcre2_.compile_exn {|x|(a+)+$|} in
+  let results = Pcre2_.captures_iter rex input |> List.of_seq in
+  Alcotest.(check bool)
+    "the iterator produced a match before failing" true
+    (match results with
+    | Ok _ :: _ -> true
+    | _ -> false);
+  Alcotest.(check bool)
+    "the iterator eventually hit the match limit" true
+    (List.exists
+       (function
+         | Error Pcre2.MATCHLIMIT -> true
+         | _ -> false)
+       results);
+  UTmp.with_temp_file ~contents:input (fun file ->
+      let matches = Xpattern_match_regexp.regexp_matcher input file rex in
+      Alcotest.(check int)
+        "a later match error discards earlier matches" 0 (List.length matches))
 
 let test_vulnerability_prediction () =
   print_expectations ();
@@ -203,5 +224,7 @@ let tests =
   [
     t "unescape" test_unescape;
     t "pcre2 pattern explosion" test_pcre2_pattern_explosions;
+    t "pattern-regexp match error"
+      test_pattern_regexp_discards_partial_matches_on_error;
     t "vulnerability prediction" test_vulnerability_prediction;
   ]
