@@ -60,8 +60,17 @@ let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
     ?(par : (Parallelism_config.eio_state * int) option) () =
   let mk ~interfile =
     let h = Base.Hashtbl.Poly.create ~size:(List.length rules) () in
-    let compute_kv (r : Rule.t) =
-      (fst r.id, Prefiltering.File.of_rule ~interfile r)
+    (* [Concurrent.map] runs this in other domains, where the ambient trace
+       context is not set, so restore the current one. *)
+    let compute_kv =
+      Telemetry.force_curr_scope (fun (r : Rule.t) ->
+          let%trace_debug sp = "prefilter.file.generation.rule" in
+          Tracing.add_data_to_span sp
+            [
+              ("rule_id", `String (Rule_ID.to_string (fst r.id)));
+              ("interfile", `Bool interfile);
+            ];
+          (fst r.id, Prefiltering.File.of_rule ~interfile r))
     in
     (match par with
     | None ->
