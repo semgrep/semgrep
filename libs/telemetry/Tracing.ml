@@ -157,12 +157,16 @@ let with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data =
   | Some data -> data @ code_attrs
   | None -> code_attrs
 
-let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
+let parent_for_children ?parent (sp : scope) : scope option =
+  if Otel.Span.is_not_dummy sp then Some sp else parent
+
+let with_span ?(level = Info) ?parent ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
+    name f =
   if filter_level level then
     let attrs =
       with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data
     in
-    with_ ~attrs name (fun sp ->
+    with_ ?parent ~attrs name (fun sp ->
         match f sp with
         | result -> result
         | exception exn ->
@@ -173,6 +177,30 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
             Otel.Span.record_exception sp exn bt;
             Printexc.raise_with_backtrace exn bt)
   else f empty_scope
+
+let with_span_lwt ?(level = Info) ?parent ?__FUNCTION__ ~__FILE__ ~__LINE__
+    ?data name f =
+  if filter_level level then
+    let attrs =
+      with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data
+    in
+    let thunk, finish =
+      Otel.Tracer.with_thunk_and_finally Otel.Tracer.default ?parent ~attrs name
+        f
+    in
+    Lwt.try_bind thunk
+      (fun result ->
+        finish (Ok ());
+        Lwt.return result)
+      (fun exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        finish (Error (exn, bt));
+        Lwt.fail exn)
+  else
+    (* Like [Lwt.try_bind] above, turn exceptions raised synchronously by [f]
+       into a failed promise, so callers see the same behavior whether or not
+       the span is filtered out. *)
+    Lwt.apply f empty_scope
 
 let with_span_result ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
     ?error_to_string name f =
