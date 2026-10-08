@@ -72,10 +72,7 @@ let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
       Telemetry.force_curr_scope (fun (r : Rule.t) ->
           let%trace_debug sp = "prefilter.file.generation.rule" in
           Tracing.add_data_to_span sp
-            [
-              ("rule_id", `String (Rule_ID.to_string (fst r.id)));
-              ("interfile", `Bool interfile);
-            ];
+            (Trace_data.data_of_rule r @ [ ("interfile", `Bool interfile) ]);
           (fst r.id, Prefiltering.File.of_rule ~interfile r))
     in
     (match par with
