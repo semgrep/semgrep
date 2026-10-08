@@ -66,11 +66,9 @@ let test_one_missing_history_object () =
   let commit =
     Commit.make ~tree:missing_tree ~author:user ~committer:user (Some "test")
   in
-  let objects = Base.Hashtbl.Poly.create () in
-  Base.Hashtbl.set objects ~key:(Commit.digest commit)
-    ~data:(Git.Value.Commit commit);
   let commits =
-    Git_wrapper.commit_blobs_by_date (ROHashtbl.Base.of_hashtbl objects)
+    Git_wrapper.commit_blobs_by_date ~find_tree:(Fun.const None)
+      ~find_blob_size:(Fun.const None) [ commit ]
   in
   match commits with
   | [ (actual_commit, []) ] ->
@@ -100,18 +98,22 @@ let test_memoized_tree_paths () =
   in
   let commit_a = commit root_a "a" in
   let commit_b = commit root_b "b" in
-  let objects = Base.Hashtbl.Poly.create () in
-  let add hash value = Base.Hashtbl.set objects ~key:hash ~data:value in
-  add blob_hash (Git.Value.Blob blob);
-  add subtree_hash (Git.Value.Tree subtree);
-  add (Tree.digest root_a) (Git.Value.Tree root_a);
-  add (Tree.digest root_b) (Git.Value.Tree root_b);
-  add (Commit.digest commit_a) (Git.Value.Commit commit_a);
-  add (Commit.digest commit_b) (Git.Value.Commit commit_b);
+  let trees = Base.Hashtbl.Poly.create () in
+  let add_tree tree =
+    Base.Hashtbl.set trees ~key:(Tree.digest tree) ~data:tree
+  in
+  add_tree subtree;
+  add_tree root_a;
+  add_tree root_b;
   let paths =
-    Git_wrapper.commit_blobs_by_date (ROHashtbl.Base.of_hashtbl objects)
+    Git_wrapper.commit_blobs_by_date ~find_tree:(Base.Hashtbl.find trees)
+      ~find_blob_size:(fun hash ->
+        if Git_wrapper.equal_hash hash blob_hash then
+          Some (blob |> Blob.length |> Int64.to_int)
+        else None)
+      [ commit_a; commit_b ]
     |> List.concat_map snd
-    |> List.map (fun (blob : Git_wrapper.blob_with_extra) -> blob.path)
+    |> List.map (fun (blob : Git_wrapper.blob_info) -> blob.path)
     |> List.sort Fpath.compare
   in
   let fpath = Alcotest.testable Fpath.pp Fpath.equal in
@@ -134,6 +136,37 @@ let test_dirty_lines () =
         (Some [| (2, 4); (6, 7) |])
         actual)
 
+let test_list_object_metadata () =
+  Testutil_git.with_git_repo ~verbose:false
+    [ File ("hello.txt", "hello") ]
+    (fun cwd ->
+      let objects =
+        Git_wrapper.list_object_metadata ~cwd () |> Git_wrapper.fatal
+      in
+      let has_kind predicate =
+        List.exists
+          (fun ({ kind; _ } : Git_wrapper.object_metadata) -> predicate kind)
+          objects
+      in
+      Alcotest.(check bool)
+        "commit is enumerated" true
+        (has_kind (function
+          | `Commit -> true
+          | _ -> false));
+      Alcotest.(check bool)
+        "tree is enumerated" true
+        (has_kind (function
+          | `Tree -> true
+          | _ -> false));
+      Alcotest.(check bool)
+        "blob size is enumerated" true
+        (List.exists
+           (fun ({ kind; size; _ } : Git_wrapper.object_metadata) ->
+             match kind with
+             | `Blob -> Int.equal size (String.length "hello")
+             | _ -> false)
+           objects))
+
 let tests =
   [
     t ?skipped:Testutil.skip_on_windows "user identity" test_user_identity;
@@ -141,6 +174,7 @@ let tests =
     t "skip one missing history object" test_one_missing_history_object;
     t "memoized tree paths" test_memoized_tree_paths;
     t ?skipped:Testutil.skip_on_windows "dirty lines" test_dirty_lines;
+    t "list object metadata" test_list_object_metadata;
     t "get git project root" (fun () ->
         let cwd = Sys.getcwd () |> Fpath.v in
         match Git_wrapper.project_root_for_files_in_dir cwd with
