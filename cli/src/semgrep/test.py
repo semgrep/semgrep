@@ -473,6 +473,10 @@ def generate_test_results(
     json_output: bool,
     engine_type: EngineType,
     optimizations: str = "none",
+    timeout: int = 0,
+    timeout_threshold: int = 0,
+    max_memory: int = 0,
+    jobs: Optional[int] = None,
 ) -> None:
     config_filenames = get_config_filenames(config)
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
@@ -506,8 +510,12 @@ def generate_test_results(
         no_rewrite_rule_ids=no_rewrite_rule_ids,
         strict=strict,
         optimizations=optimizations,
+        timeout=timeout,
+        timeout_threshold=timeout_threshold,
+        max_memory=max_memory,
     )
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    pool_size = jobs if jobs and jobs > 0 else multiprocessing.cpu_count()
+    with multiprocessing.Pool(pool_size) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
     config_with_errors, config_without_errors = partition(results, lambda r: bool(r[1]))
@@ -600,11 +608,14 @@ def generate_test_results(
         no_rewrite_rule_ids=no_rewrite_rule_ids,
         strict=strict,
         optimizations=optimizations,
+        timeout=timeout,
+        timeout_threshold=timeout_threshold,
+        max_memory=max_memory,
         # only option that differs from the earlier call to semgrep-core:
         autofix=AutofixBehavior.APPLY,
     )
 
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    with multiprocessing.Pool(pool_size) as pool:
         results = pool.starmap(invoke_semgrep_with_autofix_fn, config_with_tempfiles)
 
     fixtest_comparisons = {
@@ -723,6 +734,10 @@ def test_main(
     json: bool,
     optimizations: str,
     engine_type: EngineType,
+    timeout: int = 0,
+    timeout_threshold: int = 0,
+    max_memory: int = 0,
+    jobs: Optional[int] = None,
 ) -> None:
     if len(scanning_roots) != 1:
         raise Exception("only one target directory allowed for tests")
@@ -744,4 +759,8 @@ def test_main(
         json_output=json,
         engine_type=engine_type,
         optimizations=optimizations,
+        timeout=timeout,
+        timeout_threshold=timeout_threshold,
+        max_memory=max_memory,
+        jobs=jobs,
     )
