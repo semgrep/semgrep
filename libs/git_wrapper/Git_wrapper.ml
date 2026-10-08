@@ -135,11 +135,13 @@ let simplify_cmd_error ~errmsg_prefix ~cmd
  *     @@ -10,3 +20,3 @@
  *
  * where the 3 is the number of lines that were changed
- * We use a named capture group for the lines, and then split on the comma if
- * it's a multiline diff
+ * We capture the start line and optional change count separately.
  *)
-let git_diff_lines_re = Pcre2_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let remote_repo_name_re = Pcre2_.regexp {|^http.*\/(.*)\.git$|}
+let git_diff_lines_re =
+  Pcre2_.compile_exn
+    {|@@ -\d+(?:,\d+)? \+(?P<start>\d+)(?:,(?P<count>\d+))? @@|}
+
+let remote_repo_name_re = Pcre2_.compile_exn {|^http.*\/(?P<repo>.*)\.git$|}
 let getcwd () = Sys.getcwd () |> Fpath.v
 
 (*
@@ -178,36 +180,32 @@ let flag name (is_set : bool) : string list =
 
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
-  let range_of_substrings substrings =
-    let line = Pcre2.get_substring substrings 1 in
-    let lines = String.split_on_char ',' line in
-    let first_line =
-      match lines with
-      | [] -> assert false
-      | h :: _ -> h
+  let range_of_captures captures =
+    let start =
+      Option.bind
+        (Pcre2_.named_substring_of_captures captures "start")
+        int_of_string_opt
     in
-    let start = int_of_string first_line in
     let change_count =
-      if List.length lines > 1 then int_of_string (List.nth lines 1) else 1
+      match Pcre2_.named_substring_of_captures captures "count" with
+      | None -> Some 1
+      | Some count -> int_of_string_opt count
     in
-    let end_ = change_count + start in
-    (start, end_)
+    match (start, change_count) with
+    | Some start, Some change_count -> Some (start, start + change_count)
+    | _ -> None
   in
-  let matched_ranges = Pcre2_.exec_all ~rex:git_diff_lines_re lines in
-  (* get the first capture group, then optionally split the comma if multiline
-     diff *)
-  match matched_ranges with
-  | Ok ranges ->
-      Array.map
-        (fun s ->
-          try range_of_substrings s with
-          | Not_found -> (-1, -1))
-        ranges
+  match
+    Pcre2_.captures_iter git_diff_lines_re lines
+    |> List.of_seq |> Result_.collect
+  with
   | Error _ -> [||]
+  | Ok captures ->
+      captures |> List.filter_map range_of_captures |> Array.of_list
 
 let remote_repo_name url =
-  match Pcre2_.exec ~rex:remote_repo_name_re url with
-  | Ok (Some substrings) -> Some (Pcre2.get_substring substrings 1)
+  match Pcre2_.captures remote_repo_name_re url with
+  | Ok (Some captures) -> Pcre2_.named_substring_of_captures captures "repo"
   | _ -> None
 
 (* Objects referenced by history may be absent from the store or have an

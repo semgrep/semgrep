@@ -120,12 +120,27 @@ let test_memoized_tree_paths () =
     [ Fpath.v "a/value.txt"; Fpath.v "b/value.txt" ]
     paths
 
+let test_dirty_lines () =
+  let relative_file = Fpath.v "test.txt" in
+  Testutil_git.with_git_repo ~verbose:false
+    [ File ("test.txt", "one\ntwo\nthree\nfour\nfive\n") ]
+    (fun cwd ->
+      UFile.write_file
+        ~file:Fpath.(cwd / "test.txt")
+        "one\nnew two\nnew three\nfour\nfive\nsix\n";
+      let actual = Git_wrapper.dirty_lines_of_file_exn ~cwd relative_file in
+      Alcotest.(check (option (array (pair int int))))
+        "single- and multi-line ranges"
+        (Some [| (2, 4); (6, 7) |])
+        actual)
+
 let tests =
   [
     t ?skipped:Testutil.skip_on_windows "user identity" test_user_identity;
     t "ls_files stress test" test_ls_files_stress;
     t "skip one missing history object" test_one_missing_history_object;
     t "memoized tree paths" test_memoized_tree_paths;
+    t ?skipped:Testutil.skip_on_windows "dirty lines" test_dirty_lines;
     t "get git project root" (fun () ->
         let cwd = Sys.getcwd () |> Fpath.v in
         match Git_wrapper.project_root_for_files_in_dir cwd with
