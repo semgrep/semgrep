@@ -5314,6 +5314,38 @@ class ResolutionCmdFailed:
 
 
 @dataclass(frozen=True)
+class IncompleteDependencyResolution:
+    """Original type: incomplete_dependency_resolution = { ... }
+    """
+
+    command: str
+    message: str
+
+    @classmethod
+    def from_json(cls, x: Any) -> 'IncompleteDependencyResolution':
+        if isinstance(x, dict):
+            return cls(
+                command=_atd_read_string(x['command']) if 'command' in x else _atd_missing_json_field('IncompleteDependencyResolution', 'command'),
+                message=_atd_read_string(x['message']) if 'message' in x else _atd_missing_json_field('IncompleteDependencyResolution', 'message'),
+            )
+        else:
+            _atd_bad_json('IncompleteDependencyResolution', x)
+
+    def to_json(self) -> Any:
+        res: Dict[str, Any] = {}
+        res['command'] = _atd_write_string(self.command)
+        res['message'] = _atd_write_string(self.message)
+        return res
+
+    @classmethod
+    def from_json_string(cls, x: str) -> 'IncompleteDependencyResolution':
+        return cls.from_json(json.loads(x))
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
 class UnsupportedManifest:
     """Original type: resolution_error_kind = [ ... | UnsupportedManifest | ... ]
     """
@@ -5414,10 +5446,32 @@ class ScaParseError:
 
 
 @dataclass(frozen=True)
+class IncompleteDependencyResolution_:
+    """Original type: resolution_error_kind = [ ... | IncompleteDependencyResolution of ... | ... ]
+
+    the dependency manager succeeded but returned an incomplete dependency
+    graph
+    """
+
+    value: IncompleteDependencyResolution
+
+    @property
+    def kind(self) -> str:
+        """Name of the class representing this variant."""
+        return 'IncompleteDependencyResolution_'
+
+    def to_json(self) -> Any:
+        return ['IncompleteDependencyResolution', (lambda x: x.to_json())(self.value)]
+
+    def to_json_string(self, **kw: Any) -> str:
+        return json.dumps(self.to_json(), **kw)
+
+
+@dataclass(frozen=True)
 class ResourceInaccessible_:
     """Original type: resolution_error_kind = [ ... | ResourceInaccessible of ... | ... ]
 
-    unable to access private registry, likely due to missing credentials
+    unable to retrieve a dependency from a registry
     """
 
     value: ResourceInaccessible
@@ -5439,7 +5493,7 @@ class ResolutionErrorKind:
     """Original type: resolution_error_kind = [ ... ]
     """
 
-    value: Union[UnsupportedManifest, MissingRequirement, ResolutionCmdFailed_, ParseDependenciesFailed, ScaParseError, ResourceInaccessible_]
+    value: Union[UnsupportedManifest, MissingRequirement, ResolutionCmdFailed_, ParseDependenciesFailed, ScaParseError, IncompleteDependencyResolution_, ResourceInaccessible_]
 
     @property
     def kind(self) -> str:
@@ -5462,6 +5516,8 @@ class ResolutionErrorKind:
                 return cls(ParseDependenciesFailed(_atd_read_string(x[1])))
             if cons == 'ScaParseError':
                 return cls(ScaParseError(ScaParserName.from_json(x[1])))
+            if cons == 'IncompleteDependencyResolution':
+                return cls(IncompleteDependencyResolution_(IncompleteDependencyResolution.from_json(x[1])))
             if cons == 'ResourceInaccessible':
                 return cls(ResourceInaccessible_(ResourceInaccessible.from_json(x[1])))
             _atd_bad_json('ResolutionErrorKind', x)
