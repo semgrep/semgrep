@@ -25,6 +25,7 @@ import attr
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.constants import Colors
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.error_location import Position
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
@@ -169,6 +170,15 @@ class SemgrepCoreError(SemgrepError):
     spans: Optional[List[out.ErrorSpan]]
     core: out.CoreError
 
+    # Substring of engine messages reporting that a rule uses an operator
+    # available only in the Pro engine, e.g.:
+    #   "metavariable-name:module(s) operator is only supported in the Pro engine"
+    # The engine surfaces these as a generic MatchingError, which
+    # error_type_string() renders as "Internal matching error" -- mislabeling
+    # a known product limitation as an internal bug and wrongly inviting the
+    # user to file a GitHub issue.
+    _PRO_ONLY_OPERATOR_MESSAGE_FRAGMENT = "operator is only supported in the Pro engine"
+
     def type_(self) -> out.ErrorType:
         return self.core.error_type
 
@@ -246,6 +256,30 @@ class SemgrepCoreError(SemgrepError):
         return isinstance(self.core.error_type.value, out.MissingPlugin)
 
     @property
+    def is_pro_only_operator_error(self) -> bool:
+        """
+        True when the engine reports a rule using a Pro-only operator as a
+        generic matching error. The engine has no dedicated error type for
+        this case, so the message text is the only signal. This is a known
+        product limitation, not an internal bug: it must not be labeled
+        "Internal matching error" and must not ask the user to file an issue.
+        """
+        return isinstance(
+            self.core.error_type.value, out.MatchingError
+        ) and self._PRO_ONLY_OPERATOR_MESSAGE_FRAGMENT in self.core.message
+
+    @property
+    def _pro_only_operator_message(self) -> str:
+        """
+        The engine prefixes these messages with the generic file-an-issue
+        preamble; drop it so the limitation is stated plainly.
+        """
+        message = self.core.message
+        if message.startswith(PLEASE_FILE_ISSUE_TEXT):
+            message = message[len(PLEASE_FILE_ISSUE_TEXT) :].lstrip()
+        return message
+
+    @property
     def _error_message(self) -> str:
         """
         Generate error message exposed to user
@@ -270,6 +304,9 @@ class SemgrepCoreError(SemgrepError):
             error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"
         else:
             error_context = ""
+
+        if self.is_pro_only_operator_error:
+            return f"Pro-only operator {error_context}:\n {self._pro_only_operator_message}"
 
         return f"{error_type_string(self.core.error_type)} {error_context}:\n {self.core.message}"
 

@@ -14,6 +14,7 @@
 import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.error import SemgrepCoreError
 
 
@@ -41,6 +42,119 @@ def _make_semgrep_core_error(error_type: out.ErrorType) -> SemgrepCoreError:
         spans=None,
         core=core_error,
     )
+
+
+# Mirrors the engine output pasted in
+# https://github.com/semgrep/semgrep/issues/11885: the engine prefixes the
+# real cause with the generic file-an-issue preamble.
+PRO_ONLY_OPERATOR_MESSAGE = (
+    f"{PLEASE_FILE_ISSUE_TEXT}\n\n"
+    "metavariable-name:module(s) operator is only supported in the Pro engine"
+)
+
+
+def _make_rule_core_error(error_type: out.ErrorType, message: str) -> SemgrepCoreError:
+    """Helper to create a SemgrepCoreError for a rule running on a target."""
+    core_error = out.CoreError(
+        error_type=error_type,
+        severity=out.ErrorSeverity(out.Error_()),
+        location=out.Location(
+            path=out.Fpath("eslint.config.js"),
+            start=out.Position(line=1, col=1, offset=0),
+            end=out.Position(line=1, col=1, offset=0),
+        ),
+        message=message,
+        details=None,
+        rule_id=out.RuleId(
+            "javascript.crypto-js.cryptojs-weak-algorithm.cryptojs-weak-algorithm"
+        ),
+    )
+    return SemgrepCoreError(
+        code=2,  # FATAL_EXIT_CODE
+        level=out.ErrorSeverity(out.Error_()),
+        spans=None,
+        core=core_error,
+    )
+
+
+class TestProOnlyOperatorError:
+    """
+    Regression tests for https://github.com/semgrep/semgrep/issues/11885.
+
+    The OSS engine reports rules using Pro-only operators as a generic
+    MatchingError ("Internal matching error") whose message begs the user to
+    file a GitHub issue -- even though the message itself states the known
+    limitation. These must be labeled as what they are instead.
+    """
+
+    @pytest.mark.quick
+    def test_pro_only_operator_is_reclassified(self):
+        error = _make_rule_core_error(
+            out.ErrorType(out.MatchingError()), PRO_ONLY_OPERATOR_MESSAGE
+        )
+        assert error.is_pro_only_operator_error is True
+
+        rendered = str(error)
+        assert rendered.startswith("Pro-only operator ")
+        assert "when running" in rendered
+        assert "cryptojs-weak-algorithm" in rendered
+        assert "Internal matching error" not in rendered
+        # The file-an-issue preamble must not be shown for a known limitation.
+        assert PLEASE_FILE_ISSUE_TEXT not in rendered
+        assert "https://github.com/semgrep/semgrep" not in rendered
+        # The actual cause is preserved.
+        assert (
+            "metavariable-name:module(s) operator is only supported in the Pro engine"
+            in rendered
+        )
+
+    @pytest.mark.quick
+    def test_pro_only_operator_without_preamble_is_reclassified(self):
+        cause = "taint-sink:foo operator is only supported in the Pro engine"
+        error = _make_rule_core_error(out.ErrorType(out.MatchingError()), cause)
+        assert error.is_pro_only_operator_error is True
+
+        rendered = str(error)
+        assert "Internal matching error" not in rendered
+        assert cause in rendered
+
+    @pytest.mark.quick
+    def test_genuine_matching_error_is_unchanged(self):
+        # A real engine-side failure must keep its label and its
+        # file-an-issue invitation (cf. the metavariable-pattern e2e snapshot).
+        message = (
+            f"{PLEASE_FILE_ISSUE_TEXT}\n\n"
+            "rule some.rule: metavariable-pattern failed when parsing "
+            "$SHELL's content as Bash"
+        )
+        error = _make_rule_core_error(out.ErrorType(out.MatchingError()), message)
+        assert error.is_pro_only_operator_error is False
+
+        rendered = str(error)
+        assert "Internal matching error" in rendered
+        assert PLEASE_FILE_ISSUE_TEXT in rendered
+
+    @pytest.mark.quick
+    def test_pro_message_with_other_error_type_is_unchanged(self):
+        # Conservative: only reclassify when the engine also reports the
+        # generic matching-error type.
+        error = _make_rule_core_error(
+            out.ErrorType(out.FatalError()), PRO_ONLY_OPERATOR_MESSAGE
+        )
+        assert error.is_pro_only_operator_error is False
+        assert "Internal matching error" not in str(error)
+        assert "Fatal error" in str(error)
+
+    @pytest.mark.quick
+    def test_cli_error_message_uses_new_label(self):
+        # Pins the --json errors[].message path, which goes through str().
+        error = _make_rule_core_error(
+            out.ErrorType(out.MatchingError()), PRO_ONLY_OPERATOR_MESSAGE
+        )
+        cli_error = error.to_CliError()
+        assert "Pro-only operator" in cli_error.message
+        assert "Internal matching error" not in cli_error.message
+        assert PLEASE_FILE_ISSUE_TEXT not in cli_error.message
 
 
 class TestIsScanFailure:
