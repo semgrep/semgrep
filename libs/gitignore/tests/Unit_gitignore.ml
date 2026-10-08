@@ -541,6 +541,20 @@ let test_empty_pattern () =
         failwith (sprintf "empty lines should not ignore path %S" path))
     [ "/a"; "/foo.c"; "/a/b"; "/a/"; "/x/y/z" ]
 
+let test_byte_oriented_line_splitting () =
+  let patterns =
+    Parse_gitignore.from_string ~anchor:Glob.Pattern.root_pattern ~name:"test"
+      ~source_kind:"test" "# invalid byte: \255\r\nfoo   \r\nbar   "
+  in
+  let line_contents =
+    List.map
+      (fun ({ selector = { loc; _ }; _ } : Parse_gitignore.parsed_pattern) ->
+        loc.line_contents)
+      patterns
+  in
+  Alcotest.(check (list string))
+    "CRLF and trailing-space behavior" [ "foo"; "bar   " ] line_contents
+
 let tests =
   let open F in
   Testo.categorize "Gitignore"
@@ -550,6 +564,8 @@ let tests =
       Testo.create "strategy negation" test_negation;
       Testo.create "strategy multi-pattern" test_multiple_patterns_same_key;
       Testo.create "strategy empty pattern" test_empty_pattern;
+      Testo.create "byte-oriented line splitting"
+        test_byte_oriented_line_splitting;
       Testo.create "walker skips .git" test_walk_skips_dot_git;
       Testo.create "walker does not follow symlinks"
         test_walk_does_not_follow_symlinks;

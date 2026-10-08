@@ -17,40 +17,45 @@ module M = Glob.Match
 (* Helpers *)
 (*****************************************************************************)
 
-let read_lines_from_string =
-  (*
-     - eliminate trailing spaces
-     - support Windows line endings regardless of current platform
-  *)
-  let sep = Pcre2_.regexp " *\r?\n" in
-  fun str ->
-    match Pcre2_.split ~rex:sep str with
-    | Ok res -> res
-    | Error err ->
-        (* not sure why it would happen so we let it fail *)
-        raise (Pcre2.Error err)
+(*
+   - eliminate trailing spaces
+   - support Windows line endings regardless of current platform
 
-let is_ignored_line =
-  let rex = Pcre2_.regexp "^(?:[ \t]$|#.*)$" in
-  fun str -> Pcre2_.pmatch_noerr ~rex str
+   Gitignore content is byte-oriented (paths need not be valid UTF-8), so we
+   split by hand rather than with a (UTF-compiled) regex, which fails on such
+   input. This is equivalent to splitting on the regex [ *\r?\n]: each
+   newline-terminated line is stripped of one trailing '\r' and then of
+   trailing spaces, while any final newline-less fragment is kept verbatim.
+*)
+let read_lines_from_string str =
+  let strip_line_end line =
+    String_.trim_cr line |> Base.String.rstrip ~drop:(Char.equal ' ')
+  in
+  let lines = String.split_on_char '\n' str in
+  let last_index = List.length lines - 1 in
+  List.mapi
+    (fun index line ->
+      (* The final field was not terminated by a newline, so keep it verbatim. *)
+      if index = last_index then line else strip_line_end line)
+    lines
+
+let is_ignored_line = function
+  | " "
+  | "\t" ->
+      true
+  | str -> String.starts_with ~prefix:"#" str
 
 (* semgrep-legacy (deprecated)
 
    Try to parse a line of input as a ':include' instruction
 *)
 let parse_maybe_include_line =
-  let rex = Pcre2_.regexp {|^[ \t]*:include[ \t]*([^ \t]*)[ \t]*$|} in
+  let rex = Pcre2_.compile_exn {|^[ \t]*:include[ \t]*([^ \t]*)[ \t]*$|} in
   let parse line : Fpath.t option =
-    match Pcre2_.exec ~rex line with
-    | Ok (Some res) -> (
-        match Pcre2_.get_substring rex res 1 with
-        | Ok (Some path) -> (
-            match Fpath.of_string path with
-            | Ok path -> Some path
-            | Error _ -> None)
-        | Ok None
-        | Error _ ->
-            None)
+    match Pcre2_.captures rex line with
+    | Ok (Some res) ->
+        Option.bind (Pcre2_.substring_of_captures res 1) (fun path ->
+            Fpath.of_string path |> Result.to_option)
     | Ok None
     | Error _ ->
         None
