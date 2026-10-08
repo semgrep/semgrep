@@ -198,20 +198,30 @@ let check_headers actual_headers expected_headers =
     | ( (expected_header, expected_value) :: expected_headers,
         (actual_header, actual_value) :: actual_headers ) ->
         if String.equal expected_header actual_header then
+          (* Anchor the whole match at compile time: the new [is_match] only
+             accepts match options, and [`ANCHORED]/[`ENDANCHORED] are compile
+             options, so we set them here to preserve the previous exact-match
+             semantics. *)
           let value_regex =
             if
               String.starts_with ~prefix:"regex{" expected_value
               && String.ends_with ~suffix:"}" expected_value
             then
-              Pcre2_.regexp
+              Pcre2_.compile
+                ~options:[ `ANCHORED; `ENDANCHORED ]
                 (String.sub expected_value 6 (String.length expected_value - 7))
-            else Pcre2_.regexp (Pcre2_.quote expected_value)
+            else
+              Pcre2_.compile
+                ~options:[ `ANCHORED; `ENDANCHORED ]
+                (Pcre2_.quote expected_value)
           in
-          match
-            Pcre2_.pmatch
-              ~flags:[ `ANCHORED; `ENDANCHORED ]
-              ~rex:value_regex actual_value
-          with
+          let value_regex =
+            match value_regex with
+            | Ok re -> re
+            | Error e ->
+                Alcotest.failf "Invalid regex: %a" Pcre2.pp_compile_error e
+          in
+          match Pcre2_.is_match value_regex actual_value with
           | Ok true -> check (expected_headers, actual_headers)
           | Ok false ->
               Alcotest.failf
@@ -226,7 +236,8 @@ let check_headers actual_headers expected_headers =
                 value_regex
                 (Fmt.styled `Red Fmt.string)
                 actual_value
-          | Error err -> Alcotest.failf "Invalid regex: %a" Pcre2_.pp_error err
+          | Error err ->
+              Alcotest.failf "Regex matching error: %a" Pcre2.pp_match_error err
         else
           Alcotest.failf
             "Expected header '%a', but it was either missing, or header counts \

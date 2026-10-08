@@ -645,8 +645,7 @@ let register_unix_exn_printers () =
 *)
 let register_exception_printers () =
   register_stdlib_exn_printers ();
-  register_unix_exn_printers ();
-  Pcre2_.register_exception_printer ()
+  register_unix_exn_printers ()
 
 (*****************************************************************************)
 (* Run a scan *)

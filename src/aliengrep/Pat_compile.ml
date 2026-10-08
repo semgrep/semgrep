@@ -168,7 +168,7 @@ let ellipsis_pat_of_spacing_param ?(with_whitespace_padding = false)
   let exclude_char =
     match excluded_brace with
     | None -> ""
-    | Some c -> sprintf {|(?!%s)|} (Pcre2.quote (String.make 1 c))
+    | Some c -> sprintf {|(?!%s)|} (Pcre2_.quote (String.make 1 c))
   in
   if with_whitespace_padding then
     sprintf {|(?: %s %s (?: (?>(?&%s)) %s)*? )??|} sp.whitespace_pat
@@ -468,13 +468,17 @@ let compile conf pattern_ast =
   let pcre_pattern, metavariable_groups = to_regexp conf pattern_ast in
   (* `EXTENDED = literal whitespace and comments are ignored *)
   let pcre =
-    try Pcre2_.regexp ~flags:[ `EXTENDED ] pcre_pattern with
-    | exn ->
+    match
+      Pcre2_.compile ~options:[ `EXTENDED; `MATCH_INVALID_UTF ] pcre_pattern
+    with
+    | Ok re -> re
+    | Error err ->
         (* bug *)
-        let e = Exception.catch exn in
         Log.err (fun m ->
             m "Failed to compile PCRE2 pattern:\n%s\n" pcre_pattern);
-        Exception.reraise e
+        failwith
+          (Format.asprintf "Failed to compile PCRE2 pattern: %a"
+             Pcre2.pp_compile_error err)
   in
   { pcre; metavariable_groups }
 
