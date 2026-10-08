@@ -74,20 +74,20 @@ module.exports = grammar(standard_grammar, {
     },
 
     // We want ellipses to be interchangeable with namespace member declarations, so
-    // we need to add them in to `type_declaration` here. 
-    _type_declaration: ($, previous) => { 
+    // we need to add them in to `type_declaration` here.
+    _type_declaration: ($, previous) => {
       return choice(
         ...previous.members,
         $.ellipsis
       )
     },
 
-    // We do this because a file scoped namespace declaration is a top-level 
-    // thing, but ellipses are more particular. We want ellipses to be used 
+    // We do this because a file scoped namespace declaration is a top-level
+    // thing, but ellipses are more particular. We want ellipses to be used
     // in conjunction with file scoped namespace declarations.
-    // Unfortunately, in the base grammar, we can either have ellipsis 
-    // statements, or a file scoped declaration! That's no good. To play 
-    // around the previous grammar, we simply allow what came before to also 
+    // Unfortunately, in the base grammar, we can either have ellipsis
+    // statements, or a file scoped declaration! That's no good. To play
+    // around the previous grammar, we simply allow what came before to also
     // occur before a file scoped namespace declaration.
     file_scoped_namespace_declaration: ($, previous) => {
       return seq(
