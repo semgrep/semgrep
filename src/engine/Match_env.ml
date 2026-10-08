@@ -58,6 +58,12 @@ type prefilter_policy =
 *)
 let make_prefilter ~(rules : Rule.t list) ?(need_interfile = false)
     ?(par : (Parallelism_config.eio_state * int) option) () =
+  let%trace span = "prefilter.file.generation" in
+  Tracing.add_data_to_span span
+    [
+      ("rules_input_count", `Int (List.length rules));
+      ("interfile", `Bool need_interfile);
+    ];
   let mk ~interfile =
     let h = Base.Hashtbl.Poly.create ~size:(List.length rules) () in
     (* [Concurrent.map] runs this in other domains, where the ambient trace
