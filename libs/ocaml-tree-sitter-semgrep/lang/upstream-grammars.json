@@ -103,11 +103,11 @@
     "url": "https://github.com/semgrep/tree-sitter-fga.git"
   },
   "go": {
-    "commit": "05900faa3cdb5d2d8c8bd5e77ee698487e0a8611",
+    "commit": "3c3775faa968158a8b4ac190a7fda867fd5fb748",
     "regen": [
       "go"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-go.git"
   },
   "gomod": {

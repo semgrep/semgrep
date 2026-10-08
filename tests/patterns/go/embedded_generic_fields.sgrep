@@ -1,0 +1,4 @@
+type $T struct {
+  Value string
+  ...
+}

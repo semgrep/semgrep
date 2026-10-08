@@ -8,3 +8,42 @@ value := f()
     (expression_list (identifier))
     (expression_list
       (call_expression (identifier) (argument_list)))))
+
+==================
+Unicode letters and decimal digits in identifiers
+==================
+var ͺ = 1
+var aͺ = 2
+var a١ = 3
+---
+(source_file
+  (var_declaration (var_spec (identifier) (expression_list (int_literal))))
+  (var_declaration (var_spec (identifier) (expression_list (int_literal))))
+  (var_declaration (var_spec (identifier) (expression_list (int_literal)))))
+
+==================
+Combining marks are not Go identifier letters
+==================
+var á = 1
+---
+(source_file
+  (var_declaration
+    (var_spec (identifier) (ERROR (UNEXPECTED 769)) (expression_list (int_literal)))))
+
+==================
+String content boundaries
+==================
+var a = ``
+var b = ` /* raw */ `
+var c = ""
+var d = " /* text */ \x41"
+---
+(source_file
+  (var_declaration (var_spec (identifier) (expression_list
+    (raw_string_literal (raw_string_literal_content)))))
+  (var_declaration (var_spec (identifier) (expression_list
+    (raw_string_literal (raw_string_literal_content)))))
+  (var_declaration (var_spec (identifier) (expression_list
+    (interpreted_string_literal))))
+  (var_declaration (var_spec (identifier) (expression_list
+    (interpreted_string_literal (interpreted_string_literal_content) (escape_sequence))))))
