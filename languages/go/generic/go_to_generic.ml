@@ -119,6 +119,11 @@ let top_func () =
         let targs = type_arguments v2 in
         let name = name_of_qualified_ident id in
         G.TyApply (G.TyN name |> G.t, targs)
+    | TUnderlying (t, ty) ->
+        (* Generic AST has no Go underlying-type-set constructor. *)
+        G.OtherType (("UnderlyingType", t), [ G.T (type_ ty) ])
+    | TUnion (left, op, right) -> G.TyOr (type_ left, op, type_ right)
+    | TApply (ty, args) -> G.TyApply (type_ ty, type_arguments args)
     | TPtr (t, v1) ->
         let v1 = type_ v1 in
         G.TyPointer (t, v1)
@@ -203,6 +208,15 @@ let top_func () =
         let e = G.special spec [ G.N name |> G.e ] in
         let st = G.exprstmt e in
         G.F st
+    | EmbeddedGenericField (pointer, ty) ->
+        let e = type_as_expr ty in
+        let e =
+          match pointer with
+          | None -> e
+          | Some t -> G.DeRef (t, e) |> G.e
+        in
+        let spec = (G.Spread, unsafe_fake "...") in
+        G.F (G.exprstmt (G.special spec [ e ]))
     | FieldEllipsis t -> G.field_ellipsis t
   and tag v =
     let attr = G.(E (e (L (String (fb v))))) in
@@ -223,14 +237,35 @@ let top_func () =
         let e = G.special spec [ G.N name |> G.e ] in
         let st = G.exprstmt e in
         G.F st
+    | EmbeddedGenericInterface ty ->
+        let spec = (G.Spread, unsafe_fake "...") in
+        G.F (G.exprstmt (G.special spec [ type_as_expr ty ]))
     | FieldEllipsis2 t -> G.field_ellipsis t
-    | Constraints xs -> (
-        match xs with
-        | [] -> raise Impossible
-        | (_tilde_optTODO, ty) :: _xsTODO ->
-            let ty = type_ ty in
-            let st = G.OtherStmt (G.OS_Todo, [ G.T ty ]) |> G.s in
-            G.F st)
+    | Constraints xs ->
+        (* There is no dedicated interface type-set field in Generic AST.
+         * Keep every member, including its underlying-type marker. *)
+        let types =
+          List.map
+            (fun (tilde, ty) ->
+              let ty =
+                match tilde with
+                | None -> ty
+                | Some t -> TUnderlying (t, ty)
+              in
+              G.T (type_ ty))
+            xs
+        in
+        G.F (G.OtherStmt (G.OS_Todo, types) |> G.s)
+  and type_as_expr ty =
+    match ty with
+    | TName name -> G.N (name_of_qualified_ident (qualified_ident name)) |> G.e
+    | TGeneric (name, args) ->
+        let name = name_of_qualified_ident (qualified_ident name) in
+        G.N (H.add_type_args_to_name name (type_arguments args)) |> G.e
+    | TApply (TName name, args) -> type_as_expr (TGeneric (name, args))
+    | ty ->
+        (* Non-name types in expression position have no dedicated node. *)
+        G.OtherExpr (("TypeExpression", G.fake ""), [ G.T (type_ ty) ]) |> G.e
   and expr_or_type v = either expr type_ v
   (* used for translating call make/call new *)
   and gen_new ty (l, args, r) t name =
@@ -281,6 +316,7 @@ let top_func () =
       | Call v1 ->
           let e, args = call_expr v1 in
           G.Call (e, args)
+      | TypeInstantiation (ty, args) -> (type_as_expr (TApply (ty, args))).G.e
       | Cast (t, (l, e, r)) ->
           let t = type_ t and e = expr e in
           (* for semgrep and autofix to get the right range by including
