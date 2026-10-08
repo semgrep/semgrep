@@ -37,7 +37,7 @@ exception Error of string
  *  "2.3.4-p2" "2.0.0-M1" "2.0.0-sp1" ...
  *)
 let other_version =
-  Pcre2_.regexp ~flags:[ `CASELESS ]
+  Pcre2_.compile_exn ~options:[ `CASELESS ]
     {|^[0-9]+(\.[0-9]+)*[-.]?(alpha|beta|pre|rc|dev|final|release|incubating|milestone|next|stable|lts|preview|fp|cr|sp|pl|[abempquv])[-.]?[0-9]*$|}
 
 (* ex: "117.veb" "0.5.0b3.dev42" "720.vbe985dd73d66" "1206.v14049fa"
@@ -45,7 +45,7 @@ let other_version =
  * constraint)
  *)
 let almost_bailout_version =
-  Pcre2_.regexp {|^[0-9]+(\.[0-9]+)*[-.][a-zA-Z0-9._-]+$|}
+  Pcre2_.compile_exn {|^[0-9]+(\.[0-9]+)*[-.][a-zA-Z0-9._-]+$|}
 
 (* TODO: port part of specifiers.py?
  * TODO: pass more context (e.g., a Tok.t) for better Logs.warn or error
@@ -89,8 +89,10 @@ let parse (str : string) : SCA_version.t =
         }
   | _ ->
       if
-        (not (Pcre2_.pmatch_noerr ~rex:other_version str))
-        && not (Pcre2_.pmatch_noerr ~rex:almost_bailout_version str)
+        (not (Pcre2_.is_match other_version str |> Result.value ~default:false))
+        && not
+             (Pcre2_.is_match almost_bailout_version str
+             |> Result.value ~default:false)
         (* nosemgrep: no-logs-in-library *)
       then Logs.debug (fun m -> m "unrecognized version format for %s" str);
       (* alt: raise (Error (spf "wrong version format for %s" str)) in *)

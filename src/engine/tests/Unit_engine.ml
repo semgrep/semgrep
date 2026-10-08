@@ -708,7 +708,7 @@ let prefilter_ranking_tests =
   let module F = Prefiltering.Formula in
   let module P = Prefiltering.Predicate in
   let str s = F.pred (P.String { needle = s; case_sensitive = true }) in
-  let re s = F.pred (P.Regex (Pcre2_.pcre_compile s)) in
+  let re s = F.pred (P.Regex (Pcre2_.compile_exn ~options:[ `MULTILINE ] s)) in
   let and_ xs = Option.get (F.and_ xs) in
   let or_ xs = Option.get (F.or_ xs) in
   let check name formula expected =

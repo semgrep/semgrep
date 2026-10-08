@@ -40,8 +40,8 @@ exception Malformed_rule_ID of string
 let to_string x = x
 
 let validate =
-  let rex = Pcre2_.regexp "^[a-zA-Z0-9._-]*$" in
-  fun str -> Pcre2_.pmatch_noerr ~rex str
+  let rex = Pcre2_.compile_exn "^[a-zA-Z0-9._-]*$" in
+  fun str -> Pcre2_.is_match rex str |> Result.value ~default:false
 
 let sanitize_string str =
   let buf = Buffer.create (String.length str) in
