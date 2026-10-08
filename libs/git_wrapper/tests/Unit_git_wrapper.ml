@@ -56,10 +56,34 @@ let test_ls_files_stress () =
       done;
       printf "ls_files stress test: %d iterations passed\\n" iterations)
 
+let test_one_missing_history_object () =
+  let module Hash = Git.Hash.Make (Digestif.SHA1) in
+  let module Commit = Git.Commit.Make (Hash) in
+  let missing_tree = Hash.digest_string "missing tree" in
+  let user : Git.User.t =
+    { name = "Tester"; email = "tester@example.com"; date = (0L, None) }
+  in
+  let commit =
+    Commit.make ~tree:missing_tree ~author:user ~committer:user (Some "test")
+  in
+  let objects = Base.Hashtbl.Poly.create () in
+  Base.Hashtbl.set objects ~key:(Commit.digest commit)
+    ~data:(Git.Value.Commit commit);
+  let commits =
+    Git_wrapper.commit_blobs_by_date (ROHashtbl.Base.of_hashtbl objects)
+  in
+  match commits with
+  | [ (actual_commit, []) ] ->
+      Alcotest.(check bool)
+        "commit with a missing tree is retained" true
+        (Git_wrapper.equal_commit commit actual_commit)
+  | _ -> Alcotest.fail "expected one commit with no resolved blobs"
+
 let tests =
   [
     t ?skipped:Testutil.skip_on_windows "user identity" test_user_identity;
     t "ls_files stress test" test_ls_files_stress;
+    t "skip one missing history object" test_one_missing_history_object;
     t "get git project root" (fun () ->
         let cwd = Sys.getcwd () |> Fpath.v in
         match Git_wrapper.project_root_for_files_in_dir cwd with
