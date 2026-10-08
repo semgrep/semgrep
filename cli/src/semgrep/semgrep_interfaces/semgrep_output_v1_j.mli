@@ -972,6 +972,13 @@ type resolution_cmd_failed = Semgrep_output_v1_t.resolution_cmd_failed = {
 }
   [@@deriving show]
 
+type incomplete_dependency_resolution =
+  Semgrep_output_v1_t.incomplete_dependency_resolution = {
+  command: string;
+  message: string
+}
+  [@@deriving show]
+
 type resolution_error_kind = Semgrep_output_v1_t.resolution_error_kind = 
     UnsupportedManifest
   | MissingRequirement of string
@@ -986,10 +993,13 @@ type resolution_error_kind = Semgrep_output_v1_t.resolution_error_kind =
         a lockfile parser failed since semgrep 1.109.0 (to replace
         dependency_parser_error)
       *)
-  | ResourceInaccessible of resource_inaccessible
+  | IncompleteDependencyResolution of incomplete_dependency_resolution
       (**
-        unable to access private registry, likely due to missing credentials
+        the dependency manager succeeded but returned an incomplete
+        dependency graph
       *)
+  | ResourceInaccessible of resource_inaccessible
+      (** unable to retrieve a dependency from a registry *)
 
   [@@deriving show]
 
@@ -3933,6 +3943,26 @@ val read_resolution_cmd_failed :
 val resolution_cmd_failed_of_string :
   string -> resolution_cmd_failed
   (** Deserialize JSON data of type {!type:resolution_cmd_failed}. *)
+
+val write_incomplete_dependency_resolution :
+  Buffer.t -> incomplete_dependency_resolution -> unit
+  (** Output a JSON value of type {!type:incomplete_dependency_resolution}. *)
+
+val string_of_incomplete_dependency_resolution :
+  ?len:int -> incomplete_dependency_resolution -> string
+  (** Serialize a value of type {!type:incomplete_dependency_resolution}
+      into a JSON string.
+      @param len specifies the initial length
+                 of the buffer used internally.
+                 Default: 1024. *)
+
+val read_incomplete_dependency_resolution :
+  Yojson.Safe.lexer_state -> Lexing.lexbuf -> incomplete_dependency_resolution
+  (** Input JSON data of type {!type:incomplete_dependency_resolution}. *)
+
+val incomplete_dependency_resolution_of_string :
+  string -> incomplete_dependency_resolution
+  (** Deserialize JSON data of type {!type:incomplete_dependency_resolution}. *)
 
 val write_resolution_error_kind :
   Buffer.t -> resolution_error_kind -> unit
