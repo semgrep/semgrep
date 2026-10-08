@@ -78,6 +78,7 @@ val record_exn_curr_span : exn -> Printexc.raw_backtrace -> unit
 
 val with_span :
   ?level:level ->
+  ?parent:scope ->
   ?__FUNCTION__:string ->
   __FILE__:string ->
   __LINE__:int ->
@@ -88,6 +89,29 @@ val with_span :
 (** Expose the function to instrument code to send traces.
     Prefer using the ppx. On exception, automatically sets the span status to
     [Error] and records the exception before re-raising. *)
+
+val parent_for_children : ?parent:scope -> scope -> scope option
+(** [parent_for_children ?parent span] is the scope to pass as the explicit
+    parent of spans created under [span]: [span] itself, unless it was filtered
+    out by its level, in which case [parent] (the explicit parent of [span], if
+    any). This keeps spans with a lower level than [span] in the right trace
+    when [span] is filtered out. *)
+
+val with_span_lwt :
+  ?level:level ->
+  ?parent:scope ->
+  ?__FUNCTION__:string ->
+  __FILE__:string ->
+  __LINE__:int ->
+  ?data:(string * user_data) list ->
+  string ->
+  (scope -> 'a Lwt.t) ->
+  'a Lwt.t
+(** Like [with_span], but closes the span when the promise resolves or fails.
+    [parent] can preserve the trace relationship when ambient context does not
+    propagate into an Lwt thread. Exceptions raised synchronously by the
+    callback are turned into a failed promise, whether or not the span is
+    filtered out. *)
 
 val with_span_result :
   ?level:level ->
