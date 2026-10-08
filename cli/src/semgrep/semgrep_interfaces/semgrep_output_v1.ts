@@ -1255,9 +1255,15 @@ export type ResolutionErrorKind =
 | { kind: 'ResolutionCmdFailed'; value: ResolutionCmdFailed }
 | { kind: 'ParseDependenciesFailed'; value: string }
 | { kind: 'ScaParseError'; value: ScaParserName }
+| { kind: 'IncompleteDependencyResolution'; value: IncompleteDependencyResolution }
 | { kind: 'ResourceInaccessible'; value: ResourceInaccessible }
 
 export type ResolutionCmdFailed = {
+  command: string;
+  message: string;
+}
+
+export type IncompleteDependencyResolution = {
   command: string;
   message: string;
 }
@@ -5250,6 +5256,8 @@ export function writeResolutionErrorKind(x: ResolutionErrorKind, context: any = 
       return ['ParseDependenciesFailed', _atd_write_string(x.value, x)]
     case 'ScaParseError':
       return ['ScaParseError', writeScaParserName(x.value, x)]
+    case 'IncompleteDependencyResolution':
+      return ['IncompleteDependencyResolution', writeIncompleteDependencyResolution(x.value, x)]
     case 'ResourceInaccessible':
       return ['ResourceInaccessible', writeResourceInaccessible(x.value, x)]
   }
@@ -5276,6 +5284,8 @@ export function readResolutionErrorKind(x: any, context: any = x): ResolutionErr
         return { kind: 'ParseDependenciesFailed', value: _atd_read_string(x[1], x) }
       case 'ScaParseError':
         return { kind: 'ScaParseError', value: readScaParserName(x[1], x) }
+      case 'IncompleteDependencyResolution':
+        return { kind: 'IncompleteDependencyResolution', value: readIncompleteDependencyResolution(x[1], x) }
       case 'ResourceInaccessible':
         return { kind: 'ResourceInaccessible', value: readResourceInaccessible(x[1], x) }
       default:
@@ -5296,6 +5306,20 @@ export function readResolutionCmdFailed(x: any, context: any = x): ResolutionCmd
   return {
     command: _atd_read_required_field('ResolutionCmdFailed', 'command', _atd_read_string, x['command'], x),
     message: _atd_read_required_field('ResolutionCmdFailed', 'message', _atd_read_string, x['message'], x),
+  };
+}
+
+export function writeIncompleteDependencyResolution(x: IncompleteDependencyResolution, context: any = x): any {
+  return {
+    'command': _atd_write_required_field('IncompleteDependencyResolution', 'command', _atd_write_string, x.command, x),
+    'message': _atd_write_required_field('IncompleteDependencyResolution', 'message', _atd_write_string, x.message, x),
+  };
+}
+
+export function readIncompleteDependencyResolution(x: any, context: any = x): IncompleteDependencyResolution {
+  return {
+    command: _atd_read_required_field('IncompleteDependencyResolution', 'command', _atd_read_string, x['command'], x),
+    message: _atd_read_required_field('IncompleteDependencyResolution', 'message', _atd_read_string, x['message'], x),
   };
 }
 

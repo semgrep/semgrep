@@ -1,0 +1,3 @@
+Supply Chain: lockfileless Gradle and Maven scans now report incomplete
+dependency resolution when dependencies or transitive metadata cannot be
+resolved. Registry HTTP failures include the affected URL when available.
