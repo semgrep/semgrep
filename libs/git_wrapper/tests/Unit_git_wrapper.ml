@@ -79,11 +79,53 @@ let test_one_missing_history_object () =
         (Git_wrapper.equal_commit commit actual_commit)
   | _ -> Alcotest.fail "expected one commit with no resolved blobs"
 
+let test_memoized_tree_paths () =
+  let module Hash = Git.Hash.Make (Digestif.SHA1) in
+  let module Blob = Git.Blob.Make (Hash) in
+  let module Tree = Git.Tree.Make (Hash) in
+  let module Commit = Git.Commit.Make (Hash) in
+  let blob = Blob.of_string "secret" in
+  let blob_hash = Blob.digest blob in
+  let subtree = Tree.v [ Tree.entry ~name:"value.txt" `Normal blob_hash ] in
+  let subtree_hash = Tree.digest subtree in
+  let root path = Tree.v [ Tree.entry ~name:path `Dir subtree_hash ] in
+  let root_a = root "a" in
+  let root_b = root "b" in
+  let user : Git.User.t =
+    { name = "Tester"; email = "tester@example.com"; date = (0L, None) }
+  in
+  let commit tree message =
+    Commit.make ~tree:(Tree.digest tree) ~author:user ~committer:user
+      (Some message)
+  in
+  let commit_a = commit root_a "a" in
+  let commit_b = commit root_b "b" in
+  let objects = Base.Hashtbl.Poly.create () in
+  let add hash value = Base.Hashtbl.set objects ~key:hash ~data:value in
+  add blob_hash (Git.Value.Blob blob);
+  add subtree_hash (Git.Value.Tree subtree);
+  add (Tree.digest root_a) (Git.Value.Tree root_a);
+  add (Tree.digest root_b) (Git.Value.Tree root_b);
+  add (Commit.digest commit_a) (Git.Value.Commit commit_a);
+  add (Commit.digest commit_b) (Git.Value.Commit commit_b);
+  let paths =
+    Git_wrapper.commit_blobs_by_date (ROHashtbl.Base.of_hashtbl objects)
+    |> List.concat_map snd
+    |> List.map (fun (blob : Git_wrapper.blob_with_extra) -> blob.path)
+    |> List.sort Fpath.compare
+  in
+  let fpath = Alcotest.testable Fpath.pp Fpath.equal in
+  Alcotest.(check (list fpath))
+    "shared subtree paths retain their distinct prefixes"
+    [ Fpath.v "a/value.txt"; Fpath.v "b/value.txt" ]
+    paths
+
 let tests =
   [
     t ?skipped:Testutil.skip_on_windows "user identity" test_user_identity;
     t "ls_files stress test" test_ls_files_stress;
     t "skip one missing history object" test_one_missing_history_object;
+    t "memoized tree paths" test_memoized_tree_paths;
     t "get git project root" (fun () ->
         let cwd = Sys.getcwd () |> Fpath.v in
         match Git_wrapper.project_root_for_files_in_dir cwd with
