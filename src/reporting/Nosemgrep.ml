@@ -33,8 +33,11 @@ module Out = Semgrep_output_v1_j
  * better separation of concern to put it here.
  *)
 
+let rule_id_capture_group = "ids"
+
 (* TODO: should be in Rule_ID.ml instead? *)
-let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
+let rule_id_re_str =
+  {|(?:[:=][\s]?(?P<|} ^ rule_id_capture_group ^ {|>([^,\s](?:[,\s]+)?)+))?|}
 
 (*
    Inline 'noqa' implementation modified from flake8:
@@ -53,7 +56,9 @@ let rule_id_re_str = {|(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?|}
    * nosem and nosemgrep should be interchangeable
 *)
 let nosem_inline_re_str = {| nosem(?:grep)?|} ^ rule_id_re_str
-let nosem_inline_re = Pcre2_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
+
+let nosem_inline_re =
+  Pcre2_.compile_exn nosem_inline_re_str ~options:[ `CASELESS ]
 
 (*
    A nosemgrep comment alone on its line.
@@ -68,9 +73,9 @@ let nosem_inline_re = Pcre2_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
      print('nosemgrep');
 *)
 let nosem_previous_line_re =
-  Pcre2_.regexp
+  Pcre2_.compile_exn
     ({|^[^a-zA-Z0-9]* *nosem(?:grep)?|} ^ rule_id_re_str)
-    ~flags:[ `CASELESS ]
+    ~options:[ `CASELESS ]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -84,26 +89,33 @@ let recognise_and_collect ~rex (line_num, line) =
   (* THINK: It is unclear to me why the following call should ever return more
      than one match The above regex seems like it's recognizing a single instance
      of "nosemgrep: <ids>", which shouldn't occur more than once in a single line?
-  *)
-  match Pcre2_.exec_all ~rex line with
-  | Error _ -> None
-  | Ok arr ->
-      Array.to_list arr
-      |> List.concat_map (fun subst ->
-          match Pcre2_.get_named_substring_and_ofs rex "ids" subst with
-          | Ok (Some (s, (begin_ofs, _end_ofs))) ->
-              (* TODO: This will associate each ID with the range of the entire ID list.
-                    Fix later.
-                 *)
-              String.split_on_char ',' s
-              |> List.map (fun id ->
-                  (line_num, Common2.strip ' ' id, begin_ofs))
-              |> List.map Option.some
-          | Ok None
-          | Error _ ->
-              (* TODO: log something? *)
-              [ None ])
-      |> Option.some
+
+     We nonetheless iterate over every match (as the previous [exec_all]-based
+     implementation did): a [nosem] occurrence with no ids yields a single
+     [None] sentinel (which suppresses every rule on the line). *)
+  let rec collect acc captures =
+    match captures () with
+    | Seq.Nil -> Ok (List.rev acc)
+    | Seq.Cons (Error err, _) -> Error err
+    | Seq.Cons (Ok captures, rest) -> (
+        match Pcre2_.named_match_of_captures captures rule_id_capture_group with
+        | Some m ->
+            let { Pcre2_.start; _ } = Pcre2_.range_of_match m in
+            (* TODO: This will associate each ID with the range of the entire ID
+               list. Fix later. *)
+            let acc =
+              String.split_on_char ',' (Pcre2_.substring_of_match m)
+              |> List.fold_left
+                   (fun acc id ->
+                     Some (line_num, Common2.strip ' ' id, start) :: acc)
+                   acc
+            in
+            collect acc rest
+        | None ->
+            (* a [nosem] with no ids: suppress every rule on the line *)
+            collect (None :: acc) rest)
+  in
+  Pcre2_.captures_iter rex line |> collect []
 
 (*
    Try to recognize a possible [nosem] tag into the given [match].
@@ -152,17 +164,20 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
 
   let ids_line =
     match line with
-    | None -> None
-    | Some line -> recognise_and_collect ~rex:nosem_inline_re line
+    | None -> []
+    | Some line ->
+        recognise_and_collect ~rex:nosem_inline_re line
+        |> Result.value ~default:[]
   in
   let ids_previous_line =
     match previous_line with
-    | None -> None
+    | None -> []
     | Some previous_line ->
         recognise_and_collect ~rex:nosem_previous_line_re previous_line
+        |> Result.value ~default:[]
   in
 
-  match (ids_line ||| [], ids_previous_line ||| []) with
+  match (ids_line, ids_previous_line) with
   | [], [] ->
       (* no lines or no [nosemgrep] occurrences found, keep the [rule_match]. *)
       (false, [])

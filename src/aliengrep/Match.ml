@@ -25,17 +25,22 @@ type match_ = {
 
 type matches = match_ list [@@deriving show]
 
-let loc_of_substring target_str substrings capture_id =
+let loc_of_substring target_str captures capture_id =
   let start, end_ =
-    try Pcre2.get_substring_ofs substrings capture_id with
-    | Not_found ->
+    match Pcre2_.match_of_captures captures capture_id with
+    | Some m ->
+        let Pcre2_.{ start; end_ } = Pcre2_.range_of_match m in
+        (start, end_)
+    | None ->
         (* bug! Did you introduce capturing groups by accident by inserting
            plain parentheses (XX) instead of (?:XX) ? *)
         (* "corresponding subpattern did not capture a substring" *)
         Log.err (fun m ->
             m "failed to extract capture %i. Captures are [%s]" capture_id
-              (Pcre2.get_substrings substrings
-              |> Array.to_list
+              (List.init (Pcre2_.captures_length captures) (fun i ->
+                   Pcre2_.match_of_captures captures i
+                   |> Option.map Pcre2_.substring_of_match
+                   |> Option.value ~default:"")
                  (* nosemgrep: ocaml.lang.best-practice.string.ocamllint-useless-sprintf *)
               |> List.map (Printf.sprintf "%S")
               |> String.concat ";"));
@@ -47,13 +52,13 @@ let loc_of_substring target_str substrings capture_id =
   assert (end_ <= String.length target_str);
   { start; length; substring = String.sub target_str start length }
 
-let convert_match (pat : Pat_compile.t) target_str
-    (substrings : Pcre2.substrings) =
-  let match_loc = loc_of_substring target_str substrings 0 in
+let convert_match (pat : Pat_compile.t) target_str (captures : Pcre2_.captures)
+    =
+  let match_loc = loc_of_substring target_str captures 0 in
   let captures =
     List.map
       (fun (capture_id, mv) ->
-        let loc = loc_of_substring target_str substrings capture_id in
+        let loc = loc_of_substring target_str captures capture_id in
         Log.debug (fun m ->
             m "captured metavariable %s = %S"
               (Pat_compile.show_metavariable mv)
@@ -64,6 +69,13 @@ let convert_match (pat : Pat_compile.t) target_str
   { match_loc; captures }
 
 let search (pat : Pat_compile.t) target_str : match_ list =
-  Pcre2_.exec_all_noerr ~rex:pat.pcre target_str
-  |> Array.to_list
-  |> List.map (convert_match pat target_str)
+  Pcre2_.captures_iter pat.pcre target_str
+  |> Seq.filter_map (function
+    | Ok captures -> Some captures
+    | Error err ->
+        Log.err (fun m ->
+            m "PCRE2 error while matching aliengrep pattern: %a"
+              Pcre2.pp_match_error err);
+        None)
+  |> Seq.map (convert_match pat target_str)
+  |> List.of_seq

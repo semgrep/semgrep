@@ -112,9 +112,10 @@ if x == 4: # CI rule
 |}
 
 let login_url_regex =
-  Pcre2_.pcre_compile {|https://semgrep.dev/login\?cli-token=.*"|}
+  Pcre2_.compile_exn ~options:[ `MULTILINE ]
+    {|https://semgrep.dev/login\?cli-token=.*"|}
 
-let prog_regex = Pcre2_.pcre_compile {|Pr([\s\S]*)|}
+let prog_regex = Pcre2_.compile_exn ~options:[ `MULTILINE ] {|Pr([\s\S]*)|}
 
 (*****************************************************************************)
 (* Helpers *)
@@ -994,7 +995,7 @@ let test_ls_ext () =
             in
             let resp = expect_one_msg resp in
             let ast = resp.result |> Result.get_ok |> YS.Util.to_string in
-            assert (Pcre2_.unanchored_match prog_regex ast);
+            assert (Pcre2_.unanchored_match prog_regex ast |> Result.get_ok);
             Lwt.return info
           in
           let%lwt info = Lwt_list.fold_right_s check_show_ast files info in
@@ -1083,7 +1084,7 @@ let test_login () =
             YS.Util.(msg.result |> Result.get_ok |> member "url" |> to_string)
           in
 
-          assert (Pcre2_.unanchored_match login_url_regex url);
+          assert (Pcre2_.unanchored_match login_url_regex url |> Result.get_ok);
           let%lwt info = send_exit info in
           ignore info;
           Lwt.return_unit))

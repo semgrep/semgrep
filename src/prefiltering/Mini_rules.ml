@@ -53,7 +53,7 @@ let filter_mini_rules_relevant_to_file_using_regexp ~interfile rules lang file =
         xs
         |> Analyze_pattern.String_set.for_all (fun x ->
             let re = Pcre2_.matching_exact_string x in
-            Pcre2_.unanchored_match re str)
+            Pcre2_.unanchored_match re str |> Result.value ~default:false)
       in
 
       if not match_ then

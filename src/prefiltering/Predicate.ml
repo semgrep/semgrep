@@ -25,4 +25,4 @@ let eval (predicate : t) (content : string) : bool =
   | String { needle; case_sensitive } ->
       let pat = Search_pattern.create ~case_sensitive needle in
       Search_pattern.matches pat content
-  | Regex re -> Pcre2_.unanchored_match ~on_error:true re content
+  | Regex re -> Pcre2_.unanchored_match re content |> Result.value ~default:true

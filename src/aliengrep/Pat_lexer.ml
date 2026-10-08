@@ -81,15 +81,17 @@ let compile conf =
       ]
   in
   let pcre =
-    try Pcre2_.regexp pat with
-    | exn ->
-        let e = Exception.catch exn in
+    match Pcre2_.compile pat with
+    | Ok re -> re
+    | Error err ->
         Log.err (fun m ->
             m
               "cannot compile PCRE2 pattern used to parse aliengrep patterns: \
                %s"
               pat);
-        Exception.reraise e
+        failwith
+          (sprintf "cannot compile PCRE2 pattern %S: %s" pat
+             (Format.asprintf "%a" Pcre2.pp_compile_error err))
   in
   { conf; pcre }
 
@@ -98,45 +100,79 @@ let char_of_string str =
     invalid_arg (sprintf "Pat_lexer.char_of_string: %S" str)
   else str.[0]
 
+(* Recover the token for one match by finding which of the numbered alternation
+   groups (1..10) participated. A match with no participating group (e.g.
+   whitespace, which has no capturing group) yields [None] and is dropped. *)
+let token_of_captures conf captures =
+  let rec matched_group num =
+    if num >= Pcre2_.captures_length captures then None
+    else
+      match Pcre2_.substring_of_captures captures num with
+      | Some capture -> Some (num, capture)
+      | None -> matched_group (num + 1)
+  in
+  matched_group 1
+  |> Option.map (fun (num, capture) ->
+      match num with
+      | 1 -> LONG_ELLIPSIS
+      | 2 -> ELLIPSIS
+      | 3 -> METAVAR capture
+      | 4 -> METAVAR_ELLIPSIS capture
+      | 5 -> LONG_METAVAR_ELLIPSIS capture
+      | 6 -> WORD capture
+      | 7 ->
+          let opening_brace = char_of_string capture in
+          let expected_closing_brace =
+            try List.assoc opening_brace conf.conf.brackets with
+            | Not_found -> assert false
+          in
+          OPEN (opening_brace, expected_closing_brace)
+      | 8 -> CLOSE (char_of_string capture)
+      | 9 -> NEWLINE
+      | 10 -> OTHER capture
+      | _ -> assert false)
+
 let read_string ?(source_name = "<pattern>") conf str =
-  match Pcre2_.full_split ~rex:conf.pcre str with
-  | Error pcre_err ->
-      pattern_error source_name
-        (sprintf "PCRE2 error while parsing aliengrep pattern: %s; pattern: %s"
-           (Pcre2_.show_error pcre_err)
-           conf.pcre.pattern)
-  | Ok res ->
-      res
-      |> List.filter_map (function
-        | Pcre2.Delim _
-        | Pcre2.NoGroup ->
-            None
-        | Pcre2.Text txt ->
-            pattern_error source_name
-              (sprintf
-                 "Internal error while parsing aliengrep pattern: Text node \
-                  %S; pattern: %s"
-                 txt conf.pcre.pattern)
-        | Pcre2.Group (_, "") ->
-            (* no capture *)
-            None
-        | Pcre2.Group (num, capture) ->
-            Some
-              (match num with
-              | 1 -> LONG_ELLIPSIS
-              | 2 -> ELLIPSIS
-              | 3 -> METAVAR capture
-              | 4 -> METAVAR_ELLIPSIS capture
-              | 5 -> LONG_METAVAR_ELLIPSIS capture
-              | 6 -> WORD capture
-              | 7 ->
-                  let opening_brace = char_of_string capture in
-                  let expected_closing_brace =
-                    try List.assoc opening_brace conf.conf.brackets with
-                    | Not_found -> assert false
-                  in
-                  OPEN (opening_brace, expected_closing_brace)
-              | 8 -> CLOSE (char_of_string capture)
-              | 9 -> NEWLINE
-              | 10 -> OTHER capture
-              | _ -> assert false))
+  (* The splitting regexp is an alternation of numbered capturing groups
+     (kind 1)|(kind 2)|...; every position in [str] matches exactly one
+     alternative (the catch-all group 10 matches any single character), so the
+     matches must tile [str] with no gaps and each match has exactly one
+     participating capturing group. We fold over the matches, checking that
+     each starts where the previous one ended (and that the last reaches the
+     end of [str]) so that a coverage gap fails loudly rather than silently
+     dropping characters from the token stream. The accumulator carries the
+     byte offset the next match must start at and the tokens so far, reversed. *)
+  let end_pos, rev_tokens =
+    Pcre2_.captures_iter conf.pcre str
+    |> Seq.fold_left
+         (fun (expected, acc) -> function
+           | Error pcre_err ->
+               pattern_error source_name
+                 (sprintf
+                    "PCRE2 error while parsing aliengrep pattern: %s; pattern: \
+                     %s"
+                    (Format.asprintf "%a" Pcre2.pp_match_error pcre_err)
+                    conf.pcre.pattern)
+           | Ok captures ->
+               let { Pcre2_.start; end_ } = Pcre2_.range_of_captures captures in
+               if start <> expected then
+                 pattern_error source_name
+                   (sprintf
+                      "Internal error while parsing aliengrep pattern: gap in \
+                       coverage at bytes %d-%d; pattern: %s"
+                      expected start conf.pcre.pattern);
+               let acc =
+                 match token_of_captures conf captures with
+                 | Some tok -> tok :: acc
+                 | None -> acc
+               in
+               (end_, acc))
+         (0, [])
+  in
+  if end_pos <> String.length str then
+    pattern_error source_name
+      (sprintf
+         "Internal error while parsing aliengrep pattern: trailing bytes %d-%d \
+          not covered; pattern: %s"
+         end_pos (String.length str) conf.pcre.pattern);
+  List.rev rev_tokens

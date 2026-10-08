@@ -226,7 +226,11 @@ let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
    * alt: let s = value_to_string v in
    * to convert anything in a string before using regexps on it
    *)
-  let regexp = Pcre2_.regexp ~flags:[ `ANCHORED ] re in
+  (* The regex here comes from a rule's metavariable-comparison expression and
+     is not validated at rule-parse time, so compilation can genuinely fail.
+     [compile_exn]'s message carries the pattern and the compile error; the
+     exception surfaces as a per-target error. *)
+  let regexp = Pcre2_.compile_exn ~options:[ `ANCHORED ] re in
   Xpattern_match_regexp.regexp_matcher ~base_offset str file regexp
 
 let rec eval env code =

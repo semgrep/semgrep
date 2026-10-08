@@ -1,5 +1,5 @@
 (*
-   Copyright (c) 2024-2025 Semgrep Inc.
+   Copyright (c) 2026 Semgrep Inc.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public License
@@ -10,20 +10,6 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
    LICENSE for more details.
 *)
-(* Cooper Pierce, Martin Jambon
-
-   (c) 2024 Semgrep, Inc.
-
-   This library is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Lesser General Public License version 2.1 as
-   published by the Free Software Foundation, with the special exception on
-   linking described in file LICENSE.
-
-   This library is distributed in the hope that it will be useful, but WITHOUT
-   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-   FITNESS FOR A PARTICULAR PURPOSE. See the file LICENSE for more details.
-*)
-
 (*
    Shared settings for using the Pcre2 module (pcre-ocaml library).
 
@@ -31,8 +17,7 @@
    for PCRE2.
 *)
 
-open Printf
-
+let ( let* ) = Result.bind
 let src = Logs.Src.create "commons.pcre"
 
 module Log = (val Logs.src_log src : Logs.LOG)
@@ -41,211 +26,214 @@ module Log = (val Logs.src_log src : Logs.LOG)
    troubleshooting. *)
 type t = {
   pattern : string;
-  regexp : Pcre2.regexp;
+  regex : Pcre2.Interp.t;
       [@opaque] [@equal fun _ _ -> true] [@compare fun _ _ -> 0]
 }
 [@@deriving show, eq, ord]
 
-(* Not sure why we are getting warnings but *)
+(* not sure why needed ??? *)
 let _ = pp
 let _ = equal
 let hash (x : t) = Base.String.hash x.pattern
 let hash_fold_t s (x : t) = Base.String.hash_fold_t s x.pattern
 let sexp_of_t (x : t) = Sexplib.Std.sexp_of_string x.pattern
 
-(*
-   Provide missing error->string conversion
-*)
-type error = Pcre2.error =
-  | Partial
-  | BadPattern of string * int
-  | BadUTF
-  | BadUTFOffset
-  | MatchLimit
-  | DepthLimit
-  | WorkspaceSize
-  | InternalError of string
-[@@deriving show]
+type match_ = Pcre2.match_ [@@deriving show]
+type captures = Pcre2.captures [@@deriving show]
+type range = Pcre2.Interp.range = { start : int; end_ : int } [@@deriving show]
+
+let range_of_match = Pcre2.Interp.range_of_match
+let range_of_captures = Pcre2.Interp.range_of_captures
+let substring_of_match = Pcre2.Interp.substring_of_match
+let match_of_captures = Pcre2.Interp.match_of_captures
+let named_match_of_captures = Pcre2.Interp.named_match_of_captures
+
+let substring_of_captures captures group =
+  match_of_captures captures group |> Option.map substring_of_match
+
+let named_substring_of_captures captures name =
+  named_match_of_captures captures name |> Option.map substring_of_match
+
+let capture_groups ({ regex; _ } : t) = Pcre2.Interp.capture_groups regex
+let captures_length = Pcre2.Interp.captures_length
 
 (*
-   Flag required for the following to succeed:
-     Pcre2.regexp ~flags:[`UTF] "\\x{200E}"
-*)
-let extra_flag = `UTF
+   'match_limit' and 'depth_limit' are set explicitly to make semgrep
+   fail consistently across platforms (e.g. CI vs. local Mac): the PCRE2
+   compile-time defaults are 10_000_000 for both, but they can be overridden
+   during the installation of the pcre2 library, so we protect ourselves from
+   such custom installs.
 
-(* Auto instrument Pcre_ with profiling since we can spend a lot of time here
-   and FFI calls aren't covered by the memprof profiler *)
-[@@@pyro_caml "auto"]
-
-(*
-   Match and depth limits are set explicitly to make semgrep
-   fail consistently across platforms (e.g. CI vs. local Mac).
-   The default compile-time defaults are 10_000_000, but they can be
-   overridden during the installation of the pcre library. We protect
-   ourselves from such custom installs.
+   They are also much lower than the defaults because PCRE2 does not support
+   timeouts (and `Common.set_timeout` cannot interrupt the C library): these
+   limits are what stops a catastrophically backtracking regex from appearing
+   to hang semgrep. See perf/input/semgrep_targets.txt and
+   perf/input/semgrep_targets.yaml for an example where Semgrep appeared to
+   hang (but it was just the PCRE engine taking way too much time).
 *)
 let match_limit = 1_000_000
-
-(* PCRE2's depth limit constrains the depth of nested backtracking. Unlike
-   PCRE 8.x recursion (which is C-stack heavy), the PCRE2 interpreter uses
-   the heap, so this is not a 1:1 stack-frame analog -- but the limit still
-   indirectly bounds heap allocation and bounds runtime on adversarial input.
-   We mirror Pcre_.recursion_limit's 10_000 value (set in #5887 to avoid
-   segfaults on aliengrep's deeply-recursive generated patterns) so the
-   safety contract is consistent across the two wrappers. As with the old
-   Pcre_ wrapper, this is a single global limit applied to every caller, not
-   just aliengrep. The depth limit is not honoured by JIT, but we don't
-   enable JIT, so this limit is real for our callers.
-   See pcre2_set_depth_limit(3). *)
 let depth_limit = 10_000
 
-let regexp ?iflags ?(flags = []) ?chtables pat =
+let extra_compilation_options =
+  [
+    (* Flag required for the following to succeed:
+         Pcre2_.compile ~options:[`UTF] "\\x{200E}" *)
+    `UTF;
+    `MATCH_LIMIT match_limit;
+    `DEPTH_LIMIT depth_limit;
+  ]
+
+let compile ?(options : Pcre2.Interp.compile_option list = [])
+    (pattern : string) =
   (* pcre doesn't mind if a flag is duplicated so we just append extra flags *)
-  let flags = extra_flag :: flags in
-  (* OCaml's Pcre library does not support setting timeouts, and since it's just
-   * a wrapper for a C library `Common.set_timeout` doesn't work... So, we set a
-   * lower `limit` and `limit_recursion` (default values are 10_000_000) to avoid
-   * spending too much time on regex matching. See perf/input/semgrep_targets.txt
-   * and perf/input/semgrep_targets.yaml for an example where Semgrep appeared to
-   * hang (but it was just the Pcre2 engine taking way too much time). *)
-  let regexp =
-    Pcre2.regexp ~limit:match_limit (* sets PCRE_EXTRA_MATCH_LIMIT *)
-      ~depth_limit
-        (* sets the backtracking depth limit field in a match context; see `pcre2_set_depth_limit(3)` *)
-      ?iflags ~flags ?chtables pat
+  let options = extra_compilation_options @ options in
+  let* regex = Pcre2.Interp.compile ~options pattern in
+  Ok { pattern; regex }
+
+let show_compile_error ({ code; offset } : Pcre2.compile_error) =
+  (* [Pcre2.show_compile_error_code] is pcre2's own error message, e.g.
+     "missing closing parenthesis". *)
+  Printf.sprintf "%s at position %d" (Pcre2.show_compile_error_code code) offset
+
+let compile_exn ?options pattern =
+  match compile ?options pattern with
+  | Ok rex -> rex
+  | Error err ->
+      invalid_arg
+        (Printf.sprintf "Pcre2_.compile_exn: cannot compile regex %S: %s"
+           pattern (show_compile_error err))
+
+let is_match ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
+  Pcre2.Interp.is_match ?options ?subject_offset regex subject
+
+let find ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
+  Pcre2.Interp.find ?options ?subject_offset regex subject
+
+let find_iter ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
+  Pcre2.Interp.find_iter ?options ?subject_offset regex subject
+
+let captures ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
+  Pcre2.Interp.captures ?options ?subject_offset regex subject
+
+let captures_iter ?options ?subject_offset ({ regex; _ } : t) (subject : string)
+    =
+  Pcre2.Interp.captures_iter ?options ?subject_offset regex subject
+
+let split ?options ?subject_offset ?limit ({ regex; _ } : t) (subject : string)
+    =
+  Pcre2.Interp.split ?options ?subject_offset ?limit regex subject
+
+let replace_matches_fn ?limit ~range ~replacement (subject : string) matches =
+  let matches =
+    match limit with
+    | Some n -> Seq.take n matches
+    | None -> matches
   in
-  { pattern = pat; regexp }
-
-let pmatch ?iflags ?flags ~rex ?pos ?callout subj =
-  try Ok (Pcre2.pmatch ?iflags ?flags ~rex:rex.regexp ?pos ?callout subj) with
-  | Pcre2.Error err -> Error err
-
-let exec ?iflags ?flags ~rex ?pos ?callout subj =
-  try
-    Ok (Some (Pcre2.exec ?iflags ?flags ~rex:rex.regexp ?pos ?callout subj))
-  with
-  | Not_found -> Ok None
-  | Pcre2.Error err -> Error err
-
-let exec_all ?iflags ?flags ~rex ?pos ?callout subj =
-  try Ok (Pcre2.exec_all ?iflags ?flags ~rex:rex.regexp ?pos ?callout subj) with
-  | Not_found -> Ok [||]
-  | Pcre2.Error err -> Error err
-
-(* for debugging *)
-let exec_to_strings ?iflags ?flags ~rex ?pos ?callout subj =
-  match exec_all ?iflags ?flags ~rex ?pos ?callout subj with
-  | Ok a -> Ok (Array.map Pcre2.get_substrings a)
-  | Error _ as e -> e
-
-let split ?iflags ?flags ~rex ?pos ?max ?callout subj =
-  try
-    Ok (Pcre2.split ?iflags ?flags ~rex:rex.regexp ?pos ?max ?callout subj)
-  with
-  | Pcre2.Error err -> Error err
-
-let full_split ?iflags ?flags ~rex ?pos ?max ?callout subj =
-  try
-    Ok (Pcre2.full_split ?iflags ?flags ~rex:rex.regexp ?pos ?max ?callout subj)
-  with
-  | Pcre2.Error err -> Error err
-
-let log_error rex subj err =
-  let string_fragment =
-    let len = String.length subj in
-    if len < 200 then subj
-    else sprintf "%s ... (%i bytes)" (Str.first_chars subj 200) len
+  (* The current string length should be a fair approximation of the resulting
+     string's length. *)
+  let new_buf = Buffer.create @@ String.length subject in
+  let rec replace_from offset matches =
+    match matches () with
+    | Seq.Nil ->
+        Buffer.add_substring new_buf subject offset
+          (String.length subject - offset);
+        Ok (Buffer.contents new_buf)
+    | Seq.Cons (Error err, _) -> Error err
+    | Seq.Cons (Ok matched, rest) ->
+        let { start; end_ } = range matched in
+        Buffer.add_substring new_buf subject offset (start - offset);
+        Buffer.add_string new_buf (replacement matched);
+        replace_from end_ rest
   in
-  Log.warn (fun m ->
-      m "PCRE error: %a on input %S. Source regexp: %S" pp_error err
-        string_fragment rex.pattern)
+  replace_from 0 matches
 
-let pmatch_noerr ?iflags ?flags ~rex ?pos ?callout ?(on_error = false) subj =
-  match pmatch ?iflags ?flags ~rex ?pos ?callout subj with
-  | Ok res -> res
-  | Error err ->
-      log_error rex subj err;
-      on_error
+let replace_captures_fn ?options ?subject_offset ?limit ({ regex; _ } : t)
+    (f : captures -> string) (subject : string) =
+  Pcre2.Interp.captures_iter ?options ?subject_offset regex subject
+  |> replace_matches_fn ?limit ~range:range_of_captures ~replacement:f subject
 
-let exec_noerr ?iflags ?flags ~rex ?pos ?callout subj =
-  match exec ?iflags ?flags ~rex ?pos ?callout subj with
-  | Ok res -> res
-  | Error err ->
-      log_error rex subj err;
-      None
+let expand_capture_references (template : string) (captures : captures) : string
+    =
+  let len = String.length template in
+  let buf = Buffer.create len in
+  let rec end_of_digits i =
+    if i < len && Base.Char.is_digit template.[i] then end_of_digits (i + 1)
+    else i
+  in
+  let rec scan i =
+    if i < len then
+      match template.[i] with
+      | '$' when i + 1 < len && Char.equal template.[i + 1] '$' ->
+          Buffer.add_char buf '$';
+          scan (i + 2)
+      | '\\'
+      | '$'
+        when i + 1 < len && Base.Char.is_digit template.[i + 1] ->
+          let end_ = end_of_digits (i + 1) in
+          let reference = String.sub template (i + 1) (end_ - i - 1) in
+          Option.bind
+            (int_of_string_opt reference)
+            (substring_of_captures captures)
+          |> Option.iter (Buffer.add_string buf);
+          scan end_
+      | c ->
+          Buffer.add_char buf c;
+          scan (i + 1)
+  in
+  scan 0;
+  Buffer.contents buf
 
-let exec_all_noerr ?iflags ?flags ~rex ?pos ?callout subj =
-  match exec_all ?iflags ?flags ~rex ?pos ?callout subj with
-  | Ok res -> res
-  | Error err ->
-      log_error rex subj err;
-      [||]
+let replace ?options ?subject_offset ?limit rex ~(template : string)
+    (subject : string) =
+  replace_captures_fn ?options ?subject_offset ?limit rex
+    (expand_capture_references template)
+    subject
 
-let split_noerr ?iflags ?flags ~rex ?pos ?max ?callout ~on_error subj =
-  match split ?iflags ?flags ~rex ?pos ?max ?callout subj with
-  | Ok res -> res
-  | Error err ->
-      log_error rex subj err;
-      on_error
+let replace_fn ?options ?subject_offset ?limit (rex : t) (f : string -> string)
+    (subject : string) =
+  find_iter ?options ?subject_offset rex subject
+  |> replace_matches_fn ?limit ~range:range_of_match
+       ~replacement:(fun matched -> f (substring_of_match matched))
+       subject
 
-let string_of_exn (e : exn) =
-  match e with
-  | Pcre2.Error error -> Some (sprintf "Pcre2.Error(%s)" (show_error error))
-  | Pcre2.Backtrack -> Some "Pcre2.Backtrack"
-  | Pcre2.Regexp_or (pat, error) ->
-      Some (sprintf "Pcre2.Regexp_or(pat=%S, %s)" pat (show_error error))
-  | _not_from_pcre -> None
+let char_needs_escaping = function
+  | '\\'
+  | '^'
+  | '$'
+  | '.'
+  | '['
+  | ']'
+  | '|'
+  | '('
+  | ')'
+  | '?'
+  | '*'
+  | '+'
+  | '{'
+  | '-' ->
+      true
+  | _ -> false
 
-(*
-   You can test this with:
-
-     $ dune utop
-     # SPcre2.register_exception_printer ();;
-     # Pcre2.pmatch ~pat:"(a+)+$" "aaaaaaaaaaaaaaaaaaaaaaaaaa!"
-         |> assert false
-       with e -> Printexc.to_string e;;
-     - : string = "Pcre2.Error(MatchLimit)"
-
-   See Exception.mli for notes on exception printer registration.
-*)
-let register_exception_printer () = Printexc.register_printer string_of_exn
-
-let substitute ?iflags ?flags ~rex ?pos ?callout ~subst subj =
-  Pcre2.substitute ?iflags ?flags ~rex:rex.regexp ?pos ?callout ~subst subj
-
-let replace ?iflags ?flags ~rex ?pos ?callout ~template subj =
-  let itempl = Pcre2.subst template in
-  Pcre2.replace ?iflags ?flags ~rex:rex.regexp ?pos ?callout ~itempl subj
-
-let replace_first ?iflags ?flags ~rex ?pos ?callout ~template subj =
-  let itempl = Pcre2.subst template in
-  Pcre2.replace_first ?iflags ?flags ~rex:rex.regexp ?pos ?callout ~itempl subj
-
-let extract_all ?iflags ?flags ~rex ?pos ?full_match ?callout subj =
-  Pcre2.extract_all ?iflags ?flags ~rex:rex.regexp ?pos ?full_match ?callout
-    subj
-
-(*****************************************************************************)
-(* Subpattern extraction *)
-(*****************************************************************************)
-
-let get_substring rex substrings n =
-  try Ok (Some (Pcre2.get_substring substrings n)) with
-  | Not_found -> Ok None
-  | Invalid_argument msg ->
-      Error (sprintf "Invalid argument: %s\nSource pattern: %S" msg rex.pattern)
-
-let get_named_substring_and_ofs rex name substrings =
-  try
-    let substring = Pcre2.get_named_substring rex.regexp name substrings in
-    let ofs = Pcre2.get_named_substring_ofs rex.regexp name substrings in
-    Ok (Some (substring, ofs))
-  with
-  | Not_found -> Ok None
-  | Invalid_argument msg ->
-      Error (sprintf "Invalid argument: %s\nSource pattern: %S" msg rex.pattern)
-
-let quote = Pcre2.quote
+let quote s =
+  let len = String.length s in
+  let escape_count =
+    String.fold_left
+      (fun count c -> if char_needs_escaping c then count + 1 else count)
+      0 s
+  in
+  if escape_count = 0 then s
+  else
+    let buf = Bytes.create (len + escape_count) in
+    let pos = ref 0 in
+    String.iter
+      (fun c ->
+        if char_needs_escaping c then (
+          Bytes.set buf !pos '\\';
+          incr pos);
+        Bytes.set buf !pos c;
+        incr pos)
+      s;
+    Bytes.unsafe_to_string buf
 
 (* Formerly Regexp_engine *)
 
@@ -257,7 +245,7 @@ let quote = Pcre2.quote
  * Regexps are used in many places in Semgrep:
  *  - in Pattern_vs_code to support the "=~/.../",
  *  - in Semgrep.ml for the metavariable-regexp and pattern-regexp
- *  - in Prefiltering/ for skipping rules or target files
+ *  - in Optimizing/ for skipping rules or target files
  *    (See Analyze_pattern.ml for more information).
  *  - TODO for include/exclude globbing
  *
@@ -285,31 +273,18 @@ let quote = Pcre2.quote
 (* Helpers  *)
 (*****************************************************************************)
 
-let pcre_pattern (x : t) = x.pattern
-let pcre_regexp (x : t) = x.regexp
 let show (x : t) = x.pattern
 let pp fmt (x : t) = Format.fprintf fmt "\"%s\"" x.pattern
-let equal (x1 : t) (x2 : t) = x1.pattern = x2.pattern
-let matching_exact_string s : t = regexp (quote s)
+let equal (x1 : t) (x2 : t) = String.equal x1.pattern x2.pattern
+
+(* TODO: use a flag instead? *)
+let matching_exact_string s : t = compile_exn (quote s)
 
 let matching_exact_word s =
   let pattern = "\b" ^ quote s ^ "\b" in
-  regexp pattern
+  compile_exn pattern
 
-let pcre_compile_with_flags ~flags pat = regexp ~flags pat [@@profiling]
-
-(*
-   MULTILINE = ^ and $ match at the beginning and end of lines rather than
-               just at the beginning and end of input.
-*)
-let pcre_compile pat = regexp ~flags:[ `MULTILINE ] pat [@@profiling]
-
-let anchored_match ?on_error =
-  (* ~iflags are precompiled flags for better performance compared to ~flags *)
-  let iflags = Pcre2.rflags [ `ANCHORED ] in
-  fun rex str -> pmatch_noerr ?on_error ~iflags ~rex str
-
-let unanchored_match ?on_error rex str = pmatch_noerr ?on_error ~rex str
+let unanchored_match rex subject = is_match rex subject
 
 let may_contain_end_of_string_assertions =
   (* The absence of the following guarantees (to the best of our knowledge)
@@ -323,8 +298,18 @@ let may_contain_end_of_string_assertions =
        (?<!   negative lookbehind assertion, which could be a DIY \A
        (?!    negative lookahead assertion, which could be a DIY \z
   *)
-  let rex = regexp {|[$^]|\\[AZz]|\(\?<!|\(\?!|} in
-  fun s -> pmatch_noerr ~rex s
+  let rex = compile_exn {|[$^]|\\[AZz]|\(\?<!|\(\?!|} in
+  fun s ->
+    match is_match rex s with
+    | Ok x -> x
+    | Error e ->
+        Log.warn (fun m ->
+            m
+              "error when checking if a regex may have an end of string \
+               assertion: %a"
+              Pcre2.pp_match_error e);
+        (* true since we would rather be conservative given an error *)
+        true
 
 (* Any string that may still contain a end-of-string assertions must go
    through this. *)
@@ -388,7 +373,9 @@ let remove_end_of_string_assertions_from_string src : string option =
           | _, '$' -> Str.first_chars src (len - 1) |> finish
           | _ -> src |> finish
 
-let remove_end_of_string_assertions (rex : t) =
-  match remove_end_of_string_assertions_from_string rex.pattern with
+let remove_end_of_string_assertions ({ pattern; _ } : t) =
+  match remove_end_of_string_assertions_from_string pattern with
   | None -> None
-  | Some pat -> Some (pcre_compile pat)
+  | Some pat ->
+      (* should never be an illegal transformation *)
+      Some (compile_exn ~options:[ `MULTILINE ] pat)
