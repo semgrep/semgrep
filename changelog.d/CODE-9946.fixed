@@ -1,0 +1,1 @@
+Traced scans using the default parallelism mode no longer hang when the telemetry endpoint is unresponsive or unreachable.
