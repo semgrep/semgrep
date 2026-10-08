@@ -260,7 +260,7 @@ class FileTargetingLog:
                         roots_not_in_git += 1
                         continue
             if roots_not_in_git != dir_targets:
-                limited_fragments.append("Scan was limited to files tracked by git")
+                limited_fragments.append("Scan respected .gitignore rules")
 
         if self.cli_includes:
             skip_fragments.append(
