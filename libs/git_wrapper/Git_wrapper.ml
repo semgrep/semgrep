@@ -210,59 +210,81 @@ let remote_repo_name url =
   | Ok (Some substrings) -> Some (Pcre2.get_substring substrings 1)
   | _ -> None
 
-let tree_of_commit (objects : object_table) commit =
-  commit |> Commit.tree |> ROHashtbl.Base.find_opt objects |> fun obj ->
-  match obj with
-  | Some (Git.Value.Tree tree) -> tree
-  | _ ->
-      failwith
-        "Not a tree! Shouldn't happen, as we read a tree from a commit from a \
-         store."
+(* Objects referenced by history may be absent from the store or have an
+   unexpected kind; this can legitimately happen, e.g., in partial clones
+   (`--filter=blob:none`). Such entries are skipped rather than failing the
+   whole traversal. Each function additionally returns the number of skipped
+   references so the caller can report a single aggregate warning. *)
+type blob_resolution = { blobs : blob_with_extra list; missing : int }
 
 let rec blobs_of_tree ?(path_prefix = "") (objects : object_table)
-    (tree : Tree.t) : blob_with_extra list =
-  tree |> Tree.to_list |> List.concat_map (blobs_of_entry ~path_prefix objects)
+    (tree : Tree.t) : blob_resolution =
+  let results =
+    tree |> Tree.to_list |> List.map (blobs_of_entry ~path_prefix objects)
+  in
+  {
+    blobs = List.concat_map (fun result -> result.blobs) results;
+    missing = List.fold_left (fun acc result -> acc + result.missing) 0 results;
+  }
 
-and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
-    Tree.entry -> blob_with_extra list = function
-  | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash } ->
-      let blob =
-        hash |> ROHashtbl.Base.find_opt objects |> fun obj ->
-        match obj with
-        | Some (Git.Value.Blob blob) -> blob
-        | _ ->
-            failwith
-              "Not a blob! Shouldn't happen, as we read a blob from a tree \
-               from a store."
-      in
-      (* If youre on a 32bit machine trying to scan files with blobs > 2gb you deserve the error this could cause *)
-      let size = blob |> Blob.length |> Int64.to_int in
-      let path = Filename.concat path_prefix path_segment |> Fpath.v in
-      [ { blob; path; size } ]
-  | { perm = `Dir; name = path_segment; node = hash } ->
-      let tree =
-        hash |> ROHashtbl.Base.find_opt objects |> fun obj ->
-        match obj with
-        | Some (Git.Value.Tree tree) -> tree
-        | _ ->
-            failwith
-              "Not a tree! Shouldn't happen, as we read a tree from a tree \
-               from a store."
-      in
+and blobs_of_entry ?(path_prefix = "") (objects : object_table)
+    (entry : Tree.entry) : blob_resolution =
+  match entry with
+  | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash }
+    -> (
+      match ROHashtbl.Base.find_opt objects hash with
+      | Some (Git.Value.Blob blob) ->
+          (* If youre on a 32bit machine trying to scan files with blobs > 2gb you deserve the error this could cause *)
+          let size = blob |> Blob.length |> Int64.to_int in
+          let path = Filename.concat path_prefix path_segment |> Fpath.v in
+          { blobs = [ { blob; path; size } ]; missing = 0 }
+      | Some _
+      | None ->
+          Log.debug (fun m ->
+              m "could not resolve blob %s at %s; skipping" (Hash.to_hex hash)
+                (Filename.concat path_prefix path_segment));
+          { blobs = []; missing = 1 })
+  | { perm = `Dir; name = path_segment; node = hash } -> (
       let path = Filename.concat path_prefix path_segment in
-      blobs_of_tree ~path_prefix:path objects tree
+      match ROHashtbl.Base.find_opt objects hash with
+      | Some (Git.Value.Tree tree) ->
+          blobs_of_tree ~path_prefix:path objects tree
+      | Some _
+      | None ->
+          Log.debug (fun m ->
+              m "could not resolve tree %s at %s; skipping" (Hash.to_hex hash)
+                path);
+          { blobs = []; missing = 1 })
   | { perm = `Link; _ }
   | { perm = `Commit; _ } ->
-      []
+      { blobs = []; missing = 0 }
 
 let blobs_by_commit objects commits =
-  commits
-  |> List.map (fun commit ->
-      let tree = tree_of_commit objects commit in
-      (commit, tree))
-  |> List.map (fun (commit, tree) ->
-      let blobs = blobs_of_tree objects tree in
-      (commit, blobs))
+  let results =
+    commits
+    |> List.map (fun commit ->
+        match Commit.tree commit |> ROHashtbl.Base.find_opt objects with
+        | Some (Git.Value.Tree tree) -> (commit, blobs_of_tree objects tree)
+        | Some _
+        | None ->
+            Log.debug (fun m ->
+                m "could not resolve tree of commit %s; skipping"
+                  (Hash.to_hex (Commit.digest commit)));
+            (commit, { blobs = []; missing = 1 }))
+  in
+  let missing =
+    List.fold_left (fun acc (_, result) -> acc + result.missing) 0 results
+  in
+  if missing > 0 then
+    (* nosemgrep: no-logs-in-library *)
+    Logs.warn (fun m ->
+        m
+          "%d git object(s) referenced by history were missing from the object \
+           store or had an unexpected kind and were skipped. This is expected \
+           for partial clones (e.g. --filter=blob:none); otherwise, the \
+           repository may be corrupted."
+          missing);
+  List.map (fun (commit, result) -> (commit, result.blobs)) results
 
 (*****************************************************************************)
 (* Entry points *)
