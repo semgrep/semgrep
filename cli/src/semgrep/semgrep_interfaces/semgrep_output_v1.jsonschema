@@ -3287,7 +3287,19 @@
           "items": false,
           "prefixItems": [
             {
-              "description": "unable to access private registry, likely due to missing credentials",
+              "description": "the dependency manager succeeded but returned an incomplete dependency graph",
+              "const": "IncompleteDependencyResolution"
+            },
+            { "$ref": "#/definitions/incomplete_dependency_resolution" }
+          ]
+        },
+        {
+          "type": "array",
+          "minItems": 2,
+          "items": false,
+          "prefixItems": [
+            {
+              "description": "unable to retrieve a dependency from a registry",
               "const": "ResourceInaccessible"
             },
             { "$ref": "#/definitions/resource_inaccessible" }
@@ -3296,6 +3308,14 @@
       ]
     },
     "resolution_cmd_failed": {
+      "type": "object",
+      "required": [ "command", "message" ],
+      "properties": {
+        "command": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "incomplete_dependency_resolution": {
       "type": "object",
       "required": [ "command", "message" ],
       "properties": {
