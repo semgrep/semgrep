@@ -3327,14 +3327,27 @@ type resolution_error_kind
       since semgrep 1.109.0 (to replace dependency_parser_error)
       ">
       of sca_parser_name
+  | IncompleteDependencyResolution
+      <doc text="
+      the dependency manager succeeded but returned an incomplete dependency graph
+      ">
+      of incomplete_dependency_resolution
   | ResourceInaccessible
       <doc text="
-      unable to access private registry, likely due to missing credentials
+      unable to retrieve a dependency from a registry
       ">
       of resource_inaccessible
 ] <ocaml repr="classic">
 
 type resolution_cmd_failed
+    <ocaml attr="deriving show">
+    <python decorator="dataclass(frozen=True)"> =
+{
+    command: string;
+    message: string;
+}
+
+type incomplete_dependency_resolution
     <ocaml attr="deriving show">
     <python decorator="dataclass(frozen=True)"> =
 {

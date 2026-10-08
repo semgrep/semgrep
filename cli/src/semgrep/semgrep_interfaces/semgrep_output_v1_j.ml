@@ -972,6 +972,13 @@ type resolution_cmd_failed = Semgrep_output_v1_t.resolution_cmd_failed = {
 }
   [@@deriving show]
 
+type incomplete_dependency_resolution =
+  Semgrep_output_v1_t.incomplete_dependency_resolution = {
+  command: string;
+  message: string
+}
+  [@@deriving show]
+
 type resolution_error_kind = Semgrep_output_v1_t.resolution_error_kind = 
     UnsupportedManifest
   | MissingRequirement of string
@@ -986,10 +993,13 @@ type resolution_error_kind = Semgrep_output_v1_t.resolution_error_kind =
         a lockfile parser failed since semgrep 1.109.0 (to replace
         dependency_parser_error)
       *)
-  | ResourceInaccessible of resource_inaccessible
+  | IncompleteDependencyResolution of incomplete_dependency_resolution
       (**
-        unable to access private registry, likely due to missing credentials
+        the dependency manager succeeded but returned an incomplete
+        dependency graph
       *)
+  | ResourceInaccessible of resource_inaccessible
+      (** unable to retrieve a dependency from a registry *)
 
   [@@deriving show]
 
@@ -13555,6 +13565,169 @@ let read_resolution_cmd_failed = (
 )
 let resolution_cmd_failed_of_string s =
   read_resolution_cmd_failed (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
+let write_incomplete_dependency_resolution : _ -> incomplete_dependency_resolution -> _ = (
+  fun ob (x : incomplete_dependency_resolution) ->
+    Buffer.add_char ob '{';
+    let is_first = ref true in
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
+      Buffer.add_string ob "\"command\":";
+    (
+      Yojson.Safe.write_string
+    )
+      ob x.command;
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
+      Buffer.add_string ob "\"message\":";
+    (
+      Yojson.Safe.write_string
+    )
+      ob x.message;
+    Buffer.add_char ob '}';
+)
+let string_of_incomplete_dependency_resolution ?(len = 1024) x =
+  let ob = Buffer.create len in
+  write_incomplete_dependency_resolution ob x;
+  Buffer.contents ob
+let read_incomplete_dependency_resolution = (
+  fun p lb ->
+    Yojson.Safe.read_space p lb;
+    Yojson.Safe.read_lcurl p lb;
+    let field_command = ref (None) in
+    let field_message = ref (None) in
+    try
+      Yojson.Safe.read_space p lb;
+      Yojson.Safe.read_object_end lb;
+      Yojson.Safe.read_space p lb;
+      let f =
+        fun s pos len ->
+          if pos < 0 || len < 0 || pos + len > String.length s then
+            invalid_arg (Printf.sprintf "out-of-bounds substring position or length: string = %S, requested position = %i, requested length = %i" s pos len);
+          if len = 7 then (
+            match String.unsafe_get s pos with
+              | 'c' -> (
+                  if String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'm' && String.unsafe_get s (pos+3) = 'm' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'n' && String.unsafe_get s (pos+6) = 'd' then (
+                    0
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 'm' -> (
+                  if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' then (
+                    1
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | _ -> (
+                  -1
+                )
+          )
+          else (
+            -1
+          )
+      in
+      let i = Yojson.Safe.map_ident p f lb in
+      Atdgen_runtime.Oj_run.read_until_field_value p lb;
+      (
+        match i with
+          | 0 ->
+            field_command := (
+              Some (
+                (
+                  Atdgen_runtime.Oj_run.read_string
+                ) p lb
+              )
+            );
+          | 1 ->
+            field_message := (
+              Some (
+                (
+                  Atdgen_runtime.Oj_run.read_string
+                ) p lb
+              )
+            );
+          | _ -> (
+              Yojson.Safe.skip_json p lb
+            )
+      );
+      while true do
+        Yojson.Safe.read_space p lb;
+        Yojson.Safe.read_object_sep p lb;
+        Yojson.Safe.read_space p lb;
+        let f =
+          fun s pos len ->
+            if pos < 0 || len < 0 || pos + len > String.length s then
+              invalid_arg (Printf.sprintf "out-of-bounds substring position or length: string = %S, requested position = %i, requested length = %i" s pos len);
+            if len = 7 then (
+              match String.unsafe_get s pos with
+                | 'c' -> (
+                    if String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'm' && String.unsafe_get s (pos+3) = 'm' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'n' && String.unsafe_get s (pos+6) = 'd' then (
+                      0
+                    )
+                    else (
+                      -1
+                    )
+                  )
+                | 'm' -> (
+                    if String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'a' && String.unsafe_get s (pos+5) = 'g' && String.unsafe_get s (pos+6) = 'e' then (
+                      1
+                    )
+                    else (
+                      -1
+                    )
+                  )
+                | _ -> (
+                    -1
+                  )
+            )
+            else (
+              -1
+            )
+        in
+        let i = Yojson.Safe.map_ident p f lb in
+        Atdgen_runtime.Oj_run.read_until_field_value p lb;
+        (
+          match i with
+            | 0 ->
+              field_command := (
+                Some (
+                  (
+                    Atdgen_runtime.Oj_run.read_string
+                  ) p lb
+                )
+              );
+            | 1 ->
+              field_message := (
+                Some (
+                  (
+                    Atdgen_runtime.Oj_run.read_string
+                  ) p lb
+                )
+              );
+            | _ -> (
+                Yojson.Safe.skip_json p lb
+              )
+        );
+      done;
+      assert false;
+    with Yojson.End_of_object -> (
+        (
+          {
+            command = (match !field_command with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "command");
+            message = (match !field_message with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "message");
+          }
+         : incomplete_dependency_resolution)
+      )
+)
+let incomplete_dependency_resolution_of_string s =
+  read_incomplete_dependency_resolution (Yojson.Safe.init_lexer ()) (Lexing.from_string s)
 let write_resolution_error_kind : _ -> resolution_error_kind -> _ = (
   fun ob (x : resolution_error_kind) ->
     match x with
@@ -13581,6 +13754,12 @@ let write_resolution_error_kind : _ -> resolution_error_kind -> _ = (
         Buffer.add_string ob "[\"ScaParseError\",";
         (
           write_sca_parser_name
+        ) ob x;
+        Buffer.add_char ob ']'
+      | IncompleteDependencyResolution x ->
+        Buffer.add_string ob "[\"IncompleteDependencyResolution\",";
+        (
+          write_incomplete_dependency_resolution
         ) ob x;
         Buffer.add_char ob ']'
       | ResourceInaccessible x ->
@@ -13651,6 +13830,17 @@ let read_resolution_error_kind = (
               Yojson.Safe.read_space p lb;
               Yojson.Safe.read_rbr p lb;
               (ScaParseError x : resolution_error_kind)
+            | "IncompleteDependencyResolution" ->
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_comma p lb;
+              Yojson.Safe.read_space p lb;
+              let x = (
+                  read_incomplete_dependency_resolution
+                ) p lb
+              in
+              Yojson.Safe.read_space p lb;
+              Yojson.Safe.read_rbr p lb;
+              (IncompleteDependencyResolution x : resolution_error_kind)
             | "ResourceInaccessible" ->
               Yojson.Safe.read_space p lb;
               Yojson.Safe.read_comma p lb;

@@ -271,6 +271,9 @@ def _print_sca_resolution_error(error: out.ScaResolutionError) -> None:
         elif isinstance(err.value, out.ResolutionCmdFailed_):
             processed_message = format_resolution_error_message(err.value.value.message)
             return f"Resolution Command Failed.\nCommand: {err.value.value.command}\nOutput from third-party command:\n{processed_message})"
+        elif isinstance(err.value, out.IncompleteDependencyResolution_):
+            processed_message = format_resolution_error_message(err.value.value.message)
+            return f"Incomplete Dependency Resolution.\nCommand: {err.value.value.command}\nDetails:\n{processed_message}"
         elif isinstance(err.value, out.ResourceInaccessible_):
             processed_message = format_resolution_error_message(err.value.value.message)
             return f"Resource Inaccessible (command: {err.value.value.command}) (registry_url: {err.value.value.registry_url}) (output from third-party command:\n{processed_message})"

@@ -969,6 +969,9 @@ type resource_inaccessible = {
 type resolution_cmd_failed = { command: string; message: string }
   [@@deriving show]
 
+type incomplete_dependency_resolution = { command: string; message: string }
+  [@@deriving show]
+
 type resolution_error_kind = 
     UnsupportedManifest
   | MissingRequirement of string
@@ -983,10 +986,13 @@ type resolution_error_kind =
         a lockfile parser failed since semgrep 1.109.0 (to replace
         dependency_parser_error)
       *)
-  | ResourceInaccessible of resource_inaccessible
+  | IncompleteDependencyResolution of incomplete_dependency_resolution
       (**
-        unable to access private registry, likely due to missing credentials
+        the dependency manager succeeded but returned an incomplete
+        dependency graph
       *)
+  | ResourceInaccessible of resource_inaccessible
+      (** unable to retrieve a dependency from a registry *)
 
   [@@deriving show]
 
