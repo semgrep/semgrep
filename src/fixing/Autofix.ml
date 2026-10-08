@@ -28,19 +28,6 @@ module Log = Log_fixing.Log
  * See also Textedit.ml for the generic library supporting text edits.
  *)
 
-(*****************************************************************************)
-(* Constants *)
-(*****************************************************************************)
-
-(* For matching things of the form \<num>.
-   See `regex_fix` below for why this is needed.
-*)
-let capture_group_regex = "\\\\([0-9]+)"
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
 (* When we produce a fix, we take some content and paste it into the
    place where the fix needs to go.
 
@@ -302,52 +289,41 @@ let basic_fix ~(fix : string) (start, end_) (pm : Core_match.t) : Textedit.t =
 
 let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
     (pm : Core_match.t) =
-  let rex = Pcre2_.regexp regexp in
+  let/ rex = Pcre2_.compile regexp |> Result.map_error Either.left in
   (* You need a minus one, to make it compatible with the inclusive Range.t *)
   let content =
     Range.content_at_range pm.path.internal_path_to_content
       Range.{ start; end_ = end_ - 1 }
   in
-  (* What is this for?
-     Before, when autofix was in the Python CLI, `fix-regex` had the semantics
-     of allowing backreferences to be substituted via the syntax '\1' for the
-     first backreference.
-     Unfortunately, the Pcre-ocaml library has no conception of this syntax. It
-     instead uses $1, $2, etc, for backreferences.
-     We don't want to break this existing behavior, however.
-     The fix will be that if someone gives us a replacement regex of the form
-     '\1', we will try to replace it instead with '$1', etc.
+  (* TODO: We could align text here, but the problem is that we need the
+     start column of the area being replaced.
+     The area being replaced in a regex fix is not necessarily that of the
+     entire match. So we would need to compute that.
   *)
-  let replaced_replacement =
-    let capture_group_rex = Pcre2_.regexp capture_group_regex in
-    (* Confusingly, this $1 in the template is separate from the literal
-       capture group it is replacing. It is simply a dollar sign in front of
-       the capture group's number, which is captured in the `capture_group_regex`
-       above.
-       This lets us essentially capture everything matched by \<num> with
-       $<num>.
-    *)
-    Pcre2_.replace ~rex:capture_group_rex ~template:"$$$1" replacement
+  (* Historical [count] semantics, inherited from iterating pcre-ocaml's
+     [replace_first]: each replacement re-scans the rewritten string from the
+     beginning, so a replacement which itself matches [regexp] is seen again
+     by the next iteration. *)
+  let replace ?limit content =
+    Pcre2_.replace ?limit rex ~template:replacement content
+    |> Result.map_error Either.right
   in
-  let replacement_text =
+  let rec replace_first_n n content =
+    if n =|= 0 then Ok content
+    else
+      let/ content = replace ~limit:1 content in
+      replace_first_n (n - 1) content
+  in
+  let/ replacement_text =
     match count with
-    | None -> Pcre2_.replace ~rex ~template:replaced_replacement content
-    | Some count ->
-        Common2.foldn
-          (fun content _i ->
-            Pcre2_.replace_first ~rex ~template:replaced_replacement content)
-          content count
-    (* TODO: We could align text here, but the problem is that we need the
-       start column of the area being replaced.
-       The area being replaced in a regex fix is not necessarily that of the
-       entire match. So we would need to compute that.
-    *)
+    | None -> replace content
+    | Some n -> replace_first_n n content
   in
   let edit =
     Textedit.
       { path = pm.path.internal_path_to_content; start; end_; replacement_text }
   in
-  edit
+  Ok edit
 
 (*****************************************************************************)
 (* Autofix selection logic *)
@@ -376,7 +352,17 @@ let render_fix (pm : Core_match.t) : Textedit.t option =
       match ast_based_fix ~fix range pm with
       | None -> Some (basic_fix ~fix range pm)
       | Some fix -> Some fix)
-  | _, Some fix_regexp -> Some (regex_fix ~fix_regexp range pm)
+  | _, Some fix_regexp -> (
+      match regex_fix ~fix_regexp range pm with
+      | Ok x -> Some x
+      | Error (Left e) ->
+          Log.warn (fun m ->
+              m "Error while applying regex-fix: %a" Pcre2.pp_compile_error e);
+          None
+      | Error (Right e) ->
+          Log.warn (fun m ->
+              m "Error while applying regex-fix: %a" Pcre2.pp_match_error e);
+          None)
 
 (*****************************************************************************)
 (* Entry points *)

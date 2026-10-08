@@ -84,23 +84,8 @@ let error_at_opt_key rule_id (opt_key : key option) s =
 let error_at_expr rule_id (e : G.expr) s =
   error rule_id (AST_generic_helpers.first_info_of_any (G.E e)) s
 
-let pcre_error_to_string s exn =
-  let message =
-    match exn with
-    | Pcre2.Partial -> "String only matched the pattern partially"
-    | BadPattern (msg, pos) -> spf "%s at position %d" msg pos
-    | BadUTF -> "UTF8 string being matched is invalid"
-    | BadUTFOffset ->
-        "Gets raised when a UTF8 string being matched with offset is invalid."
-    | MatchLimit ->
-        "Maximum allowed number of match attempts with\n\
-        \                      backtracking or recursion is reached during \
-         matching."
-    | DepthLimit -> "Recursion limit reached"
-    | WorkspaceSize -> "Workspace array size reached"
-    | InternalError msg -> spf "Internal error: %s" msg
-  in
-  spf "'%s': %s" s message
+let pcre_error_to_string s (err : Pcre2.compile_error) =
+  spf "'%s': %s" s (Pcre2_.show_compile_error err)
 
 let try_and_raise_invalid_pattern_if_error (env : env) (s, t)
     (f : unit -> ('a, Rule_error.t) Result.t) : ('a, Rule_error.t) Result.t =
@@ -513,22 +498,21 @@ let parse_str_or_dict env (value : G.expr) :
 let parse_regexp env (s, t) =
   (* We try to compile the regexp just to make sure it's valid, but we store
    * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
-  try
-    (* calls `pcre.compile` *)
-    Mvar.mvars_of_regexp_string s
-    |> List.iter (fun mvar ->
-        if not (Mvar.is_metavar_name mvar) then
-          Logs_.msg_with_detail ~src:Log_parsing.src Logs.Warning
-            (spf
-               "Found invalid metavariable capture group name `%s` -- no \
-                binding produced"
-               mvar) (fun () -> spf "regexp: %s" s));
-    Ok s
-  with
-  | Pcre2.Error exn ->
+  match Pcre2_.compile ~options:[ `MULTILINE ] s with
+  | Error err ->
       Error
         (Rule_error.mk_error ~rule_id:env.id
-           (InvalidRule (InvalidRegexp (pcre_error_to_string s exn), env.id, t)))
+           (InvalidRule (InvalidRegexp (pcre_error_to_string s err), env.id, t)))
+  | Ok _ ->
+      Mvar.mvars_of_regexp_string s
+      |> List.iter (fun mvar ->
+          if not (Mvar.is_metavar_name mvar) then
+            Logs_.msg_with_detail ~src:Log_parsing.src Logs.Warning
+              (spf
+                 "Found invalid metavariable capture group name `%s` -- no \
+                  binding produced"
+                 mvar) (fun () -> spf "regexp: %s" s));
+      Ok s
 
 let parse_python_expression env key s =
   try
