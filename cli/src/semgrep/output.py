@@ -90,6 +90,10 @@ FORMATTERS: Mapping[OutputFormat, Type[base.BaseFormatter]] = {
     OutputFormat.VIM: VimFormatter,
 }
 
+# by ErrorSeverity.kind; a higher index outranks a lower one when one error
+# has to stand for the whole scan
+ERROR_LEVELS_ASCENDING = ("Info_", "Warning_", "Error_")
+
 # Experiment and Inventory are not below on purpose
 DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
     {
@@ -354,18 +358,33 @@ class OutputHandler:
             ):
                 logger.error(error.format_for_terminal())
 
+    def _blocks_exit(self, ex: SemgrepError) -> bool:
+        if self.settings.strict:
+            return True
+        return isinstance(ex.level.value, out.Error_) and not (
+            isinstance(ex, SemgrepCoreError) and ex.is_special_interfile_analysis_error
+        )
+
+    def _exit_error(self) -> SemgrepError:
+        """
+        The structured error that stands for the scan: a blocking one over a
+        non-blocking one, then the highest level, then the last reported.
+        """
+        return max(
+            reversed(self.semgrep_structured_errors),
+            key=lambda err: (
+                self._blocks_exit(err),
+                ERROR_LEVELS_ASCENDING.index(err.level.kind),
+            ),
+        )
+
     def _final_raise(self, ex: Optional[Exception]) -> None:
         if ex is None:
             return
         if isinstance(ex, SemgrepError):
             # Prevent double reporting
             mark_semgrep_error_as_reported(ex)
-            if isinstance(ex.level.value, out.Error_) and not (
-                isinstance(ex, SemgrepCoreError)
-                and ex.is_special_interfile_analysis_error
-            ):
-                raise ex
-            elif self.settings.strict:
+            if self._blocks_exit(ex):
                 raise ex
         else:
             raise ex
@@ -491,7 +510,7 @@ class OutputHandler:
             failed_to_analyze_lines_by_path = self._make_failed_to_analyze(
                 semgrep_core_errors
             )
-            final_error = self.semgrep_structured_errors[-1]
+            final_error = self._exit_error()
             self.ignore_log.core_failure_lines_by_file = failed_to_analyze_lines_by_path
 
         if self.has_output:
