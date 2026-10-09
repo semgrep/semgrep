@@ -1,0 +1,9 @@
+Matches of an expression-statement pattern such as `foo();` that occur inside
+a larger statement via implicit deep expression matching now report the range
+of the matched subexpression instead of the range of the whole statement.
+For such findings: match ranges and fingerprints shift, `as` metavariable
+bindings and `fix:` rewrites apply to the subexpression instead of the whole
+statement, range-based conditions in composite rules (for example
+`pattern-inside`) see the narrowed range, and a statement that contains
+several matching subexpressions now yields one finding per subexpression
+instead of a single whole-statement finding.
