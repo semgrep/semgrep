@@ -56,7 +56,7 @@ def mock_state(mocker):
     state.local_scan_id = uuid.UUID(SCAN_REQUEST_ID)
     state.env.semgrep_url = SEMGREP_URL
     state.env.sms_scan_id = None
-    state.env.workflow_execution = None
+    state.env.job_context = None
     state.env.upload_findings_timeout = 30
     state.env.v2_poll_timeout_seconds = 45
     state.env.v2_post_max_attempts = 3
@@ -181,14 +181,16 @@ def test_start_scan_uses_v2(mocker, mock_state, mock_sleep, mock_args):
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
+@pytest.mark.parametrize(
+    "job_context", ['{"version":1,"job_id":"abc","task_key":"scan/one"}', "null", ""]
+)
 def test_start_scan_v2_retries_post_all_timeouts(
-    mocker, monkeypatch, mock_state, mock_sleep, handler, mock_args
+    mocker, monkeypatch, mock_state, mock_sleep, handler, mock_args, job_context
 ):
     """Retries POST up to _V2_POST_MAX_ATTEMPTS times on repeated poll timeouts, then raises."""
     project_metadata, project_config = mock_args
-    provenance = '{"workflow_run_id":"123","jobs_context":"","invocation_id":"child"}'
-    monkeypatch.setenv("SEMGREP_WORKFLOW_EXECUTION", provenance)
-    mock_state.env.workflow_execution = Env().workflow_execution
+    monkeypatch.setenv("SEMGREP_JOB_CONTEXT", job_context)
+    mock_state.env.job_context = Env().job_context
     mock_state.app_session.post.return_value = _make_response(
         mocker, CREATE_SCAN_RESPONSE
     )
@@ -202,7 +204,7 @@ def test_start_scan_v2_retries_post_all_timeouts(
     assert mock_state.app_session.post.call_count == 3
     assert handler._poll_for_config_v2.call_count == 3
     for call in mock_state.app_session.post.call_args_list:
-        assert call.kwargs["headers"]["X-Semgrep-Workflow-Execution"] == provenance
+        assert call.kwargs["headers"]["X-Semgrep-Job-Context"] == job_context
 
 
 @pytest.mark.quick

@@ -1,1 +1,1 @@
-Preserve workflow execution context when registering CLI scans.
+Forward optional job context when registering CLI scans.

@@ -82,9 +82,12 @@ class Env:
 
     # Unique identifier for the managed_scan in semgrep-app
     sms_scan_id: Optional[str] = field(default=EnvFactory("SEMGREP_MANAGED_SCAN_ID"))
-    workflow_execution: Optional[str] = field(
-        default=EnvFactory("SEMGREP_WORKFLOW_EXECUTION")
-    )
+    # Preserve supplied empty values so the backend can distinguish invalid context from absence.
+    job_context: Optional[str] = field()
+
+    @job_context.default
+    def job_context_default(self) -> Optional[str]:
+        return os.getenv("SEMGREP_JOB_CONTEXT")
 
     version_check_url: str = field(
         default=EnvFactory(

@@ -508,8 +508,8 @@ class ScanHandler:
         # saved so we can log the last exception after the final attempt times out
         last_timeout_exc: Optional[_ConfigPollTimeout] = None
         headers = (
-            {"X-Semgrep-Workflow-Execution": state.env.workflow_execution}
-            if state.env.workflow_execution
+            {"X-Semgrep-Job-Context": state.env.job_context}
+            if state.env.job_context is not None
             else {}
         )
         for post_attempt in range(1, max_attempts + 1):
