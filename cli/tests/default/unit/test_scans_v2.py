@@ -17,6 +17,7 @@ import pytest
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app.scans import _ConfigPollTimeout
 from semgrep.app.scans import ScanHandler
+from semgrep.env import Env
 
 
 SEMGREP_URL = "https://semgrep.dev"
@@ -55,6 +56,7 @@ def mock_state(mocker):
     state.local_scan_id = uuid.UUID(SCAN_REQUEST_ID)
     state.env.semgrep_url = SEMGREP_URL
     state.env.sms_scan_id = None
+    state.env.job_context = None
     state.env.upload_findings_timeout = 30
     state.env.v2_poll_timeout_seconds = 45
     state.env.v2_post_max_attempts = 3
@@ -100,6 +102,7 @@ def test_start_scan_v2_success_immediate(
 
     assert isinstance(result, out.ScanResponse)
     assert result.info.id == 42
+    assert mock_state.app_session.post.call_args.kwargs["headers"] == {}
     assert mock_state.app_session.get.call_count == 1
     mock_sleep.assert_not_called()
 
@@ -178,11 +181,16 @@ def test_start_scan_uses_v2(mocker, mock_state, mock_sleep, mock_args):
 
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
+@pytest.mark.parametrize(
+    "job_context", ['{"version":1,"job_id":"abc","task_key":"scan/one"}', "null", ""]
+)
 def test_start_scan_v2_retries_post_all_timeouts(
-    mocker, mock_state, mock_sleep, handler, mock_args
+    mocker, monkeypatch, mock_state, mock_sleep, handler, mock_args, job_context
 ):
     """Retries POST up to _V2_POST_MAX_ATTEMPTS times on repeated poll timeouts, then raises."""
     project_metadata, project_config = mock_args
+    monkeypatch.setenv("SEMGREP_JOB_CONTEXT", job_context)
+    mock_state.env.job_context = Env().job_context
     mock_state.app_session.post.return_value = _make_response(
         mocker, CREATE_SCAN_RESPONSE
     )
@@ -195,6 +203,8 @@ def test_start_scan_v2_retries_post_all_timeouts(
 
     assert mock_state.app_session.post.call_count == 3
     assert handler._poll_for_config_v2.call_count == 3
+    for call in mock_state.app_session.post.call_args_list:
+        assert call.kwargs["headers"]["X-Semgrep-Job-Context"] == job_context
 
 
 @pytest.mark.quick
