@@ -1453,8 +1453,8 @@
                       [{ s =
                          (DefStmt
                             ({ name =
-                               (EPattern
-                                  (PatId (("x", _),
+                               (EN
+                                  (Id (("x", _),
                                      { id_resolved =
                                        ref ((Some (LocalVar, _)));
                                        id_resolved_alternatives = ref ([]);
@@ -1470,8 +1470,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("x", _),
+                                (EN
+                                   (Id (("x", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1507,8 +1507,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("x", _),
+                                (EN
+                                   (Id (("x", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1553,8 +1553,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("x", _),
+                                (EN
+                                   (Id (("x", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1603,8 +1603,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("x", _),
+                                (EN
+                                   (Id (("x", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1641,8 +1641,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("y", _),
+                                (EN
+                                   (Id (("y", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1691,8 +1691,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("bool", _),
+                                (EN
+                                   (Id (("bool", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1701,8 +1701,7 @@
                                                      (TyN
                                                         (Id (("bool", _),
                                                            { id_resolved =
-                                                             ref ((Some (
-                                                             LocalVar, _)));
+                                                             ref (None);
                                                              id_resolved_alternatives =
                                                              ref ([]);
                                                              id_type =
@@ -1728,8 +1727,7 @@
                                    (Some { t =
                                            (TyN
                                               (Id (("bool", _),
-                                                 { id_resolved =
-                                                   ref ((Some (LocalVar, _)));
+                                                 { id_resolved = ref (None);
                                                    id_resolved_alternatives =
                                                    ref ([]);
                                                    id_type = ref (None);
@@ -1743,8 +1741,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("u32", _),
+                                (EN
+                                   (Id (("u32", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -3649,8 +3647,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("z", _),
+                                (EN
+                                   (Id (("z", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -3690,8 +3688,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("t", _),
+                                (EN
+                                   (Id (("t", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);

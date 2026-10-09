@@ -56,6 +56,14 @@ let in_pattern env =
   | Target -> false
   | Pattern -> true
 
+(* gh-8361: a bare identifier binder is a plain variable definition, so
+ * lower it to EN (Id ...) like Swift's entity_of_pattern does; tuple and
+ * struct binders stay EPattern. *)
+let entity_name_of_pattern (pat : G.pattern) : G.entity_name =
+  match pat with
+  | G.PatId (id, id_info) -> G.EN (G.Id (id, id_info))
+  | (_ : G.pattern) -> G.EPattern pat
+
 (*****************************************************************************)
 (* Intermediate AST-like types *)
 (*****************************************************************************)
@@ -4118,8 +4126,10 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let var_def = { G.vinit = expr; G.vtype = type_; vtok = Some sc } in
       let ent =
         {
-          (* Patterns are difficult to convert to expressions, so wrap it *)
-          G.name = G.EPattern pattern;
+          (* A destructuring binder is difficult to convert to an expression,
+           * so it stays wrapped in EPattern. A plain identifier binder gets a
+           * real name (gh-8361). *)
+          G.name = entity_name_of_pattern pattern;
           G.attrs = attrs @ outer_attrs;
           G.tparams = None;
         }
