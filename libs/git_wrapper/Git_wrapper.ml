@@ -69,10 +69,10 @@ type value = Value.t [@@deriving show, eq, ord]
 type commit = Commit.t [@@deriving show, eq, ord]
 type blob = Blob.t [@@deriving show, eq, ord]
 type author = User.t [@@deriving show, eq, ord]
-type object_table = (hash, value) ROHashtbl.Base.t
-
-type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
-[@@deriving show]
+type tree = Tree.t
+type object_kind = [ `Commit | `Tree | `Blob | `Tag ]
+type object_metadata = { hash : hash; kind : object_kind; size : int }
+type blob_info = { hash : hash; path : Fpath.t; size : int } [@@deriving show]
 
 (*****************************************************************************)
 (* Reexports *)
@@ -135,11 +135,13 @@ let simplify_cmd_error ~errmsg_prefix ~cmd
  *     @@ -10,3 +20,3 @@
  *
  * where the 3 is the number of lines that were changed
- * We use a named capture group for the lines, and then split on the comma if
- * it's a multiline diff
+ * We capture the start line and optional change count separately.
  *)
-let git_diff_lines_re = Pcre2_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
-let remote_repo_name_re = Pcre2_.regexp {|^http.*\/(.*)\.git$|}
+let git_diff_lines_re =
+  Pcre2_.compile_exn
+    {|@@ -\d+(?:,\d+)? \+(?P<start>\d+)(?:,(?P<count>\d+))? @@|}
+
+let remote_repo_name_re = Pcre2_.compile_exn {|^http.*\/(?P<repo>.*)\.git$|}
 let getcwd () = Sys.getcwd () |> Fpath.v
 
 (*
@@ -178,91 +180,124 @@ let flag name (is_set : bool) : string list =
 
 (** Given some git diff ranges (see above), extract the range info *)
 let range_of_git_diff lines =
-  let range_of_substrings substrings =
-    let line = Pcre2.get_substring substrings 1 in
-    let lines = String.split_on_char ',' line in
-    let first_line =
-      match lines with
-      | [] -> assert false
-      | h :: _ -> h
+  let range_of_captures captures =
+    let start =
+      Option.bind
+        (Pcre2_.named_substring_of_captures captures "start")
+        int_of_string_opt
     in
-    let start = int_of_string first_line in
     let change_count =
-      if List.length lines > 1 then int_of_string (List.nth lines 1) else 1
+      match Pcre2_.named_substring_of_captures captures "count" with
+      | None -> Some 1
+      | Some count -> int_of_string_opt count
     in
-    let end_ = change_count + start in
-    (start, end_)
+    match (start, change_count) with
+    | Some start, Some change_count -> Some (start, start + change_count)
+    | _ -> None
   in
-  let matched_ranges = Pcre2_.exec_all ~rex:git_diff_lines_re lines in
-  (* get the first capture group, then optionally split the comma if multiline
-     diff *)
-  match matched_ranges with
-  | Ok ranges ->
-      Array.map
-        (fun s ->
-          try range_of_substrings s with
-          | Not_found -> (-1, -1))
-        ranges
+  match
+    Pcre2_.captures_iter git_diff_lines_re lines
+    |> List.of_seq |> Result_.collect
+  with
   | Error _ -> [||]
+  | Ok captures ->
+      captures |> List.filter_map range_of_captures |> Array.of_list
 
 let remote_repo_name url =
-  match Pcre2_.exec ~rex:remote_repo_name_re url with
-  | Ok (Some substrings) -> Some (Pcre2.get_substring substrings 1)
+  match Pcre2_.captures remote_repo_name_re url with
+  | Ok (Some captures) -> Pcre2_.named_substring_of_captures captures "repo"
   | _ -> None
 
-let tree_of_commit (objects : object_table) commit =
-  commit |> Commit.tree |> ROHashtbl.Base.find_opt objects |> fun obj ->
-  match obj with
-  | Some (Git.Value.Tree tree) -> tree
-  | _ ->
-      failwith
-        "Not a tree! Shouldn't happen, as we read a tree from a commit from a \
-         store."
+(* Objects referenced by history may be absent from the store or have an
+   unexpected kind; this can legitimately happen, e.g., in partial clones
+   (`--filter=blob:none`). Such entries are skipped rather than failing the
+   whole traversal. Each function additionally returns the number of skipped
+   references so the caller can report a single aggregate warning. *)
+type blob_resolution = { blobs : blob_info list; missing : int }
+type blob_memo = (string * string, blob_info list) Base.Hashtbl.t
 
-let rec blobs_of_tree ?(path_prefix = "") (objects : object_table)
-    (tree : Tree.t) : blob_with_extra list =
-  tree |> Tree.to_list |> List.concat_map (blobs_of_entry ~path_prefix objects)
+let rec blobs_of_tree ?(path_prefix : string = "")
+    ~(find_tree : hash -> tree option) ~(find_blob_size : hash -> int option)
+    ~(memo : blob_memo) (tree : tree) : blob_resolution =
+  let results =
+    tree |> Tree.to_list
+    |> List.map (blobs_of_entry ~path_prefix ~find_tree ~find_blob_size ~memo)
+  in
+  {
+    blobs = List.concat_map (fun result -> result.blobs) results;
+    missing = List.fold_left (fun acc result -> acc + result.missing) 0 results;
+  }
 
-and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
-    Tree.entry -> blob_with_extra list = function
-  | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash } ->
-      let blob =
-        hash |> ROHashtbl.Base.find_opt objects |> fun obj ->
-        match obj with
-        | Some (Git.Value.Blob blob) -> blob
-        | _ ->
-            failwith
-              "Not a blob! Shouldn't happen, as we read a blob from a tree \
-               from a store."
-      in
-      (* If youre on a 32bit machine trying to scan files with blobs > 2gb you deserve the error this could cause *)
-      let size = blob |> Blob.length |> Int64.to_int in
-      let path = Filename.concat path_prefix path_segment |> Fpath.v in
-      [ { blob; path; size } ]
+and blobs_of_entry ?(path_prefix : string = "")
+    ~(find_tree : hash -> tree option) ~(find_blob_size : hash -> int option)
+    ~(memo : blob_memo) (entry : Tree.entry) : blob_resolution =
+  match entry with
+  | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash }
+    -> (
+      match find_blob_size hash with
+      | Some size ->
+          let path = Filename.concat path_prefix path_segment |> Fpath.v in
+          { blobs = [ { hash; path; size } ]; missing = 0 }
+      | None ->
+          Log.debug (fun m ->
+              m "could not resolve blob %s at %s; skipping" (Hash.to_hex hash)
+                (Filename.concat path_prefix path_segment));
+          { blobs = []; missing = 1 })
   | { perm = `Dir; name = path_segment; node = hash } ->
-      let tree =
-        hash |> ROHashtbl.Base.find_opt objects |> fun obj ->
-        match obj with
-        | Some (Git.Value.Tree tree) -> tree
-        | _ ->
-            failwith
-              "Not a tree! Shouldn't happen, as we read a tree from a tree \
-               from a store."
-      in
       let path = Filename.concat path_prefix path_segment in
-      blobs_of_tree ~path_prefix:path objects tree
+      blobs_of_tree_hash ~path_prefix:path ~find_tree ~find_blob_size ~memo hash
   | { perm = `Link; _ }
   | { perm = `Commit; _ } ->
-      []
+      { blobs = []; missing = 0 }
 
-let blobs_by_commit objects commits =
-  commits
-  |> List.map (fun commit ->
-      let tree = tree_of_commit objects commit in
-      (commit, tree))
-  |> List.map (fun (commit, tree) ->
-      let blobs = blobs_of_tree objects tree in
-      (commit, blobs))
+(* Walk each distinct (path prefix, tree sha) once and share the resulting
+   (immutable) list across all commits containing that subtree. The prefix is
+   part of the key since the computed paths depend on it. Skipped references
+   are counted once per distinct key. *)
+and blobs_of_tree_hash ~(path_prefix : string)
+    ~(find_tree : hash -> tree option) ~(find_blob_size : hash -> int option)
+    ~(memo : blob_memo) (hash : hash) : blob_resolution =
+  let key = (path_prefix, Hash.to_raw_string hash) in
+  Base.Hashtbl.find_and_call memo key
+    ~if_found:(fun blobs -> { blobs; missing = 0 })
+    ~if_not_found:(fun key ->
+      let result =
+        match find_tree hash with
+        | Some tree ->
+            blobs_of_tree ~path_prefix ~find_tree ~find_blob_size ~memo tree
+        | None ->
+            Log.debug (fun m ->
+                m "could not resolve tree %s at %s; skipping" (Hash.to_hex hash)
+                  path_prefix);
+            { blobs = []; missing = 1 }
+      in
+      Base.Hashtbl.set memo ~key ~data:result.blobs;
+      result)
+
+let blobs_by_commit ~(find_tree : hash -> tree option)
+    ~(find_blob_size : hash -> int option) (commits : commit list) :
+    (commit * blob_info list) list =
+  let memo = Base.Hashtbl.Poly.create ~size:1024 () in
+  let results =
+    commits
+    |> List.map (fun commit ->
+        ( commit,
+          blobs_of_tree_hash ~path_prefix:"" ~find_tree ~find_blob_size ~memo
+            (Commit.tree commit) ))
+  in
+  let missing =
+    List.fold_left (fun acc (_, result) -> acc + result.missing) 0 results
+  in
+  if missing > 0 then
+    (* nosemgrep: no-logs-in-library *)
+    Logs.warn (fun m ->
+        m
+          "%d git object(s) referenced by history were missing from the object \
+           store or had an unexpected kind and were skipped. This is expected \
+           for partial clones (e.g. --filter=blob:none); otherwise, the \
+           repository may be corrupted."
+          missing);
+  List.map (fun (commit, result) -> (commit, result.blobs)) results
 
 (*****************************************************************************)
 (* Entry points *)
@@ -294,22 +329,15 @@ Try running the command yourself to debug the issue.|}
 
 let command_exn args = command args |> fatal
 
-let commit_blobs_by_date objects =
-  Log.info (fun m -> m "getting commits");
-  let commits =
-    objects |> ROHashtbl.Base.to_alist
-    |> List.filter_map (fun (_, value) ->
-        match value with
-        | Git.Value.Commit commit -> Some commit
-        | _ -> None)
-  in
-  Log.debug (fun m -> m "got commits");
+let commit_blobs_by_date ~find_tree ~find_blob_size commits =
   Log.debug (fun m -> m "sorting commits");
   let commits_by_date =
     commits |> List.sort Commit.compare_by_date |> List.rev
   in
   Log.debug (fun m -> m "sorted commits");
-  let blobs_by_commit = blobs_by_commit objects commits_by_date in
+  let blobs_by_commit =
+    blobs_by_commit ~find_tree ~find_blob_size commits_by_date
+  in
   Log.debug (fun m -> m "got blobs by commit");
   blobs_by_commit
 
@@ -800,6 +828,48 @@ let cat_file_blob ?cwd (hash : hash) =
       Error s
 
 let cat_file_blob_exn ?cwd hash = cat_file_blob ?cwd hash |> fatal
+
+let object_kind_of_string = function
+  | "commit" -> Some `Commit
+  | "tree" -> Some `Tree
+  | "blob" -> Some `Blob
+  | "tag" -> Some `Tag
+  | _ -> None
+
+let list_object_metadata ?cwd () : (object_metadata list, string) result =
+  let cmd =
+    ( git,
+      cd cwd
+      @ [
+          "cat-file";
+          "--batch-all-objects";
+          "--unordered";
+          "--batch-check=%(objectname) %(objecttype) %(objectsize)";
+        ] )
+  in
+  match UCmd.string_of_run ~trim:true cmd with
+  | Ok (s, (_, `Exited 0)) ->
+      Ok
+        (String.split_on_char '\n' s
+        |> List.filter_map (fun line ->
+            match String.split_on_char ' ' line with
+            | [ sha; kind; size ] -> (
+                match
+                  ( Hash.of_hex_opt sha,
+                    object_kind_of_string kind,
+                    int_of_string_opt size )
+                with
+                | Some hash, Some kind, Some size -> Some { hash; kind; size }
+                | _ ->
+                    Log.debug (fun m -> m "unparsable cat-file line: %s" line);
+                    None)
+            | _ ->
+                if line <> "" then
+                  Log.debug (fun m -> m "unparsable cat-file line: %s" line);
+                None))
+  | Ok (s, _)
+  | Error (`Msg s) ->
+      Error s
 
 let gc ?cwd () =
   let cmd = (git, cd cwd @ [ "gc"; "--quiet" ]) in

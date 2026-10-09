@@ -237,9 +237,9 @@ type ellipsis_or_bash =
    grammar.
 *)
 let is_plain_ellipsis =
-  let rex = Pcre2_.regexp {|\A[ \t\r\n]*[.]{3}[ \t\r\n]*\z|} in
+  let rex = Pcre2_.compile_exn {|\A[ \t\r\n]*[.]{3}[ \t\r\n]*\z|} in
   fun s ->
-    match Pcre2_.pmatch ~rex s with
+    match Pcre2_.is_match rex s with
     | Ok res -> res
     | Error _err -> false
 
@@ -247,10 +247,10 @@ let is_plain_ellipsis =
    See remarks for 'is_plain_ellipsis'. *)
 let is_named_ellipsis =
   let rex =
-    Pcre2_.regexp {|\A[ \t\r\n]*(\$[.]{3}[A-Z_][A-Z_0-9]*)[ \t\r\n]*\z|}
+    Pcre2_.compile_exn {|\A[ \t\r\n]*(\$[.]{3}[A-Z_][A-Z_0-9]*)[ \t\r\n]*\z|}
   in
   fun s ->
-    match Pcre2_.pmatch ~rex s with
+    match Pcre2_.is_match rex s with
     | Ok res -> res
     | Error _err -> false
 

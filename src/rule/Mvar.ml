@@ -67,8 +67,11 @@ let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
 let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 
 let mvars_of_regexp_string s =
-  Pcre2_.pcre_compile s |> Pcre2_.pcre_regexp |> Pcre2.names |> Array.to_list
-  |> Common.(List.map (fun s -> spf "$%s" s))
+  match Pcre2_.compile ~options:[ `MULTILINE ] s with
+  | Error _ -> []
+  | Ok rex ->
+      Pcre2_.capture_groups rex |> List.map fst
+      |> Common.(List.map (fun s -> spf "$%s" s))
 
 let is_anonymous_metavar s = s =*= "$_"
 

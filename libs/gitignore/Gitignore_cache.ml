@@ -70,10 +70,9 @@ let create ?(gitignore_filenames = [ Gitignore.default_gitignore_filename ])
       let level =
         try load_level_for_dir ~project_root ~gitignore_filenames dir with
         | e ->
-            (* A single malformed [.gitignore] (e.g. a bad regex raising
-               [Pcre2.Error]) or a transient I/O failure here must not
-               abort the entire cache build. Log + treat as "no gitignore
-               at this directory". *)
+            (* A single malformed [.gitignore] (e.g. a bad regex) or a
+               transient I/O failure here must not abort the entire cache
+               build. Log + treat as "no gitignore at this directory". *)
             (* nosemgrep: no-logs-in-library *)
             Logs.warn (fun m ->
                 m

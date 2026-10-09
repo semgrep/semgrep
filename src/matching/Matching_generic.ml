@@ -509,9 +509,9 @@ let return () = return
 let fail () = fail
 
 let regexp_matcher_of_regexp_string s =
-  if s =~ Pattern.regexp_regexp_string then (
+  if s =~ Pattern.regexp_regexp_string then
     let x, flags = Common.matched2 s in
-    let flags =
+    let options =
       match flags with
       | "" -> []
       | "i" -> [ `CASELESS ]
@@ -520,12 +520,23 @@ let regexp_matcher_of_regexp_string s =
     in
     (* old: let re = Str.regexp x in (fun s -> Str.string_match re s 0) *)
     (* TODO: add `ANCHORED to be consistent with Python re.match (!re.search)*)
-    let re = Pcre2_.regexp ~flags x in
-    fun s2 ->
-      Pcre2_.pmatch_noerr ~rex:re s2 |> fun b ->
-      Log.debug (fun m -> m "regexp match: %s on %s, result = %b" s s2 b);
-      b)
-  else failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
+    (* TODO: we should have earlier and more robust error reporting for rules.
+       This shouldn't get kicked down this far to get silently ignored: either
+       we should yell loud up front or at least construct this in such a way we
+       can reasonably report this error and relate it to the user-facing source
+       (i.e., what rule, where in the rule) *)
+    match Pcre2_.compile ~options x with
+    | Ok re ->
+        fun s2 ->
+          let b =
+            match Pcre2_.is_match re s2 with
+            | Ok x -> x
+            | Error _ -> false
+          in
+          Log.debug (fun m -> m "regexp match: %s on %s, result = %b" s s2 b);
+          b
+    | Error _ -> failwith (spf "This is not a PCRE-compatible regexp: %s" s)
+  else failwith (spf "This is not a PCRE-compatible regexp: %s" s)
 
 (*****************************************************************************)
 (* Generic matchers *)

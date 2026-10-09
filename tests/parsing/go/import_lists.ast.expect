@@ -1,0 +1,11 @@
+[{ s = (DirectiveStmt { d = (Package (_, [("imports", _)])); d_attrs = [] });
+   s_range = None };
+  { s =
+    (DirectiveStmt
+       { d = (ImportAs (_, (FileName ("fmt", _)), None)); d_attrs = [] });
+    s_range = None };
+  { s =
+    (DirectiveStmt
+       { d = (ImportAs (_, (FileName ("os", _)), None)); d_attrs = [] });
+    s_range = None }
+  ]

@@ -255,13 +255,18 @@ let rec textual_requirements_of_simplified ~regex_only :
         in
         match extracted with
         | Some f -> Some f
-        | None -> Some (F.pred (P.Regex (Pcre2_.pcre_compile re))))
+        | None ->
+            let* re =
+              Pcre2_.compile ~options:[ `MULTILINE ] re |> Result.to_option
+            in
+            Some (F.pred (P.Regex re)))
   | Pred (MvarRegexp (_mvar, re_str, _const_prop)) ->
       (* The original regexp is meant to apply on a substring.
            We rewrite them to remove end-of-string anchors if possible. *)
       let* re =
-        Pcre2_.remove_end_of_string_assertions (Pcre2_.pcre_compile re_str)
+        Pcre2_.compile ~options:[ `MULTILINE ] re_str |> Result.to_option
       in
+      let* re = Pcre2_.remove_end_of_string_assertions re in
       Some (F.pred (P.Regex re))
 
 type prefilter = Predicate.t requirement_tree [@@deriving show]

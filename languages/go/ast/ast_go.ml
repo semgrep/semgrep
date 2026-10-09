@@ -59,6 +59,11 @@ type qualified_ident = ident list (* 1 or 2 elements *) [@@deriving show]
 (*****************************************************************************)
 type type_ =
   | TName of qualified_ident (* includes the basic types: bool/int/... *)
+  (* Type-set terms used in generic constraints. *)
+  | TUnderlying of tok (* ~ *) * type_
+  | TUnion of type_ * tok (* | *) * type_
+  (* Like TGeneric, but retains a non-name base from the CST. *)
+  | TApply of type_ * type_arguments
   | TPtr of tok * type_
   (* generics: generalize TArray and TMap to any types.
    * alt: we could merge it with TName
@@ -108,6 +113,7 @@ and struct_field = struct_field_kind * tag option
 and struct_field_kind =
   | Field of ident * type_ (* could factorize with entity *)
   | EmbeddedField of tok option (* * *) * qualified_ident
+  | EmbeddedGenericField of tok option (* * *) * type_
   (* sgrep-ext: *)
   | FieldEllipsis of tok
 
@@ -118,6 +124,7 @@ and interface_field =
   | Method of ident * func_type
   (* "embedded" interfaces *)
   | EmbeddedInterface of qualified_ident
+  | EmbeddedGenericInterface of type_
   (* "general" interfaces *)
   | Constraints of constraint_ list (* at least one element *)
   (* sgrep-ext: *)
@@ -160,6 +167,8 @@ and expr =
    * you need typing information to know that.
    *)
   | Cast of type_ * expr bracket
+  (* A generic function value, without a call, e.g. f[[]int]. *)
+  | TypeInstantiation of type_ * type_arguments
   (* special cases of Unary *)
   | Deref of tok (* * *) * expr
   (* less: some &T{...} should be transformed in call to new? *)

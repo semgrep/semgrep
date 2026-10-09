@@ -224,19 +224,23 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
 let pp_hidden fmt _ = Format.fprintf fmt "_"
 
 let windows_float_exponent_re =
-  Lazy_safe.from_fun (fun () -> Pcre2_.regexp {|e[-+]0[0-9][0-9]+|})
+  Lazy_safe.from_fun (fun () -> Pcre2_.compile_exn {|e[-+]0[0-9][0-9]+|})
 
 (* Windows' C runtime prints float exponents with a minimum of three digits
    (e.g. "1.5e-010") whereas Unix uses two ("1.5e-10"). Normalize to Unix snapshots format. *)
 let normalize_windows_float_exponent s =
-  Pcre2_.substitute
-    ~rex:(Lazy_safe.force windows_float_exponent_re)
-    ~subst:(fun matched ->
-      (* [matched] looks like "e+013" or "e-010". *)
-      let sign = matched.[1] in
-      let digits = Str.string_after matched 2 in
-      Printf.sprintf "e%c%02d" sign (int_of_string digits))
-    s
+  match
+    Pcre2_.replace_fn
+      (Lazy_safe.force windows_float_exponent_re)
+      (fun matched ->
+        (* [matched] looks like "e+013" or "e-010". *)
+        let sign = matched.[1] in
+        let digits = Str.string_after matched 2 in
+        Printf.sprintf "e%c%02d" sign (int_of_string digits))
+      s
+  with
+  | Ok x -> x
+  | Error _ -> s
 
 (* Type alias so [literal.Float] can use a custom [show] printer.
    Match [@@deriving show] for [float] so AST

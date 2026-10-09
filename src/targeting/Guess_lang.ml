@@ -121,9 +121,9 @@ let get_first_block ?(block_size = 4096) path =
       really_input_string ic len)
 
 let shebang_re =
-  lazy_safe (Pcre2_.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
+  lazy_safe (Pcre2_.compile_exn "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
 
-let split_cmd_re = lazy_safe (Pcre2_.regexp "[ \t]+")
+let split_cmd_re = lazy_safe (Pcre2_.compile_exn "[ \t]+")
 
 (*
    A shebang supports at most the name of the script and one argument:
@@ -149,28 +149,36 @@ let split_cmd_re = lazy_safe (Pcre2_.regexp "[ \t]+")
      "#!/usr/bin/env -S bash -e -u" -> ["/usr/bin/env"; "bash"; "-e"; "-u"]
 *)
 let parse_shebang_line s =
-  let matched = Pcre2_.exec_noerr ~rex:(Lazy_safe.force shebang_re) s in
+  let matched = Pcre2_.captures (Lazy_safe.force shebang_re) s in
   match matched with
-  | None -> None
-  | Some matched -> (
-      match Pcre2.get_substrings matched with
-      | [| _; arg0; "" |] -> Some [ arg0 ]
-      | [| _; "/usr/bin/env" as arg0; arg1 |] -> (
+  | Error _
+  | Ok None ->
+      None
+  | Ok (Some matched) -> (
+      match
+        Pcre2_.
+          ( match_of_captures matched 1 |> Option.map substring_of_match,
+            match_of_captures matched 2 |> Option.map substring_of_match )
+      with
+      | Some arg0, None -> Some [ arg0 ]
+      | Some ("/usr/bin/env" as arg0), Some arg1 -> (
           (* approximate emulation of 'env -S'; should work if the command
              contains no quotes around the arguments. *)
           match string_chop_prefix ~pref:"-S" arg1 with
           | Some packed_args ->
               let args =
-                Pcre2_.split_noerr
-                  ~rex:(Lazy_safe.force split_cmd_re)
-                  ~on_error:[ packed_args ] packed_args
+                Pcre2_.split (Lazy_safe.force split_cmd_re) packed_args
+                |> Result.value ~default:[ packed_args ]
                 |> List.filter (fun fragment -> fragment <> "")
               in
               Some (arg0 :: args)
           | None -> Some [ arg0; arg1 ])
-      | [| _; arg0; arg1 |] -> Some [ arg0; arg1 ]
-      | [| _ |] -> None
-      | _ -> assert false)
+      | Some arg0, Some arg1 -> Some [ arg0; arg1 ]
+      | None, None -> None
+      | None, Some _ ->
+          (* Not possible since first group is mandatory, so if we match it
+             will have captured. *)
+          assert false)
 
 let get_shebang_command path = get_first_line path |> parse_shebang_line
 
@@ -190,13 +198,16 @@ let uses_shebang_command_name cmd_names =
    PCRE regexp using the default options.
    In case of an error, the result is false.
  *)
+(* TODO: just silently dropping errors like this seems bad *)
 let regexp pat =
-  let rex = Pcre2_.regexp pat in
-  let f path =
-    let s = get_first_block path in
-    Pcre2_.pmatch_noerr ~rex s
-  in
-  Test_path f
+  match Pcre2_.compile pat with
+  | Ok re ->
+      let f path =
+        let s = get_first_block path in
+        Pcre2_.is_match re s |> Result.value ~default:false
+      in
+      Test_path f
+  | Error _ -> Test_path (Fun.const false)
 
 let is_executable_script cmd_names =
   And

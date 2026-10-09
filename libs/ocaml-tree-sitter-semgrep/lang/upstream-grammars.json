@@ -18,7 +18,7 @@
     "regen": [
       "c-sharp"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-c-sharp.git"
   },
   "c-sharp-pro": {
@@ -34,7 +34,7 @@
     "regen": [
       "cairo"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/avnu-labs/tree-sitter-cairo"
   },
   "cfml": {
@@ -48,7 +48,7 @@
     "regen": [
       "circom"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/Decurity/tree-sitter-circom.git"
   },
   "clojure": {
@@ -56,7 +56,7 @@
     "regen": [
       "clojure"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/sogaiu/tree-sitter-clojure"
   },
   "cpp": {
@@ -91,7 +91,7 @@
     "regen": [
       "elixir"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/elixir-lang/tree-sitter-elixir.git"
   },
   "fga": {
@@ -103,11 +103,11 @@
     "url": "https://github.com/semgrep/tree-sitter-fga.git"
   },
   "go": {
-    "commit": "05900faa3cdb5d2d8c8bd5e77ee698487e0a8611",
+    "commit": "3c3775faa968158a8b4ac190a7fda867fd5fb748",
     "regen": [
       "go"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-go.git"
   },
   "gomod": {
@@ -116,7 +116,7 @@
     "regen": [
       "gomod"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/camdencheek/tree-sitter-go-mod.git"
   },
   "gosu": {
@@ -138,7 +138,7 @@
   "haskell": {
     "commit": "0da7f826e85b3e589e217adf69a6fd89ee4301b9",
     "regen": [],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-haskell.git"
   },
   "hcl": {
@@ -162,13 +162,13 @@
     "regen": [
       "java"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-java.git"
   },
   "javascript": {
     "commit": "6fbef40512dcd9f0a61ce03a4c9ae7597b36ab5c",
     "regen": [],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-javascript.git"
   },
   "jsonnet": {
@@ -176,7 +176,7 @@
     "regen": [
       "jsonnet"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/returntocorp/tree-sitter-jsonnet.git"
   },
   "julia": {
@@ -184,7 +184,7 @@
     "regen": [
       "julia"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-julia"
   },
   "kotlin": {
@@ -192,7 +192,7 @@
     "regen": [
       "kotlin"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/fwcd/tree-sitter-kotlin.git"
   },
   "lua": {
@@ -206,7 +206,7 @@
   "make": {
     "commit": "5904dfb622a95a48f2be5cc17c6c9a70566b47ef",
     "regen": [],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/returntocorp/tree-sitter-make"
   },
   "move-on-aptos": {
@@ -214,7 +214,7 @@
     "regen": [
       "move-on-aptos"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/aptos-labs/tree-sitter-move-on-aptos.git"
   },
   "move-on-sui": {
@@ -222,7 +222,7 @@
     "regen": [
       "move-on-sui"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/maxmysten/tree-sitter-move.git"
   },
   "ocaml": {
@@ -230,7 +230,7 @@
     "regen": [
       "ocaml"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-ocaml.git"
   },
   "php": {
@@ -258,7 +258,7 @@
     "regen": [
       "promql"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/MichaHoffmann/tree-sitter-promql.git"
   },
   "proto": {
@@ -266,7 +266,7 @@
     "regen": [
       "proto"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/mitchellh/tree-sitter-proto.git"
   },
   "python": {
@@ -290,7 +290,7 @@
     "regen": [
       "requirements"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter-grammars/tree-sitter-requirements.git"
   },
   "ruby": {
@@ -306,7 +306,7 @@
     "regen": [
       "rust"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-rust"
   },
   "scala": {
@@ -339,7 +339,7 @@
   "sqlite": {
     "commit": "2e71f3a6f11cae37a3cabfab911ae17d74f1e801",
     "regen": [],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/dhcmrlchtdj/tree-sitter-sqlite.git"
   },
   "swift": {
@@ -347,7 +347,7 @@
     "regen": [
       "swift"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/alex-pinkus/tree-sitter-swift.git"
   },
   "toml": {
@@ -355,7 +355,7 @@
     "regen": [
       "toml"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter-grammars/tree-sitter-toml.git"
   },
   "typescript": {
@@ -371,7 +371,7 @@
       "typescript",
       "tsx"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-typescript.git"
   }
 }

@@ -213,16 +213,28 @@ let translate_root conf pat =
 (* Entry points *)
 (*****************************************************************************)
 
-(* Compile a pattern into an ocaml-re regexp for fast matching *)
+(* Compile a pattern into a pcre2 regexp for fast matching *)
 let compile ?(conf = default_conf) ~source pat =
   let pcre = translate_root conf pat in
   (* EXTENDED: needed to ignore the whitespace we put into the PCRE pattern
      for readability *)
-  let re = Pcre2_.regexp ~flags:[ `EXTENDED ] pcre in
+  (* This should be okay, since we should never generate an invalid regex when
+     translating a glob pattern *)
+  let re = Pcre2_.compile_exn ~options:[ `EXTENDED ] pcre in
   { source; re }
 
+let warn_on_match_fail x =
+  Log.warn (fun m ->
+      m "runtime error in glob matching: %a" Pcre2.pp_match_error x)
+
 let run matcher path =
-  let res = Pcre2_.pmatch_noerr ~rex:matcher.re path in
+  let res =
+    match Pcre2_.is_match matcher.re path with
+    | Ok b -> b
+    | Error e ->
+        warn_on_match_fail e;
+        false
+  in
   (* Uncomment to print something in tests when debugging.
      Why not have a permanent log instruction:
      1. This logs a lot for any basic semgrep operation so it's useless

@@ -569,6 +569,8 @@ class DependencyResolutionSemgrepError(SemgrepError):
                 return f"Missing Requirement ({err.value.value})"
             elif isinstance(err.value, out.ResolutionCmdFailed_):
                 return f"Resolution Command Failed (command: {err.value.value.command}) (result: {err.value.value.message})"
+            elif isinstance(err.value, out.IncompleteDependencyResolution_):
+                return f"Incomplete Dependency Resolution (command: {err.value.value.command}) (message: {err.value.value.message})"
             elif isinstance(err.value, out.ResourceInaccessible_):
                 return f"Resource Inaccessible (command: {err.value.value.command}) (registry_url: {err.value.value.registry_url}) (message: {err.value.value.message})"
             else:
