@@ -507,6 +507,11 @@ class ScanHandler:
 
         # saved so we can log the last exception after the final attempt times out
         last_timeout_exc: Optional[_ConfigPollTimeout] = None
+        headers = (
+            {"X-Semgrep-Workflow-Execution": state.env.workflow_execution}
+            if state.env.workflow_execution
+            else {}
+        )
         for post_attempt in range(1, max_attempts + 1):
             span.set_attribute("scan.v2.post_attempt", post_attempt)
 
@@ -518,6 +523,7 @@ class ScanHandler:
             create_response = state.app_session.post(
                 f"{state.env.semgrep_url}/api/cli/v2/scans",
                 json=request.to_json(),
+                headers=headers,
             )
             self._raise_if_request_failed(create_response)
 

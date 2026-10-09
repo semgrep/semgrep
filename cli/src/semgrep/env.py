@@ -82,6 +82,9 @@ class Env:
 
     # Unique identifier for the managed_scan in semgrep-app
     sms_scan_id: Optional[str] = field(default=EnvFactory("SEMGREP_MANAGED_SCAN_ID"))
+    workflow_execution: Optional[str] = field(
+        default=EnvFactory("SEMGREP_WORKFLOW_EXECUTION")
+    )
 
     version_check_url: str = field(
         default=EnvFactory(
