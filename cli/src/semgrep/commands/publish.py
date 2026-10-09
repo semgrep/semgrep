@@ -108,7 +108,7 @@ def publish(
     app_session = get_state().app_session
 
     if not app_session.token:
-        click.echo("run `semgrep login` before using upload", err=True)
+        click.echo("run `semgrep login` before using publish", err=True)
         sys.exit(FATAL_EXIT_CODE)
 
     fail_count = 0
