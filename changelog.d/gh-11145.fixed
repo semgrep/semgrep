@@ -1,0 +1,1 @@
+Bound match context to 2,000 characters by default so minified source files cannot flood CLI output; use `--max-match-context-size=0` to retain unlimited context
