@@ -576,3 +576,18 @@ def test_critical_severity(run_semgrep_on_copied_files: RunSemgrep, posix_snapsh
         ).stdout,
         "results.json",
     )
+
+def test_pattern_without_lang_shows_usage_error(run_semgrep_on_copied_files: RunSemgrep):
+    """
+    -e/--pattern without -l/--lang should print Click usage info,
+    not a bare error message. See GH issue #5684.
+    """
+    result = run_semgrep_on_copied_files(
+        subcommand="scan",
+        options=["-e", "foo"],
+        target_name="basic",
+        assert_exit_code=2,
+        use_click_runner=True,
+    )
+    assert "Usage: semgrep scan" in result.stderr
+    assert "-e/--pattern and -l/--lang must both be specified" in result.stderr
