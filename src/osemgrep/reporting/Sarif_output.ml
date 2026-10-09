@@ -121,6 +121,17 @@ let tags_of_metadata metadata =
   let all_tags = cwe @ owasp @ confidence @ semgrep_policy_slug @ tags in
   List.sort_uniq String.compare all_tags
 
+let sarif_rule_id (rule_id : Rule_ID.t) =
+  let id = Rule_ID.to_string rule_id in
+  let max_sarif_id_length = 255 in
+  if String.length id <= max_sarif_id_length then id
+  else
+    let digest = Digest.string id |> Digest.to_hex in
+    let suffix_length = 12 in
+    let suffix = String.sub digest 0 suffix_length in
+    let prefix_length = max_sarif_id_length - suffix_length - 1 in
+    spf "%s-%s" (String.sub id 0 prefix_length) suffix
+
 (* We want to produce a JSON object with the following shape:
    { id; name;
      defaultConfiguration = { level };
@@ -136,7 +147,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
    * including the severity of the finding is stored within "rules".
    * The results then reference the ID of the rule
    *)
-  let rule_id_str = Rule_ID.to_string (fst rule.id) in
+  let rule_id_str = sarif_rule_id (fst rule.id) in
   let default_configuration =
     Sarif.create_reporting_configuration
       ~level:(severity_of_severity rule.severity)
@@ -469,7 +480,7 @@ let result (ctx : Out.format_context) show_dataflow_traces
     else [ ("matchBasedId/v1", Gated_data.msg) ]
   in
   Sarif.create_result
-    ~rule_id:(Rule_ID.to_string cli_match.check_id)
+    ~rule_id:(sarif_rule_id cli_match.check_id)
     ~message:(message cli_match.extra.message)
     ~locations:[ location ] ~fingerprints ~properties ?code_flows ?fixes
     ?suppressions ()
