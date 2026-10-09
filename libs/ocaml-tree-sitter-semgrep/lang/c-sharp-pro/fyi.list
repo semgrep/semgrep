@@ -1,3 +1,3 @@
-semgrep-grammars/src/tree-sitter-c-sharp/LICENSE
-semgrep-grammars/src/tree-sitter-c-sharp/grammar.js
-semgrep-grammars/src/semgrep-c-sharp/grammar.js
+semgrep-grammars/src/tree-sitter-c-sharp-pro/LICENSE
+semgrep-grammars/src/tree-sitter-c-sharp-pro/grammar.js
+semgrep-grammars/src/semgrep-c-sharp-pro/grammar.js
