@@ -1,2 +1,0 @@
-Updated the bundled `anyio` (4.12.1 to 4.14.2) and `urllib3` (2.6.3 to 2.8.0)
-dependencies to versions with fixes for known security advisories.
