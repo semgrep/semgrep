@@ -1,0 +1,27 @@
+==================
+Go 1.24 invalid union terminator
+==================
+package a
+
+func invalid[T ~int |](x T) {}
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (function_declaration
+    (identifier)
+    (type_parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_parameter_union
+          (constraint_term
+            (type_identifier))
+          (constraint_term
+            (MISSING type_identifier)))))
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_identifier)))
+    (block)))

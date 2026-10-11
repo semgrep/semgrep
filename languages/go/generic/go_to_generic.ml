@@ -119,6 +119,20 @@ let top_func () =
         let targs = type_arguments v2 in
         let name = name_of_qualified_ident id in
         G.TyApply (G.TyN name |> G.t, targs)
+    | TConstraintSet (first, rest) ->
+        let term (tilde, ty) =
+          let ty = type_ ty in
+          match tilde with
+          | Some t -> G.OtherType (("GoApproxType", t), [ G.T ty ]) |> G.t
+          | None -> ty
+        in
+        let combined =
+          List.fold_left
+            (fun left (separator, right) ->
+              G.TyOr (left, separator, term right) |> G.t)
+            (term first) rest
+        in
+        combined.G.t
     | TPtr (t, v1) ->
         let v1 = type_ v1 in
         G.TyPointer (t, v1)
@@ -224,13 +238,17 @@ let top_func () =
         let st = G.exprstmt e in
         G.F st
     | FieldEllipsis2 t -> G.field_ellipsis t
-    | Constraints xs -> (
-        match xs with
-        | [] -> raise Impossible
-        | (_tilde_optTODO, ty) :: _xsTODO ->
-            let ty = type_ ty in
-            let st = G.OtherStmt (G.OS_Todo, [ G.T ty ]) |> G.s in
-            G.F st)
+    | Constraints xs ->
+        let terms =
+          List.map
+            (fun (tilde, ty) ->
+              let ty = type_ ty in
+              match tilde with
+              | Some t -> G.OtherType (("GoApproxType", t), [ G.T ty ]) |> G.t
+              | None -> ty)
+            xs
+        in
+        G.F (G.OtherStmt (G.OS_Todo, List.map (fun ty -> G.T ty) terms) |> G.s)
   and expr_or_type v = either expr type_ v
   (* used for translating call make/call new *)
   and gen_new ty (l, args, r) t name =
@@ -619,10 +637,11 @@ let top_func () =
         in
         G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2; vtok = G.no_sc })
         |> G.s
-    | DTypeAlias (v1, v2, v3) ->
-        let v1 = ident v1 and _v2 = tok v2 and v3 = type_ v3 in
-        let ent = G.basic_entity v1 in
-        G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
+    | DTypeAlias (v1, v2, v3, v4) ->
+        let v1 = ident v1 and tparams = option type_parameters v2 in
+        let _v3 = tok v3 and v4 = type_ v4 in
+        let ent = G.basic_entity v1 ?tparams in
+        G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v4 }) |> G.s
     | DTypeDef (v1, v2, v3) ->
         let id = ident v1 in
         let tparams = option type_parameters v2 in

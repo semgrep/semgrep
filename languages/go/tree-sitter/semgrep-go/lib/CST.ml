@@ -63,8 +63,6 @@ type field_name_list = (
 
 type empty_labeled_statement = (identifier (*tok*) * Token.t (* ":" *))
 
-type constraint_term = (Token.t (* "~" *) option * identifier (*tok*))
-
 type qualified_type = (
     identifier (*tok*) * Token.t (* "." *) * identifier (*tok*)
 )
@@ -90,7 +88,31 @@ type import_spec_list = (
   * Token.t (* ")" *)
 )
 
-type anon_choice_exp_047b57a = [
+type constraint_term = (Token.t (* "~" *) option * interface_type_name)
+
+type anon_choice_cons_term_3363a2d = [
+    `Cons_term of constraint_term
+  | `Struct_term of struct_term
+]
+
+and anon_choice_cons_term_c671c9c = [
+    `Cons_term of constraint_term
+  | `Type_param_comp of (
+        Token.t (* "~" *) option
+      * [
+            `Slice_type of slice_type
+          | `Map_type of map_type
+          | `Array_type of array_type
+          | `Struct_type of struct_type
+          | `Poin_type of pointer_type
+          | `Chan_type of channel_type
+          | `Func_type of function_type
+        ]
+    )
+  | `Gene_type of generic_type
+]
+
+and anon_choice_exp_047b57a = [
     `Exp of expression
   | `Vari_arg of (expression * Token.t (* "..." *))
 ]
@@ -101,7 +123,7 @@ and anon_choice_lit_elem_0952f3f = [
 ]
 
 and anon_choice_param_decl_18823e5 = [
-    `Param_decl of parameter_declaration
+    `Param_decl of (field_name_list option * type_)
   | `Vari_param_decl of (
         identifier (*tok*) option
       * Token.t (* "..." *)
@@ -378,6 +400,12 @@ and for_clause = (
   * simple_statement option
 )
 
+and function_type = (
+    Token.t (* "func" *)
+  * parameter_list
+  * anon_choice_param_list_29faba4 option
+)
+
 and generic_type = (interface_type_name * type_arguments)
 
 and if_statement = (
@@ -408,7 +436,81 @@ and interface_body = [
         struct_term
       * (Token.t (* "|" *) * struct_term) list (* zero or more *)
     )
+  | `Inte_comp_type_set of (
+        (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+          list (* zero or more *)
+      * interface_nonstruct_type_term
+      * (
+            Token.t (* "|" *)
+          * [
+                `Cons_term of constraint_term
+              | `Struct_term of struct_term
+              | `Inte_nons_type_term of interface_nonstruct_type_term
+            ]
+        )
+          list (* zero or more *)
+    )
+  | `Inte_named_struct_type_set of (
+        (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+          list (* zero or more *)
+      * [
+            `Cons_term_BAR_struct_term of (
+                constraint_term * Token.t (* "|" *) * struct_term
+            )
+          | `Struct_term_BAR_cons_term of (
+                struct_term * Token.t (* "|" *) * constraint_term
+            )
+        ]
+      * (Token.t (* "|" *) * anon_choice_cons_term_3363a2d)
+          list (* zero or more *)
+    )
 ]
+
+and interface_nonstruct_type_term = [
+    `Opt_TILDE_choice_slice_type of (
+        Token.t (* "~" *) option
+      * [
+            `Slice_type of slice_type
+          | `Map_type of map_type
+          | `Array_type of array_type
+          | `Chan_type of channel_type
+          | `Func_type of function_type
+        ]
+    )
+  | `Gene_type of generic_type
+  | `Inte_nons_poin of (
+        Token.t (* "*" *)
+      * [
+            `Id of identifier (*tok*)
+          | `Qual_type of qualified_type
+          | `Gene_type of generic_type
+          | `Slice_type of slice_type
+          | `Map_type of map_type
+          | `Array_type of array_type
+          | `Chan_type of channel_type
+          | `Func_type of function_type
+          | `Poin_type of pointer_type
+          | `Paren_type of parenthesized_type
+        ]
+    )
+  | `TILDE_poin_type of (Token.t (* "~" *) * pointer_type)
+  | `Opt_TILDE_choice_paren_type of (
+        Token.t (* "~" *) option
+      * [ `Paren_type of parenthesized_type | `Inte_type of interface_type ]
+    )
+]
+
+and interface_type = (
+    Token.t (* "interface" *)
+  * Token.t (* "{" *)
+  * (
+        interface_body
+      * (anon_choice_LF_249c99f * interface_body) list (* zero or more *)
+      * anon_choice_LF_249c99f option
+    )
+      option
+  * Token.t (* "}" *)
+)
 
 and literal_element = [ `Exp of expression | `Lit_value of literal_value ]
 
@@ -432,8 +534,6 @@ and map_type = (
   * type_
 )
 
-and parameter_declaration = (field_name_list option * type_)
-
 and parameter_list = (
     Token.t (* "(" *)
   * (
@@ -448,6 +548,10 @@ and parameter_list = (
       option
   * Token.t (* ")" *)
 )
+
+and parenthesized_type = (Token.t (* "(" *) * type_ * Token.t (* ")" *))
+
+and pointer_type = (Token.t (* "*" *) * type_)
 
 and range_clause = (
     (expression_list * anon_choice_EQ_4ccabd6) option
@@ -494,28 +598,14 @@ and simple_type = [
     `Id of identifier (*tok*)
   | `Gene_type of generic_type
   | `Qual_type of qualified_type
-  | `Poin_type of (Token.t (* "*" *) * type_)
+  | `Poin_type of pointer_type
   | `Struct_type of struct_type
-  | `Inte_type of (
-        Token.t (* "interface" *)
-      * Token.t (* "{" *)
-      * (
-            interface_body
-          * (anon_choice_LF_249c99f * interface_body) list (* zero or more *)
-          * anon_choice_LF_249c99f option
-        )
-          option
-      * Token.t (* "}" *)
-    )
+  | `Inte_type of interface_type
   | `Array_type of array_type
   | `Slice_type of slice_type
   | `Map_type of map_type
   | `Chan_type of channel_type
-  | `Func_type of (
-        Token.t (* "func" *)
-      * parameter_list
-      * anon_choice_param_list_29faba4 option
-    )
+  | `Func_type of function_type
 ]
 
 and slice_type = (Token.t (* "[" *) * Token.t (* "]" *) * type_)
@@ -596,10 +686,15 @@ and struct_type = (Token.t (* "struct" *) * field_declaration_list)
 
 and type_ = [
     `Simple_type of simple_type
-  | `Paren_type of (Token.t (* "(" *) * type_ * Token.t (* ")" *))
+  | `Paren_type of parenthesized_type
 ]
 
-and type_alias = (identifier (*tok*) * Token.t (* "=" *) * type_)
+and type_alias = (
+    identifier (*tok*)
+  * type_parameter_list option
+  * Token.t (* "=" *)
+  * type_
+)
 
 and type_arguments = (
     Token.t (* "[" *)
@@ -617,12 +712,45 @@ and type_case = (
   * statement_list option
 )
 
+and type_parameter_approx = (
+    Token.t (* "~" *)
+  * [
+        `Id of identifier (*tok*)
+      | `Qual_type of qualified_type
+      | `Slice_type of slice_type
+      | `Map_type of map_type
+      | `Array_type of array_type
+      | `Struct_type of struct_type
+      | `Poin_type of pointer_type
+      | `Chan_type of channel_type
+      | `Func_type of function_type
+    ]
+)
+
 and type_parameter_list = (
     Token.t (* "[" *)
-  * parameter_declaration
-  * (Token.t (* "," *) * parameter_declaration) list (* zero or more *)
+  * type_parameter_spec
+  * (Token.t (* "," *) * type_parameter_spec) list (* zero or more *)
   * Token.t (* "," *) option
   * Token.t (* "]" *)
+)
+
+and type_parameter_spec = (
+    identifier (*tok*)
+  * (Token.t (* "," *) * identifier (*tok*)) list (* zero or more *)
+  * [
+        `Choice_simple_type of type_
+      | `Type_param_union of type_parameter_union
+      | `Type_param_approx of type_parameter_approx
+    ]
+)
+
+and type_parameter_union = (
+    anon_choice_cons_term_c671c9c
+  * Token.t (* "|" *)
+  * anon_choice_cons_term_c671c9c
+  * (Token.t (* "|" *) * anon_choice_cons_term_c671c9c)
+      list (* zero or more *)
 )
 
 and type_spec = (identifier (*tok*) * type_parameter_list option * type_)
@@ -743,6 +871,11 @@ type continue_statement (* inlined *) = (
   * identifier (*tok*) option
 )
 
+type import_declaration (* inlined *) = (
+    Token.t (* "import" *)
+  * [ `Import_spec of import_spec | `Import_spec_list of import_spec_list ]
+)
+
 type constraint_elem (* inlined *) = (
     constraint_term
   * (Token.t (* "|" *) * constraint_term) list (* zero or more *)
@@ -825,12 +958,6 @@ type func_literal (* inlined *) = (
   * block
 )
 
-type function_type (* inlined *) = (
-    Token.t (* "func" *)
-  * parameter_list
-  * anon_choice_param_list_29faba4 option
-)
-
 type go_statement (* inlined *) = (Token.t (* "go" *) * expression)
 
 type inc_statement (* inlined *) = (expression * Token.t (* "++" *))
@@ -839,16 +966,50 @@ type index_expression (* inlined *) = (
     expression * Token.t (* "[" *) * expression * Token.t (* "]" *)
 )
 
-type interface_type (* inlined *) = (
-    Token.t (* "interface" *)
-  * Token.t (* "{" *)
+type interface_complex_type_set (* inlined *) = (
+    (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+      list (* zero or more *)
+  * interface_nonstruct_type_term
   * (
-        interface_body
-      * (anon_choice_LF_249c99f * interface_body) list (* zero or more *)
-      * anon_choice_LF_249c99f option
+        Token.t (* "|" *)
+      * [
+            `Cons_term of constraint_term
+          | `Struct_term of struct_term
+          | `Inte_nons_type_term of interface_nonstruct_type_term
+        ]
     )
-      option
-  * Token.t (* "}" *)
+      list (* zero or more *)
+)
+
+type interface_named_struct_type_set (* inlined *) = (
+    (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+      list (* zero or more *)
+  * [
+        `Cons_term_BAR_struct_term of (
+            constraint_term * Token.t (* "|" *) * struct_term
+        )
+      | `Struct_term_BAR_cons_term of (
+            struct_term * Token.t (* "|" *) * constraint_term
+        )
+    ]
+  * (Token.t (* "|" *) * anon_choice_cons_term_3363a2d)
+      list (* zero or more *)
+)
+
+type interface_nonstruct_pointer (* inlined *) = (
+    Token.t (* "*" *)
+  * [
+        `Id of identifier (*tok*)
+      | `Qual_type of qualified_type
+      | `Gene_type of generic_type
+      | `Slice_type of slice_type
+      | `Map_type of map_type
+      | `Array_type of array_type
+      | `Chan_type of channel_type
+      | `Func_type of function_type
+      | `Poin_type of pointer_type
+      | `Paren_type of parenthesized_type
+    ]
 )
 
 type keyed_element (* inlined *) = (
@@ -865,15 +1026,11 @@ type method_spec (* inlined *) = (
   * anon_choice_param_list_29faba4 option
 )
 
+type parameter_declaration (* inlined *) = (field_name_list option * type_)
+
 type parenthesized_expression (* inlined *) = (
     Token.t (* "(" *) * expression * Token.t (* ")" *)
 )
-
-type parenthesized_type (* inlined *) = (
-    Token.t (* "(" *) * type_ * Token.t (* ")" *)
-)
-
-type pointer_type (* inlined *) = (Token.t (* "*" *) * type_)
 
 type return_statement (* inlined *) = (
     Token.t (* "return" *)
@@ -951,6 +1108,19 @@ type type_declaration (* inlined *) = (
     ]
 )
 
+type type_parameter_composite (* inlined *) = (
+    Token.t (* "~" *) option
+  * [
+        `Slice_type of slice_type
+      | `Map_type of map_type
+      | `Array_type of array_type
+      | `Struct_type of struct_type
+      | `Poin_type of pointer_type
+      | `Chan_type of channel_type
+      | `Func_type of function_type
+    ]
+)
+
 type type_switch_statement (* inlined *) = (
     Token.t (* "switch" *)
   * type_switch_header
@@ -991,11 +1161,6 @@ type variadic_parameter_declaration (* inlined *) = (
     identifier (*tok*) option
   * Token.t (* "..." *)
   * type_
-)
-
-type import_declaration (* inlined *) = (
-    Token.t (* "import" *)
-  * [ `Import_spec of import_spec | `Import_spec_list of import_spec_list ]
 )
 
 type method_declaration (* inlined *) = (

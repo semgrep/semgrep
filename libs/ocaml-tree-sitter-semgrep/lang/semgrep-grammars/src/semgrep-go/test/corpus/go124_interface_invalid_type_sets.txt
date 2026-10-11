@@ -1,0 +1,60 @@
+==================
+Invalid interface trailing pipe
+==================
+package a
+type C interface { ~[]byte | }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier))))
+        (ERROR)))))
+
+==================
+Invalid interface missing term
+==================
+package a
+type C interface { | ~[]byte }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (ERROR)
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier))))))))
+
+==================
+Invalid interface missing map bracket
+==================
+package a
+type C interface { ~map[string bool }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (ERROR
+          (identifier)
+          (identifier))))))

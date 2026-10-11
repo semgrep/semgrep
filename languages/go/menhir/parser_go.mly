@@ -435,7 +435,7 @@ constdcl1:
 typedcl:
 | typedclname ntype     { DTypeDef ($1, None, $2) }
 (* alias decl, go 1.?? *)
-| typedclname "=" ntype { DTypeAlias ($1, $2, $3) }
+| typedclname "=" ntype { DTypeAlias ($1, None, $2, $3) }
 
 (*************************************************************************)
 (* Statements *)

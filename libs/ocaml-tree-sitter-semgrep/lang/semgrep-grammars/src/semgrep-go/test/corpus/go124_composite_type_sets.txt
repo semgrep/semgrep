@@ -1,0 +1,66 @@
+==================
+Go 1.24 composite type-set terms
+==================
+package a
+
+func useSliceOrMap[T ~[]byte | ~map[string]bool](value T) T {
+  return value
+}
+func useStructs[T ~struct{ A int } | ~struct{ B int }](value T) T {
+  return value
+}
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (function_declaration
+    (identifier)
+    (type_parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_parameter_union
+          (type_parameter_composite
+            (slice_type
+              (type_identifier)))
+          (type_parameter_composite
+            (map_type
+              (type_identifier)
+              (type_identifier))))))
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_identifier)))
+    (type_identifier)
+    (block
+      (return_statement
+        (expression_list
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (type_parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_parameter_union
+          (type_parameter_composite
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (type_parameter_composite
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier))))))))
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_identifier)))
+    (type_identifier)
+    (block
+      (return_statement
+        (expression_list
+          (identifier))))))

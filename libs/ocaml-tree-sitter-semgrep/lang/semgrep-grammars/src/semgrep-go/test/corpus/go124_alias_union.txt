@@ -1,0 +1,77 @@
+==================
+Go 1.24 generic aliases and type constraints
+==================
+package a
+
+type Box[T any] struct{ V T }
+type Alias[T any] = Box[T]
+type (
+  Grouped[T any] = Box[T]
+  OldAlias = int
+)
+func f[T ~int | ~int64](xs []int) {
+  for range xs {}
+}
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (type_parameter_list
+        (parameter_declaration
+          (identifier)
+          (type_identifier)))
+      (struct_type
+        (field_declaration_list
+          (field_declaration
+            (field_identifier)
+            (type_identifier))))))
+  (type_declaration
+    (type_alias
+      (type_identifier)
+      (type_parameter_list
+        (parameter_declaration
+          (identifier)
+          (type_identifier)))
+      (generic_type
+        (type_identifier)
+        (type_arguments
+          (type_identifier)))))
+  (type_declaration
+    (type_alias
+      (type_identifier)
+      (type_parameter_list
+        (parameter_declaration
+          (identifier)
+          (type_identifier)))
+      (generic_type
+        (type_identifier)
+        (type_arguments
+          (type_identifier))))
+    (type_alias
+      (type_identifier)
+      (type_identifier)))
+  (function_declaration
+    (identifier)
+    (type_parameter_list
+      (parameter_declaration
+        (identifier)
+        (type_parameter_union
+          (constraint_term
+            (type_identifier))
+          (constraint_term
+            (type_identifier)))))
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (slice_type
+          (type_identifier))))
+    (block
+      (for_statement
+        (range_clause
+          (identifier))
+        (block)))))
