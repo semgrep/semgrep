@@ -20,37 +20,11 @@ Last change in file:
 ---
 File: semgrep-grammars/src/semgrep-go/grammar.js
 Git repo name: workspace
-Latest commit in repo: 38a67a7eaf724fc266bf96e5705742bff8589775
+Latest commit in repo: 4c83c2147246aae47146f1d9ab633d3085dbd8f5
 Last change in file:
-  commit 2263c6882d0c6f9ea91fc883fb586c3e13baa019
-  Author: Marc-André Laverdière <marc-andre@semgrep.com>
-  Date:   Tue Sep 22 12:51:21 2026 -0600
+  commit 4c83c2147246aae47146f1d9ab633d3085dbd8f5
+  Author: Carlos Acosta <93443910+charle-z@users.noreply.github.com>
+  Date:   Sun Oct 11 04:40:21 2026 +0000
   
-      fix: synchronize PHP and Go grammar artifacts (semgrep/semgrep-proprietary#7117)
-      
-      We accidentally found out that some parsers in `languages` deviated from
-      what's in `libs/ocaml-tree-sitter-semgrep`.
-      
-      Synchronize the checked-in Go parser with the EOF-safe snippet wrapper
-      and remove obsolete PHP grammar snapshots. Upstream grammar and
-      tree-sitter version pins remain unchanged.
-      
-      - Go: include the wrapper fix from the grammar-automation branch,
-      regenerate the parser, and adapt the converter to preserve the optional
-      final top-level item. Add corpus and standalone-parser coverage for a
-      statement without a trailing newline.
-      - PHP: refresh provenance from the current manifest, remove obsolete
-      root-level grammars, and include the shared wrapper extension.
-      Regeneration leaves the PHP CST unchanged; its parser C changes only by
-      adding the generator-version comment.
-      - Both parsers pick up the current generator's C11 setting and
-      ABI-mismatch check in C bindings.
-      
-      Test plan:
-      
-      - [x] `make all`
-      - [x] PHP grammar corpus and standalone parser tests.
-      - [x] Go grammar corpus and standalone parser tests.
-      
-      synced from Pro 4a16db9fed630d1dbad39b944fba4b2799890476
+      fix(go): parse Go 1.24 generic aliases and type-set constraints (#11972)
 ---

@@ -1350,11 +1350,13 @@ let children_regexps : (string * Run.exp option) list = [
       Alt [|
         Token (Name "constraint_term");
         Token (Name "type_parameter_composite");
+        Token (Name "generic_type");
       |];
       Token (Literal "|");
       Alt [|
         Token (Name "constraint_term");
         Token (Name "type_parameter_composite");
+        Token (Name "generic_type");
       |];
       Repeat (
         Seq [
@@ -1362,6 +1364,7 @@ let children_regexps : (string * Run.exp option) list = [
           Alt [|
             Token (Name "constraint_term");
             Token (Name "type_parameter_composite");
+            Token (Name "generic_type");
           |];
         ];
       );
@@ -4697,6 +4700,10 @@ and trans_type_parameter_union ((kind, body) : mt) : CST.type_parameter_union =
                 `Type_param_comp (
                   trans_type_parameter_composite (Run.matcher_token v)
                 )
+            | Alt (2, v) ->
+                `Gene_type (
+                  trans_generic_type (Run.matcher_token v)
+                )
             | _ -> assert false
             )
             ,
@@ -4709,6 +4716,10 @@ and trans_type_parameter_union ((kind, body) : mt) : CST.type_parameter_union =
             | Alt (1, v) ->
                 `Type_param_comp (
                   trans_type_parameter_composite (Run.matcher_token v)
+                )
+            | Alt (2, v) ->
+                `Gene_type (
+                  trans_generic_type (Run.matcher_token v)
                 )
             | _ -> assert false
             )
@@ -4727,6 +4738,10 @@ and trans_type_parameter_union ((kind, body) : mt) : CST.type_parameter_union =
                       | Alt (1, v) ->
                           `Type_param_comp (
                             trans_type_parameter_composite (Run.matcher_token v)
+                          )
+                      | Alt (2, v) ->
+                          `Gene_type (
+                            trans_generic_type (Run.matcher_token v)
                           )
                       | _ -> assert false
                       )

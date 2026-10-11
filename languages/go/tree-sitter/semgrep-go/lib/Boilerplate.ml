@@ -176,7 +176,7 @@ let map_constraint_term (env : env) ((v1, v2) : CST.constraint_term) =
   let v2 = map_interface_type_name env v2 in
   R.Tuple [v1; v2]
 
-let rec map_anon_choice_cons_term_1ef18e1 (env : env) (x : CST.anon_choice_cons_term_1ef18e1) =
+let rec map_anon_choice_cons_term_c671c9c (env : env) (x : CST.anon_choice_cons_term_c671c9c) =
   (match x with
   | `Cons_term x -> R.Case ("Cons_term",
       map_constraint_term env x
@@ -215,6 +215,9 @@ let rec map_anon_choice_cons_term_1ef18e1 (env : env) (x : CST.anon_choice_cons_
         )
       in
       R.Tuple [v1; v2]
+    )
+  | `Gene_type x -> R.Case ("Gene_type",
+      map_generic_type env x
     )
   )
 
@@ -1674,13 +1677,13 @@ and map_type_parameter_spec (env : env) ((v1, v2, v3) : CST.type_parameter_spec)
   R.Tuple [v1; v2; v3]
 
 and map_type_parameter_union (env : env) ((v1, v2, v3, v4) : CST.type_parameter_union) =
-  let v1 = map_anon_choice_cons_term_1ef18e1 env v1 in
+  let v1 = map_anon_choice_cons_term_c671c9c env v1 in
   let v2 = (* "|" *) token env v2 in
-  let v3 = map_anon_choice_cons_term_1ef18e1 env v3 in
+  let v3 = map_anon_choice_cons_term_c671c9c env v3 in
   let v4 =
     R.List (List.map (fun (v1, v2) ->
       let v1 = (* "|" *) token env v1 in
-      let v2 = map_anon_choice_cons_term_1ef18e1 env v2 in
+      let v2 = map_anon_choice_cons_term_c671c9c env v2 in
       R.Tuple [v1; v2]
     ) v4)
   in

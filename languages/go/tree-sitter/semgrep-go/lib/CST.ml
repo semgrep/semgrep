@@ -90,7 +90,7 @@ type import_spec_list = (
 
 type constraint_term = (Token.t (* "~" *) option * interface_type_name)
 
-type anon_choice_cons_term_1ef18e1 = [
+type anon_choice_cons_term_c671c9c = [
     `Cons_term of constraint_term
   | `Type_param_comp of (
         Token.t (* "~" *) option
@@ -104,6 +104,7 @@ type anon_choice_cons_term_1ef18e1 = [
           | `Func_type of function_type
         ]
     )
+  | `Gene_type of generic_type
 ]
 
 and anon_choice_exp_047b57a = [
@@ -674,10 +675,10 @@ and type_parameter_spec = (
 )
 
 and type_parameter_union = (
-    anon_choice_cons_term_1ef18e1
+    anon_choice_cons_term_c671c9c
   * Token.t (* "|" *)
-  * anon_choice_cons_term_1ef18e1
-  * (Token.t (* "|" *) * anon_choice_cons_term_1ef18e1)
+  * anon_choice_cons_term_c671c9c
+  * (Token.t (* "|" *) * anon_choice_cons_term_c671c9c)
       list (* zero or more *)
 )
 

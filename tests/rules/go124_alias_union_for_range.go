@@ -16,3 +16,7 @@ func rangeWithModernTypes[T ~int | ~int64](xs []int, value T) {
         println(xs[i])
     }
 }
+
+func instantiatedTypeSet[T Box[int] | Box[string]](value T) T {
+    return value
+}

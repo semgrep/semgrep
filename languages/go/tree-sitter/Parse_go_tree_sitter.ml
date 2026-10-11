@@ -1443,9 +1443,10 @@ and type_parameter_composite_type (env : env) = function
   | `Func_type x -> simple_type env (`Func_type x)
 
 and type_parameter_union_term (env : env)
-    (x : CST.anon_choice_cons_term_1ef18e1) : constraint_ =
+    (x : CST.anon_choice_cons_term_c671c9c) : constraint_ =
   match x with
   | `Cons_term x -> constraint_term env x
+  | `Gene_type x -> (None, generic_type env x)
   | `Type_param_comp (tilde, ty) ->
       (Option.map (token env) tilde, type_parameter_composite_type env ty)
 

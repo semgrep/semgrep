@@ -1,56 +1,10 @@
 ==================
-Go 1.24 channel and function type-set terms
+Top-level statement at EOF
 ==================
-package a
-
-func useChannelsOrFunctions[T ~chan int | ~func() int](value T) T {
-  return value
-}
-
+value := f()
 ---
-
 (source_file
-  (package_clause
-    (package_identifier))
-  (function_declaration
-    (identifier)
-    (type_parameter_list
-      (parameter_declaration
-        (identifier)
-        (type_parameter_union
-          (type_parameter_composite
-            (channel_type
-              (type_identifier)))
-          (type_parameter_composite
-            (function_type
-              (parameter_list)
-              (type_identifier))))))
-    (parameter_list
-      (parameter_declaration
-        (identifier)
-        (type_identifier)))
-    (type_identifier)
-    (block
-      (return_statement
-        (expression_list
-          (identifier))))))
-
-==================
-Go 1.24 missing generic constraint
-==================
-package a
-
-type Alias[T] = int
-
----
-
-(source_file
-  (package_clause
-    (package_identifier))
-  (type_declaration
-    (type_spec
-      (type_identifier)
-      (array_type
-        (identifier)
-        (ERROR)
-        (type_identifier)))))
+  (short_var_declaration
+    (expression_list (identifier))
+    (expression_list
+      (call_expression (identifier) (argument_list)))))

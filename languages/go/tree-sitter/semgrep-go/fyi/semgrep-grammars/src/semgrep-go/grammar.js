@@ -48,10 +48,10 @@ module.exports = grammar(base_grammar, {
     // A standalone identifier is already handled by _type: union syntax
     // must actually include a pipe to avoid changing ordinary parameters.
     type_parameter_union: $ => seq(
-      choice($.constraint_term, $.type_parameter_composite),
+      choice($.constraint_term, $.type_parameter_composite, $.generic_type),
       '|',
-      choice($.constraint_term, $.type_parameter_composite),
-      repeat(seq('|', choice($.constraint_term, $.type_parameter_composite))),
+      choice($.constraint_term, $.type_parameter_composite, $.generic_type),
+      repeat(seq('|', choice($.constraint_term, $.type_parameter_composite, $.generic_type))),
     ),
 
     type_parameter_composite: $ => seq(

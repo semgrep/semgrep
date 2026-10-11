@@ -1,1 +1,1 @@
-Go: correctly parse generic type aliases and type-set unions (including qualified and composite terms) without losing findings in Go 1.24 source files.
+Go: correctly parse generic type aliases and type-set unions (including qualified, composite and instantiated generic types) without losing findings in Go 1.24 source files.

@@ -1,0 +1,19 @@
+==================
+Go 1.24 missing generic constraint
+==================
+package a
+
+type Alias[T] = int
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (array_type
+        (identifier)
+        (ERROR)
+        (type_identifier)))))
