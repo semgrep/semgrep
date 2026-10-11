@@ -20,11 +20,11 @@ Last change in file:
 ---
 File: semgrep-grammars/src/semgrep-go/grammar.js
 Git repo name: workspace
-Latest commit in repo: 4c83c2147246aae47146f1d9ab633d3085dbd8f5
+Latest commit in repo: 8c955fe8c1ffb018f8202b6f67a7367ce2d7ddbf
 Last change in file:
-  commit 4c83c2147246aae47146f1d9ab633d3085dbd8f5
+  commit 8c955fe8c1ffb018f8202b6f67a7367ce2d7ddbf
   Author: Carlos Acosta <93443910+charle-z@users.noreply.github.com>
-  Date:   Sun Oct 11 04:40:21 2026 +0000
+  Date:   Sun Oct 11 05:08:40 2026 +0000
   
-      fix(go): parse Go 1.24 generic aliases and type-set constraints (#11972)
+      fix(go): handle instantiated generic union terms and retain corpus regressions (#11972)
 ---

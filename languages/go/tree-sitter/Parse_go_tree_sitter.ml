@@ -416,6 +416,101 @@ and interface_body (env : env) (x : CST.interface_body) : interface_field =
       in
       let xs = v1 :: v2 in
       Constraints xs
+  | `Inte_comp_type_set (before, first_composite, after) ->
+      let before =
+        List.map
+          (fun (term, separator) ->
+            let _separator = token env separator in
+            match term with
+            | `Cons_term x -> constraint_term env x
+            | `Struct_term x -> struct_term env x)
+          before
+      in
+      let first_composite = interface_nonstruct_type_term env first_composite in
+      let after =
+        List.map
+          (fun (separator, term) ->
+            let _separator = token env separator in
+            match term with
+            | `Cons_term x -> constraint_term env x
+            | `Struct_term x -> struct_term env x
+            | `Inte_nons_type_term x -> interface_nonstruct_type_term env x)
+          after
+      in
+      Constraints (before @ (first_composite :: after))
+  | `Inte_named_struct_type_set (before, pair, after) ->
+      let before =
+        List.map
+          (fun (term, separator) ->
+            let _separator = token env separator in
+            interface_named_or_struct_term env term)
+          before
+      in
+      let pair =
+        match pair with
+        | `Cons_term_BAR_struct_term (name, separator, structure) ->
+            let name = constraint_term env name in
+            let _separator = token env separator in
+            [ name; struct_term env structure ]
+        | `Struct_term_BAR_cons_term (structure, separator, name) ->
+            let structure = struct_term env structure in
+            let _separator = token env separator in
+            [ structure; constraint_term env name ]
+      in
+      let after =
+        List.map
+          (fun (separator, term) ->
+            let _separator = token env separator in
+            interface_named_or_struct_term env term)
+          after
+      in
+      Constraints (before @ pair @ after)
+
+and interface_named_or_struct_term (env : env)
+    (x : CST.anon_choice_cons_term_3363a2d) : constraint_ =
+  match x with
+  | `Cons_term x -> constraint_term env x
+  | `Struct_term x -> struct_term env x
+
+and interface_nonstruct_type_term (env : env)
+    (x : CST.interface_nonstruct_type_term) : constraint_ =
+  match x with
+  | `Opt_TILDE_choice_slice_type (tilde, ty) ->
+      let tilde = Option.map (token env) tilde in
+      let ty =
+        match ty with
+        | `Slice_type x -> slice_type env x
+        | `Map_type x -> map_type env x
+        | `Array_type x -> array_type env x
+        | `Chan_type x -> simple_type env (`Chan_type x)
+        | `Func_type x -> simple_type env (`Func_type x)
+      in
+      (tilde, ty)
+  | `Gene_type x -> (None, generic_type env x)
+  | `Inte_nons_poin (star, ty) ->
+      let ty =
+        match ty with
+        | `Id x -> TName [ identifier env x ]
+        | `Qual_type x -> TName (qualified_type env x)
+        | `Gene_type x -> generic_type env x
+        | `Slice_type x -> slice_type env x
+        | `Map_type x -> map_type env x
+        | `Array_type x -> array_type env x
+        | `Chan_type x -> simple_type env (`Chan_type x)
+        | `Func_type x -> simple_type env (`Func_type x)
+        | `Poin_type x -> simple_type env (`Poin_type x)
+        | `Paren_type x -> type_ env (`Paren_type x)
+      in
+      (None, TPtr (token env star, ty))
+  | `TILDE_poin_type (tilde, ty) ->
+      (Some (token env tilde), simple_type env (`Poin_type ty))
+  | `Opt_TILDE_choice_paren_type (tilde, term) ->
+      let ty =
+        match term with
+        | `Paren_type x -> type_ env (`Paren_type x)
+        | `Inte_type x -> simple_type env (`Inte_type x)
+      in
+      (Option.map (token env) tilde, ty)
 
 and struct_term (env : env) ((v1, v2) : CST.struct_term) : constraint_ =
   let tilde_opt, fty =

@@ -1,0 +1,1 @@
+Go: parse type-set unions containing mixed named, struct, slice, map, function, channel, pointer and instantiated generic terms within interfaces, without dropping findings or changing existing struct-interface parsing.

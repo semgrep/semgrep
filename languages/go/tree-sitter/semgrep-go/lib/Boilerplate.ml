@@ -176,7 +176,17 @@ let map_constraint_term (env : env) ((v1, v2) : CST.constraint_term) =
   let v2 = map_interface_type_name env v2 in
   R.Tuple [v1; v2]
 
-let rec map_anon_choice_cons_term_c671c9c (env : env) (x : CST.anon_choice_cons_term_c671c9c) =
+let rec map_anon_choice_cons_term_3363a2d (env : env) (x : CST.anon_choice_cons_term_3363a2d) =
+  (match x with
+  | `Cons_term x -> R.Case ("Cons_term",
+      map_constraint_term env x
+    )
+  | `Struct_term x -> R.Case ("Struct_term",
+      map_struct_term env x
+    )
+  )
+
+and map_anon_choice_cons_term_c671c9c (env : env) (x : CST.anon_choice_cons_term_c671c9c) =
   (match x with
   | `Cons_term x -> R.Case ("Cons_term",
       map_constraint_term env x
@@ -1021,7 +1031,197 @@ and map_interface_body (env : env) (x : CST.interface_body) =
       in
       R.Tuple [v1; v2]
     )
+  | `Inte_comp_type_set (v1, v2, v3) -> R.Case ("Inte_comp_type_set",
+      let v1 =
+        R.List (List.map (fun (v1, v2) ->
+          let v1 = map_anon_choice_cons_term_3363a2d env v1 in
+          let v2 = (* "|" *) token env v2 in
+          R.Tuple [v1; v2]
+        ) v1)
+      in
+      let v2 = map_interface_nonstruct_type_term env v2 in
+      let v3 =
+        R.List (List.map (fun (v1, v2) ->
+          let v1 = (* "|" *) token env v1 in
+          let v2 =
+            (match v2 with
+            | `Cons_term x -> R.Case ("Cons_term",
+                map_constraint_term env x
+              )
+            | `Struct_term x -> R.Case ("Struct_term",
+                map_struct_term env x
+              )
+            | `Inte_nons_type_term x -> R.Case ("Inte_nons_type_term",
+                map_interface_nonstruct_type_term env x
+              )
+            )
+          in
+          R.Tuple [v1; v2]
+        ) v3)
+      in
+      R.Tuple [v1; v2; v3]
+    )
+  | `Inte_named_struct_type_set (v1, v2, v3) -> R.Case ("Inte_named_struct_type_set",
+      let v1 =
+        R.List (List.map (fun (v1, v2) ->
+          let v1 = map_anon_choice_cons_term_3363a2d env v1 in
+          let v2 = (* "|" *) token env v2 in
+          R.Tuple [v1; v2]
+        ) v1)
+      in
+      let v2 =
+        (match v2 with
+        | `Cons_term_BAR_struct_term (v1, v2, v3) -> R.Case ("Cons_term_BAR_struct_term",
+            let v1 = map_constraint_term env v1 in
+            let v2 = (* "|" *) token env v2 in
+            let v3 = map_struct_term env v3 in
+            R.Tuple [v1; v2; v3]
+          )
+        | `Struct_term_BAR_cons_term (v1, v2, v3) -> R.Case ("Struct_term_BAR_cons_term",
+            let v1 = map_struct_term env v1 in
+            let v2 = (* "|" *) token env v2 in
+            let v3 = map_constraint_term env v3 in
+            R.Tuple [v1; v2; v3]
+          )
+        )
+      in
+      let v3 =
+        R.List (List.map (fun (v1, v2) ->
+          let v1 = (* "|" *) token env v1 in
+          let v2 = map_anon_choice_cons_term_3363a2d env v2 in
+          R.Tuple [v1; v2]
+        ) v3)
+      in
+      R.Tuple [v1; v2; v3]
+    )
   )
+
+and map_interface_nonstruct_type_term (env : env) (x : CST.interface_nonstruct_type_term) =
+  (match x with
+  | `Opt_TILDE_choice_slice_type (v1, v2) -> R.Case ("Opt_TILDE_choice_slice_type",
+      let v1 =
+        (match v1 with
+        | Some tok -> R.Option (Some (
+            (* "~" *) token env tok
+          ))
+        | None -> R.Option None)
+      in
+      let v2 =
+        (match v2 with
+        | `Slice_type x -> R.Case ("Slice_type",
+            map_slice_type env x
+          )
+        | `Map_type x -> R.Case ("Map_type",
+            map_map_type env x
+          )
+        | `Array_type x -> R.Case ("Array_type",
+            map_array_type env x
+          )
+        | `Chan_type x -> R.Case ("Chan_type",
+            map_channel_type env x
+          )
+        | `Func_type x -> R.Case ("Func_type",
+            map_function_type env x
+          )
+        )
+      in
+      R.Tuple [v1; v2]
+    )
+  | `Gene_type x -> R.Case ("Gene_type",
+      map_generic_type env x
+    )
+  | `Inte_nons_poin (v1, v2) -> R.Case ("Inte_nons_poin",
+      let v1 = (* "*" *) token env v1 in
+      let v2 =
+        (match v2 with
+        | `Id tok -> R.Case ("Id",
+            (* identifier *) token env tok
+          )
+        | `Qual_type x -> R.Case ("Qual_type",
+            map_qualified_type env x
+          )
+        | `Gene_type x -> R.Case ("Gene_type",
+            map_generic_type env x
+          )
+        | `Slice_type x -> R.Case ("Slice_type",
+            map_slice_type env x
+          )
+        | `Map_type x -> R.Case ("Map_type",
+            map_map_type env x
+          )
+        | `Array_type x -> R.Case ("Array_type",
+            map_array_type env x
+          )
+        | `Chan_type x -> R.Case ("Chan_type",
+            map_channel_type env x
+          )
+        | `Func_type x -> R.Case ("Func_type",
+            map_function_type env x
+          )
+        | `Poin_type x -> R.Case ("Poin_type",
+            map_pointer_type env x
+          )
+        | `Paren_type x -> R.Case ("Paren_type",
+            map_parenthesized_type env x
+          )
+        )
+      in
+      R.Tuple [v1; v2]
+    )
+  | `TILDE_poin_type (v1, v2) -> R.Case ("TILDE_poin_type",
+      let v1 = (* "~" *) token env v1 in
+      let v2 = map_pointer_type env v2 in
+      R.Tuple [v1; v2]
+    )
+  | `Opt_TILDE_choice_paren_type (v1, v2) -> R.Case ("Opt_TILDE_choice_paren_type",
+      let v1 =
+        (match v1 with
+        | Some tok -> R.Option (Some (
+            (* "~" *) token env tok
+          ))
+        | None -> R.Option None)
+      in
+      let v2 =
+        (match v2 with
+        | `Paren_type x -> R.Case ("Paren_type",
+            map_parenthesized_type env x
+          )
+        | `Inte_type x -> R.Case ("Inte_type",
+            map_interface_type env x
+          )
+        )
+      in
+      R.Tuple [v1; v2]
+    )
+  )
+
+and map_interface_type (env : env) ((v1, v2, v3, v4) : CST.interface_type) =
+  let v1 = (* "interface" *) token env v1 in
+  let v2 = (* "{" *) token env v2 in
+  let v3 =
+    (match v3 with
+    | Some (v1, v2, v3) -> R.Option (Some (
+        let v1 = map_interface_body env v1 in
+        let v2 =
+          R.List (List.map (fun (v1, v2) ->
+            let v1 = map_anon_choice_LF_249c99f env v1 in
+            let v2 = map_interface_body env v2 in
+            R.Tuple [v1; v2]
+          ) v2)
+        in
+        let v3 =
+          (match v3 with
+          | Some x -> R.Option (Some (
+              map_anon_choice_LF_249c99f env x
+            ))
+          | None -> R.Option None)
+        in
+        R.Tuple [v1; v2; v3]
+      ))
+    | None -> R.Option None)
+  in
+  let v4 = (* "}" *) token env v4 in
+  R.Tuple [v1; v2; v3; v4]
 
 and map_literal_element (env : env) (x : CST.literal_element) =
   (match x with
@@ -1106,6 +1306,12 @@ and map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) =
       ))
     | None -> R.Option None)
   in
+  let v3 = (* ")" *) token env v3 in
+  R.Tuple [v1; v2; v3]
+
+and map_parenthesized_type (env : env) ((v1, v2, v3) : CST.parenthesized_type) =
+  let v1 = (* "(" *) token env v1 in
+  let v2 = map_type_ env v2 in
   let v3 = (* ")" *) token env v3 in
   R.Tuple [v1; v2; v3]
 
@@ -1235,33 +1441,8 @@ and map_simple_type (env : env) (x : CST.simple_type) =
   | `Struct_type x -> R.Case ("Struct_type",
       map_struct_type env x
     )
-  | `Inte_type (v1, v2, v3, v4) -> R.Case ("Inte_type",
-      let v1 = (* "interface" *) token env v1 in
-      let v2 = (* "{" *) token env v2 in
-      let v3 =
-        (match v3 with
-        | Some (v1, v2, v3) -> R.Option (Some (
-            let v1 = map_interface_body env v1 in
-            let v2 =
-              R.List (List.map (fun (v1, v2) ->
-                let v1 = map_anon_choice_LF_249c99f env v1 in
-                let v2 = map_interface_body env v2 in
-                R.Tuple [v1; v2]
-              ) v2)
-            in
-            let v3 =
-              (match v3 with
-              | Some x -> R.Option (Some (
-                  map_anon_choice_LF_249c99f env x
-                ))
-              | None -> R.Option None)
-            in
-            R.Tuple [v1; v2; v3]
-          ))
-        | None -> R.Option None)
-      in
-      let v4 = (* "}" *) token env v4 in
-      R.Tuple [v1; v2; v3; v4]
+  | `Inte_type x -> R.Case ("Inte_type",
+      map_interface_type env x
     )
   | `Array_type x -> R.Case ("Array_type",
       map_array_type env x
@@ -1536,11 +1717,8 @@ and map_type_ (env : env) (x : CST.type_) =
   | `Simple_type x -> R.Case ("Simple_type",
       map_simple_type env x
     )
-  | `Paren_type (v1, v2, v3) -> R.Case ("Paren_type",
-      let v1 = (* "(" *) token env v1 in
-      let v2 = map_type_ env v2 in
-      let v3 = (* ")" *) token env v3 in
-      R.Tuple [v1; v2; v3]
+  | `Paren_type x -> R.Case ("Paren_type",
+      map_parenthesized_type env x
     )
   )
 

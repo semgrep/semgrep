@@ -1,0 +1,181 @@
+==================
+Go interface type set named then struct
+==================
+package a
+type C interface { string | ~struct{ A int } }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_named_struct_type_set
+          (constraint_term
+            (type_identifier))
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier))))))))))
+
+==================
+Go interface type set struct then named
+==================
+package a
+import "time"
+type C interface { ~struct{ A int } | time.Duration }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (import_declaration
+    (import_spec
+      (interpreted_string_literal)))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_named_struct_type_set
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (constraint_term
+            (qualified_type
+              (package_identifier)
+              (type_identifier))))))))
+
+==================
+Go interface type set named struct named
+==================
+package a
+import "time"
+type C interface { string | ~struct{ A int } | time.Duration }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (import_declaration
+    (import_spec
+      (interpreted_string_literal)))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_named_struct_type_set
+          (constraint_term
+            (type_identifier))
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (constraint_term
+            (qualified_type
+              (package_identifier)
+              (type_identifier))))))))
+
+==================
+Go interface type set two structs and named
+==================
+package a
+type C interface { ~struct{ A int } | ~struct{ B string } | string }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_named_struct_type_set
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (constraint_term
+            (type_identifier)))))))
+
+==================
+Go interface mixed named struct and map
+==================
+package a
+type C interface { string | ~struct{ A int } | ~map[string]bool }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (constraint_term
+            (type_identifier))
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (interface_nonstruct_type_term
+            (map_type
+              (type_identifier)
+              (type_identifier))))))))
+
+==================
+Go interface named struct with comments and method
+==================
+package a
+type C interface {
+  string /* comment */ | ~struct{ A int }
+  Transform() int
+}
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_named_struct_type_set
+          (constraint_term
+            (type_identifier))
+          (comment)
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier))))))
+        (method_spec
+          (field_identifier)
+          (parameter_list)
+          (type_identifier))))))

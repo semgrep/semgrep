@@ -90,7 +90,12 @@ type import_spec_list = (
 
 type constraint_term = (Token.t (* "~" *) option * interface_type_name)
 
-type anon_choice_cons_term_c671c9c = [
+type anon_choice_cons_term_3363a2d = [
+    `Cons_term of constraint_term
+  | `Struct_term of struct_term
+]
+
+and anon_choice_cons_term_c671c9c = [
     `Cons_term of constraint_term
   | `Type_param_comp of (
         Token.t (* "~" *) option
@@ -431,7 +436,81 @@ and interface_body = [
         struct_term
       * (Token.t (* "|" *) * struct_term) list (* zero or more *)
     )
+  | `Inte_comp_type_set of (
+        (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+          list (* zero or more *)
+      * interface_nonstruct_type_term
+      * (
+            Token.t (* "|" *)
+          * [
+                `Cons_term of constraint_term
+              | `Struct_term of struct_term
+              | `Inte_nons_type_term of interface_nonstruct_type_term
+            ]
+        )
+          list (* zero or more *)
+    )
+  | `Inte_named_struct_type_set of (
+        (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+          list (* zero or more *)
+      * [
+            `Cons_term_BAR_struct_term of (
+                constraint_term * Token.t (* "|" *) * struct_term
+            )
+          | `Struct_term_BAR_cons_term of (
+                struct_term * Token.t (* "|" *) * constraint_term
+            )
+        ]
+      * (Token.t (* "|" *) * anon_choice_cons_term_3363a2d)
+          list (* zero or more *)
+    )
 ]
+
+and interface_nonstruct_type_term = [
+    `Opt_TILDE_choice_slice_type of (
+        Token.t (* "~" *) option
+      * [
+            `Slice_type of slice_type
+          | `Map_type of map_type
+          | `Array_type of array_type
+          | `Chan_type of channel_type
+          | `Func_type of function_type
+        ]
+    )
+  | `Gene_type of generic_type
+  | `Inte_nons_poin of (
+        Token.t (* "*" *)
+      * [
+            `Id of identifier (*tok*)
+          | `Qual_type of qualified_type
+          | `Gene_type of generic_type
+          | `Slice_type of slice_type
+          | `Map_type of map_type
+          | `Array_type of array_type
+          | `Chan_type of channel_type
+          | `Func_type of function_type
+          | `Poin_type of pointer_type
+          | `Paren_type of parenthesized_type
+        ]
+    )
+  | `TILDE_poin_type of (Token.t (* "~" *) * pointer_type)
+  | `Opt_TILDE_choice_paren_type of (
+        Token.t (* "~" *) option
+      * [ `Paren_type of parenthesized_type | `Inte_type of interface_type ]
+    )
+]
+
+and interface_type = (
+    Token.t (* "interface" *)
+  * Token.t (* "{" *)
+  * (
+        interface_body
+      * (anon_choice_LF_249c99f * interface_body) list (* zero or more *)
+      * anon_choice_LF_249c99f option
+    )
+      option
+  * Token.t (* "}" *)
+)
 
 and literal_element = [ `Exp of expression | `Lit_value of literal_value ]
 
@@ -469,6 +548,8 @@ and parameter_list = (
       option
   * Token.t (* ")" *)
 )
+
+and parenthesized_type = (Token.t (* "(" *) * type_ * Token.t (* ")" *))
 
 and pointer_type = (Token.t (* "*" *) * type_)
 
@@ -519,17 +600,7 @@ and simple_type = [
   | `Qual_type of qualified_type
   | `Poin_type of pointer_type
   | `Struct_type of struct_type
-  | `Inte_type of (
-        Token.t (* "interface" *)
-      * Token.t (* "{" *)
-      * (
-            interface_body
-          * (anon_choice_LF_249c99f * interface_body) list (* zero or more *)
-          * anon_choice_LF_249c99f option
-        )
-          option
-      * Token.t (* "}" *)
-    )
+  | `Inte_type of interface_type
   | `Array_type of array_type
   | `Slice_type of slice_type
   | `Map_type of map_type
@@ -615,7 +686,7 @@ and struct_type = (Token.t (* "struct" *) * field_declaration_list)
 
 and type_ = [
     `Simple_type of simple_type
-  | `Paren_type of (Token.t (* "(" *) * type_ * Token.t (* ")" *))
+  | `Paren_type of parenthesized_type
 ]
 
 and type_alias = (
@@ -895,16 +966,50 @@ type index_expression (* inlined *) = (
     expression * Token.t (* "[" *) * expression * Token.t (* "]" *)
 )
 
-type interface_type (* inlined *) = (
-    Token.t (* "interface" *)
-  * Token.t (* "{" *)
+type interface_complex_type_set (* inlined *) = (
+    (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+      list (* zero or more *)
+  * interface_nonstruct_type_term
   * (
-        interface_body
-      * (anon_choice_LF_249c99f * interface_body) list (* zero or more *)
-      * anon_choice_LF_249c99f option
+        Token.t (* "|" *)
+      * [
+            `Cons_term of constraint_term
+          | `Struct_term of struct_term
+          | `Inte_nons_type_term of interface_nonstruct_type_term
+        ]
     )
-      option
-  * Token.t (* "}" *)
+      list (* zero or more *)
+)
+
+type interface_named_struct_type_set (* inlined *) = (
+    (anon_choice_cons_term_3363a2d * Token.t (* "|" *))
+      list (* zero or more *)
+  * [
+        `Cons_term_BAR_struct_term of (
+            constraint_term * Token.t (* "|" *) * struct_term
+        )
+      | `Struct_term_BAR_cons_term of (
+            struct_term * Token.t (* "|" *) * constraint_term
+        )
+    ]
+  * (Token.t (* "|" *) * anon_choice_cons_term_3363a2d)
+      list (* zero or more *)
+)
+
+type interface_nonstruct_pointer (* inlined *) = (
+    Token.t (* "*" *)
+  * [
+        `Id of identifier (*tok*)
+      | `Qual_type of qualified_type
+      | `Gene_type of generic_type
+      | `Slice_type of slice_type
+      | `Map_type of map_type
+      | `Array_type of array_type
+      | `Chan_type of channel_type
+      | `Func_type of function_type
+      | `Poin_type of pointer_type
+      | `Paren_type of parenthesized_type
+    ]
 )
 
 type keyed_element (* inlined *) = (
@@ -925,10 +1030,6 @@ type parameter_declaration (* inlined *) = (field_name_list option * type_)
 
 type parenthesized_expression (* inlined *) = (
     Token.t (* "(" *) * expression * Token.t (* ")" *)
-)
-
-type parenthesized_type (* inlined *) = (
-    Token.t (* "(" *) * type_ * Token.t (* ")" *)
 )
 
 type return_statement (* inlined *) = (

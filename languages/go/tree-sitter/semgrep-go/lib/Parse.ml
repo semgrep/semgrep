@@ -720,6 +720,118 @@ let children_regexps : (string * Run.exp option) list = [
       Token (Name "interface_type_name");
       Token (Name "constraint_elem");
       Token (Name "struct_elem");
+      Token (Name "interface_complex_type_set");
+      Token (Name "interface_named_struct_type_set");
+    |];
+  );
+  "interface_complex_type_set",
+  Some (
+    Seq [
+      Repeat (
+        Seq [
+          Alt [|
+            Token (Name "constraint_term");
+            Token (Name "struct_term");
+          |];
+          Token (Literal "|");
+        ];
+      );
+      Token (Name "interface_nonstruct_type_term");
+      Repeat (
+        Seq [
+          Token (Literal "|");
+          Alt [|
+            Token (Name "constraint_term");
+            Token (Name "struct_term");
+            Token (Name "interface_nonstruct_type_term");
+          |];
+        ];
+      );
+    ];
+  );
+  "interface_named_struct_type_set",
+  Some (
+    Seq [
+      Repeat (
+        Seq [
+          Alt [|
+            Token (Name "constraint_term");
+            Token (Name "struct_term");
+          |];
+          Token (Literal "|");
+        ];
+      );
+      Alt [|
+        Seq [
+          Token (Name "constraint_term");
+          Token (Literal "|");
+          Token (Name "struct_term");
+        ];
+        Seq [
+          Token (Name "struct_term");
+          Token (Literal "|");
+          Token (Name "constraint_term");
+        ];
+      |];
+      Repeat (
+        Seq [
+          Token (Literal "|");
+          Alt [|
+            Token (Name "constraint_term");
+            Token (Name "struct_term");
+          |];
+        ];
+      );
+    ];
+  );
+  "interface_nonstruct_pointer",
+  Some (
+    Seq [
+      Token (Literal "*");
+      Alt [|
+        Token (Name "identifier");
+        Token (Name "qualified_type");
+        Token (Name "generic_type");
+        Token (Name "slice_type");
+        Token (Name "map_type");
+        Token (Name "array_type");
+        Token (Name "channel_type");
+        Token (Name "function_type");
+        Token (Name "pointer_type");
+        Token (Name "parenthesized_type");
+      |];
+    ];
+  );
+  "interface_nonstruct_type_term",
+  Some (
+    Alt [|
+      Seq [
+        Opt (
+          Token (Literal "~");
+        );
+        Alt [|
+          Token (Name "slice_type");
+          Token (Name "map_type");
+          Token (Name "array_type");
+          Token (Name "channel_type");
+          Token (Name "function_type");
+        |];
+      ];
+      Token (Name "generic_type");
+      Token (Name "interface_nonstruct_pointer");
+      Seq [
+        Token (Literal "~");
+        Token (Name "pointer_type");
+      ];
+      Seq [
+        Opt (
+          Token (Literal "~");
+        );
+        Alt [|
+          Token (Name "parenthesized_type");
+          Token (Name "interface_type");
+        |];
+      ];
     |];
   );
   "interface_type",
@@ -3246,6 +3358,303 @@ and trans_interface_body ((kind, body) : mt) : CST.interface_body =
       | Alt (3, v) ->
           `Struct_elem (
             trans_struct_elem (Run.matcher_token v)
+          )
+      | Alt (4, v) ->
+          `Inte_comp_type_set (
+            trans_interface_complex_type_set (Run.matcher_token v)
+          )
+      | Alt (5, v) ->
+          `Inte_named_struct_type_set (
+            trans_interface_named_struct_type_set (Run.matcher_token v)
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+and trans_interface_complex_type_set ((kind, body) : mt) : CST.interface_complex_type_set =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1; v2] ->
+          (
+            Run.repeat
+              (fun v ->
+                (match v with
+                | Seq [v0; v1] ->
+                    (
+                      (match v0 with
+                      | Alt (0, v) ->
+                          `Cons_term (
+                            trans_constraint_term (Run.matcher_token v)
+                          )
+                      | Alt (1, v) ->
+                          `Struct_term (
+                            trans_struct_term (Run.matcher_token v)
+                          )
+                      | _ -> assert false
+                      )
+                      ,
+                      Run.trans_token (Run.matcher_token v1)
+                    )
+                | _ -> assert false
+                )
+              )
+              v0
+            ,
+            trans_interface_nonstruct_type_term (Run.matcher_token v1),
+            Run.repeat
+              (fun v ->
+                (match v with
+                | Seq [v0; v1] ->
+                    (
+                      Run.trans_token (Run.matcher_token v0),
+                      (match v1 with
+                      | Alt (0, v) ->
+                          `Cons_term (
+                            trans_constraint_term (Run.matcher_token v)
+                          )
+                      | Alt (1, v) ->
+                          `Struct_term (
+                            trans_struct_term (Run.matcher_token v)
+                          )
+                      | Alt (2, v) ->
+                          `Inte_nons_type_term (
+                            trans_interface_nonstruct_type_term (Run.matcher_token v)
+                          )
+                      | _ -> assert false
+                      )
+                    )
+                | _ -> assert false
+                )
+              )
+              v2
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+and trans_interface_named_struct_type_set ((kind, body) : mt) : CST.interface_named_struct_type_set =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1; v2] ->
+          (
+            Run.repeat
+              (fun v ->
+                (match v with
+                | Seq [v0; v1] ->
+                    (
+                      (match v0 with
+                      | Alt (0, v) ->
+                          `Cons_term (
+                            trans_constraint_term (Run.matcher_token v)
+                          )
+                      | Alt (1, v) ->
+                          `Struct_term (
+                            trans_struct_term (Run.matcher_token v)
+                          )
+                      | _ -> assert false
+                      )
+                      ,
+                      Run.trans_token (Run.matcher_token v1)
+                    )
+                | _ -> assert false
+                )
+              )
+              v0
+            ,
+            (match v1 with
+            | Alt (0, v) ->
+                `Cons_term_BAR_struct_term (
+                  (match v with
+                  | Seq [v0; v1; v2] ->
+                      (
+                        trans_constraint_term (Run.matcher_token v0),
+                        Run.trans_token (Run.matcher_token v1),
+                        trans_struct_term (Run.matcher_token v2)
+                      )
+                  | _ -> assert false
+                  )
+                )
+            | Alt (1, v) ->
+                `Struct_term_BAR_cons_term (
+                  (match v with
+                  | Seq [v0; v1; v2] ->
+                      (
+                        trans_struct_term (Run.matcher_token v0),
+                        Run.trans_token (Run.matcher_token v1),
+                        trans_constraint_term (Run.matcher_token v2)
+                      )
+                  | _ -> assert false
+                  )
+                )
+            | _ -> assert false
+            )
+            ,
+            Run.repeat
+              (fun v ->
+                (match v with
+                | Seq [v0; v1] ->
+                    (
+                      Run.trans_token (Run.matcher_token v0),
+                      (match v1 with
+                      | Alt (0, v) ->
+                          `Cons_term (
+                            trans_constraint_term (Run.matcher_token v)
+                          )
+                      | Alt (1, v) ->
+                          `Struct_term (
+                            trans_struct_term (Run.matcher_token v)
+                          )
+                      | _ -> assert false
+                      )
+                    )
+                | _ -> assert false
+                )
+              )
+              v2
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+and trans_interface_nonstruct_pointer ((kind, body) : mt) : CST.interface_nonstruct_pointer =
+  match body with
+  | Children v ->
+      (match v with
+      | Seq [v0; v1] ->
+          (
+            Run.trans_token (Run.matcher_token v0),
+            (match v1 with
+            | Alt (0, v) ->
+                `Id (
+                  trans_identifier (Run.matcher_token v)
+                )
+            | Alt (1, v) ->
+                `Qual_type (
+                  trans_qualified_type (Run.matcher_token v)
+                )
+            | Alt (2, v) ->
+                `Gene_type (
+                  trans_generic_type (Run.matcher_token v)
+                )
+            | Alt (3, v) ->
+                `Slice_type (
+                  trans_slice_type (Run.matcher_token v)
+                )
+            | Alt (4, v) ->
+                `Map_type (
+                  trans_map_type (Run.matcher_token v)
+                )
+            | Alt (5, v) ->
+                `Array_type (
+                  trans_array_type (Run.matcher_token v)
+                )
+            | Alt (6, v) ->
+                `Chan_type (
+                  trans_channel_type (Run.matcher_token v)
+                )
+            | Alt (7, v) ->
+                `Func_type (
+                  trans_function_type (Run.matcher_token v)
+                )
+            | Alt (8, v) ->
+                `Poin_type (
+                  trans_pointer_type (Run.matcher_token v)
+                )
+            | Alt (9, v) ->
+                `Paren_type (
+                  trans_parenthesized_type (Run.matcher_token v)
+                )
+            | _ -> assert false
+            )
+          )
+      | _ -> assert false
+      )
+  | Leaf _ -> assert false
+
+and trans_interface_nonstruct_type_term ((kind, body) : mt) : CST.interface_nonstruct_type_term =
+  match body with
+  | Children v ->
+      (match v with
+      | Alt (0, v) ->
+          `Opt_TILDE_choice_slice_type (
+            (match v with
+            | Seq [v0; v1] ->
+                (
+                  Run.opt
+                    (fun v -> Run.trans_token (Run.matcher_token v))
+                    v0
+                  ,
+                  (match v1 with
+                  | Alt (0, v) ->
+                      `Slice_type (
+                        trans_slice_type (Run.matcher_token v)
+                      )
+                  | Alt (1, v) ->
+                      `Map_type (
+                        trans_map_type (Run.matcher_token v)
+                      )
+                  | Alt (2, v) ->
+                      `Array_type (
+                        trans_array_type (Run.matcher_token v)
+                      )
+                  | Alt (3, v) ->
+                      `Chan_type (
+                        trans_channel_type (Run.matcher_token v)
+                      )
+                  | Alt (4, v) ->
+                      `Func_type (
+                        trans_function_type (Run.matcher_token v)
+                      )
+                  | _ -> assert false
+                  )
+                )
+            | _ -> assert false
+            )
+          )
+      | Alt (1, v) ->
+          `Gene_type (
+            trans_generic_type (Run.matcher_token v)
+          )
+      | Alt (2, v) ->
+          `Inte_nons_poin (
+            trans_interface_nonstruct_pointer (Run.matcher_token v)
+          )
+      | Alt (3, v) ->
+          `TILDE_poin_type (
+            (match v with
+            | Seq [v0; v1] ->
+                (
+                  Run.trans_token (Run.matcher_token v0),
+                  trans_pointer_type (Run.matcher_token v1)
+                )
+            | _ -> assert false
+            )
+          )
+      | Alt (4, v) ->
+          `Opt_TILDE_choice_paren_type (
+            (match v with
+            | Seq [v0; v1] ->
+                (
+                  Run.opt
+                    (fun v -> Run.trans_token (Run.matcher_token v))
+                    v0
+                  ,
+                  (match v1 with
+                  | Alt (0, v) ->
+                      `Paren_type (
+                        trans_parenthesized_type (Run.matcher_token v)
+                      )
+                  | Alt (1, v) ->
+                      `Inte_type (
+                        trans_interface_type (Run.matcher_token v)
+                      )
+                  | _ -> assert false
+                  )
+                )
+            | _ -> assert false
+            )
           )
       | _ -> assert false
       )

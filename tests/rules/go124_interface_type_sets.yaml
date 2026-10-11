@@ -1,0 +1,14 @@
+rules:
+  - id: go124-interface-range
+    languages: [go]
+    message: An interface using composite constraints must not hide a range loop
+    severity: INFO
+    pattern: |
+      for range $XS {
+        ...
+      }
+  - id: go124-interface-sink
+    languages: [go]
+    message: A function after an interface type-set must still be scanned
+    severity: INFO
+    pattern: sink($X)

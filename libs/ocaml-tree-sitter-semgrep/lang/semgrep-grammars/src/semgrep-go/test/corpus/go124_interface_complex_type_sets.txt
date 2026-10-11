@@ -1,0 +1,290 @@
+==================
+Go interface map and slice type set
+==================
+package a
+type C interface { ~[]byte | ~map[string]bool }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier)))
+          (interface_nonstruct_type_term
+            (map_type
+              (type_identifier)
+              (type_identifier))))))))
+
+==================
+Go interface instantiated generic union
+==================
+package a
+type Box[T any] struct{ V T }
+type C interface { Box[int] | Box[string] }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (type_parameter_list
+        (parameter_declaration
+          (identifier)
+          (type_identifier)))
+      (struct_type
+        (field_declaration_list
+          (field_declaration
+            (field_identifier)
+            (type_identifier))))))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (generic_type
+              (type_identifier)
+              (type_arguments
+                (type_identifier))))
+          (interface_nonstruct_type_term
+            (generic_type
+              (type_identifier)
+              (type_arguments
+                (type_identifier)))))))))
+
+==================
+Go interface struct then composite
+==================
+package a
+type C interface { ~struct{ A int } | ~[]byte }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier))))))))
+
+==================
+Go interface composite then struct
+==================
+package a
+type C interface { ~[]byte | ~struct{ A int } }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier)))
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier))))))))))
+
+==================
+Go interface qualified, generic and composite
+==================
+package a
+import "time"
+type Box[T any] struct{ V T }
+type C interface { int | time.Duration | Box[int] | ~[]byte }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (import_declaration
+    (import_spec
+      (interpreted_string_literal)))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (type_parameter_list
+        (parameter_declaration
+          (identifier)
+          (type_identifier)))
+      (struct_type
+        (field_declaration_list
+          (field_declaration
+            (field_identifier)
+            (type_identifier))))))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (constraint_term
+            (type_identifier))
+          (constraint_term
+            (qualified_type
+              (package_identifier)
+              (type_identifier)))
+          (interface_nonstruct_type_term
+            (generic_type
+              (type_identifier)
+              (type_arguments
+                (type_identifier))))
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier))))))))
+
+==================
+Go interface pointer alternatives
+==================
+package a
+type C interface { *int | ~*struct{ A int } | ~[]byte }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (interface_nonstruct_pointer
+              (type_identifier)))
+          (interface_nonstruct_type_term
+            (pointer_type
+              (struct_type
+                (field_declaration_list
+                  (field_declaration
+                    (field_identifier)
+                    (type_identifier))))))
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier))))))))
+
+==================
+Go interface generic type set with methods
+==================
+package a
+type C interface {
+  ~[]byte | ~map[string]bool
+  Transform() int
+}
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier)))
+          (interface_nonstruct_type_term
+            (map_type
+              (type_identifier)
+              (type_identifier))))
+        (method_spec
+          (field_identifier)
+          (parameter_list)
+          (type_identifier))))))
+
+==================
+Go interface mixed composite clauses
+==================
+package a
+type C interface {
+  ~[]byte | ~map[string]bool
+  ~func(int) bool | ~chan int
+}
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (slice_type
+              (type_identifier)))
+          (interface_nonstruct_type_term
+            (map_type
+              (type_identifier)
+              (type_identifier))))
+        (interface_complex_type_set
+          (interface_nonstruct_type_term
+            (function_type
+              (parameter_list
+                (parameter_declaration
+                  (type_identifier)))
+              (type_identifier)))
+          (interface_nonstruct_type_term
+            (channel_type
+              (type_identifier))))))))
+
+==================
+Go interface bare pointer to struct backwards-compatible
+==================
+package a
+type C interface { *struct{ A int } | ~struct{ B int } }
+
+---
+
+(source_file
+  (package_clause
+    (package_identifier))
+  (type_declaration
+    (type_spec
+      (type_identifier)
+      (interface_type
+        (struct_elem
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier)))))
+          (struct_term
+            (struct_type
+              (field_declaration_list
+                (field_declaration
+                  (field_identifier)
+                  (type_identifier))))))))))
