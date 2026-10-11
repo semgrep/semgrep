@@ -64,6 +64,7 @@ type type_ =
    * alt: we could merge it with TName
    *)
   | TGeneric of qualified_ident * type_arguments
+  | TConstraintSet of constraint_ * (tok * constraint_) list
   (* old: a TArray (None) was called a TSlice before *)
   | TArray of expr option bracket * type_
   (* only in CompositeLit (could be rewritten as TArray with static length) *)
@@ -292,7 +293,7 @@ and decl =
   (* vars have at least a type or an expr ((None,None) is impossible) *)
   | DVar of ident * type_ option * (* = *) expr option (* value *)
   (* type can be a TStruct to define and name a structure *)
-  | DTypeAlias of ident * tok (* = *) * type_
+  | DTypeAlias of ident * type_parameters option * tok (* = *) * type_
   (* this introduces a distinct type, with different method set *)
   | DTypeDef of ident * type_parameters option (* generics: *) * type_
 

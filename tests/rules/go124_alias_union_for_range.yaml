@@ -1,0 +1,9 @@
+rules:
+  - id: go124-alias-union-range
+    languages: [go]
+    message: Semgrep should still detect a range loop in a file using Go 1.24 types
+    severity: WARNING
+    pattern: |
+      for range $XS {
+        ...
+      }

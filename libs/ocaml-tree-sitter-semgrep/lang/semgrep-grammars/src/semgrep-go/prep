@@ -1,1 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+if [[ -d test/corpus/inherited && ! -L test/corpus/inherited ]]; then
+  rm -r test/corpus/inherited
+fi
+
 ../prep.common
+
+# The Semgrep Go grammar accepts type-set syntax rejected by the older
+# upstream grammar fixture; update only that expected parse tree.
+corpus=$(readlink -f test/corpus/inherited)
+rm test/corpus/inherited
+cp -R "$corpus" test/corpus/inherited
+(cd test/corpus && patch --forward --batch -p0 < ../../patches/declarations.patch)
