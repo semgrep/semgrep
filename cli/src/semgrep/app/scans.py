@@ -11,6 +11,7 @@
 # LICENSE for more details.
 #
 # Handle communication of findings / errors to semgrep.app
+import base64
 import json
 import os
 import sys
@@ -507,9 +508,13 @@ class ScanHandler:
 
         # saved so we can log the last exception after the final attempt times out
         last_timeout_exc: Optional[_ConfigPollTimeout] = None
+        job_context = state.env.job_context
         headers = (
-            {"X-Semgrep-Job-Context": state.env.job_context}
-            if state.env.job_context is not None
+            {
+                "X-Semgrep-Job-Context": "base64:"
+                + base64.b64encode(job_context.encode("utf-8")).decode("ascii")
+            }
+            if job_context is not None
             else {}
         )
         for post_attempt in range(1, max_attempts + 1):

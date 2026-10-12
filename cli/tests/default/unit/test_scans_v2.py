@@ -10,9 +10,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import base64
 import uuid
+from http.client import HTTPConnection
 
 import pytest
+import requests
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app.scans import _ConfigPollTimeout
@@ -182,7 +185,15 @@ def test_start_scan_uses_v2(mocker, mock_state, mock_sleep, mock_args):
 @pytest.mark.quick
 @pytest.mark.no_semgrep_cli
 @pytest.mark.parametrize(
-    "job_context", ['{"version":1,"job_id":"abc","task_key":"scan/one"}', "null", ""]
+    "job_context",
+    [
+        '{"version":1,"job_id":"abc","task_key":"scan/one"}',
+        '  {\n  "task_key": "scan/one"\n}',
+        '{"task_key":"扫描/🚀"}',
+        "not JSON",
+        "null",
+        "",
+    ],
 )
 def test_start_scan_v2_retries_post_all_timeouts(
     mocker, monkeypatch, mock_state, mock_sleep, handler, mock_args, job_context
@@ -191,9 +202,19 @@ def test_start_scan_v2_retries_post_all_timeouts(
     project_metadata, project_config = mock_args
     monkeypatch.setenv("SEMGREP_JOB_CONTEXT", job_context)
     mock_state.env.job_context = Env().job_context
-    mock_state.app_session.post.return_value = _make_response(
-        mocker, CREATE_SCAN_RESPONSE
-    )
+    sent_headers = []
+
+    def post(url, **kwargs):
+        prepared = requests.Request("POST", url, **kwargs).prepare()
+        connection = HTTPConnection("semgrep.dev")
+        connection.putrequest("POST", "/api/cli/v2/scans")
+        for name, value in prepared.headers.items():
+            connection.putheader(name, value)
+        sent_headers.append(prepared.headers["X-Semgrep-Job-Context"])
+        mock_state.env.job_context = "changed after first attempt"
+        return _make_response(mocker, CREATE_SCAN_RESPONSE)
+
+    mock_state.app_session.post.side_effect = post
     mocker.patch.object(
         handler, "_poll_for_config_v2", side_effect=_ConfigPollTimeout("timed out")
     )
@@ -203,8 +224,15 @@ def test_start_scan_v2_retries_post_all_timeouts(
 
     assert mock_state.app_session.post.call_count == 3
     assert handler._poll_for_config_v2.call_count == 3
-    for call in mock_state.app_session.post.call_args_list:
-        assert call.kwargs["headers"]["X-Semgrep-Job-Context"] == job_context
+    assert len(set(sent_headers)) == 1
+    for header in sent_headers:
+        assert header.startswith("base64:")
+        assert (
+            base64.b64decode(header.removeprefix("base64:"), validate=True).decode(
+                "utf-8"
+            )
+            == job_context
+        )
 
 
 @pytest.mark.quick
