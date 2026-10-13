@@ -2319,7 +2319,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
         "method": "POST",
         "status_code": 401,
         "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
-        "error": str_containing("INVALID_API_KEY_EXIT_CODE"),
+        "error": str_containing("SystemExit: 13"),
         "exit_code": 13,
     }
 
