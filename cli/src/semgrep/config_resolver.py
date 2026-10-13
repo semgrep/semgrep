@@ -31,6 +31,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from urllib.parse import urlencode
+from uuid import uuid4
 
 import click
 import requests
@@ -41,6 +42,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep import telemetry
 from semgrep.app import auth
+from semgrep.app.scan_config import fetch_scan_config
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
@@ -48,7 +50,6 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import MISSED_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
-from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import RULE_PARSE_FAILURE_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -330,10 +331,8 @@ class ConfigLoader:
 
     def _fetch_semgrep_cloud_platform_scan_config(self) -> ConfigFile:
         """
-        Download a configuration from semgrep.dev using new /api/cli/scans endpoint
+        Download a configuration from semgrep.dev using async config generation.
         """
-        state = get_state()
-
         products = [
             out.Product.from_json(PRODUCT_NAMES[p])
             for p in self._config_path.split(",")
@@ -344,10 +343,11 @@ class ConfigLoader:
             p.value in [out.SAST(), out.Secrets()] for p in products
         )
 
-        request = out.ScanRequest(
+        request = out.CreateScanRequestV2(
             scan_metadata=out.ScanMetadata(
                 cli_version=out.Version(__VERSION__),
-                unique_id=out.Uuid(str(state.local_scan_id)),
+                # Each config fetch is a separate job; retries reuse this request.
+                unique_id=out.Uuid(str(uuid4())),
                 requested_products=products,
                 dry_run=True,  # semgrep scan never submits findings, so always a dry run
             ),
@@ -368,32 +368,14 @@ class ConfigLoader:
             raise  # error from first fetch
 
     def _download_semgrep_cloud_platform_scan_config(
-        self, request: out.ScanRequest
+        self, request: out.CreateScanRequestV2
     ) -> ConfigFile:
         state = get_state()
-        url = f"{state.env.semgrep_url}/api/cli/scans"
+        url = f"{state.env.semgrep_url}/api/cli/v2/scans"
         logger.debug("Downloading config from %s", url)
         error = f"Failed to download configuration from {url}"
         try:
-            response = state.app_session.post(
-                f"{state.env.semgrep_url}/api/cli/scans",
-                json=request.to_json(),
-            )
-
-            if response.status_code == requests.codes.unauthorized:
-                raise SemgrepError(
-                    "Invalid API Key. Run `semgrep logout` and `semgrep login` again.",
-                    code=INVALID_API_KEY_EXIT_CODE,
-                )
-
-            try:
-                response.raise_for_status()
-            except requests.RequestException:
-                raise Exception(
-                    f"API server at {state.env.semgrep_url} returned this error: {response.text}"
-                )
-
-            scan_response = out.ScanResponse.from_json(response.json())
+            scan_response = fetch_scan_config(request)
             get_state().telemetry.add_resource_attrs(
                 scan_info_to_attrs(scan_response.info)
             )
