@@ -278,6 +278,13 @@ local build_bundle_steps =
     },
   ];
 
+// brew fails re-taking the openssl@3 lock when linking openssl@4 in one process.
+// Run before any `brew install`, incl. opam depexts (`make install-deps`).
+local brew_unlink_openssl_step = {
+  name: 'Unlink openssl@3 (brew lock workaround)',
+  run: 'brew unlink openssl@3 || true',
+};
+
 local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', build_bundle=false, extra_env={}, test_target='test') =
   [
     opam_setup(opam_switch),
@@ -420,6 +427,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   opam_switch: opam_switch,
   opam_setup: opam_setup,
   build_test_steps: build_test_steps,
+  brew_unlink_openssl_step: brew_unlink_openssl_step,
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
   retag_sms_docker_image_step: retag_sms_docker_image_step,

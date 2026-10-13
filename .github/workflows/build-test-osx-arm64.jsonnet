@@ -21,6 +21,9 @@ local artifact_name = 'semgrep-osx-arm64-${{ github.sha }}';
 local build_core_job = {
   'runs-on': runs_on,
   steps: actions.checkout_with_submodules() +
+         // Workaround for brew lock conflict on openssl@3 during opam depext installs.
+         // https://linear.app/semgrep/issue/CODE-10023
+         [semgrep.brew_unlink_openssl_step] +
          semgrep.build_test_steps() +
          [
            actions.upload_artifact_step(artifact_name, './bin/semgrep-core'),
