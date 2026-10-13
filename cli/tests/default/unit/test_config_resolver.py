@@ -10,6 +10,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import json
+import re
+from typing import Dict
+from typing import List
 from uuid import uuid4
 
 import pytest
@@ -63,6 +67,48 @@ def mocked_rpc_validation_error(mocker):
             )
         ),
     )
+
+
+@pytest.mark.quick
+@pytest.mark.no_semgrep_cli
+@pytest.mark.parametrize("include_engine_params", [False, True])
+def test_platform_config_fetches_have_distinct_request_ids(
+    mock_env, requests_mock, mocker, include_engine_params
+):
+    configs_by_id: Dict[str, List[str]] = {}
+
+    def create_config(request, context):
+        metadata = request.json()["scan_metadata"]
+        configs_by_id.setdefault(metadata["unique_id"], metadata["requested_products"])
+        return {
+            "info": {
+                "enabled_products": [],
+                "deployment_id": 1,
+                "deployment_name": "test",
+            }
+        }
+
+    def get_config(request, context):
+        request_id = request.path.split("/")[-2]
+        response = {"status": "success", "config": {"rules": configs_by_id[request_id]}}
+        if include_engine_params:
+            response["engine_params"] = {}
+        return response
+
+    requests_mock.post(f"{API_URL}/api/cli/v2/scans", json=create_config)
+    requests_mock.get(
+        re.compile(f"^{API_URL}/api/cli/v2/scans/[^/]+/config$"), json=get_config
+    )
+    fallback = mocker.patch.object(
+        ConfigLoader, "_download_semgrep_cloud_platform_fallback_scan_config"
+    )
+
+    for product in ["code", "secrets", "code"]:
+        config = ConfigLoader(product).load_config()[0]
+        assert json.loads(config.contents) == [PRODUCT_NAMES[product]]
+
+    assert len(configs_by_id) == 3
+    fallback.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -169,13 +215,15 @@ class TestConfigLoaderForProducts:
         assert patched_fallback_download.call_count == 1
 
     @pytest.fixture
-    def mocked_scan_request(self, config_loader: ConfigLoader) -> out.ScanRequest:
+    def mocked_scan_request(
+        self, config_loader: ConfigLoader
+    ) -> out.CreateScanRequestV2:
         products = [
             out.Product.from_json(PRODUCT_NAMES[p])
             for p in config_loader._config_path.split(",")
         ]
 
-        request = out.ScanRequest(
+        request = out.CreateScanRequestV2(
             scan_metadata=out.ScanMetadata(
                 cli_version=out.Version(__VERSION__),
                 unique_id=out.Uuid(str(uuid4())),
@@ -210,15 +258,35 @@ class TestConfigLoaderForProducts:
 
     @pytest.mark.quick
     @pytest.mark.osemfail
+    @pytest.mark.parametrize("pending", [False, True])
+    @pytest.mark.parametrize("include_engine_params", [False, True])
     def test__download_semgrep_cloud_platform_scan_config_success(
         self,
         config_loader: ConfigLoader,
-        mocked_scan_request: out.ScanRequest,
+        mocked_scan_request: out.CreateScanRequestV2,
         mocked_scan_response: out.ScanResponse,
         requests_mock,
+        mocker,
+        pending,
+        include_engine_params,
     ):
         requests_mock.post(
-            "https://semgrep.dev/api/cli/scans", json=mocked_scan_response.to_json()
+            "https://semgrep.dev/api/cli/v2/scans",
+            json={"info": mocked_scan_response.info.to_json()},
+        )
+
+        sleep = mocker.patch("semgrep.app.scan_config.sleep")
+        responses = [{"json": {"status": "pending"}}] if pending else []
+        success = {
+            "status": "success",
+            "config": mocked_scan_response.config.to_json(),
+        }
+        if include_engine_params:
+            success["engine_params"] = mocked_scan_response.engine_params.to_json()
+        responses.append({"json": success})
+        requests_mock.get(
+            f"{API_URL}/api/cli/v2/scans/{mocked_scan_request.scan_metadata.unique_id.value}/config",
+            responses,
         )
 
         config = config_loader._download_semgrep_cloud_platform_scan_config(
@@ -226,19 +294,22 @@ class TestConfigLoaderForProducts:
         )
 
         assert config.config_id is None
-        assert config.config_path == f"{API_URL}/api/cli/scans"
+        assert config.config_path == f"{API_URL}/api/cli/v2/scans"
         assert config.contents == "{}"
+        assert requests_mock.request_history[0].json() == mocked_scan_request.to_json()
+        assert mocked_scan_request.scan_metadata.dry_run is True
+        assert sleep.call_count == int(pending)
 
     @pytest.mark.quick
     @pytest.mark.osemfail
     def test__download_semgrep_cloud_platform_scan_config_unauthorized(
         self,
         config_loader: ConfigLoader,
-        mocked_scan_request: out.ScanRequest,
+        mocked_scan_request: out.CreateScanRequestV2,
         requests_mock,
     ):
         requests_mock.post(
-            "https://semgrep.dev/api/cli/scans",
+            "https://semgrep.dev/api/cli/v2/scans",
             status_code=401,
         )
 

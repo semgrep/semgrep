@@ -607,7 +607,7 @@ let handle_poll_response ~scan_request_id ~server_deadline ~server_poll_interval
               m "Received v2 scan config (scan_request_id=%s)" scan_request_id);
           Ok (Poll_success sc))
 
-(* coupling(backend): if you change this you must change start_scan_v2 in scans.py *)
+(* coupling(backend): if you change this you must change fetch_scan_config in scan_config.py *)
 (* coupling(eio-port): if you change this you must change poll_scan_config_v2_eio *)
 (* poll for the v2 scan config after the scan has been created *)
 let poll_scan_config_v2_async ~scan_request_id ~headers :

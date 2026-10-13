@@ -140,7 +140,7 @@ def test_login_and_use_registry(tmp_path, mocker, requests_mock):
     ), "registry should refuse to send rules to invalid token"
 
     requests_mock.post(
-        f"{semgrep_url}/api/cli/scans",
+        f"{semgrep_url}/api/cli/v2/scans",
         status_code=401,
         json={"detail": "Invalid API Key"},
     )
