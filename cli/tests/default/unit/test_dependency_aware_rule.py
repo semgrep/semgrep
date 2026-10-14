@@ -820,3 +820,147 @@ def test_reachable_non_gradle_subproject_ignores_module_scoping(
         assert errors == []
         results.append([_paired_dependency(m).version for m in matches])
     assert results == [["2.28.1"], ["2.28.1"]]
+
+
+# A requirements.txt can list the same package twice: once unpinned in the
+# hand-written section (direct) and once pinned by pip-compile (transitive).
+# The unpinned direct copy can never be what the rule matched, so it must not
+# suppress the reachable finding on the pinned transitive copy. A pinned
+# direct copy still does.
+def _requirements_dep(version, *, direct, package="requests"):
+    return ResolvedDependency(
+        (
+            out.FoundDependency(
+                package=package,
+                version=version,
+                ecosystem=Ecosystem(Pypi()),
+                allowed_hashes=defaultdict(list),
+                transitivity=DependencyKind(Direct() if direct else Transitive()),
+                resolved_url=None,
+                children=None,
+                git_ref=None,
+                lockfile_path=Fpath("requirements.txt"),
+                line_number=1 if direct else 2,
+            ),
+            None,
+        )
+    )
+
+
+def _requirements_subproject(dependencies):
+    return ResolvedSubproject(
+        info=Subproject(
+            root_dir=Fpath("."),
+            dependency_source=DependencySource(
+                out.LockfileOnly(
+                    Lockfile(
+                        LockfileKind(out.PipRequirementsTxt()),
+                        Fpath("requirements.txt"),
+                    )
+                )
+            ),
+            ecosystem=Ecosystem(Pypi()),
+        ),
+        errors=[],
+        resolution_method=ResolutionMethod(LockfileParsing()),
+        resolved_dependencies=from_resolved_dependencies(dependencies),
+        ecosystem=Ecosystem(Pypi()),
+    )
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "direct_version, expected_versions",
+    [
+        (">=2.0", ["2.28.1"]),
+        ("", ["2.28.1"]),
+        ("2.20.0", []),
+    ],
+)
+def test_reachable_unpinned_direct_does_not_suppress_pinned_transitive(
+    tmp_path, monkeypatch, direct_version, expected_versions
+):
+    _layout(tmp_path, monkeypatch, ["pkg/app.py"])
+    subproject = _requirements_subproject(
+        [
+            _requirements_dep(direct_version, direct=True),
+            _requirements_dep("2.28.1", direct=False),
+        ]
+    )
+    rule = Rule.from_json(
+        {
+            "id": "py-sca",
+            "pattern": "bad()",
+            "r2c-internal-project-depends-on": {
+                "namespace": "pypi",
+                "package": "requests",
+                "version": ">=2.28.0",
+            },
+            "message": "oh no",
+            "languages": ["python"],
+            "severity": "WARNING",
+        }
+    )
+    index = SubprojectDependencyIndex.from_subproject(subproject)
+    matches, errors, _ = generate_reachable_sca_findings(
+        [_code_match("pkg/app.py")],
+        rule,
+        {Ecosystem(Pypi()): [(subproject, index)]},
+        gradle_module_attribution=False,
+    )
+    assert errors == []
+    assert [_paired_dependency(m).version for m in matches] == expected_versions
+
+
+# The direct-over-transitive preference between two packages the rule lists
+# (foo vs foo-special) is about presence, not version: a hand-written
+# `foo>=2.0` still says the code uses foo, so a transitive foo-special match
+# stays suppressed exactly as with a pinned `foo==2.0.0`. The pinned direct
+# foo matches the rule itself and is reported; the unpinned ones never match.
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "direct_version, expected_packages",
+    [
+        (">=2.0", []),
+        ("", []),
+        ("2.0.0", ["foo"]),
+    ],
+)
+def test_reachable_unpinned_direct_still_suppresses_sibling_transitive(
+    tmp_path, monkeypatch, direct_version, expected_packages
+):
+    _layout(tmp_path, monkeypatch, ["pkg/app.py"])
+    subproject = _requirements_subproject(
+        [
+            _requirements_dep(direct_version, direct=True, package="foo"),
+            _requirements_dep("2.0.0", direct=False, package="foo-special"),
+        ]
+    )
+    rule = Rule.from_json(
+        {
+            "id": "py-sca",
+            "pattern": "bad()",
+            "r2c-internal-project-depends-on": {
+                "depends-on-either": [
+                    {"namespace": "pypi", "package": "foo", "version": ">=2.0.0"},
+                    {
+                        "namespace": "pypi",
+                        "package": "foo-special",
+                        "version": ">=2.0.0",
+                    },
+                ]
+            },
+            "message": "oh no",
+            "languages": ["python"],
+            "severity": "WARNING",
+        }
+    )
+    index = SubprojectDependencyIndex.from_subproject(subproject)
+    matches, errors, _ = generate_reachable_sca_findings(
+        [_code_match("pkg/app.py")],
+        rule,
+        {Ecosystem(Pypi()): [(subproject, index)]},
+        gradle_module_attribution=False,
+    )
+    assert errors == []
+    assert [_paired_dependency(m).package for m in matches] == expected_packages
