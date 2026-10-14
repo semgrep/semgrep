@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "package": "flask",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/one-package-unconstrained/requirements.txt",
+    "line_number": 1
+  }
+]

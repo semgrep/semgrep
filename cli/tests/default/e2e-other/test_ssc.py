@@ -880,14 +880,6 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
         assert len(error) == 1
     elif target.endswith("requirements/only-comments/requirements.txt"):
         assert len(error) == 1
-    elif target.endswith("requirements/one-package-unconstrained/requirements.txt"):
-        assert len(error) == 1
-    elif target.endswith("requirements/multiple-packages-mixed/requirements.txt"):
-        assert len(error) == 5
-    elif target.endswith("requirements/file-format-example/requirements.txt"):
-        assert len(error) == 10
-    elif target.endswith("requirements/bare-then-pinned/requirements.txt"):
-        assert len(error) == 8
     else:
         assert len(error) == 0
     assert len(caplog.records) == 0
