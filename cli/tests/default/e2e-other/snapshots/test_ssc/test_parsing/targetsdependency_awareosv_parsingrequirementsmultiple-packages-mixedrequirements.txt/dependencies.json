@@ -1,5 +1,23 @@
 [
   {
+    "package": "flask",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
+    "line_number": 1
+  },
+  {
+    "package": "flask-cors",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
+    "line_number": 2
+  },
+  {
     "package": "pandas",
     "version": "0.23.4",
     "ecosystem": "pypi",
@@ -25,5 +43,32 @@
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
     "line_number": 5
+  },
+  {
+    "package": "sklearn",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
+    "line_number": 6
+  },
+  {
+    "package": "requests",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
+    "line_number": 7
+  },
+  {
+    "package": "gevent",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
+    "line_number": 8
   }
 ]

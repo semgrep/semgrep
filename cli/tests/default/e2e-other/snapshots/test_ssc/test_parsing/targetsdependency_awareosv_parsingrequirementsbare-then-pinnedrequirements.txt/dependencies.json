@@ -1,5 +1,32 @@
 [
   {
+    "package": "flask",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 1
+  },
+  {
+    "package": "celery",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 2
+  },
+  {
+    "package": "gunicorn",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 3
+  },
+  {
     "package": "boto3",
     "version": "1.35.0",
     "ecosystem": "pypi",
@@ -9,6 +36,15 @@
     "line_number": 4
   },
   {
+    "package": "pydantic",
+    "version": ">=2.0.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 5
+  },
+  {
     "package": "litellm",
     "version": "1.80.0",
     "ecosystem": "pypi",
@@ -16,5 +52,41 @@
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
     "line_number": 6
+  },
+  {
+    "package": "google-generativeai",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 7
+  },
+  {
+    "package": "langchain_core",
+    "version": ">=0.3.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 8
+  },
+  {
+    "package": "psycopg2-binary",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 9
+  },
+  {
+    "package": "mysql-connector-python",
+    "version": ">=8.3.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/bare-then-pinned/requirements.txt",
+    "line_number": 10
   }
 ]

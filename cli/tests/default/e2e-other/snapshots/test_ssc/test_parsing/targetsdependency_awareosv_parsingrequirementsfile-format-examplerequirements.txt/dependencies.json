@@ -1,5 +1,32 @@
 [
   {
+    "package": "pytest",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 3
+  },
+  {
+    "package": "pytest-cov",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 4
+  },
+  {
+    "package": "beautifulsoup4",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 5
+  },
+  {
     "package": "docopt",
     "version": "0.6.1",
     "ecosystem": "pypi",
@@ -7,5 +34,50 @@
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
     "line_number": 9
+  },
+  {
+    "package": "keyring",
+    "version": ">=4.1.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 10
+  },
+  {
+    "package": "coverage",
+    "version": "!=3.5",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 11
+  },
+  {
+    "package": "mopidy-dirble",
+    "version": "~=1.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 12
+  },
+  {
+    "package": "rejected",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 23
+  },
+  {
+    "package": "green",
+    "version": "",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/file-format-example/requirements.txt",
+    "line_number": 24
   }
 ]
