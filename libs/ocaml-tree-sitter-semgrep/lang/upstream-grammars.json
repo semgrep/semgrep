@@ -128,11 +128,11 @@
     "url": "https://github.com/tarides/tree-sitter-gosu.git"
   },
   "hack": {
-    "commit": "b6db7cf9dc191ce44fa18d7076a346da8c3efe28",
+    "commit": "1a7ded90288189746c54861ac144ede97df95081",
     "regen": [
       "hack"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/slackhq/tree-sitter-hack.git"
   },
   "haskell": {

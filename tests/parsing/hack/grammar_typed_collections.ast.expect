@@ -1,0 +1,347 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Assign (
+           { e =
+             (N
+                (Id (("$vector", _),
+                   { id_resolved = ref (None);
+                     id_resolved_alternatives = ref ([]);
+                     id_type = ref (None); id_svalue = ref (Unknown);
+                     id_flags = ref (0); id_info_id = _ }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           _,
+           { e =
+             (Call (
+                { e =
+                  (N
+                     (IdQualified
+                        { name_last =
+                          (("Vector", _),
+                           (Some (_,
+                                  [(TA
+                                      { t =
+                                        (TyN
+                                           (Id (("int", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (Unknown);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        t_attrs = [] })
+                                    ],
+                                  _)));
+                          name_middle = None; name_top = None;
+                          name_info =
+                          { id_resolved = ref (None);
+                            id_resolved_alternatives = ref ([]);
+                            id_type = ref (None); id_svalue = ref (Unknown);
+                            id_flags = ref (0); id_info_id = _ }
+                          }));
+                  e_id = 0; e_range = None; is_implicit_return = false;
+                  facts = <opaque> },
+                (_,
+                 [(Arg
+                     { e = (L (Int ((Some 1L), _))); e_id = 0;
+                       e_range = None; is_implicit_return = false;
+                       facts = <opaque> });
+                   (Arg
+                      { e = (L (Int ((Some 2L), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                   ],
+                 _)
+                ));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> }
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("$map", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e =
+                   (N
+                      (IdQualified
+                         { name_last =
+                           (("Map", _),
+                            (Some (_,
+                                   [(TA
+                                       { t =
+                                         (TyN
+                                            (Id (("string", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] });
+                                     (TA
+                                        { t =
+                                          (TyN
+                                             (Id (("int", _),
+                                                { id_resolved = ref (None);
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (Unknown);
+                                                  id_flags = ref (0);
+                                                  id_info_id = _ }
+                                                )));
+                                          t_attrs = [] })
+                                     ],
+                                   _)));
+                           name_middle = None; name_top = None;
+                           name_info =
+                           { id_resolved = ref (None);
+                             id_resolved_alternatives = ref ([]);
+                             id_type = ref (None); id_svalue = ref (Unknown);
+                             id_flags = ref (0); id_info_id = _ }
+                           }));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Assign (
+                           { e = (L (String (_, ("one", _), _))); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> },
+                           _,
+                           { e = (L (Int ((Some 1L), _))); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> }
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("$plain", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e =
+                   (N
+                      (Id (("Vector", _),
+                         { id_resolved = ref (None);
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (Int ((Some 1L), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e = (L (Int ((Some 2L), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("$vec", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e =
+                   (N
+                      (IdQualified
+                         { name_last =
+                           (("vec", _),
+                            (Some (_,
+                                   [(TA
+                                       { t =
+                                         (TyN
+                                            (Id (("int", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] })
+                                     ],
+                                   _)));
+                           name_middle = None; name_top = None;
+                           name_info =
+                           { id_resolved = ref (None);
+                             id_resolved_alternatives = ref ([]);
+                             id_type = ref (None); id_svalue = ref (Unknown);
+                             id_flags = ref (0); id_info_id = _ }
+                           }));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (Int ((Some 1L), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e = (L (Int ((Some 2L), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("$dict", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e =
+                   (N
+                      (IdQualified
+                         { name_last =
+                           (("dict", _),
+                            (Some (_,
+                                   [(TA
+                                       { t =
+                                         (TyN
+                                            (Id (("string", _),
+                                               { id_resolved = ref (None);
+                                                 id_resolved_alternatives =
+                                                 ref ([]);
+                                                 id_type = ref (None);
+                                                 id_svalue = ref (Unknown);
+                                                 id_flags = ref (0);
+                                                 id_info_id = _ }
+                                               )));
+                                         t_attrs = [] });
+                                     (TA
+                                        { t =
+                                          (TyN
+                                             (Id (("int", _),
+                                                { id_resolved = ref (None);
+                                                  id_resolved_alternatives =
+                                                  ref ([]);
+                                                  id_type = ref (None);
+                                                  id_svalue = ref (Unknown);
+                                                  id_flags = ref (0);
+                                                  id_info_id = _ }
+                                                )));
+                                          t_attrs = [] })
+                                     ],
+                                   _)));
+                           name_middle = None; name_top = None;
+                           name_info =
+                           { id_resolved = ref (None);
+                             id_resolved_alternatives = ref ([]);
+                             id_type = ref (None); id_svalue = ref (Unknown);
+                             id_flags = ref (0); id_info_id = _ }
+                           }));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Assign (
+                           { e = (L (String (_, ("one", _), _))); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> },
+                           _,
+                           { e = (L (Int ((Some 1L), _))); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> }
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None }
+  ]

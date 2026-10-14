@@ -56,21 +56,27 @@ const rules = {
       'type',
       'newtype',
       'shape',
-      'tupe',
+      'tuple',
       'clone',
       'new',
       'print',
+      'namespace',
+      'include',
+      'include_once',
+      'require',
+      'require_once',
       $._primitive_type,
       $._collection_type,
     ),
 
   qualified_identifier: $ =>
     choice(
-      seq(opt($.identifier), seq.rep1($._backslash, $.identifier)),
+      seq(
+        opt(choice($.identifier, 'namespace')),
+        rep1(seq('\\', $.identifier)),
+      ),
       $.identifier,
     ),
-
-  _backslash: $ => '\\',
 
   scoped_identifier: $ =>
     seq(
@@ -106,6 +112,8 @@ const rules = {
     choice(
       $._declaration,
 
+      $.module_attribute,
+
       $.compound_statement,
       $.empty_statement,
       $.expression_statement,
@@ -137,44 +145,42 @@ const rules = {
       $.trait_declaration,
       $.alias_declaration,
       $.enum_declaration,
+      $.abstract_enum_class_declaration,
+      $.enum_class_declaration,
       $.namespace_declaration,
       $.const_declaration,
     ),
+
+  module_attribute: $ => seq(
+    '<<',
+    $.identifier,
+    ':',
+    com($.qualified_identifier, opt($.arguments), ','),
+    '>>'
+  ),
 
   heredoc: $ =>
     seq(
       '<<<',
       $._heredoc_start,
       opt(alias($._heredoc_start_newline, '\n')),
-      choice.rep($._heredoc_body, $.variable, $.embedded_brace_expression),
+      rep(choice($._heredoc_body, $.variable, $.embedded_braced_expression)),
       opt(alias($._heredoc_end_newline, '\n')),
       $._heredoc_end,
     ),
 
-  embedded_brace_expression: $ => seq($._embedded_brace_expression, '}'),
-
-  _embedded_brace_expression: $ =>
-    choice(
-      alias(token(seq('{$', identifier)), $.variable),
-      alias($._embedded_brace_call_expression, $.call_expression),
-      alias($._embedded_brace_subscript_expression, $.subscript_expression),
-      alias($._embedded_brace_selection_expression, $.selection_expression),
-    ),
-
-  _embedded_brace_call_expression: $ =>
-    seq($._embedded_brace_expression, $.arguments),
-
-  _embedded_brace_subscript_expression: $ =>
-    seq($._embedded_brace_expression, '[', opt($._expression), ']'),
-
-  _embedded_brace_selection_expression: $ =>
-    prec(
-      -1,
-      seq(
-        $._embedded_brace_expression,
-        field('selection_operator', choice('?->', '->')),
-        $._variablish,
+  embedded_braced_expression: $ =>
+    seq(
+      // Use an external scanner for the opening brace so we can restrict embedded braced
+      // expressions to ones that start with a $.variable.
+      alias($._embedded_opening_brace, '{'),
+      choice(
+        $.variable,
+        $.call_expression,
+        $.subscript_expression,
+        $.selection_expression,
       ),
+      '}',
     ),
 
   braced_expression: $ => seq('{', $._expression, '}'),
@@ -188,6 +194,7 @@ const rules = {
       $.collection,
       $._literal,
       $._variablish,
+      $.expression_tree,
       $.prefixed_string,
       $.parenthesized_expression,
       $.binary_expression,
@@ -207,6 +214,8 @@ const rules = {
       $.require_expression,
       $.anonymous_function_expression,
       $.xhp_expression,
+      $.function_pointer,
+      $.enum_class_label,
     ),
 
   // Statements
@@ -227,7 +236,7 @@ const rules = {
 
   echo_statement: $ => seq('echo', com($._expression), ';'),
 
-  unset_statement: $ => seq('unset', '(', com.opt($._variablish), ')', ';'),
+  unset_statement: $ => seq('unset', '(', opt(com($._variablish)), ')', ';'),
 
   concurrent_statement: $ => seq('concurrent', $.compound_statement),
 
@@ -253,11 +262,11 @@ const rules = {
     seq(
       opt($.use_type),
       $._namespace_identifier,
-      field('alias', seq.opt('as', $.identifier)),
+      field('alias', opt(seq('as', $.identifier))),
     ),
 
   _namespace_identifier: $ =>
-    choice(seq($.qualified_identifier, opt($._backslash)), $._backslash),
+    choice(seq($.qualified_identifier, opt('\\')), '\\'),
 
   if_statement: $ =>
     prec.right(
@@ -275,7 +284,7 @@ const rules = {
             field('body', $._statement),
           ),
         ),
-        field('else', seq.opt('else', $._statement)),
+        field('else', opt(seq('else', $._statement))),
       ),
     ),
 
@@ -283,7 +292,7 @@ const rules = {
     seq(
       'switch',
       field('value', $.parenthesized_expression),
-      seq('{', choice.rep($.switch_case, $.switch_default), '}'),
+      seq('{', rep(choice($.switch_case, $.switch_default)), '}'),
     ),
 
   switch_case: $ =>
@@ -298,7 +307,7 @@ const rules = {
       field('collection', $._expression),
       opt($.await_modifier),
       token(prec.dynamic(1, 'as')),
-      field('key', seq.opt($._variablish, '=>')),
+      field('key', opt(seq($._variablish, '=>'))),
       field('value', $._variablish),
       ')',
       field('body', $._statement),
@@ -324,11 +333,11 @@ const rules = {
     seq(
       'for',
       '(',
-      com.opt($._expression),
+      opt(com($._expression)),
       ';',
-      com.opt($._expression),
+      opt(com($._expression)),
       ';',
-      com.opt($._expression),
+      opt(com($._expression)),
       ')',
       field('body', $._statement),
     ),
@@ -413,6 +422,11 @@ const rules = {
       ),
     ),
 
+  expression_tree: $ => seq(
+    field('visitor', $.identifier),
+    token(/`[^`]*`/),
+  ),
+
   prefixed_string: $ => seq(field('prefix', $.identifier), $.string),
 
   // Types
@@ -452,9 +466,12 @@ const rules = {
     seq(
       rep($._type_modifier),
       '(',
-      /function\s*\(/,
-      com.opt(opt($.inout_modifier), $._type, opt($.variadic_modifier), ','),
+      'function',
+      /\s*/,
+      '(',
+      opt(com(opt($.inout_modifier), $._type, opt($.variadic_modifier), ',')),
       ')',
+      opt($.capability_list),
       ':',
       field('return_type', $._type),
       ')',
@@ -465,12 +482,12 @@ const rules = {
       rep($._type_modifier),
       'shape',
       '(',
-      com.opt(choice($.field_specifier, alias('...', $.open_modifier)), ','),
+      opt(com(choice($.field_specifier, alias('...', $.open_modifier)), ',')),
       ')',
     ),
 
   field_specifier: $ =>
-    seq(alias.opt('?', $.optional_modifier), $._expression, '=>', $._type),
+    seq(opt(alias('?', $.optional_modifier)), $._expression, '=>', $._type),
 
   type_constant: $ =>
     seq(rep($._type_modifier), alias($._type_constant, $.type_constant)),
@@ -490,6 +507,7 @@ const rules = {
       'bool',
       'float',
       'int',
+      'num',
       'string',
       'arraykey',
       'void',
@@ -498,28 +516,34 @@ const rules = {
       'mixed',
       'dynamic',
       'noreturn',
+      'nothing',
+      'resource',
     ),
 
-  type_arguments: $ => seq('<', com.opt($._type, ','), '>'),
+  type_arguments: $ => seq('<', opt(com($._type, ',')), '>'),
 
   type_parameters: $ => seq('<', com($.type_parameter, ','), '>'),
 
   type_parameter: $ =>
     seq(
       opt($.attribute_modifier),
-      choice.opt(
-        alias('+', $.covariant_modifier),
-        alias('-', $.contravariant_modifier),
-        alias('reify', $.reify_modifier),
+      opt(
+        choice(
+          alias('+', $.covariant_modifier),
+          alias('-', $.contravariant_modifier),
+          alias('reify', $.reify_modifier),
+        ),
       ),
       field('name', $.identifier),
-      seq.rep(
-        field('constraint_operator', choice('as', 'super')),
-        field('constraint_type', $._type),
+      rep(
+        seq(
+          field('constraint_operator', choice('as', 'super')),
+          field('constraint_type', $._type),
+        ),
       ),
     ),
 
-  where_clause: $ => seq('where', seq.rep1($.where_constraint, opt(','))),
+  where_clause: $ => seq('where', rep1(seq($.where_constraint, opt(',')))),
 
   where_constraint: $ =>
     seq(
@@ -536,15 +560,15 @@ const rules = {
       alias($._collection_type, $.array_type),
       opt($.type_arguments),
       '[',
-      com.opt(choice($._expression, $.element_initializer), ','),
+      opt(com(choice($._expression, $.element_initializer), ',')),
       ']',
     ),
 
   element_initializer: $ => prec.right(seq($._expression, '=>', $._expression)),
 
-  tuple: $ => seq('tuple', '(', com.opt($._expression, ','), ')'),
+  tuple: $ => seq('tuple', '(', opt(com($._expression, ',')), ')'),
 
-  shape: $ => seq('shape', '(', com.opt($.field_initializer, ','), ')'),
+  shape: $ => seq('shape', '(', opt(com($.field_initializer, ',')), ')'),
 
   field_initializer: $ =>
     seq(choice($.string, $.scoped_identifier), '=>', $._expression),
@@ -552,8 +576,9 @@ const rules = {
   collection: $ =>
     seq(
       $.qualified_identifier,
+      opt($.type_arguments),
       '{',
-      com.opt(choice($._expression, $.element_initializer), ','),
+      opt(com(choice($._expression, $.element_initializer), ',')),
       '}',
     ),
 
@@ -694,7 +719,11 @@ const rules = {
       choice(
         // Make a single-parameter lambda node look like any other lambda node.
         alias($._single_parameter_parameters, $.parameters),
-        seq($.parameters, seq.opt(':', field('return_type', $._type))),
+        seq(
+          $.parameters,
+          opt($.capability_list),
+          opt(seq(':', field('return_type', $._type))),
+        ),
       ),
       '==>',
       field('body', choice($._expression, $.compound_statement)),
@@ -716,10 +745,10 @@ const rules = {
   new_expression: $ =>
     prec.new(seq('new', $._variablish, opt($.type_arguments), $.arguments)),
 
-  arguments: $ => seq('(', com.opt($.argument, ','), ')'),
+  arguments: $ => seq('(', opt(com($.argument, ',')), ')'),
 
   argument: $ =>
-    seq(choice.opt($.inout_modifier, $.variadic_modifier), $._expression),
+    seq(opt(choice($.inout_modifier, $.variadic_modifier)), $._expression),
 
   selection_expression: $ =>
     prec.select(
@@ -742,7 +771,7 @@ const rules = {
       choice('type', 'newtype'),
       $.identifier,
       opt($.type_parameters),
-      field('as', seq.opt('as', $._type)),
+      field('as', opt(seq('as', $._type))),
       '=',
       $._type,
       ';',
@@ -762,13 +791,23 @@ const rules = {
       field('name', $.identifier),
       opt($.type_parameters),
       $.parameters,
-      seq.opt(':', opt($.attribute_modifier), field('return_type', $._type)),
+      opt($.capability_list),
+      opt(seq(':', opt($.attribute_modifier), field('return_type', $._type))),
       opt($.where_clause),
+    ),
+
+  capability_list: $ => seq('[', opt(com($.capability)), ']'),
+
+  capability: $ =>
+    choice(
+      seq($.identifier, opt($.type_parameters)),
+      $.scoped_identifier,
+      seq('ctx', $.variable),
     ),
 
   parameters: $ =>
     prec.paren(
-      seq('(', choice.opt($.variadic_modifier, com($.parameter, ',')), ')'),
+      seq('(', opt(choice($.variadic_modifier, com($.parameter, ','))), ')'),
     ),
 
   parameter: $ =>
@@ -779,7 +818,7 @@ const rules = {
       field('type', opt($._type)),
       opt($.variadic_modifier),
       field('name', $.variable),
-      seq.opt('=', field('default_value', $._expression)),
+      opt(seq('=', field('default_value', $._expression))),
     ),
 
   trait_declaration: $ =>
@@ -822,17 +861,20 @@ const rules = {
   member_declarations: $ =>
     seq(
       '{',
-      choice.rep(
-        alias($._class_const_declaration, $.const_declaration),
-        $.method_declaration,
-        $.property_declaration,
-        $.type_const_declaration,
-        $.trait_use_clause,
-        $.require_implements_clause,
-        $.require_extends_clause,
-        $.xhp_attribute_declaration,
-        $.xhp_children_declaration,
-        $.xhp_category_declaration,
+      rep(
+        choice(
+          alias($._class_const_declaration, $.const_declaration),
+          $.method_declaration,
+          $.property_declaration,
+          $.type_const_declaration,
+          $.context_const_declaration,
+          $.trait_use_clause,
+          $.require_implements_clause,
+          $.require_extends_clause,
+          $.xhp_attribute_declaration,
+          $.xhp_children_declaration,
+          $.xhp_category_declaration,
+        ),
       ),
       '}',
     ),
@@ -844,7 +886,7 @@ const rules = {
       choice(
         seq(
           '{',
-          seq.rep(choice($.trait_select_clause, $.trait_alias_clause), ';'),
+          rep(seq(choice($.trait_select_clause, $.trait_alias_clause), ';')),
           '}',
         ),
         ';',
@@ -903,7 +945,7 @@ const rules = {
         'value',
         // The only reason we need a separate const declarator for classes is that
         // the assignment expression is optional.
-        seq.opt('=', $._expression),
+        opt(seq('=', $._expression)),
       ),
     ),
 
@@ -915,8 +957,20 @@ const rules = {
       'type',
       field('name', $.identifier),
       opt($.type_parameters),
-      field('as', seq.opt('as', $._type)),
-      field('type', seq.opt('=', $._type)),
+      field('as', opt(seq('as', $._type))),
+      field('type', opt(seq('=', $._type))),
+      ';',
+    ),
+
+  context_const_declaration: $ =>
+    seq(
+      opt($.abstract_modifier),
+      'const',
+      'ctx',
+      field('name', $.identifier),
+      field('super', opt(seq('super', $.capability_list))),
+      field('as', opt(seq('as', $.capability_list))),
+      field('context', opt(seq('=', $.capability_list))),
       ';',
     ),
 
@@ -939,7 +993,10 @@ const rules = {
     ),
 
   property_declarator: $ =>
-    seq(field('name', $.variable), field('value', seq.opt('=', $._expression))),
+    seq(
+      field('name', $.variable),
+      field('value', opt(seq('=', $._expression))),
+    ),
 
   enum_declaration: $ =>
     seq(
@@ -948,23 +1005,67 @@ const rules = {
       field('name', $.identifier),
       ':',
       field('type', $._type),
-      field('as', seq.opt('as', $._type)),
+      field('as', opt(seq('as', $._type))),
       '{',
       rep($.enumerator),
       '}',
     ),
+  /**
+   * Abstract enum classes have their own oddities. In particular they
+   * can contain abstract members.
+   */
+  abstract_enum_class_declaration: $ =>
+    seq(
+      opt($.attribute_modifier),
+      'abstract',
+      'enum',
+      'class',
+      field('name', $.identifier),
+      ':',
+      opt($.extends_clause),
+      field('type', $._type),
+      '{',
+      rep(
+        choice($.typed_enumerator, seq('abstract', $._type, $.identifier, ';')),
+      ),
+      '}',
+    ),
+  /**
+   * Enum classes require their own rule, as they contain somewhat different
+   * syntax from enums. In particular cannot contain the `as` keyword.
+   */
+  enum_class_declaration: $ =>
+    seq(
+      opt($.attribute_modifier),
+      'enum',
+      'class',
+      field('name', $.identifier),
+      ':',
+      field('type', $._type),
+      opt($.extends_clause),
+      '{',
+      rep($.typed_enumerator),
+      '}',
+    ),
+
+  enum_class_label: $ =>
+    seq(field('enum_class', opt($.qualified_identifier)), '#', $.identifier),
 
   enumerator: $ => seq($.identifier, '=', $._expression, ';'),
+
+  typed_enumerator: $ => seq($._type, $.enumerator),
 
   namespace_declaration: $ =>
     prec.right(
       seq(
         'namespace',
-        choice.opt(
-          seq(field('name', $.qualified_identifier), ';'),
-          seq(
-            opt(field('name', $.qualified_identifier)),
-            field('body', $.compound_statement),
+        opt(
+          choice(
+            seq(field('name', $.qualified_identifier), ';'),
+            seq(
+              opt(field('name', $.qualified_identifier)),
+              field('body', $.compound_statement),
+            ),
           ),
         ),
       ),
@@ -990,7 +1091,7 @@ const rules = {
 
   static_modifier: $ => 'static',
 
-  visibility_modifier: $ => choice('public', 'protected', 'private'),
+  visibility_modifier: $ => choice('public', 'protected', 'private', 'internal'),
 
   attribute_modifier: $ =>
     seq('<<', com($.qualified_identifier, opt($.arguments), ','), '>>'),
@@ -1055,8 +1156,8 @@ const rules = {
     seq(
       field('type', choice($._type, $.xhp_enum_type)),
       field('name', opt($.xhp_identifier)),
-      seq.opt('=', field('default', $._expression)),
-      choice.opt('@required', '@lateinit'),
+      opt(seq('=', field('default', $._expression))),
+      opt(choice('@required', '@lateinit')),
     ),
 
   xhp_enum_type: $ =>
@@ -1072,16 +1173,26 @@ const rules = {
       alias($._xhp_parenthesized_expression, $.parenthesized_expression),
     ),
 
+  // We want function pointers to parse only as a "last resort" as there is
+  // ambiguity in expressions like
+  // ```
+  // foo<int, string>()
+  // ```
+  // which should parse as a function call, but could also parse as a function
+  // pointer _being_ called.
+  function_pointer: $ =>
+    prec.dynamic(
+      -1,
+      seq(
+        choice($.scoped_identifier, $.qualified_identifier),
+        $.type_arguments,
+      ),
+    ),
+
   // Misc
 
   comment: $ =>
-    token(
-      choice(
-        seq('#', /.*/),
-        seq('//', /.*/),
-        seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/'),
-      ),
-    ),
+    token(choice(seq('//', /.*/), seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/'))),
 
   // Future Deprecations
 
@@ -1090,8 +1201,9 @@ const rules = {
       opt($.async_modifier),
       'function',
       $.parameters,
-      seq.opt(':', field('return_type', $._type)),
-      alias.opt($._anonymous_function_use_clause, $.use_clause),
+      opt($.capability_list),
+      opt(seq(':', field('return_type', $._type))),
+      opt(alias($._anonymous_function_use_clause, $.use_clause)),
       field('body', $.compound_statement),
     ),
 
@@ -1129,14 +1241,9 @@ function com(...rules) {
   }
 }
 
-[seq, choice, alias, com].forEach(func => {
-  func.opt = (...args) => optional(func(...args));
-  func.rep = (...args) => repeat(func(...args));
-  func.rep1 = (...args) => repeat1(func(...args));
-});
-
 const opt = optional;
 const rep = repeat;
+const rep1 = repeat1;
 
 module.exports = grammar({
   rules,
@@ -1153,6 +1260,7 @@ module.exports = grammar({
     $._heredoc_body,
     $._heredoc_end_newline,
     $._heredoc_end,
+    $._embedded_opening_brace,
   ],
 
   supertypes: $ => [
@@ -1183,11 +1291,17 @@ module.exports = grammar({
     [$.binary_expression, $.prefix_unary_expression, $.call_expression],
     [$._expression, $.parameter],
     [$._expression, $.type_specifier],
+    [$._expression, $.collection, $.type_specifier, $.function_pointer],
+    [$._expression, $.collection, $.function_pointer],
     [$._expression, $.field_initializer],
+    [$._expression, $.function_pointer],
     [$.scoped_identifier, $._type_constant],
+    [$.context_const_declaration, $._member_modifier],
     [$.type_specifier],
+    [$.type_specifier, $.function_pointer],
     [$.shape_type_specifier, $.shape],
     [$.qualified_identifier],
+    [$.qualified_identifier, $.use_type],
     [$.list_expression],
   ],
 });

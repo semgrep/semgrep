@@ -62,27 +62,14 @@ module.exports = grammar(base_grammar, {
 
     _expression: ($, previous) => choice(previous, $.ellipsis, $.deep_ellipsis),
 
-    member_declarations: ($) =>
-      seq(
-        '{',
-        choice.rep(
-          // Copied from existing grammar
-          alias($._class_const_declaration, $.const_declaration),
-          $.method_declaration,
-          $.property_declaration,
-          $.type_const_declaration,
-          $.trait_use_clause,
-          $.require_implements_clause,
-          $.require_extends_clause,
-          $.xhp_attribute_declaration,
-          $.xhp_children_declaration,
-          $.xhp_category_declaration,
-
-          // Additions
-          $.ellipsis
-        ),
-        '}'
-      ),
+    member_declarations: ($, previous) => {
+      // Keep every native member form alongside statement ellipses.
+      previous.members[1].content = choice(
+        previous.members[1].content,
+        $.ellipsis
+      );
+      return previous;
+    },
 
     parameter: ($, previous) => choice(previous, $.ellipsis),
 
@@ -130,16 +117,11 @@ module.exports = grammar(base_grammar, {
         ';'
       ),
 
-    _function_declaration_header: ($) =>
-      seq(
-        opt($.async_modifier),
-        'function',
-        field('name', $._semgrep_extended_identifier), // Overridden
-        opt($.type_parameters),
-        $.parameters,
-        seq.opt(':', opt($.attribute_modifier), field('return_type', $._type)),
-        opt($.where_clause)
-      ),
+    _function_declaration_header: ($, previous) => {
+      // Extend only the name, retaining capabilities and other header syntax.
+      previous.members[2] = field('name', $._semgrep_extended_identifier);
+      return previous;
+    },
 
     trait_declaration: ($) =>
       seq(

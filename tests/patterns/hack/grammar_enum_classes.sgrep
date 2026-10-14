@@ -1,0 +1,1 @@
+enum class ConcreteEnum : mixed extends AbstractEnum { int $X = 42; }
