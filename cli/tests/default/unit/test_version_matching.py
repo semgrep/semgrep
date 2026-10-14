@@ -13,6 +13,7 @@
 import pytest
 
 from semdep.package_restrictions import is_in_range
+from semdep.package_restrictions import is_unpinned_version
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
@@ -155,3 +156,40 @@ def test_generic_matches(expression, candidate, match):
 )
 def test_npm_matches(expression, candidate, match):
     assert is_in_range(Ecosystem(Npm()), expression, candidate) == match
+
+
+# A requirement that is not pinned to a single release is reported with its
+# PEP 440 specifier (or "") as the version. It stays in the inventory but is
+# not matched for the purpose of generating a finding, whatever the advisory
+# range, until SC-4200 decides how to report a possibly-affected range.
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "version",
+    [
+        "",
+        "   ",
+        ">=2.0",
+        "<2.0",
+        "~=1.26",
+        "!=3.5",
+        "==2.2.*",
+        "===1.0",
+        ">=1,<2",
+        "*",
+    ],
+)
+@pytest.mark.parametrize("ecosystem", [Ecosystem(Pypi()), Ecosystem(Npm())])
+def test_unpinned_versions_produce_no_finding(ecosystem, version):
+    assert is_unpinned_version(version)
+    assert is_in_range(ecosystem, "<99.0.0", version) is False
+    assert is_in_range(ecosystem, ">=0.0.1", version) is False
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    # The npm caret is not a PEP 440 specifier and no parser reports it as a version.
+    "version",
+    ["1.0", "2.2.8", "0.0.1-beta", "some-string", "^1.0"],
+)
+def test_pinned_versions_are_not_unpinned(version):
+    assert not is_unpinned_version(version)
