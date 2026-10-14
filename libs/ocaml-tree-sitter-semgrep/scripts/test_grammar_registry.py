@@ -177,6 +177,44 @@ def test_fetch_pin_not_on_default_branch(tmp_path):
     assert _git(dest, "rev-parse", "HEAD") == pin
 
 
+def test_fetch_without_checkout_keeps_object_store_only(tmp_path):
+    """Discovery clones skip the worktree but still resolve the pin."""
+    import json
+
+    import grammar_registry as gr
+
+    upstream = tmp_path / "upstream"
+    upstream.mkdir()
+    _git(tmp_path, "init", "-b", "main", "upstream")
+    _git(upstream, "config", "user.email", "test@example.com")
+    _git(upstream, "config", "user.name", "test")
+    (upstream / "f").write_text("a\n")
+    _git(upstream, "add", "f")
+    _git(upstream, "commit", "-m", "a")
+    pin = _git(upstream, "rev-parse", "HEAD")
+
+    lang_dir = tmp_path / "lang"
+    lang_dir.mkdir()
+    (lang_dir / "upstream-grammars.json").write_text(
+        json.dumps(
+            {
+                "toy": {
+                    "commit": pin,
+                    "regen": [],
+                    "tree_sitter": "0.22.6",
+                    "url": str(upstream),
+                }
+            }
+        )
+        + "\n"
+    )
+    gr.clear_load_cache()
+    dest = gr.fetch(tmp_path / "ots", "toy", lang_dir, checkout=False)
+    assert not (dest / "f").exists()
+    assert _git(dest, "cat-file", "-e", f"{pin}^{{commit}}") == ""
+    assert _git(dest, "show", f"{pin}:f") == "a"
+
+
 @pytest.mark.parametrize(
     "name,key,clone",
     [
