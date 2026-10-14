@@ -36,6 +36,7 @@ from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.matchers.gradle import GradleMatcher
 from semdep.package_restrictions import dependencies_range_match_any
 from semdep.package_restrictions import is_in_range
+from semdep.package_restrictions import is_unpinned_version
 from semgrep.dependency_path import DependencyParentIndex
 from semgrep.error import SemgrepError
 from semgrep.rpc import RpcSession
@@ -578,16 +579,33 @@ def generate_reachable_sca_findings(
                     dep_pattern.package for dep_pattern in depends_on_entries
                 )
 
-                # This list will be non-empty if any of the dependencies the rule searches for are present as direct dependencies
+                # The packages the rule searches for that are present as direct
+                # dependencies, whatever their version. Presence alone is the
+                # signal for the heuristic below: a direct `foo` means the code
+                # most likely uses `foo`, not a transitive `foo-special`.
                 # It only looks at the same dependencies the matches came from,
                 # so with Gradle module attribution a direct copy in another
                 # module does not suppress this module's transitive copy.
-                rule_could_match_direct_deps = [
+                direct_pattern_packages = {
                     found_dep.package
                     for found_dep in deps
                     if found_dep.package in pattern_deps
                     and found_dep.transitivity.value == out.Direct()
-                ]
+                }
+                # The subset whose direct copy names a definitive installed
+                # version. A direct dependency with no pinned version (see
+                # is_unpinned_version) cannot itself be what the rule matched,
+                # so it must not suppress a match on a pinned transitive copy
+                # of the same package. Otherwise adding `foo>=2.0` to
+                # requirements.txt would hide a reachable finding on a
+                # vulnerable transitive `foo` that was reported before.
+                pinned_direct_pattern_packages = {
+                    found_dep.package
+                    for found_dep in deps
+                    if found_dep.package in pattern_deps
+                    and found_dep.transitivity.value == out.Direct()
+                    and not is_unpinned_version(found_dep.version)
+                }
 
                 for dep_pat, found_dep in dependency_matches:
                     if found_dep.lockfile_path is None:
@@ -629,9 +647,15 @@ def generate_reachable_sca_findings(
                     # In the case where our dependency match is on a transitive, but one of the dependencies the rule searches for is
                     # present as a direct dependency, we skip this dependency match.
                     # This does not handle the case `foo` and `foo-special` are both direct dependencies
-                    if (
-                        found_dep.transitivity.value == out.Transitive()
-                        and rule_could_match_direct_deps
+                    # A direct copy of the matched package itself only counts
+                    # when it is pinned; a direct copy of any other package the
+                    # rule searches for counts whatever its version.
+                    other_direct_pattern_packages = direct_pattern_packages - {
+                        found_dep.package
+                    }
+                    if found_dep.transitivity.value == out.Transitive() and (
+                        found_dep.package in pinned_direct_pattern_packages
+                        or other_direct_pattern_packages
                     ):
                         continue
 
