@@ -1,0 +1,10 @@
+rules:
+  - id: hack_collection_taint
+    languages: [hack]
+    severity: WARNING
+    message: Tainted collection element reaches the sink
+    mode: taint
+    pattern-sources:
+      - pattern: source()
+    pattern-sinks:
+      - pattern: sink(...)

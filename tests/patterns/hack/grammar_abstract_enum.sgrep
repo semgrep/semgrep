@@ -1,0 +1,1 @@
+abstract enum class AbstractEnum : mixed { abstract int Value; int $X = 42; }

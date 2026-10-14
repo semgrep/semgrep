@@ -10,7 +10,7 @@ $eof = <<<EOF
 EOF;
 
 $eof = <<<EOF
-// TODO: This should be a valid match but is not.
+// ERROR: match
 {$var->test1()->test_made()}
 EOF;
 

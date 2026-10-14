@@ -893,3 +893,159 @@ enum $E : $TYPE {
       (binary_expression
         left: (variable)
         right: (string)))))
+
+==========================
+Capabilities and updated expression paths with patterns
+==========================
+
+class $C {
+  ...
+  const ctx C = [defaults];
+  public function $F(..., int $X)[ctx $X]: void { ... }
+}
+function $F(...)[defaults]: void { foo($...ARGS, <... $X ...>); }
+$x = <<<TXT
+{$X->foo($...ARGS)} {$X[...]} {$X->foo(<... $Y ...>)}
+TXT;
+namespace\foo($...ARGS);
+$x = Vector<$T> { ..., <... $X ...> };
+$x = <<<TXT
+{$X} {$X->foo(...)} {$X[<... $Y ...>]} {$X->$Y}
+TXT;
+type F = (function(): void);
+type G = (function (int): void);
+type H = (function /* comment */ (int)[defaults]: void);
+
+---
+
+(script
+  (class_declaration
+    name: (semgrep_identifier)
+    body: (member_declarations
+      (ellipsis)
+      (context_const_declaration
+        name: (identifier)
+        context: (capability_list
+          (capability
+            (identifier))))
+      (method_declaration
+        (visibility_modifier)
+        name: (semgrep_identifier)
+        (parameters
+          (parameter
+            (ellipsis))
+          (parameter
+            type: (type_specifier)
+            name: (variable)))
+        (capability_list
+          (capability
+            (variable)))
+        return_type: (type_specifier)
+        body: (compound_statement
+          (empty_statement
+            (ellipsis))))))
+  (function_declaration
+    name: (semgrep_identifier)
+    (parameters
+      (variadic_modifier))
+    (capability_list
+      (capability
+        (identifier)))
+    return_type: (type_specifier)
+    body: (compound_statement
+      (expression_statement
+        (call_expression
+          function: (qualified_identifier
+            (identifier))
+          (arguments
+            (argument)
+            (argument
+              (deep_ellipsis
+                (variable))))))))
+  (expression_statement
+    (binary_expression
+      left: (variable)
+      right: (heredoc
+        (embedded_braced_expression
+          (call_expression
+            function: (selection_expression
+              (variable)
+              (qualified_identifier
+                (identifier)))
+            (arguments
+              (argument))))
+        (embedded_braced_expression
+          (subscript_expression
+            (variable)
+            (ellipsis)))
+        (embedded_braced_expression
+          (call_expression
+            function: (selection_expression
+              (variable)
+              (qualified_identifier
+                (identifier)))
+            (arguments
+              (argument
+                (deep_ellipsis
+                  (variable)))))))))
+  (expression_statement
+    (call_expression
+      function: (qualified_identifier
+        (identifier))
+      (arguments
+        (argument))))
+  (expression_statement
+    (binary_expression
+      left: (variable)
+      right: (collection
+        (qualified_identifier
+          (identifier))
+        (type_arguments
+          (type_specifier
+            (qualified_identifier
+              (semgrep_identifier))))
+        (ellipsis)
+        (deep_ellipsis
+          (variable)))))
+  (expression_statement
+    (binary_expression
+      left: (variable)
+      right: (heredoc
+        (embedded_braced_expression
+          (variable))
+        (embedded_braced_expression
+          (call_expression
+            function: (selection_expression
+              (variable)
+              (qualified_identifier
+                (identifier)))
+            (arguments
+              (argument
+                (ellipsis)))))
+        (embedded_braced_expression
+          (subscript_expression
+            (variable)
+            (deep_ellipsis
+              (variable))))
+        (embedded_braced_expression
+          (selection_expression
+            (variable)
+            (variable))))))
+  (alias_declaration
+    (identifier)
+    (function_type_specifier
+      return_type: (type_specifier)))
+  (alias_declaration
+    (identifier)
+    (function_type_specifier
+      (type_specifier)
+      return_type: (type_specifier)))
+  (alias_declaration
+    (identifier)
+    (function_type_specifier
+      (comment)
+      (type_specifier)
+      (capability_list
+        (capability
+          (identifier)))
+      return_type: (type_specifier))))
