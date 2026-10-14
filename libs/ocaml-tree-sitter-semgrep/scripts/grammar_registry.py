@@ -238,7 +238,21 @@ def _git_run(cwd: Path, *args: str) -> None:
         raise subprocess.CalledProcessError(r.returncode, r.args, r.stdout, r.stderr)
 
 
-def fetch(ots_root: Path, key: str, lang_dir: Path | None = None) -> Path:
+def fetch(
+    ots_root: Path,
+    key: str,
+    lang_dir: Path | None = None,
+    *,
+    checkout: bool = True,
+) -> Path:
+    """Clone ``key`` under ``ots_root`` and optionally check out its pin.
+
+    ``checkout=False`` is for release discovery (select-only / filter-pending):
+    callers only need git objects (``merge-base``, ``git show tag:path``), not a
+    worktree. We then clone with ``--filter=blob:none --no-checkout`` and skip
+    ``git checkout``, which would otherwise pull every blob at the pin (including
+    large generated ``parser.c`` files) and undo the savings.
+    """
     entry = load(lang_dir)[key]
     clone = clone_name(key, lang_dir)
     dest = ots_root / "lang" / "semgrep-grammars" / "src" / f"tree-sitter-{clone}"
@@ -248,10 +262,11 @@ def fetch(ots_root: Path, key: str, lang_dir: Path | None = None) -> Path:
         dest.parent.mkdir(parents=True, exist_ok=True)
         if dest.exists():
             dest.rmdir()
-        subprocess.run(
-            ["git", "clone", "--quiet", url, str(dest)],
-            check=True,
-        )
+        clone_cmd = ["git", "clone", "--quiet"]
+        if not checkout:
+            clone_cmd.extend(["--filter=blob:none", "--no-checkout"])
+        clone_cmd.extend([url, str(dest)])
+        subprocess.run(clone_cmd, check=True)
     # Reuse cached immutable commits; refresh symbolic refs.
     is_commit = len(pin) == 40 and all(c in "0123456789abcdefABCDEF" for c in pin)
     cached = (
@@ -265,6 +280,9 @@ def fetch(ots_root: Path, key: str, lang_dir: Path | None = None) -> Path:
     )
     if not cached:
         _git_run(dest, "fetch", "--quiet", "origin", pin)
+    # Discovery: pin commit is in the object store; do not materialize files.
+    if not checkout:
+        return dest
     # Never force-reset a dirty upstream clone; fail clearly and leave it.
     try:
         _git_run(dest, "checkout", "--quiet", pin)
