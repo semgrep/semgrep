@@ -35,7 +35,7 @@ type pat_shell = Token.t (* pattern [sS][hH][eE][lL][lL] *)
 
 type pat_4fd4a56 = Token.t (* pattern .* *)
 
-type pat_as = Token.t (* pattern [aA][sS] *)
+type pat_arg = Token.t (* pattern [aA][rR][gG] *)
 
 type imm_tok_pat_f43f746 = Token.t (* pattern [a-z][-a-z]* *)
 
@@ -62,7 +62,7 @@ type pat_4de4cb9 = Token.t (* pattern [a-zA-Z0-9_]+ *)
 
 type pat_2b6adbc = Token.t (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
 
-type pat_ea34a52 = Token.t (* pattern [ \t]* *)
+type pat_e0f3805 = Token.t (* pattern \d+(-\d+)? *)
 
 type pat_volume = Token.t (* pattern [vV][oO][lL][uU][mM][eE] *)
 
@@ -89,7 +89,7 @@ type imm_tok_pat_8713919 = Token.t (* pattern [^\}]+ *)
 type pat_stop =
   Token.t (* pattern [sS][tT][oO][pP][sS][iI][gG][nN][aA][lL] *)
 
-type pat_b1120d3 = Token.t (* pattern [,=-] *)
+type pat_as = Token.t (* pattern [aA][sS] *)
 
 type imm_tok_eq = Token.t (* "=" *)
 
@@ -105,7 +105,7 @@ type heredoc_marker = Token.t
 
 type imm_tok_comma = Token.t (* "," *)
 
-type pat_add = Token.t (* pattern [aA][dD][dD] *)
+type pat_a667757 = Token.t (* pattern <[^<] *)
 
 type imm_tok_pat_f6e1de8 = Token.t (* pattern [^\s]+ *)
 
@@ -125,7 +125,7 @@ type non_newline_whitespace = Token.t (* pattern [\t ]+ *)
 
 type imm_tok_pat_0c7fc22 = Token.t (* pattern [^\s\$]+ *)
 
-type pat_cmd = Token.t (* pattern [cC][mM][dD] *)
+type pat_b1120d3 = Token.t (* pattern [,=-] *)
 
 type single_quoted_escape_sequence = Token.t
 
@@ -138,13 +138,13 @@ type imm_tok_colon = Token.t (* ":" *)
 type json_escape_sequence =
   Token.t (* pattern "\\\\(?:[\"\\\\/bfnrt]|u[0-9A-Fa-f]{4})" *)
 
-type pat_e0f3805 = Token.t (* pattern \d+(-\d+)? *)
+type pat_copy = Token.t (* pattern [cC][oO][pP][yY] *)
 
 type imm_tok_lcurl = Token.t (* "{" *)
 
-type pat_eda9032 = Token.t (* pattern \\[^\n,=-] *)
+type pat_ea34a52 = Token.t (* pattern [ \t]* *)
 
-type pat_copy = Token.t (* pattern [cC][oO][pP][yY] *)
+type pat_cmd = Token.t (* pattern [cC][mM][dD] *)
 
 type imm_tok_mount = Token.t (* "mount" *)
 
@@ -154,13 +154,13 @@ type imm_tok_dollar = Token.t (* "$" *)
 
 type pat_8165e5f = Token.t (* pattern [^@:\s\$-] *)
 
-type pat_arg = Token.t (* pattern [aA][rR][gG] *)
+type pat_add = Token.t (* pattern [aA][dD][dD] *)
 
 type imm_tok_at = Token.t (* "@" *)
 
 type imm_tok_pat_0ab9261 = Token.t (* pattern "[^'\\n\\\\]+" *)
 
-type pat_a667757 = Token.t (* pattern <[^<] *)
+type pat_9ada80d = Token.t (* pattern \\[^\n,=-]\[? *)
 
 type maintainer_instruction = (pat_main * pat_4fd4a56)
 
@@ -206,7 +206,7 @@ type shell_fragment =
       `Here_marker_pat_ea34a52 of (heredoc_marker (*tok*) * pat_ea34a52)
     | `Pat_b1120d3 of pat_b1120d3
     | `Pat_f8ab07f of pat_f8ab07f
-    | `Pat_eda9032 of pat_eda9032
+    | `Pat_9ada80d of pat_9ada80d
     | `Pat_a667757 of pat_a667757
   ]
     list (* one or more *)
