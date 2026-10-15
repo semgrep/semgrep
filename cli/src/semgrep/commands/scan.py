@@ -1018,6 +1018,10 @@ def scan(
                 json=output_format == OutputFormat.JSON,
                 optimizations=optimizations,
                 engine_type=engine_type,
+                timeout=timeout,
+                timeout_threshold=timeout_threshold,
+                max_memory=max_memory,
+                jobs=jobs,
             )
 
         filtered_matches_by_rule: FilteredMatches = FilteredMatches(kept={}, removed={})
