@@ -55,3 +55,34 @@ def test_severity_multiple(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
         ).stdout,
         "results.json",
     )
+
+
+@pytest.mark.kinda_slow
+def test_severity_critical(run_semgrep_on_copied_files: RunSemgrep):
+    json_str = run_semgrep_on_copied_files(
+        "rules/severity_critical.yaml",
+        options=["--severity", "CRITICAL"],
+        target_name="basic.py",
+    ).stdout
+    assert '"severity": "CRITICAL"' in json_str
+
+
+@pytest.mark.kinda_slow
+def test_severity_critical_with_existing_severities(
+    run_semgrep_on_copied_files: RunSemgrep,
+):
+    json_str = run_semgrep_on_copied_files(
+        "rules/severity_critical.yaml",
+        options=[
+            "--severity",
+            "INFO",
+            "--severity",
+            "WARNING",
+            "--severity",
+            "ERROR",
+            "--severity",
+            "CRITICAL",
+        ],
+        target_name="basic.py",
+    ).stdout
+    assert '"severity": "CRITICAL"' in json_str
