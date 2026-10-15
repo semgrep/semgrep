@@ -292,6 +292,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Lua
     | Move_on_sui
     | Move_on_aptos
+    | Objc
     | Ocaml
     | Promql
     | Protobuf

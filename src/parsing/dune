@@ -62,6 +62,7 @@
    parser_lua.ast_generic
    parser_kotlin.ast_generic
    parser_swift.ast_generic
+   parser_objc.ast_generic
    parser_julia.ast_generic
    parser_r.ast_generic
    parser_hack.ast_generic
