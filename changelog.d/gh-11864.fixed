@@ -1,0 +1,1 @@
+An installation invoked by its absolute path now uses its own `pysemgrep`. Previously the installation directory was appended to `PATH`, so a different Semgrep earlier in `PATH` answered the lookup and ran its own `pysemgrep` instead -- a version pinned per project and invoked by explicit path could be overridden by a globally installed one.

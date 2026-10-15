@@ -42,19 +42,77 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-# Add the directory containing this script in the PATH, so the pysemgrep
-# script will also be in the PATH.
-# Some people don't have semgrep in their PATH and call it instead
-# explicitly as in /path/to/somewhere/bin/semgrep, but this means
-# that calling pysemgrep from osemgrep would be difficult because
-# it would not be in the PATH (we would need to pass its path to osemgrep,
-# which seems more complicated).
+IS_WINDOWS = platform.system() == "Windows"
+
+# The names a console script for pysemgrep can go by. setuptools writes a .exe
+# launcher on Windows; everywhere else the script keeps its bare name.
+PYSEMGREP_SCRIPT_NAMES = (
+    ("pysemgrep.exe", "pysemgrep") if IS_WINDOWS else ("pysemgrep",)
+)
+
+
+def provides_pysemgrep(directory):
+    """Whether a PATH lookup of "pysemgrep" would resolve inside directory."""
+    for name in PYSEMGREP_SCRIPT_NAMES:
+        candidate = os.path.join(directory, name)
+        if os.path.isfile(candidate) and (IS_WINDOWS or os.access(candidate, os.X_OK)):
+            return True
+    return False
+
+
+def is_same_directory(left, right):
+    try:
+        return os.path.samefile(left, right)
+    except OSError:
+        # one of them does not exist, or cannot be stat'd
+        return os.path.normcase(os.path.abspath(left)) == os.path.normcase(
+            os.path.abspath(right)
+        )
+
+
+def path_with_scripts_dir(path, scripts_dir):
+    """PATH with scripts_dir added, placed so that a lookup of "pysemgrep" finds our own.
+
+    osemgrep dispatches back to pysemgrep by name -- execvp in
+    src/osemgrep/core/Pysemgrep.ml -- so the helper has to be reachable through
+    PATH even when semgrep was invoked as /path/to/somewhere/bin/semgrep and is
+    not on PATH at all. Adding this installation's scripts directory is what
+    makes that work.
+
+    Appending it is not enough on its own: an unrelated Semgrep earlier in PATH
+    is found first, so naming one install by absolute path runs another
+    install's pysemgrep, and `semgrep --version` reports the other version.
+
+    Prepending unconditionally would fix that, but the scripts directory is a
+    shared bin directory for a Homebrew, system-Python or Docker install, and
+    moving it to the front reorders lookups for everything else the process
+    shells out to -- semgrep runs `git` by name throughout `semgrep ci`. So the
+    directory only moves ahead of a *conflicting* pysemgrep, and is appended,
+    as before, when there is none.
+    """
+    entries = [entry for entry in path.split(os.pathsep) if entry]
+    appended = os.pathsep.join([*entries, scripts_dir])
+
+    if not provides_pysemgrep(scripts_dir):
+        # nothing of ours to protect, so leave the ordering alone
+        return appended
+
+    for i, entry in enumerate(entries):
+        if not provides_pysemgrep(entry):
+            continue
+        # the first entry that answers the lookup decides it: ours already wins
+        # if that entry is our own directory, otherwise it has to go in front
+        if is_same_directory(entry, scripts_dir):
+            return appended
+        return os.pathsep.join([*entries[:i], scripts_dir, *entries[i:]])
+
+    return appended
+
+
 # nosem: no-env-vars-on-top-level
 PATH = os.environ.get("PATH", "")
 # nosem: no-env-vars-on-top-level
-os.environ["PATH"] = PATH + os.pathsep + sysconfig.get_path("scripts")
-
-IS_WINDOWS = platform.system() == "Windows"
+os.environ["PATH"] = path_with_scripts_dir(PATH, sysconfig.get_path("scripts"))
 
 PRO_FLAGS = ["--pro", "--pro-languages", "--pro-intrafile"]
 
