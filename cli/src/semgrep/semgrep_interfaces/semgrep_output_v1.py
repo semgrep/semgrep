@@ -9310,11 +9310,23 @@ class SubprojectSymbolAnalysisUrlRequest:
 @dataclass(frozen=True)
 class SingleSubprojectPlan:
     """Original type: single_subproject_plan = { ... }
+
+    :param ecosystem: Authoritative ecosystem for this dependency source, when
+    known.
+    :param manifest_paths: Manifest files belonging to this exact subproject
+    ID.
+    :param lockfile_paths: Lockfiles belonging to this exact subproject ID.
+    :param source_kind: Dependency source variant: ManifestOnly,
+    ManifestLockfile, LockfileOnly, or MultiLockfile.
     """
 
     subproject_id: str
     root_dir: Fpath
     resolution_planned: bool
+    ecosystem: Optional[Ecosystem] = None
+    manifest_paths: List[Fpath] = field(default_factory=lambda: [])
+    lockfile_paths: List[Fpath] = field(default_factory=lambda: [])
+    source_kind: Optional[str] = None
 
     @classmethod
     def from_json(cls, x: Any) -> 'SingleSubprojectPlan':
@@ -9323,6 +9335,10 @@ class SingleSubprojectPlan:
                 subproject_id=_atd_read_string(x['subproject_id']) if 'subproject_id' in x else _atd_missing_json_field('SingleSubprojectPlan', 'subproject_id'),
                 root_dir=Fpath.from_json(x['root_dir']) if 'root_dir' in x else _atd_missing_json_field('SingleSubprojectPlan', 'root_dir'),
                 resolution_planned=_atd_read_bool(x['resolution_planned']) if 'resolution_planned' in x else _atd_missing_json_field('SingleSubprojectPlan', 'resolution_planned'),
+                ecosystem=Ecosystem.from_json(x['ecosystem']) if 'ecosystem' in x else None,
+                manifest_paths=_atd_read_list(Fpath.from_json)(x['manifest_paths']) if 'manifest_paths' in x else [],
+                lockfile_paths=_atd_read_list(Fpath.from_json)(x['lockfile_paths']) if 'lockfile_paths' in x else [],
+                source_kind=_atd_read_string(x['source_kind']) if 'source_kind' in x else None,
             )
         else:
             _atd_bad_json('SingleSubprojectPlan', x)
@@ -9332,6 +9348,12 @@ class SingleSubprojectPlan:
         res['subproject_id'] = _atd_write_string(self.subproject_id)
         res['root_dir'] = (lambda x: x.to_json())(self.root_dir)
         res['resolution_planned'] = _atd_write_bool(self.resolution_planned)
+        if self.ecosystem is not None:
+            res['ecosystem'] = (lambda x: x.to_json())(self.ecosystem)
+        res['manifest_paths'] = _atd_write_list((lambda x: x.to_json()))(self.manifest_paths)
+        res['lockfile_paths'] = _atd_write_list((lambda x: x.to_json()))(self.lockfile_paths)
+        if self.source_kind is not None:
+            res['source_kind'] = _atd_write_string(self.source_kind)
         return res
 
     @classmethod

@@ -4167,7 +4167,25 @@
       "properties": {
         "subproject_id": { "type": "string" },
         "root_dir": { "$ref": "#/definitions/fpath" },
-        "resolution_planned": { "type": "boolean" }
+        "resolution_planned": { "type": "boolean" },
+        "ecosystem": {
+          "description": "Authoritative ecosystem for this dependency source, when known.",
+          "$ref": "#/definitions/ecosystem"
+        },
+        "manifest_paths": {
+          "description": "Manifest files belonging to this exact subproject ID.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/fpath" }
+        },
+        "lockfile_paths": {
+          "description": "Lockfiles belonging to this exact subproject ID.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/fpath" }
+        },
+        "source_kind": {
+          "description": "Dependency source variant: ManifestOnly, ManifestLockfile, LockfileOnly, or MultiLockfile.",
+          "type": "string"
+        }
       }
     },
     "subproject_resolution_plan": {
