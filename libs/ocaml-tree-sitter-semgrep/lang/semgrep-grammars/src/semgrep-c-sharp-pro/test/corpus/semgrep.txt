@@ -482,3 +482,51 @@ void F()
               (identifier)
               (argument_list))))))))
 
+================================================================================
+Unicode identifiers
+================================================================================
+
+class C {
+  void M() {
+    int x\u0062 = 1;
+    int ℘x = 2;
+    int a·b = 3;
+    int a­b = 4;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (identifier)
+    (declaration_list
+      (method_declaration
+        (predefined_type)
+        (identifier)
+        (parameter_list)
+        (block
+              (local_declaration_statement
+                (variable_declaration
+                  (predefined_type)
+                  (variable_declarator
+                    (identifier)
+                    (integer_literal))))
+              (local_declaration_statement
+                (variable_declaration
+                  (predefined_type)
+                  (variable_declarator
+                    (identifier)
+                    (integer_literal))))
+              (local_declaration_statement
+                (variable_declaration
+                  (predefined_type)
+                  (variable_declarator
+                    (identifier)
+                    (integer_literal))))
+              (local_declaration_statement
+                (variable_declaration
+                  (predefined_type)
+                  (variable_declarator
+                    (identifier)
+                    (integer_literal)))))))))
