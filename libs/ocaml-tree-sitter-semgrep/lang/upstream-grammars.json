@@ -22,11 +22,11 @@
     "url": "https://github.com/tree-sitter/tree-sitter-c-sharp.git"
   },
   "c-sharp-pro": {
-    "commit": "fd7f7402db6e66afd70b402fb2e367b2d71c10d6",
+    "commit": "362a8a41b265056592a0c3771664a21d23a71392",
     "regen": [
       "c-sharp-pro"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/tree-sitter/tree-sitter-c-sharp.git"
   },
   "cairo": {

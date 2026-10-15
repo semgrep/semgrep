@@ -40,6 +40,10 @@ module.exports = grammar(standard_grammar, {
       );
     },
 
+    // Upstream's XID_Continue drops formatting characters (\p{Cf}, e.g. a
+    // soft hyphen), which C# allows in identifiers; add them back.
+    _identifier_token: _ => token(seq(optional('@'), /(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\p{Cf}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})*/)),
+
     _semgrep_metavariable: $ => token(/\$[A-Z_][A-Z_0-9]*/),
     semgrep_variadic_metavariable: ($) => /\$\.\.\.[A-Z_][A-Z_0-9]*/,
 
