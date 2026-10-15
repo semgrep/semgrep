@@ -1441,6 +1441,10 @@ export type SingleSubprojectPlan = {
   subproject_id: string;
   root_dir: Fpath;
   resolution_planned: boolean;
+  ecosystem?: Ecosystem;
+  manifest_paths: Fpath[];
+  lockfile_paths: Fpath[];
+  source_kind?: string;
 }
 
 export type SubprojectResolutionPlan = {
@@ -5904,6 +5908,10 @@ export function writeSingleSubprojectPlan(x: SingleSubprojectPlan, context: any 
     'subproject_id': _atd_write_required_field('SingleSubprojectPlan', 'subproject_id', _atd_write_string, x.subproject_id, x),
     'root_dir': _atd_write_required_field('SingleSubprojectPlan', 'root_dir', writeFpath, x.root_dir, x),
     'resolution_planned': _atd_write_required_field('SingleSubprojectPlan', 'resolution_planned', _atd_write_bool, x.resolution_planned, x),
+    'ecosystem': _atd_write_optional_field(writeEcosystem, x.ecosystem, x),
+    'manifest_paths': _atd_write_field_with_default(_atd_write_array(writeFpath), [], x.manifest_paths, x),
+    'lockfile_paths': _atd_write_field_with_default(_atd_write_array(writeFpath), [], x.lockfile_paths, x),
+    'source_kind': _atd_write_optional_field(_atd_write_string, x.source_kind, x),
   };
 }
 
@@ -5912,6 +5920,10 @@ export function readSingleSubprojectPlan(x: any, context: any = x): SingleSubpro
     subproject_id: _atd_read_required_field('SingleSubprojectPlan', 'subproject_id', _atd_read_string, x['subproject_id'], x),
     root_dir: _atd_read_required_field('SingleSubprojectPlan', 'root_dir', readFpath, x['root_dir'], x),
     resolution_planned: _atd_read_required_field('SingleSubprojectPlan', 'resolution_planned', _atd_read_bool, x['resolution_planned'], x),
+    ecosystem: _atd_read_optional_field(readEcosystem, x['ecosystem'], x),
+    manifest_paths: _atd_read_field_with_default(_atd_read_array(readFpath), [], x['manifest_paths'], x),
+    lockfile_paths: _atd_read_field_with_default(_atd_read_array(readFpath), [], x['lockfile_paths'], x),
+    source_kind: _atd_read_optional_field(_atd_read_string, x['source_kind'], x),
   };
 }
 

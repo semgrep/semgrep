@@ -3792,6 +3792,18 @@ type single_subproject_plan
   subproject_id: string;
   root_dir: fpath;
   resolution_planned: bool;
+  ?ecosystem
+    <doc text="Authoritative ecosystem for this dependency source, when known.">
+  : ecosystem option;
+  ~manifest_paths
+    <doc text="Manifest files belonging to this exact subproject ID.">
+  : fpath list;
+  ~lockfile_paths
+    <doc text="Lockfiles belonging to this exact subproject ID.">
+  : fpath list;
+  ?source_kind
+    <doc text="Dependency source variant: ManifestOnly, ManifestLockfile, LockfileOnly, or MultiLockfile.">
+  : string option;
 }
 
 type subproject_resolution_plan

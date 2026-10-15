@@ -25,6 +25,7 @@ from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_dependency_source import ResolveDependenciesRpcResult
 from semgrep.resolve_subprojects import attach_auxillary_sboms
+from semgrep.resolve_subprojects import dump_subprojects_and_exit
 from semgrep.resolve_subprojects import filter_subprojects_by_rule_ecosystems
 from semgrep.resolve_subprojects import match_subprojects
 from semgrep.rule import Rule
@@ -230,6 +231,63 @@ def test_subproject_plan_output_fields() -> None:
     assert plan.root_dir == out.Fpath("my-app")
     assert plan.resolution_planned is True
     assert len(plan.subproject_id) == 64  # SHA-256 hex digest
+    assert plan.ecosystem == sub.ecosystem
+    assert plan.manifest_paths == [out.Fpath("my-app/pom.xml")]
+    assert plan.lockfile_paths == []
+    assert plan.source_kind == "ManifestOnly"
+    assert out.SingleSubprojectPlan.from_json(plan.to_json()) == plan
+
+
+@pytest.mark.quick
+def test_subproject_plan_reads_legacy_output_without_source_metadata() -> None:
+    plan = out.SingleSubprojectPlan.from_json(
+        {
+            "root_dir": ".",
+            "subproject_id": "legacy_id",
+            "resolution_planned": True,
+        }
+    )
+    assert plan.ecosystem is None
+    assert plan.manifest_paths == []
+    assert plan.lockfile_paths == []
+    assert plan.source_kind is None
+
+
+@pytest.mark.kinda_slow
+def test_discovery_exports_distinct_sources_in_the_same_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    Path("pom.xml").write_text("<project />\n")
+    Path("setup.py").write_text("from setuptools import setup\nsetup()\n")
+    plan_path = tmp_path / "plan.json"
+    with pytest.raises(SystemExit) as exit_info:
+        dump_subprojects_and_exit(
+            target_manager=TargetManager(
+                scanning_root_strings=frozenset([Path(".")]),
+                force_novcs_project=True,
+            ),
+            rules=[],
+            dump_subprojects_to_path=plan_path,
+            resolve_untargeted_subprojects=True,
+        )
+    assert exit_info.value.code == 0
+    plan = out.SubprojectResolutionPlan.from_json_string(plan_path.read_text())
+    assert len(plan.subprojects) == 2
+    assert len({sub.subproject_id for sub in plan.subprojects}) == 2
+    assert {sub.root_dir for sub in plan.subprojects} == {out.Fpath(".")}
+    assert {sub.source_kind for sub in plan.subprojects} == {"ManifestOnly"}
+    assert {sub.ecosystem for sub in plan.subprojects} == {
+        out.Ecosystem(out.Maven()),
+        out.Ecosystem(out.Pypi()),
+    }
+    assert {tuple(sub.manifest_paths) for sub in plan.subprojects} == {
+        (out.Fpath("pom.xml"),),
+        (out.Fpath("setup.py"),),
+    }
+    assert all(
+        sub.resolution_planned and not sub.lockfile_paths for sub in plan.subprojects
+    )
 
 
 @pytest.mark.quick

@@ -24,6 +24,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.dependency_source_metadata import collect_dependency_source_metadata
 from semgrep.simple_profiling import simple_profiling
 from semgrep.types import Target
 
@@ -322,10 +323,15 @@ def subproject_to_cli_output_info(
 def subproject_to_plan_output(
     sub: out.Subproject, resolution_planned: bool
 ) -> out.SingleSubprojectPlan:
+    metadata = collect_dependency_source_metadata(sub.dependency_source)
     return out.SingleSubprojectPlan(
         root_dir=sub.root_dir,
         subproject_id=generate_dependency_source_id(sub.dependency_source),
         resolution_planned=resolution_planned,
+        ecosystem=sub.ecosystem,
+        manifest_paths=list(metadata.manifest_paths),
+        lockfile_paths=list(metadata.lockfile_paths),
+        source_kind=metadata.source_kind,
     )
 
 

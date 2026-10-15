@@ -1626,7 +1626,18 @@ type subproject_symbol_analysis_url_request =
 type single_subproject_plan = Semgrep_output_v1_t.single_subproject_plan = {
   subproject_id: string;
   root_dir: fpath;
-  resolution_planned: bool
+  resolution_planned: bool;
+  ecosystem: ecosystem option
+    (** Authoritative ecosystem for this dependency source, when known. *);
+  manifest_paths: fpath list
+    (** Manifest files belonging to this exact subproject ID. *);
+  lockfile_paths: fpath list
+    (** Lockfiles belonging to this exact subproject ID. *);
+  source_kind: string option
+    (**
+      Dependency source variant: ManifestOnly, ManifestLockfile,
+      LockfileOnly, or MultiLockfile.
+    *)
 }
 
 (** Subproject dump output. Experimental and for internal use only. *)
@@ -24185,6 +24196,46 @@ let write_single_subproject_plan : _ -> single_subproject_plan -> _ = (
       Yojson.Safe.write_bool
     )
       ob x.resolution_planned;
+    (match x.ecosystem with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"ecosystem\":";
+      (
+        write_ecosystem
+      )
+        ob x;
+    );
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
+      Buffer.add_string ob "\"manifest_paths\":";
+    (
+      write__fpath_list
+    )
+      ob x.manifest_paths;
+    if !is_first then
+      is_first := false
+    else
+      Buffer.add_char ob ',';
+      Buffer.add_string ob "\"lockfile_paths\":";
+    (
+      write__fpath_list
+    )
+      ob x.lockfile_paths;
+    (match x.source_kind with None -> () | Some x ->
+      if !is_first then
+        is_first := false
+      else
+        Buffer.add_char ob ',';
+        Buffer.add_string ob "\"source_kind\":";
+      (
+        Yojson.Safe.write_string
+      )
+        ob x;
+    );
     Buffer.add_char ob '}';
 )
 let string_of_single_subproject_plan ?(len = 1024) x =
@@ -24198,6 +24249,10 @@ let read_single_subproject_plan = (
     let field_subproject_id = ref (None) in
     let field_root_dir = ref (None) in
     let field_resolution_planned = ref (None) in
+    let field_ecosystem = ref (None) in
+    let field_manifest_paths = ref ([]) in
+    let field_lockfile_paths = ref ([]) in
+    let field_source_kind = ref (None) in
     try
       Yojson.Safe.read_space p lb;
       Yojson.Safe.read_object_end lb;
@@ -24215,6 +24270,22 @@ let read_single_subproject_plan = (
                   -1
                 )
               )
+            | 9 -> (
+                if String.unsafe_get s pos = 'e' && String.unsafe_get s (pos+1) = 'c' && String.unsafe_get s (pos+2) = 'o' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = 's' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = 'm' then (
+                  3
+                )
+                else (
+                  -1
+                )
+              )
+            | 11 -> (
+                if String.unsafe_get s pos = 's' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'u' && String.unsafe_get s (pos+3) = 'r' && String.unsafe_get s (pos+4) = 'c' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'k' && String.unsafe_get s (pos+8) = 'i' && String.unsafe_get s (pos+9) = 'n' && String.unsafe_get s (pos+10) = 'd' then (
+                  6
+                )
+                else (
+                  -1
+                )
+              )
             | 13 -> (
                 if String.unsafe_get s pos = 's' && String.unsafe_get s (pos+1) = 'u' && String.unsafe_get s (pos+2) = 'b' && String.unsafe_get s (pos+3) = 'p' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'j' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = 'c' && String.unsafe_get s (pos+9) = 't' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'i' && String.unsafe_get s (pos+12) = 'd' then (
                   0
@@ -24222,6 +24293,28 @@ let read_single_subproject_plan = (
                 else (
                   -1
                 )
+              )
+            | 14 -> (
+                match String.unsafe_get s pos with
+                  | 'l' -> (
+                      if String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'f' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'l' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 't' && String.unsafe_get s (pos+12) = 'h' && String.unsafe_get s (pos+13) = 's' then (
+                        5
+                      )
+                      else (
+                        -1
+                      )
+                    )
+                  | 'm' -> (
+                      if String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'i' && String.unsafe_get s (pos+4) = 'f' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 's' && String.unsafe_get s (pos+7) = 't' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 't' && String.unsafe_get s (pos+12) = 'h' && String.unsafe_get s (pos+13) = 's' then (
+                        4
+                      )
+                      else (
+                        -1
+                      )
+                    )
+                  | _ -> (
+                      -1
+                    )
               )
             | 18 -> (
                 if String.unsafe_get s pos = 'r' && String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 'o' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'u' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = 'i' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'n' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 'l' && String.unsafe_get s (pos+13) = 'a' && String.unsafe_get s (pos+14) = 'n' && String.unsafe_get s (pos+15) = 'n' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'd' then (
@@ -24263,6 +24356,42 @@ let read_single_subproject_plan = (
                 ) p lb
               )
             );
+          | 3 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_ecosystem := (
+                Some (
+                  (
+                    read_ecosystem
+                  ) p lb
+                )
+              );
+            )
+          | 4 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_manifest_paths := (
+                (
+                  read__fpath_list
+                ) p lb
+              );
+            )
+          | 5 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_lockfile_paths := (
+                (
+                  read__fpath_list
+                ) p lb
+              );
+            )
+          | 6 ->
+            if not (Yojson.Safe.read_null_if_possible p lb) then (
+              field_source_kind := (
+                Some (
+                  (
+                    Atdgen_runtime.Oj_run.read_string
+                  ) p lb
+                )
+              );
+            )
           | _ -> (
               Yojson.Safe.skip_json p lb
             )
@@ -24284,6 +24413,22 @@ let read_single_subproject_plan = (
                     -1
                   )
                 )
+              | 9 -> (
+                  if String.unsafe_get s pos = 'e' && String.unsafe_get s (pos+1) = 'c' && String.unsafe_get s (pos+2) = 'o' && String.unsafe_get s (pos+3) = 's' && String.unsafe_get s (pos+4) = 'y' && String.unsafe_get s (pos+5) = 's' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = 'm' then (
+                    3
+                  )
+                  else (
+                    -1
+                  )
+                )
+              | 11 -> (
+                  if String.unsafe_get s pos = 's' && String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'u' && String.unsafe_get s (pos+3) = 'r' && String.unsafe_get s (pos+4) = 'c' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = '_' && String.unsafe_get s (pos+7) = 'k' && String.unsafe_get s (pos+8) = 'i' && String.unsafe_get s (pos+9) = 'n' && String.unsafe_get s (pos+10) = 'd' then (
+                    6
+                  )
+                  else (
+                    -1
+                  )
+                )
               | 13 -> (
                   if String.unsafe_get s pos = 's' && String.unsafe_get s (pos+1) = 'u' && String.unsafe_get s (pos+2) = 'b' && String.unsafe_get s (pos+3) = 'p' && String.unsafe_get s (pos+4) = 'r' && String.unsafe_get s (pos+5) = 'o' && String.unsafe_get s (pos+6) = 'j' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = 'c' && String.unsafe_get s (pos+9) = 't' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'i' && String.unsafe_get s (pos+12) = 'd' then (
                     0
@@ -24291,6 +24436,28 @@ let read_single_subproject_plan = (
                   else (
                     -1
                   )
+                )
+              | 14 -> (
+                  match String.unsafe_get s pos with
+                    | 'l' -> (
+                        if String.unsafe_get s (pos+1) = 'o' && String.unsafe_get s (pos+2) = 'c' && String.unsafe_get s (pos+3) = 'k' && String.unsafe_get s (pos+4) = 'f' && String.unsafe_get s (pos+5) = 'i' && String.unsafe_get s (pos+6) = 'l' && String.unsafe_get s (pos+7) = 'e' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 't' && String.unsafe_get s (pos+12) = 'h' && String.unsafe_get s (pos+13) = 's' then (
+                          5
+                        )
+                        else (
+                          -1
+                        )
+                      )
+                    | 'm' -> (
+                        if String.unsafe_get s (pos+1) = 'a' && String.unsafe_get s (pos+2) = 'n' && String.unsafe_get s (pos+3) = 'i' && String.unsafe_get s (pos+4) = 'f' && String.unsafe_get s (pos+5) = 'e' && String.unsafe_get s (pos+6) = 's' && String.unsafe_get s (pos+7) = 't' && String.unsafe_get s (pos+8) = '_' && String.unsafe_get s (pos+9) = 'p' && String.unsafe_get s (pos+10) = 'a' && String.unsafe_get s (pos+11) = 't' && String.unsafe_get s (pos+12) = 'h' && String.unsafe_get s (pos+13) = 's' then (
+                          4
+                        )
+                        else (
+                          -1
+                        )
+                      )
+                    | _ -> (
+                        -1
+                      )
                 )
               | 18 -> (
                   if String.unsafe_get s pos = 'r' && String.unsafe_get s (pos+1) = 'e' && String.unsafe_get s (pos+2) = 's' && String.unsafe_get s (pos+3) = 'o' && String.unsafe_get s (pos+4) = 'l' && String.unsafe_get s (pos+5) = 'u' && String.unsafe_get s (pos+6) = 't' && String.unsafe_get s (pos+7) = 'i' && String.unsafe_get s (pos+8) = 'o' && String.unsafe_get s (pos+9) = 'n' && String.unsafe_get s (pos+10) = '_' && String.unsafe_get s (pos+11) = 'p' && String.unsafe_get s (pos+12) = 'l' && String.unsafe_get s (pos+13) = 'a' && String.unsafe_get s (pos+14) = 'n' && String.unsafe_get s (pos+15) = 'n' && String.unsafe_get s (pos+16) = 'e' && String.unsafe_get s (pos+17) = 'd' then (
@@ -24332,6 +24499,42 @@ let read_single_subproject_plan = (
                   ) p lb
                 )
               );
+            | 3 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_ecosystem := (
+                  Some (
+                    (
+                      read_ecosystem
+                    ) p lb
+                  )
+                );
+              )
+            | 4 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_manifest_paths := (
+                  (
+                    read__fpath_list
+                  ) p lb
+                );
+              )
+            | 5 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_lockfile_paths := (
+                  (
+                    read__fpath_list
+                  ) p lb
+                );
+              )
+            | 6 ->
+              if not (Yojson.Safe.read_null_if_possible p lb) then (
+                field_source_kind := (
+                  Some (
+                    (
+                      Atdgen_runtime.Oj_run.read_string
+                    ) p lb
+                  )
+                );
+              )
             | _ -> (
                 Yojson.Safe.skip_json p lb
               )
@@ -24344,6 +24547,10 @@ let read_single_subproject_plan = (
             subproject_id = (match !field_subproject_id with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "subproject_id");
             root_dir = (match !field_root_dir with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "root_dir");
             resolution_planned = (match !field_resolution_planned with Some x -> x | None -> Atdgen_runtime.Oj_run.missing_field p "resolution_planned");
+            ecosystem = !field_ecosystem;
+            manifest_paths = !field_manifest_paths;
+            lockfile_paths = !field_lockfile_paths;
+            source_kind = !field_source_kind;
           }
          : single_subproject_plan)
       )

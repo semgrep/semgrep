@@ -1626,7 +1626,18 @@ type subproject_symbol_analysis_url_request =
 type single_subproject_plan = Semgrep_output_v1_t.single_subproject_plan = {
   subproject_id: string;
   root_dir: fpath;
-  resolution_planned: bool
+  resolution_planned: bool;
+  ecosystem: ecosystem option
+    (** Authoritative ecosystem for this dependency source, when known. *);
+  manifest_paths: fpath list
+    (** Manifest files belonging to this exact subproject ID. *);
+  lockfile_paths: fpath list
+    (** Lockfiles belonging to this exact subproject ID. *);
+  source_kind: string option
+    (**
+      Dependency source variant: ManifestOnly, ManifestLockfile,
+      LockfileOnly, or MultiLockfile.
+    *)
 }
 
 (** Subproject dump output. Experimental and for internal use only. *)
