@@ -196,12 +196,12 @@
     "url": "https://github.com/fwcd/tree-sitter-kotlin.git"
   },
   "lua": {
-    "commit": "a943944ec09c5e96f455bb166079de4ef3534457",
+    "commit": "10fe0054734eec83049514ea2e718b2a56acd0c9",
     "regen": [
       "lua"
     ],
-    "tree_sitter": "0.22.6",
-    "url": "https://github.com/Azganoth/tree-sitter-lua"
+    "tree_sitter": "0.26.3",
+    "url": "https://github.com/tree-sitter-grammars/tree-sitter-lua.git"
   },
   "make": {
     "commit": "5904dfb622a95a48f2be5cc17c6c9a70566b47ef",
