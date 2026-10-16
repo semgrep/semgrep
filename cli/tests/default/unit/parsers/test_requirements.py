@@ -198,18 +198,31 @@ def test_parse_requirements_keeps_pinned_and_unpinned_lines(tmp_path: Path) -> N
 
 
 @pytest.mark.quick
-def test_parse_requirements_transitivity_covers_unpinned_lines(tmp_path: Path) -> None:
+def test_parse_requirements_with_manifest_reports_unpinned_lines_as_direct(
+    tmp_path: Path,
+) -> None:
     manifest = tmp_path / "requirements.in"
-    manifest.write_text("requests\n")
+    manifest.write_text("requests\nboto3\n")
     lockfile = tmp_path / "requirements.txt"
-    lockfile.write_text("requests>=2.0\nurllib3\n")
+    lockfile.write_text(
+        "requests>=2.0\n"
+        "urllib3\n"
+        "pydantic>=2.0,<3.0\n"
+        "boto3==1.35.0\n"
+        "six==1.16.0\n"
+    )
 
     deps, errors = parse_requirements(lockfile, manifest)
 
+    # a range or bare name is hand-written and direct even when the manifest
+    # does not name it; the manifest still decides for exact pins
     assert errors == []
     assert [(d.package, d.version, d.transitivity) for d in deps] == [
         ("requests", ">=2.0", out.DependencyKind(out.Direct())),
-        ("urllib3", "", out.DependencyKind(out.Transitive())),
+        ("urllib3", "", out.DependencyKind(out.Direct())),
+        ("pydantic", ">=2.0,<3.0", out.DependencyKind(out.Direct())),
+        ("boto3", "1.35.0", out.DependencyKind(out.Direct())),
+        ("six", "1.16.0", out.DependencyKind(out.Transitive())),
     ]
 
 
