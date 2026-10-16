@@ -19,15 +19,17 @@ type pat_b66053b = Token.t (* pattern 0x[0-9a-zA-Z]+ *)
 
 type pat_e950a1b = Token.t (* pattern [0-9]+(\.[0-9]+([eE][-+]?[0-9]+)?)? *)
 
-type tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc = Token.t
-
 type quoted_template_start = Token.t
 
 type ellipsis = Token.t
 
 type heredoc_identifier = Token.t
 
-type template_interpolation_end = Token.t
+type template_directive_end = Token.t
+
+type template_literal_chunk = Token.t
+
+type template_interpolation_start = Token.t
 
 type pat_780550e = Token.t (* pattern [0-9]+ *)
 
@@ -36,9 +38,11 @@ type bool_lit = [
   | `False of Token.t (* "false" *)
 ]
 
-type template_interpolation_start = Token.t
+type template_directive_start = Token.t
 
-type template_literal_chunk = Token.t
+type template_interpolation_end = Token.t
+
+type tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc = Token.t
 
 type semgrep_metavariable = Token.t
 
@@ -49,6 +53,30 @@ type numeric_lit = [
 
 type template_literal = template_literal_chunk (*tok*) list (* one or more *)
 
+type template_if_end = (
+    template_directive_start (*tok*)
+  * Token.t (* "~" *) option
+  * Token.t (* "endif" *)
+  * Token.t (* "~" *) option
+  * template_directive_end (*tok*)
+)
+
+type template_else_intro = (
+    template_directive_start (*tok*)
+  * Token.t (* "~" *) option
+  * Token.t (* "else" *)
+  * Token.t (* "~" *) option
+  * template_directive_end (*tok*)
+)
+
+type template_for_end = (
+    template_directive_start (*tok*)
+  * Token.t (* "~" *) option
+  * Token.t (* "endfor" *)
+  * Token.t (* "~" *) option
+  * template_directive_end (*tok*)
+)
+
 type identifier = [
     `Tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc of
       tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc
@@ -56,7 +84,8 @@ type identifier = [
 ]
 
 type string_lit = (
-    quoted_template_start (*tok*) * template_literal
+    quoted_template_start (*tok*)
+  * template_literal option
   * quoted_template_end (*tok*)
 )
 
@@ -74,17 +103,6 @@ type get_attr = (Token.t (* "." *) * variable_expr)
 type anon_choice_get_attr_7bbf24f = [
     `Get_attr of get_attr
   | `Index of index
-]
-
-and anon_choice_temp_lit_0082c06 = [
-    `Temp_lit of template_literal
-  | `Temp_interp of (
-        template_interpolation_start (*tok*)
-      * Token.t (* "~" *) option
-      * expression option
-      * Token.t (* "~" *) option
-      * template_interpolation_end (*tok*)
-    )
 ]
 
 and binary_operation = [
@@ -117,15 +135,11 @@ and binary_operation = [
       * [ `EQEQ of Token.t (* "==" *) | `BANGEQ of Token.t (* "!=" *) ]
       * expr_term
     )
-  | `Expr_term_choice_AMPAMP_expr_term of (
-        expr_term
-      * [ `AMPAMP of Token.t (* "&&" *) ]
-      * expr_term
+  | `Expr_term_AMPAMP_expr_term of (
+        expr_term * Token.t (* "&&" *) * expr_term
     )
-  | `Expr_term_choice_BARBAR_expr_term of (
-        expr_term
-      * [ `BARBAR of Token.t (* "||" *) ]
-      * expr_term
+  | `Expr_term_BARBAR_expr_term of (
+        expr_term * Token.t (* "||" *) * expr_term
     )
 ]
 
@@ -198,7 +212,7 @@ and for_intro = (
 and function_arguments = (
     expression
   * (Token.t (* "," *) * expression) list (* zero or more *)
-  * [ `COMMA of Token.t (* "," *) | `Ellips of ellipsis (*tok*) ] option
+  * [ `Comma of Token.t (* "," *) | `Ellips of ellipsis (*tok*) ] option
 )
 
 and function_call = (
@@ -249,19 +263,66 @@ and splat = [
     )
 ]
 
+and template =
+  [
+      `Temp_interp of template_interpolation
+    | `Temp_dire of template_directive
+    | `Temp_lit of template_literal
+  ]
+    list (* one or more *)
+
+and template_directive = [
+    `Temp_for of (template_for_start * template option * template_for_end)
+  | `Temp_if of (
+        template_if_intro
+      * template option
+      * (template_else_intro * template option) option
+      * template_if_end
+    )
+]
+
 and template_expr = [
     `Quoted_temp of (
         quoted_template_start (*tok*)
-      * anon_choice_temp_lit_0082c06 list (* zero or more *) option
+      * template option
       * quoted_template_end (*tok*)
     )
   | `Here_temp of (
         heredoc_start
       * heredoc_identifier (*tok*)
-      * anon_choice_temp_lit_0082c06 list (* zero or more *) option
+      * template option
       * heredoc_identifier (*tok*)
     )
 ]
+
+and template_for_start = (
+    template_directive_start (*tok*)
+  * Token.t (* "~" *) option
+  * Token.t (* "for" *)
+  * variable_expr
+  * (Token.t (* "," *) * variable_expr) option
+  * Token.t (* "in" *)
+  * expression
+  * Token.t (* "~" *) option
+  * template_directive_end (*tok*)
+)
+
+and template_if_intro = (
+    template_directive_start (*tok*)
+  * Token.t (* "~" *) option
+  * Token.t (* "if" *)
+  * expression
+  * Token.t (* "~" *) option
+  * template_directive_end (*tok*)
+)
+
+and template_interpolation = (
+    template_interpolation_start (*tok*)
+  * Token.t (* "~" *) option
+  * expression option
+  * Token.t (* "~" *) option
+  * template_interpolation_end (*tok*)
+)
 
 and tuple_elems = (
     expression
@@ -298,25 +359,25 @@ type block_start (* inlined *) = Token.t (* "{" *)
 
 type strip_marker (* inlined *) = Token.t (* "~" *)
 
+type whitespace (* inlined *) = Token.t
+
 type block_end (* inlined *) = Token.t (* "}" *)
 
 type object_start (* inlined *) = Token.t (* "{" *)
 
 type function_call_start (* inlined *) = Token.t (* "(" *)
 
-type whitespace (* inlined *) = Token.t
-
 type comma (* inlined *) = Token.t (* "," *)
 
 type semgrep_ellipsis (* inlined *) = Token.t (* "..." *)
 
-type tuple_start (* inlined *) = Token.t (* "[" *)
+type function_call_end (* inlined *) = Token.t (* ")" *)
 
 type tuple_end (* inlined *) = Token.t (* "]" *)
 
-type function_call_end (* inlined *) = Token.t (* ")" *)
-
 type comment (* inlined *) = Token.t
+
+type tuple_start (* inlined *) = Token.t (* "[" *)
 
 type object_end (* inlined *) = Token.t (* "}" *)
 
@@ -363,7 +424,7 @@ type full_splat (* inlined *) = (
 type heredoc_template (* inlined *) = (
     heredoc_start
   * heredoc_identifier (*tok*)
-  * anon_choice_temp_lit_0082c06 list (* zero or more *) option
+  * template option
   * heredoc_identifier (*tok*)
 )
 
@@ -373,16 +434,21 @@ type new_index (* inlined *) = (
 
 type quoted_template (* inlined *) = (
     quoted_template_start (*tok*)
-  * anon_choice_temp_lit_0082c06 list (* zero or more *) option
+  * template option
   * quoted_template_end (*tok*)
 )
 
-type template_interpolation (* inlined *) = (
-    template_interpolation_start (*tok*)
-  * Token.t (* "~" *) option
-  * expression option
-  * Token.t (* "~" *) option
-  * template_interpolation_end (*tok*)
+type template_for (* inlined *) = (
+    template_for_start
+  * template option
+  * template_for_end
+)
+
+type template_if (* inlined *) = (
+    template_if_intro
+  * template option
+  * (template_else_intro * template option) option
+  * template_if_end
 )
 
 type tuple (* inlined *) = (

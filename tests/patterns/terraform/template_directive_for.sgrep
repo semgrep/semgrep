@@ -1,0 +1,1 @@
+"%{ for $V in $ITEMS }${danger($V)}%{ endfor }"
