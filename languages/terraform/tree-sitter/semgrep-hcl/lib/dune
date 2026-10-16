@@ -11,8 +11,8 @@
   ;
   (foreign_stubs
     (language c)
-    (names parser bindings)
-    (flags -std=c99
+    (names scanner parser bindings)
+    (flags -std=c11
            -fPIC
            -I %{env:TREESITTER_INCDIR=/usr/local/include}
            -I .)
@@ -36,7 +36,7 @@
   )
   (foreign_stubs
     (language cxx)
-    (names scanner)
+    (names )
     (flags -fPIC
            -I %{env:TREESITTER_INCDIR=/usr/local/include}
            -I .)

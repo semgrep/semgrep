@@ -9,6 +9,11 @@ const base_grammar = require('tree-sitter-hcl/grammar');
 module.exports = grammar(base_grammar, {
   name: 'hcl',
 
+  // Keep template repetitions inline when the standalone parser normalizes
+  // hidden rules. The scanner recognizes a directive start only in states
+  // where a literal chunk is also valid, including at the end of a body.
+  inline: ($, previous) => previous.concat([$._template]),
+
   conflicts: ($, previous) => previous.concat([
      // when added ellipsis for object_elems
      // Unresolved conflict for symbol sequence:
