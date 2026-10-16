@@ -263,12 +263,13 @@ def get_requirement_transitivity(
     manifest_deps: Optional[Set[str]], package: str, declared_version: str
 ) -> out.DependencyKind:
     """
-    Transitivity of one requirement line. A manifest (requirements.in) decides
-    when there is one. Without a manifest, a line declared as a range or bare
-    name is a dependency someone wrote by hand rather than a resolver's output,
-    so it is reported as direct; an exact pin stays unknown.
+    Transitivity of one requirement line. A line declared as a range or bare
+    name was written by hand, since a resolver emits exact pins, so it is a
+    direct dependency whether or not a manifest (requirements.in) names it.
+    An exact pin is direct when the manifest names it, transitive when the
+    manifest exists and does not, and unknown without a manifest.
     """
-    if manifest_deps is None and is_unpinned_declaration(declared_version):
+    if is_unpinned_declaration(declared_version):
         return out.DependencyKind(out.Direct())
     return transitivity(manifest_deps, [package])
 
