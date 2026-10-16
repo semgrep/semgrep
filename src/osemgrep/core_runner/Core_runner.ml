@@ -305,7 +305,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     let core_scan_func =
       if config.use_parmap then core_scan_func
       else fun config ->
-        Eio_main.run (fun env ->
+        Parallelism_config.run_eio (fun env ->
             let par_conf = Parallelism_config.create env in
             let res : Core_result.result_or_exn =
               core_scan_func { config with par_conf }
