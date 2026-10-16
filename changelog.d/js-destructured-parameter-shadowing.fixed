@@ -1,0 +1,1 @@
+Register untyped JavaScript and TypeScript object-destructured parameter bindings so shorthand and renamed parameters shadow outer variables during matching.
