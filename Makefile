@@ -7,7 +7,7 @@
 # used for Semgrep development.
 #  - for OCaml: 'ocamlc' and 'ocamlopt' (currently 4.14.0), 'dune', 'opam'
 #  - for C: 'gcc', 'ld', 'pkgconfig', but also some C libs like PCRE, gmp
-#  - for Python: 'python3', 'pip', 'pipenv'
+#  - for Python: 'python3', 'pip', 'uv'
 #
 # You will also need obviously 'make', but also 'git', and many other
 # common dev tools (e.g., 'docker', 'bash').
@@ -85,7 +85,7 @@ all:
 	$(MAKE) core
 	$(MAKE) copy-core-for-cli
 # Python setup
-	cd cli && pipenv install --dev
+	cd cli && uv sync --locked
 
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
@@ -524,7 +524,7 @@ check_with_docker:
 #
 # Usage:
 #  $ make dev
-#  $ PIPENV_PIPFILE=~/semgrep/cli/Pipfile pipenv run semgrep ...
+#  $ uv run --project ~/semgrep/cli --locked semgrep ...
 .PHONY: dev
 dev:
 	$(MAKE) core
