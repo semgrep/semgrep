@@ -2,71 +2,171 @@
 (*
    lua grammar
 
-   entrypoint: program
+   entrypoint: chunk
 *)
 
 open! Sexplib.Conv
 open Tree_sitter_run
 
-type number = Token.t
-
-type global_variable = [
-    `X__G of Token.t (* "_G" *)
-  | `X__VERSION of Token.t (* "_VERSION" *)
-]
-
 type field_sep = [ `COMMA of Token.t (* "," *) | `SEMI of Token.t (* ";" *) ]
 
-type identifier = Token.t (* pattern \$?[a-zA-Z_][a-zA-Z0-9_]* *)
+type identifier = Token.t
 
-type string_ = Token.t
+type block_comment_end = Token.t
 
-type local_variable_declarator = (
+type block_string_end = Token.t
+
+type block_comment_content = Token.t
+
+type hash_bang_line =
+  Token.t (* pattern "#(?:![^\\r\\n\\u2028\\u2029]*|[ \\t\\f\\v]+[^\\$\"'\\[{(\\.\\r\\n\\u2028\\u2029][^\\r\\n\\u2028\\u2029]*\
+  )" *)
+
+type pat_f630af3 = Token.t (* pattern [^\r\n]* *)
+
+type imm_tok_bslash_choice_cr = Token.t
+
+type block_string_start = Token.t
+
+type imm_tok_bslash_choice_pat_4504a10 = Token.t
+
+type imm_tok_prec_p1_pat_3a2a380 = Token.t (* pattern "[^\"\\\\]+" *)
+
+type block_comment_start = Token.t
+
+type number = Token.t
+
+type block_string_content = Token.t
+
+type imm_tok_prec_p1_pat_dc28280 = Token.t (* pattern "[^'\\\\]+" *)
+
+type label_statement = (
+    Token.t (* "::" *) * identifier (*tok*) * Token.t (* "::" *)
+)
+
+type name_list = (
     identifier (*tok*)
   * (Token.t (* "," *) * identifier (*tok*)) list (* zero or more *)
 )
 
+type goto_statement = (Token.t (* "goto" *) * identifier (*tok*))
+
+type attrib = (Token.t (* "<" *) * identifier (*tok*) * Token.t (* ">" *))
+
+type function_name_prefix_expression = [
+    `Id of identifier (*tok*)
+  | `Func_name_dot_index_exp of (
+        function_name_prefix_expression * Token.t (* "." *)
+      * identifier (*tok*)
+    )
+]
+
+type escape_sequence = [
+    `Imm_tok_bslash_choice_pat_4504a10 of imm_tok_bslash_choice_pat_4504a10
+  | `Imm_tok_bslash_choice_cr of imm_tok_bslash_choice_cr
+]
+
+type vararg_parameter = (Token.t (* "..." *) * identifier (*tok*) option)
+
+type att_name_list = (
+    attrib option
+  * identifier (*tok*)
+  * attrib option
+  * (Token.t (* "," *) * identifier (*tok*) * attrib option)
+      list (* zero or more *)
+)
+
+type doublequote_string_content =
+  [
+      `Imm_tok_prec_p1_pat_3a2a380 of imm_tok_prec_p1_pat_3a2a380
+    | `Esc_seq of escape_sequence
+  ]
+    list (* one or more *)
+
+type singlequote_string_content =
+  [
+      `Imm_tok_prec_p1_pat_dc28280 of imm_tok_prec_p1_pat_dc28280
+    | `Esc_seq of escape_sequence
+  ]
+    list (* one or more *)
+
+type parameter_list = [
+    `Choice_id_rep_COMMA_id_opt_COMMA_vararg_param of [
+        `Id_rep_COMMA_id_opt_COMMA_vararg_param of (
+            identifier (*tok*)
+          * (Token.t (* "," *) * identifier (*tok*)) list (* zero or more *)
+          * (Token.t (* "," *) * vararg_parameter) option
+        )
+      | `Vararg_param of vararg_parameter
+    ]
+  | `Vararg_exp_rep1_COMMA_id_opt_COMMA_vararg_param of (
+        Token.t (* "..." *)
+      * (Token.t (* "," *) * identifier (*tok*)) list (* one or more *)
+      * (Token.t (* "," *) * vararg_parameter) option
+    )
+  | `Vararg_exp_COMMA_vararg_param of (
+        Token.t (* "..." *) * Token.t (* "," *) * vararg_parameter
+    )
+]
+
+type function_name = [
+    `Func_name_prefix_exp of function_name_prefix_expression
+  | `Func_name_meth_index_exp of (
+        function_name_prefix_expression * Token.t (* ":" *)
+      * identifier (*tok*)
+    )
+]
+
+type quote_string = [
+    `DQUOT_opt_doub_str_content_DQUOT of (
+        Token.t (* "\"" *)
+      * doublequote_string_content option
+      * Token.t (* "\"" *)
+    )
+  | `SQUOT_opt_sing_str_content_SQUOT of (
+        Token.t (* "'" *)
+      * singlequote_string_content option
+      * Token.t (* "'" *)
+    )
+]
+
 type parameters = (
     Token.t (* "(" *)
-  * (
-        [
-            `Self of Token.t (* "self" *)
-          | `Spread of Token.t (* "..." *)
-          | `Id of identifier (*tok*)
-        ]
-      * (Token.t (* "," *) * identifier (*tok*)) list (* zero or more *)
-      * (Token.t (* "," *) * Token.t (* "..." *)) option
-    )
-      option
+  * parameter_list option
   * Token.t (* ")" *)
 )
 
-type function_name_field = (
-    identifier (*tok*)
-  * (Token.t (* "." *) * identifier (*tok*)) list (* zero or more *)
-)
+type string_ = [
+    `Quote_str of quote_string
+  | `Blk_str of (
+        block_string_start (*tok*) * block_string_content (*tok*)
+      * block_string_end (*tok*)
+    )
+]
 
-type function_name = (
-    [ `Id of identifier (*tok*) | `Func_name_field of function_name_field ]
-  * (Token.t (* ":" *) * identifier (*tok*)) option
-)
-
-type anon_exp_rep_COMMA_exp_0bb260c = (
-    expression
-  * (Token.t (* "," *) * expression) list (* zero or more *)
-)
+type anon_choice_att_name_list_26e8983 = [
+    `Att_name_list of att_name_list
+  | `Var_assign of (
+        att_name_list * Token.t (* "=" *) * variable_assignment_explist
+    )
+]
 
 and arguments = [
     `LPAR_opt_exp_rep_COMMA_exp_RPAR of (
         Token.t (* "(" *)
-      * anon_exp_rep_COMMA_exp_0bb260c option
+      * variable_assignment_explist option
       * Token.t (* ")" *)
     )
-  | `Table of table
-  | `Str of string_ (*tok*)
+  | `Table_cons of table_constructor
+  | `Str of string_
 ]
 
-and binary_operation = [
+and assignment_statement = (
+    variable_assignment_varlist * Token.t (* "=" *)
+  * variable_assignment_explist
+)
+
+and binary_expression = [
     `Exp_or_exp of (expression * Token.t (* "or" *) * expression)
   | `Exp_and_exp of (expression * Token.t (* "and" *) * expression)
   | `Exp_LT_exp of (expression * Token.t (* "<" *) * expression)
@@ -90,28 +190,63 @@ and binary_operation = [
   | `Exp_HAT_exp of (expression * Token.t (* "^" *) * expression)
 ]
 
-and else_ = (
-    Token.t (* "else" *)
-  * statement list (* zero or more *)
-  * return_statement option
-)
+and block = [
+    `Rep1_stmt_opt_ret_stmt of (
+        statement list (* one or more *)
+      * return_statement option
+    )
+  | `Rep_stmt_ret_stmt of (
+        statement list (* zero or more *)
+      * return_statement
+    )
+]
 
-and elseif = (
+and declaration = [
+    `Func_decl of (Token.t (* "function" *) * function_name * function_body)
+  | `Local_func_decl of (
+        Token.t (* "local" *) * Token.t (* "function" *) * identifier (*tok*)
+      * function_body
+    )
+  | `Var_decl of (Token.t (* "local" *) * anon_choice_att_name_list_26e8983)
+  | `Global_func_decl of (
+        Token.t (* "global" *) * Token.t (* "function" *)
+      * identifier (*tok*) * function_body
+    )
+  | `Global_var_decl of (
+        Token.t (* "global" *) * anon_choice_att_name_list_26e8983
+    )
+  | `Global_impl_var_decl of (
+        Token.t (* "global" *)
+      * attrib option
+      * Token.t (* "*" *)
+    )
+]
+
+and do_statement = (Token.t (* "do" *) * block option * Token.t (* "end" *))
+
+and else_statement = (Token.t (* "else" *) * block option)
+
+and elseif_statement = (
     Token.t (* "elseif" *)
   * expression
   * Token.t (* "then" *)
-  * statement list (* zero or more *)
-  * return_statement option
+  * block option
 )
 
 and expression = [
-    `Spread of Token.t (* "..." *)
-  | `Prefix of prefix
-  | `Next of Token.t (* "next" *)
+    `Nil of Token.t (* "nil" *)
+  | `False of Token.t (* "false" *)
+  | `True of Token.t (* "true" *)
+  | `Num of number (*tok*)
+  | `Str of string_
+  | `Vararg_exp of Token.t (* "..." *)
   | `Func_defi of (Token.t (* "function" *) * function_body)
-  | `Table of table
-  | `Bin_oper of binary_operation
-  | `Un_oper of (
+  | `Var of variable
+  | `Func_call of function_call
+  | `Paren_exp of parenthesized_expression
+  | `Table_cons of table_constructor
+  | `Bin_exp of binary_expression
+  | `Un_exp of (
         [
             `Not of Token.t (* "not" *)
           | `HASH of Token.t (* "#" *)
@@ -120,52 +255,35 @@ and expression = [
         ]
       * expression
     )
-  | `Str of string_ (*tok*)
-  | `Num of number (*tok*)
-  | `Nil of Token.t (* "nil" *)
-  | `True of Token.t (* "true" *)
-  | `False of Token.t (* "false" *)
-  | `Id of identifier (*tok*)
 ]
+
+and expression_list = (
+    expression
+  * (Token.t (* "," *) * expression) list (* zero or more *)
+)
 
 and field = [
     `LBRACK_exp_RBRACK_EQ_exp of (
         Token.t (* "[" *) * expression * Token.t (* "]" *)
       * Token.t (* "=" *) * expression
     )
-  | `Id_EQ_exp of (identifier (*tok*) * Token.t (* "=" *) * expression)
+  | `Choice_cont_kw_EQ_exp of (
+        [ `Cont_kw of Token.t (* "global" *) | `Id of identifier (*tok*) ]
+      * Token.t (* "=" *)
+      * expression
+    )
   | `Exp of expression
 ]
 
-and field_sequence = (
+and field_list = (
     field
   * (field_sep * field) list (* zero or more *)
   * field_sep option
 )
 
-and function_body = (
-    parameters
-  * statement list (* zero or more *)
-  * return_statement option
-  * Token.t (* "end" *)
-)
+and for_generic_clause = (name_list * Token.t (* "in" *) * expression_list)
 
-and function_call_statement = [
-    `Prefix_args of (prefix * arguments)
-  | `Prefix_COLON_id_args of (
-        prefix * Token.t (* ":" *) * identifier (*tok*) * arguments
-    )
-]
-
-and in_loop_expression = (
-    identifier (*tok*)
-  * (Token.t (* "," *) * identifier (*tok*)) list (* zero or more *)
-  * Token.t (* "in" *)
-  * expression
-  * (Token.t (* "," *) * expression) list (* zero or more *)
-)
-
-and loop_expression = (
+and for_numeric_clause = (
     identifier (*tok*)
   * Token.t (* "=" *)
   * expression
@@ -174,211 +292,196 @@ and loop_expression = (
   * (Token.t (* "," *) * expression) option
 )
 
-and prefix = [
-    `Self of Token.t (* "self" *)
-  | `Global_var of global_variable
-  | `Var_decl of variable_declarator
-  | `Func_call_stmt of function_call_statement
-  | `LPAR_exp_RPAR of (Token.t (* "(" *) * expression * Token.t (* ")" *))
+and for_statement = (
+    Token.t (* "for" *)
+  * [
+        `For_gene_clause of for_generic_clause
+      | `For_nume_clause of for_numeric_clause
+    ]
+  * Token.t (* "do" *)
+  * block option
+  * Token.t (* "end" *)
+)
+
+and function_body = (parameters * block option * Token.t (* "end" *))
+
+and function_call = (
+    [
+        `Prefix_exp of prefix_expression
+      | `Meth_index_exp of method_index_expression
+    ]
+  * arguments
+)
+
+and if_statement = (
+    Token.t (* "if" *)
+  * expression
+  * Token.t (* "then" *)
+  * block option
+  * elseif_statement list (* zero or more *)
+  * else_statement option
+  * Token.t (* "end" *)
+)
+
+and method_index_expression = (
+    prefix_expression * Token.t (* ":" *) * identifier (*tok*)
+)
+
+and parenthesized_expression = (
+    Token.t (* "(" *) * expression * Token.t (* ")" *)
+)
+
+and prefix_expression = [
+    `Var of variable
+  | `Func_call of function_call
+  | `Paren_exp of parenthesized_expression
 ]
+
+and repeat_statement = (
+    Token.t (* "repeat" *)
+  * block option
+  * Token.t (* "until" *)
+  * expression
+)
 
 and return_statement = (
     Token.t (* "return" *)
-  * anon_exp_rep_COMMA_exp_0bb260c option
+  * expression_list option
   * Token.t (* ";" *) option
 )
 
 and statement = [
-    `Exp of expression
-  | `Var_decl of (
-        variable_declarator
-      * (Token.t (* "," *) * variable_declarator) list (* zero or more *)
-      * Token.t (* "=" *)
-      * expression
-      * (Token.t (* "," *) * expression) list (* zero or more *)
-    )
-  | `Local_var_decl of (
-        Token.t (* "local" *)
-      * local_variable_declarator
-      * (
-            Token.t (* "=" *)
-          * expression
-          * (Token.t (* "," *) * expression) list (* zero or more *)
-        )
-          option
-    )
-  | `Do_stmt of (
-        Token.t (* "do" *)
-      * statement list (* zero or more *)
-      * return_statement option
-      * Token.t (* "end" *)
-    )
-  | `If_stmt of (
-        Token.t (* "if" *)
-      * expression
-      * Token.t (* "then" *)
-      * statement list (* zero or more *)
-      * return_statement option
-      * elseif list (* zero or more *)
-      * else_ option
-      * Token.t (* "end" *)
-    )
-  | `While_stmt of (
-        Token.t (* "while" *)
-      * expression
-      * Token.t (* "do" *)
-      * statement list (* zero or more *)
-      * return_statement option
-      * Token.t (* "end" *)
-    )
-  | `Repeat_stmt of (
-        Token.t (* "repeat" *)
-      * statement list (* zero or more *)
-      * return_statement option
-      * Token.t (* "until" *)
-      * expression
-    )
-  | `For_stmt of (
-        Token.t (* "for" *)
-      * loop_expression
-      * Token.t (* "do" *)
-      * statement list (* zero or more *)
-      * return_statement option
-      * Token.t (* "end" *)
-    )
-  | `For_in_stmt of (
-        Token.t (* "for" *)
-      * in_loop_expression
-      * Token.t (* "do" *)
-      * statement list (* zero or more *)
-      * return_statement option
-      * Token.t (* "end" *)
-    )
-  | `Goto_stmt of (Token.t (* "goto" *) * identifier (*tok*))
-  | `Brk_stmt of Token.t (* "break" *)
-  | `Label_stmt of (
-        Token.t (* "::" *) * identifier (*tok*) * Token.t (* "::" *)
-    )
-  | `Empty_stmt of Token.t (* ";" *)
-  | `Func_stmt of (Token.t (* "function" *) * function_name * function_body)
-  | `Local_func_stmt of (
-        Token.t (* "local" *) * Token.t (* "function" *) * identifier (*tok*)
-      * function_body
-    )
-  | `Func_call_stmt of function_call_statement
+    `Choice_empty_stmt of [
+        `Empty_stmt of Token.t (* ";" *)
+      | `Assign_stmt of assignment_statement
+      | `Func_call of function_call
+      | `Label_stmt of label_statement
+      | `Brk_stmt of Token.t (* "break" *)
+      | `Goto_stmt of goto_statement
+      | `Do_stmt of do_statement
+      | `While_stmt of while_statement
+      | `Repeat_stmt of repeat_statement
+      | `If_stmt of if_statement
+      | `For_stmt of for_statement
+      | `Decl of declaration
+    ]
+  | `Exp of expression
 ]
 
-and table = (Token.t (* "{" *) * field_sequence option * Token.t (* "}" *))
+and table_constructor = (
+    Token.t (* "{" *)
+  * field_list option
+  * Token.t (* "}" *)
+)
 
-and variable_declarator = [
-    `Id of identifier (*tok*)
-  | `Prefix_LBRACK_exp_RBRACK of (
-        prefix * Token.t (* "[" *) * expression * Token.t (* "]" *)
+and variable = [
+    `Cont_kw of Token.t (* "global" *)
+  | `Id of identifier (*tok*)
+  | `Brac_index_exp of (
+        prefix_expression * Token.t (* "[" *) * expression
+      * Token.t (* "]" *)
     )
-  | `Field_exp of (prefix * Token.t (* "." *) * identifier (*tok*))
+  | `Dot_index_exp of (
+        prefix_expression * Token.t (* "." *) * identifier (*tok*)
+    )
 ]
 
-type program = (statement list (* zero or more *) * return_statement option)
+and variable_assignment_explist = (
+    expression
+  * (Token.t (* "," *) * expression) list (* zero or more *)
+)
 
-type self (* inlined *) = Token.t (* "self" *)
+and variable_assignment_varlist = (
+    variable
+  * (Token.t (* "," *) * variable) list (* zero or more *)
+)
 
-type false_ (* inlined *) = Token.t (* "false" *)
+and while_statement = (
+    Token.t (* "while" *)
+  * expression
+  * Token.t (* "do" *)
+  * block option
+  * Token.t (* "end" *)
+)
 
-type nil (* inlined *) = Token.t (* "nil" *)
-
-type break_statement (* inlined *) = Token.t (* "break" *)
+type chunk = (
+    hash_bang_line (*tok*) option
+  * statement list (* zero or more *)
+  * return_statement option
+)
 
 type empty_statement (* inlined *) = Token.t (* ";" *)
 
+type contextual_keyword (* inlined *) = Token.t (* "global" *)
+
+type nil (* inlined *) = Token.t (* "nil" *)
+
+type false_ (* inlined *) = Token.t (* "false" *)
+
 type true_ (* inlined *) = Token.t (* "true" *)
 
-type next (* inlined *) = Token.t (* "next" *)
+type vararg_expression (* inlined *) = Token.t (* "..." *)
 
-type spread (* inlined *) = Token.t (* "..." *)
+type break_statement (* inlined *) = Token.t (* "break" *)
 
-type comment (* inlined *) = Token.t
-
-type label_statement (* inlined *) = (
-    Token.t (* "::" *) * identifier (*tok*) * Token.t (* "::" *)
+type function_name_dot_index_expression (* inlined *) = (
+    function_name_prefix_expression * Token.t (* "." *) * identifier (*tok*)
 )
 
-type goto_statement (* inlined *) = (
-    Token.t (* "goto" *) * identifier (*tok*)
+type comment (* inlined *) = [
+    `DASHDASH_pat_f630af3 of (Token.t (* "--" *) * pat_f630af3)
+  | `Blk_comm_start_blk_comm_content_blk_comm_end of (
+        block_comment_start (*tok*) * block_comment_content (*tok*)
+      * block_comment_end (*tok*)
+    )
+]
+
+type block_string (* inlined *) = (
+    block_string_start (*tok*) * block_string_content (*tok*)
+  * block_string_end (*tok*)
 )
 
-type do_statement (* inlined *) = (
-    Token.t (* "do" *)
-  * statement list (* zero or more *)
-  * return_statement option
-  * Token.t (* "end" *)
+type global_implicit_variable_declaration (* inlined *) = (
+    Token.t (* "global" *)
+  * attrib option
+  * Token.t (* "*" *)
 )
 
-type field_expression (* inlined *) = (
-    prefix * Token.t (* "." *) * identifier (*tok*)
+type function_name_method_index_expression (* inlined *) = (
+    function_name_prefix_expression * Token.t (* ":" *) * identifier (*tok*)
 )
 
-type for_in_statement (* inlined *) = (
-    Token.t (* "for" *)
-  * in_loop_expression
-  * Token.t (* "do" *)
-  * statement list (* zero or more *)
-  * return_statement option
-  * Token.t (* "end" *)
+type bracket_index_expression (* inlined *) = (
+    prefix_expression * Token.t (* "[" *) * expression * Token.t (* "]" *)
 )
 
-type for_statement (* inlined *) = (
-    Token.t (* "for" *)
-  * loop_expression
-  * Token.t (* "do" *)
-  * statement list (* zero or more *)
-  * return_statement option
-  * Token.t (* "end" *)
+type dot_index_expression (* inlined *) = (
+    prefix_expression * Token.t (* "." *) * identifier (*tok*)
+)
+
+type function_declaration (* inlined *) = (
+    Token.t (* "function" *) * function_name * function_body
 )
 
 type function_definition (* inlined *) = (
     Token.t (* "function" *) * function_body
 )
 
-type function_statement (* inlined *) = (
-    Token.t (* "function" *) * function_name * function_body
+type global_function_declaration (* inlined *) = (
+    Token.t (* "global" *) * Token.t (* "function" *) * identifier (*tok*)
+  * function_body
 )
 
-type if_statement (* inlined *) = (
-    Token.t (* "if" *)
-  * expression
-  * Token.t (* "then" *)
-  * statement list (* zero or more *)
-  * return_statement option
-  * elseif list (* zero or more *)
-  * else_ option
-  * Token.t (* "end" *)
+type global_variable_declaration (* inlined *) = (
+    Token.t (* "global" *) * anon_choice_att_name_list_26e8983
 )
 
-type local_function_statement (* inlined *) = (
+type local_function_declaration (* inlined *) = (
     Token.t (* "local" *) * Token.t (* "function" *) * identifier (*tok*)
   * function_body
 )
 
-type local_variable_declaration (* inlined *) = (
-    Token.t (* "local" *)
-  * local_variable_declarator
-  * (
-        Token.t (* "=" *)
-      * expression
-      * (Token.t (* "," *) * expression) list (* zero or more *)
-    )
-      option
-)
-
-type repeat_statement (* inlined *) = (
-    Token.t (* "repeat" *)
-  * statement list (* zero or more *)
-  * return_statement option
-  * Token.t (* "until" *)
-  * expression
-)
-
-type unary_operation (* inlined *) = (
+type unary_expression (* inlined *) = (
     [
         `Not of Token.t (* "not" *)
       | `HASH of Token.t (* "#" *)
@@ -388,21 +491,12 @@ type unary_operation (* inlined *) = (
   * expression
 )
 
-type variable_declaration (* inlined *) = (
-    variable_declarator
-  * (Token.t (* "," *) * variable_declarator) list (* zero or more *)
-  * Token.t (* "=" *)
-  * expression
-  * (Token.t (* "," *) * expression) list (* zero or more *)
+type variable_assignment (* inlined *) = (
+    att_name_list * Token.t (* "=" *) * variable_assignment_explist
 )
 
-type while_statement (* inlined *) = (
-    Token.t (* "while" *)
-  * expression
-  * Token.t (* "do" *)
-  * statement list (* zero or more *)
-  * return_statement option
-  * Token.t (* "end" *)
+type variable_declaration (* inlined *) = (
+    Token.t (* "local" *) * anon_choice_att_name_list_26e8983
 )
 
 type extra = [ `Comment of Loc.t * comment ]

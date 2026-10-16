@@ -1,0 +1,217 @@
+==================
+Bare metavariable
+==================
+$X
+---
+(chunk (identifier))
+
+==================
+Bare ellipsis
+==================
+...
+---
+(chunk (vararg_expression))
+
+==================
+Composed expression pattern
+==================
+$OBJ.$FIELD[$INDEX] + ($VALUE)
+---
+(chunk (binary_expression (bracket_index_expression (dot_index_expression (identifier) (identifier)) (identifier)) (parenthesized_expression (identifier))))
+
+==================
+Metavariables and ellipses in blocks and calls
+==================
+function $OBJ.$FIELD:$METHOD($ARG, ...)
+  ...
+  $CALL($ARG, ..., $OBJ:$METHOD(...))
+  $STMT
+  return $RESULT, ...
+end
+---
+(chunk
+  (function_declaration
+    (method_index_expression (dot_index_expression (identifier) (identifier)) (identifier))
+    (parameters (identifier) (vararg_expression))
+    (block
+      (vararg_expression)
+      (function_call (identifier) (arguments (identifier) (vararg_expression) (function_call (method_index_expression (identifier) (identifier)) (arguments (vararg_expression)))))
+      (identifier)
+      (return_statement (expression_list (identifier) (vararg_expression))))))
+
+==================
+Native varargs and builtin identifiers
+==================
+function f(self, ...)
+  local x = {...}
+  next(x)
+  _G.foo = self
+  return ...
+end
+---
+(chunk
+  (function_declaration (identifier)
+    (parameters (identifier) (vararg_expression))
+    (block
+      (variable_declaration (assignment_statement (variable_list (identifier)) (expression_list (table_constructor (field (vararg_expression))))))
+      (function_call (identifier) (arguments (identifier)))
+      (assignment_statement (variable_list (dot_index_expression (identifier) (identifier))) (expression_list (identifier)))
+      (return_statement (expression_list (vararg_expression))))))
+
+==================
+LuaJIT identifiers and metavariables
+==================
+local π, 🙃 = $VALUE, $OTHER
+π.$FIELD = 🙃
+---
+(chunk
+  (variable_declaration (assignment_statement (variable_list (identifier) (identifier)) (expression_list (identifier) (identifier))))
+  (assignment_statement (variable_list (dot_index_expression (identifier) (identifier))) (expression_list (identifier))))
+
+==================
+Invalid ASCII identifier punctuation
+==================
+local a?b = 1
+---
+(chunk
+  (variable_declaration (variable_list (identifier)))
+  (ERROR (UNEXPECTED '?'))
+  (assignment_statement (variable_list (identifier)) (expression_list (number))))
+
+==================
+Global declarations overlapping expression patterns
+==================
+global function $F($X) return $X end
+global $X = $VALUE
+global <const> *
+$X < $Y
+---
+(chunk
+  (function_declaration (identifier) (parameters (identifier)) (block (return_statement (expression_list (identifier)))))
+  (variable_declaration (assignment_statement (variable_list (identifier)) (expression_list (identifier))))
+  (implicit_variable_declaration (attribute (identifier)))
+  (binary_expression (identifier) (identifier)))
+
+==================
+Leading and trailing parameter ellipses
+==================
+function $F(..., $X, ...) ... end
+function $F(..., $X) $STMT end
+function $F($X, ...args) return args end
+---
+(chunk
+  (function_declaration (identifier) (parameters (vararg_expression) (identifier) (vararg_expression)) (block (vararg_expression)))
+  (function_declaration (identifier) (parameters (vararg_expression) (identifier)) (block (identifier)))
+  (function_declaration (identifier) (parameters (identifier) (vararg_expression) (identifier)) (block (return_statement (expression_list (identifier))))))
+
+==================
+String escape and numeral boundaries
+==================
+return "\x41", '\x41', "\x00000041", '\x00000041', "\0012", '\0012', 0001, 0x.1, 0x1., 0b101, 1LL
+---
+(chunk
+  (return_statement (expression_list
+    (string (string_content (escape_sequence)))
+    (string (string_content (escape_sequence)))
+    (string (string_content (escape_sequence)))
+    (string (string_content (escape_sequence)))
+    (string (string_content (escape_sequence)))
+    (string (string_content (escape_sequence)))
+    (number) (number) (number) (number) (number))))
+
+==================
+One digit hexadecimal escapes are invalid
+==================
+return "\x0", '\x0'
+---
+(chunk
+  (return_statement (expression_list
+    (string (ERROR (UNEXPECTED '"')))
+    (string (ERROR (UNEXPECTED '''))))))
+
+==================
+Escaped line endings in both quote styles
+==================
+return "\
+", '\
+', "\
+", '\
+', "\
+", '\
+', "\
+
+", '\
+
+'
+---
+(chunk (return_statement (expression_list
+  (string (string_content (escape_sequence)))
+  (string (string_content (escape_sequence)))
+  (string (string_content (escape_sequence)))
+  (string (string_content (escape_sequence)))
+  (string (string_content (escape_sequence)))
+  (string (string_content (escape_sequence)))
+  (string (string_content (escape_sequence)))
+  (string (string_content (escape_sequence)))
+)))
+
+==================
+Consecutive parameter ellipses in anonymous functions
+==================
+local $F = function(..., ...) ... end
+---
+(chunk
+  (variable_declaration (assignment_statement (variable_list (identifier))
+    (expression_list (function_definition (parameters (vararg_expression) (vararg_expression)) (block (vararg_expression)))))))
+
+==================
+Metavariable fields after contextual and builtin names
+==================
+global.$FIELD
+global:$METHOD(...)
+_G.$FIELD
+self.$FIELD
+next.$FIELD
+---
+(chunk
+  (dot_index_expression (identifier))
+  (function_call (method_index_expression (identifier)) (arguments (vararg_expression)))
+  (dot_index_expression (identifier) (identifier))
+  (dot_index_expression (identifier) (identifier))
+  (dot_index_expression (identifier) (identifier)))
+
+==================
+Length pattern is not a hashbang
+==================
+#$X
+---
+(chunk (unary_expression (identifier)))
+
+==================
+Length of identifier is not a hashbang
+==================
+#foo
+---
+(chunk (unary_expression (identifier)))
+
+==================
+Length of string is not a hashbang
+==================
+# "text"
+---
+(chunk (unary_expression (string (string_content))))
+
+==================
+Length of spaced metavariable is not a hashbang
+==================
+# $X
+---
+(chunk (unary_expression (identifier)))
+
+==================
+Hashbang line
+==================
+#!/usr/bin/env lua
+print(1)
+---
+(chunk (hash_bang_line) (function_call (identifier) (arguments (number))))
