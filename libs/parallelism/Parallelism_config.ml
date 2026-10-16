@@ -64,13 +64,24 @@ type t = Process | Eio_executor of eio_state [@@deriving show]
  * running at once (e.g. pre-commit) hit this easily. We use Eio for
  * parallelism rather than IO, so the posix backend costs us nothing. *)
 let run_eio (f : Eio_unix.Stdenv.base -> 'a) : 'a =
-  (match Sys.getenv_opt "EIO_BACKEND" with
+  match Sys.getenv_opt "EIO_BACKEND" with
   | None
   | Some ""
-    when Sys.unix ->
-      Unix.putenv "EIO_BACKEND" "posix"
-  | _ -> ());
-  Eio_main.run f
+    when Sys.unix -> (
+      (* Eio_main.run reads $EIO_BACKEND once, at startup. Afterwards, put
+       * back the empty value (which Eio treats as unset) so the caller's
+       * environment is left as it was. *)
+      Unix.putenv "EIO_BACKEND" "posix";
+      let reset () = Unix.putenv "EIO_BACKEND" "" in
+      match Eio_main.run f with
+      | res ->
+          reset ();
+          res
+      | exception e ->
+          let bt = Printexc.get_raw_backtrace () in
+          reset ();
+          Printexc.raise_with_backtrace e bt)
+  | _ -> Eio_main.run f
 
 let create (env : Eio_unix.Stdenv.base) =
   Eio_executor { env :> env; base = env }
