@@ -142,11 +142,11 @@
     "url": "https://github.com/tree-sitter/tree-sitter-haskell.git"
   },
   "hcl": {
-    "commit": "67a5c19755fdb997ff21c8a10fab6302cb45c89a",
+    "commit": "fad991865fee927dd1de5e172fb3f08ac674d914",
     "regen": [
       "hcl"
     ],
-    "tree_sitter": "0.22.6",
+    "tree_sitter": "0.26.3",
     "url": "https://github.com/MichaHoffmann/tree-sitter-hcl.git"
   },
   "html": {
