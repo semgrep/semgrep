@@ -37,3 +37,451 @@ policy = jsonencode({
 	        (object_start)
 		(object_elem (semgrep_ellipsis))
 		(object_end))))))))))
+
+=====================================
+Traversal metavariables with comments and index ellipsis
+=====================================
+
+__SEMGREP_EXPRESSION $X /* receiver */ . /* field */ $FIELD [ ... ]
+
+---
+
+(config_file
+  (semgrep_expression
+    (expression
+      (variable_expr
+        (identifier))
+      (comment)
+      (get_attr
+        (comment)
+        (identifier))
+      (index
+        (new_index
+          (expression
+            (semgrep_ellipsis)))))))
+
+=====================================
+Namespaced call with mixed pattern arguments
+=====================================
+
+__SEMGREP_EXPRESSION provider::local::fn($X, ..., <... $Y ...>)
+
+---
+
+(config_file
+  (semgrep_expression
+    (expression
+      (function_call
+        (identifier)
+        (function_arguments
+          (expression
+            (variable_expr
+              (identifier)))
+          (expression
+            (semgrep_ellipsis))
+          (expression
+            (deep_ellipsis
+              (expression
+                (variable_expr
+                  (identifier))))))))))
+
+=====================================
+Deep ellipsis around metavariable traversal
+=====================================
+
+__SEMGREP_EXPRESSION <... $X.$FIELD[$INDEX] ...>
+
+---
+
+(config_file
+  (semgrep_expression
+    (expression
+      (deep_ellipsis
+        (expression
+          (variable_expr
+            (identifier))
+          (get_attr
+            (identifier))
+          (index
+            (new_index
+              (expression
+                (variable_expr
+                  (identifier))))))))))
+
+=====================================
+Unary operation retains the complete traversal
+=====================================
+
+__SEMGREP_EXPRESSION !$X.$FIELD[$INDEX]
+
+---
+
+(config_file
+  (semgrep_expression
+    (expression
+      (operation
+        (unary_operation
+          (variable_expr
+            (identifier))
+          (get_attr
+            (identifier))
+          (index
+            (new_index
+              (expression
+                (variable_expr
+                  (identifier))))))))))
+
+=====================================
+Native argument expansion in a namespaced call
+=====================================
+
+__SEMGREP_EXPRESSION provider::local::fn(items...)
+
+---
+
+(config_file
+  (semgrep_expression
+    (expression
+      (function_call
+        (identifier)
+        (function_arguments
+          (expression
+            (variable_expr
+              (identifier)))
+          (ellipsis))))))
+
+=====================================
+Deep ellipsis in template interpolation
+=====================================
+
+value = "${<... $X.$FIELD ...>}"
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (template_expr
+          (quoted_template
+            (quoted_template_start)
+            (template_interpolation
+              (template_interpolation_start)
+              (expression
+                (deep_ellipsis
+                  (expression
+                    (variable_expr
+                      (identifier))
+                    (get_attr
+                      (identifier)))))
+              (template_interpolation_end))
+            (quoted_template_end)))))))
+
+=====================================
+Template directive and interpolation metavariables
+=====================================
+
+value = "%{ for $ITEM in $ITEMS }${$ITEM.$FIELD}%{ endfor }"
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (template_expr
+          (quoted_template
+            (quoted_template_start)
+            (template_directive
+              (template_for
+                (template_for_start
+                  (template_directive_start)
+                  (identifier)
+                  (expression
+                    (variable_expr
+                      (identifier)))
+                  (template_directive_end))
+                (template_interpolation
+                  (template_interpolation_start)
+                  (expression
+                    (variable_expr
+                      (identifier))
+                    (get_attr
+                      (identifier)))
+                  (template_interpolation_end))
+                (template_for_end
+                  (template_directive_start)
+                  (template_directive_end))))
+            (quoted_template_end)))))))
+
+=====================================
+Empty native string literal
+=====================================
+
+value = ""
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (literal_value
+          (string_lit
+            (quoted_template_start)
+            (quoted_template_end)))))))
+
+=====================================
+Native grouping ellipsis with metavariables
+=====================================
+
+__SEMGREP_EXPRESSION {for $K, $V in $ITEMS : $K => $V...}
+
+---
+
+(config_file
+  (semgrep_expression
+    (expression
+      (for_expr
+        (for_object_expr
+          (object_start)
+          (for_intro
+            (identifier)
+            (identifier)
+            (expression
+              (variable_expr
+                (identifier))))
+          (expression
+            (variable_expr
+              (identifier)))
+          (expression
+            (variable_expr
+              (identifier)))
+          (ellipsis)
+          (object_end))))))
+
+=====================================
+Conditional directive retains literal body
+=====================================
+
+x = "%{ if true }yes%{ endif }"
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (template_expr
+          (quoted_template
+            (quoted_template_start)
+            (template_directive
+              (template_if
+                (template_if_intro
+                  (template_directive_start)
+                  (expression
+                    (literal_value
+                      (bool_lit)))
+                  (template_directive_end))
+                (template_literal)
+                (template_if_end
+                  (template_directive_start)
+                  (template_directive_end))))
+            (quoted_template_end)))))))
+
+=====================================
+Escaped interpolation before conditional directive
+=====================================
+
+x = "hello $${world} %{ if true }yes%{ endif }"
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (template_expr
+          (quoted_template
+            (quoted_template_start)
+            (template_literal)
+            (template_directive
+              (template_if
+                (template_if_intro
+                  (template_directive_start)
+                  (expression
+                    (literal_value
+                      (bool_lit)))
+                  (template_directive_end))
+                (template_literal)
+                (template_if_end
+                  (template_directive_start)
+                  (template_directive_end))))
+            (quoted_template_end)))))))
+
+=====================================
+Nested directives with composed patterns and strip markers
+=====================================
+
+x = "%{~ if <... $COND.$FIELD ...> ~}%{ for $KEY, $ITEM in $ITEMS }${$ITEM[...]}%{ endfor }%{ else }no%{ endif ~}"
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (template_expr
+          (quoted_template
+            (quoted_template_start)
+            (template_directive
+              (template_if
+                (template_if_intro
+                  (template_directive_start)
+                  (strip_marker)
+                  (expression
+                    (deep_ellipsis
+                      (expression
+                        (variable_expr
+                          (identifier))
+                        (get_attr
+                          (identifier)))))
+                  (strip_marker)
+                  (template_directive_end))
+                (template_directive
+                  (template_for
+                    (template_for_start
+                      (template_directive_start)
+                      (identifier)
+                      (identifier)
+                      (expression
+                        (variable_expr
+                          (identifier)))
+                      (template_directive_end))
+                    (template_interpolation
+                      (template_interpolation_start)
+                      (expression
+                        (variable_expr
+                          (identifier))
+                        (index
+                          (new_index
+                            (expression
+                              (semgrep_ellipsis)))))
+                      (template_interpolation_end))
+                    (template_for_end
+                      (template_directive_start)
+                      (template_directive_end))))
+                (template_else_intro
+                  (template_directive_start)
+                  (template_directive_end))
+                (template_literal)
+                (template_if_end
+                  (template_directive_start)
+                  (strip_marker)
+                  (template_directive_end))))
+            (quoted_template_end)))))))
+
+=====================================
+Heredoc directives retain both branches and following attribute
+=====================================
+
+x = <<EOF
+%{ if $COND }
+yes
+%{ else }
+${$VALUE}
+%{ endif }
+EOF
+y = "after"
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (template_expr
+          (heredoc_template
+            (heredoc_start)
+            (heredoc_identifier)
+            (template_directive
+              (template_if
+                (template_if_intro
+                  (template_directive_start)
+                  (expression
+                    (variable_expr
+                      (identifier)))
+                  (template_directive_end))
+                (template_literal)
+                (template_else_intro
+                  (template_directive_start)
+                  (template_directive_end))
+                (template_interpolation
+                  (template_interpolation_start)
+                  (expression
+                    (variable_expr
+                      (identifier)))
+                  (template_interpolation_end))
+                (template_if_end
+                  (template_directive_start)
+                  (template_directive_end))))
+            (heredoc_identifier)))))
+    (attribute
+      (identifier)
+      (expression
+        (literal_value
+          (string_lit
+            (quoted_template_start)
+            (template_literal)
+            (quoted_template_end)))))))
+
+=====================================
+Empty directive bodies
+=====================================
+
+x = "%{ if $COND }%{ else }%{ endif }%{ for $ITEM in $ITEMS }%{ endfor }"
+
+---
+
+(config_file
+  (body
+    (attribute
+      (identifier)
+      (expression
+        (template_expr
+          (quoted_template
+            (quoted_template_start)
+            (template_directive
+              (template_if
+                (template_if_intro
+                  (template_directive_start)
+                  (expression
+                    (variable_expr
+                      (identifier)))
+                  (template_directive_end))
+                (template_else_intro
+                  (template_directive_start)
+                  (template_directive_end))
+                (template_if_end
+                  (template_directive_start)
+                  (template_directive_end))))
+            (template_directive
+              (template_for
+                (template_for_start
+                  (template_directive_start)
+                  (identifier)
+                  (expression
+                    (variable_expr
+                      (identifier)))
+                  (template_directive_end))
+                (template_for_end
+                  (template_directive_start)
+                  (template_directive_end))))
+            (quoted_template_end)))))))

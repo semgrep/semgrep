@@ -1,0 +1,6 @@
+locals {
+  lead     = bar("  x")
+  both     = bar("  x  ")
+  trail    = bar("x  ")
+  ws_only  = bar("   ")
+}
