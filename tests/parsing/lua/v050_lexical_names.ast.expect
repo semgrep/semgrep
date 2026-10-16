@@ -1,0 +1,256 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("caf\195\169", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]);
+                 id_type =
+                 ref ((Some { t =
+                              (TyN
+                                 (Id (("float", _),
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (Unknown);
+                                      id_flags = ref (0); id_info_id = _ }
+                                    )));
+                              t_attrs = [] }));
+                 id_svalue = ref (Unknown); id_flags = ref (0);
+                 id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (Static, _))]; tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e = (L (Float ((Some 1.), _))); e_id = 0; e_range = None;
+                    is_implicit_return = false; facts = <opaque> });
+            vtype = None; vtok = None })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("next", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = [(KeywordAttr (Static, _))]; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e =
+                     (Call (
+                        { e =
+                          (N
+                             (Id (("f", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        (_, [], _)));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("self", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = [(KeywordAttr (Static, _))]; tparams = None },
+        (VarDef { vinit = None; vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("_G", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = [(KeywordAttr (Static, _))]; tparams = None },
+        (VarDef { vinit = None; vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("_VERSION", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = [(KeywordAttr (Static, _))]; tparams = None },
+        (VarDef { vinit = None; vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Call (
+            { e =
+              (N
+                 (Id (("next", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None);
+                      id_svalue =
+                      ref ((Sym
+                              { e =
+                                (Call (
+                                   { e =
+                                     (N
+                                        (Id (("f", _),
+                                           { id_resolved = ref (None);
+                                             id_resolved_alternatives =
+                                             ref ([]); id_type = ref (None);
+                                             id_svalue = ref (Unknown);
+                                             id_flags = ref (0);
+                                             id_info_id = _ }
+                                           )));
+                                     e_id = 0; e_range = None;
+                                     is_implicit_return = false;
+                                     facts = <opaque> },
+                                   (_, [], _)));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                }));
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            (_,
+             [(Arg
+                 { e =
+                   (N
+                      (Id (("self", _),
+                         { id_resolved = ref ((Some (Global, _)));
+                           id_resolved_alternatives = ref ([]);
+                           id_type = ref (None); id_svalue = ref (Unknown);
+                           id_flags = ref (0); id_info_id = _ }
+                         )));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> })
+               ],
+             _)
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("global", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = [(KeywordAttr (Static, _))]; tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Float ((Some 2.), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("global", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs = []; tparams = None },
+        (FuncDef
+           { fkind = (Function, _); fparams = (_, [], _); frettype = None;
+             fbody = (FBStmt { s = (Block (_, [], _)); s_range = None }) })));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("x", _),
+                    { id_resolved = ref (None);
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (0); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (N
+                 (IdQualified
+                    { name_last = (("global", _), None);
+                      name_middle =
+                      (Some (QExpr (
+                               { e =
+                                 (N
+                                    (Id (("t", _),
+                                       { id_resolved = ref (None);
+                                         id_resolved_alternatives = ref ([]);
+                                         id_type = ref (None);
+                                         id_svalue = ref (Unknown);
+                                         id_flags = ref (0); id_info_id = _ }
+                                       )));
+                                 e_id = 0; e_range = None;
+                                 is_implicit_return = false; facts = <opaque>
+                                 },
+                               _)));
+                      name_top = None;
+                      name_info =
+                      { id_resolved = ref (None);
+                        id_resolved_alternatives = ref ([]);
+                        id_type = ref (None); id_svalue = ref (Unknown);
+                        id_flags = ref (0); id_info_id = _ }
+                      }));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None }
+  ]

@@ -1,0 +1,222 @@
+[{ s =
+   (DefStmt
+      ({ name =
+         (EN
+            (Id (("kept", _),
+               { id_resolved = ref ((Some (Global, _)));
+                 id_resolved_alternatives = ref ([]);
+                 id_type =
+                 ref ((Some { t =
+                              (TyN
+                                 (Id (("float", _),
+                                    { id_resolved = ref (None);
+                                      id_resolved_alternatives = ref ([]);
+                                      id_type = ref (None);
+                                      id_svalue = ref (Unknown);
+                                      id_flags = ref (0); id_info_id = _ }
+                                    )));
+                              t_attrs = [] }));
+                 id_svalue = ref (Unknown); id_flags = ref (4);
+                 id_info_id = _ }
+               )));
+         attrs = [(KeywordAttr (Static, _)); (KeywordAttr (Const, _))];
+         tparams = None },
+       (VarDef
+          { vinit =
+            (Some { e = (L (Float ((Some 1.), _))); e_id = 0; e_range = None;
+                    is_implicit_return = false; facts = <opaque> });
+            vtype = None; vtok = None })));
+   s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("closed", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (4);
+                  id_info_id = _ }
+                )));
+          attrs =
+          [(KeywordAttr (Static, _)); (KeywordAttr (Const, _));
+            (NamedAttr (_,
+               (Id (("close", _),
+                  { id_resolved = ref (None);
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (Unknown);
+                    id_flags = ref (0); id_info_id = _ }
+                  )),
+               (_, [], _)))
+            ];
+          tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e =
+                     (Call (
+                        { e =
+                          (N
+                             (Id (("open", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        (_, [], _)));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("plain", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (4);
+                  id_info_id = _ }
+                )));
+          attrs = [(KeywordAttr (Static, _)); (KeywordAttr (Const, _))];
+          tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Float ((Some 1.), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("only_close", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]); id_type = ref (None);
+                  id_svalue = ref (Unknown); id_flags = ref (0);
+                  id_info_id = _ }
+                )));
+          attrs =
+          [(KeywordAttr (Static, _));
+            (NamedAttr (_,
+               (Id (("close", _),
+                  { id_resolved = ref (None);
+                    id_resolved_alternatives = ref ([]);
+                    id_type = ref (None); id_svalue = ref (Unknown);
+                    id_flags = ref (0); id_info_id = _ }
+                  )),
+               (_, [], _)))
+            ];
+          tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e =
+                     (Call (
+                        { e =
+                          (N
+                             (Id (("open", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        (_, [], _)));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("limit", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (4);
+                  id_info_id = _ }
+                )));
+          attrs =
+          [(NamedAttr (_,
+              (Id (("global", _),
+                 { id_resolved = ref (None);
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }
+                 )),
+              (_, [], _)));
+            (KeywordAttr (Const, _))];
+          tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Float ((Some 10.), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None };
+  { s =
+    (DefStmt
+       ({ name =
+          (EN
+             (Id (("extra", _),
+                { id_resolved = ref ((Some (Global, _)));
+                  id_resolved_alternatives = ref ([]);
+                  id_type =
+                  ref ((Some { t =
+                               (TyN
+                                  (Id (("float", _),
+                                     { id_resolved = ref (None);
+                                       id_resolved_alternatives = ref ([]);
+                                       id_type = ref (None);
+                                       id_svalue = ref (Unknown);
+                                       id_flags = ref (0); id_info_id = _ }
+                                     )));
+                               t_attrs = [] }));
+                  id_svalue = ref (Unknown); id_flags = ref (4);
+                  id_info_id = _ }
+                )));
+          attrs =
+          [(NamedAttr (_,
+              (Id (("global", _),
+                 { id_resolved = ref (None);
+                   id_resolved_alternatives = ref ([]); id_type = ref (None);
+                   id_svalue = ref (Unknown); id_flags = ref (0);
+                   id_info_id = _ }
+                 )),
+              (_, [], _)));
+            (KeywordAttr (Const, _))];
+          tparams = None },
+        (VarDef
+           { vinit =
+             (Some { e = (L (Float ((Some 1.), _))); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> });
+             vtype = None; vtok = None })));
+    s_range = None }
+  ]

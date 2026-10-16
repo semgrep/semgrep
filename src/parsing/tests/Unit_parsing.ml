@@ -259,7 +259,6 @@ let langs_with_error_tolerance =
     (Lang.Csharp, Strict);
     (Lang.Dockerfile, Strict);
     (Lang.Lua, Strict);
-    (Lang.Lua, Todo);
     (Lang.Move_on_aptos, Strict);
     (Lang.Circom, Strict);
     (Lang.Rust, Strict);
