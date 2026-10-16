@@ -26,8 +26,36 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
+# First characters of the version string the requirements.txt parser reports
+# for a requirement that is not pinned to a single release: the PEP 440
+# comparators and wildcard, e.g. ">=2.0", "~=1.26", "==2.2.*". A bare name is
+# reported as "". Mirrors `is_version_range` in semgrep-app, which applies the
+# same shapes to pypi rows for the Dependencies page and SBOM export.
+UNPINNED_VERSION_LEADING_CHARS = "<>!~=*"
+
+
+def is_unpinned_version(version: str) -> bool:
+    """
+    Whether a reported dependency version names no definitive installed
+    version: an empty string or a version specifier such as ">=2.0".
+
+    Such a dependency stays in the inventory and the SBOM. What it is not is
+    matched for the purpose of generating a finding: it has no definitive
+    installed version to compare against an advisory's range, so
+    `is_in_range` returns False for it. Reporting it instead as "possibly
+    affected" when its declared range overlaps the advisory's range is a
+    product decision still open under SC-4200; this predicate is where that
+    would branch.
+    """
+    stripped = version.strip()
+    return stripped == "" or stripped[0] in UNPINNED_VERSION_LEADING_CHARS
+
 
 def is_in_range(ecosystem: Ecosystem, range: str, version: str) -> bool:
+    # An unpinned version is a specifier, not a release, so it never matches
+    # for the purpose of generating a finding; see is_unpinned_version.
+    if is_unpinned_version(version):
+        return False
     if ecosystem == Ecosystem(out.Npm()):
         # This is suitable for SemVer-compliant ecosystems that implement
         # the same weird math as NPM for version comparisons. Make sure
