@@ -1,2 +1,0 @@
-pro: Historical secrets scanning no longer aborts when preparatory `git gc`
-fails.

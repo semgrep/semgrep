@@ -1,5 +1,0 @@
-Supply Chain: lockfileless Gradle resolution now tells the dependency graph
-plugin where to write its report, so builds that relocate their build
-directory resolve instead of failing. When the plugin writes no report, the
-scan reports a resolution error that includes the Gradle log instead of
-crashing on the missing file.
