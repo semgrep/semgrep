@@ -87,7 +87,7 @@
     "url": "https://github.com/returntocorp/tree-sitter-dockerfile.git"
   },
   "elixir": {
-    "commit": "b848e63e9f2a68accff0332392f07582c046295a",
+    "commit": "e2d9e6e0e76b0c436fa48a0b8c32a031d0cbdf49",
     "regen": [
       "elixir"
     ],
