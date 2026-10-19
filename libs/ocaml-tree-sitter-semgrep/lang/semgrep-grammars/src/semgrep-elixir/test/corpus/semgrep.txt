@@ -75,3 +75,40 @@ end
     (arguments (identifier))
     (do_block (call (identifier)
     	      (arguments (integer) (deep_ellipsis (integer)) (integer))))))
+
+=====================================
+Composed metavariables and ellipses
+=====================================
+
+$MODULE.$FUN($ARG, <... $VALUE ...>, key: $VALUE, ...)
+%{$KEY: $VALUE, ...}
+
+---
+
+(source
+  (call
+    (dot (identifier) (identifier))
+    (arguments
+      (identifier)
+      (deep_ellipsis (identifier))
+      (keywords
+        (pair (keyword) (identifier))
+        (pair (semgrep_ellipsis)))))
+  (map
+    (map_content
+      (keywords
+        (pair (metavariable_keyword) (identifier))
+        (pair (semgrep_ellipsis))))))
+
+=====================================
+Native ellipsis identifiers
+=====================================
+
+[...]
+...()
+
+---
+
+(source
+  (list (identifier))
+  (call (identifier) (arguments)))
