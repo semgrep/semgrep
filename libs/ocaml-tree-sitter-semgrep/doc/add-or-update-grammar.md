@@ -140,6 +140,36 @@ module.exports = grammar(base, {
 });
 ```
 
+Create `tree-sitter.json` beside `grammar.js`. ABI 15 requires semantic-version
+metadata; tree-sitter validates it when generating.
+
+```json
+{
+  "grammars": [
+    { "name": "mylang", "scope": "source.mylang", "path": "." }
+  ],
+  "metadata": {
+    "version": "0.0.0",
+    "license": "LGPL-2.1",
+    "description": "Semgrep-extended mylang grammar for tree-sitter",
+    "authors": [{ "name": "Semgrep" }],
+    "links": { "repository": "https://github.com/semgrep/semgrep" }
+  },
+  "bindings": {
+    "c": true,
+    "go": false,
+    "node": false,
+    "python": false,
+    "rust": false,
+    "swift": false
+  }
+}
+```
+
+Use one metadata file beside each `grammar.js` in a multi-dialect wrapper.
+Tree-sitter >= 0.25 generates ABI 15 from this metadata; older pinned CLIs
+retain their supported ABI. Semgrep's shared runtime accepts ABIs 13 through 15.
+
 This initially inherits the upstream grammar unchanged. Extend `rules` to accept
 Semgrep metavariables and ellipses in the appropriate language constructs. Add
 corpus tests with input and expected syntax trees under the wrapper's

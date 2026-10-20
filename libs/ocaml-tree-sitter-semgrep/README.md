@@ -88,22 +88,20 @@ Core's own CLI build and the opam runtime package are unchanged.
 
 ### tree-sitter ABI 15
 
-ABI 15 is **off by default**. To opt in for a build, set the
-environment variable `SEMGREP_ENABLE_ABI15`. Accepted truthy values:
-`1`, `true`, `yes`, `on` (and their uppercase forms).
-
-Selection is implemented in `scripts/generate_abi_args.py` (CLI:
-`scripts/ts-generate-abi-args`). End-to-end ABI 15 generation
-requires tree-sitter >= 0.25.0.
-
-The following table explains the decision matrix for the tree-sitter bindings/ABI
-parameter.
+Each Semgrep wrapper grammar has a `tree-sitter.json` containing the language
+metadata required by ABI 15. Wrapper and definitive generation select ABI from
+that metadata and the pinned tree-sitter version; tree-sitter itself validates
+the metadata when generating.
 
 | Condition | ABI |
 |--|--|
-| Grammar ships a `tree-sitter.json` **and** `SEMGREP_ENABLE_ABI15` is set **and** pinned tree-sitter >= 0.25.0 | 15 |
+| Grammar ships `tree-sitter.json` and pinned tree-sitter >= 0.25.0 | 15 |
 | tree-sitter >= 0.24.0 (otherwise) | 14 |
 | older tree-sitter | `--no-bindings` (no ABI flag) |
+
+The shared 0.26.3 runtime accepts parser ABIs 13 through 15. Existing committed
+parsers remain at their current ABI until their language is regenerated; a
+grammar update regenerates only its configured destinations.
 
 ### Adding a new language
 

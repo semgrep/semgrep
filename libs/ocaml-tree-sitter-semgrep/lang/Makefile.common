@@ -63,6 +63,7 @@ test: parse-examples
 # A source grammar.json in semgrep-grammars is not required by gen-c, that's
 # why the following recipe is complicated.
 TS_PARSER_SRC = ../semgrep-grammars/lang/$(LANG)/src/grammar.json
+TS_METADATA = ../semgrep-grammars/lang/$(LANG)/tree-sitter.json
 .PHONY: grammar-tools wrapper
 grammar-tools:
 	$(MAKE) -C $(PROJECT_ROOT)/../.. grammar-tools
@@ -76,6 +77,7 @@ gen-c: grammar-tools wrapper
 	if [ ! -e src/parser.c ] \
           || [ ! -e "$(TS_PARSER_SRC)" ] \
           || [ "$(TS_PARSER_SRC)" -nt src/parser.c ] \
+          || [ "$(TS_METADATA)" -nt src/parser.c ] \
           || [ $(SCRIPTS)/ocaml-tree-sitter-gen-c -nt src/parser.c ] \
           || [ $(OCAML_TREE_SITTER_BINDIR)/ocaml-tree-sitter -nt src/parser.c ]; then \
 	  $(SCRIPTS)/ocaml-tree-sitter-gen-c; \

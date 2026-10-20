@@ -1,0 +1,30 @@
+{
+  "grammars": [
+    {
+      "name": "r",
+      "scope": "source.r",
+      "path": "."
+    }
+  ],
+  "metadata": {
+    "version": "0.0.0",
+    "license": "LGPL-2.1",
+    "description": "Semgrep-extended r grammar for tree-sitter",
+    "authors": [
+      {
+        "name": "Semgrep"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/semgrep/semgrep"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": false,
+    "node": false,
+    "python": false,
+    "rust": false,
+    "swift": false
+  }
+}

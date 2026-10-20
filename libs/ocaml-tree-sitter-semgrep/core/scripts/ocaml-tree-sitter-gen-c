@@ -28,40 +28,36 @@ ts_version_at_least() {
     | sort -V -C 2>/dev/null
 }
 
-# Returns 0 if ABI 15 generation is enabled via the environment, 1 otherwise.
-# ABI 15 is off by default: we are not yet ready to ship ABI 15 parsers. See
-# the "tree-sitter ABI 15" section of the repository-root README.
-abi15_enabled() {
-  case "${SEMGREP_ENABLE_ABI15:-}" in
-    1|true|TRUE|yes|YES|on|ON) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 # Determine the ABI to use for all tree-sitter generate calls.
-# ABI 15 requires >= 0.25.0, is signalled by a tree-sitter.json file, and is
-# only used when SEMGREP_ENABLE_ABI15 is set.
+# ABI 15 requires >= 0.25.0 and tree-sitter.json metadata.
 # ABI 14 requires >= 0.24.0 (the release that introduced the --abi flag).
 # Older versions use --no-bindings instead.
-if [[ -f tree-sitter.json ]] && abi15_enabled; then
-  if ! ts_version_at_least 0.25.0; then
-    _s="${BASH_SOURCE[0]}"
-    [[ -L "$_s" ]] && _s="$(dirname "$_s")/$(readlink "$_s")"
-    script_dir=$(cd "$(dirname "$_s")" && pwd)
-    unset _s
-    cat >&2 <<EOF
-Error: $name uses ABI 15 (tree-sitter.json present, SEMGREP_ENABLE_ABI15 set)
-and requires tree-sitter >= 0.25.0.
-The currently installed version is too old. Provision with:
-  $script_dir/provision-tree-sitter 0.26.3
-EOF
-    exit 1
-  fi
+metadata_source=
+if [[ -f tree-sitter.json ]]; then
+  metadata_source=tree-sitter.json
+elif [[ -f "$import_from/tree-sitter.json" ]]; then
+  metadata_source="$import_from/tree-sitter.json"
+fi
+
+if [[ -n "$metadata_source" ]] && ts_version_at_least 0.25.0; then
   ts_abi=15
 elif ts_version_at_least 0.24.0; then
   ts_abi=14
 else
   ts_abi=""
+fi
+
+metadata_link_created=false
+cleanup_metadata() {
+  if $metadata_link_created; then
+    rm -f tree-sitter.json
+  fi
+}
+trap cleanup_metadata EXIT
+
+if [[ "$ts_abi" == 15 && "$metadata_source" != tree-sitter.json ]]; then
+  ln -s "$metadata_source" tree-sitter.json
+  metadata_link_created=true
 fi
 
 tree_sitter_generate() {
