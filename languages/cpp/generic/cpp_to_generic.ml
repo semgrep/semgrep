@@ -1211,6 +1211,17 @@ and map_condition_clause env (v1, v2) : G.condition =
       let inits = map_condition_initializer env init in
       OtherCond (("OtherCond", G.fake "OtherCond"), inits @ [ G.E subject ])
 
+(* Used by both variable declarations and range-loop headers. *)
+and map_structured_binding_pattern env ty names : G.pattern =
+  let ty = map_type_ env ty in
+  let l, ids, r = map_bracket env (map_of_list (map_ident env)) names in
+  let pat =
+    G.PatTuple
+      (l, ids |> List.map (fun id -> G.PatId (id, G.empty_id_info ())), r)
+  in
+  (* TODO: the type is the type of all bindings or type of init? *)
+  G.PatTyped (pat, ty)
+
 and map_for_header env = function
   | ForEllipsis v1 -> G.ForEllipsis v1
   | ForClassic (v1, v2, v3) ->
@@ -1218,23 +1229,38 @@ and map_for_header env = function
       and v2 = map_of_option (map_expr env) v2
       and v3 = map_of_option (map_expr env) v3 in
       G.ForClassic (v1, v2, v3)
-  | ForRange (v1, (ty, ent), v3, v4) ->
+  | ForRange (v1, binding, v3, v4) ->
       (* TODO: We cannot accommodate this in the Generic AST at the present. *)
       let _initialiser_TODO =
         map_of_option (map_condition_initializer env) v1
       in
-      let ent = map_entity env ent
-      and ty = map_type_ env ty
-      and v2 = map_tok env v3
-      and v4 = map_initialiser env v4 in
-      (* TODO: use the other stuff in the entity? *)
       let pat =
-        match ent.name with
-        | EN (Id (id, idinfo)) -> G.PatId (id, idinfo) |> G.p
-        | _ -> G.OtherPat (("PatEnt", G.fake "PatEnt"), [ G.En ent ]) |> G.p
+        match binding with
+        | BindingName (ty, ent) ->
+            let ent = map_entity env ent in
+            let ty = map_type_ env ty in
+            (* The entity may also contain declaration specifiers in attrs.
+             * Type qualifiers are already in ty; G.ForEach's pattern has no
+             * place for declaration attributes or storage modifiers.
+             *)
+            let pat =
+              match ent.name with
+              | EN (Id (id, idinfo)) -> G.PatId (id, idinfo) |> G.p
+              | _ ->
+                  G.OtherPat (("PatEnt", G.fake "PatEnt"), [ G.En ent ]) |> G.p
+            in
+            G.PatTyped (pat, ty) |> G.p
+        | BindingStructured (ty, (l, (id, ids), r)) ->
+            map_structured_binding_pattern env ty (l, id :: ids, r)
       in
+      let colon = map_tok env v3 in
+      let iter = map_initialiser env v4 in
+      (* The pattern binds each element obtained from iter. A map yields pairs,
+       * but other ranges can yield arrays or aggregates, so iter remains the
+       * source range expression rather than a synthetic pair expression.
+       *)
       (* less: or ForEach? *)
-      G.ForEach (G.PatTyped (pat, ty) |> G.p, v2, v4)
+      G.ForEach (pat, colon, iter)
 
 and map_a_expr_or_vars (env : env) (v : a_expr_or_vars) : G.for_var_or_expr list
     =
@@ -1488,15 +1514,8 @@ and map_onedecl env x : G.definition list =
       let ent, vardef = map_var_decl env v1 in
       [ (ent, G.VarDef vardef) ]
   | StructuredBinding (v1, v2, v3) ->
-      let v1 = map_type_ env v1 in
-      let l, xs, r = map_bracket env (map_of_list (map_ident env)) v2 in
+      let pat = map_structured_binding_pattern env v1 v2 in
       let v3 = map_init env v3 in
-      let pat =
-        G.PatTuple
-          (l, xs |> List.map (fun id -> G.PatId (id, G.empty_id_info ())), r)
-      in
-      (* TODO: the type is the type of all bindings or type of init? *)
-      let pat = G.PatTyped (pat, v1) in
       let ent = { G.name = G.EPattern pat; attrs = []; tparams = None } in
       (* TODO? use v1 for vtype? *)
       let def = G.VarDef { G.vinit = Some v3; vtype = None; vtok = G.no_sc } in

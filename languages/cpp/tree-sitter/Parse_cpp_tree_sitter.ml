@@ -241,10 +241,7 @@ let name_of_dname_for_function dn =
 let name_of_dname_for_var _env dn =
   match dn with
   | DN n -> n
-  | DNStructuredBinding (l, (_id, _xs), _) ->
-      (* TODO: this can happen in ForRange; we should change
-       * the type of ForRange to accept possible StructuredBindings.
-       *)
+  | DNStructuredBinding (l, _, _) ->
       error l "single name expected for simple var"
 
 (* name_of_id id *)
@@ -302,12 +299,18 @@ let trailing_comma env v =
   | Some tok -> token env tok (* "," *) |> ignore
   | None -> ()
 
+(* Keep the binding shape for both declarations and range-loop headers. *)
+let make_declaration_binding ~v_name ~v_type ~v_specs =
+  match v_name with
+  | DN n -> BindingName (v_type, { name = n; specs = v_specs })
+  | DNStructuredBinding ids -> BindingStructured (v_type, ids)
+
 let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
-  match (v_name, v_init) with
-  | DN n, _ -> V ({ name = n; specs = v_specs }, { v_type; v_init })
-  | DNStructuredBinding (l, (id, ids), r), Some ini ->
+  match (make_declaration_binding ~v_name ~v_type ~v_specs, v_init) with
+  | BindingName (v_type, ent), _ -> V (ent, { v_type; v_init })
+  | BindingStructured (v_type, (l, (id, ids), r)), Some ini ->
       StructuredBinding (v_type, (l, id :: ids, r), ini)
-  | DNStructuredBinding (_, (id, _), _), None ->
+  | BindingStructured (v_type, (_, (id, _), _)), None ->
       (* see expecting_init.cpp for example of code badly parsed
        * by tree-sitter which then leads to this error. Note that
        * I don't use error_unless_partial_error because even without
@@ -3806,9 +3809,10 @@ and map_for_range_loop_body (env : env)
   let v3 = map_declarator env v3 in
   let v4 = (* ":" *) token env v4 in
   let v5 = map_anon_choice_exp_3078596 env v5 in
-  let n = name_of_dname_for_var env v3.dn in
-  let ent = { name = n; specs } in
-  ForRange (v1, (v3.dt t, ent), v4, v5)
+  let binding =
+    make_declaration_binding ~v_name:v3.dn ~v_type:(v3.dt t) ~v_specs:specs
+  in
+  ForRange (v1, binding, v4, v5)
 
 and map_for_statement (env : env) ((v1, v2, v3, v4, v5) : CST.for_statement) =
   let v1 =

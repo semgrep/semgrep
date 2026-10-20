@@ -1,0 +1,3 @@
+for ($TYPE [$KEY, $VALUE] : $VALUES) {
+  ...
+}

@@ -519,15 +519,18 @@ and condition_clause = condition_initializer option * condition_subject
 
 and for_header =
   | ForClassic of a_expr_or_vars * expr option * expr option
-  (* c++0x? TODO: var_decl can be DStructrured_binding with vinit = None  *)
   | ForRange of
-      (* since c++20 *)
-      condition_initializer option
-      * (type_ * entity)
+      condition_initializer option (* since C++20 *)
+      * declaration_binding
       * tok (*':'*)
       * initialiser
   (* sgrep-ext: *)
   | ForEllipsis of tok (* ... *)
+
+(** A variable declaration's single name or full structured binding. *)
+and declaration_binding =
+  | BindingName of type_ * entity
+  | BindingStructured of type_ * (ident * ident list) bracket
 
 and a_expr_or_vars = (expr_stmt, vars_decl) Either_.t
 and a_label = string wrap
