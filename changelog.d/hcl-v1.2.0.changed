@@ -1,5 +1,0 @@
-hcl grammar update (v1.2.0):
-
-- Terraform target parsing now supports namespaced function calls such as provider::local::fn(...).
-- Terraform parsing now represents conditional and loop template directives with their conditions, binders, and bodies.
-- Terraform parsing now binds attribute and index traversal more tightly than unary operators.
