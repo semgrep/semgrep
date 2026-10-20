@@ -1,0 +1,1 @@
+Fix C++ range-based for loops with structured bindings so they parse and preserve findings in the rest of the file.

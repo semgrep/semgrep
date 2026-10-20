@@ -80,7 +80,7 @@ let just_parse_with_lang lang file : Parsing_result2.t =
         tolerated_errors = [];
         stat = Parsing_stat.default_stat !!file;
       }
-  (* Menhir and Tree-sitter *)
+  (* Tree-sitter for C and C++ targets; Menhir is used for patterns. *)
   | Lang.C
   | Lang.Cpp ->
       run file [ TreeSitter Parse_cpp_tree_sitter.parse ] Cpp_to_generic.program
