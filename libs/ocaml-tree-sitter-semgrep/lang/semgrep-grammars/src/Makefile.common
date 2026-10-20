@@ -28,11 +28,9 @@ endif
 export CXX
 
 # Per-grammar build. The tree-sitter binary comes from the version directory
-# that owns the grammar. ABI selection:
-#   - ABI 15 only when the grammar ships a tree-sitter.json AND ABI 15 is
-#     enabled via the SEMGREP_ENABLE_ABI15 environment variable (see the
-#     "tree-sitter ABI 15" section of the repository-root README). This is
-#     off by default: we are not yet ready to ship ABI 15 parsers.
+# that owns the grammar. ABI selection (tree-sitter validates metadata itself):
+#   - ABI 15 when the grammar ships a tree-sitter.json and uses tree-sitter
+#     >= 0.25.0.
 #   - ABI 14 otherwise, for tree-sitter >= 0.24.0 (which introduced --abi).
 #   - --no-bindings for older tree-sitter.
 .PHONY: build
@@ -49,8 +47,16 @@ build: prep
 	  fi; \
 	  echo "Generate parser in $$(pwd)/$$dir (tree-sitter $$ts_version)"; \
 	  if ! [ -e "$$dir/src/parser.c" ] \
-	     || [ "$$dir/grammar.js" -nt "$$dir/src/parser.c" ]; then \
-	    gen_args=$$($(LANG_SCRIPTS)/ts-generate-abi-args "$$dir" "$$ts_version"); \
+	     || [ "$$dir/grammar.js" -nt "$$dir/src/parser.c" ] \
+	     || [ "$$dir/tree-sitter.json" -nt "$$dir/src/parser.c" ]; then \
+	    if [ -f "$$dir/tree-sitter.json" ] \
+	       && printf '%s\n%s\n' 0.25.0 "$$ts_version" | sort -V -C 2>/dev/null; then \
+	      gen_args=--abi=15; \
+	    elif printf '%s\n%s\n' 0.24.0 "$$ts_version" | sort -V -C 2>/dev/null; then \
+	      gen_args=--abi=14; \
+	    else \
+	      gen_args=--no-bindings; \
+	    fi; \
 	    echo "  Running in $$dir: tree-sitter generate $$gen_args"; \
 	    (cd "$$dir" \
 	     && PATH="$$ts_bindir:$$PATH" \
