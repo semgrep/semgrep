@@ -36,6 +36,11 @@ val output_core_results :
 
 val maybe_with_eio : ?rules:Rule.rules -> (Core_scan_config.t -> 'a) -> 'a
 
+val curl_telemetry_supported : Platform.kernel -> bool
+(** Whether the curl OTel exporter, used for tracing with [-use_parmap], may
+    run on [kernel]. Only true on Linux; elsewhere tracing requires the Eio
+    exporter. *)
+
 val maybe_with_tracing :
   string ->
   string ->

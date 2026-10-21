@@ -675,6 +675,17 @@ let maybe_with_eio ?rules (f : Core_scan_config.t -> 'a) : 'a =
         Logs_threaded.enable ();
         f { config with par_conf = Parallelism_config.create env })
 
+let curl_telemetry_supported (kernel : Platform.kernel) : bool =
+  (* Curl TLS bypasses Ca_certs.authenticator. On macOS and Windows we cannot
+     ensure its trust store excludes compromised eMudhra roots, so disable it.
+     Linux relies on patched host/image CA stores. *)
+  match kernel with
+  | Linux -> true
+  | Darwin
+  | Windows
+  | OtherKernel _ ->
+      false
+
 let maybe_with_tracing function_name engine analysis_flags
     (config : Core_scan_config.t) (f : Core_scan_config.t -> 'a) : 'a =
   match config.telemetry with
@@ -688,9 +699,9 @@ let maybe_with_tracing function_name engine analysis_flags
           ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
           ~eio ()
       in
-      let configure_otel ?eio_sw_base () =
-        Telemetry.configure_otel ?eio_sw_base ~attrs:resource_attrs
-          "semgrep-core" tracing.endpoint
+      let configure_otel ?eio_sw_base ?curl_supported () =
+        Telemetry.configure_otel ?eio_sw_base ?curl_supported
+          ~attrs:resource_attrs "semgrep-core" tracing.endpoint
       in
       let run () =
         if is_rpc_call () then
@@ -703,7 +714,9 @@ let maybe_with_tracing function_name engine analysis_flags
               f { config with telemetry = Some telemetry })
       in
       if not eio then (
-        configure_otel ();
+        configure_otel
+          ~curl_supported:(curl_telemetry_supported (Platform.kernel ()))
+          ();
         run ())
       else
         Eio.Switch.run (fun sw ->

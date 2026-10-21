@@ -54,20 +54,21 @@ type config = {
 }
 [@@deriving show]
 
+type exporter_backend = Curl | Eio | No_exporter [@@deriving show]
+
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
-(* The endpoint that otel traces will be sent to. This should only ever be set
-   in configure_otel, which is called once, at the beginning. The ref isn't
-   nice, but we need it to start and stop tracing without having to pass around
-   an env. See [with_otel_paused]
+(* Recreates the configured exporter after [with_otel_paused], preserving its
+   backend and environment. None when export is disabled. Eio restarts require
+   the original switch to remain open.
 
    TODO(SAF-1938): This is a Domain-local value in order to more closely match
    with ParMap (which re-creates its own endpoint after forking in order to
    pull random seeds - see [restart_otel]).  Once we are using multicore by
    default, we should revisit this.
    *)
-let active_endpoint = Domain.DLS.new_key (Fun.const None)
+let active_restart_exporter = Domain.DLS.new_key (Fun.const None)
 
 (* [Sdk.remove] returns before the queue drains, each client's
    [remove_exporter] blocks until it has. Remember which one to call. *)
@@ -218,6 +219,9 @@ let stop_otel () =
     | Some remove_exporter -> remove_exporter ()
     | None -> Otel.Sdk.remove ~on_done:Fun.id ())
 
+let select_exporter_backend ~curl_supported ~eio =
+  if eio then Eio else if curl_supported then Curl else No_exporter
+
 (* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
 let setup_otel ?eio_sw_base trace_endpoint =
   let url = Uri.to_string trace_endpoint in
@@ -240,10 +244,6 @@ let setup_otel ?eio_sw_base trace_endpoint =
         in
         (exporter, remove_exporter, config)
   in
-  (* hack: let's just keep track of the endpoint for if we restart tracing
-     instead of having to pass it down everywhere. We will assume that we will
-     only ever report to one endpoint for the lifetime of the program *)
-  Domain.DLS.set active_endpoint (Some trace_endpoint);
   Domain.DLS.set active_remove_exporter (Some remove_exporter);
   (* We bypass the client's setup helper, so pass its batching config through
      ourselves; it carries the OTEL_* env var settings. *)
@@ -280,8 +280,7 @@ let eio_ambient_storage : Opentelemetry_ambient_context.Storage.t =
   }
 
 (* Set according to README of https://github.com/ocaml-tracing/ocaml-opentelemetry/ *)
-let configure_otel ?eio_sw_base ?(attrs : (string * user_data) list = [])
-    service_name trace_endpoint =
+let configure_exporter ?eio_sw_base ~attrs service_name trace_endpoint =
   set_global_attr_from_env ();
   Otel.Globals.service_name := service_name;
   Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
@@ -301,7 +300,24 @@ let configure_otel ?eio_sw_base ?(attrs : (string * user_data) list = [])
     | Some _ -> eio_ambient_storage
   in
   Opentelemetry_ambient_context.set_current_storage ambient_storage_provider;
-  setup_otel ?eio_sw_base trace_endpoint
+  setup_otel ?eio_sw_base trace_endpoint;
+  Domain.DLS.set active_restart_exporter
+    (Some (fun () -> setup_otel ?eio_sw_base trace_endpoint))
+
+let configure_otel ?eio_sw_base ?(curl_supported = false)
+    ?(attrs : (string * user_data) list = []) service_name trace_endpoint =
+  match
+    select_exporter_backend ~curl_supported ~eio:(Option.is_some eio_sw_base)
+  with
+  | No_exporter ->
+      Domain.DLS.set active_restart_exporter None;
+      Log.warn (fun m ->
+          m
+            "Tracing export is unavailable on this platform without the Eio \
+             backend; no telemetry will be sent")
+  | Curl
+  | Eio ->
+      configure_exporter ?eio_sw_base ~attrs service_name trace_endpoint
 
 let restart_otel () =
   (* We must re-initialize the randomness on restart since this usually happens
@@ -311,10 +327,10 @@ let restart_otel () =
   let new_random_state = Random.State.make_self_init () in
   Otel.Core.Rand_bytes.rand_bytes_8_ref := mk_rand_bytes_8 new_random_state;
   Otel.Core.Rand_bytes.rand_bytes_16_ref := mk_rand_bytes_16 new_random_state;
-  Domain.DLS.get active_endpoint
-  |> Option.iter (fun endpoint ->
+  Domain.DLS.get active_restart_exporter
+  |> Option.iter (fun restart ->
       Log.info (fun m -> m "Restarting tracing");
-      setup_otel endpoint)
+      restart ())
 
 (* Otel SOMETIMES segfaults if the traced process forks while the collector is running. So we
    need to stop the backends before forking, then continue after forking is
