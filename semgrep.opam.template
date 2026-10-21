@@ -19,8 +19,8 @@ pin-depends: [
   (* TODO: Once we start releasing this as an opam package and it's stable
      we should just install these as normal opam packages instead of a submodule *)
   (* coupling: makefile pyro-caml-install commit sha for the pyro-caml binary *)
-  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#940d19cc1b22b56762ddb51a591d1a8f1fab10b5"]
-  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#940d19cc1b22b56762ddb51a591d1a8f1fab10b5"]
+  ["pyro-caml-instruments.dev" "git+https://github.com/semgrep/pyro-caml.git#5a182955404a24cfc92f4d401b2ef12be8d96149"]
+  ["pyro-caml-ppx.dev" "git+https://github.com/semgrep/pyro-caml.git#5a182955404a24cfc92f4d401b2ef12be8d96149"]
   ["memtrace.dev" "git+https://github.com/janestreet/memtrace.git#a88470c3de884182503ba5fcd4729e281e544731"]
   (* Fork of upstream 0.91.1 carrying a single fix: on shutdown, the exporter's
      retry backoff and the ticker's inter-tick sleep could delay process exit
