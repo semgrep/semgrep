@@ -56,6 +56,7 @@ classifiers = [
 dependencies = [
   "attrs>=21.3",
   "boltons~=21.0",
+  "certifi>=2026.10.19",
   "click-option-group~=0.5",
   "click~=8.4.2",
   "colorama~=0.4.0",
@@ -174,4 +175,6 @@ asyncio_mode = "auto"
 
 [tool.uv]
 exclude-newer = "1 week"  # nosemgrep: uv-missing-dependency-cooldown -- "1 week" == 7-day cooldown (SEC-1765); rule only matches "N days"
+# Remove after 2026-10-27, when the patched certifi release exits the normal cooldown.
+exclude-newer-package = { certifi = "2026-10-21T00:00:00Z" }
 required-version = ">=0.10.0"
