@@ -225,14 +225,11 @@ class YamlMap:
         return self._internal.keys()
 
 
-def parse_yaml_preserve_spans(
+def _span_preserving_yaml_loader(
     contents: str, filename: Optional[str], allow_null: bool = False
-) -> Optional[YamlTree]:
+) -> YAML:
     """
-    parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
-    so they can be used later when constructing error messages or displaying context.
-
-    :raise jsonschema.exceptions.SchemaError: if config is invalid
+    Build a YAML loader that produces YamlTree nodes with spans tracked in SourceTracker.
     """
 
     source_hash = SourceTracker.add_source(contents)
@@ -298,6 +295,19 @@ def parse_yaml_preserve_spans(
 
     yaml = YAML()
     yaml.Constructor = SpanPreservingRuamelConstructor
+    return yaml
+
+
+def parse_yaml_preserve_spans(
+    contents: str, filename: Optional[str], allow_null: bool = False
+) -> Optional[YamlTree]:
+    """
+    parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
+    so they can be used later when constructing error messages or displaying context.
+
+    :raise jsonschema.exceptions.SchemaError: if config is invalid
+    """
+    yaml = _span_preserving_yaml_loader(contents, filename, allow_null)
     data = yaml.load(StringIO(contents))
     if data is None:
         return None
@@ -307,6 +317,27 @@ def parse_yaml_preserve_spans(
             f"Something went wrong parsing Yaml (expected a YamlTree as output, but got {type(data).__name__}): {PLEASE_FILE_ISSUE_TEXT}"
         )
     return data
+
+
+def parse_yamls_preserve_spans(
+    contents: str, filename: Optional[str], allow_null: bool = False
+) -> List[YamlTree]:
+    """
+    Parse a multi-document YAML stream into one YamlTree per non-null document.
+    """
+    yaml = _span_preserving_yaml_loader(contents, filename, allow_null)
+    documents = []
+    for data in yaml.load_all(StringIO(contents)):  # type: ignore ## missing from ruamel stub
+        if data is None:
+            continue
+        if not isinstance(data, YamlTree):
+            raise Exception(
+                f"Something went wrong parsing Yaml (expected a YamlTree as output, but got {type(data).__name__}): {PLEASE_FILE_ISSUE_TEXT}"
+            )
+        if data.value is None:
+            continue
+        documents.append(data)
+    return documents
 
 
 def has_patterns_key(raw_rule: Dict[str, Any]) -> bool:

@@ -14,9 +14,13 @@ import pytest
 
 from semdep.parsers.pnpm import extract_base_version
 from semdep.parsers.pnpm import parse_dependency_version
+from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.pnpm import ParseResult
 from semdep.parsers.pnpm import sanitize_dependency_post_v9
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyKind
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 
 
 @pytest.mark.quick
@@ -230,3 +234,133 @@ def test_parse_dependency_version(input_version, expected_result):
     - Empty strings
     """
     assert parse_dependency_version(input_version) == expected_result
+
+
+# pnpm 11+ may prepend an env document with the same keys as the project
+# document, so the parser must pick the project document by position (last).
+PROJECT_DOCUMENT = """\
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      debug:
+        specifier: ^4.3.4
+        version: 4.3.4
+
+packages:
+
+  debug@4.3.4:
+    resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
+
+  ms@2.1.2:
+    resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
+
+snapshots:
+
+  debug@4.3.4:
+    dependencies:
+      ms: 2.1.2
+
+  ms@2.1.2: {}
+"""
+
+ENV_DOCUMENT = """\
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies:
+      '@pnpm/plugin-better-defaults':
+        specifier: ^0.2.0
+        version: 0.2.0
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.3.4
+        version: 12.3.4
+
+packages:
+
+  '@pnpm/plugin-better-defaults@0.2.0':
+    resolution: {integrity: sha512-dGhpcyBpcyBhIHRlc3QgZml4dHVyZSBpbnRlZ3JpdHkgdmFsdWUgb25seQ==}
+
+snapshots:
+
+  '@pnpm/plugin-better-defaults@0.2.0': {}
+
+---
+"""
+
+MULTIDOC_LOCKFILE = ENV_DOCUMENT + "\n" + PROJECT_DOCUMENT
+
+
+def _parse_lockfile_text(tmp_path, text):
+    lockfile_path = tmp_path / "pnpm-lock.yaml"
+    lockfile_path.write_text(text)
+    return parse_pnpm(lockfile_path, None)
+
+
+@pytest.mark.quick
+def test_parse_multidoc_lockfile(tmp_path):
+    deps, errors = _parse_lockfile_text(tmp_path, MULTIDOC_LOCKFILE)
+    assert errors == []
+    assert {(d.package, d.version) for d in deps} == {
+        ("debug", "4.3.4"),
+        ("ms", "2.1.2"),
+    }
+    transitivity_by_package = {d.package: d.transitivity for d in deps}
+    assert transitivity_by_package["debug"] == DependencyKind(Direct())
+    assert transitivity_by_package["ms"] == DependencyKind(Transitive())
+
+
+@pytest.mark.quick
+def test_parse_single_document_lockfile(tmp_path):
+    deps, errors = _parse_lockfile_text(tmp_path, PROJECT_DOCUMENT)
+    assert errors == []
+    assert {(d.package, d.version) for d in deps} == {
+        ("debug", "4.3.4"),
+        ("ms", "2.1.2"),
+    }
+
+
+@pytest.mark.quick
+def test_parse_single_document_lockfile_with_trailing_separator(tmp_path):
+    # The empty document after a trailing `---` must be ignored.
+    deps, errors = _parse_lockfile_text(tmp_path, PROJECT_DOCUMENT + "\n---\n")
+    assert errors == []
+    assert {(d.package, d.version) for d in deps} == {
+        ("debug", "4.3.4"),
+        ("ms", "2.1.2"),
+    }
+
+
+@pytest.mark.quick
+def test_parse_lockfile_with_non_mapping_final_document(tmp_path):
+    # Must fail rather than fall back to the env document.
+    deps, errors = _parse_lockfile_text(tmp_path, ENV_DOCUMENT + "\nnot a lockfile\n")
+    assert deps == []
+    assert len(errors) == 1
+    assert "no project document" in errors[0].reason
+
+
+@pytest.mark.quick
+def test_parse_lockfile_with_only_empty_documents(tmp_path):
+    # Treated like an empty file.
+    deps, errors = _parse_lockfile_text(tmp_path, "---\n")
+    assert deps == []
+    assert errors == []
+
+
+@pytest.mark.quick
+def test_parse_lockfile_without_lockfile_version(tmp_path):
+    deps, errors = _parse_lockfile_text(tmp_path, "packages: {}\n")
+    assert deps == []
+    assert len(errors) == 1
+    assert "no lockfileVersion" in errors[0].reason

@@ -18,6 +18,7 @@ import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParser
+from semdep.parsers.util import LockfileParseFailure
 from semgrep.resolve_dependency_source import _handle_lockfile_source
 from semgrep.resolve_dependency_source import _handle_manifest_only_source
 from semgrep.subproject import DependencyResolutionConfig
@@ -88,7 +89,8 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
         dep_source, DependencyResolutionConfig(False, False, False, False)
     )
 
-    assert result.deps == (out.ResolutionMethod(out.LockfileParsing()), [])
+    assert isinstance(result.deps, out.UnresolvedReason)
+    assert result.deps.value == out.UnresolvedFailed()
     assert len(result.errors) == 1
     assert str(result.errors[0]) == str(
         out.ScaResolutionError(
@@ -98,7 +100,73 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
             dependency_source_file=out.Fpath("poetry.lock"),
         )
     )
+    assert result.targets == []
+
+
+POETRY_SOURCE = out.ManifestLockfile(
+    (
+        out.Manifest(
+            out.ManifestKind(value=out.PyprojectToml()),
+            out.Fpath("pyproject.toml"),
+        ),
+        out.Lockfile(
+            out.LockfileKind(value=out.PoetryLock()),
+            out.Fpath("poetry.lock"),
+        ),
+    ),
+)
+
+
+def _poetry_error(cls, path, reason):
+    return cls(
+        path=out.Fpath(path),
+        parser=out.ScaParserName(out.PPoetryLock()),
+        reason=reason,
+    )
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "error",
+    [
+        _poetry_error(out.DependencyParserError, "pyproject.toml", "bad manifest"),
+        _poetry_error(
+            out.DependencyParserError,
+            "poetry.lock",
+            "poetry.lock is unexpectedly empty.",
+        ),
+        _poetry_error(out.DependencyParserError, "poetry.lock", "skipping entry"),
+    ],
+    ids=["manifest-error", "empty-lockfile", "skipped-entry"],
+)
+@patch("semgrep.resolve_dependency_source.PARSERS_BY_LOCKFILE_KIND")
+def test_non_fatal_error_keeps_subproject_resolved(mock_parsers_dict, error) -> None:
+    parser = DependencyParser(lambda lockfile_path, manifest_path: ([], [error]))
+    mock_parsers_dict.get.return_value = parser
+
+    result = _handle_lockfile_source(
+        POETRY_SOURCE, DependencyResolutionConfig(False, False, False, False)
+    )
+
+    assert result.deps == (out.ResolutionMethod(out.LockfileParsing()), [])
+    assert result.errors == [error]
     assert result.targets == [PosixPath("poetry.lock")]
+
+
+@pytest.mark.quick
+@patch("semgrep.resolve_dependency_source.PARSERS_BY_LOCKFILE_KIND")
+def test_lockfile_parse_failure_marks_subproject_unresolved(mock_parsers_dict) -> None:
+    error = _poetry_error(LockfileParseFailure, "poetry.lock", "invalid TOML")
+    parser = DependencyParser(lambda lockfile_path, manifest_path: ([], [error]))
+    mock_parsers_dict.get.return_value = parser
+
+    result = _handle_lockfile_source(
+        POETRY_SOURCE, DependencyResolutionConfig(False, False, False, False)
+    )
+
+    assert result.deps == out.UnresolvedReason(out.UnresolvedFailed())
+    assert result.errors == [error]
+    assert result.targets == []
 
 
 @pytest.mark.quick

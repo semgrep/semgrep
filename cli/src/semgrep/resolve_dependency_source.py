@@ -43,6 +43,7 @@ from semdep.parsers.pubspec_lock import parse_pubspec_lock
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.swiftpm import parse_package_resolved
 from semdep.parsers.util import DependencyParser
+from semdep.parsers.util import LockfileParseFailure
 from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
 from semgrep import telemetry
@@ -344,6 +345,7 @@ def _handle_multi_lockfile_source(
 
     resolution_methods: Set[out.ResolutionMethod] = set()
 
+    any_lockfile_resolved = False
     for lockfile_source in dep_source.value:
         # We resolve each lockfile source independently.
         #
@@ -360,11 +362,20 @@ def _handle_multi_lockfile_source(
         new_errors = res.errors
         new_targets = res.targets
         if not isinstance(new_resolved_info, out.UnresolvedReason):
+            any_lockfile_resolved = True
             resolution_method, new_deps = new_resolved_info
             resolution_methods.add(resolution_method)
             all_resolved_deps.extend(new_deps)
         all_parse_errors.extend(new_errors)
         all_dep_targets.extend(new_targets)
+
+    if dep_source.value and not any_lockfile_resolved:
+        # Every lockfile failed: report unresolved, not resolved with 0 deps.
+        return DependencyResolutionResult(
+            deps=out.UnresolvedReason(out.UnresolvedFailed()),
+            errors=all_parse_errors,
+            targets=all_dep_targets,
+        )
 
     # if any of the files were resolved using dynamic resolution, mark the whole subproject as resolved that way. This is sort of an arbitrary choice.
     resolution_method = (
@@ -509,6 +520,18 @@ def _handle_lockfile_source(
     found_dependencies, parse_errors = parser(
         lockfile_path=lockfile_path, manifest_path=manifest_path
     )
+
+    # Unparseable lockfile (or the parser raised, giving a ScaResolutionError):
+    # report unresolved rather than resolved with 0 deps.
+    if not found_dependencies and any(
+        isinstance(e, (LockfileParseFailure, out.ScaResolutionError))
+        for e in parse_errors
+    ):
+        return DependencyResolutionResult(
+            deps=out.UnresolvedReason(out.UnresolvedFailed()),
+            errors=parse_errors,
+            targets=[],
+        )
 
     return DependencyResolutionResult(
         deps=(

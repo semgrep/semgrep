@@ -25,10 +25,11 @@ from typing import Union
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
+from semdep.parsers.util import LockfileParseFailure
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep import telemetry
-from semgrep.rule_lang import parse_yaml_preserve_spans
+from semgrep.rule_lang import parse_yamls_preserve_spans
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
@@ -475,6 +476,21 @@ def parse_dep_children_post_v9(
     return [sanitize_dependency_post_v9(dep) for dep in all_dependencies]
 
 
+def parse_pnpm_lockfile_yaml(text: str, lockfile_path: Path) -> Optional[YamlTree]:
+    """
+    Return the project document of a pnpm-lock.yaml: always the last one, as
+    pnpm 11+ may prepend an "env" document.
+    """
+    documents = parse_yamls_preserve_spans(text, str(lockfile_path), allow_null=True)
+    return documents[-1] if documents else None
+
+
+def _lockfile_structure_error(lockfile_path: Path, reason: str) -> LockfileParseFailure:
+    return LockfileParseFailure(
+        Fpath(str(lockfile_path)), ScaParserName(out.PPnpmLock()), reason
+    )
+
+
 # Main Course
 @telemetry.trace(telemetry.TraceOwner.SSC)
 def parse_pnpm(
@@ -483,20 +499,31 @@ def parse_pnpm(
     parsed_lockfile, _, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
             lockfile_path,
-            lambda text: parse_yaml_preserve_spans(
-                text, str(lockfile_path), allow_null=True
-            ),
+            lambda text: parse_pnpm_lockfile_yaml(text, lockfile_path),
             ScaParserName(out.PPnpmLock()),
         ),
         None,
     )
 
-    if not parsed_lockfile or not isinstance(parsed_lockfile.value, YamlMap):
+    if parsed_lockfile is None:
         return [], errors
+    if not isinstance(parsed_lockfile.value, YamlMap):
+        return [], [
+            *errors,
+            _lockfile_structure_error(
+                lockfile_path,
+                "no project document (YAML mapping) found in lockfile",
+            ),
+        ]
     try:
         lockfile_version = float(parsed_lockfile.value["lockfileVersion"].value)
     except KeyError:
-        return [], errors
+        return [], [
+            *errors,
+            _lockfile_structure_error(
+                lockfile_path, "no lockfileVersion found in lockfile"
+            ),
+        ]
 
     # This will be important later
     canonical_package_key_mapping: dict[str, str] = {}
