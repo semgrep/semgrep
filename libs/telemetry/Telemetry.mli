@@ -73,25 +73,36 @@ val find_global_attrs : string list -> (string * user_data) list
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
+(** Exporter that {!configure_otel} creates. *)
+type exporter_backend = Curl | Eio | No_exporter [@@deriving show]
+
+val select_exporter_backend :
+  curl_supported:bool -> eio:bool -> exporter_backend
+(** [select_exporter_backend ~curl_supported ~eio] is the exporter used by
+    {!configure_otel}: [Eio] whenever an Eio switch is available, otherwise
+    [Curl] if [curl_supported], otherwise [No_exporter]. *)
+
 val configure_otel :
   ?eio_sw_base:Eio.Switch.t * Eio_unix.Stdenv.base ->
+  ?curl_supported:bool ->
   ?attrs:(string * user_data) list ->
   string ->
   Uri.t ->
   unit
-(** [configure_otel ?eio_sw_base service_name tracing_endpoint] Before instrumenting
-    anything, configure OTel. This should only be run once in a program, because
-    it creates a backend with threads, HTTP connections, etc. when called.
-    [service_name] is the name of the service. [~attrs] can be used to set
-    additional global attributes (such as ["service.version"]), which are tags
-    that will be applied to all outgoing traces/metrics/logs etc.
+(** [configure_otel ?eio_sw_base ?curl_supported service_name tracing_endpoint]
+    Before instrumenting anything, configure OTel. This should only be run once
+    in a program, because it creates a backend with threads, HTTP connections,
+    etc. when called. [service_name] is the name of the service. [~attrs] can
+    be used to set additional global attributes (such as ["service.version"]),
+    which are tags that will be applied to all outgoing traces/metrics/logs etc.
 
-    By default this uses the OTel curl collector, but if an eio switch + base is passed via
-    [~eio_sw_base], it will use the eio collector instead.
+    If an eio switch + base is passed via [~eio_sw_base], this uses the eio
+    collector. Otherwise it uses the OTel curl collector when [curl_supported]
+    is true (default false); when false, it logs one warning and creates no
+    exporter, so spans are dropped.
 
-    NOTE: this will set the active trace endpoint to
-    whatever is passed. This endpoint will be used when restarting tracing via
-    [restart_otel] *)
+    [restart_otel] recreates the selected exporter using the same endpoint
+    and environment. For Eio, the supplied switch must remain open. *)
 
 val stop_otel : unit -> unit
 (** [stop_otel ()] explicitly shuts down the Otel
@@ -117,8 +128,9 @@ val stop_otel : unit -> unit
 val restart_otel : unit -> unit
 (** [restart_otel ()] will re-setup the Otel backend after [stop_otel] is
     called to continue tracing. This is a no-op if [configure_otel] has not
-    been called. Will fail if called multiple times. See {!stop_otel} for an
-    example*)
+    been called or export was disabled. Reuses the configured backend; an Eio
+    switch must still be open. Will fail if called multiple times.
+    See {!stop_otel} for an example*)
 
 val with_otel_paused : (unit -> 'a) -> 'a
 (** [with_otel_paused f] will run [f] with tracing paused. This is usually

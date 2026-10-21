@@ -95,4 +95,60 @@ let semgrep_core_tests : Testo.t list =
           run_main cmd |> assert_Ok);
     ]
 
-let tests () : Testo.t list = semgrep_core_tests
+let assert_backend ~curl_supported ~eio (expected : Telemetry.exporter_backend)
+    =
+  let actual = Telemetry.select_exporter_backend ~curl_supported ~eio in
+  match (actual, expected) with
+  | Curl, Curl
+  | Eio, Eio
+  | No_exporter, No_exporter ->
+      ()
+  | _ ->
+      failwith
+        (spf "curl_supported=%b eio=%b: expected %s, got %s" curl_supported eio
+           (Telemetry.show_exporter_backend expected)
+           (Telemetry.show_exporter_backend actual))
+
+let assert_no_exporter () =
+  if Opentelemetry.Sdk.present () then failwith "unexpected OTel exporter"
+
+let telemetry_tests : Testo.t list =
+  Testo.categorize "semgrep-core telemetry exporter"
+    [
+      Testo.create "curl exporter is only supported on Linux" (fun () ->
+          let supported = Core_CLI.curl_telemetry_supported in
+          assert (supported Linux);
+          assert (not (supported Darwin));
+          assert (not (supported Windows));
+          assert (not (supported (OtherKernel "unknown"))));
+      Testo.create "exporter selection" (fun () ->
+          assert_backend ~curl_supported:true ~eio:false Curl;
+          assert_backend ~curl_supported:false ~eio:false No_exporter;
+          assert_backend ~curl_supported:true ~eio:true Eio;
+          assert_backend ~curl_supported:false ~eio:true Eio);
+      Testo.create "Eio exporter survives pause with curl disabled" (fun () ->
+          Eio_main.run @@ fun base ->
+          Eio.Switch.run @@ fun sw ->
+          let endpoint = Uri.of_string "https://127.0.0.1:1/v1/traces" in
+          Telemetry.configure_otel ~eio_sw_base:(sw, base) ~curl_supported:false
+            "test" endpoint;
+          Common.protect ~finally:Telemetry.stop_otel (fun () ->
+              assert (Opentelemetry.Sdk.present ());
+              Telemetry.with_otel_paused assert_no_exporter;
+              assert (Opentelemetry.Sdk.present ())));
+      Testo.create "unsupported curl: setup and restart create no exporter"
+        (fun () ->
+          assert_no_exporter ();
+          let endpoint = Uri.of_string "https://127.0.0.1:1/v1/traces" in
+          Telemetry.configure_otel ~curl_supported:false "test" endpoint;
+          assert_no_exporter ();
+          Telemetry.restart_otel ();
+          assert_no_exporter ();
+          Telemetry.with_otel_paused assert_no_exporter;
+          assert_no_exporter ();
+          Telemetry.stop_otel ();
+          Telemetry.stop_otel ();
+          assert_no_exporter ());
+    ]
+
+let tests () : Testo.t list = semgrep_core_tests @ telemetry_tests
