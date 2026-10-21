@@ -188,6 +188,8 @@ FROM alpine:3.23 AS semgrep-oss
 
 WORKDIR /pysemgrep
 
+COPY scripts/validate-system-ca.py /tmp/validate-system-ca.py
+
 # Update to the latest packages for the base image. This allows to get CVE
 # fixes ASAP, without waiting for new builds of the base image.
 # See docker-library/python#761 for an example of such an issue in the past
@@ -227,8 +229,11 @@ RUN apk upgrade --no-cache && \
 # - curl: useful to connect to some webhooks
 # - python3: to run pysemgrep
 # - py3-setuptools: necessary runtime dependency for opentelemetry
+	'ca-certificates>=20261020-r0' \
+	'ca-certificates-bundle>=20261020-r0' \
 	git git-lfs openssh \
 	bash jq curl python3 py3-setuptools
+RUN python3 /tmp/validate-system-ca.py && rm /tmp/validate-system-ca.py
 
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container
