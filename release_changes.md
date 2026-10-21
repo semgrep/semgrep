@@ -1,45 +1,39 @@
-## [1.181.0](https://github.com/semgrep/semgrep/releases/tag/v1.181.0) - 2026-10-14
+## [1.182.0](https://github.com/semgrep/semgrep/releases/tag/v1.182.0) - 2026-10-20
+
+### ### Added
+
+- Added Objective-C language support (`objc`, alpha): tree-sitter based parsing of `.m` files with semgrep pattern syntax (metavariables, ellipsis in argument/statement/message-keyword positions, deep ellipsis), enabling search-mode and taint-mode rules on Objective-C code. Message sends, blocks, control flow, class/method definitions, and Objective-C literals are modeled; remaining constructs parse and degrade gracefully. Objective-C++ (`.mm`) support will follow separately. (gh-9265)
 
 ### ### Changed
 
-- `semgrep scan` now uses the same asynchronous configuration generation and retries as `semgrep ci` when fetching platform scan configurations. (CODE-9930)
-- Python only: Supply Chain now reports every package declared in a `requirements.txt`, not only the ones pinned with `==`. A requirement with a version range (`requests>=2.0`, `numpy~=1.26`, `django==2.2.*`, `requests (>=2.0)`) is reported with the declared specifier as its version, and a bare name (`flask`) is reported with an empty version, so they appear in the dependency inventory and SBOM instead of being dropped with a "not pinned to an exact version" parse error. These dependencies have no definitive installed version, so for now they produce no Supply Chain findings. When there is no `requirements.in` manifest to consult, a range or bare-name line is reported as a direct dependency, since it was declared by hand rather than written by a resolver; exact pins keep their previous unknown transitivity. Local path and URL lines are no longer reported as parse errors, while a line whose leading token is not a valid package name (`requests$foo>=1`) is now reported as a parse error instead of being dropped silently. Other ecosystems and other Python manifest formats are unchanged. (SC-3487)
-- pro: Various performance improvements for historical secrets scanning. (SCRT-983-historical-performance)
-- go grammar update (v0.23.4):
+- c-sharp-pro grammar update (v0.23.1):
 
-  - Go target parsing now supports composite type-set constraints and shorthand union constraints on type parameters, preserving underlying-type markers and all union members. Literal generic rule-pattern syntax remains unchanged.
-  - Go target parsing now supports embedded generic struct fields, including pointer and package-qualified embeddings, while retaining their type arguments.
-  - Go target parsing now supports standalone generic function instantiations with multiple or composite type arguments, such as Pair[int, string] and Identity[[]int], including qualified function names.
-  - Go target parsing now accepts Unicode decimal digits after the first character of an identifier, including Arabic-Indic and Devanagari digits.
+  - C# (Pro) parsing and rule patterns now support Unicode escape sequences in identifiers (e.g. x\u0062), and matching follows C# identifier equality: `@class`, `cl\u0061ss`, and `class` (or `a\u200Cb` and `ab`) are the same name.
+  - C# (Pro) now parses identifiers using Unicode XID characters such as `℘` (U+2118) and `·` (U+00B7), and still accepts formatting characters (e.g. soft hyphen) inside identifiers.
 
-  (go-v0.23.4)
-- Hack grammar update:
+  (c-sharp-pro-v0.23.1)
+- hcl grammar update (v1.2.0):
 
-  - Hack target parsing now supports capability lists on functions, methods, function types, lambdas, and anonymous functions, including empty lists and context-dependent capabilities.
-  - Hack target parsing now supports context constants with capability bounds or initializers, preserving the distinction between super bounds, as bounds, and assigned capabilities. Unbounded abstract context constants retain their existing representation limitation.
-  - Hack target parsing now supports concrete and abstract enum classes with typed members, plus qualified and unqualified enum class labels.
-  - Hack target parsing now supports function and static-method references with empty or explicit type arguments, such as foo<> and MyClass::bar<int>.
-  - Hack target parsing now preserves type arguments on calls and constructors such as foo<int>(), $obj->bar<int>(...), and new MyClass<int>(...), matching other languages' typed-call representation.
-  - Hack target parsing now supports expression-tree literals such as Example`1 + 2`, preserving the visitor and body text. Embedded DSL bodies remain opaque rather than being parsed as Hack expressions.
-  - Hack target parsing now supports file-level attributes such as <<file: SomeAttribute(...)>>, preserving attribute names and arguments.
-  - Hack target parsing now supports internal visibility on methods and properties, keeping it distinct from public, protected, and private visibility.
-  - Hack target parsing now accepts namespace-relative names such as namespace\run() and include/require member names in piped expressions.
+  - Terraform target parsing now supports namespaced function calls such as provider::local::fn(...).
+  - Terraform parsing now represents conditional and loop template directives with their conditions, binders, and bodies.
+  - Terraform parsing now binds attribute and index traversal more tightly than unary operators.
 
-  (hack-1a7ded90288189746c54861ac144ede97df95081)
+  (hcl-v1.2.0)
+- lua grammar update (v0.5.0):
+
+  - Lua parsing now supports Lua 5.4 variable attributes and Lua 5.5 leading attributes, global declarations, and named vararg parameters.
+  - Lua parsing now accepts Unicode identifiers, hashbang lines, and additional numeric forms including LuaJIT binary, LL/ULL, and imaginary literals.
+  - Lua AST conversion now preserves elseif branches in source order, including when an else branch is present, and correctly retains member-assignment receivers and colon-method declaration names.
+  - Lua string ASTs now separate single-quoted and long-bracket delimiters from their content, consistently with double-quoted strings. Escape contents remain uninterpreted.
+  - Lua parsing now handles builtin names such as next as ordinary callable identifiers.
+
+  (lua-v0.5.0)
 
 ### ### Fixed
 
-- pro: Historical secrets scanning no longer aborts when preparatory `git gc`
-  fails. (SCRT-982-historical-gc-nonfatal)
-- Supply Chain: lockfileless Gradle resolution now tells the dependency graph
-  plugin where to write its report, so builds that relocate their build
-  directory resolve instead of failing. When the plugin writes no report, the
-  scan reports a resolution error that includes the Gradle log instead of
-  crashing on the missing file. (code-9953)
-- Supply Chain: lockfileless Gradle and Maven scans now report incomplete
-  dependency resolution when dependencies or transitive metadata cannot be
-  resolved. Registry HTTP failures include the affected URL when available. (sc-3358)
+- Fix C++ range-based for loops with structured bindings so they parse and preserve findings in the rest of the file. (CODE-10028)
+- Python only: a `requirements.txt` line declared as a version range or bare name is now reported as a direct dependency even when a `requirements.in` manifest is present. Such a line can only have been written by hand, since `pip-compile` emits exact pins, so it is a direct declaration regardless of whether the manifest names the package. Exact pins keep using the manifest to decide between direct and transitive. (SC-4242)
 
 ### ### Infra/Release Changes
 
-- Forward optional job context when registering CLI scans. (SMS-3333)
+- Update the bundled Tree-sitter Elixir grammar to v0.3.5 and regenerate its parser with Tree-sitter 0.26.3; no language syntax changes. (elixir-v0.3.5)

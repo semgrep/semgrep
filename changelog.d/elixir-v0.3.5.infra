@@ -1,1 +1,0 @@
-Update the bundled Tree-sitter Elixir grammar to v0.3.5 and regenerate its parser with Tree-sitter 0.26.3; no language syntax changes.
