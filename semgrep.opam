@@ -83,6 +83,7 @@ depends: [
   "cohttp" {>= "6.2.1"}
   "cohttp-lwt-unix" {>= "6.2.1"}
   "cohttp-eio" {>= "6.2.1"}
+  "ca-certs" {= "1.0.3"}
   "tls-lwt" {>= "2.0.3"}
   "ca-certs-nss" {>= "3.131.1"}
   "emile" {>= "1.1"}
@@ -125,6 +126,9 @@ pin-depends: [
         - semgrep-pro.opam
   *)
   ["ocaml-variants.5.4.0" "git+https://github.com/semgrep/ocaml.git#4046c817ed2ed5c2431300902d1bd306230bf3dd"]
+  (* Incident-specific key distrust. Drop after an equivalent upstream release
+     is verified and all supported dependency pins have migrated. *)
+  ["ca-certs.1.0.3" "git+https://github.com/semgrep/ca-certs.git#af20ad16ad063d892324d7edf8f3bd9564461025"]
   ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#b763e279b7aa624c9f1adf0afdd45ee7555e2460"]
   ["tree-sitter.dev" "./libs/ocaml-tree-sitter-semgrep/core"]
   ["obackward.dev" "git+https://github.com/semgrep/obackward.git#6efca08b2a98317b1d705c1e88b8342ec558205c"]

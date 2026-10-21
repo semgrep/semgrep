@@ -176,6 +176,7 @@ For more information see https://semgrep.dev
     (cohttp (>= 6.2.1))
     (cohttp-lwt-unix (>= 6.2.1))
     (cohttp-eio (>= 6.2.1))
+    (ca-certs (= 1.0.3))
     (tls-lwt (>= 2.0.3)) ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     (ca-certs-nss (>= 3.131.1))
     (emile (>= 1.1))
