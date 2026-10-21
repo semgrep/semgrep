@@ -1,0 +1,1 @@
+Update certificate trust in Semgrep and its container images to address the eMudhra certificate authority compromise. Disable curl-based telemetry on macOS and Windows; default telemetry and scanning remain available.
