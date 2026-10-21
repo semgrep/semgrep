@@ -142,14 +142,14 @@ local slack = {
 //
 // coupling: if you modify the compiler pin sha you will need to bump this
 // prefix (or similar) to invalidate the cache
-local opam_cache_version = 'v7';
+local opam_cache_version = 'v8';
 
 // We pin the upstream opam-repository to a commit rather than
 // tracking its HEAD.
 // coupling: bump opam_cache_version above when changing this so the cached
 // opam root (which embeds the repository) is invalidated.
 // coupling: keep this in sync with OPAM_REPOSITORY_PIN in OSS/Makefile.
-local opam_repository_pin = '78d29aba187e8362b8ab86c189790c0af9153d4b';
+local opam_repository_pin = '922f67e068446a8d8e809a40251a259bd0549552';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)

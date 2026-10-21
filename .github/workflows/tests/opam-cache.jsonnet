@@ -7,7 +7,7 @@ local keys = [semgrep.opam_setup(cache_profile=p).with['cache-prefix'] for p in 
 local grammar = ots.for_tree('libs/ocaml-tree-sitter-semgrep');
 
 assert std.length(std.set(keys)) == std.length(profiles) : 'Dependency sets must have distinct cache keys';
-assert std.all([std.startsWith(keys[i], 'v7-' + profiles[i] + '-') for i in std.range(0, std.length(profiles) - 1)]);
+assert std.all([std.startsWith(keys[i], 'v8-' + profiles[i] + '-') for i in std.range(0, std.length(profiles) - 1)]);
 assert grammar.setup_ocaml_step.with['cache-prefix'] == keys[1];
 assert std.member(grammar.build_core_steps, grammar.install_deps_step);
 assert grammar.install_deps_step['working-directory'] == '.';

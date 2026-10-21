@@ -314,7 +314,7 @@ test-grammar-%: grammar-tools
 # coupling: keep this commit in sync with opam_repository_pin in
 # .github/workflows/libs/semgrep.libsonnet
 #
-OPAM_REPOSITORY_PIN = git+https://github.com/ocaml/opam-repository.git\#78d29aba187e8362b8ab86c189790c0af9153d4b
+OPAM_REPOSITORY_PIN = git+https://github.com/ocaml/opam-repository.git\#922f67e068446a8d8e809a40251a259bd0549552
 
 # Extra flags forwarded to 'opam init' by 'opam-init'. The Dockerfiles pass
 # '--disable-sandboxing' since containers can't use the bubblewrap sandbox.
