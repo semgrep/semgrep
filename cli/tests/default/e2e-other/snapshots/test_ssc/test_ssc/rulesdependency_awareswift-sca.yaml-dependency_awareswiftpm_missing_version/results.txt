@@ -7,9 +7,7 @@
   "engine_requested": "OSS",
   "errors": [],
   "paths": {
-    "scanned": [
-      "targets/dependency_aware/swiftpm_missing_version/Package.resolved"
-    ]
+    "scanned": []
   },
   "profiling_results": [],
   "results": [],
@@ -26,24 +24,11 @@ no version in lockfile targets/dependency_aware/swiftpm_missing_version/Package.
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 2 files tracked by git with 1 Supply Chain rule:
+  Scanning 2 files tracked by git:
 
 
   CODE RULES
   No code rules to run.
-
-  SUPPLY CHAIN RULES
-
-  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
- ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  targets/dependency_aware/swiftpm_missing_version/Package.resol   Lockfile            SwiftPM     0                  1
-  ved
-
-
-  Analysis   Rules
- ──────────────────
-  Unknown        1
-
   Failed to parse [bold]targets/dependency_aware/swiftpm_missing_version/Package.resolved[/bold] - Unable to determine
   version of swift lockfile
 
@@ -54,10 +39,10 @@ no version in lockfile targets/dependency_aware/swiftpm_missing_version/Package.
 ✅ Scan completed successfully.
  • Findings: 0 (0 blocking)
  • Rules run: 1
- • Targets scanned: 1
- • Parsed lines: ~100.0%
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
  • No ignore information available
-Ran 1 rule on 1 file: 0 findings.
+Ran 1 rule on 0 files: 0 findings.
 
 === end of stderr - plain
 

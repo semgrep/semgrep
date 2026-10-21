@@ -28,6 +28,7 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import filter_on_marked_lines
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
+from semdep.parsers.util import LockfileParseFailure
 from semdep.parsers.util import lparen
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import new_lines
@@ -146,7 +147,7 @@ def parse_swiftpm_v2_v3(
     deps = lockfile.get("pins")
     if deps is None:
         return [], [
-            DependencyParserError(
+            LockfileParseFailure(
                 out.Fpath(str(lockfile_path)),
                 ScaParserName(out.PPackageResolved()),
                 "Package.resolved v2/v3 file missing pins field",
@@ -227,7 +228,7 @@ def parse_swiftpm_v1(
     obj = lockfile.get("object")
     if obj is None:
         return [], [
-            DependencyParserError(
+            LockfileParseFailure(
                 out.Fpath(str(lockfile_path)),
                 ScaParserName(out.PPackageResolved()),
                 "Package.resolved v1 file missing object field",
@@ -236,7 +237,7 @@ def parse_swiftpm_v1(
     deps = obj.as_dict().get("pins")
     if deps is None:
         return [], [
-            DependencyParserError(
+            LockfileParseFailure(
                 out.Fpath(str(lockfile_path)),
                 ScaParserName(out.PPackageResolved()),
                 "Package.resolved v1 file missing pins field",
@@ -341,7 +342,7 @@ def parse_package_resolved(
     if lockfile_version is None:
         logger.info("no version in lockfile %s", lockfile_path)
         errors.append(
-            DependencyParserError(
+            LockfileParseFailure(
                 out.Fpath(str(lockfile_path)),
                 ScaParserName(out.PPackageResolved()),
                 "Unable to determine version of swift lockfile",
@@ -366,7 +367,7 @@ def parse_package_resolved(
     else:
         all_deps = []
         errors.append(
-            DependencyParserError(
+            LockfileParseFailure(
                 out.Fpath(str(lockfile_path)),
                 ScaParserName(out.PPackageResolved()),
                 "Invalid lockfile version. Expected 1, 2, or 3.",

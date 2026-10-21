@@ -298,6 +298,10 @@ def filter_on_marked_lines(result: list[Any]) -> list[tuple]:
     return [x for x in result if isinstance(x, tuple)]
 
 
+class LockfileParseFailure(DependencyParserError):
+    """A lockfile could not be parsed at all (vs. a skipped-entry warning)."""
+
+
 @dataclass
 class DependencyFileToParse(Generic[A]):
     path: Path
@@ -308,11 +312,14 @@ class DependencyFileToParse(Generic[A]):
 
 def parse_dependency_file(
     file_to_parse: DependencyFileToParse[A] | None,
+    failure: type[DependencyParserError] = DependencyParserError,
 ) -> A | DependencyParserError | None:
     """
     Run [parser] on the text in [path]
 
     PARSER_NAME is used for error reporting to correctly identify which PARSER attempted to parse PATH
+
+    FAILURE is the error type returned when the file cannot be parsed; an empty file is not a failure
 
     Returns None if path does not exist
 
@@ -337,12 +344,12 @@ def parse_dependency_file(
             return file_to_parse.parser(text)
 
     except YAMLError as e:
-        return DependencyParserError(
+        return failure(
             out.Fpath(file_to_parse.path.name), file_to_parse.parser_name, str(e)
         )
     except RecursionError:
         reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
-        return DependencyParserError(
+        return failure(
             out.Fpath(str(file_to_parse.path)), file_to_parse.parser_name, reason
         )
     except ParseError as e:
@@ -355,7 +362,7 @@ def parse_dependency_file(
 
         if line < len(text_lines):
             offending_line = text_lines[line]
-            return DependencyParserError(
+            return failure(
                 out.Fpath(str(file_to_parse.path)),
                 file_to_parse.parser_name,
                 error_str,
@@ -367,12 +374,12 @@ def parse_dependency_file(
             reason = (
                 f"Parser failed at the beginning of {file_to_parse.path}.\n{error_str}"
             )
-            return DependencyParserError(
+            return failure(
                 out.Fpath(str(file_to_parse.path)), file_to_parse.parser_name, reason
             )
         else:
             reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
-            return DependencyParserError(
+            return failure(
                 out.Fpath(str(file_to_parse.path)),
                 file_to_parse.parser_name,
                 reason,
@@ -380,7 +387,7 @@ def parse_dependency_file(
                 col + 1,
             )
     except Exception as e:
-        return DependencyParserError(
+        return failure(
             out.Fpath(file_to_parse.path.name), file_to_parse.parser_name, str(e)
         )
 
@@ -394,7 +401,7 @@ def safe_parse_lockfile_and_manifest(
     """
     errors = []
     parsed_manifest = parse_dependency_file(manifest_to_parse)
-    parsed_lockfile = parse_dependency_file(lockfile_to_parse)
+    parsed_lockfile = parse_dependency_file(lockfile_to_parse, LockfileParseFailure)
     if isinstance(parsed_manifest, DependencyParserError):
         errors.append(parsed_manifest)
         parsed_manifest = None

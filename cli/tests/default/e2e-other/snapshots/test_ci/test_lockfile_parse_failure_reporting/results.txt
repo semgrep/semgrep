@@ -95,7 +95,7 @@
  ───────────────────────────────────────────────────────────────────────────
   poetry.lock          Lockfile            Pypi        3                  1
   yarn.lock            Lockfile            Npm         1                  2
-  Pipfile.lock         Lockfile            Pypi        0                  1
+  Pipfile.lock         Failed              Unknown     -                  -
 
 
   Analysis       Rules
@@ -117,7 +117,7 @@
 ✅ CI scan completed successfully.
  • Findings: 8 (6 blocking)
  • Rules run: 7
- • Targets scanned: 4
+ • Targets scanned: 3
  • Parsed lines: ~100.0%
  • Scan was limited to files tracked by git
  • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
