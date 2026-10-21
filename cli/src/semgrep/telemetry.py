@@ -413,7 +413,9 @@ class Telemetry:
             + attrs_to_kv_strs(filter_attrs_for_inject(self.resource.attributes))
         )
         os.environ[_PYRO_CAML_SERVICE_NAME] = "semgrep-core"
-        os.environ.setdefault(_PYRO_CAML_MEMPROF_SAMPLING_RATE, "1e-4")
+        # Higher rates overflow the runtime events ring buffer and slow scans
+        # down; 1e-6 keeps sample loss and overhead low on real scans.
+        os.environ.setdefault(_PYRO_CAML_MEMPROF_SAMPLING_RATE, "1e-6")
         os.environ[_PYRO_CAML_SERVER_ADDRESS] = (
             _PYROSCOPE_ENDPOINT_ALIASES.get(self.trace_endpoint, self.trace_endpoint)
             if self.trace_endpoint
