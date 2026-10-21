@@ -279,6 +279,10 @@ depexts: [
 dev-repo: "git+https://github.com/semgrep/semgrep.git"
 pin-depends: [
   [
+    "ca-certs.1.0.3"
+    "git+https://github.com/semgrep/ca-certs.git#af20ad16ad063d892324d7edf8f3bd9564461025"
+  ]
+  [
     "memtrace.dev"
     "git+https://github.com/janestreet/memtrace.git#a88470c3de884182503ba5fcd4729e281e544731"
   ]
