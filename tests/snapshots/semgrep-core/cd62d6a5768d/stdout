@@ -1334,8 +1334,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("character", _),
+                                (EN
+                                   (Id (("character", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1388,8 +1388,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("size", _),
+                                (EN
+                                   (Id (("size", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -1944,8 +1944,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("a", _),
+                                (EN
+                                   (Id (("a", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -2163,8 +2163,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("u", _),
+                                (EN
+                                   (Id (("u", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -2360,8 +2360,8 @@
                       [{ s =
                          (DefStmt
                             ({ name =
-                               (EPattern
-                                  (PatId (("u", _),
+                               (EN
+                                  (Id (("u", _),
                                      { id_resolved =
                                        ref ((Some (LocalVar, _)));
                                        id_resolved_alternatives = ref ([]);
@@ -2653,8 +2653,8 @@
                       [{ s =
                          (DefStmt
                             ({ name =
-                               (EPattern
-                                  (PatId (("y", _),
+                               (EN
+                                  (Id (("y", _),
                                      { id_resolved =
                                        ref ((Some (LocalVar, _)));
                                        id_resolved_alternatives = ref ([]);
@@ -3097,8 +3097,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("msg", _),
+                                (EN
+                                   (Id (("msg", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -6321,8 +6321,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("three_ranges", _),
+                                (EN
+                                   (Id (("three_ranges", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
@@ -6503,8 +6503,8 @@
                       [{ s =
                          (DefStmt
                             ({ name =
-                               (EPattern
-                                  (PatId (("raw", _),
+                               (EN
+                                  (Id (("raw", _),
                                      { id_resolved =
                                        ref ((Some (LocalVar, _)));
                                        id_resolved_alternatives = ref ([]);
@@ -6553,8 +6553,8 @@
                         { s =
                           (DefStmt
                              ({ name =
-                                (EPattern
-                                   (PatId (("p", _),
+                                (EN
+                                   (Id (("p", _),
                                       { id_resolved =
                                         ref ((Some (LocalVar, _)));
                                         id_resolved_alternatives = ref ([]);
