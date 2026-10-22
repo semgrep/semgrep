@@ -1,0 +1,1 @@
+time ( cd tests && make )

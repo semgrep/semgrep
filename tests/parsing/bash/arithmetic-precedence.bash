@@ -1,0 +1,10 @@
+# Operator precedence and associativity in arithmetic
+echo $(( a + b * c ))
+echo $(( (a + b) * c ))
+echo $(( a - b - c ))
+echo $(( 2 ** 3 ** 2 ))
+echo $(( -a + b ))
+echo $(( !a || b && c ))
+echo $(( a < b == c ))
+echo $(( x ? y : z ? 1 : 0 ))
+(( a = b += 1 ))

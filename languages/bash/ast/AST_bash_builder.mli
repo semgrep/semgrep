@@ -12,7 +12,13 @@
 *)
 val blist_as_expression : AST_bash.blist -> AST_bash.expression option
 
+(* Attach redirects to the last command of a pipeline. 'args' are extra
+   arguments found after a redirect, appended to that command if it's a
+   simple command. *)
 val add_redirects_to_last_command_of_pipeline :
-  AST_bash.pipeline -> AST_bash.redirect list -> AST_bash.pipeline
+  ?args:AST_bash.expression list ->
+  AST_bash.pipeline ->
+  AST_bash.redirect list ->
+  AST_bash.pipeline
 
 val concat_blists : AST_bash.blist list -> AST_bash.blist
