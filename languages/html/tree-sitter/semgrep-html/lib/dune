@@ -29,17 +29,9 @@
   (c_library_flags
     (
       -L%{env:TREESITTER_LIBDIR=/usr/local/lib}
-      -lstdc++
       -ltree-sitter
       (:include c_library_flags.sexp)
     )
-  )
-  (foreign_stubs
-    (language cxx)
-    (names )
-    (flags -fPIC
-           -I %{env:TREESITTER_INCDIR=/usr/local/include}
-           -I .)
   )
 )
 
