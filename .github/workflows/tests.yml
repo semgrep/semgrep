@@ -12,7 +12,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: "3.10"
-          version: 0.10.9
+          version: 0.13.4
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
@@ -59,7 +59,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: ${{ matrix.python }}
-          version: 0.10.9
+          version: 0.13.4
       - name: Install Python dependencies
         run: uv sync --locked
         working-directory: cli
@@ -178,7 +178,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: "3.11"
-          version: 0.10.9
+          version: 0.13.4
       - name: Run pytest for osemgrep known passing tests
         run: |
           git config --global --add safe.directory "$(pwd)"
@@ -197,7 +197,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: "3.12"
-          version: 0.10.9
+          version: 0.13.4
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: semgrep-core-x86-artifact
