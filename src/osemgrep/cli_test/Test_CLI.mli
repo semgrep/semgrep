@@ -22,6 +22,7 @@ type conf = {
   target : target_kind;
   pro : bool;
   ignore_todo : bool;
+  override_expectations : Fpath.t option;
   json : bool;
   optimizations : bool;
   strict : bool;
