@@ -46,3 +46,7 @@ type annotations = (t * linenb) list
 val annotations : Fpath.t -> annotations
 val group_by_rule_id : annotations -> (Rule_ID.t, linenb list) Assoc.t
 val filter_todook : annotations -> linenb list -> linenb list
+
+val filter_for_engine : engine -> annotations -> annotations
+(** Select expected findings for an engine, including inherited annotations and
+    engine-specific exceptions. *)
