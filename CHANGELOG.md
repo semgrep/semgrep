@@ -6,6 +6,13 @@
 
 <!-- insertion point -->
 
+## [1.182.1](https://github.com/semgrep/semgrep/releases/tag/v1.182.1) - 2026-10-22
+
+### ### Fixed
+
+- Update certificate trust in Semgrep and its container images to address the eMudhra certificate authority compromise. Disable curl-based telemetry on macOS and Windows; default telemetry and scanning remain available. (INCID-521)
+
+
 ## [1.182.0](https://github.com/semgrep/semgrep/releases/tag/v1.182.0) - 2026-10-20
 
 ### ### Added
@@ -45,6 +52,13 @@
 ### ### Infra/Release Changes
 
 - Update the bundled Tree-sitter Elixir grammar to v0.3.5 and regenerate its parser with Tree-sitter 0.26.3; no language syntax changes. (elixir-v0.3.5)
+
+
+## [1.181.1](https://github.com/semgrep/semgrep/releases/tag/v1.181.1) - 2026-10-22
+
+### ### Fixed
+
+- Update certificate trust in Semgrep and its container images to address the eMudhra certificate authority compromise. Disable curl-based telemetry on macOS and Windows; default telemetry and scanning remain available. (INCID-521)
 
 
 ## [1.181.0](https://github.com/semgrep/semgrep/releases/tag/v1.181.0) - 2026-10-14
