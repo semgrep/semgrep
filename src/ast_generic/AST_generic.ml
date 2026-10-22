@@ -2404,7 +2404,11 @@ let interpolated (lquote, xs, rquote) =
       (fun x acc ->
         match (x, acc) with
         | Either_.Left3 (s, t), Either_.Left3 (s', t') :: acc ->
-            Either_.Left3 (s ^ s', Tok.combine_toks t [ t' ]) :: acc
+            let combined =
+              Tok.combine_sparse_toks t [ t' ]
+              |> Option.value ~default:(Tok.combine_toks t [ t' ])
+            in
+            Either_.Left3 (s ^ s', combined) :: acc
         | _ -> x :: acc)
       xs []
   in
