@@ -73,7 +73,8 @@ def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
 
 # It should output an "error" field with the right error message (timeout)
 # in the JSON output.
-# TODO: adding "--timeout", "1", does not seem to speedup things
+# Now that --timeout is forwarded to semgrep-core in test mode, we pass
+# timeout=1 so the deliberately slow rule actually triggers a timeout.
 @pytest.mark.slow
 @pytest.mark.osemfail
 @skip_on_windows  # better backslash replacement logic
@@ -83,6 +84,7 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
         options=["--test"],
         target_name="test_test/long.py",
         output_format=OutputFormat.JSON,
+        timeout=1,
         assert_exit_code=1,
     )
     posix_snapshot.assert_match(
