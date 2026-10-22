@@ -22,6 +22,7 @@
    (pps
      ppx_profiling
      ppx_deriving.show
+     ppx_deriving_yojson
    )
  )
 )
