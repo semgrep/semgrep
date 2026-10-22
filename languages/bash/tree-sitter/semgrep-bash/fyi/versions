@@ -1,34 +1,137 @@
 File: semgrep-grammars/src/tree-sitter-bash/LICENSE
 Git repo name: tree-sitter-bash
-Latest commit in repo: 30d369ba45971a40160de34631ceea05358c9a48
+Latest commit in repo: a06c2e4415e9bc0346c6b86d401879ffb44058f7
 Last change in file:
-  commit 30d369ba45971a40160de34631ceea05358c9a48
-  Author: Martin Jambon <martin@returntocorp.com>
-  Date:   Sun Oct 10 01:14:12 2021 -0700
+  commit 6861ab03bf19fbddd1d4bb95a76b23cb2092eb52
+  Author: Max Brunsfeld <maxbrunsfeld@gmail.com>
+  Date:   Fri Jul 14 14:46:24 2017 -0700
   
-      Merge pull request #111 from tree-sitter/mj-select
-      
-      Support for 'select' loops
+      Add license and readme
 ---
 File: semgrep-grammars/src/tree-sitter-bash/grammar.js
 Git repo name: tree-sitter-bash
-Latest commit in repo: 30d369ba45971a40160de34631ceea05358c9a48
+Latest commit in repo: a06c2e4415e9bc0346c6b86d401879ffb44058f7
 Last change in file:
-  commit 30d369ba45971a40160de34631ceea05358c9a48
-  Author: Martin Jambon <martin@returntocorp.com>
-  Date:   Sun Oct 10 01:14:12 2021 -0700
+  commit 5d8a33249511ed8bcf6cf135b7b2a815c7a02d9b
+  Author: Dino <dinojoaocosta@gmail.com>
+  Date:   Tue Dec 2 16:55:01 2025 +0000
   
-      Merge pull request #111 from tree-sitter/mj-select
+      fix: remove double parenthesis as valid opening to arithmetic expasion (#311)
       
-      Support for 'select' loops
+      * chore: checkpoint with formatted tests
+      
+      No changes for now, we only re-formatted tests to make it easier to diff
+      them when we actually do changes.
+      
+      * feat: avoid spurious parsing of arithmetic expansion
+      
+      * test: add test for parenthesis in quote
+      
+      * chore: update known failures with master
+      
+      Update the `script/known-failures.txt` document with the latest grammar
+      in `master`, to make it easier to check what our changes are impacting.
+      
+      * refactor: move (( expression )) from test_command to compound_statement
+      
+      With the introduced changes, some of the examples were failing with a
+      specific pattern, namely the files:
+      
+      - `examples/wild-corpus/esoteric/lishp/evaluator.sh`
+      - `examples/wild-corpus/esoteric/lishp/test.sh`
+      - `examples/wild-corpus/esoteric/lishp/variables.map.sh`
+      - `examples/wild-corpus/esoteric/lishp/variables.sh`
+      
+      When taking a closer look it was noted that the following program was
+      failing to parse:
+      
+      ```
+      (( size=1, max_index=10 )
+      ```
+      
+      After taking a closer look at bash's manual, it seems this should be
+      possible and it should be considered a compound command instead. As
+      such, this commit moves this pattern from `test_command` to
+      `compound_statement`, updating it so that we can have multiple
+      expressions separated by a comma.
+      
+      Note that these changes will very very very likely break the existing
+      tests, as we recently updated some to expect `test_command`. However,
+      for the time being, I'm keeping those failures since I'd like to have
+      someone else take another look at the changes I'm introducing with this
+      commit to see if they make sense.
+      
+      * refactor: revert changes to subscript
+      
+      This commit reverts the changes that had been done to `subscript` in
+      order to fix failing examples for the following files:
+      
+      - `examples/gentoo/dev-lang/mlton/mlton-20180207.ebuild`
+      - `examples/gentoo/eclass/cuda.eclass`
+      - `examples/wild-corpus/cloud/kubernetes/cluster/lib/logging.sh`
+      - `examples/wild-corpus/cloud/kubernetes/hack/update-godep-licenses.sh`
+      - `examples/wild-corpus/git/t/t9902-completion.sh`
+      - `examples/wild-corpus/shell/bashdb/test/unit/test-columns.sh`
+      - `examples/wild-corpus/shell/bashdb/lib/frame.sh`
+      - `examples/gentoo/dev-qt/qt-docs/qt-docs-6.10.0_p202510021201.ebuild`
+      - `examples/gentoo/dev-qt/qt-docs/qt-docs-6.9.3_p202509261208.ebuild`
+      - `examples/gentoo/eclass/linux-mod-r1.eclass`
+      
+      Namely, with the introduced changes, the following program could not be parsed:
+      
+      ```
+      echo "${array[${index}+1]}"
+      ```
+      
+      Even though I've confirmed this is valid bash syntax and, if the
+      variables were set, this would actually be evaluated to the value in
+      that specific index of the array.
+      
+      Once again, not touching tests right now as I want someone to
+      double-check that my changes make sense.
+      
+      * test: commit updated good tests
+      
+      Add the updated tests for both `test/corpus/literals.txt` and
+      `test/corpus/statements.txt`, while leaving the failure in
+      `test/corpus/commands.txt`, as the two first simply updated the
+      `test_command` node to `compound_statement`, which is expected.
+      
+      The latter broke the binary expression in a parenthesized expression in
+      a subscript, which is simply returning word instead of actually parsing
+      the binary or unary expression, still need to figure that out.
+      
+      * refactor: replace parenthesized_expression for compound_statement
+      
+      Replace `parenthesized_expression` for `compound_statement` in
+      `subscript`, as that fixes the issue with patterns like
+      `${array[(($number+1))]}` where `(($number+1))` was being parsed as a
+      `(parenthesized_expression(word))`.
+      
+      This removes even more known failures, while introducing a new single
+      on, which needs to be looked into.
+      
+      * fix: add subshell to possible options in subscript
+      
+      Not sure if we should add `subshell` but, since the last commit removed
+      `parenthesized_expression`, we now need another one to allow `( ... )`
+      in subscript.
+      
+      * refactor: remove unnecessary optional
+      
+      Co-authored-by: Max Brunsfeld <maxbrunsfeld@gmail.com>
+      
+      * ci: disable node tests
+      
+      Co-authored-by: Max Brunsfeld <maxbrunsfeld@gmail.com>
+      
+      ---------
+      
+      Co-authored-by: Max Brunsfeld <maxbrunsfeld@gmail.com>
 ---
 File: semgrep-grammars/src/semgrep-bash/grammar.js
-Git repo name: ocaml-tree-sitter-semgrep
-Latest commit in repo: 091f5438fc0c15b80217f00e5b94ec0e55517383
+Git repo name: None
+Latest commit in repo: None
 Last change in file:
-  commit 26f6ce5a8e3b2d6731f14c5ccb92deafb102a8d1
-  Author: Martin Jambon <martin@r2c.dev>
-  Date:   Wed Apr 13 15:38:06 2022 -0700
-  
-      Update comment
+
 ---

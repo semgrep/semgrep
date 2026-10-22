@@ -32,7 +32,7 @@ let command_loc = function
   | Bash_test (loc, _) -> loc
   | Arithmetic_expression (loc, _) -> loc
   | For_loop (loc, _, _, _, _, _, _) -> loc
-  | For_loop_c_style (loc, _) -> loc
+  | For_loop_c_style (loc, _, _, _) -> loc
   | Select (loc, _, _, _, _, _, _) -> loc
   | Case (loc, _, _, _, _, _) -> loc
   | If (loc, _, _, _, _, _, _, _) -> loc
@@ -59,10 +59,6 @@ let _sh_test_loc (x : sh_test) =
   (open_, close)
 
 let _bash_test_loc (x : bash_test) =
-  let open_, _, close = x in
-  (open_, close)
-
-let _arithmetic_expression_loc (x : arithmetic_expression) =
   let open_, _, close = x in
   (open_, close)
 
@@ -108,11 +104,25 @@ let expression_loc = function
   | Empty_expression loc -> loc
   | Array (loc, _) -> loc
   | Process_substitution (loc, _) -> loc
+  | Command_expression (loc, _) -> loc
+
+let rec arithmetic_expression_loc = function
+  | A_operand e -> expression_loc e
+  | A_unary ((_, tok), e) -> (tok, snd (arithmetic_expression_loc e))
+  | A_postfix (e, (_, tok)) -> (fst (arithmetic_expression_loc e), tok)
+  | A_binary (e1, _, e2)
+  | A_ternary (e1, _, _, _, e2) ->
+      Tok_range.range
+        (arithmetic_expression_loc e1)
+        (arithmetic_expression_loc e2)
+  | A_paren x -> bracket_loc x
+  | A_array_cell (array, (_, _, close)) -> (fst (expression_loc array), close)
 
 let string_fragment_loc = function
   | String_content x -> wrap_loc x
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
+  | Arithmetic_expansion x -> bracket_loc x
   | Frag_semgrep_metavar x -> wrap_loc x
   | Frag_semgrep_named_ellipsis x -> wrap_loc x
 
