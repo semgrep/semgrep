@@ -3,7 +3,10 @@
  (name semgrep_engine_tests)
  (wrapped false)
  (libraries
+   base
+   collections
    commons
+   yojson
 
    semgrep.core
    semgrep.il
@@ -13,6 +16,7 @@
     (pps
       ppx_profiling
       ppx_deriving.show
+      ppx_deriving_yojson
       commons.ppx
     )
  )

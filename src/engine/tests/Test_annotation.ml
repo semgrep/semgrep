@@ -327,3 +327,22 @@ let filter_todook (annots : annotations) (xs : linenb list) : linenb list =
     |> Set_.of_list
   in
   xs |> List_.exclude (fun line -> Set_.mem line todooks)
+
+let filter_for_engine (running_engine : engine) (annots : annotations) :
+    annotations =
+  annots
+  |> List.filter (fun ({ kind; engine; others; _ }, _) ->
+      match (running_engine, kind, engine) with
+      | Pro, _, _ when List.mem (Ok, Pro) others -> false
+      | Pro, _, _ when List.mem (Todoruleid, Pro) others -> false
+      | Deep, _, _ when List.mem (Ok, Deep) others -> false
+      | Deep, _, _ when List.mem (Todoruleid, Deep) others -> false
+      (* prook => deepok (TODO? protodoruleid => deeptodoruleid? *)
+      | Deep, _, _ when List.mem (Ok, Pro) others -> false
+      (* ruleid => proruleid => deepruleid
+       * (and todok => protodok => deeptodook)
+       *)
+      | OSS, (Ruleid | Todook), OSS -> true
+      | Pro, (Ruleid | Todook), (OSS | Pro) -> true
+      | Deep, (Ruleid | Todook), (OSS | Pro | Deep) -> true
+      | _ -> false)
