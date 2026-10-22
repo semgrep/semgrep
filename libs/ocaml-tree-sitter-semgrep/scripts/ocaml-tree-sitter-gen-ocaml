@@ -53,8 +53,8 @@ Options:
   --src SRC_DIR
       Location of the 'src' folder with some of its contents generated
       by tree-sitter. It must contain 'grammar.json', 'parser.c',
-      and optionally other C files ('scanner.c' or 'scanner.cc') needed
-      to build the C parser. Default: $default_src_dir
+      and optionally 'scanner.c' needed to build the C parser. C++ scanners
+      are not supported. Default: $default_src_dir
   --package PKG
       The Dune package name to which the library will belong.
       The library name will be PKG.LANG where LANG is the language name.
@@ -122,10 +122,9 @@ rm -rf "$dst_dir"
 mkdir -p "$dst_dir"/lib
 mkdir -p "$dst_dir"/config
 
-# Build the lists of C and C++ files to compile, without their extension.
+# Build the list of C files to compile, without their extension.
 #
 c_files="parser bindings"
-cxx_files=""
 
 cp "$src_dir"/parser.c "$dst_dir"/lib
 
@@ -135,8 +134,8 @@ if [[ -e "$src_dir"/scanner.c ]]; then
 fi
 
 if [[ -e "$src_dir"/scanner.cc ]]; then
-  cp "$src_dir"/scanner.cc "$dst_dir"/lib
-  cxx_files="scanner"
+  echo "$(basename "$0"): C++ scanners are not supported: $src_dir/scanner.cc" >&2
+  exit 1
 fi
 
 # Copy C header files
@@ -284,17 +283,9 @@ cat > "$dst_dir"/lib/dune <<EOF
   (c_library_flags
     (
       -L%{env:TREESITTER_LIBDIR=/usr/local/lib}
-      -lstdc++
       -ltree-sitter
       (:include c_library_flags.sexp)
     )
-  )
-  (foreign_stubs
-    (language cxx)
-    (names ${cxx_files})
-    (flags -fPIC
-           -I %{env:TREESITTER_INCDIR=/usr/local/include}
-           -I .)
   )
 )
 

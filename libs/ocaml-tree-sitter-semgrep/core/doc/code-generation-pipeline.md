@@ -16,7 +16,7 @@ Preparing the input of `tree-sitter generate`
 
 The source code for a tree-sitter grammar is normally a `grammar.js`
 file with optional javascript dependencies and optionally a
-`scanner.c` or `scanner.cc` file.
+`scanner.c` file.
 Consult the tree-sitter documentation for details.
 
 The tree-sitter CLI (`tree-sitter generate`) operates in two steps:
