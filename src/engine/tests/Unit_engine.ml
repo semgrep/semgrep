@@ -950,7 +950,15 @@ let full_rule_taint_maturity_tests =
  *)
 let semgrep_rules_repo_tests : Testo.t list =
   let path = tests_path / "semgrep-rules" in
-  let tests = Test_engine.make_tests [ path ] in
+  let expectations_file = tests_path / "rule-expectations.json" in
+  let expectations =
+    if Sys_.file_exists (Fpath.to_string expectations_file) then
+      match Test_expectations.load expectations_file with
+      | Ok expectations -> expectations
+      | Error (`Msg message) -> failwith message
+    else Test_expectations.empty
+  in
+  let tests = Test_engine.make_tests ~expectations [ path ] in
   let groups =
     tests
     |> List.filter_map (fun (test : Testo.t) ->
@@ -1032,6 +1040,80 @@ let semgrep_rules_repo_tests : Testo.t list =
 (* All tests *)
 (*****************************************************************************)
 
+let external_expectations_tests =
+  let run ~source ~engine ~path ~lines ~passes () =
+    let module F = Testutil_files in
+    let rules =
+      {|rules:
+  - id: first
+    languages: [python]
+    message: first
+    severity: WARNING
+    pattern: danger(...)
+  - id: second
+    languages: [python]
+    message: second
+    severity: WARNING
+    pattern: sink(...)
+|}
+    in
+    let overrides =
+      Printf.sprintf {|[{"path":%S,"rule_id":"first","engine":%S,"lines":%s}]|}
+        path engine lines
+    in
+    F.with_tempfiles ~chdir:true
+      [
+        F.Dir
+          ("rules", [ F.File ("test.yaml", rules); F.File ("test.py", source) ]);
+        F.Dir ("expectations", [ F.File ("overrides.json", overrides) ]);
+      ]
+      (fun _ ->
+        let expectations =
+          match
+            Test_expectations.load (Fpath.v "expectations/overrides.json")
+          with
+          | Ok expectations -> expectations
+          | Error (`Msg message) -> failwith message
+        in
+        let tests =
+          Test_engine.make_tests ~expectations
+            ~fail_callback:(fun _ message -> failwith message)
+            [ Fpath.v "rules" ]
+        in
+        let passed =
+          try
+            List.iter (fun (test : Testo.t) -> test.func ()) tests;
+            true
+          with
+          | Failure _ -> false
+        in
+        Alcotest.(check bool) "rule expectations" passes passed)
+  in
+  let baseline = "# ruleid: first\ndanger()\n# ruleid: second\nsink()\n" in
+  let changed =
+    "# ruleid: first\nsafe()\ndanger()\n# ruleid: second\nsink()\n"
+  in
+  let removed = "# ruleid: first\nsafe()\n# ruleid: second\nsink()\n" in
+  let test name ?(source = changed) ?(engine = "OSS")
+      ?(path = "../rules/test.py") ~lines ~passes () =
+    t name (run ~source ~engine ~path ~lines ~passes)
+  in
+  Testo.categorize "external rule expectations"
+    [
+      test "changed findings" ~lines:"[3]" ~passes:true ();
+      test "removed findings" ~source:removed ~lines:"[]" ~passes:true ();
+      test "wrong findings fail" ~lines:"[2]" ~passes:false ();
+      test "rule IDs remain isolated"
+        ~source:"# ruleid: second\ndanger(sink())\n" ~lines:"[]" ~passes:false
+        ();
+      test "other rules still fail" ~source:"# ruleid: second\nsafe()\n"
+        ~lines:"[]" ~passes:false ();
+      test "engines remain isolated" ~source:baseline ~engine:"Pro" ~lines:"[]"
+        ~passes:true ();
+      test "targets remain isolated" ~source:baseline ~path:"../rules/other.py"
+        ~lines:"[]" ~passes:true ();
+    ]
+
 let tests =
   List_.flatten
     [
@@ -1047,4 +1129,5 @@ let tests =
       full_rule_taint_maturity_tests;
       full_rule_regression_tests;
       semgrep_rules_repo_tests;
+      external_expectations_tests;
     ]

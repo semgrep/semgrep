@@ -14,6 +14,9 @@
    Create a list of tests for regression testing
 *)
 val make_tests :
+  ?expectations:
+    (* Overrides replace complete line expectations per target, rule, and engine. *)
+    Test_expectations.t ->
   ?fail_callback:
     ((* default to Alcotest.fail msg *)
      int
