@@ -20,7 +20,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: "3.12"
-          version: 0.10.9
+          version: 0.13.4
       - name: Set up build tools
         run: |
           sudo apt-get update

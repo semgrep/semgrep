@@ -32,7 +32,7 @@ jobs:
         with:
           enable-cache: auto
           python-version: "3.12"
-          version: 0.10.9
+          version: 0.13.4
       - if: steps.changes.outputs.scanners == 'true'
         name: Run scanners under AddressSanitizer
         run: uv run --project cli --locked pytest -v libs/ocaml-tree-sitter-semgrep/scripts/test_scanner_memory_safety.py
