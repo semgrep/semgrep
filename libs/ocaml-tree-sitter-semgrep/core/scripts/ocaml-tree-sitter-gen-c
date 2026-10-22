@@ -86,7 +86,6 @@ if [[ -e grammar.js ]]; then
   mkdir -p src
   if [[ -e orig/LICENSE ]]; then cp -L orig/LICENSE src; fi
   if [[ -e orig/scanner.c ]]; then cp -L orig/scanner.c src; fi
-  if [[ -e orig/scanner.cc ]]; then cp -L orig/scanner.cc src; fi
 else
   # This mechanism is used with languages whose base grammar is defined
   # in a fetched tree-sitter-* checkout.
