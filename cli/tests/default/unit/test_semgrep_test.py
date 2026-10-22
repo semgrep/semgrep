@@ -123,3 +123,8 @@ def test_relatively_eq():
         relatively_eq(p1, p1 / "my-rule-a" / "views.py", p2, p2 / "my-rule-a.yaml")
         is True
     )
+    # A single rule file passed via -c: the config equals its own parent, so the
+    # relative config path is empty. Any target under the tree should match
+    # instead of raising IndexError (GH issue 11391).
+    single_config = Path("semgrep-rules.yaml")
+    assert relatively_eq(p1, p1 / "os_open.go", single_config, single_config) is True
