@@ -484,24 +484,7 @@ let run_rules_against_targets_for_engine (env : env) (rules : Rule.t list)
  *    naming bug as ProDeep use Naming_SAST.ml instead of Naming_AST.ml)
  *    in which case it's good to annotate it with a deeptodook
  *)
-let filter_annots_for_engine (running_engine : A.engine)
-    (annots : A.annotations) : A.annotations =
-  annots
-  |> List.filter (fun (A.{ kind; engine; others; _ }, _) ->
-      match (running_engine, kind, engine) with
-      | Pro, _, _ when List.mem (A.Ok, A.Pro) others -> false
-      | Pro, _, _ when List.mem (A.Todoruleid, A.Pro) others -> false
-      | Deep, _, _ when List.mem (A.Ok, A.Deep) others -> false
-      | Deep, _, _ when List.mem (A.Todoruleid, A.Deep) others -> false
-      (* prook => deepok (TODO? protodoruleid => deeptodoruleid? *)
-      | Deep, _, _ when List.mem (A.Ok, A.Pro) others -> false
-      (* ruleid => proruleid => deepruleid
-       * (and todok => protodok => deeptodook)
-       *)
-      | OSS, (Ruleid | Todook), OSS -> true
-      | Pro, (Ruleid | Todook), (OSS | Pro) -> true
-      | Deep, (Ruleid | Todook), (OSS | Pro | Deep) -> true
-      | _ -> false)
+let filter_annots_for_engine = A.filter_for_engine
 
 (*****************************************************************************)
 (* Comparing *)
