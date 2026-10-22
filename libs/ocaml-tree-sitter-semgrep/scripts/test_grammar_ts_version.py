@@ -49,6 +49,15 @@ def _grammar_dirs():
     return dirs
 
 
+def _generation_cost(package):
+    """Size of the package's generated CST.ml: a cheap proxy for generation
+    time and memory. Grammars without one here count as most expensive."""
+    csts = (REPO_ROOT.parent.parent / "languages").glob(
+        f"*/tree-sitter/{package.name}/lib/CST.ml"
+    )
+    return min((cst.stat().st_size for cst in csts), default=float("inf"))
+
+
 def _binary(version):
     return REPO_ROOT / "core" / f"tree-sitter-{version}" / "bin" / "tree-sitter"
 
@@ -93,13 +102,16 @@ def test_generation_uses_the_pinned_version(version):
     if not shutil.which("node"):
         pytest.fail("node not available (tree-sitter generate needs it)")
 
-    package = None
-    for grammar_dir in GRAMMAR_DIRS:
-        if version_for_grammar_dir(grammar_dir, LANG_DIR) == version:
-            package = SRC / grammar_dir.relative_to(SRC).parts[0]
-            break
-    if package is None:
+    # Regenerate the cheapest pinned grammar: some need >10 GB to generate,
+    # more than CI runners have.
+    packages = {
+        SRC / grammar_dir.relative_to(SRC).parts[0]
+        for grammar_dir in GRAMMAR_DIRS
+        if version_for_grammar_dir(grammar_dir, LANG_DIR) == version
+    }
+    if not packages:
         pytest.fail(f"no grammar pinned to {version}")
+    package = min(packages, key=lambda p: (_generation_cost(p), p.name))
 
     for gj in package.rglob("grammar.js"):
         gj.touch()
