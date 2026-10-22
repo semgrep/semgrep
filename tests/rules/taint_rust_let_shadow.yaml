@@ -1,0 +1,10 @@
+rules:
+  - id: taint-rust-let-shadow
+    message: tainted value reaches sink
+    languages: [rust]
+    severity: ERROR
+    mode: taint
+    pattern-sources:
+      - pattern: source(...)
+    pattern-sinks:
+      - pattern: sink(...)
