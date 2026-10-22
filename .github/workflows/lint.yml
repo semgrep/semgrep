@@ -37,7 +37,7 @@ jobs:
         with:
           enable-cache: true
           python-version: "3.11"
-          version: 0.10.9
+          version: 0.13.4
       - env:
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: maintenance.auto
