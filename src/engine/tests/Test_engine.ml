@@ -219,7 +219,42 @@ let read_rules_file ~get_analyzer ?fail_callback rule_file =
       in
       Some (rules, target, analyzer)
 
-let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
+let compare_rule_expectations expectations rules target matches annotated =
+  let ids = List.map (fun (rule : Rule.t) -> fst rule.id) rules in
+  let overrides =
+    Test_expectations.for_rules expectations ids |> fun expectations ->
+    Test_expectations.for_file expectations Test_annotation.OSS target
+  in
+  match overrides with
+  | [] ->
+      TCM.compare_actual_to_expected ~to_location:TCM.location_of_pm matches
+        annotated
+  | _ ->
+      let expected =
+        Test_annotation.annotations target
+        |> Test_annotation.filter_for_engine Test_annotation.OSS
+        |> Test_annotation.group_by_rule_id
+        |> List.filter (fun (id, _) -> not (List.mem_assoc id overrides))
+        |> List.append overrides
+      in
+      List.fold_left
+        (fun result id ->
+          Result.bind result (fun () ->
+              let actual =
+                List.filter
+                  (fun (pm : Core_match.t) -> Rule_ID.equal pm.rule_id.id id)
+                  matches
+              in
+              let lines =
+                List.assoc_opt id expected |> Option.value ~default:[]
+                |> List.map (fun line -> (target, line))
+              in
+              TCM.compare_actual_to_expected ~to_location:TCM.location_of_pm
+                actual lines))
+        (Ok ()) ids
+
+let make_test_rule_file ?(expectations = Test_expectations.empty)
+    ?(fail_callback = fun _i m -> Alcotest.fail m)
     ?(get_analyzer = single_analyzer_from_rules) ?(prepend_lang = false)
     (rule_file : Fpath.t) : Testo.t =
   let test () =
@@ -267,7 +302,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         |> List.iter (fun (_, line) ->
             Logs.debug (fun m -> m "match at line: %d" line));
         match
-          TCM.compare_actual_to_expected ~to_location:Fun.id actual_errors
+          compare_rule_expectations expectations rules target res.matches
             expected_error_lines
         with
         | Ok () -> ()
@@ -317,7 +352,9 @@ let collect_tests ?(get_analyzer = single_analyzer_from_rules)
   in
   { valid_test_triples; invalid_rule_files }
 
-let make_tests ?fail_callback ?get_analyzer ?prepend_lang (xs : Fpath.t list) :
-    Testo.t list =
+let make_tests ?expectations ?fail_callback ?get_analyzer ?prepend_lang
+    (xs : Fpath.t list) : Testo.t list =
   xs |> find_rule_files
-  |> List.map (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang)
+  |> List.map
+       (make_test_rule_file ?expectations ?fail_callback ?get_analyzer
+          ?prepend_lang)
