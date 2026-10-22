@@ -2,6 +2,7 @@
 
 function test1($cond)
 {
+  $x = "";
   if ($cond)
     $x = "tainted";
   else
