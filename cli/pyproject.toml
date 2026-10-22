@@ -177,4 +177,4 @@ asyncio_mode = "auto"
 exclude-newer = "1 week"  # nosemgrep: uv-missing-dependency-cooldown -- "1 week" == 7-day cooldown (SEC-1765); rule only matches "N days"
 # Remove after 2026-10-27, when the patched certifi release exits the normal cooldown.
 exclude-newer-package = { certifi = "2026-10-21T00:00:00Z" }
-required-version = ">=0.10.0"
+required-version = ">=0.13.4"
