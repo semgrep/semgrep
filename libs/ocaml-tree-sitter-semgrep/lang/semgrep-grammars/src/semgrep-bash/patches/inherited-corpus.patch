@@ -1,0 +1,13 @@
+--- inherited/statements.txt	2026-10-09 19:32:20
++++ inherited/statements.txt	2026-10-09 19:32:20
+@@ -1665,9 +1665,8 @@
+           (variable_name))
+         (string_content))))
+   (declaration_command
++    (semgrep_metavariable)
+     (concatenation
+-      (simple_expansion
+-        (variable_name))
+       (word)
+       (simple_expansion
+         (variable_name)))))

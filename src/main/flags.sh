@@ -70,7 +70,11 @@ else
             # old: was just '--copt -static --copy -no-pie' before we depended
             # on libcurl
             FLAGS=()
-            CCLIB=("-lssl" "-lcrypto" "-lz")
+            # Link libunwind.a and libstdc++.a as a group (obackward needs both);
+            # in sequence, libgcc_eh.a also gets pulled in and redefines
+            # _Unwind_Resume ("multiple definition").
+            CCLIB=("-lssl" "-lcrypto" "-lz"
+                "-Wl,--start-group" "-lunwind" "-lstdc++" "-Wl,--end-group")
             CCOPT=("-static" "-no-pie")
         else
             # On non-Alpine Linux distros (e.g., Ubuntu), we just dynamically

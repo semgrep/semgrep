@@ -48,7 +48,8 @@ $$A
     (command_name
       (string
         (simple_expansion
-          (special_variable_name))))))
+          (special_variable_name))
+        (string_content)))))
 
 ======================================================================
 Concatenation
@@ -102,7 +103,7 @@ echo ${$X#/}
     (command_name (word))
     (expansion
       (semgrep_metavariable)
-      (word))))
+      (regex))))
 
 ======================================================================
 Ellipsis in unquoted concatenation
@@ -141,10 +142,12 @@ Ellipsis in quoted concatenation
     (command_name
       (string
         (simple_expansion
-          (variable_name)))))
+          (variable_name))
+        (string_content))))
   (command
     (command_name
       (string
+        (string_content)
         (simple_expansion
           (variable_name))))))
 
@@ -164,7 +167,7 @@ esac
   (case_statement
     (simple_expansion (variable_name))
     (case_item (word))
-    (case_item (word))))
+    (case_item (extglob_pattern))))
 
 ======================================================================
 For loop with metavariable and ellipsis
@@ -197,6 +200,74 @@ function $FOO() {
     (semgrep_metavariable)
     (compound_statement (command (command_name (word))))))
 
+
+======================================================================
+Function definition with metavariable, redirect, and 'if' body
+======================================================================
+
+function $F() {
+  ...
+} 2>&1
+function $F if ...; then ...; fi
+
+---
+
+(program
+  (function_definition
+    (semgrep_metavariable)
+    (compound_statement (command (command_name (word))))
+    (file_redirect (file_descriptor) (number)))
+  (function_definition
+    (semgrep_metavariable)
+    (if_statement
+      (command (command_name (word)))
+      (command (command_name (word))))))
+
+======================================================================
+Arithmetic expansion with metavariables and ellipses
+======================================================================
+
+echo $(( $X + ... ))
+echo $(( ... ))
+echo $(( <... $X ...> ))
+x=$(( $...ARGS ))
+
+---
+
+(program
+  (command
+    (command_name (word))
+    (arithmetic_expansion
+      (binary_expression
+        (simple_expansion (variable_name))
+        (word))))
+  (command
+    (command_name (word))
+    (arithmetic_expansion (word)))
+  (command
+    (command_name (word))
+    (arithmetic_expansion
+      (semgrep_deep_expression
+        (simple_expansion (variable_name)))))
+  (variable_assignment
+    (variable_name)
+    (arithmetic_expansion
+      (simple_expansion (semgrep_named_ellipsis)))))
+
+======================================================================
+C-style for loop with ellipses
+======================================================================
+
+for (( ...; ...; ... )); do ...; done
+
+---
+
+(program
+  (c_style_for_statement
+    (word)
+    (word)
+    (word)
+    (do_group (command (command_name (word))))))
 
 ======================================================================
 Metavariable in declaration
@@ -259,7 +330,7 @@ $X= 42 command
   (command
     (variable_assignment
       (semgrep_metavar_eq)
-      (word))
+      (number))
     (variable_assignment
       (variable_name)
       (word))
@@ -270,8 +341,64 @@ $X= 42 command
     (variable_assignment
       (semgrep_metavar_eq))
     (command_name
-      (word))
+      (number))
     (word)))
+
+======================================================================
+Metavariable in assignment with a '#' value
+======================================================================
+
+$X=#foo
+
+---
+
+(program
+  (variable_assignment
+    (semgrep_metavar_eq)
+    (word)))
+
+======================================================================
+Metavariable in multiple assignments
+======================================================================
+
+$X=1 Y=2
+
+---
+
+(program
+  (variable_assignments
+    (variable_assignment
+      (semgrep_metavar_eq)
+      (number))
+    (variable_assignment
+      (variable_name)
+      (number))))
+
+======================================================================
+Metavariable assignment in C-style for loop
+======================================================================
+
+for (( $I=0; $I<$N; $I++ )); do ...; done
+
+---
+
+(program
+  (c_style_for_statement
+    (variable_assignment
+      (semgrep_metavar_eq)
+      (number))
+    (binary_expression
+      (simple_expansion
+        (variable_name))
+      (simple_expansion
+        (variable_name)))
+    (postfix_expression
+      (simple_expansion
+        (variable_name)))
+    (do_group
+      (command
+        (command_name
+          (word))))))
 
 ======================================================================
 Array declaration and assignment (TODO)
@@ -344,5 +471,224 @@ $...ARGS and more
   (command
     (command_name
       (string
+        (string_content)
         (simple_expansion
-          (semgrep_named_ellipsis))))))
+          (semgrep_named_ellipsis))
+        (string_content)))))
+
+================================================================================
+Pipeline followed by a redirected statement
+================================================================================
+
+a | b | c
+d > f
+while read -r x; do echo "$x"; done 3<<<"$X"
+
+--------------------------------------------------------------------------------
+
+(program
+  (pipeline
+    (command
+      (command_name
+        (word)))
+    (command
+      (command_name
+        (word)))
+    (command
+      (command_name
+        (word))))
+  (redirected_statement
+    (command
+      (command_name
+        (word)))
+    (file_redirect
+      (word)))
+  (redirected_statement
+    (while_statement
+      (command
+        (command_name
+          (word))
+        (word)
+        (word))
+      (do_group
+        (command
+          (command_name
+            (word))
+          (string
+            (simple_expansion
+              (variable_name))))))
+    (herestring_redirect
+      (file_descriptor)
+      (string
+        (simple_expansion
+          (variable_name))))))
+
+================================================================================
+Arithmetic unary operators bind tighter than binary operators
+================================================================================
+
+echo $(( -a + b ))
+echo $(( -2 ** 2 ))
+
+--------------------------------------------------------------------------------
+
+(program
+  (command
+    (command_name
+      (word))
+    (arithmetic_expansion
+      (binary_expression
+        (unary_expression
+          (variable_name))
+        (variable_name))))
+  (command
+    (command_name
+      (word))
+    (arithmetic_expansion
+      (binary_expression
+        (unary_expression
+          (number))
+        (number)))))
+
+================================================================================
+Arithmetic '**' and assignments are right-associative
+================================================================================
+
+echo $(( 2 ** 3 ** 2 ))
+(( a = b = 1 ))
+
+--------------------------------------------------------------------------------
+
+(program
+  (command
+    (command_name
+      (word))
+    (arithmetic_expansion
+      (binary_expression
+        (number)
+        (binary_expression
+          (number)
+          (number)))))
+  (compound_statement
+    (binary_expression
+      (variable_name)
+      (binary_expression
+        (variable_name)
+        (number)))))
+
+================================================================================
+Arithmetic ternary is right-associative; assignments share a precedence
+================================================================================
+
+echo $(( x ? y : z ? 1 : 0 ))
+(( a = b += 1 ))
+
+--------------------------------------------------------------------------------
+
+(program
+  (command
+    (command_name
+      (word))
+    (arithmetic_expansion
+      (ternary_expression
+        (variable_name)
+        (variable_name)
+        (ternary_expression
+          (variable_name)
+          (number)
+          (number)))))
+  (compound_statement
+    (binary_expression
+      (variable_name)
+      (binary_expression
+        (variable_name)
+        (number)))))
+
+================================================================================
+Ellipsis before the closing keyword of a block
+================================================================================
+
+while ...; do ... done
+if ...; then ... else ... fi
+{ ...; ... }
+
+--------------------------------------------------------------------------------
+
+(program
+  (while_statement
+    condition: (command
+      name: (command_name
+        (word)))
+    body: (do_group
+      (command
+        name: (command_name
+          (word)))))
+  (if_statement
+    condition: (command
+      name: (command_name
+        (word)))
+    (command
+      name: (command_name
+        (word)))
+    (else_clause
+      (command
+        name: (command_name
+          (word)))))
+  (compound_statement
+    (command
+      name: (command_name
+        (word)))
+    (command
+      name: (command_name
+        (word)))))
+
+================================================================================
+Only an ellipsis may end a block without a terminator
+================================================================================
+
+for i in a; do ... x; echo done; done
+
+--------------------------------------------------------------------------------
+
+(program
+  (for_statement
+    variable: (variable_name)
+    value: (word)
+    body: (do_group
+      (command
+        name: (command_name
+          (word))
+        argument: (word))
+      (command
+        name: (command_name
+          (word))
+        argument: (word)))))
+
+================================================================================
+Ellipsis as a command, a function name and a command argument
+================================================================================
+
+... > out
+...() { ...; }
+echo ... x
+
+--------------------------------------------------------------------------------
+
+(program
+  (redirected_statement
+    body: (command
+      name: (command_name
+        (word)))
+    redirect: (file_redirect
+      destination: (word)))
+  (function_definition
+    name: (word)
+    body: (compound_statement
+      (command
+        name: (command_name
+          (word)))))
+  (command
+    name: (command_name
+      (word))
+    argument: (word)
+    argument: (word)))

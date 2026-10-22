@@ -203,6 +203,12 @@ module C = struct
   (* Process substitution: <(...) *)
   let proc_subst loc = mk loc "proc_subst"
 
+  (* Arithmetic expansion: $(( ... )), with the expression as argument *)
+  let arith_expansion loc = mk loc "arith_expansion"
+
+  (* Arithmetic evaluation: (( ... )), with the expression as argument *)
+  let arith loc = mk loc "arith"
+
   (* Subshell: (...) *)
   let subshell loc = mk loc "subshell"
 end
@@ -229,6 +235,60 @@ let todo_expr (loc : loc) : G.expr =
   G.e (G.OtherExpr (("BashTodo", t), todo_tokens loc))
 
 let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
+
+let is_variable_name (s : string) : bool =
+  s <> ""
+  && (not ('0' <= s.[0] && s.[0] <= '9'))
+  && String.for_all
+       (function
+         | 'a' .. 'z'
+         | 'A' .. 'Z'
+         | '0' .. '9'
+         | '_' ->
+             true
+         | _ -> false)
+       s
+
+(* Integer literals that bash and Parsed_int read the same way: decimal
+   without a leading zero, or hexadecimal. Others ('010' is octal 8 in bash,
+   '2#101', ...) stay strings rather than get a wrong value. *)
+let is_portable_int_literal (s : string) : bool =
+  let is_digit c = '0' <= c && c <= '9' in
+  let is_hex c =
+    is_digit c || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')
+  in
+  let len = String.length s in
+  s = "0"
+  || (len > 0 && (not (s.[0] =$= '0')) && String.for_all is_digit s)
+  || len > 2
+     && s.[0] =$= '0'
+     && (s.[1] =$= 'x' || s.[1] =$= 'X')
+     && String.for_all is_hex (String.sub s 2 (len - 2))
+
+(* Binary arithmetic operators other than assignments and ',' *)
+let arithmetic_operator (op : string) : G.operator option =
+  match op with
+  | "+" -> Some G.Plus
+  | "-" -> Some G.Minus
+  | "*" -> Some G.Mult
+  | "/" -> Some G.Div
+  | "%" -> Some G.Mod
+  | "**" -> Some G.Pow
+  | "<<" -> Some G.LSL
+  | ">>" -> Some G.ASR
+  | "&" -> Some G.BitAnd
+  | "|" -> Some G.BitOr
+  | "^" -> Some G.BitXor
+  | "&&" -> Some G.And
+  | "||" -> Some G.Or
+  | "==" -> Some G.Eq
+  | "!=" -> Some G.NotEq
+  | "<" -> Some G.Lt
+  | "<=" -> Some G.LtE
+  | ">" -> Some G.Gt
+  | ">=" -> Some G.GtE
+  | "=~" -> Some G.RegexpMatch
+  | _ -> None
 
 (*****************************************************************************)
 (* Converter from bash AST to generic AST *)
@@ -321,7 +381,8 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       stmt_group env loc (blist env bl)
   | Sh_test (loc, _) -> todo_expr2 loc
   | Bash_test (loc, _) -> todo_expr2 loc
-  | Arithmetic_expression (loc, _) -> todo_expr2 loc
+  | Arithmetic_expression (loc, (_open, e, _close)) ->
+      Expr (loc, call loc C.arith [ arithmetic env e ])
   | For_loop (loc, for_, loop_var, opt_in, do_, body, _done_) ->
       let header =
         let in_tk, expr =
@@ -361,8 +422,16 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       in
       let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.For (for_, header, body) |> G.s)
-  | For_loop_c_style (loc, bl) ->
-      (* TODO: loop *) stmt_group env loc (blist env bl)
+  | For_loop_c_style (loc, for_, (init, cond, next), body) ->
+      let clause = Option.map (arithmetic env) in
+      let init =
+        clause init |> Option.to_list |> List.map (fun e -> G.ForInitExpr e)
+      in
+      let body = stmt_group env loc (blist env body) |> as_stmt in
+      Stmt
+        ( loc,
+          G.For (for_, G.ForClassic (init, clause cond, clause next), body)
+          |> G.s )
   | Select (loc, _select, _loop_var, _opt_in, _do_, body, _done_) ->
       (* TODO *)
       stmt_group env loc (blist env body)
@@ -515,6 +584,89 @@ and expression (env : env) (e : expression) : G.expr =
   | Process_substitution (loc, (_open_, x, _close)) ->
       let arg = blist env x |> block |> as_expr in
       call loc C.proc_subst [ arg ]
+  | Command_expression (_loc, cmd) -> command env cmd |> as_expr
+
+(* Arithmetic is C-like: operators become generic operator calls. *)
+and arithmetic (env : env) (x : arithmetic_expression) : G.expr =
+  match x with
+  | A_operand e -> arithmetic_operand env e
+  | A_unary ((op, tok), e) -> (
+      match op with
+      | "++" ->
+          G.special
+            (G.IncrDecr (G.Incr, G.Prefix), tok)
+            [ arithmetic_lvalue env e ]
+      | "--" ->
+          G.special
+            (G.IncrDecr (G.Decr, G.Prefix), tok)
+            [ arithmetic_lvalue env e ]
+      | "!" -> G.opcall (G.Not, tok) [ arithmetic env e ]
+      | "~" -> G.opcall (G.BitNot, tok) [ arithmetic env e ]
+      | "+" -> G.opcall (G.Plus, tok) [ arithmetic env e ]
+      | "-" -> G.opcall (G.Minus, tok) [ arithmetic env e ]
+      | _ -> todo_expr (AST_bash_loc.arithmetic_expression_loc x))
+  | A_postfix (e, (op, tok)) -> (
+      let e = arithmetic_lvalue env e in
+      match op with
+      | "++" -> G.special (G.IncrDecr (G.Incr, G.Postfix), tok) [ e ]
+      | "--" -> G.special (G.IncrDecr (G.Decr, G.Postfix), tok) [ e ]
+      | _ -> todo_expr (AST_bash_loc.arithmetic_expression_loc x))
+  | A_binary (e1, (",", _), e2) ->
+      let left =
+        match arithmetic env e1 with
+        | { G.e = G.Seq es; _ } -> es
+        | e -> [ e ]
+      in
+      G.Seq (left @ [ arithmetic env e2 ]) |> G.e
+  | A_binary (e1, ("=", tok), e2) ->
+      G.Assign (arithmetic_lvalue env e1, tok, arithmetic env e2) |> G.e
+  | A_binary (e1, (op, tok), e2) -> (
+      let e2 = arithmetic env e2 in
+      match arithmetic_operator op with
+      | Some op -> G.opcall (op, tok) [ arithmetic env e1; e2 ]
+      | None -> (
+          (* compound assignment e.g. '+=' or '<<=' *)
+          let len = String.length op in
+          let base =
+            if len >= 2 && op.[len - 1] =$= '=' then
+              arithmetic_operator (String.sub op 0 (len - 1))
+            else None
+          in
+          match base with
+          | Some op ->
+              G.AssignOp (arithmetic_lvalue env e1, (op, tok), e2) |> G.e
+          | None -> todo_expr (AST_bash_loc.arithmetic_expression_loc x)))
+  | A_ternary (cond, _, e1, _, e2) ->
+      G.Conditional (arithmetic env cond, arithmetic env e1, arithmetic env e2)
+      |> G.e
+  | A_paren (_, e, _) -> arithmetic env e
+  | A_array_cell (array, (open_, index, close)) ->
+      G.ArrayAccess
+        ( arithmetic_lvalue env (A_operand array),
+          (open_, arithmetic env index, close) )
+      |> G.e
+
+(* The target of an assignment or of '++'/'--', or an array: the variable
+   itself rather than its value, as in ordinary assignments *)
+and arithmetic_lvalue (env : env) (x : arithmetic_expression) : G.expr =
+  match x with
+  | A_operand (Word ((name, _) as var)) when is_variable_name name ->
+      G.N (mk_name var) |> G.e
+  | _ -> arithmetic env x
+
+(* In arithmetic, a bare name denotes a variable's value like '$x' does,
+   and integer literals are numbers. *)
+and arithmetic_operand (env : env) (e : expression) : G.expr =
+  match e with
+  | Word (name, tok) when is_variable_name name ->
+      let loc = (tok, tok) in
+      expansion env (Simple_expansion (loc, Simple_variable_name (name, tok)))
+  | Word ((s, _) as num) when is_portable_int_literal s ->
+      G.L (G.Int (Parsed_int.parse num)) |> G.e
+  | Expr_semgrep_deep_ellipsis (_loc, (open_, e, close)) ->
+      (* '<... x ...>' *)
+      G.DeepEllipsis (open_, arithmetic_operand env e, close) |> G.e
+  | _ -> expression env e
 
 and string_fragment (env : env) (frag : string_fragment) : G.expr =
   match frag with
@@ -527,6 +679,8 @@ and string_fragment (env : env) (frag : string_fragment) : G.expr =
       let loc = (open_, close) in
       let arg = blist env x |> block |> as_expr in
       call loc C.cmd_subst [ arg ]
+  | Arithmetic_expansion (open_, e, close) ->
+      call (open_, close) C.arith_expansion [ arithmetic env e ]
   | Frag_semgrep_metavar mv -> G.N (mk_name mv) |> G.e
   | Frag_semgrep_named_ellipsis x -> G.N (mk_name x) |> G.e
 
