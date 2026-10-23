@@ -1,0 +1,3 @@
+The `--help` output of `semgrep` subcommands now includes a "THIRD-PARTY
+LICENSES" section linking to the licenses and notices for Semgrep's open
+source dependencies at https://semgrep.dev/cli-credits.
