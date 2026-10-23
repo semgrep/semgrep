@@ -1,0 +1,127 @@
+[{ s =
+   (RawStmt
+      (List
+         [(Case ("Form",
+             (Case ("Vec_lit",
+                (Tuple
+                   [(Token ("[", _));
+                     (List
+                        [(Case ("Form",
+                            (Case ("Kwd_lit", (Token (":plain", _))))));
+                          (Case ("Form",
+                             (Case ("Kwd_lit", (Token ("::local", _))))));
+                          (Case ("Form",
+                             (Case ("Kwd_lit", (Token (":app/name", _))))));
+                          (Case ("Form",
+                             (Case ("Kwd_lit", (Token ("::alias/name", _))))
+                             ));
+                          (Case ("Form",
+                             (Case ("Kwd_lit", (Token (":/", _))))));
+                          (Case ("Form",
+                             (Case ("Kwd_lit", (Token (":/usr/bin/env", _))))
+                             ));
+                          (Case ("Form",
+                             (Case ("Kwd_lit", (Token (":app/a/b", _))))))
+                          ]);
+                     (Token ("]", _))])
+                ))
+             ));
+           (Case ("Form",
+              (Case ("Vec_lit",
+                 (Tuple
+                    [(Token ("[", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit", (Token ("plain", _))))));
+                           (Case ("Form",
+                              (Case ("Sym_lit",
+                                 (List
+                                    [(Token ("app", _)); (Token ("name", _))])
+                                 ))
+                              ));
+                           (Case ("Form",
+                              (Case ("Sym_lit",
+                                 (List
+                                    [(Token ("clojure.core", _));
+                                      (Token ("/", _))])
+                                 ))
+                              ));
+                           (Case ("Form",
+                              (Case ("Sym_lit",
+                                 (List
+                                    [(Token ("app", _)); (Token ("a/b", _))])
+                                 ))
+                              ))
+                           ]);
+                      (Token ("]", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form", (Case ("Sym_lit", (Token ("/", _))))
+                             ));
+                           (Case ("Form",
+                              (Case ("Num_lit", (Token ("4", _))))));
+                           (Case ("Form",
+                              (Case ("Num_lit", (Token ("2", _))))))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("Ns_map_lit",
+                 (Tuple
+                    [(Token ("#", _));
+                      (Case ("Kwd_lit", (Token (":app", _))));
+                      (Tuple
+                         [(Token ("{", _));
+                           (List
+                              [(Case ("Form",
+                                  (Case ("Kwd_lit", (Token (":name", _))))));
+                                (Case ("Form",
+                                   (Case ("Num_lit", (Token ("1", _))))))
+                                ]);
+                           (Token ("}", _))])
+                      ])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("Ns_map_lit",
+                 (Tuple
+                    [(Token ("#", _));
+                      (Case ("Auto_res_mark", (Token ("::", _))));
+                      (Tuple
+                         [(Token ("{", _));
+                           (List
+                              [(Case ("Form",
+                                  (Case ("Kwd_lit", (Token (":name", _))))));
+                                (Case ("Form",
+                                   (Case ("Num_lit", (Token ("2", _))))))
+                                ]);
+                           (Token ("}", _))])
+                      ])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("Ns_map_lit",
+                 (Tuple
+                    [(Token ("#", _));
+                      (Case ("Kwd_lit", (Token ("::alias", _))));
+                      (Tuple
+                         [(Token ("{", _));
+                           (List
+                              [(Case ("Form",
+                                  (Case ("Kwd_lit", (Token (":name", _))))));
+                                (Case ("Form",
+                                   (Case ("Num_lit", (Token ("3", _))))))
+                                ]);
+                           (Token ("}", _))])
+                      ])
+                 ))
+              ))
+           ]));
+   s_range = None }
+  ]

@@ -52,7 +52,7 @@
     "url": "https://github.com/Decurity/tree-sitter-circom.git"
   },
   "clojure": {
-    "commit": "8c23e0ec078af461ccad43fffbbfc204aa6bc238",
+    "commit": "3a1ace906c151dd631cf6f149b5083f2b60e6a9e",
     "regen": [
       "clojure"
     ],
