@@ -19,59 +19,114 @@ let token (env : env) (tok : Tree_sitter_run.Token.t) =
 let blank (env : env) () =
   R.Tuple []
 
-let map_comment (env : env) (tok : CST.comment) =
-  (* comment *) token env tok
+let map_tok_coloncolon (env : env) (tok : CST.tok_coloncolon) =
+  (* tok_coloncolon *) token env tok
 
 let map_ws (env : env) (tok : CST.ws) =
   (* ws *) token env tok
 
-let map_auto_res_mark (env : env) (tok : CST.auto_res_mark) =
-  (* auto_res_mark *) token env tok
-
-let map_char_lit (env : env) (tok : CST.char_lit) =
-  (* char_lit *) token env tok
-
-let map_tok_pat_0a702c4_rep_choice_pat_0a702c4 (env : env) (tok : CST.tok_pat_0a702c4_rep_choice_pat_0a702c4) =
-  (* tok_pat_0a702c4_rep_choice_pat_0a702c4 *) token env tok
+let map_comment (env : env) (tok : CST.comment) =
+  (* comment *) token env tok
 
 let map_str_lit (env : env) (tok : CST.str_lit) =
   (* str_lit *) token env tok
 
+let map_num_lit (env : env) (tok : CST.num_lit) =
+  (* num_lit *) token env tok
+
+let map_auto_res_mark (env : env) (tok : CST.auto_res_mark) =
+  (* auto_res_mark *) token env tok
+
+let map_tok_rep1_choice_pat_9bb6724 (env : env) (tok : CST.tok_rep1_choice_pat_9bb6724) =
+  (* tok_rep1_choice_pat_9bb6724 *) token env tok
+
+let map_char_lit (env : env) (tok : CST.char_lit) =
+  (* char_lit *) token env tok
+
+let map_tok_slash (env : env) (tok : CST.tok_slash) =
+  (* tok_slash *) token env tok
+
+let map_tok_pat_b652e16_rep_choice_pat_2b29b50 (env : env) (tok : CST.tok_pat_b652e16_rep_choice_pat_2b29b50) =
+  (* tok_pat_b652e16_rep_choice_pat_2b29b50 *) token env tok
+
 let map_nil_lit (env : env) (tok : CST.nil_lit) =
   (* nil_lit *) token env tok
-
-let map_kwd_lit (env : env) (tok : CST.kwd_lit) =
-  (* kwd_lit *) token env tok
 
 let map_tok_dquot_rep_pat_0d044a8_rep_bslash_pat_5058f1a_rep_pat_0d044a8_dquot (env : env) (tok : CST.tok_dquot_rep_pat_0d044a8_rep_bslash_pat_5058f1a_rep_pat_0d044a8_dquot) =
   (* tok_dquot_rep_pat_0d044a8_rep_bslash_pat_5058f1a_rep_pat_0d044a8_dquot *) token env tok
 
-let map_num_lit (env : env) (tok : CST.num_lit) =
-  (* num_lit *) token env tok
+let map_tok_colon (env : env) (tok : CST.tok_colon) =
+  (* tok_colon *) token env tok
+
+let map_tok_rep1_choice_pat_024e223 (env : env) (tok : CST.tok_rep1_choice_pat_024e223) =
+  (* tok_rep1_choice_pat_024e223 *) token env tok
 
 let map_bool_lit (env : env) (tok : CST.bool_lit) =
   (* bool_lit *) token env tok
 
-let rec map_anon_choice_read_cond_lit_137feb9 (env : env) (x : CST.anon_choice_read_cond_lit_137feb9) =
+let map_tok_pat_024e223_rep_choice_pat_024e223 (env : env) (tok : CST.tok_pat_024e223_rep_choice_pat_024e223) =
+  (* tok_pat_024e223_rep_choice_pat_024e223 *) token env tok
+
+let map_kwd_marker (env : env) (x : CST.kwd_marker) =
   (match x with
-  | `Read_cond_lit x -> R.Case ("Read_cond_lit",
-      map_read_cond_lit env x
+  | `Tok_colon x -> R.Case ("Tok_colon",
+      map_tok_colon env x
     )
-  | `Map_lit x -> R.Case ("Map_lit",
-      map_map_lit env x
-    )
-  | `Str_lit tok -> R.Case ("Str_lit",
-      (* str_lit *) token env tok
-    )
-  | `Kwd_lit tok -> R.Case ("Kwd_lit",
-      (* kwd_lit *) token env tok
-    )
-  | `Sym_lit x -> R.Case ("Sym_lit",
-      map_sym_lit env x
+  | `Tok_colo x -> R.Case ("Tok_colo",
+      map_tok_coloncolon env x
     )
   )
 
-and map_bare_list_lit (env : env) ((v1, v2, v3) : CST.bare_list_lit) =
+let map_sym_qualified (env : env) ((v1, v2, v3) : CST.sym_qualified) =
+  let v1 =
+    map_tok_pat_024e223_rep_choice_pat_024e223 env v1
+  in
+  let v2 = map_tok_slash env v2 in
+  let v3 = map_tok_rep1_choice_pat_024e223 env v3 in
+  R.Tuple [v1; v2; v3]
+
+let map_sym_unqualified (env : env) (x : CST.sym_unqualified) =
+  (match x with
+  | `Tok_slash x -> R.Case ("Tok_slash",
+      map_tok_slash env x
+    )
+  | `Tok_pat_024e223_rep_choice_pat_024e223 x -> R.Case ("Tok_pat_024e223_rep_choice_pat_024e223",
+      map_tok_pat_024e223_rep_choice_pat_024e223 env x
+    )
+  )
+
+let map_kwd_lit (env : env) (x : CST.kwd_lit) =
+  (match x with
+  | `Choice_tok_colon_tok_slash_tok_rep1_choice_pat_9bb6724 (v1, v2, v3) -> R.Case ("Choice_tok_colon_tok_slash_tok_rep1_choice_pat_9bb6724",
+      let v1 = map_kwd_marker env v1 in
+      let v2 = map_tok_slash env v2 in
+      let v3 = map_tok_rep1_choice_pat_9bb6724 env v3 in
+      R.Tuple [v1; v2; v3]
+    )
+  | `Choice_tok_colon_tok_slash (v1, v2) -> R.Case ("Choice_tok_colon_tok_slash",
+      let v1 = map_kwd_marker env v1 in
+      let v2 = map_tok_slash env v2 in
+      R.Tuple [v1; v2]
+    )
+  | `Choice_tok_colon_tok_pat_b652e16_rep_choice_pat_2b29b50_tok_slash_tok_rep1_choice_pat_9bb6724 (v1, v2, v3, v4) -> R.Case ("Choice_tok_colon_tok_pat_b652e16_rep_choice_pat_2b29b50_tok_slash_tok_rep1_choice_pat_9bb6724",
+      let v1 = map_kwd_marker env v1 in
+      let v2 =
+        map_tok_pat_b652e16_rep_choice_pat_2b29b50 env v2
+      in
+      let v3 = map_tok_slash env v3 in
+      let v4 = map_tok_rep1_choice_pat_9bb6724 env v4 in
+      R.Tuple [v1; v2; v3; v4]
+    )
+  | `Choice_tok_colon_tok_pat_b652e16_rep_choice_pat_2b29b50 (v1, v2) -> R.Case ("Choice_tok_colon_tok_pat_b652e16_rep_choice_pat_2b29b50",
+      let v1 = map_kwd_marker env v1 in
+      let v2 =
+        map_tok_pat_b652e16_rep_choice_pat_2b29b50 env v2
+      in
+      R.Tuple [v1; v2]
+    )
+  )
+
+let rec map_bare_list_lit (env : env) ((v1, v2, v3) : CST.bare_list_lit) =
   let v1 = (* "(" *) token env v1 in
   let v2 = map_source env v2 in
   let v3 = (* ")" *) token env v3 in
@@ -101,8 +156,8 @@ and map_form (env : env) (x : CST.form) =
   | `Num_lit tok -> R.Case ("Num_lit",
       (* num_lit *) token env tok
     )
-  | `Kwd_lit tok -> R.Case ("Kwd_lit",
-      (* kwd_lit *) token env tok
+  | `Kwd_lit x -> R.Case ("Kwd_lit",
+      map_kwd_lit env x
     )
   | `Str_lit tok -> R.Case ("Str_lit",
       (* str_lit *) token env tok
@@ -122,8 +177,10 @@ and map_form (env : env) (x : CST.form) =
   | `List_lit x -> R.Case ("List_lit",
       map_list_lit env x
     )
-  | `Map_lit x -> R.Case ("Map_lit",
-      map_map_lit env x
+  | `Map_lit (v1, v2) -> R.Case ("Map_lit",
+      let v1 = R.List (List.map (map_metadata_lit env) v1) in
+      let v2 = map_bare_map_lit env v2 in
+      R.Tuple [v1; v2]
     )
   | `Vec_lit (v1, v2) -> R.Case ("Vec_lit",
       let v1 = R.List (List.map (map_metadata_lit env) v1) in
@@ -166,8 +223,8 @@ and map_form (env : env) (x : CST.form) =
         | `Auto_res_mark tok -> R.Case ("Auto_res_mark",
             (* auto_res_mark *) token env tok
           )
-        | `Kwd_lit tok -> R.Case ("Kwd_lit",
-            (* kwd_lit *) token env tok
+        | `Kwd_lit x -> R.Case ("Kwd_lit",
+            map_kwd_lit env x
           )
         )
       in
@@ -185,7 +242,7 @@ and map_form (env : env) (x : CST.form) =
   | `Sym_val_lit (v1, v2, v3) -> R.Case ("Sym_val_lit",
       let v1 = (* "##" *) token env v1 in
       let v2 = R.List (List.map (map_gap env) v2) in
-      let v3 = map_sym_lit env v3 in
+      let v3 = map_form env v3 in
       R.Tuple [v1; v2; v3]
     )
   | `Eval_lit (v1, v2, v3, v4) -> R.Case ("Eval_lit",
@@ -274,15 +331,10 @@ and map_list_lit (env : env) ((v1, v2) : CST.list_lit) =
   let v2 = map_bare_list_lit env v2 in
   R.Tuple [v1; v2]
 
-and map_map_lit (env : env) ((v1, v2) : CST.map_lit) =
-  let v1 = R.List (List.map (map_metadata_lit env) v1) in
-  let v2 = map_bare_map_lit env v2 in
-  R.Tuple [v1; v2]
-
 and map_meta_lit (env : env) ((v1, v2, v3) : CST.meta_lit) =
   let v1 = (* "^" *) token env v1 in
   let v2 = R.List (List.map (map_gap env) v2) in
-  let v3 = map_anon_choice_read_cond_lit_137feb9 env v3 in
+  let v3 = map_form env v3 in
   R.Tuple [v1; v2; v3]
 
 and map_metadata_lit (env : env) ((v1, v2) : CST.metadata_lit) =
@@ -308,7 +360,7 @@ and map_metadata_lit (env : env) ((v1, v2) : CST.metadata_lit) =
 and map_old_meta_lit (env : env) ((v1, v2, v3) : CST.old_meta_lit) =
   let v1 = (* "#^" *) token env v1 in
   let v2 = R.List (List.map (map_gap env) v2) in
-  let v3 = map_anon_choice_read_cond_lit_137feb9 env v3 in
+  let v3 = map_form env v3 in
   R.Tuple [v1; v2; v3]
 
 and map_read_cond_lit (env : env) ((v1, v2, v3, v4) : CST.read_cond_lit) =
@@ -333,7 +385,14 @@ and map_source (env : env) (xs : CST.source) =
 and map_sym_lit (env : env) ((v1, v2) : CST.sym_lit) =
   let v1 = R.List (List.map (map_metadata_lit env) v1) in
   let v2 =
-    map_tok_pat_0a702c4_rep_choice_pat_0a702c4 env v2
+    (match v2 with
+    | `Tok_pat_024e223_rep_choice_pat_024e223_tok_slash_tok_rep1_choice_pat_024e223 x -> R.Case ("Tok_pat_024e223_rep_choice_pat_024e223_tok_slash_tok_rep1_choice_pat_024e223",
+        map_sym_qualified env x
+      )
+    | `Choice_tok_slash x -> R.Case ("Choice_tok_slash",
+        map_sym_unqualified env x
+      )
+    )
   in
   R.Tuple [v1; v2]
 

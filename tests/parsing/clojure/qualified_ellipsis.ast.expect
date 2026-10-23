@@ -1,0 +1,79 @@
+[{ s =
+   (RawStmt
+      (List
+         [(Case ("Form",
+             (Case ("List_lit",
+                (Tuple
+                   [(Token ("(", _));
+                     (List
+                        [(Case ("Form",
+                            (Case ("Sym_lit",
+                               (List [(Token ("ns", _)); (Token ("foo", _))])
+                               ))
+                            ))
+                          ]);
+                     (Token (")", _))])
+                ))
+             ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit",
+                                (List [(Token ("ns", _)); (Token ("...", _))])
+                                ))
+                             ))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit",
+                                (List
+                                   [(Token ("$NS", _)); (Token ("...", _))])
+                                ))
+                             ))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit",
+                                (List
+                                   [(Token ("ns", _));
+                                     (Token ("$...ARGS", _))])
+                                ))
+                             ))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("List_lit",
+                 (Tuple
+                    [(Token ("(", _));
+                      (List
+                         [(Case ("Form",
+                             (Case ("Sym_lit",
+                                (List [(Token ("ns", _)); (Token ("a/b", _))])
+                                ))
+                             ))
+                           ]);
+                      (Token (")", _))])
+                 ))
+              ))
+           ]));
+   s_range = None }
+  ]
