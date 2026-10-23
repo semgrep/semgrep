@@ -346,9 +346,6 @@ local ignore_md = {
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
     },
-    'build-test-osx-x86': {
-      uses: './.github/workflows/build-test-osx-x86.yml',
-    },
     'build-test-osx-arm64': {
       uses: './.github/workflows/build-test-osx-arm64.yml',
     },

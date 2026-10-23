@@ -17,10 +17,10 @@ local download_artifact_step(artifact_name, run_id=null, path=null) = {
 // of a PR
 local
   // `event` (optional): restrict to runs triggered by this event (e.g. 'push').
-  // A commit on a release-* branch has both a push run (which builds the
-  // release artifacts, e.g. the osx-x86 wheel) and a pull_request run (which
-  // skips them), so callers that need the build artifacts must pass
-  // event='push' or they may resolve the pull_request run and not find them.
+  // A commit on a release-* branch has both a push run (which runs the
+  // release-only jobs) and a pull_request run (which may skip them), so callers
+  // that need the build artifacts must pass event='push' or they may resolve
+  // the pull_request run and not find them.
   get_workflow_run_id_step(
     sha,
     workflow_file,
