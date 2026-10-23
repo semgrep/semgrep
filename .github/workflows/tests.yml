@@ -40,8 +40,6 @@ jobs:
     uses: ./.github/workflows/build-test-docker.yml
   build-test-osx-arm64:
     uses: ./.github/workflows/build-test-osx-arm64.yml
-  build-test-osx-x86:
-    uses: ./.github/workflows/build-test-osx-x86.yml
   test-cli:
     name: test semgrep-cli
     needs:
