@@ -9,6 +9,7 @@ if [[ -n "${SEMGREP_OPAM_NO_LOCK:-}" ]]; then
 fi
 
 # parse flags
+strict=0
 if [ "${1:-}" = "--strict" ]; then
   strict=1
   shift
