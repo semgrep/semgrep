@@ -126,7 +126,6 @@ let
           suffix =
             {
               "aarch64-darwin" = "mac-arm64";
-              "x86_64-darwin" = "mac-x86";
               "aarch64-linux" = "linux-arm64";
               "x86_64-linux" = "linux-amd64";
             }
