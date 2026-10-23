@@ -1,0 +1,97 @@
+==================
+Bare and composed pattern symbols
+==================
+$X ... $...ARGS
+(foo $X ... $...ARGS)
+
+---
+
+(source
+  (sym_lit (sym_name))
+  (sym_lit (sym_name))
+  (sym_lit (sym_name))
+  (list_lit
+    (sym_lit (sym_name))
+    (sym_lit (sym_name))
+    (sym_lit (sym_name))
+    (sym_lit (sym_name))))
+
+==================
+Qualified pattern symbols
+==================
+(ns/$F $NS/name $NS/$F ns/... ns/$...ARGS)
+
+---
+
+(source
+  (list_lit
+    (sym_lit (sym_ns) (sym_name))
+    (sym_lit (sym_ns) (sym_name))
+    (sym_lit (sym_ns) (sym_name))
+    (sym_lit (sym_ns) (sym_name))
+    (sym_lit (sym_ns) (sym_name))))
+
+==================
+Keyword pattern names and native slash names
+==================
+[:$K ::$K :ns/$K ::$NS/$K :/ :/usr/bin/env]
+
+---
+
+(source
+  (vec_lit
+    (kwd_lit (kwd_name))
+    (kwd_lit (kwd_name))
+    (kwd_lit (kwd_ns) (kwd_name))
+    (kwd_lit (kwd_ns) (kwd_name))
+    (kwd_lit (kwd_name))
+    (kwd_lit (kwd_name))))
+
+==================
+Pattern symbols in metadata and reader forms
+==================
+^{:$K $V} ($F $X)
+#^$META [$X ...]
+##$X
+#$TAG {$K $V}
+
+---
+
+(source
+  (list_lit
+    (meta_lit
+      (map_lit
+        (kwd_lit (kwd_name))
+        (sym_lit (sym_name))))
+    (sym_lit (sym_name))
+    (sym_lit (sym_name)))
+  (vec_lit
+    (old_meta_lit (sym_lit (sym_name)))
+    (sym_lit (sym_name))
+    (sym_lit (sym_name)))
+  (sym_val_lit (sym_lit (sym_name)))
+  (tagged_or_ctor_lit
+    (sym_lit (sym_name))
+    (map_lit
+      (sym_lit (sym_name))
+      (sym_lit (sym_name)))))
+
+==================
+Native division and pattern token boundaries
+==================
+(/ 1 2)
+(foo ; boundary
+ $X, ...)
+
+---
+
+(source
+  (list_lit
+    (sym_lit (sym_name))
+    (num_lit)
+    (num_lit))
+  (list_lit
+    (sym_lit (sym_name))
+    (comment)
+    (sym_lit (sym_name))
+    (sym_lit (sym_name))))
