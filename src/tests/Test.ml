@@ -105,14 +105,6 @@ let any_gen_of_string str =
    explicitly by calling a function. These functions are roughly those
    that call 'Common2.glob'.
 *)
-(* Mark a group of tests as part of the curated smoke subset run on slower CI
-   platforms (e.g. osx x86) via 'make test-osx-smoke' / './test -t smoke'.
-   We preserve any existing tags rather than replacing them. *)
-let smoke (tests : Testo.t list) : Testo.t list =
-  List.map
-    (fun (t : Testo.t) -> Testo.update ~tags:(Test_tags.smoke :: t.tags) t)
-    tests
-
 let tests =
   (* Tests that still fork via CapProcess.apply_in_child_process_promise,
      Bos.OS.Cmd.run, or still run a scan with a default scan config (which
@@ -143,12 +135,12 @@ let tests =
         Unit_gitignore.tests;
         Unit_include_filter.tests;
         Unit_disk_cache.tests;
-        smoke (Unit_parsing.tests ());
-        smoke Unit_parsing_python.tests;
-        smoke Unit_parsing_scala.tests;
-        smoke Unit_entropy.tests;
+        Unit_parsing.tests ();
+        Unit_parsing_python.tests;
+        Unit_parsing_scala.tests;
+        Unit_entropy.tests;
         Parser_regexp_tests.Unit_parsing.tests;
-        smoke Unit_ReDoS.tests;
+        Unit_ReDoS.tests;
         Unit_guess_lang.tests;
         Unit_skip_target.tests;
         Unit_cgroup_limits.tests;
@@ -164,15 +156,15 @@ let tests =
         Unit_ugly_print_AST.tests;
         Unit_autofix.tests;
         Unit_autofix_printer.tests;
-        smoke (Unit_dataflow.tests Parse_target.parse_program);
+        Unit_dataflow.tests Parse_target.parse_program;
         Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
             Parse_pattern.parse_pattern lang file);
-        smoke (Unit_naming_generic.tests Parse_target.parse_program);
+        Unit_naming_generic.tests Parse_target.parse_program;
         (* just expression vs expression testing for one language (Python) *)
-        smoke (Unit_matcher.tests ~any_gen_of_string);
+        Unit_matcher.tests ~any_gen_of_string;
         (* TODO Unit_matcher.spatch_unittest ~xxx *)
         (* TODO Unit_matcher_php.unittest; sgrep/spatch/refactoring/unparsing *)
-        smoke Unit_engine.tests;
+        Unit_engine.tests;
         Unit_jsonnet.tests;
         Unit_metachecking.tests;
         Unit_http_helpers.tests;
@@ -190,19 +182,19 @@ let tests =
         Test_login_subcommand.tests ();
         Unit_test_subcommand.tests ();
         Test_show_subcommand.tests ();
-        smoke (Test_osemgrep.tests ());
+        Test_osemgrep.tests ();
         (* Networking tests disabled as they will get rate limited sometimes *)
         (* And the SSL issues they've been testing have been stable *)
         (*Unit_Networking.tests;*)
         Legacy_test_ls_e2e.tests ();
         (* End osemgrep tests *)
         Spacegrep_tests.Test.tests ();
-        smoke Unit_tests.tests;
-        smoke Unit_core_json_output.tests;
+        Unit_tests.tests;
+        Unit_core_json_output.tests;
         (* Inline tests *)
         Testo.get_registered_tests ();
         Parallelism_tests.tests;
-        smoke Test_compiler_version.tests;
+        Test_compiler_version.tests;
       ]
 
 (*****************************************************************************)
