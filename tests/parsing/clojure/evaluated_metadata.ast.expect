@@ -1,0 +1,32 @@
+[{ s =
+   (RawStmt
+      (List
+         [(Case ("Form",
+             (Case ("Vec_lit",
+                (Tuple
+                   [(Token ("[", _));
+                     (List
+                        [(Case ("Form", (Case ("Num_lit", (Token ("1", _))))
+                            ));
+                          (Case ("Form", (Case ("Num_lit", (Token ("2", _))))
+                             ))
+                          ]);
+                     (Token ("]", _))])
+                ))
+             ));
+           (Case ("Form",
+              (Case ("Vec_lit",
+                 (Tuple
+                    [(Token ("[", _));
+                      (List
+                         [(Case ("Form", (Case ("Num_lit", (Token ("3", _))))
+                             ));
+                           (Case ("Form",
+                              (Case ("Num_lit", (Token ("4", _))))))
+                           ]);
+                      (Token ("]", _))])
+                 ))
+              ))
+           ]));
+   s_range = None }
+  ]

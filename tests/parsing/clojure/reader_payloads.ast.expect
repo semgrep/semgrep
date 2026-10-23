@@ -1,0 +1,66 @@
+[{ s =
+   (RawStmt
+      (List
+         [(Case ("Form", (Case ("Sym_lit", (Token ("x", _))))));
+           (Case ("Form", (Case ("Sym_lit", (Token ("y", _))))));
+           (Case ("Form",
+              (Case ("Vec_lit",
+                 (Tuple
+                    [(Token ("[", _));
+                      (List
+                         [(Case ("Form", (Case ("Sym_lit", (Token ("x", _))))
+                             ));
+                           (Case ("Form",
+                              (Case ("Sym_lit", (Token ("y", _))))))
+                           ]);
+                      (Token ("]", _))])
+                 ))
+              ));
+           (Case ("Form",
+              (Case ("Sym_val_lit",
+                 (Tuple [(Token ("##", _)); (Token ("Inf", _))])))
+              ));
+           (Case ("Form",
+              (Case ("Sym_val_lit",
+                 (Tuple [(Token ("##", _)); (Token ("-Inf", _))])))
+              ));
+           (Case ("Form",
+              (Case ("Sym_val_lit",
+                 (Tuple [(Token ("##", _)); (Token ("NaN", _))])))
+              ));
+           (Case ("Form",
+              (Case ("Sym_val_lit",
+                 (Tuple
+                    [(Token ("##", _));
+                      (Case ("Read_cond_lit",
+                         (Tuple
+                            [(Token ("#?", _)); (List []);
+                              (Tuple
+                                 [(Token ("(", _));
+                                   (List
+                                      [(Case ("Form",
+                                          (Case ("Kwd_lit",
+                                             (Token (":clj", _))))
+                                          ));
+                                        (Case ("Form",
+                                           (Case ("Sym_lit",
+                                              (Token ("Inf", _))))
+                                           ));
+                                        (Case ("Form",
+                                           (Case ("Kwd_lit",
+                                              (Token (":cljs", _))))
+                                           ));
+                                        (Case ("Form",
+                                           (Case ("Sym_lit",
+                                              (Token ("NaN", _))))
+                                           ))
+                                        ]);
+                                   (Token (")", _))])
+                              ])
+                         ))
+                      ])
+                 ))
+              ))
+           ]));
+   s_range = None }
+  ]
