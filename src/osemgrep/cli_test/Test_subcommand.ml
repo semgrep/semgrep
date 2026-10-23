@@ -93,6 +93,7 @@ type env = {
   target_files : Fppath.t list;
   engine : A.engine;
   conf : Test_CLI.conf;
+  expectations : Test_expectations.t;
 }
 
 (* TODO: move in core/ ? used in other files? was in constants.py in pysemgrep *)
@@ -483,24 +484,7 @@ let run_rules_against_targets_for_engine (env : env) (rules : Rule.t list)
  *    naming bug as ProDeep use Naming_SAST.ml instead of Naming_AST.ml)
  *    in which case it's good to annotate it with a deeptodook
  *)
-let filter_annots_for_engine (running_engine : A.engine)
-    (annots : A.annotations) : A.annotations =
-  annots
-  |> List.filter (fun (A.{ kind; engine; others; _ }, _) ->
-      match (running_engine, kind, engine) with
-      | Pro, _, _ when List.mem (A.Ok, A.Pro) others -> false
-      | Pro, _, _ when List.mem (A.Todoruleid, A.Pro) others -> false
-      | Deep, _, _ when List.mem (A.Ok, A.Deep) others -> false
-      | Deep, _, _ when List.mem (A.Todoruleid, A.Deep) others -> false
-      (* prook => deepok (TODO? protodoruleid => deeptodoruleid? *)
-      | Deep, _, _ when List.mem (A.Ok, A.Pro) others -> false
-      (* ruleid => proruleid => deepruleid
-       * (and todok => protodok => deeptodook)
-       *)
-      | OSS, (Ruleid | Todook), OSS -> true
-      | Pro, (Ruleid | Todook), (OSS | Pro) -> true
-      | Deep, (Ruleid | Todook), (OSS | Pro | Deep) -> true
-      | _ -> false)
+let filter_annots_for_engine = A.filter_for_engine
 
 (*****************************************************************************)
 (* Comparing *)
@@ -554,7 +538,14 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
     annots
     |> List.iter (fun (file, annotations) ->
         let expected_by_rule_id : (Rule_ID.t, A.linenb list) Assoc.t =
-          A.group_by_rule_id annotations
+          let annotated = A.group_by_rule_id annotations in
+          let overrides =
+            Test_expectations.for_file env.expectations env.engine file
+          in
+          overrides
+          @ List.filter
+              (fun (id, _) -> not (List.mem_assoc id overrides))
+              annotated
         in
         expected_by_rule_id
         |> List.iter (fun (rule_id, lines) ->
@@ -612,12 +603,16 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
                 Assoc.find_opt target annots |> List_.optlist_to_list
               in
               let expected_reported =
-                let reported_lines =
-                  A.filter_todook file_annots reported_lines
+                let filter =
+                  if
+                    List.mem_assoc id
+                      (Test_expectations.for_file env.expectations env.engine
+                         target)
+                  then Fun.id
+                  else A.filter_todook file_annots
                 in
-                let expected_lines =
-                  A.filter_todook file_annots expected_lines
-                in
+                let reported_lines = filter reported_lines in
+                let expected_lines = filter expected_lines in
                 { Out.reported_lines; expected_lines }
               in
               (passed, (target, expected_reported)))
@@ -727,8 +722,8 @@ let run_engine (env : env) (rules : Rule.t list) (targets : Target.t list)
   (checks, fixtest, errors)
 
 (* run one test using the different engines if --pro *)
-let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
-    (target_fpaths : Fpath.t list) :
+let run_test (expectations : Test_expectations.t) (conf : Test_CLI.conf)
+    (rule_file : Fpath.t) (rules : Rule.t list) (target_fpaths : Fpath.t list) :
     test_result list * fixtest_result list * error list =
   (* note that even one target file can result in different targets
    * if the rules contain multiple analyzers.
@@ -752,7 +747,11 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
         (fpath, A.annotations fpath))
   in
 
-  let env = { rule_file; target_files; engine = A.OSS; conf } in
+  let expectations =
+    Test_expectations.for_rules expectations
+      (List.map (fun (rule : Rule.t) -> fst rule.id) rules)
+  in
+  let env = { rule_file; target_files; engine = A.OSS; conf; expectations } in
   let checks_oss, fixtest_oss, errors_oss =
     run_engine env rules targets files_and_annots
   in
@@ -801,8 +800,8 @@ let run_test (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
     (checks, fixtest_oss, errors)
   else (checks_oss, fixtest_oss, errors_oss)
 
-let run_tests (conf : Test_CLI.conf) (tests : test list) :
-    (t_res, error) result list =
+let run_tests (expectations : Test_expectations.t) (conf : Test_CLI.conf)
+    (tests : test list) : (t_res, error) result list =
   (* LATER: in theory we could use Parmap here or better Domains which
    * would avoid the cost of fork (which is significant when running
    * lots of very small tests like what we have in semgrep-rules/).
@@ -817,7 +816,7 @@ let run_tests (conf : Test_CLI.conf) (tests : test list) :
               m "processing target(s) %s"
                 (target_files |> Fpath_.to_strings |> String.concat ", "));
           let checks, fixtest, errors =
-            run_test conf rule_file rules target_files
+            run_test expectations conf rule_file rules target_files
           in
           let successes = (rule_file, checks, fixtest) in
           let errors = List.map Result.error errors in
@@ -868,8 +867,19 @@ let run_conf (conf : Test_CLI.conf) : Exit_code.t =
     rules_and_targets conf.target |> Result_.partition Fun.id
   in
 
+  let expectations =
+    match conf.override_expectations with
+    | None -> Test_expectations.empty
+    | Some file -> (
+        match Test_expectations.load file with
+        | Ok expectations -> expectations
+        | Error (`Msg message) -> Error.abort message)
+  in
+
   (* step2: run the tests *)
-  let result, res_errors = run_tests conf tests |> Result_.partition Fun.id in
+  let result, res_errors =
+    run_tests expectations conf tests |> Result_.partition Fun.id
+  in
 
   (* step3: report the test results *)
   let res : Out.tests_result =

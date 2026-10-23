@@ -38,21 +38,38 @@ let concat_blists (x : blist list) : blist =
           Seq (loc, blist, acc))
         last_blist blists
 
-let add_redirects_to_command (cmd_r : cmd_redir) (redirects : redirect list) :
-    cmd_redir =
-  let all_locs = cmd_r.loc :: List.map AST_bash_loc.redirect_loc redirects in
+(* 'args' are arguments of a simple command that occur after a redirect
+   e.g. 'b' in 'echo a > out b'. They can't follow a compound command. *)
+let add_redirects_to_command ~args (cmd_r : cmd_redir)
+    (redirects : redirect list) : cmd_redir =
+  let command =
+    match (cmd_r.command, args) with
+    | Simple_command x, _ :: _ ->
+        let loc =
+          Tok_range.of_locs
+            [ x.loc; Tok_range.of_list AST_bash_loc.expression_loc args ]
+        in
+        Simple_command { x with loc; arguments = x.arguments @ args }
+    | cmd, _ -> cmd
+  in
+  let all_locs =
+    cmd_r.loc
+    :: AST_bash_loc.command_loc command
+    :: List.map AST_bash_loc.redirect_loc redirects
+  in
   let loc = Tok_range.of_list (fun loc -> loc) all_locs in
-  { cmd_r with loc; redirects = cmd_r.redirects @ redirects }
+  { loc; command; redirects = cmd_r.redirects @ redirects }
 
-let rec add_redirects_to_last_command_of_pipeline pip redirects : pipeline =
+let rec add_redirects_to_last_command_of_pipeline ?(args = []) pip redirects :
+    pipeline =
   match pip with
-  | Command cmd_r -> Command (add_redirects_to_command cmd_r redirects)
+  | Command cmd_r -> Command (add_redirects_to_command ~args cmd_r redirects)
   | Pipeline (loc, pip, bar, cmd_r) ->
-      let cmd_r = add_redirects_to_command cmd_r redirects in
+      let cmd_r = add_redirects_to_command ~args cmd_r redirects in
       let loc = Tok_range.range loc cmd_r.loc in
       Pipeline (loc, pip, bar, cmd_r)
   | Control_operator (loc, pip, op) ->
-      let pip = add_redirects_to_last_command_of_pipeline pip redirects in
+      let pip = add_redirects_to_last_command_of_pipeline ~args pip redirects in
       let loc = Tok_range.range loc (AST_bash_loc.pipeline_loc pip) in
       Control_operator (loc, pip, op)
 

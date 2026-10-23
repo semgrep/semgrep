@@ -1,1 +1,22 @@
+#! /usr/bin/env bash
+#
+# Import and patch up external files: the generic steps, then patch upstream
+# corpus expectations that differ because of semgrep-specific extensions.
+#
+set -eu -o pipefail
+
+# prep.common expects a symlink here, not our patched copy.
+rm -rf test/corpus/inherited
 ../prep.common
+
+# Copy (not symlink) the upstream corpus so expectations can be patched.
+# - statements.txt 'Variable declaration: export': `export $FOO:$BAR` lexes
+#   `$FOO` as a semgrep_metavariable, which `declare -r $VAR` patterns rely on.
+# If the patch no longer applies, this fails: update or delete the patch.
+(
+  cd test/corpus
+  corpus=$(readlink inherited)
+  rm inherited
+  cp -R "$corpus" inherited
+  patch -s -p0 < ../../patches/inherited-corpus.patch
+)

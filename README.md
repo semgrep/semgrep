@@ -102,7 +102,14 @@ If there are any issues, <a href="https://go.semgrep.dev/slack" target="_blank">
 
     ```
     # For macOS
-    $ brew install semgrep
+    # preferred: install through pipx (https://pipx.pypa.io/stable/how-to/install-pipx.html)
+    pipx install semgrep
+
+    # preferred: install through uv (https://docs.astral.sh/uv/getting-started/installation/)
+    uv tool install semgrep
+
+    # best-effort: install through homebrew (maintained on a best-effort basis; often lags behind the latest release)
+    brew install semgrep
 
     # For Ubuntu/WSL/Linux/macOS
     $ python3 -m pip install semgrep
@@ -216,14 +223,14 @@ The Semgrep [privacy policy](https://semgrep.dev/docs/metrics) describes the pri
 To upgrade, run the command below associated with how you installed Semgrep:
 
 ```sh
-# Using Homebrew
-$ brew upgrade semgrep
-
 # Using pipx
 $ pipx upgrade semgrep
 
 # Using uv tool command
 $ uv tool upgrade semgrep
+
+# Using Homebrew
+$ brew upgrade semgrep
 
 # Using Docker
 $ docker pull semgrep/semgrep:latest

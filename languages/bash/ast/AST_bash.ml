@@ -196,7 +196,7 @@ and command =
   | Command_group of loc * blist bracket
   | Sh_test of loc * sh_test
   | Bash_test of loc * bash_test
-  | Arithmetic_expression of loc * arithmetic_expression
+  | Arithmetic_expression of loc * arithmetic_expression bracket
   | For_loop of
       loc
       * (* for *) tok
@@ -208,8 +208,14 @@ and command =
       * blist
       * (* done *) tok
   | For_loop_c_style of
-      (* TODO: represent the loop header: for (( ... )); *)
       loc
+      * (* for *)
+        tok
+        (* The initialization, condition, and update clauses of
+         'for (( ...; ...; ... ))' *)
+      * (arithmetic_expression option
+        * arithmetic_expression option
+        * arithmetic_expression option)
       * blist
   | Select (* same syntax as For_loop *) of
       loc
@@ -333,13 +339,31 @@ and sh_test = test_expression bracket
 and bash_test = test_expression bracket
 
 (*
-   Arithmetic expressions are really a different language.
-   Eventually, we should parse them separately from test expressions
-   ([...] and [[...]]) and they should have their own AST.
+   Arithmetic expression, as found in '(( ... ))', '$(( ... ))', '$[ ... ]',
+   array subscripts, and the clauses of 'for (( ...; ...; ... ))'.
+   Arithmetic is really a different language with C operators and
+   precedence, which the tree structure reflects.
    See https://www.shell-tips.com/bash/math-arithmetic-calculation/
    for a gentle tutorial.
+   Operators are kept as their source text e.g. "+", "<<=", or ",".
 *)
-and arithmetic_expression = todo bracket
+and arithmetic_expression =
+  (* A number, $x, ${x}, $(...), a string, etc. A bare variable name 'x'
+     is a Word but denotes the variable's value, like '$x'. *)
+  | A_operand of expression
+  | A_unary of (* - + ! ~ ++ -- *) string wrap * arithmetic_expression
+  | A_postfix of arithmetic_expression * (* ++ -- *) string wrap
+  (* All binary operators, including assignments ('=', '+=', ...) and ',' *)
+  | A_binary of arithmetic_expression * string wrap * arithmetic_expression
+  | A_ternary of
+      arithmetic_expression
+      * (* ? *) tok
+      * arithmetic_expression
+      * (* : *) tok
+      * arithmetic_expression
+  | A_paren of arithmetic_expression bracket
+  (* a[i + 1] *)
+  | A_array_cell of expression * arithmetic_expression bracket
 
 (* Only the last clause may not have a terminator. *)
 and case_clause =
@@ -425,12 +449,18 @@ and expression =
   | Empty_expression of loc
   | Array of (* ( a b ) *) loc * expression list bracket
   | Process_substitution of (* <( echo 'x' ) *) loc * blist bracket
+  (* A compound command where a word is expected e.g. the subshell in
+     'time ( cd tests && make )' *)
+  | Command_expression of loc * command
 
 (* Fragment of a double-quoted string *)
 and string_fragment =
   | String_content of string wrap
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
+  | Arithmetic_expansion of
+      (* $(( x + 1 )) or $[ x + 1 ] *)
+      arithmetic_expression bracket
   | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
   | Frag_semgrep_named_ellipsis of (* $...X *) string wrap
 

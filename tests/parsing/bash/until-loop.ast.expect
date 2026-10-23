@@ -1,0 +1,75 @@
+[{ s =
+   (While (_,
+      (Cond
+         { e =
+           (Call (
+              { e = (Special ((Op Not), _)); e_id = 0; e_range = None;
+                is_implicit_return = false; facts = <opaque> },
+              (_,
+               [(Arg
+                   { e =
+                     (StmtExpr
+                        { s =
+                          (Block
+                             (_,
+                              [{ s =
+                                 (ExprStmt (
+                                    { e =
+                                      (OtherExpr (("BashTodo", _),
+                                         [(TodoK ("[", _)); (TodoK ("]", _))]
+                                         ));
+                                      e_id = 0; e_range = None;
+                                      is_implicit_return = false;
+                                      facts = <opaque> },
+                                    _));
+                                 s_range = None }
+                                ],
+                              _));
+                          s_range = None });
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ],
+               _)
+              ));
+           e_id = 0; e_range = None; is_implicit_return = false;
+           facts = <opaque> }),
+      { s =
+        (Block
+           (_,
+            [{ s =
+               (ExprStmt (
+                  { e =
+                    (Call (
+                       { e =
+                         (N
+                            (Id (("!sh_cmd!", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (1); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> },
+                       (_,
+                        [(Arg
+                            { e = (L (String (_, ("sleep", _), _)));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> });
+                          (Arg
+                             { e = (L (String (_, ("1", _), _))); e_id = 0;
+                               e_range = None; is_implicit_return = false;
+                               facts = <opaque> })
+                          ],
+                        _)
+                       ));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> },
+                  _));
+               s_range = None }
+              ],
+            _));
+        s_range = None }
+      ));
+   s_range = None }
+  ]

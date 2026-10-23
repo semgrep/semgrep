@@ -96,17 +96,7 @@
      (:include c_flags.sexp)))
    (c_library_flags
     :standard
-    -lstdc++
-    (:include c_library_flags.sexp))
-   (foreign_stubs
-    (language cxx)
-    (names)
-    (flags
-     :standard
-     -fPIC
-     -I
-     .
-     (:include c_flags.sexp))))
+    (:include c_library_flags.sexp)))
   (rule
    (targets c_flags.sexp c_library_flags.sexp)
    (action
