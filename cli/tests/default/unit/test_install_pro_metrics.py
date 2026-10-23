@@ -16,7 +16,9 @@
 # - that the command sends (or does not send) metrics depending on
 #   login status and --metrics
 #
+import platform
 import subprocess
+import sys
 
 import pytest
 import requests
@@ -197,6 +199,23 @@ def test_run_install_no_token_records_error(fake_state) -> None:
         install.run_install_semgrep_pro()
 
     assert fake_state.metrics.payload.install_pro.error == "no-api-token"
+
+
+@pytest.mark.quick
+def test_run_install_rejects_intel_macos_before_network(
+    fake_state, mocker, monkeypatch
+) -> None:
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
+    get_deployment_id = mocker.patch.object(install, "get_deployment_id")
+    download = mocker.patch.object(install, "download_semgrep_pro")
+
+    with pytest.raises(SystemExit):
+        install.run_install_semgrep_pro()
+
+    get_deployment_id.assert_not_called()
+    download.assert_not_called()
+    assert fake_state.metrics.payload.install_pro.error == "unsupported-platform"
 
 
 @pytest.mark.quick
