@@ -285,6 +285,13 @@ let help_page_bottom =
     `P
       "If you encounter an issue, please report it at\n\
       \      https://github.com/semgrep/semgrep/issues";
+    `S "THIRD-PARTY LICENSES";
+    `P
+      (Printf.sprintf
+         "Semgrep includes open source software. The licenses and notices for \
+          these dependencies are listed at \
+          https://semgrep.dev/cli-credits?version=%s"
+         Version.version);
   ]
 
 (* Small wrapper around Cmdliner.Cmd.eval_value.
