@@ -285,7 +285,7 @@ local brew_unlink_openssl_step = {
   run: 'brew unlink openssl@3 || true',
 };
 
-local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', build_bundle=false, extra_env={}, test_target='test') =
+local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', build_bundle=false, extra_env={}) =
   [
     opam_setup(opam_switch),
     {
@@ -301,7 +301,7 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', bui
   + [
     {
       name: 'Test %s' % name,
-      run: 'opam exec -- make %s' % test_target,
+      run: 'opam exec -- make test',
     },
   ];
 
