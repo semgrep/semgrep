@@ -38,6 +38,8 @@ from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.metrics import METRICS_STATE_TYPE
 from semgrep.metrics import MetricsState
+from semgrep.platform_support import intel_macos_guidance
+from semgrep.platform_support import is_intel_macos
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.state import SemgrepState
@@ -152,6 +154,14 @@ def linux_detect_libc() -> str:
 
 
 def run_install_semgrep_pro() -> None:
+    if is_intel_macos():
+        get_state().metrics.stage_install_pro_error("unsupported-platform")
+        logger.error(
+            "Semgrep Pro Engine is not available for Intel macOS.\n"
+            + intel_macos_guidance(build_from_source=False)
+        )
+        sys.exit(FATAL_EXIT_CODE)
+
     semgrep_pro_path = determine_semgrep_pro_path()
 
     # TODO This is a temporary solution to help offline users
@@ -180,10 +190,9 @@ def run_install_semgrep_pro() -> None:
     is_arm = platform.machine().startswith(("arm", "aarch"))
     libc = linux_detect_libc() if sys.platform == "linux" else ""
     match (sys.platform, is_arm, libc):
-        case ("darwin", True, _):
+        case ("darwin", _, _):
+            # Intel macOS is rejected above.
             platform_kind = "osx-arm64"
-        case ("darwin", False, _):
-            platform_kind = "osx-x86_64"
         case ("linux", True, "glibc"):
             platform_kind = "manylinux-arm64"
         case ("linux", False, "glibc"):

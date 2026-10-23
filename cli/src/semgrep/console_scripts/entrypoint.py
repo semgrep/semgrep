@@ -138,6 +138,11 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     if path is not None:
         return path
 
+    from semgrep.platform_support import intel_macos_guidance
+    from semgrep.platform_support import is_intel_macos
+
+    if not pro and is_intel_macos():
+        extra_message += "\n" + intel_macos_guidance(build_from_source=True)
     raise CoreNotFound(
         f"Failed to find {core} in PATH or in the semgrep package.{extra_message}"
     )
