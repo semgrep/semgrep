@@ -1,0 +1,19 @@
+rules:
+  - id: qualified-ellipsis
+    languages:
+      - clojure
+    severity: WARNING
+    message: call any function in one namespace
+    pattern: (ns/... $X ...)
+  - id: qualified-ellipsis-metavar
+    languages:
+      - clojure
+    severity: WARNING
+    message: call any qualified function
+    pattern: ($NS/... $X ...)
+  - id: qualified-ellipsis-args
+    languages:
+      - clojure
+    severity: WARNING
+    message: bind any name in one namespace
+    pattern: (ns/$...F)

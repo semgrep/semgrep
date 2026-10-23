@@ -8,38 +8,70 @@
 open! Sexplib.Conv
 open Tree_sitter_run
 
-type comment = Token.t
+type tok_coloncolon = Token.t
 
 type ws = Token.t
 
-type auto_res_mark = Token.t
-
-type char_lit = Token.t
-
-type tok_pat_0a702c4_rep_choice_pat_0a702c4 = Token.t
+type comment = Token.t
 
 type str_lit = Token.t
 
-type nil_lit = Token.t
+type num_lit = Token.t
 
-type kwd_lit = Token.t
+type auto_res_mark = Token.t
+
+type tok_rep1_choice_pat_9bb6724 = Token.t
+
+type char_lit = Token.t
+
+type tok_slash = Token.t
+
+type tok_pat_b652e16_rep_choice_pat_2b29b50 = Token.t
+
+type nil_lit = Token.t
 
 type tok_dquot_rep_pat_0d044a8_rep_bslash_pat_5058f1a_rep_pat_0d044a8_dquot =
   Token.t
 
-type num_lit = Token.t
+type tok_colon = Token.t
+
+type tok_rep1_choice_pat_024e223 = Token.t
 
 type bool_lit = Token.t
 
-type anon_choice_read_cond_lit_137feb9 = [
-    `Read_cond_lit of read_cond_lit
-  | `Map_lit of map_lit
-  | `Str_lit of str_lit (*tok*)
-  | `Kwd_lit of kwd_lit (*tok*)
-  | `Sym_lit of sym_lit
+type tok_pat_024e223_rep_choice_pat_024e223 = Token.t
+
+type kwd_marker = [
+    `Tok_colon of tok_colon (*tok*)
+  | `Tok_colo of tok_coloncolon (*tok*)
 ]
 
-and bare_list_lit = (Token.t (* "(" *) * source * Token.t (* ")" *))
+type sym_qualified = (
+    tok_pat_024e223_rep_choice_pat_024e223 * tok_slash (*tok*)
+  * tok_rep1_choice_pat_024e223
+)
+
+type sym_unqualified = [
+    `Tok_slash of tok_slash (*tok*)
+  | `Tok_pat_024e223_rep_choice_pat_024e223 of
+      tok_pat_024e223_rep_choice_pat_024e223
+]
+
+type kwd_lit = [
+    `Choice_tok_colon_tok_slash_tok_rep1_choice_pat_9bb6724 of (
+        kwd_marker * tok_slash (*tok*) * tok_rep1_choice_pat_9bb6724
+    )
+  | `Choice_tok_colon_tok_slash of (kwd_marker * tok_slash (*tok*))
+  | `Choice_tok_colon_tok_pat_b652e16_rep_choice_pat_2b29b50_tok_slash_tok_rep1_choice_pat_9bb6724 of (
+        kwd_marker * tok_pat_b652e16_rep_choice_pat_2b29b50
+      * tok_slash (*tok*) * tok_rep1_choice_pat_9bb6724
+    )
+  | `Choice_tok_colon_tok_pat_b652e16_rep_choice_pat_2b29b50 of (
+        kwd_marker * tok_pat_b652e16_rep_choice_pat_2b29b50
+    )
+]
+
+type bare_list_lit = (Token.t (* "(" *) * source * Token.t (* ")" *))
 
 and bare_map_lit = (Token.t (* "{" *) * source * Token.t (* "}" *))
 
@@ -51,14 +83,14 @@ and bare_vec_lit = (Token.t (* "[" *) * source * Token.t (* "]" *))
 
 and form = [
     `Num_lit of num_lit (*tok*)
-  | `Kwd_lit of kwd_lit (*tok*)
+  | `Kwd_lit of kwd_lit
   | `Str_lit of str_lit (*tok*)
   | `Char_lit of char_lit (*tok*)
   | `Nil_lit of nil_lit (*tok*)
   | `Bool_lit of bool_lit (*tok*)
   | `Sym_lit of sym_lit
   | `List_lit of list_lit
-  | `Map_lit of map_lit
+  | `Map_lit of (metadata_lit list (* zero or more *) * bare_map_lit)
   | `Vec_lit of (metadata_lit list (* zero or more *) * bare_vec_lit)
   | `Set_lit of (metadata_lit list (* zero or more *) * bare_set_lit)
   | `Anon_fn_lit of (
@@ -80,10 +112,7 @@ and form = [
   | `Ns_map_lit of (
         metadata_lit list (* zero or more *)
       * Token.t (* "#" *)
-      * [
-            `Auto_res_mark of auto_res_mark (*tok*)
-          | `Kwd_lit of kwd_lit (*tok*)
-        ]
+      * [ `Auto_res_mark of auto_res_mark (*tok*) | `Kwd_lit of kwd_lit ]
       * gap list (* zero or more *)
       * bare_map_lit
     )
@@ -93,11 +122,7 @@ and form = [
       * gap list (* zero or more *)
       * form
     )
-  | `Sym_val_lit of (
-        Token.t (* "##" *)
-      * gap list (* zero or more *)
-      * sym_lit
-    )
+  | `Sym_val_lit of (Token.t (* "##" *) * gap list (* zero or more *) * form)
   | `Eval_lit of (
         metadata_lit list (* zero or more *)
       * Token.t (* "#=" *)
@@ -156,24 +181,14 @@ and gap = [
 
 and list_lit = (metadata_lit list (* zero or more *) * bare_list_lit)
 
-and map_lit = (metadata_lit list (* zero or more *) * bare_map_lit)
-
-and meta_lit = (
-    Token.t (* "^" *)
-  * gap list (* zero or more *)
-  * anon_choice_read_cond_lit_137feb9
-)
+and meta_lit = (Token.t (* "^" *) * gap list (* zero or more *) * form)
 
 and metadata_lit = (
     [ `Meta_lit of meta_lit | `Old_meta_lit of old_meta_lit ]
   * gap list (* zero or more *) option
 )
 
-and old_meta_lit = (
-    Token.t (* "#^" *)
-  * gap list (* zero or more *)
-  * anon_choice_read_cond_lit_137feb9
-)
+and old_meta_lit = (Token.t (* "#^" *) * gap list (* zero or more *) * form)
 
 and read_cond_lit = (
     metadata_lit list (* zero or more *)
@@ -186,12 +201,31 @@ and source = [ `Form of form | `Gap of gap ] list (* zero or more *)
 
 and sym_lit = (
     metadata_lit list (* zero or more *)
-  * tok_pat_0a702c4_rep_choice_pat_0a702c4
+  * [
+        `Tok_pat_024e223_rep_choice_pat_024e223_tok_slash_tok_rep1_choice_pat_024e223 of
+          sym_qualified
+      | `Choice_tok_slash of sym_unqualified
+    ]
 )
 
 type regex_lit (* inlined *) = (
     Token.t (* "#" *)
   * tok_dquot_rep_pat_0d044a8_rep_bslash_pat_5058f1a_rep_pat_0d044a8_dquot
+)
+
+type kwd_qualified (* inlined *) = (
+    kwd_marker * tok_pat_b652e16_rep_choice_pat_2b29b50 * tok_slash (*tok*)
+  * tok_rep1_choice_pat_9bb6724
+)
+
+type kwd_leading_slash (* inlined *) = (
+    kwd_marker * tok_slash (*tok*) * tok_rep1_choice_pat_9bb6724
+)
+
+type kwd_just_slash (* inlined *) = (kwd_marker * tok_slash (*tok*))
+
+type kwd_unqualified (* inlined *) = (
+    kwd_marker * tok_pat_b652e16_rep_choice_pat_2b29b50
 )
 
 type anon_fn_lit (* inlined *) = (
@@ -224,10 +258,15 @@ type evaling_lit (* inlined *) = (
     ]
 )
 
+type map_lit (* inlined *) = (
+    metadata_lit list (* zero or more *)
+  * bare_map_lit
+)
+
 type ns_map_lit (* inlined *) = (
     metadata_lit list (* zero or more *)
   * Token.t (* "#" *)
-  * [ `Auto_res_mark of auto_res_mark (*tok*) | `Kwd_lit of kwd_lit (*tok*) ]
+  * [ `Auto_res_mark of auto_res_mark (*tok*) | `Kwd_lit of kwd_lit ]
   * gap list (* zero or more *)
   * bare_map_lit
 )
@@ -254,7 +293,7 @@ type splicing_read_cond_lit (* inlined *) = (
 type sym_val_lit (* inlined *) = (
     Token.t (* "##" *)
   * gap list (* zero or more *)
-  * sym_lit
+  * form
 )
 
 type syn_quoting_lit (* inlined *) = (
