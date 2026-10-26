@@ -118,7 +118,7 @@ dev = [
   "bytecode",
 ]
 
-# This is used in pypi-release.yml so that we can execute `setup.py park`
+# Required by `setup.py park`.
 build = [
   "setuptools",
 ]
