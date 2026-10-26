@@ -19,6 +19,7 @@ https://classic.yarnpkg.com/lang/en/docs/yarn-lock/
 Version 2/3 parser based on looking at examples on github, I could not find any documentation
 Here are the Yarn 2/3 docs: https://yarnpkg.com/
 """
+import re
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -204,6 +205,18 @@ yarn1 = (
     << (string("\n\n") | string("\n")).optional()
 )
 
+# yarn <= 0.16 wrote the same header without the trailing blank line. Only
+# used when an entry follows directly; other header variants (e.g. extra
+# comment lines) would be misread by yarn_dep1 and must keep failing.
+YARN1_LEGACY_PREFIX = YARN1_PREFIX[:-1]
+YARN1_LEGACY_HEADER = re.compile(re.escape(YARN1_LEGACY_PREFIX) + r"(?![#\s])")
+
+yarn1_legacy = (
+    string(YARN1_LEGACY_PREFIX)
+    >> yarn_dep1.sep_by(string("\n\n"))
+    << (string("\n\n") | string("\n")).optional()
+)
+
 
 # The yarn version 2/3 parser is set up equivalently, with slight differences in sub-parsers
 
@@ -352,8 +365,12 @@ def parse_yarn(
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     with open(lockfile_path) as f:
         lockfile_text = f.read()
-    yarn_version = 1 if lockfile_text.startswith(YARN1_PREFIX) else 2
-    parser = yarn1 if yarn_version == 1 else yarn2
+    if lockfile_text.startswith(YARN1_PREFIX):
+        yarn_version, parser = 1, yarn1
+    elif YARN1_LEGACY_HEADER.match(lockfile_text):
+        yarn_version, parser = 1, yarn1_legacy
+    else:
+        yarn_version, parser = 2, yarn2
     parser_name = (
         ScaParserName(out.PYarn1())
         if yarn_version == 1
