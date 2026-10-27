@@ -7,7 +7,6 @@ local semgrep = import 'libs/semgrep.libsonnet';
 local uses = import 'libs/uses.libsonnet';
 
 local build_job = docker.build_and_run_gha_job(
-  name='build-test-docker',
   description='Build Core',
   target='semgrep-cli',
 );
