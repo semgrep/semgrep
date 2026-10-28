@@ -1,0 +1,10 @@
+swift grammar update (0.5.0):
+
+- Swift parsing now supports type and value parameter packs, including each/repeat expansions and pack constraints.
+- Swift parsing now supports if and switch expressions used as variable initializers.
+- Swift parsing now supports macro declarations with typed signatures and #externalMacro definitions. This does not implement macro expansion.
+- Swift property observers now retain their willSet/didSet bodies and parameters separately from property initializers.
+- Swift parsing now supports borrowing, consuming, package, and distributed modifiers while preserving their distinct spellings.
+- Swift parsing now supports #unavailable conditions and distinguishes them from #available conditions. Both are mapped as `#…` expression nodes (not boolean `Not`) so patterns like `if !$X` do not match availability checks.
+- Swift parsing now supports member access on parenthesized existential types, such as (any P).self, and preserves the underlying parenthesized existential or opaque type.
+- Swift parsing now supports references to the bitwise AND operator using (&).

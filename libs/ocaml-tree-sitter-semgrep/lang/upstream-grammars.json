@@ -354,7 +354,7 @@
     "url": "https://github.com/dhcmrlchtdj/tree-sitter-sqlite.git"
   },
   "swift": {
-    "commit": "597d544b3c93b2f67d2e143f27cc51ba874ec5c3",
+    "commit": "c9c669b4513479e07a0ff44cf14f72351959ac21",
     "regen": [
       "swift"
     ],

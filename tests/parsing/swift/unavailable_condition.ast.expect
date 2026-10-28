@@ -1,0 +1,102 @@
+[{ s =
+   (If (_,
+      (Cond
+         { e =
+           (OtherExpr (("#unavailable", _),
+              [(E
+                  { e = (OtherExpr (("15", _), [(Di [("iOS", _)]); (Tk _)]));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> })
+                ]
+              ));
+           e_id = 0; e_range = None; is_implicit_return = false;
+           facts = <opaque> }),
+      { s =
+        (Block
+           (_,
+            [{ s =
+               (ExprStmt (
+                  { e =
+                    (Call (
+                       { e =
+                         (N
+                            (Id (("fallback", _),
+                               { id_resolved = ref (None);
+                                 id_resolved_alternatives = ref ([]);
+                                 id_type = ref (None);
+                                 id_svalue = ref (Unknown);
+                                 id_flags = ref (0); id_info_id = _ }
+                               )));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> },
+                       (_, [], _)));
+                    e_id = 0; e_range = None; is_implicit_return = false;
+                    facts = <opaque> },
+                  _));
+               s_range = None }
+              ],
+            _));
+        s_range = None },
+      None));
+   s_range = None };
+  { s =
+    (If (_,
+       (Cond
+          { e =
+            (OtherExpr (("#available", _),
+               [(E
+                   { e =
+                     (Call (
+                        { e = (Special ((Op And), _)); e_id = 0;
+                          e_range = None; is_implicit_return = false;
+                          facts = <opaque> },
+                        (_,
+                         [(Arg
+                             { e =
+                               (OtherExpr (("15", _),
+                                  [(Di [("iOS", _)]); (Tk _)]));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> });
+                           (Arg
+                              { e = (OtherExpr (("*", _), [(Tk _)]));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                })
+                           ],
+                         _)
+                        ));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
+               ));
+            e_id = 0; e_range = None; is_implicit_return = false;
+            facts = <opaque> }),
+       { s =
+         (Block
+            (_,
+             [{ s =
+                (ExprStmt (
+                   { e =
+                     (Call (
+                        { e =
+                          (N
+                             (Id (("modern", _),
+                                { id_resolved = ref (None);
+                                  id_resolved_alternatives = ref ([]);
+                                  id_type = ref (None);
+                                  id_svalue = ref (Unknown);
+                                  id_flags = ref (0); id_info_id = _ }
+                                )));
+                          e_id = 0; e_range = None;
+                          is_implicit_return = false; facts = <opaque> },
+                        (_, [], _)));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> },
+                   _));
+                s_range = None }
+               ],
+             _));
+         s_range = None },
+       None));
+    s_range = None }
+  ]

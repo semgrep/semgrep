@@ -1,0 +1,1 @@
+macro $M(_ value: Int) -> Int = #externalMacro(module: $MODULE, type: $TYPE)

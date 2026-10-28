@@ -1,0 +1,1 @@
+required init?($...ARGS) async throws { ... }
