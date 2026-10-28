@@ -303,6 +303,105 @@ def collect_skipped_subprojects(
     ]
 
 
+# Resolution errors produced by the resolvers that run a package manager (or
+# that cannot run one, e.g. `MissingRequirement`). A subproject that was
+# resolved but carries one of these is known to have an incomplete dependency
+# list (e.g. a registry refused a request, or the package manager itself
+# reported unresolved dependencies). `ParseDependenciesFailed` is not included
+# because lockfile parsers report it too.
+_BUILD_SIDE_RESOLUTION_ERRORS = (
+    out.ResolutionCmdFailed_,
+    out.MissingRequirement,
+    out.ResourceInaccessible_,
+    out.IncompleteDependencyResolution_,
+)
+
+_RESOLUTION_ERROR_LABELS = {
+    out.UnsupportedManifest: "Unsupported Manifest",
+    out.MissingRequirement: "Missing Requirement",
+    out.ResolutionCmdFailed_: "Resolution Command Failed",
+    out.ParseDependenciesFailed: "Parsing Dependencies Failed",
+    out.ScaParseError: "Lockfile Parse Error",
+    out.IncompleteDependencyResolution_: "Incomplete Dependency Resolution",
+    out.ResourceInaccessible_: "Resource Inaccessible",
+}
+
+
+@dataclass(frozen=True)
+class ResolutionFailure:
+    """A subproject whose dependency resolution failed, or came back known to
+    be incomplete. See `find_resolution_failures`."""
+
+    dependency_sources: Tuple[Path, ...]
+    # Human-readable error kinds, in the order reported. Empty if resolution
+    # failed without reporting any error.
+    reasons: Tuple[str, ...]
+
+    def describe(self) -> str:
+        sources = ", ".join(str(p) for p in self.dependency_sources)
+        reasons = ", ".join(self.reasons) or "no error details were reported"
+        return f"{sources or '(unknown dependency source)'}: {reasons}"
+
+
+def _resolution_error_kind(error: out.ScaError) -> Optional[object]:
+    """The resolution error variant, or None for lockfile parser errors."""
+    if isinstance(error.value, out.SCAResol):
+        return error.value.value.type_.value
+    return None
+
+
+def _resolution_error_label(error: out.ScaError) -> str:
+    kind = _resolution_error_kind(error)
+    if kind is None:
+        return "Lockfile Parse Error"
+    return _RESOLUTION_ERROR_LABELS.get(type(kind), type(kind).__name__.rstrip("_"))
+
+
+def find_resolution_failures(
+    subprojects: Iterable[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+) -> List[ResolutionFailure]:
+    """
+    Select the subprojects whose dependency resolution was attempted and
+    either failed or is known to be incomplete.
+
+    - An unresolved subproject counts if its reason is `failed`, even if no
+      error was reported (e.g. the RPC to the resolver crashed), unless every
+      reported error is `UnsupportedManifest`: that is a limitation of Semgrep,
+      not something the user can fix.
+    - A resolved subproject counts if it carries a build-side error (see
+      `_BUILD_SIDE_RESOLUTION_ERRORS`). Lockfile parse errors on a resolved
+      subproject (some dependencies were found) do not count.
+    - Subprojects that were never attempted (`skipped`, `unsupported`,
+      `disabled`) never count.
+    """
+    failures: List[ResolutionFailure] = []
+    for sub in subprojects:
+        if isinstance(sub, out.UnresolvedSubproject):
+            if not isinstance(sub.reason.value, out.UnresolvedFailed):
+                continue
+            kinds = [_resolution_error_kind(e) for e in sub.errors]
+            if kinds and all(isinstance(k, out.UnsupportedManifest) for k in kinds):
+                continue
+            reported = sub.errors
+        else:
+            reported = [
+                e
+                for e in sub.errors
+                if isinstance(_resolution_error_kind(e), _BUILD_SIDE_RESOLUTION_ERRORS)
+            ]
+            if not reported:
+                continue
+        failures.append(
+            ResolutionFailure(
+                dependency_sources=tuple(get_display_paths(sub.info.dependency_source)),
+                reasons=tuple(
+                    dict.fromkeys(_resolution_error_label(e) for e in reported)
+                ),
+            )
+        )
+    return failures
+
+
 def subproject_to_cli_output_info(
     sub: Union[out.ResolvedSubproject, out.UnresolvedSubproject],
 ) -> out.CliOutputSubprojectInfo:
