@@ -1,0 +1,1 @@
+var $X = $Y { willSet($N) { ... } didSet($O) { ... } }

@@ -19,6 +19,14 @@ module.exports = grammar(base_grammar, {
      if they're not already part of the base grammar.
   */
   rules: {
+    // Prefer ordinary names over pack introducers when a call is possible.
+    // A following operand still selects the native pack productions
+    // (`each x`, `repeat each x`). Parenthesized `each(x)` stays a call so
+    // Semgrep patterns can match ordinary call sites. Do not boost `repeat`
+    // the same way: that breaks `repeat { ... } while` loops.
+    _contextual_simple_identifier: ($, previous) =>
+      choice(previous, prec(2, "each")),
+
     // Swift has an unbounded range operator which is also three dots. When we
     // are parsing a pattern, we will convert that into an ellipsis after it's
     // parsed, but let's use low precedence here so that normally we only
