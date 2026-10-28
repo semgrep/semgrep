@@ -12,13 +12,17 @@
 #
 import os
 from pathlib import Path
+from tempfile import gettempdir
 from tempfile import NamedTemporaryFile
 
 import pytest
 from mcp import stdio_client
 from mcp import StdioServerParameters
 from mcp.client.session import ClientSession
+from mcp.types import ListRootsResult
+from mcp.types import Root
 from mcp.types import TextContent
+from pydantic import FileUrl
 
 
 def mk_server_params(port: int):
@@ -35,6 +39,14 @@ def mk_server_params(port: int):
     )
 
 
+async def list_roots(context) -> ListRootsResult:
+    # semgrep_scan only reads files inside a workspace root, and the scanned
+    # file is created in the temp directory.
+    return ListRootsResult(
+        roots=[Root(uri=FileUrl(Path(gettempdir()).resolve().as_uri()))]
+    )
+
+
 @pytest.mark.slow
 @pytest.mark.skipif(
     not os.environ.get("SEMGREP_APP_TOKEN"),
@@ -42,7 +54,9 @@ def mk_server_params(port: int):
 )
 async def test_local_scan(available_port):
     async with stdio_client(mk_server_params(available_port)) as (read, write):
-        async with ClientSession(read, write) as session:
+        async with ClientSession(
+            read, write, list_roots_callback=list_roots
+        ) as session:
             # Initializing session...
             await session.initialize()
             # Session initialized
