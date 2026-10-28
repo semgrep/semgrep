@@ -1,0 +1,22 @@
+[
+  {
+    "package": "github.com/go-chi/chi/v5",
+    "version": "5.0.7",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "resolved_url": "github.com/go-chi/chi/v5",
+    "lockfile_path": "targets/dependency_aware/go_godebug/go.mod",
+    "line_number": 15
+  },
+  {
+    "package": "golang.org/x/sys",
+    "version": "0.2.0",
+    "ecosystem": "gomod",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "resolved_url": "golang.org/x/sys",
+    "lockfile_path": "targets/dependency_aware/go_godebug/go.mod",
+    "line_number": 16
+  }
+]

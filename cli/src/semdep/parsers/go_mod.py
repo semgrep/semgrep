@@ -92,8 +92,13 @@ specs: Dict[str, "Parser[Optional[Tuple[str,...]]]"] = {
     "retract": comment.result(None) | consume_line,
 }
 
+# A directive name ends at a space or a block's '(': otherwise 'go' would match
+# the start of 'godebug' and 'tool' the start of 'toolchain'.
 directive = alt(
-    *(make_directive(string(dir), mark_line(spec)) for dir, spec in specs.items())
+    *(
+        make_directive(regex(rf"{dir}(?=[ \t(])"), mark_line(spec))
+        for dir, spec in specs.items()
+    )
 )
 
 go_mod = (

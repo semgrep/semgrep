@@ -55,6 +55,10 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
         out.ManifestKind(out.Pipfile()),
         out.LockfileKind(out.PipfileLock()),
     ),
+    (
+        out.ManifestKind(out.GoModManifest()),
+        out.LockfileKind(out.GoModLock()),
+    ),
 ]
 
 # Subproject kinds that we use ocaml parsers for only when transitive reachability is

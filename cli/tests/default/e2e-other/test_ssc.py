@@ -831,6 +831,7 @@ LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
         "targets/dependency_aware/go/go.mod",
         "targets/dependency_aware/go_multi_newline/go.mod",
         "targets/dependency_aware/go_toolchain/go.mod",
+        "targets/dependency_aware/go_godebug/go.mod",
         "targets/dependency_aware/osv_parsing/go/parens-in-comments/go.mod",
     ],
 )
