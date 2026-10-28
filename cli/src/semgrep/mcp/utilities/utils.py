@@ -18,6 +18,8 @@ from functools import lru_cache
 from typing import Any
 from typing import Callable
 from typing import Type
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 import requests
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -86,6 +88,19 @@ def is_oauth_authenticated() -> bool:
     return get_access_token() is not None
 
 
+ALLOW_SCAN_OUTSIDE_WORKSPACE_ENV_VAR = "SEMGREP_MCP_ALLOW_SCAN_OUTSIDE_WORKSPACE"
+
+
+def scan_outside_workspace_allowed() -> bool:
+    """
+    Check if local scans may read files outside the client's workspace root,
+    e.g. a sibling checkout. Off unless explicitly opted into.
+    """
+    return (
+        os.environ.get(ALLOW_SCAN_OUTSIDE_WORKSPACE_ENV_VAR, "false").lower() == "true"
+    )
+
+
 def findings_elicitation_enabled() -> bool:
     """
     Check if findings elicitation is enabled.
@@ -116,7 +131,9 @@ async def get_workspace_dir(ctx: Context) -> str | None:
             return None
 
         uri: str = str(roots.roots[0].uri)
-        path = uri[7:] if uri.startswith("file://") else uri
+        # Decoded, so a root with a space or non-ASCII character in it is the
+        # directory on disk rather than its percent-encoded spelling.
+        path = url2pathname(urlparse(uri).path) if uri.startswith("file://") else uri
 
         logger.debug(f"Determined path of workspace directory: {path}")
 
