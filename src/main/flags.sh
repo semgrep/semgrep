@@ -149,6 +149,7 @@ else
             "-lparmap_stubs"
             "-lpbrt_stubs"
             "-lpcre2_stubs"
+            "-lprocess_limits_stubs"
             "-lptime_clock_stubs"
             "-lstdc++"
             "-lterminal_size_stubs"
