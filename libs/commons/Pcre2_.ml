@@ -314,6 +314,15 @@ let equal (x1 : t) (x2 : t) = String.equal x1.pattern x2.pattern
 (* TODO: use a flag instead? *)
 let matching_exact_string s : t = compile_exn (quote s)
 
+let matching_exact_string_bytes ~case_sensitive s =
+  let pattern = quote s in
+  let options =
+    [ `MATCH_LIMIT match_limit; `DEPTH_LIMIT depth_limit ]
+    @ if case_sensitive then [] else [ `CASELESS ]
+  in
+  Pcre2.Interp.compile ~options pattern
+  |> Result.map (fun regex -> { pattern; regex; jit = None })
+
 let matching_exact_word s =
   let pattern = "\b" ^ quote s ^ "\b" in
   compile_exn pattern

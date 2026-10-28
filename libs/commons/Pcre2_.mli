@@ -88,6 +88,14 @@ val quote : string -> string
 val matching_exact_string : string -> t
 (** [matching_exact_string str] matches [str] literally. *)
 
+val matching_exact_string_bytes :
+  case_sensitive:bool -> string -> (t, Pcre2.compile_error) Result.t
+(** Compile a literal byte substring search, without UTF mode. This is for
+    file prefilters that must also work on invalid UTF-8 content. With
+    [case_sensitive = false], PCRE2 may accept additional byte pairs compared
+    with Base's caseless byte comparison, so use it only for conservative
+    filters. *)
+
 val matching_exact_word : string -> t
 (** [matching_exact_word str] matches [str] literally between word
     boundaries. *)

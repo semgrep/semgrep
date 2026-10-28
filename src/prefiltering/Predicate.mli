@@ -33,10 +33,13 @@ val eval : ?utf8_valid:bool Lazy_safe.t -> t -> string -> bool
 (** [eval predicate content] evaluates [predicate] against [content].
     Returns [true] if the predicate matches, [false] otherwise.
 
+    String predicates use a byte-mode literal search and may conservatively
+    return [true] for additional case-insensitive matches.
+
     [utf8_valid] must describe this exact [content] string. When it is true,
     regex matching uses JIT to skip repeated UTF-8 validation when available.
     When it is false,
     the predicate returns [true] without invoking PCRE2.
 
     Regex predicates return [true] on PCRE2 matching errors to avoid false
-    negatives. *)
+    negatives. String predicates fall back to the original byte search. *)

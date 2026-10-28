@@ -153,6 +153,59 @@ let test_shared_jit_across_domains () =
       Alcotest.(check bool) "shared regexp matches" true (Domain.join domain))
     domains
 
+let test_literal_byte_search () =
+  let module Search_pattern = Base.String.Search_pattern in
+  let compile case_sensitive needle =
+    match Pcre2_.matching_exact_string_bytes ~case_sensitive needle with
+    | Ok re -> re
+    | Error error -> Alcotest.fail (Pcre2_.show_compile_error error)
+  in
+  let check case_sensitive needle content =
+    let expected =
+      Search_pattern.matches
+        (Search_pattern.create ~case_sensitive needle)
+        content
+    in
+    let re = compile case_sensitive needle in
+    let got =
+      match Pcre2_.is_match re content with
+      | Ok matches -> matches
+      | Error _ -> Alcotest.fail "literal byte search failed"
+    in
+    if (expected && not got) || (case_sensitive && expected <> got) then
+      Alcotest.failf "literal %S in %S: expected %b, got %b" needle content
+        expected got
+  in
+  List.iter
+    (fun (needle, content) ->
+      check true needle content;
+      check false needle content)
+    [
+      ("", "");
+      ("a.b", "xxa.by");
+      ("A\\B", "a\\b");
+      ("a\000b", "xa\000by");
+      ("é", "xéy");
+      ("\xff", "x\xffy");
+      ("\000", "x\000y");
+      ("[a]+", "x[a]+y");
+    ];
+  for byte = 0 to 255 do
+    let needle = String.make 1 (Char.chr byte) in
+    let re = compile false needle in
+    let pattern = Search_pattern.create ~case_sensitive:false needle in
+    for haystack_byte = 0 to 255 do
+      let content = String.make 1 (Char.chr haystack_byte) in
+      if Search_pattern.matches pattern content then
+        match Pcre2_.is_match re content with
+        | Ok true -> ()
+        | Ok false
+        | Error _ ->
+            Alcotest.failf "case-insensitive byte %d missed byte %d" byte
+              haystack_byte
+    done
+  done
+
 let tests =
   Testo.categorize "pcre2 settings"
     [
@@ -163,4 +216,5 @@ let tests =
       t "replace function" test_replace_fn;
       t "JIT stack fallback" test_jit_stack_fallback;
       t "shared JIT across domains" test_shared_jit_across_domains;
+      t "literal byte search" test_literal_byte_search;
     ]
