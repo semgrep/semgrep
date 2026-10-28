@@ -145,6 +145,7 @@ let tests =
         Unit_skip_target.tests;
         Unit_cgroup_limits.tests;
         Unit_memory_limit.tests ();
+        Unit_time_limit.tests;
         Unit_tok.tests;
         Unit_parsed_float.tests;
         Unit_ast_generic.tests;
