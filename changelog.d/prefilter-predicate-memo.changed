@@ -1,0 +1,1 @@
+Speed up scans with many rules that share file prefilter conditions by checking each condition once per file.
