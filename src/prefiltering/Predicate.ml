@@ -15,16 +15,24 @@ type t =
 
 let eval_cost (predicate : t) : int =
   match predicate with
-  (* KMP string search is faster than PCRE2 regex *)
+  (* Literal searches are cheaper than arbitrary regexes. *)
   | String _ -> 0
   | Regex _ -> 1
 
 let eval ?utf8_valid (predicate : t) (content : string) : bool =
   let module Search_pattern = Base.String.Search_pattern in
   match predicate with
-  | String { needle; case_sensitive } ->
-      let pat = Search_pattern.create ~case_sensitive needle in
-      Search_pattern.matches pat content
+  | String { needle; case_sensitive } -> (
+      let fallback () =
+        let pat = Search_pattern.create ~case_sensitive needle in
+        Search_pattern.matches pat content
+      in
+      match Pcre2_.matching_exact_string_bytes ~case_sensitive needle with
+      | Error _ -> fallback ()
+      | Ok re -> (
+          match Pcre2_.is_match re content with
+          | Ok matches -> matches
+          | Error _ -> fallback ()))
   | Regex re -> (
       match Option.map Lazy_safe.force utf8_valid with
       | Some true ->
