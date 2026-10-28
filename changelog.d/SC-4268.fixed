@@ -1,0 +1,1 @@
+Supply Chain now parses go.mod files that contain a `godebug ( ... )` block. Such files used to report no dependencies and a parse error.
