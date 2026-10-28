@@ -71,6 +71,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.run_scan import AutofixBehavior
 from semgrep.simple_profiling import profiling
 from semgrep.state import get_state
+from semgrep.subproject import find_resolution_failures
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.types import FilteredMatches
@@ -1040,6 +1041,56 @@ def ci(
 
             sys.exit(exit_code)
 
+        # With --no-suppress-errors, a subproject whose dependency resolution
+        # failed (or is known to be incomplete) fails the scan, like other
+        # errors that flag surfaces.
+        #
+        # An admin can force errors to be suppressed. That is checked here, on
+        # the scan handler, because it is only known once the scan has started.
+        # (The override near the top of this function runs before that, so it
+        # does not take effect.)
+        #
+        # This only applies when local builds are allowed, since that is how a
+        # build fails or comes back incomplete. Without them nothing changes,
+        # even if a lockfile fails to parse. With them, any failed resolution
+        # counts, including a lockfile that fails to parse entirely.
+        #
+        # It is also skipped for --internal-ci-scan-results, where the results
+        # are not output through `output_handler`, so other errors never fail
+        # the run either.
+        #
+        # And it is skipped for Semgrep Managed Scanning (SMS) scans. The SMS
+        # agent always passes --no-suppress-errors (and --allow-local-builds
+        # when enabled), so nobody opted in, and it reports any exit code other
+        # than 0 or 1 as a failed job. SMS scans are recognized by their scan
+        # id, which is how the CLI already identifies them to the app.
+        errors_suppressed = state.error_handler.suppress_errors or bool(
+            scan_handler and scan_handler.always_suppress_errors
+        )
+        resolution_failures = (
+            find_resolution_failures(all_subprojects)
+            if allow_local_builds
+            and not errors_suppressed
+            and not internal_ci_scan_results
+            and not state.env.sms_scan_id
+            else []
+        )
+        failed_subprojects = ""
+        scan_failure_reason = None
+        if resolution_failures:
+            failed_subprojects = (
+                f"{len(resolution_failures)} "
+                f"subproject{'s' if len(resolution_failures) != 1 else ''}"
+            )
+            scan_failure_reason = (
+                f"dependency resolution failed for {failed_subprojects}"
+            )
+            # Logged here, not with the exit code at the end, so that it is not
+            # lost if `output_handler.output` raises because of another error.
+            logger.error(f"  Dependency resolution failed for {failed_subprojects}:")
+            for failure in resolution_failures:
+                logger.error(f"    - {failure.describe()}")
+
         # Run a separate scan for historical. This is due to the split in how the
         # file targeting works. If file targeting could all be handled in the same
         # place we wouldn't need this seprarately. There are some benefits
@@ -1187,9 +1238,11 @@ def ci(
                     is_ci_invocation=True,
                     print_summary=False,
                     all_subprojects=all_subprojects,
+                    scan_failure_reason=scan_failure_reason,
                 )
 
-            logger.info("CI scan completed successfully.")
+            if not resolution_failures:
+                logger.info("CI scan completed successfully.")
 
         # Collect paths that failed to scan (timeout, OOM, etc.)
         skipped_paths: set[Path] = set()
@@ -1301,9 +1354,11 @@ def ci(
                     is_ci_invocation=True,
                     print_summary=False,
                     all_subprojects=all_subprojects,
+                    scan_failure_reason=scan_failure_reason,
                 )
 
-            logger.info("CI scan completed successfully.")
+            if not resolution_failures:
+                logger.info("CI scan completed successfully.")
 
             if internal_ci_scan_results:
                 # console.print() would go to stderr; here we print() directly to stdout
@@ -1361,7 +1416,31 @@ def ci(
             and complete_result.app_block_reason
         )
 
-        if cli_suggested_exit_code == 1 or app_policy_block:
+        if resolution_failures:
+            # This takes precedence over findings, and audit mode does not turn
+            # it into a success: audit mode only relaxes blocking findings.
+            # Other errors raised by `output_handler.output` behave the same.
+            #
+            # NOTE: the app is not told about this exit code. Like those other
+            # errors, it is decided once /complete has already been sent with
+            # `cli_suggested_exit_code`.
+            logger.error(
+                f"  Dependency resolution failed for {failed_subprojects}, so "
+                f"exiting with code {FATAL_EXIT_CODE} (--no-suppress-errors is set)"
+            )
+            if cli_suggested_exit_code == 1 or app_policy_block:
+                logger.info(
+                    "  There are also findings for blocking rules, but the dependency resolution failure takes precedence"
+                )
+            if app_other_block and not audit_mode:
+                assert (
+                    complete_result is not None
+                )  # Here to appease mypy. This must be true by the definition of `app_other_block`
+                logger.info(
+                    f"  semgrep.dev is also suggesting a non-zero exit code ({complete_result.app_block_reason})"
+                )
+            exit_code = FATAL_EXIT_CODE
+        elif cli_suggested_exit_code == 1 or app_policy_block:
             if audit_mode:
                 logger.info(
                     f"  Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",

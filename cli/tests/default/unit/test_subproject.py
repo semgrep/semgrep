@@ -24,6 +24,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.subproject import ClosestSubprojectFinder
 from semgrep.subproject import find_closest_resolved_subproject
+from semgrep.subproject import find_resolution_failures
 from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_display_paths
 from semgrep.subproject import make_dependencies_by_source_path
@@ -784,3 +785,203 @@ class TestManifestLockfileDependencySource:
                 path=out.Fpath(str(manifest_path)),
             ),
         ]
+
+
+class TestFindResolutionFailures:
+    """
+    One test per row of the decision table for `semgrep ci --no-suppress-errors`
+    (SC-3613): which subproject outcomes fail the scan, and which never do.
+    """
+
+    @staticmethod
+    def _subproject(path: str = "build.gradle") -> out.Subproject:
+        return out.Subproject(
+            root_dir=out.Fpath("."),
+            dependency_source=out.DependencySource(
+                out.ManifestOnly(
+                    out.Manifest(out.ManifestKind(out.BuildGradle()), out.Fpath(path))
+                )
+            ),
+            ecosystem=Ecosystem(Maven()),
+        )
+
+    @staticmethod
+    def _error(kind) -> out.ScaError:
+        return out.ScaError(
+            out.SCAResol(
+                out.ScaResolutionError(
+                    type_=out.ResolutionErrorKind(kind),
+                    dependency_source_file=out.Fpath("build.gradle"),
+                )
+            )
+        )
+
+    @classmethod
+    def _cmd_failed(cls) -> out.ScaError:
+        return cls._error(
+            out.ResolutionCmdFailed_(out.ResolutionCmdFailed("gradlew", "boom"))
+        )
+
+    @classmethod
+    def _unresolved(cls, reason, errors=(), path: str = "build.gradle"):
+        return out.UnresolvedSubproject(
+            info=cls._subproject(path),
+            reason=out.UnresolvedReason(reason),
+            errors=list(errors),
+        )
+
+    @classmethod
+    def _resolved(cls, errors=(), path: str = "build.gradle"):
+        return out.ResolvedSubproject(
+            info=cls._subproject(path),
+            resolution_method=out.ResolutionMethod(out.DynamicResolution()),
+            ecosystem=Ecosystem(Maven()),
+            resolved_dependencies=from_resolved_dependencies([]),
+            errors=list(errors),
+        )
+
+    # Rows 1-3: never attempted, never a failure (even if an error was attached)
+    @pytest.mark.quick
+    @pytest.mark.parametrize(
+        "reason",
+        [
+            out.UnresolvedSkipped(),
+            out.UnresolvedUnsupported(),
+            out.UnresolvedDisabled(),
+        ],
+    )
+    def test_not_attempted_never_fails(self, reason):
+        sub = self._unresolved(reason, [self._cmd_failed()])
+        assert find_resolution_failures([sub]) == []
+
+    # Row 4: failed, but only because Semgrep does not support the manifest
+    @pytest.mark.quick
+    def test_failed_only_unsupported_manifest_is_not_a_failure(self):
+        sub = self._unresolved(
+            out.UnresolvedFailed(), [self._error(out.UnsupportedManifest())]
+        )
+        assert find_resolution_failures([sub]) == []
+
+    # Row 5: the ticket's case
+    @pytest.mark.quick
+    def test_failed_with_command_error(self):
+        sub = self._unresolved(out.UnresolvedFailed(), [self._cmd_failed()])
+        (failure,) = find_resolution_failures([sub])
+        assert failure.dependency_sources == (Path("build.gradle"),)
+        assert failure.reasons == ("Resolution Command Failed",)
+        assert failure.describe() == "build.gradle: Resolution Command Failed"
+
+    @pytest.mark.quick
+    def test_failed_with_unparseable_tool_output(self):
+        sub = self._unresolved(
+            out.UnresolvedFailed(),
+            [self._error(out.ParseDependenciesFailed("bad output"))],
+        )
+        (failure,) = find_resolution_failures([sub])
+        assert failure.reasons == ("Parsing Dependencies Failed",)
+
+    @pytest.mark.quick
+    def test_failed_with_mixed_errors_still_fails(self):
+        sub = self._unresolved(
+            out.UnresolvedFailed(),
+            [self._error(out.UnsupportedManifest()), self._cmd_failed()],
+        )
+        (failure,) = find_resolution_failures([sub])
+        assert failure.reasons == ("Unsupported Manifest", "Resolution Command Failed")
+
+    # Row 6: failed without reporting any error (e.g. the resolver RPC crashed)
+    @pytest.mark.quick
+    def test_failed_without_any_error(self):
+        sub = self._unresolved(out.UnresolvedFailed())
+        (failure,) = find_resolution_failures([sub])
+        assert failure.reasons == ()
+        assert failure.describe() == "build.gradle: no error details were reported"
+
+    # Rows 7-9: resolved, but a package manager reported it is incomplete
+    @pytest.mark.quick
+    @pytest.mark.parametrize(
+        "kind,label",
+        [
+            (
+                out.ResourceInaccessible_(
+                    out.ResourceInaccessible("gradlew", "https://r.example", "401")
+                ),
+                "Resource Inaccessible",
+            ),
+            (
+                out.IncompleteDependencyResolution_(
+                    out.IncompleteDependencyResolution("mvn", "POM is missing")
+                ),
+                "Incomplete Dependency Resolution",
+            ),
+            (out.MissingRequirement("gradlew"), "Missing Requirement"),
+            (
+                out.ResolutionCmdFailed_(out.ResolutionCmdFailed("mvn", "boom")),
+                "Resolution Command Failed",
+            ),
+        ],
+    )
+    def test_resolved_with_build_side_error_fails(self, kind, label):
+        sub = self._resolved([self._error(kind)])
+        (failure,) = find_resolution_failures([sub])
+        assert failure.reasons == (label,)
+
+    # Row 10: resolved with lockfile parse errors (some deps found) is out of scope
+    @pytest.mark.quick
+    def test_resolved_with_lockfile_parse_errors_is_not_a_failure(self):
+        parse_error = out.ScaError(
+            out.SCAParse(
+                out.DependencyParserError(
+                    path=out.Fpath("pnpm-lock.yaml"),
+                    parser=out.ScaParserName(out.PPnpmLock()),
+                    reason="skipped an entry",
+                )
+            )
+        )
+        sub = self._resolved(
+            [parse_error, self._error(out.ParseDependenciesFailed("bad entry"))]
+        )
+        assert find_resolution_failures([sub]) == []
+
+    @pytest.mark.quick
+    def test_resolved_failure_lists_only_build_side_reasons(self):
+        sub = self._resolved(
+            [self._error(out.ParseDependenciesFailed("bad entry")), self._cmd_failed()]
+        )
+        (failure,) = find_resolution_failures([sub])
+        assert failure.reasons == ("Resolution Command Failed",)
+
+    # Row 11
+    @pytest.mark.quick
+    def test_resolved_without_errors(self):
+        assert find_resolution_failures([self._resolved()]) == []
+
+    # Monorepo: one passing and failing subprojects side by side
+    @pytest.mark.quick
+    def test_monorepo_reports_every_failed_subproject_and_only_those(self):
+        subprojects = [
+            self._resolved(path="ok/build.gradle"),
+            self._unresolved(
+                out.UnresolvedFailed(), [self._cmd_failed()], path="a/build.gradle"
+            ),
+            self._unresolved(out.UnresolvedSkipped(), path="skipped/build.gradle"),
+            self._resolved(
+                [
+                    self._error(
+                        out.ResourceInaccessible_(
+                            out.ResourceInaccessible("gradlew", None, "403")
+                        )
+                    )
+                ],
+                path="b/build.gradle",
+            ),
+        ]
+        failures = find_resolution_failures(subprojects)
+        assert [f.dependency_sources for f in failures] == [
+            (Path("a/build.gradle"),),
+            (Path("b/build.gradle"),),
+        ]
+
+    @pytest.mark.quick
+    def test_no_subprojects(self):
+        assert find_resolution_failures([]) == []
