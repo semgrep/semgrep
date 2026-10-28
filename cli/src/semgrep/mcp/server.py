@@ -46,6 +46,7 @@ from semgrep.mcp.utilities.tracing import attach_scan_metrics
 from semgrep.mcp.utilities.tracing import start_tracing
 from semgrep.mcp.utilities.tracing import with_span
 from semgrep.mcp.utilities.tracing import with_tool_span
+from semgrep.mcp.utilities.utils import ALLOW_SCAN_OUTSIDE_WORKSPACE_ENV_VAR
 from semgrep.mcp.utilities.utils import ENCODING
 from semgrep.mcp.utilities.utils import ENCODING_ERRORS
 from semgrep.mcp.utilities.utils import findings_elicitation_enabled
@@ -61,6 +62,7 @@ from semgrep.mcp.utilities.utils import get_workspace_dir
 from semgrep.mcp.utilities.utils import is_hosted
 from semgrep.mcp.utilities.utils import is_oauth_authenticated
 from semgrep.mcp.utilities.utils import re_identity_string
+from semgrep.mcp.utilities.utils import scan_outside_workspace_allowed
 from semgrep.metrics import Finding as MetricsFinding
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CliOutput
 from semgrep.state import get_state
@@ -78,7 +80,8 @@ REMOTE_CODE_FILES_FIELD = Field(
 )
 LOCAL_CODE_FILES_FIELD = Field(
     description=(
-        "List of dictionaries with 'path' pointing to the absolute path of the code file"
+        "List of dictionaries with 'path' pointing to the absolute path of the code file. "
+        "Every path must be inside the workspace."
     )
 )
 
@@ -198,6 +201,35 @@ def safe_join(base_dir: str, untrusted_path: str) -> str:
 
 
 # Path validation
+def cwd_workspace_dir() -> str | None:
+    """
+    The server's working directory, used as the workspace when the client
+    reports no root: Claude Code starts a stdio server in the project
+    directory. None when it is the home directory or contains it, such as
+    the filesystem root, since that would put ~/.ssh in scope.
+    """
+    cwd = Path.cwd().resolve()
+    if Path.home().resolve().is_relative_to(cwd):
+        return None
+    return cwd.as_posix()
+
+
+def resolve_within_workspace(path: str, workspace_dir: str) -> str:
+    """
+    Resolves an absolute path, and returns it only if it is inside the
+    workspace. Symlinks are followed first, so a link inside the workspace
+    that points out of it is rejected.
+
+    Raises:
+        ValueError: If the path is outside the workspace
+    """
+    resolved = Path(path).resolve()
+    root = Path(workspace_dir).resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError(f"{path} is outside the workspace")
+    return safe_join(root.as_posix(), resolved.relative_to(root).as_posix())
+
+
 def validate_absolute_path(path_to_validate: str, param_name: str) -> str:
     """Validates an absolute path to ensure it's safe to use"""
     if not Path(path_to_validate).is_absolute():
@@ -330,12 +362,18 @@ def get_semgrep_scan_args(temp_dir: str, config: str | None = None) -> list[str]
     return args
 
 
-def validate_local_files(local_files: list[CodePath]) -> list[CodeFile]:
+def validate_local_files(
+    local_files: list[CodePath], workspace_dir: str | None
+) -> list[CodeFile]:
     """
-    Validates the local_files parameter for semgrep scan using Pydantic validation
+    Validates the local_files parameter for semgrep scan using Pydantic validation.
+    Only files inside the workspace are read, unless scanning outside it has
+    been opted into.
 
     Args:
         local_files: List of singleton dictionaries with a "path" key
+        workspace_dir: The client's workspace root. When empty, the server's
+            working directory is used instead (see cwd_workspace_dir).
 
     Raises:
         McpError: If validation fails
@@ -345,6 +383,25 @@ def validate_local_files(local_files: list[CodePath]) -> list[CodeFile]:
             ErrorData(
                 code=INVALID_PARAMS,
                 message="local_files must be a non-empty list of file objects",
+            )
+        )
+    allow_outside = scan_outside_workspace_allowed()
+    if not workspace_dir:
+        workspace_dir = cwd_workspace_dir()
+    if not allow_outside and not workspace_dir:
+        raise McpError(
+            ErrorData(
+                code=INVALID_PARAMS,
+                message=(
+                    "semgrep_scan only reads files inside the workspace, but could not tell where the "
+                    "workspace is: the MCP client reported no workspace root, and the server was started "
+                    f"in {Path.cwd()}, which is the home directory or contains it. This usually means the "
+                    "Semgrep MCP server is configured at user level (e.g. ~/.cursor/mcp.json), where it is "
+                    "shared across projects. To fix it, do one of: configure the server per project so it "
+                    "is started in the project directory; use an MCP client that reports workspace roots; "
+                    f"or set {ALLOW_SCAN_OUTSIDE_WORKSPACE_ENV_VAR}=true in the server's environment, which "
+                    "turns off this check and lets it read any path."
+                ),
             )
         )
     try:
@@ -359,7 +416,16 @@ def validate_local_files(local_files: list[CodePath]) -> list[CodeFile]:
                         message="code_files.path must be a absolute path",
                     )
                 )
-            contents = Path(path).read_text(encoding=ENCODING, errors=ENCODING_ERRORS)
+            # Checked before anything is read: the path comes from the model,
+            # and a prompt-injected one can name any file the user can read.
+            read_path = (
+                path
+                if allow_outside or workspace_dir is None
+                else resolve_within_workspace(path, workspace_dir)
+            )
+            contents = Path(read_path).read_text(
+                encoding=ENCODING, errors=ENCODING_ERRORS
+            )
             # We need to not use the absolute path here, as there is logic later
             # that raises, to prevent path traversal.
             # In reality, the name of the file is pretty immaterial. We only
@@ -1155,7 +1221,8 @@ async def semgrep_scan(
     """
     Runs a Semgrep scan locally on provided code files returns the findings in JSON format.
 
-    Files are expected to be absolute paths to the code files.
+    Files are expected to be absolute paths to the code files, inside the
+    workspace. Files outside the workspace are rejected.
 
     Use this tool when you need to:
       - scan code files for security vulnerabilities
@@ -1170,7 +1237,7 @@ async def semgrep_scan(
     # If the server is local, only this tool will be available, and not the
     # `semgrep_scan_remote` tool.
 
-    validated_local_files = validate_local_files(code_files)
+    validated_local_files = validate_local_files(code_files, workspace_dir)
 
     return await semgrep_scan_core(ctx, workspace_dir, validated_local_files)
 
