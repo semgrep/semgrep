@@ -22,7 +22,7 @@ jobs:
       - uses: depot/setup-action@
       - id: semgrep-cli-prepare-metadata
         name: Set tags and labels
-        uses: docker/metadata-action@
+      uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.7.0
         with:
           flavor: |
             latest=false
