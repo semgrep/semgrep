@@ -54,6 +54,7 @@ from semgrep.sca_subproject_support import ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS
 from semgrep.sca_subproject_support import PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
 from semgrep.sca_subproject_support import PTT_OCAML_PARSER_SUBPROJECT_KINDS
 from semgrep.sca_subproject_support import TR_OCAML_RESOLVER_SUBPROJECT_KINDS
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.simple_profiling import simple_profiling
 from semgrep.subproject import DependencyResolutionConfig
@@ -420,7 +421,13 @@ def _handle_lockfile_source(
             config.ptt_enabled
             and (manifest_kind, lockfile_kind) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
         )
-        or (manifest_kind, lockfile_kind) in ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS
+        or (
+            (manifest_kind, lockfile_kind) in ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS
+            # The OCaml parsers aren't in every build. Without them, use the
+            # Python parser when there is one rather than an RPC call that
+            # fails.
+            and (parser is None or SemgrepCore.pro_path() is not None)
+        )
         or config.use_experimental_ocaml_parsers
     )
 

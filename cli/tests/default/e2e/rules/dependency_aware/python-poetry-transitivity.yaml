@@ -1,0 +1,62 @@
+rules:
+  # direct, declared in [project] dependencies (Poetry 2, PEP 621)
+  - id: poetry-direct
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: requests
+      version: < 2.32.0
+    message: requests
+    languages: [python]
+    severity: WARNING
+  # transitive, through requests
+  - id: poetry-transitive
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: urllib3
+      version: < 2.0.7
+    message: urllib3
+    languages: [python]
+    severity: WARNING
+  # declared in a Poetry dependency group: direct
+  - id: poetry-dev-group
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: pytest
+      version: < 8.4.0
+    message: pytest
+    languages: [python]
+    severity: WARNING
+  # poetry.lock spells the name with a dot (older Poetry): reported as written
+  - id: poetry-dotted-name
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: zope.interface
+      version: < 6.0.0
+    message: zope.interface
+    languages: [python]
+    severity: WARNING
+  # the rule spells the name with a dot, poetry.lock with a hyphen: PyPI
+  # names are matched regardless of "-", "_" and "."
+  - id: poetry-normalized-match
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: zope.event
+      version: < 5.0.0
+    message: zope.event
+    languages: [python]
+    severity: WARNING
+  # used by the comments and manifest parse error targets
+  - id: poetry-faker
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: faker
+      version: <= 13.11.1
+    message: faker
+    languages: [python]
+    severity: WARNING
