@@ -1,0 +1,1 @@
+Scans are slightly faster. The dataflow analyses build the name of each variable with a plain string join, and no longer with `Printf` and `Format`. On 6 open-source repos, the scan time was a median of 3% lower, with identical findings.

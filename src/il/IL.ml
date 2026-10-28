@@ -115,7 +115,11 @@ type name = {
 }
 [@@deriving show]
 
-let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
+(* This function is called for each variable access in the dataflow analyses.
+ * We avoid [G.SId.show] and [Printf] here because both are slow: the derived
+ * [show] goes through [Format]. The result is the same string. *)
+let str_of_name name =
+  fst name.ident ^ ":" ^ string_of_int (G.SId.to_int name.sid)
 
 let equal_name name1 name2 =
   let { ident = str1, _tok1; sid = sid1; id_info = _ } = name1 in
