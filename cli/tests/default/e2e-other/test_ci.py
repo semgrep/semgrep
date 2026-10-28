@@ -2592,6 +2592,291 @@ def test_backend_exit_code(
     )
 
 
+def _gradle_subproject(path: str) -> out.Subproject:
+    return out.Subproject(
+        root_dir=out.Fpath("."),
+        dependency_source=out.DependencySource(
+            out.ManifestOnly(
+                out.Manifest(out.ManifestKind(out.BuildGradle()), out.Fpath(path))
+            )
+        ),
+        ecosystem=out.Ecosystem(out.Maven()),
+    )
+
+
+def _resolution_error(kind) -> out.ScaError:
+    return out.ScaError(
+        out.SCAResol(
+            out.ScaResolutionError(
+                type_=out.ResolutionErrorKind(kind),
+                dependency_source_file=out.Fpath("build.gradle"),
+            )
+        )
+    )
+
+
+def _unresolved(path: str, reason, errors=()) -> out.UnresolvedSubproject:
+    return out.UnresolvedSubproject(
+        info=_gradle_subproject(path),
+        reason=out.UnresolvedReason(reason),
+        errors=list(errors),
+    )
+
+
+def _resolved(path: str, errors=()) -> out.ResolvedSubproject:
+    return out.ResolvedSubproject(
+        info=_gradle_subproject(path),
+        resolution_method=out.ResolutionMethod(out.DynamicResolution()),
+        ecosystem=out.Ecosystem(out.Maven()),
+        resolved_dependencies={},
+        errors=list(errors),
+    )
+
+
+_CMD_FAILED = _resolution_error(
+    out.ResolutionCmdFailed_(out.ResolutionCmdFailed("gradlew", "boom"))
+)
+_REGISTRY_REFUSED = _resolution_error(
+    out.ResourceInaccessible_(out.ResourceInaccessible("gradlew", None, "401"))
+)
+
+# The repo made by `git_tmp_path_with_commit` always has blocking findings, so
+# without a resolution failure `semgrep ci` exits 1. That also lets these tests
+# check that a resolution failure (exit 2) wins over blocking findings.
+_BLOCKING_FINDINGS_EXIT_CODE = 1
+
+
+@pytest.mark.osemfail
+@pytest.mark.parametrize(
+    "options, admin_forces_suppress, subprojects, expected_exit_code, expected_failures",
+    [
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            False,
+            # A monorepo: one subproject resolves, one build fails.
+            [
+                _resolved("ok/build.gradle"),
+                _unresolved("bad/build.gradle", out.UnresolvedFailed(), [_CMD_FAILED]),
+            ],
+            2,
+            ["bad/build.gradle: Resolution Command Failed"],
+            id="build-failed-in-monorepo",
+        ),
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            False,
+            [_resolved("a/build.gradle", [_REGISTRY_REFUSED])],
+            2,
+            ["a/build.gradle: Resource Inaccessible"],
+            id="resolved-but-incomplete",
+        ),
+        pytest.param(
+            ["--allow-local-builds"],
+            False,
+            [_unresolved("a/build.gradle", out.UnresolvedFailed(), [_CMD_FAILED])],
+            _BLOCKING_FINDINGS_EXIT_CODE,
+            [],
+            id="errors-suppressed-by-default",
+        ),
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            True,
+            [_unresolved("a/build.gradle", out.UnresolvedFailed(), [_CMD_FAILED])],
+            _BLOCKING_FINDINGS_EXIT_CODE,
+            [],
+            id="admin-forces-suppress",
+        ),
+        pytest.param(
+            ["--no-suppress-errors"],
+            False,
+            [_unresolved("a/build.gradle", out.UnresolvedFailed(), [_CMD_FAILED])],
+            _BLOCKING_FINDINGS_EXIT_CODE,
+            [],
+            id="local-builds-not-allowed",
+        ),
+        pytest.param(
+            ["--no-suppress-errors", "--allow-local-builds"],
+            False,
+            [
+                _resolved("ok/build.gradle"),
+                _unresolved("skipped/build.gradle", out.UnresolvedSkipped()),
+                _unresolved("disabled/build.gradle", out.UnresolvedDisabled()),
+                _unresolved("unsupported/build.gradle", out.UnresolvedUnsupported()),
+            ],
+            _BLOCKING_FINDINGS_EXIT_CODE,
+            [],
+            id="nothing-attempted-failed",
+        ),
+        pytest.param(
+            [
+                "--no-suppress-errors",
+                "--allow-local-builds",
+                "--internal-ci-scan-results",
+            ],
+            False,
+            [_unresolved("a/build.gradle", out.UnresolvedFailed(), [_CMD_FAILED])],
+            _BLOCKING_FINDINGS_EXIT_CODE,
+            [],
+            id="internal-ci-scan-results",
+        ),
+    ],
+)
+def test_dependency_resolution_failure_exit_code(
+    run_semgrep: RunSemgrep,
+    mocker,
+    requests_mock,
+    scan_config,
+    git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+    options,
+    admin_forces_suppress,
+    subprojects,
+    expected_exit_code,
+    expected_failures,
+):
+    """
+    SC-3613: with --no-suppress-errors (and local builds allowed), a subproject
+    whose dependency resolution failed or came back incomplete makes `semgrep
+    ci` exit 2 and stop saying it completed successfully.
+
+    The app is deliberately not told: the /complete request still carries the
+    CLI's suggested exit code (1 here, from the blocking findings), as it does
+    for other errors that --no-suppress-errors surfaces.
+    """
+    mocker.patch.object(
+        semgrep.run_scan,
+        "resolve_dependencies",
+        return_value=(
+            [],
+            [e for sub in subprojects for e in sub.errors],
+            [],
+            subprojects,
+            {},
+        ),
+    )
+
+    start_scan_mock_maker("https://semgrep.dev")
+    if admin_forces_suppress:
+        # The app tells the CLI to suppress errors, in the scan config response
+        # (the same way the real app does), not by patching the CLI.
+        requests_mock.get(
+            re.compile(r"/api/cli/v2/scans/[^/]+/config"),
+            json={
+                "status": "success",
+                "config": {"rules": YAML(typ="safe").load(scan_config)},
+                "engine_params": {
+                    "dependency_query": False,
+                    "product_ignored_files": [],
+                    "always_suppress_errors": True,
+                },
+            },
+        )
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=[*options, "--oss-only"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=expected_exit_code,
+        env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
+        use_click_runner=True,
+    )
+
+    assert (
+        complete_scan_mock.last_request.json()["exit_code"]
+        == _BLOCKING_FINDINGS_EXIT_CODE
+    )
+
+    if expected_failures:
+        assert "CI scan completed successfully" not in result.stderr
+        assert (
+            f"Dependency resolution failed for {len(expected_failures)} subproject"
+            in result.stderr
+        )
+        for failure in expected_failures:
+            assert f"- {failure}" in result.stderr
+        # only the failed subprojects are listed
+        assert "- ok/build.gradle" not in result.stderr
+    else:
+        assert "CI scan completed successfully" in result.stderr
+        assert "Dependency resolution failed" not in result.stderr
+
+
+@pytest.mark.osemfail
+@pytest.mark.parametrize(
+    "managed_scan_id, expected_exit_code, expect_failure",
+    [
+        pytest.param(None, 2, True, id="ci-scan"),
+        pytest.param("555", _BLOCKING_FINDINGS_EXIT_CODE, False, id="managed-scan"),
+    ],
+)
+def test_dependency_resolution_failure_skipped_for_managed_scans(
+    run_semgrep: RunSemgrep,
+    mocker,
+    git_tmp_path_with_commit,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+    managed_scan_id,
+    expected_exit_code,
+    expect_failure,
+):
+    """
+    SC-3613: Semgrep Managed Scanning always passes --no-suppress-errors (and
+    --allow-local-builds when enabled), so nobody opted in, and it reports any
+    exit code other than 0 or 1 as a failed job. A managed scan (recognized by
+    SEMGREP_MANAGED_SCAN_ID) therefore keeps its previous exit code, with the
+    same flags and the same failing subproject as the regular CI scan.
+    """
+    subprojects = [
+        _unresolved("bad/build.gradle", out.UnresolvedFailed(), [_CMD_FAILED])
+    ]
+    mocker.patch.object(
+        semgrep.run_scan,
+        "resolve_dependencies",
+        return_value=(
+            [],
+            [e for sub in subprojects for e in sub.errors],
+            [],
+            subprojects,
+            {},
+        ),
+    )
+
+    create_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock_maker("https://semgrep.dev")
+
+    env = {"SEMGREP_APP_TOKEN": "fake-key-from-tests"}
+    if managed_scan_id:
+        env["SEMGREP_MANAGED_SCAN_ID"] = managed_scan_id
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors", "--allow-local-builds", "--oss-only"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=expected_exit_code,
+        env=env,
+        use_click_runner=True,
+    )
+
+    # The env var really reached the CLI: it is what the CLI tells the app.
+    assert (managed_scan_id is not None) == (
+        f'"sms_scan_id": "{managed_scan_id}"' in create_scan_mock.last_request.text
+    )
+    if expect_failure:
+        assert "Dependency resolution failed for 1 subproject" in result.stderr
+        assert "CI scan completed successfully" not in result.stderr
+    else:
+        assert "Dependency resolution failed" not in result.stderr
+        assert "CI scan completed successfully" in result.stderr
+
+
 @pytest.mark.osemfail
 def test_fail_finish_scan_error_handler(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit
