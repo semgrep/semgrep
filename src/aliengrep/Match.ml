@@ -68,8 +68,15 @@ let convert_match (pat : Pat_compile.t) target_str (captures : Pcre2_.captures)
   in
   { match_loc; captures }
 
-let search (pat : Pat_compile.t) target_str : match_ list =
-  Pcre2_.captures_iter pat.pcre target_str
+let search ?utf8_valid (pat : Pat_compile.t) target_str : match_ list =
+  let captures =
+    match utf8_valid with
+    | Some true -> Pcre2_.captures_iter_valid_utf8 pat.pcre target_str
+    | Some false
+    | None ->
+        Pcre2_.captures_iter pat.pcre target_str
+  in
+  captures
   |> Seq.filter_map (function
     | Ok captures -> Some captures
     | Error err ->

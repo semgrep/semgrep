@@ -17,7 +17,7 @@ open Xpattern_matcher
 module MV = Metavariable
 module Log = Log_engine.Log
 
-let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t)
+let regexp_matcher ?(base_offset = 0) ?utf8_valid big_str (file : Fpath.t)
     (regexp : Pcre2_.t) =
   (* the names of all capture groups within the regexp; a property of the
      regexp itself, so computed once rather than per match *)
@@ -101,7 +101,13 @@ let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t)
         collect_matches (match_result_of_captures sub :: acc) rest
     | Seq.Cons (Error err, _) -> Error err
   in
-  match Pcre2_.captures_iter regexp big_str |> collect_matches [] with
+  let captures =
+    match utf8_valid with
+    | Some true -> Pcre2_.captures_iter_valid_utf8 regexp big_str
+    | Some false -> Seq.empty
+    | None -> Pcre2_.captures_iter regexp big_str
+  in
+  match collect_matches [] captures with
   | Ok matches -> matches
   | Error err ->
       Log.warn (fun m ->
@@ -111,14 +117,16 @@ let regexp_matcher ?(base_offset = 0) big_str (file : Fpath.t)
          successfully processed before the error. *)
       []
 
-let matches_of_regexs regexps lazy_content (file : Fpath.t) origin =
+let matches_of_regexs ~utf8_valid regexps lazy_content (file : Fpath.t) origin =
   matches_of_matcher regexps
     {
       init =
         (fun _ ->
           let content, time = Common.force_lazy_with_time lazy_content in
-          (Some content, time));
-      matcher = regexp_matcher;
+          (Some (content, Lazy_safe.force utf8_valid), time));
+      matcher =
+        (fun (content, utf8_valid) file regexp ->
+          regexp_matcher ~utf8_valid content file regexp);
     }
     file origin
 [@@profiling]

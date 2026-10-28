@@ -28,6 +28,8 @@ type t = {
   pattern : string;
   regex : Pcre2.Interp.t;
       [@opaque] [@equal fun _ _ -> true] [@compare fun _ _ -> 0]
+  jit : Pcre2.Jit.t option;
+      [@opaque] [@equal fun _ _ -> true] [@compare fun _ _ -> 0]
 }
 [@@deriving show, eq, ord]
 
@@ -88,7 +90,15 @@ let compile ?(options : Pcre2.Interp.compile_option list = [])
   (* pcre doesn't mind if a flag is duplicated so we just append extra flags *)
   let options = extra_compilation_options @ options in
   let* regex = Pcre2.Interp.compile ~options pattern in
-  Ok { pattern; regex }
+  (* Compile an independent JIT pattern: published regexes cannot be converted
+     in place. Preserve the same flags and resource limits for both engines. *)
+  let jit =
+    Pcre2.Jit.compile
+      ~options:(options :> Pcre2.Jit.compile_option list)
+      pattern
+    |> Result.to_option
+  in
+  Ok { pattern; regex; jit }
 
 let show_compile_error ({ code; offset } : Pcre2.compile_error) =
   (* [Pcre2.show_compile_error_code] is pcre2's own error message, e.g.
@@ -103,25 +113,48 @@ let compile_exn ?options pattern =
         (Printf.sprintf "Pcre2_.compile_exn: cannot compile regex %S: %s"
            pattern (show_compile_error err))
 
-let is_match ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
-  Pcre2.Interp.is_match ?options ?subject_offset regex subject
+(* Keep these wrappers interpreted, including [depth_limit]; only the valid-UTF
+   entry points below intentionally use the independent JIT pattern. *)
+let interp_options options = `NO_JIT :: options
 
-let find ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
-  Pcre2.Interp.find ?options ?subject_offset regex subject
+let is_match ?(options = []) ?subject_offset ({ regex; _ } : t)
+    (subject : string) =
+  Pcre2.Interp.is_match ~options:(interp_options options) ?subject_offset regex
+    subject
 
-let find_iter ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
-  Pcre2.Interp.find_iter ?options ?subject_offset regex subject
+let is_match_valid_utf8 ({ regex; jit; _ } : t) (subject : string) =
+  match jit with
+  | Some jit -> Pcre2.Jit.is_match jit subject
+  | None -> Pcre2.Interp.is_match ~options:[ `NO_JIT ] regex subject
 
-let captures ?options ?subject_offset ({ regex; _ } : t) (subject : string) =
-  Pcre2.Interp.captures ?options ?subject_offset regex subject
+let find ?(options = []) ?subject_offset ({ regex; _ } : t) (subject : string) =
+  Pcre2.Interp.find ~options:(interp_options options) ?subject_offset regex
+    subject
 
-let captures_iter ?options ?subject_offset ({ regex; _ } : t) (subject : string)
-    =
-  Pcre2.Interp.captures_iter ?options ?subject_offset regex subject
+let find_iter ?(options = []) ?subject_offset ({ regex; _ } : t)
+    (subject : string) =
+  Pcre2.Interp.find_iter ~options:(interp_options options) ?subject_offset regex
+    subject
 
-let split ?options ?subject_offset ?limit ({ regex; _ } : t) (subject : string)
-    =
-  Pcre2.Interp.split ?options ?subject_offset ?limit regex subject
+let captures ?(options = []) ?subject_offset ({ regex; _ } : t)
+    (subject : string) =
+  Pcre2.Interp.captures ~options:(interp_options options) ?subject_offset regex
+    subject
+
+let captures_iter ?(options = []) ?subject_offset ({ regex; _ } : t)
+    (subject : string) =
+  Pcre2.Interp.captures_iter ~options:(interp_options options) ?subject_offset
+    regex subject
+
+let captures_iter_valid_utf8 ({ regex; jit; _ } : t) (subject : string) =
+  match jit with
+  | Some jit -> Pcre2.Jit.captures_iter jit subject
+  | None -> Pcre2.Interp.captures_iter ~options:[ `NO_JIT ] regex subject
+
+let split ?(options = []) ?subject_offset ?limit ({ regex; _ } : t)
+    (subject : string) =
+  Pcre2.Interp.split ~options:(interp_options options) ?subject_offset ?limit
+    regex subject
 
 let replace_matches_fn ?limit ~range ~replacement (subject : string) matches =
   let matches =
@@ -147,9 +180,10 @@ let replace_matches_fn ?limit ~range ~replacement (subject : string) matches =
   in
   replace_from 0 matches
 
-let replace_captures_fn ?options ?subject_offset ?limit ({ regex; _ } : t)
-    (f : captures -> string) (subject : string) =
-  Pcre2.Interp.captures_iter ?options ?subject_offset regex subject
+let replace_captures_fn ?(options = []) ?subject_offset ?limit
+    ({ regex; _ } : t) (f : captures -> string) (subject : string) =
+  Pcre2.Interp.captures_iter ~options:(interp_options options) ?subject_offset
+    regex subject
   |> replace_matches_fn ?limit ~range:range_of_captures ~replacement:f subject
 
 let expand_capture_references (template : string) (captures : captures) : string

@@ -21,11 +21,12 @@ let of_rule ?(interfile = false) (rule : Rule.t) : t option =
   (* Use analysis logic from Analyze_rule - no conversion needed since Predicate.t = Predicate.t *)
   Analyze_rule.generate_prefilter ~interfile rule
 
-let check (prefilter : t) (content : string) : bool =
-  Formula.eval (fun pred -> Predicate.eval pred content) prefilter
+let check ?utf8_valid (prefilter : t) (content : string) : bool =
+  Formula.eval (fun pred -> Predicate.eval ?utf8_valid pred content) prefilter
 
-let check_many (prefilters : t list) (content : string) : bool list =
-  List.map (fun prefilter -> check prefilter content) prefilters
+let check_many ?utf8_valid (prefilters : t list) (content : string) : bool list
+    =
+  List.map (fun prefilter -> check ?utf8_valid prefilter content) prefilters
 
 let to_formula (prefilter : t) : predicate Formula.t = prefilter
 let of_formula (formula : predicate Formula.t) : t = formula

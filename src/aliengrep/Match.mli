@@ -36,5 +36,7 @@ type match_ = {
 (* For debugging *)
 val show_matches : match_ list -> string
 
-(* Search for matches in a target string. *)
-val search : Pat_compile.t -> string -> match_ list
+val search : ?utf8_valid:bool -> Pat_compile.t -> string -> match_ list
+(** Search for matches in a target string. Set [utf8_valid] only after checking
+    the entire target string. Invalid UTF-8 remains matchable because aliengrep
+    patterns are compiled with [MATCH_INVALID_UTF]. *)
