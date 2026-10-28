@@ -730,6 +730,25 @@ let utf8_regex_prefilter_tests =
           Alcotest.(check int) "matches" 0 (List.length matches));
     ]
 
+let file_prefilter_memo_tests =
+  let module F = Prefiltering.Formula in
+  let module P = Prefiltering.Predicate in
+  Testo.categorize "file prefilter memoization"
+    [
+      t "caller-supplied regexes retain their compile options" (fun () ->
+          let make options =
+            let re = Pcre2_.compile_exn ~options "token" in
+            Prefiltering.File.of_formula (F.pred (P.Regex re))
+          in
+          let sensitive = make [] in
+          let caseless = make [ `CASELESS ] in
+          let results =
+            Prefiltering.File.check_many [ sensitive; caseless ] "TOKEN"
+          in
+          Alcotest.(check (list bool))
+            "different results" [ false; true ] results);
+    ]
+
 (*****************************************************************************)
 (* Prefilter conjunct ranking tests *)
 (*****************************************************************************)
@@ -1157,6 +1176,7 @@ let tests =
       filter_irrelevant_rules_tests;
       regexp_prefilter_tests;
       utf8_regex_prefilter_tests;
+      file_prefilter_memo_tests;
       prefilter_ranking_tests;
       lang_tainting_tests ();
       maturity_tests ();
