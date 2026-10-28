@@ -1,6 +1,8 @@
-#include <tree_sitter/parser.h>
+#include "tree_sitter/parser.h"
 #include <string.h>
 #include <wctype.h>
+
+#define TOKEN_COUNT 28
 
 enum TokenType {
     BLOCK_COMMENT,
@@ -30,6 +32,7 @@ enum TokenType {
     AS_BANG,
     ASYNC_KEYWORD,
     CUSTOM_OPERATOR,
+    FAKE_TRY_BANG
 };
 
 #define OPERATOR_COUNT 20
@@ -108,6 +111,29 @@ const enum TokenType OP_SYMBOLS[OPERATOR_COUNT] = {
     AS_QUEST,
     AS_BANG,
     ASYNC_KEYWORD
+};
+
+const uint64_t OP_SYMBOL_SUPPRESSOR[OPERATOR_COUNT] = {
+    0, // ARROW_OPERATOR,
+    0, // DOT_OPERATOR,
+    0, // CONJUNCTION_OPERATOR,
+    0, // DISJUNCTION_OPERATOR,
+    0, // NIL_COALESCING_OPERATOR,
+    0, // EQUAL_SIGN,
+    0, // EQ_EQ,
+    0, // PLUS_THEN_WS,
+    0, // MINUS_THEN_WS,
+    1 << FAKE_TRY_BANG, // BANG,
+      0, // THROWS_KEYWORD,
+      0, // RETHROWS_KEYWORD,
+      0, // DEFAULT_KEYWORD,
+      0, // WHERE_KEYWORD,
+      0, // ELSE_KEYWORD,
+      0, // CATCH_KEYWORD,
+      0, // AS_KEYWORD,
+      0, // AS_QUEST,
+      0, // AS_BANG,
+      0, // ASYNC_KEYWORD
 };
 
 #define RESERVED_OP_COUNT 31
@@ -474,6 +500,22 @@ static bool eat_operators(
     }
 
     if (full_match != -1) {
+        // We have a match -- first see if that match has a symbol that suppresses it. For example, in `try!`, we do not
+        // want to emit the `!` as a symbol in our scanner, because we want the parser to have the chance to parse it as
+        // an immediate token.
+        uint64_t suppressing_symbols = OP_SYMBOL_SUPPRESSOR[full_match];
+        if (suppressing_symbols) {
+            for (uint64_t suppressor = 0; suppressor < TOKEN_COUNT; suppressor++) {
+                if (!(suppressing_symbols & 1 << suppressor)) {
+                    continue;
+                }
+
+                // The suppressing symbol is valid in this position, so skip it.
+                if (valid_symbols[suppressor]) {
+                    return false;
+                }
+            }
+        }
         *symbol_result = OP_SYMBOLS[full_match];
         return true;
     }

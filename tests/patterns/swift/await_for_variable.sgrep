@@ -1,0 +1,1 @@
+for await $X in $COLLECTION { ... }

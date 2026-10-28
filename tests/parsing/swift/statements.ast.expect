@@ -6124,21 +6124,31 @@
     (If (_,
        (Cond
           { e =
-            (Call (
-               { e = (Special ((Op And), _)); e_id = 0; e_range = None;
-                 is_implicit_return = false; facts = <opaque> },
-               (_,
-                [(Arg
-                    { e =
-                      (OtherExpr (("1", _), [(Di [("things", _)]); (Tk _)]));
-                      e_id = 0; e_range = None; is_implicit_return = false;
-                      facts = <opaque> });
-                  (Arg
-                     { e = (OtherExpr (("*", _), [(Tk _)])); e_id = 0;
-                       e_range = None; is_implicit_return = false;
-                       facts = <opaque> })
-                  ],
-                _)
+            (OtherExpr (("#available", _),
+               [(E
+                   { e =
+                     (Call (
+                        { e = (Special ((Op And), _)); e_id = 0;
+                          e_range = None; is_implicit_return = false;
+                          facts = <opaque> },
+                        (_,
+                         [(Arg
+                             { e =
+                               (OtherExpr (("1", _),
+                                  [(Di [("things", _)]); (Tk _)]));
+                               e_id = 0; e_range = None;
+                               is_implicit_return = false; facts = <opaque> });
+                           (Arg
+                              { e = (OtherExpr (("*", _), [(Tk _)]));
+                                e_id = 0; e_range = None;
+                                is_implicit_return = false; facts = <opaque>
+                                })
+                           ],
+                         _)
+                        ));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
                ));
             e_id = 0; e_range = None; is_implicit_return = false;
             facts = <opaque> }),
@@ -6148,8 +6158,15 @@
     (If (_,
        (Cond
           { e =
-            (OtherExpr (("1", _),
-               [(Di [("things", _)]); (Tk _); (Tk _); (Tk _)]));
+            (OtherExpr (("#available", _),
+               [(E
+                   { e =
+                     (OtherExpr (("1", _),
+                        [(Di [("things", _)]); (Tk _); (Tk _); (Tk _)]));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
+               ));
             e_id = 0; e_range = None; is_implicit_return = false;
             facts = <opaque> }),
        { s = (Block (_, [], _)); s_range = None }, None));
@@ -6158,7 +6175,15 @@
     (If (_,
        (Cond
           { e =
-            (OtherExpr (("2", _), [(Di [("things", _)]); (Tk _); (Tk _)]));
+            (OtherExpr (("#available", _),
+               [(E
+                   { e =
+                     (OtherExpr (("2", _),
+                        [(Di [("things", _)]); (Tk _); (Tk _)]));
+                     e_id = 0; e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
+               ));
             e_id = 0; e_range = None; is_implicit_return = false;
             facts = <opaque> }),
        { s = (Block (_, [], _)); s_range = None }, None));
@@ -6166,8 +6191,16 @@
   { s =
     (If (_,
        (Cond
-          { e = (OtherExpr (("*", _), [(Tk _)])); e_id = 0; e_range = None;
-            is_implicit_return = false; facts = <opaque> }),
+          { e =
+            (OtherExpr (("#available", _),
+               [(E
+                   { e = (OtherExpr (("*", _), [(Tk _)])); e_id = 0;
+                     e_range = None; is_implicit_return = false;
+                     facts = <opaque> })
+                 ]
+               ));
+            e_id = 0; e_range = None; is_implicit_return = false;
+            facts = <opaque> }),
        { s = (Block (_, [], _)); s_range = None }, None));
     s_range = None };
   { s =

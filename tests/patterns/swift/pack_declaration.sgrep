@@ -1,0 +1,1 @@
+func $F<each $T>(_ values: repeat each $T) where repeat each $T: Equatable { ... }

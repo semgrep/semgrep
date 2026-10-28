@@ -307,3 +307,309 @@ $FOO. ... .bar(startNum..<endData.count)
               (simple_identifier)
               (navigation_suffix
                 (simple_identifier)))))))))
+
+================================================================================
+Contextual names and each calls
+================================================================================
+
+each()
+each($X, ..., $...ARGS, <... $Y ...>)
+each
+x.each()
+let each = f
+func each() {}
+actor(); async(); lazy(); package(); borrowing(); consuming()
+let actor = x; let async = x; let lazy = x; let package = x; let borrowing = x; let consuming = x
+x.actor; x.async; x.lazy; x.package; x.borrowing; x.consuming
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments)))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (simple_identifier))
+        (value_argument
+          (fully_open_range))
+        (value_argument
+          (semgrep_ellipsis_metavar))
+        (value_argument
+          (semgrep_deep_ellipsis
+            (simple_identifier)
+            (custom_operator))))))
+  (simple_identifier)
+  (call_expression
+    (navigation_expression
+      (simple_identifier)
+      (navigation_suffix
+        (simple_identifier)))
+    (call_suffix
+      (value_arguments)))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier))
+  (function_declaration
+    (simple_identifier)
+    (function_body))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments)))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments)))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments)))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments)))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments)))
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments)))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier))
+  (navigation_expression
+    (simple_identifier)
+    (navigation_suffix
+      (simple_identifier)))
+  (navigation_expression
+    (simple_identifier)
+    (navigation_suffix
+      (simple_identifier)))
+  (navigation_expression
+    (simple_identifier)
+    (navigation_suffix
+      (simple_identifier)))
+  (navigation_expression
+    (simple_identifier)
+    (navigation_suffix
+      (simple_identifier)))
+  (navigation_expression
+    (simple_identifier)
+    (navigation_suffix
+      (simple_identifier)))
+  (navigation_expression
+    (simple_identifier)
+    (navigation_suffix
+      (simple_identifier))))
+
+================================================================================
+Pack patterns and repeat loop
+================================================================================
+
+func f<each $T>(_ x: repeat each $T, ...) { consume(repeat each $X, repeat each $...XS, repeat each <... $Y ...>) }
+repeat { ... } while $COND
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (simple_identifier)
+    (type_parameters
+      (type_parameter
+        (type_parameter_pack
+          (user_type
+            (type_identifier)))))
+    (parameter
+      (simple_identifier)
+      (simple_identifier)
+      (type_pack_expansion
+        (type_parameter_pack
+          (user_type
+            (type_identifier)))))
+    (parameter
+      (semgrep_ellipsis))
+    (function_body
+      (statements
+        (call_expression
+          (simple_identifier)
+          (call_suffix
+            (value_arguments
+              (value_argument
+                (value_pack_expansion
+                  (value_parameter_pack
+                    (simple_identifier))))
+              (value_argument
+                (value_pack_expansion
+                  (value_parameter_pack
+                    (semgrep_ellipsis_metavar))))
+              (value_argument
+                (value_pack_expansion
+                  (value_parameter_pack
+                    (semgrep_deep_ellipsis
+                      (simple_identifier)
+                      (custom_operator)))))))))))
+  (repeat_while_statement
+    (statements
+      (fully_open_range))
+    (simple_identifier)))
+
+================================================================================
+Patterns in changed expression and declaration paths
+================================================================================
+
+try! $X
+try? foo(...)
+try /* comment */ foo($X)
+for $X in await $Y { ... }
+init($...ARGS) { ... }
+let $X = if $COND { $Y } else { $Z }
+var $X = $Y { willSet($NEW) { ... } didSet { ... } }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (try_expression
+    (try_operator)
+    (simple_identifier))
+  (try_expression
+    (try_operator)
+    (call_expression
+      (simple_identifier)
+      (call_suffix
+        (value_arguments
+          (value_argument
+            (fully_open_range))))))
+  (try_expression
+    (try_operator)
+    (multiline_comment)
+    (call_expression
+      (simple_identifier)
+      (call_suffix
+        (value_arguments
+          (value_argument
+            (simple_identifier))))))
+  (for_statement
+    (pattern
+      (simple_identifier))
+    (await_expression
+      (simple_identifier))
+    (statements
+      (fully_open_range)))
+  (init_declaration
+    (parameter
+      (semgrep_ellipsis_metavar))
+    (function_body
+      (statements
+        (fully_open_range))))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (if_statement
+      (simple_identifier)
+      (statements
+        (simple_identifier))
+      (else)
+      (statements
+        (simple_identifier))))
+  (property_declaration
+    (value_binding_pattern)
+    (pattern
+      (simple_identifier))
+    (simple_identifier)
+    (willset_didset_block
+      (willset_clause
+        (simple_identifier)
+        (statements
+          (fully_open_range)))
+      (didset_clause
+        (statements
+          (fully_open_range))))))
+
+================================================================================
+Native parameter packs
+================================================================================
+
+func f<each T>(_ x: repeat each T) { consume(repeat each x) }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    (simple_identifier)
+    (type_parameters
+      (type_parameter
+        (type_parameter_pack
+          (user_type
+            (type_identifier)))))
+    (parameter
+      (simple_identifier)
+      (simple_identifier)
+      (type_pack_expansion
+        (type_parameter_pack
+          (user_type
+            (type_identifier)))))
+    (function_body
+      (statements
+        (call_expression
+          (simple_identifier)
+          (call_suffix
+            (value_arguments
+              (value_argument
+                (value_pack_expansion
+                  (value_parameter_pack
+                    (simple_identifier)))))))))))
+
+================================================================================
+Parenthesized repeat stays a pack expansion
+================================================================================
+
+consume(repeat(value))
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (call_expression
+    (simple_identifier)
+    (call_suffix
+      (value_arguments
+        (value_argument
+          (value_pack_expansion
+            (tuple_expression
+              (simple_identifier))))))))
