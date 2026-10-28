@@ -29,9 +29,14 @@ val eval_cost : t -> int
     arbitrarily expensive (e.g., regexes that backtrack quadratically on
     files with very long lines). *)
 
-val eval : t -> string -> bool
+val eval : ?utf8_valid:bool Lazy_safe.t -> t -> string -> bool
 (** [eval predicate content] evaluates [predicate] against [content].
     Returns [true] if the predicate matches, [false] otherwise.
 
-    On errors (e.g., regex matching against invalid UTF-8), this function
-    returns [true] to be conservative and avoid false negatives. *)
+    [utf8_valid] must describe this exact [content] string. When it is true,
+    regex matching uses JIT to skip repeated UTF-8 validation when available.
+    When it is false,
+    the predicate returns [true] without invoking PCRE2.
+
+    Regex predicates return [true] on PCRE2 matching errors to avoid false
+    negatives. *)

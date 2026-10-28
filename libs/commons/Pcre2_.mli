@@ -25,7 +25,12 @@
    Note that the default 'equal' function is based only on the source
    patterns and doesn't take into account compilation options.
 *)
-type t = private { pattern : string; regex : Pcre2.Interp.t }
+type t = private {
+  pattern : string;
+  regex : Pcre2.Interp.t;
+  jit : Pcre2.Jit.t option;
+      (** Initialized before the regexp is shared with matching domains. *)
+}
 [@@deriving show, eq, hash, ord, sexp_of]
 
 type match_ = Pcre2.match_ [@@deriving show]
@@ -51,7 +56,8 @@ val compile :
   (t, Pcre2.compile_error) Result.t
 (** [compile ?options pattern] compiles [pattern] with [`UTF],
     [`MATCH_LIMIT match_limit], and [`DEPTH_LIMIT depth_limit], in addition to
-    [options]. *)
+    [options]. It also compiles an independent JIT pattern with the same options
+    before returning, when JIT is available. *)
 
 val compile_exn : ?options:Pcre2.Interp.compile_option list -> string -> t
 (** Like {!compile}, but raises [Invalid_argument] with a message containing
@@ -98,6 +104,10 @@ val is_match :
   (bool, Pcre2.match_error) Result.t
 (** [is_match rex subject] is whether [rex] matches anywhere in [subject]. *)
 
+val is_match_valid_utf8 : t -> string -> (bool, Pcre2.match_error) Result.t
+(** Like [is_match], using JIT when available. The caller must establish that
+    the entire subject is valid UTF-8 before calling this function. *)
+
 val unanchored_match : t -> string -> (bool, Pcre2.match_error) Result.t
 (** [unanchored_match rex subject] is an alias for {!is_match} that emphasizes
     its unanchored semantics. *)
@@ -139,6 +149,11 @@ val captures_iter :
   (captures, Pcre2.match_error) Result.t Seq.t
 (** [captures_iter rex subject] is like {!find_iter} but yields the capture
     groups of each match. *)
+
+val captures_iter_valid_utf8 :
+  t -> string -> (captures, Pcre2.match_error) Result.t Seq.t
+(** Like [captures_iter], using JIT when available. The caller must establish
+    that the entire subject is valid UTF-8 before calling this function. *)
 
 (*****************************************************************************)
 (* Splitting and replacement *)

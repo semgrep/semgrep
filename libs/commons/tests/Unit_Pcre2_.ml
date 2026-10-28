@@ -103,6 +103,56 @@ let test_replace_fn () =
   | Error e -> Alcotest.failf "unexpected error: %s" (Pcre2.show_match_error e)
   | Ok result -> Alcotest.failf "expected BADOFFSET, got %S" result
 
+let test_jit_stack_fallback () =
+  let rex = Pcre2_.compile_exn {|(?<LETTER>a|b)*c|} in
+  let long_match = String.make 3_000 'a' ^ "c" in
+  let subject = "ac " ^ long_match ^ " ac" in
+  Alcotest.(check bool)
+    "long input matches" true
+    (match Pcre2_.is_match_valid_utf8 rex long_match with
+    | Ok matched -> matched
+    | Error e -> Alcotest.fail (Pcre2.show_match_error e));
+  let matches =
+    Pcre2_.captures_iter_valid_utf8 rex subject
+    |> List.of_seq
+    |> List.map (function
+      | Ok captures ->
+          Alcotest.(check (option string))
+            "named capture survives fallback" (Some "a")
+            (Pcre2_.named_substring_of_captures captures "LETTER");
+          Pcre2_.substring_of_captures captures 0
+      | Error e -> Alcotest.fail (Pcre2.show_match_error e))
+  in
+  Alcotest.(check (list (option string)))
+    "all matches survive fallback"
+    [ Some "ac"; Some long_match; Some "ac" ]
+    matches
+
+let test_shared_jit_across_domains () =
+  let rex = Pcre2_.compile_exn {|(?<KEY>key[a-z]+)|} in
+  let subject = "keyabc keyxyz" in
+  let check () =
+    let rec loop remaining =
+      if remaining = 0 then true
+      else
+        let is_match = Pcre2_.is_match_valid_utf8 rex subject = Ok true in
+        let captures =
+          match Pcre2_.captures_iter_valid_utf8 rex subject |> List.of_seq with
+          | [ Ok first; Ok second ] ->
+              Pcre2_.named_substring_of_captures first "KEY" = Some "keyabc"
+              && Pcre2_.named_substring_of_captures second "KEY" = Some "keyxyz"
+          | _ -> false
+        in
+        is_match && captures && loop (remaining - 1)
+    in
+    loop 100
+  in
+  let domains = List.init 4 (fun _ -> Domain.spawn check) in
+  List.iter
+    (fun domain ->
+      Alcotest.(check bool) "shared regexp matches" true (Domain.join domain))
+    domains
+
 let tests =
   Testo.categorize "pcre2 settings"
     [
@@ -111,4 +161,6 @@ let tests =
       t "quote" test_quote;
       t "replace" test_replace;
       t "replace function" test_replace_fn;
+      t "JIT stack fallback" test_jit_stack_fallback;
+      t "shared JIT across domains" test_shared_jit_across_domains;
     ]

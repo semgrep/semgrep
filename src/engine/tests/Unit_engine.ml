@@ -699,6 +699,37 @@ let regexp_prefilter_tests =
       check {|abc\cIdef|} (F.and_ [ str "abc"; str "def" ]);
     ]
 
+let utf8_regex_prefilter_tests =
+  let module P = Prefiltering.Predicate in
+  let predicate = P.Regex (Pcre2_.compile_exn "TOKEN") in
+  Testo.categorize "UTF-8 regex prefilter"
+    [
+      t "valid content can skip repeated UTF-8 checks" (fun () ->
+          let content = "TOKEN ☃" in
+          let utf8_valid = lazy_safe (String.is_valid_utf_8 content) in
+          Alcotest.(check bool) "valid UTF-8" true (Lazy_safe.force utf8_valid);
+          Alcotest.(check bool)
+            "match" true
+            (P.eval ~utf8_valid predicate content));
+      t "invalid content retains conservative error handling" (fun () ->
+          let content = "TOKEN \xff" in
+          let utf8_valid = lazy_safe (String.is_valid_utf_8 content) in
+          Alcotest.(check bool)
+            "invalid UTF-8" false
+            (Lazy_safe.force utf8_valid);
+          Alcotest.(check bool)
+            "allow rule on PCRE2 error" true
+            (P.eval ~utf8_valid predicate content));
+      t "known invalid content has no regex matches" (fun () ->
+          let content = "TOKEN \xff" in
+          let regex = Pcre2_.compile_exn "TOKEN" in
+          let matches =
+            Xpattern_match_regexp.regexp_matcher ~utf8_valid:false content
+              (Fpath.v "unused") regex
+          in
+          Alcotest.(check int) "matches" 0 (List.length matches));
+    ]
+
 (*****************************************************************************)
 (* Prefilter conjunct ranking tests *)
 (*****************************************************************************)
@@ -773,6 +804,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
   let matches =
     taint_rules
     |> List.concat_map (fun rule ->
+        let lazy_content = lazy_safe (UFile.read_file file) in
         let xtarget : Xtarget.t =
           {
             path =
@@ -781,7 +813,8 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
                 internal_path_to_content = file;
               };
             analyzer = Analyzer.L (lang, []);
-            lazy_content = lazy_safe (UFile.read_file file);
+            lazy_content;
+            lazy_utf8_valid = Lazy_safe.map String.is_valid_utf_8 lazy_content;
             lazy_ast_and_errors = lazy_safe (ast, []);
           }
         in
@@ -1123,6 +1156,7 @@ let tests =
       eval_regression_tests ();
       filter_irrelevant_rules_tests;
       regexp_prefilter_tests;
+      utf8_regex_prefilter_tests;
       prefilter_ranking_tests;
       lang_tainting_tests ();
       maturity_tests ();

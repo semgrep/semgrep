@@ -129,7 +129,7 @@ pin-depends: [
   (* Incident-specific key distrust. Drop after an equivalent upstream release
      is verified and all supported dependency pins have migrated. *)
   ["ca-certs.1.0.3" "git+https://github.com/semgrep/ca-certs.git#af20ad16ad063d892324d7edf8f3bd9564461025"]
-  ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#b763e279b7aa624c9f1adf0afdd45ee7555e2460"]
+  ["pcre2.dev" "git+https://github.com/semgrep/pcre2-ocaml.git#2633911369201dd7e2b58dc479940924b443578b"]
   ["tree-sitter.dev" "./libs/ocaml-tree-sitter-semgrep/core"]
   ["obackward.dev" "git+https://github.com/semgrep/obackward.git#6efca08b2a98317b1d705c1e88b8342ec558205c"]
   (* coupling: update the submodule in cli/src/semgrep too *)

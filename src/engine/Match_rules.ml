@@ -128,7 +128,8 @@ let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
           let prefilter_results =
             Tracing.with_span ~level:Tracing.Debug "prefilter.file.evaluation"
               ~__FILE__ ~__LINE__ (fun _span ->
-                Prefiltering.File.check_many prefilters
+                Prefiltering.File.check_many ~utf8_valid:xtarget.lazy_utf8_valid
+                  prefilters
                   (Lazy_safe.force xtarget.lazy_content))
           in
           let rule_results = List_.combine_exn rules prefilter_results in

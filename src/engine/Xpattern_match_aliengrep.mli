@@ -14,8 +14,10 @@
    Wrapper around the aliengrep matcher (a generic mode variant)
 *)
 val matches_of_aliengrep :
+  utf8_valid:bool Lazy_safe.t ->
   (Aliengrep.Pat_compile.t * Xpattern.pattern_id * string) list ->
   string Lazy_safe.t ->
   Fpath.t ->
   Origin.t ->
   Core_profiling.times Core_result.match_result
+(** [utf8_valid] must describe the contents of the target string. *)
