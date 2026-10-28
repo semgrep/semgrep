@@ -671,7 +671,7 @@ let maybe_with_eio ?rules (f : Core_scan_config.t -> 'a) : 'a =
   let config = { config with num_jobs } in
   if !use_parmap then f config
   else
-    Eio_main.run (fun env ->
+    Parallelism_config.run_eio (fun env ->
         Logs_threaded.enable ();
         f { config with par_conf = Parallelism_config.create env })
 
