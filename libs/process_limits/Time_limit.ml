@@ -113,18 +113,31 @@ let timed_computation_and_clear_timer info max_duration f :
   in
   (timed_computation, clear_timer)
 
-(* If we can't use signals we set a gc alarm, since it is checked pretty
-   regularly, and we can raise exceptions there. Something we do here that's a
-   little bit weird is wrap the computation code in a thread. We do this since
-   with any sort of asynchronous timeout, we risk raising in effect code whose
-   stack does not have a catch for the timeout, which would cause the program to
-   exit prematurely. By throwing it in a seperate thread, no matter where the
-   exception is raised, we can protect ourselves and always catch it.
+(* Id of the stack (fiber) the current domain is running on, unique for the
+   lifetime of the stack. See Time_limit_stubs.c. *)
+external current_stack_id : unit -> int = "semgrep_current_stack_id" [@@noalloc]
 
-   E.g. if you use eio, and set this timeout, you risk raising inside eio
-   scheduling code, which you then could not catch. If it is in a separate
-   thread then we ensure it's always caught by the thread level exception
-   handler.
+(* If we can't use signals we set a gc alarm, since it is checked pretty
+   regularly, and we can raise exceptions there.
+
+   As with any asynchronous exception, the alarm raises at whatever point the
+   domain happens to be executing, so we must make sure that this point is
+   inside the [try ... with Timeout] of [set_timeout]. With eio, this is not a
+   given: the guarded computation runs in a fiber that regularly suspends
+   into the eio scheduler (e.g. [Lazy_safe.force] performs an effect every
+   time), and the domain can also run other fibers in the meantime. A Timeout
+   raised there would escape the guard and tear down the scheduler, which
+   used to abort whole scans (CODE-9810).
+
+   So the alarm only raises if the domain is currently running on the stack
+   that called [set_timeout]. Otherwise it does nothing, and since GC alarms
+   run at the end of every major cycle, a later run raises the Timeout once
+   the guarded computation is running again. The check is exact because the
+   domain can only switch stacks through effect operations, which never
+   happen inside the alarm. The downside is that a computation is not
+   interrupted while it runs on another stack: while it is suspended, while
+   it waits for fibers it forked, or while it runs under an effect handler
+   installed inside the guard (we don't install any such handlers ourselves).
 
    NOTE: we do NOT use the memprof profiler, since memprof profilers are
    exclusive, so if we did do that then we couldn't use it for anything else.
@@ -134,10 +147,15 @@ let gc_alarm_timed_computation_and_clear_timer info max_duration f :
   let raise_timeout = mk_raise_timeout info in
   let start = Unix.gettimeofday () in
   let started = Atomic.make false in
+  (* This is the stack [set_timeout] runs the computation on. *)
+  let guarded_stack = current_stack_id () in
   let alarm () =
     let now = Unix.gettimeofday () in
-    if Atomic.get started && Float.compare (now -. start) max_duration > 0 then
-      raise_timeout start
+    if
+      Atomic.get started
+      && Float.compare (now -. start) max_duration > 0
+      && Int.equal (current_stack_id ()) guarded_stack
+    then raise_timeout start
   in
   let gc_alarm = Gc.create_alarm alarm in
   set_timer_gc_based info;
