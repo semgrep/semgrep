@@ -10,6 +10,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the file
 # LICENSE for more details.
 #
+import re
 from typing import Iterator
 from typing import List
 from typing import Tuple
@@ -32,6 +33,19 @@ logger = getLogger(__name__)
 # reported as "". Mirrors `is_version_range` in semgrep-app, which applies the
 # same shapes to pypi rows for the Dependencies page and SBOM export.
 UNPINNED_VERSION_LEADING_CHARS = "<>!~=*"
+
+
+def dependency_match_key(ecosystem: Ecosystem, package: str) -> str:
+    """
+    The key used to match a rule's package name against a dependency's.
+
+    PyPI names are case insensitive and treat runs of "-", "_" and "." as
+    equal (PEP 503), and parsers and rules don't all spell them the same way,
+    e.g. a rule for "zope.interface" and a lockfile entry "zope-interface".
+    """
+    if ecosystem == Ecosystem(out.Pypi()):
+        return re.sub(r"[-_.]+", "-", package).lower()
+    return package
 
 
 def is_unpinned_version(version: str) -> bool:
@@ -109,7 +123,8 @@ def dependencies_range_match_any(
         for target_range in search_for_ranges:
             if (
                 target_range.ecosystem == have_dep.ecosystem
-                and target_range.package == have_dep.package
+                and dependency_match_key(target_range.ecosystem, target_range.package)
+                == dependency_match_key(have_dep.ecosystem, have_dep.package)
                 and is_in_range(
                     target_range.ecosystem, target_range.semver_range, have_dep.version
                 )
