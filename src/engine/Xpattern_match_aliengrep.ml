@@ -48,15 +48,17 @@ let convert_match ~file (match_ : Aliengrep.Match.match_) =
   let env = List.map (convert_capture ~file) match_.captures in
   (loc, env)
 
-let aliengrep_matcher target_str file pat =
-  Aliengrep.Match.search pat target_str |> List.map (convert_match ~file)
+let aliengrep_matcher (target_str, utf8_valid) file pat =
+  Aliengrep.Match.search ~utf8_valid pat target_str
+  |> List.map (convert_match ~file)
 
-let matches_of_aliengrep patterns lazy_contents (file : Fpath.t) origin =
+let matches_of_aliengrep ~utf8_valid patterns lazy_contents (file : Fpath.t)
+    origin =
   let init _ =
     (* TODO: ignore binary files like spacegrep? *)
     (* TODO: preprocess and remove comments like spacegrep does *)
     let content, time = Common.force_lazy_with_time lazy_contents in
-    (Some content, time)
+    (Some (content, Lazy_safe.force utf8_valid), time)
   in
   Xpattern_matcher.matches_of_matcher patterns
     { init; matcher = aliengrep_matcher }

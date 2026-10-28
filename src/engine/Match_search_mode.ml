@@ -260,6 +260,7 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
     analyzer;
     lazy_ast_and_errors;
     lazy_content = _;
+    lazy_utf8_valid = _;
   } : Xtarget.t =
     xtarget
   in
@@ -533,7 +534,12 @@ let matches_of_xpatterns ~has_as_metavariable ~mvar_context rule
     (xconf : xconfig) (xtarget : Xtarget.t)
     (xpatterns : (Xpattern.t * bool) list) :
     Core_profiling.times Core_result.match_result =
-  let ({ path = { internal_path_to_content; origin }; lazy_content; _ }
+  let ({
+         path = { internal_path_to_content; origin };
+         lazy_content;
+         lazy_utf8_valid;
+         _;
+       }
         : Xtarget.t) =
     xtarget
   in
@@ -553,10 +559,10 @@ let matches_of_xpatterns ~has_as_metavariable ~mvar_context rule
         patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps
         internal_path_to_content origin;
-      Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
-        internal_path_to_content origin;
-      Xpattern_match_regexp.matches_of_regexs regexps lazy_content
-        internal_path_to_content origin;
+      Xpattern_match_aliengrep.matches_of_aliengrep ~utf8_valid:lazy_utf8_valid
+        aliengreps lazy_content internal_path_to_content origin;
+      Xpattern_match_regexp.matches_of_regexs ~utf8_valid:lazy_utf8_valid
+        regexps lazy_content internal_path_to_content origin;
     ]
 [@@profiling]
 

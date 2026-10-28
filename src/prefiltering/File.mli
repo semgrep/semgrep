@@ -57,14 +57,16 @@ val of_rule : ?interfile:bool -> Rule.t -> t option
     type could be a subtype of [Foo] (but only when interfile naming is used).
     *)
 
-val check : t -> string -> bool
+val check : ?utf8_valid:bool Lazy_safe.t -> t -> string -> bool
 (** [check prefilter content] tests if [prefilter] matches [content].
+    [utf8_valid], when supplied, must describe this exact [content] string.
     Returns [true] if the prefilter matches (rule should be considered),
     [false] if it doesn't match (rule can be skipped). *)
 
-val check_many : t list -> string -> bool list
+val check_many : ?utf8_valid:bool Lazy_safe.t -> t list -> string -> bool list
 (** [check_many prefilters content] tests each prefilter in [prefilters]
-    against [content]. Returns a list of results in the same order. *)
+    against [content]. [utf8_valid], when supplied, must describe this exact
+    [content] string. Returns a list of results in the same order. *)
 
 val to_formula : t -> predicate Formula.t
 (** [to_formula prefilter] converts [prefilter] to its underlying formula

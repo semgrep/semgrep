@@ -19,6 +19,7 @@ type t = {
   path : Target.path;
   analyzer : Analyzer.t;
   lazy_content : string Lazy_safe.t;
+  lazy_utf8_valid : bool Lazy_safe.t;
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) Lazy_safe.t;
 }
 
@@ -39,11 +40,14 @@ let parse_file parser (analyzer : Analyzer.t) path =
   parser lang path
 
 let resolve_with_ast ast (target : Target.t) : t =
+  let lazy_content =
+    lazy_safe (UFile.read_file target.path.internal_path_to_content)
+  in
   {
     path = target.path;
     analyzer = target.analyzer;
-    lazy_content =
-      lazy_safe (UFile.read_file target.path.internal_path_to_content);
+    lazy_content;
+    lazy_utf8_valid = Lazy_safe.map String.is_valid_utf_8 lazy_content;
     lazy_ast_and_errors = ast;
   }
 

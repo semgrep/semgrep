@@ -20,6 +20,8 @@ type t = {
   path : Target.path;
   analyzer : Analyzer.t;  (** The analyzer to use when scanning this target. *)
   lazy_content : string Lazy_safe.t;
+  lazy_utf8_valid : bool Lazy_safe.t;
+      (** Whether [lazy_content] is valid UTF-8, computed once when needed. *)
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) Lazy_safe.t;
       (** This is valid only for analyzer = Analyzer.L ..., not for LRegex|LGeneric *)
 }
