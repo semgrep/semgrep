@@ -1,1 +1,0 @@
-The Cursor hooks installed by `semgrep mcp` now track edited files separately for each Cursor conversation, so one window's stop scan no longer scans or discards another conversation's edits.
