@@ -1,1 +1,0 @@
-The `semgrep mcp` server's `semgrep_scan` tool now only scans files inside the client's workspace root, or the server's working directory when the client reports none. Set `SEMGREP_MCP_ALLOW_SCAN_OUTSIDE_WORKSPACE=true` to scan files outside it.

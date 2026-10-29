@@ -1,4 +1,0 @@
-Interfile scans no longer fail with `Failure: Failed to unmarshal cached
-value: Exception during parallelization: Exception.Timeout(...)` when a
-taint configuration timeout fires at an unlucky moment. The timeout now only
-skips the affected rule and file, as intended.
