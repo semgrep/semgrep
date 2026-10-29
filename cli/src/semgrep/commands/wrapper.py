@@ -50,12 +50,30 @@ def handle_command_errors(func: Callable) -> Callable:
         # Catch custom exception, output the right message and exit
         except SemgrepError as e:
             if not is_semgrep_error_already_reported(e):
-                logger.error(e.format_for_terminal())
+                logger.error(
+                    e.format_for_terminal(),
+                    extra={
+                        "event": "command.error",
+                        "event_attributes": {
+                            "error_type": type(e).__name__,
+                            "error_code": e.code,
+                        },
+                    },
+                )
                 mark_semgrep_error_as_reported(e)
             exit_code = e.code
             exc = e
         except Exception as e:  # noqa: W0718
-            logger.exception(e)
+            logger.exception(
+                e,
+                extra={
+                    "event": "command.error",
+                    "event_attributes": {
+                        "error_type": type(e).__name__,
+                        "error_code": FATAL_EXIT_CODE,
+                    },
+                },
+            )
             exit_code = FATAL_EXIT_CODE
             exc = e
         except SystemExit as e:

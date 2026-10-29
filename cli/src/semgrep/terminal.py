@@ -19,6 +19,7 @@ from attr import define
 from semgrep.console import console
 from semgrep.constants import OutputFormat
 from semgrep.env import Env
+from semgrep.structured_logging import configure_json_logging
 
 
 @define
@@ -112,6 +113,7 @@ class Terminal:
 
         # Root logger needs to be DEBUG to not filter propagated logs
         root_logger.setLevel(logging.DEBUG)
+        configure_json_logging(stdout_level)
 
         # Prevent any child loggers that are not semgrep or semdep from propagating to root logger
         # we need to create the semgrep and semdep loggers so the child loggers are not direct

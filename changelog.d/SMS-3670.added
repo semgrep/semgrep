@@ -1,0 +1,1 @@
+Set `SEMGREP_LOG_JSON_FILE` to append JSONL execution logs alongside existing text output, including scan and analysis phase events and summary counts.

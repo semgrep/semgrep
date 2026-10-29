@@ -11,6 +11,7 @@
 # LICENSE for more details.
 #
 import dataclasses
+import logging
 import os
 import pathlib
 import sys
@@ -62,6 +63,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.structured_logging import emit_event
 from semgrep.subproject import subproject_to_cli_output_info
 from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
@@ -272,6 +274,19 @@ class OutputHandler:
         timeout_errors = defaultdict(list)
         missing_plugin_errors = []
         for err in errors:
+            if err not in self.error_set:
+                emit_event(
+                    "scan.warning"
+                    if isinstance(err.level.value, out.Warning_)
+                    else "scan.error",
+                    err.format_for_terminal(),
+                    level=logging.WARNING
+                    if isinstance(err.level.value, out.Warning_)
+                    else logging.ERROR,
+                    error_type=type(err).__name__,
+                    error_code=err.code,
+                )
+
             if (
                 isinstance(err, SemgrepCoreError)
                 and err.is_timeout()

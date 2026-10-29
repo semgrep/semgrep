@@ -576,3 +576,34 @@ def test_critical_severity(run_semgrep_on_copied_files: RunSemgrep, posix_snapsh
         ).stdout,
         "results.json",
     )
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_structured_execution_logs(run_semgrep_on_copied_files: RunSemgrep, tmp_path):
+    log_file = tmp_path / "events.jsonl"
+    result = run_semgrep_on_copied_files(
+        "rules/eqeq.yaml",
+        target_name="basic/stupid.py",
+        env={"SEMGREP_LOG_JSON_FILE": str(log_file)},
+        quiet=False,
+    )
+    findings = json.loads(result.stdout)["results"]
+    events = [json.loads(line) for line in log_file.read_text().splitlines()]
+    summary = next(event for event in events if event["event"] == "scan.summary")
+    assert summary["attributes"]["findings"] == len(findings)
+    assert summary["attributes"]["files_scanned"] == 1
+    assert summary["attributes"]["rules_executed"] == 3
+    for phase in ("scan", "analysis"):
+        phase_events = [
+            event["event"]
+            for event in events
+            if event["attributes"].get("phase") == phase
+        ]
+        assert phase_events == ["phase.started", "phase.completed"]
+    assert '"schema_version"' not in result.stderr
+    baseline = run_semgrep_on_copied_files(
+        "rules/eqeq.yaml", target_name="basic/stupid.py", quiet=False
+    )
+    assert result.stderr == baseline.stderr
+    assert findings == json.loads(baseline.stdout)["results"]

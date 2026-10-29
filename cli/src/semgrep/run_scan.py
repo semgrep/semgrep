@@ -107,6 +107,8 @@ from semgrep.simple_profiling import profiling
 from semgrep.simple_profiling import simple_profiling
 from semgrep.state import get_state
 from semgrep.state import SemgrepState
+from semgrep.structured_logging import emit_event
+from semgrep.structured_logging import log_phase
 from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_all_source_files
 from semgrep.subproject import iter_found_dependencies
@@ -1046,6 +1048,7 @@ def build_dependencies_by_lockfile(
 # This runs semgrep-core (and also handles SCA and join rules)
 @telemetry.trace()
 @simple_profiling
+@log_phase("analysis")
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -1273,6 +1276,7 @@ class AutofixBehavior(enum.Enum):
 # old: this used to be called semgrep.semgrep_main.main
 @telemetry.trace()
 @simple_profiling
+@log_phase("scan")
 def run_scan(
     *,
     dump_command_for_core: bool = False,
@@ -1765,6 +1769,18 @@ def run_scan(
 
     renamed_targets = set(
         baseline_handler.status.renamed.values() if baseline_handler else []
+    )
+
+    emit_event(
+        "scan.summary",
+        "Scan analysis summary.",
+        files_scanned=len(output_extra.all_targets.targets),
+        rules_executed=executed_rule_count,
+        rules_missed=missed_rule_count,
+        findings=sum(
+            len(matches) for matches in filtered_matches_by_rule.kept.values()
+        ),
+        errors=len(semgrep_errors),
     )
 
     return (
