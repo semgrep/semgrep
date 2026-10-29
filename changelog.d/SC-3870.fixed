@@ -1,4 +1,0 @@
-Supply Chain: multi-document pnpm-lock.yaml files (written by pnpm 11+) are
-now parsed instead of reporting zero dependencies. A lockfile that fails to
-parse now marks its subproject as unresolved rather than resolved with zero
-dependencies.
