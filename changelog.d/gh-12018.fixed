@@ -1,0 +1,1 @@
+Bumped `mcp` to 1.30.0 and OpenTelemetry to 1.45.1 (`opentelemetry-api`, `-sdk`, `-exporter-otlp-proto-http`) and 0.66b1 (`opentelemetry-instrumentation-requests`, `-threading`) to pick up fixes for CVE-2026-59951, CVE-2026-116684, CVE-2026-116685, CVE-2026-116686 (mcp) and CVE-2026-114603 (opentelemetry-api).
