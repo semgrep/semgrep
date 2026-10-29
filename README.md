@@ -111,7 +111,13 @@ If there are any issues, <a href="https://go.semgrep.dev/slack" target="_blank">
     # best-effort: install through homebrew (maintained on a best-effort basis; often lags behind the latest release)
     brew install semgrep
 
-    # For Ubuntu/WSL/Linux/macOS
+    # For Ubuntu/WSL/Linux/macOS using pipx (recommended)
+    $ pipx install semgrep
+
+    # Or using uv
+    $ uv tool install semgrep
+
+    # Or from an activated Python virtual environment
     $ python3 -m pip install semgrep
 
     # To try Semgrep without installation run via Docker
