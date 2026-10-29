@@ -1,6 +1,0 @@
-bash grammar update (v0.25.1):
-
-- Bash arithmetic (`$(( ))`, `$[ ]`, `(( ))`, C-style `for` headers) is now translated into operator trees with bash precedence, so patterns such as `$(( $X * 2 ))` match structurally. `$((...))` is no longer confused with `$(...)`.
-- Bash patterns accept a lone `...` before `done`, `fi` or `}`, e.g. `while ...; do ... done`, and `until` loops now parse as loops.
-- Bash words containing `#` (`x=foo#bar`) are no longer truncated, and arguments after a redirect or heredoc delimiter stay with their command.
-- Many Bash constructs that failed to parse now parse, e.g. `$[ ]`, `time ( ... )`, extglob in `case` and `[[ ]]`, and `if` function bodies.

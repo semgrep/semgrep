@@ -1,4 +1,0 @@
-clojure grammar update (v0.0.13):
-
-- Clojure source parsing now accepts reader-evaluated metadata, such as ^#=(keyword "a") [1 2], including the legacy #^ prefix. Semgrep does not execute reader evaluation, and metadata remains ignored during matching.
-- Clojure source parsing now supports reader conditionals inside symbolic values, such as ## #?(:clj Inf :cljs NaN), retaining the conditional branches without evaluating them.
