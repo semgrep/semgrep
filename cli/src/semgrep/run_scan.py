@@ -79,6 +79,7 @@ from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
 from semgrep.git import get_project_url
+from semgrep.gradle_build import GradleSubproject
 from semgrep.metrics import Metrics
 from semgrep.nosemgrep import filter_ignored
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
@@ -554,6 +555,12 @@ def baseline_run(
             ]
         )
     )
+
+    for subproject in all_subprojects:
+        if isinstance(subproject, out.ResolvedSubproject) and isinstance(
+            subproject.info, GradleSubproject
+        ):
+            baseline_targets.update(subproject.info.build_inputs)
 
     # If a file was renamed between the baseline commit and the head commit,
     # [baseline_handler.status.renamed] maps the new path to the old path
@@ -1547,19 +1554,6 @@ def run_scan(
         historical_secrets, baseline_handler, engine_type, target_manager
     )
 
-    if x_dump_symbol_analysis:
-        dump_symbol_analysis_and_exit(target_manager)
-    if x_dump_subprojects_and_exit:
-        # note: rules are currently required here in order to determine the subprojects that
-        # are relevant to changed code files
-        dump_subprojects_and_exit(
-            target_manager,
-            filtered_rules,
-            x_dump_subprojects_and_exit,
-            resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
-            restrict_resolution_to_rule_ecosystems=is_partial_scan,
-        )
-
     # Set up supply chain settings
     local_build_env: Dict[str, str] = {}
     local_build_env_str = environ.get("SEMGREP_LOCAL_BUILD_ENV")
@@ -1576,6 +1570,22 @@ def run_scan(
                 )
         except json.JSONDecodeError:
             logger.warning("Invalid JSON in SEMGREP_LOCAL_BUILD_ENV, ignoring")
+
+    if x_dump_symbol_analysis:
+        dump_symbol_analysis_and_exit(target_manager)
+    if x_dump_subprojects_and_exit:
+        # note: rules are currently required here in order to determine the subprojects that
+        # are relevant to changed code files
+        dump_subprojects_and_exit(
+            target_manager,
+            filtered_rules,
+            x_dump_subprojects_and_exit,
+            resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
+            restrict_resolution_to_rule_ecosystems=is_partial_scan,
+            allow_local_builds=allow_local_builds,
+            gradle_module_attribution=gradle_module_attribution,
+            local_build_env=local_build_env,
+        )
 
     dependency_resolution_config = DependencyResolutionConfig(
         allow_local_builds=allow_local_builds,
