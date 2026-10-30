@@ -147,6 +147,7 @@ let tests =
         Unit_memory_limit.tests ();
         Unit_time_limit.tests;
         Unit_tok.tests;
+        Unit_parsing_error.tests;
         Unit_parsed_float.tests;
         Unit_ast_generic.tests;
         Unit_parsed_int.tests;
