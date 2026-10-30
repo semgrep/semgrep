@@ -2635,10 +2635,30 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
       m_list__m_stmt xsa xsb
   (* the general case *)
-  | xa :: aas, xb :: bbs ->
-      m_stmt xa xb >>= fun () ->
-      env_add_matched_stmt xb >>= fun () ->
-      m_stmts_deep ~inside ~less_is_ok aas bbs
+  | xa :: aas, xb :: bbs -> (
+      ( m_stmt xa xb >>= fun () ->
+        env_add_matched_stmt xb >>= fun () ->
+        m_stmts_deep ~inside ~less_is_ok aas bbs )
+      >!> fun () ->
+      (* Go initializers are wrapped in synthetic blocks to preserve their
+       * scope. A statement sequence may start in such a block and continue
+       * after it. Expose its statements only for matching, keeping the AST
+       * and the resolved names intact. Explicit source blocks stay opaque.
+       *)
+      match xb.s with
+      | B.Block
+          ( l,
+            ([ { s = B.ExprStmt _; _ }; { s = B.If _ | B.Switch _; _ } ] as bs),
+            r )
+        when Tok.is_fake l && Tok.is_fake r ->
+          with_lang (function
+            | Lang.Go ->
+                if_config
+                  (fun x -> x.go_deeper_stmt)
+                  ~then_:(m_stmts_deep ~inside ~less_is_ok xsa (bs @ bbs))
+                  ~else_:(fail ())
+            | _ -> fail ())
+      | _ -> fail ())
   | _ :: _, _ -> fail ()
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)

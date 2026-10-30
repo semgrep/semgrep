@@ -281,7 +281,8 @@
                                                   (N
                                                      (Id (("want", _),
                                                         { id_resolved =
-                                                          ref (None);
+                                                          ref ((Some (
+                                                          LocalVar, _)));
                                                           id_resolved_alternatives =
                                                           ref ([]);
                                                           id_type =
@@ -298,7 +299,8 @@
                                                    (N
                                                       (Id (("have", _),
                                                          { id_resolved =
-                                                           ref (None);
+                                                           ref ((Some (
+                                                           LocalVar, _)));
                                                            id_resolved_alternatives =
                                                            ref ([]);
                                                            id_type =
@@ -844,7 +846,9 @@
                                                                     (
                                                                     "want", _),
                                                                     { id_resolved =
-                                                                    ref (None);
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
@@ -869,7 +873,9 @@
                                                                     ("have",
                                                                     _),
                                                                     { id_resolved =
-                                                                    ref (None);
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
@@ -1048,7 +1054,9 @@
                                                                     ("want",
                                                                     _),
                                                                     { id_resolved =
-                                                                    ref (None);
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);
@@ -1075,7 +1083,9 @@
                                                                     ("have",
                                                                     _),
                                                                     { id_resolved =
-                                                                    ref (None);
+                                                                    ref ((Some (
+                                                                    LocalVar,
+                                                                    _)));
                                                                     id_resolved_alternatives =
                                                                     ref (
                                                                     []);

@@ -1,0 +1,26 @@
+rules:
+  - id: go-if-initializer-scope
+    languages: [go]
+    severity: WARNING
+    message: The initialized variable is handled in the same scope.
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $ERR := dangerousCall()
+              ...
+              handle($ERR)
+          - pattern-inside: |
+              $VALUE, $ERR := dangerousPair()
+              ...
+              handle($ERR)
+      - pattern: handle($ERR)
+  - id: go-if-initializer-no-deep
+    languages: [go]
+    severity: WARNING
+    message: Statement traversal respects go_deeper_stmt.
+    options:
+      go_deeper_stmt: false
+    pattern: |
+      func1()
+      ...
+      func2()
