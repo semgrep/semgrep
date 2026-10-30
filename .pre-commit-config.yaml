@@ -9,6 +9,12 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
+# Pin hook Python to CI's interpreter: hook deps (e.g. pydantic-core) lack
+# wheels for the newest Pythons.
+# coupling: keep in sync with the other pre-commit config.
+default_language_version:
+  python: python3.11
+
 # languages/.*/semgrep-.* : vendored grammars, must stay untouched (see scripts/check-vendored-ots)
 # libs/ocaml-tree-sitter-semgrep/{lang,core}: generated/upstream grammars + core
 # OCaml (historical indent); scripts/ follow the same hooks as the rest of OSS.
