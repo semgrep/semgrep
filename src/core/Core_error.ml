@@ -55,14 +55,6 @@ type t = {
  *)
 exception Unhandled_core_error of t
 
-let () =
-  Printexc.register_printer (function
-    | Unhandled_core_error core_error ->
-        Some
-          (Printf.sprintf "Core_error.Unhandled_core_error(%s)"
-             (show core_error))
-    | _ -> None)
-
 (* TODO: use Set_.t instead *)
 module ErrorSet = Set.Make (struct
   type nonrec t = t
@@ -308,19 +300,39 @@ let exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t =
 (* Pretty printers *)
 (*****************************************************************************)
 
+let string_of_loc (loc : Tok.location option) : string =
+  match loc with
+  | None -> "<unknown location>"
+  | Some { pos = { file; line; column; _ }; _ } ->
+      spf "%s:%d:%d" !!file line column
+
 let string_of_error (err : t) : string =
   let details =
     match err.details with
     | None -> ""
     | Some s -> spf "\n%s" s
   in
-  let loc =
-    match err.loc with
-    | None -> "<unknown location>"
-    | Some { pos = { file; line; column; _ }; _ } ->
-        spf "%s:%d:%d" !!file line column
+  spf "%s: %s: %s%s" (string_of_loc err.loc)
+    (Out.string_of_error_type err.typ)
+    err.msg details
+
+let string_of_error_redacted (err : t) : string =
+  let rule_id =
+    match err.rule_id with
+    | None -> ""
+    | Some id -> spf " (rule %s)" (Rule_ID.to_string id)
   in
-  spf "%s: %s: %s%s" loc (Out.string_of_error_type err.typ) err.msg details
+  spf "%s: %s%s" (string_of_loc err.loc)
+    (Out.string_of_error_type err.typ)
+    rule_id
+
+let () =
+  Printexc.register_printer (function
+    | Unhandled_core_error core_error ->
+        Some
+          (spf "Core_error.Unhandled_core_error(%s)"
+             (string_of_error_redacted core_error))
+    | _ -> None)
 
 (****************************************************************************)
 (* Misc *)
