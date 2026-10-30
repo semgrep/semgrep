@@ -42,6 +42,22 @@ let test_printer_omits_token_text () =
       if not (String_.contains ~term:"secret.py:3:4" s) then
         Alcotest.failf "printer dropped token location: %s" s)
 
+(* Lexers build the message from the offending text, e.g.
+   "identifier with dollar: " ^ s. *)
+let test_printer_omits_lexical_error_message () =
+  let s =
+    Printexc.to_string
+      (Parsing_error.Lexical_error ("identifier with dollar: hunter2$", tok))
+  in
+  if String_.contains ~term:"hunter2" s then
+    Alcotest.failf "printer leaked lexical error message: %s" s;
+  if not (String_.contains ~term:"secret.py:3:4" s) then
+    Alcotest.failf "printer dropped token location: %s" s
+
 let tests =
   Testo.categorize "Parsing_error"
-    [ t "printer omits token text" test_printer_omits_token_text ]
+    [
+      t "printer omits token text" test_printer_omits_token_text;
+      t "printer omits lexical error message"
+        test_printer_omits_lexical_error_message;
+    ]
