@@ -200,6 +200,23 @@ let test_error_message_omits_credentials_before_scheme () =
     "error message omits the password" false
     (String_.contains ~term:"hunter2" msg)
 
+(* The settings are logged when the proxy is configured, so their printer
+ * must drop credentials embedded in a valid proxy URL. *)
+let test_show_settings_omits_credentials () =
+  let settings =
+    get_ok
+      (settings_from_env ~http_proxy:"http://someone:hunter2@proxy.example.com"
+         ~https_proxy:"http://someone:hunter2@proxy.example.com"
+         ~all_proxy:"http://someone:hunter2@proxy.example.com" ())
+  in
+  let s = Proxy.show_settings settings in
+  Alcotest.(check bool)
+    "printed settings omit the password" false
+    (String_.contains ~term:"hunter2" s);
+  Alcotest.(check bool)
+    "printed settings keep the host" true
+    (String_.contains ~term:"proxy.example.com" s)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -226,4 +243,5 @@ let tests =
       t "error message omits credentials" test_error_message_omits_credentials;
       t "error message omits credentials placed before the scheme"
         test_error_message_omits_credentials_before_scheme;
+      t "printed settings omit credentials" test_show_settings_omits_credentials;
     ]
