@@ -265,9 +265,13 @@ let output_core_results (result_or_exn : Core_result.result_or_exn)
           if not (List_.null res.errors) then (
             Logs.warn (fun m ->
                 m "some files were skipped or only partially analyzed");
+            (* The messages can quote target source code, so keep them out
+               of telemetry. *)
             res.errors
             |> List.iter (fun err ->
-                Logs.warn (fun m -> m "%s" (E.string_of_error err))))
+                Logs.warn (fun m ->
+                    m ~tags:Logging.no_telemetry_tag_set "%s"
+                      (E.string_of_error err))))
       | Error exn -> Exception.reraise exn)
   | NoOutput -> ()
 

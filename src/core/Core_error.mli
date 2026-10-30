@@ -61,6 +61,11 @@ val exn_to_error : ?file:Fpath.t -> Exception.t -> t
 
 val string_of_error : t -> string
 
+val string_of_error_redacted : t -> string
+(** Like {!string_of_error} but without the message and details, which can
+    quote customer source code (e.g. the unexpected text in a syntax error).
+    Use this for logs and traces. *)
+
 val severity_of_error :
   Semgrep_output_v1_t.error_type -> Semgrep_output_v1_t.error_severity
 
