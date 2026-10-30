@@ -75,22 +75,20 @@ let lexical_error msg lexbuf =
    and doesn't descend any deeper.
 *)
 
-(* TODO: move tok Tok.ml *)
-let shorten_string s =
-  if String.length s > 200 then String.sub s 0 200 ^ " ... (truncated)" else s
-
 (*
    For error messages.
    - should be useful to a human reader
    - should not raise an exception
+   - must not include the token's text: it is customer source code, and
+     these messages end up in logs and traces that leave the machine.
+     The location printed alongside is enough to find it.
 *)
 let show_token_value (x : Tok.t) : string =
+  let bytes s = spf "<%d bytes>" (String.length s) in
   match x with
-  | OriginTok loc -> spf "%S" (shorten_string loc.str)
-  | FakeTok (fake, _opt_loc) -> spf "fake %S" (shorten_string fake)
-  | ExpandedTok (first_loc, _) ->
-      (* not sure about this *)
-      spf "%S" (shorten_string first_loc.str)
+  | OriginTok loc -> bytes loc.str
+  | FakeTok (fake, _opt_loc) -> "fake " ^ bytes fake
+  | ExpandedTok (first_loc, _) -> bytes first_loc.str
   | Ab -> "abstract token"
 
 let show_token_value_and_location (x : Tok.t) =
