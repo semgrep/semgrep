@@ -100,8 +100,10 @@ let string_of_exn e =
   let p = show_token_value_and_location in
   match e with
   (* TODO?  | NoTokenLocation msg -> Some (spf "Parse_info.NoTokenLocation (%s)" msg) *)
-  | Lexical_error (msg, tok) ->
-      Some (spf "Parsing_error.Lexical_error (%s, %s)" msg (p tok))
+  (* Lexers usually append the offending text to the message, so it is left
+     out here like the token's text. Core_error still shows it to the user. *)
+  | Lexical_error (_msg, tok) ->
+      Some (spf "Parsing_error.Lexical_error (%s)" (p tok))
   | Syntax_error tok -> Some (spf "Parsing_error.Syntax_error (%s)" (p tok))
   | Ast_builder_error (msg, tok) ->
       Some (spf "Parsing_error.Ast_builder_error (%s, %s)" msg (p tok))
