@@ -1,0 +1,49 @@
+rules:
+  - id: escaped-template
+    languages: [python]
+    severity: WARNING
+    message: Equivalent decoded template text
+    pattern: escaped(t"A😀")
+  - id: template-string
+    languages: [python]
+    severity: WARNING
+    message: Template string
+    pattern: t"Hello {$NAME}"
+  - id: template-expression
+    languages: [python]
+    severity: WARNING
+    message: Call inside an interpolation
+    pattern: source(...)
+  - id: plain-string
+    languages: [python]
+    severity: WARNING
+    message: Ordinary string value
+    pattern: consume("hello")
+  - id: string-comparison
+    languages: [python]
+    severity: WARNING
+    message: Ordinary string comparison
+    patterns:
+      - pattern: compare($X)
+      - metavariable-comparison:
+          metavariable: $X
+          comparison: $X == "hello"
+  - id: cooked-template
+    languages: [python]
+    severity: WARNING
+    message: Decoded newline in a template
+    pattern: newline(t"\n{$X}")
+  - id: any-template
+    languages: [python]
+    severity: WARNING
+    message: Template with any number of fragments
+    pattern: show(t"...")
+  - id: template-taint
+    languages: [python]
+    severity: WARNING
+    message: Tainted value in a template
+    mode: taint
+    pattern-sources:
+      - pattern: source(...)
+    pattern-sinks:
+      - pattern: sink(...)

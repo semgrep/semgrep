@@ -47,39 +47,33 @@ let tok = Lexing.lexeme
 let tokinfo = Tok.tok_of_lexbuf
 let error = Parsing_error.lexical_error
 
-let unescaped s =
-  let buf = Buffer.create (String.length s) in
-  let escape = ref false in
-  let unescapechar c =
-    if !escape then begin
-      match c with
-      | '\r' -> ()
-      | '\n' -> escape := false
-      | _ -> begin
-          escape := false;
-          (* TODO http://docs.python.org/reference/lexical_analysis.html#string-literals *)
-          Buffer.add_char
-            buf
-            (match c with
-             | '\\' -> '\\'
-             | '\'' -> '\''
-             | '"' -> '"'
-             | 'a' -> Char.chr 7
-             | 'b' -> '\b'
-             | 'f' -> Char.chr 12
-             | 'n' -> '\n'
-             | 'r' -> '\r'
-             | 't' -> '\t'
-             | 'v' -> Char.chr 11
-             | _ -> (Buffer.add_char buf '\\'; c))
-        end
-    end else if c =$= '\\' then
-      escape := true
-    else
-      Buffer.add_char buf c
+let string_content pre text lexbuf =
+  let prefix =
+    if Hook.get Flag_parsing.sgrep_mode && Semgrep_string_literal.is_regexp text
+    then "r"
+    else pre
   in
-    String.iter unescapechar s;
-    Buffer.contents buf
+  match Python_string_literal.decode ~prefix text with
+  | Ok text -> text
+  | Error message ->
+      error message lexbuf;
+      text
+
+(** Decode escapes unless the interpolation prefix is raw, preserving the
+ * original token for source locations.
+ *)
+let fstring_fragment pre lexbuf =
+  let text = tok lexbuf in
+  (* Raw \N is text followed by an interpolation, not a Unicode name escape. *)
+  if String.contains pre 'r' || String.contains pre 'R' then (
+    match String.index_opt text '{' with
+    | Some index
+      when index >= 2 && Char.equal text.[index - 2] '\\'
+           && Char.equal text.[index - 1] 'N' ->
+        Parsing_helpers.yyback (String.length text - index) lexbuf
+    | _ -> ());
+  let text = string_content pre (tok lexbuf) lexbuf in
+  FSTRING_STRING (text, tokinfo lexbuf)
 
 (* ---------------------------------------------------------------------- *)
 (* Lexer state *)
@@ -194,15 +188,16 @@ let encoding = 'u' | 'U' | rawprefix
 (* (encoding encoding) for python2 legacy support *)
 let stringprefix = (encoding | kind | (encoding kind) | (kind encoding) | (encoding encoding))?
 
-(* Per https://www.python.org/dev/peps/pep-0498/, 'f' can be combined with 'r' but
- * not 'u' or 'b'
+(* Interpolated strings (PEPs 498 and 750) can be combined with 'r', but
+ * not 'u' or 'b'. They share the same interpolation grammar.
  *)
-let fstringspecifier = 'f' | 'F'
+let fstringspecifier = 'f' | 'F' | 't' | 'T'
 let fstringprefix = fstringspecifier | (fstringspecifier rawprefix) | (rawprefix fstringspecifier)
 
 let escapeseq = '\\' _
 (* for raw fstring *)
-let escapeseq2 = '\\' [^ '{']
+let escapeseq2 = '\\' [^ '{' 'N']
+let namedescape = '\\' 'N' '{' [^ '}' '\r' '\n' '\'' '"']* '}'
 
 (************************ UTF-8 boilerplate ************************)
 (*
@@ -568,7 +563,7 @@ and sq_shortstrlit state pos pre = parse
   | (([^ '\\' '\r' '\n' '\''] | escapeseq)* as s) '\''
      {
        let full_str = Lexing.lexeme lexbuf in
-       STR (unescaped s, pre, Tok.tok_add_s full_str pos) }
+       STR (string_content pre s lexbuf, pre, Tok.tok_add_s full_str pos) }
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
  | _  { error "unrecognized symbol in string" lexbuf; TUnknown(tokinfo lexbuf)}
 
@@ -577,14 +572,14 @@ and sq_longstrlit state pos pre = shortest
 | (([^ '\\'] | escapeseq)* as s) "'''"
     {
       let full_str = Lexing.lexeme lexbuf in
-      STR (unescaped s, pre, Tok.tok_add_s full_str pos)
+      STR (string_content pre s lexbuf, pre, Tok.tok_add_s full_str pos)
     }
 
 and dq_shortstrlit state pos pre = parse
   | (([^ '\\' '\r' '\n' '\"'] | escapeseq)* as s) '"'
      {
        let full_str = Lexing.lexeme lexbuf in
-       STR (unescaped s, pre, Tok.tok_add_s full_str pos) }
+       STR (string_content pre s lexbuf, pre, Tok.tok_add_s full_str pos) }
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
  | _  { error "unrecognized symbol in string" lexbuf; TUnknown(tokinfo lexbuf)}
 
@@ -592,84 +587,88 @@ and dq_longstrlit state pos pre = shortest
   | (([^ '\\'] | escapeseq)* as s) "\"\"\""
       {
         let full_str = Lexing.lexeme lexbuf in
-        STR (unescaped s, pre, Tok.tok_add_s full_str pos) }
+        STR (string_content pre s lexbuf, pre, Tok.tok_add_s full_str pos) }
 
 (*****************************************************************************)
 (* Rules on interpolated strings *)
 (*****************************************************************************)
 
 and fstring_single state pre = parse
+ | "\\N" { fstring_fragment pre lexbuf }
  | "'" { pop_mode state; FSTRING_END (tokinfo lexbuf) }
- | "{{" { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | "{{" { fstring_fragment pre lexbuf }
  | '{' {
     ignore_nl state;
     push_mode state STATE_UNDERSCORE_TOKEN;
     FSTRING_LBRACE (tokinfo lexbuf)
    }
  (* using escapeseq2 here! for raw-fstring *)
- | ([^ '\\' '\r' '\n' '\'' '{'] | escapeseq2)*
-    { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | ([^ '\\' '\r' '\n' '\'' '{'] | namedescape | escapeseq2)*
+    { fstring_fragment pre lexbuf }
  (* ugly: for raw-fstring *)
  | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
-      FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
+      fstring_fragment pre lexbuf
     }
 
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
  | _  { error "unrecognized symbol in string" lexbuf; TUnknown(tokinfo lexbuf)}
 
 and fstring_double state pre = parse
+ | "\\N" { fstring_fragment pre lexbuf }
  | '"' { pop_mode state; FSTRING_END (tokinfo lexbuf) }
- | "{{" { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | "{{" { fstring_fragment pre lexbuf }
  | '{' {
     ignore_nl state;
     push_mode state STATE_UNDERSCORE_TOKEN;
     FSTRING_LBRACE (tokinfo lexbuf)
    }
- | ([^ '\\' '\r' '\n' '\"' '{'] | escapeseq2)*
-    { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | ([^ '\\' '\r' '\n' '\"' '{'] | namedescape | escapeseq2)*
+    { fstring_fragment pre lexbuf }
  (* ugly: for raw-fstring *)
  | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
-      FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
+      fstring_fragment pre lexbuf
     }
 
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
  | _  { error "unrecognized symbol in string" lexbuf; TUnknown(tokinfo lexbuf)}
 
 and fstring_triple_single state pre = parse
+ | "\\N" { fstring_fragment pre lexbuf }
  | "'''" { pop_mode state; FSTRING_END (tokinfo lexbuf) }
- | "{{" { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | "{{" { fstring_fragment pre lexbuf }
  | '{' {
     ignore_nl state;
     push_mode state STATE_UNDERSCORE_TOKEN;
     FSTRING_LBRACE (tokinfo lexbuf)
    }
- | '\'' { FSTRING_STRING (tok lexbuf, tokinfo lexbuf) }
+ | '\'' { fstring_fragment pre lexbuf }
 
- | ([^ '\\' '{' '\''] | escapeseq2)*
-    { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | ([^ '\\' '{' '\''] | namedescape | escapeseq2)*
+    { fstring_fragment pre lexbuf }
  (* ugly: for raw-fstring *)
  | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
-      FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
+      fstring_fragment pre lexbuf
     }
 
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
  | _  { error "unrecognized symbol in string" lexbuf; TUnknown(tokinfo lexbuf)}
 
 and fstring_triple_double state pre = parse
+ | "\\N" { fstring_fragment pre lexbuf }
  | "\"\"\"" { pop_mode state; FSTRING_END (tokinfo lexbuf) }
- | "{{" { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | "{{" { fstring_fragment pre lexbuf }
  | '{' {
     ignore_nl state;
     push_mode state STATE_UNDERSCORE_TOKEN;
     FSTRING_LBRACE (tokinfo lexbuf)
    }
- | '"' { FSTRING_STRING (tok lexbuf, tokinfo lexbuf) }
+ | '"' { fstring_fragment pre lexbuf }
 
- | ([^ '\\' '{' '"'] | escapeseq2)*
-    { FSTRING_STRING (tok lexbuf, tokinfo lexbuf)}
+ | ([^ '\\' '{' '"'] | namedescape | escapeseq2)*
+    { fstring_fragment pre lexbuf }
  (* ugly: for raw-fstring *)
  | "\\{" { if pre =~ ".*[rR]" then Parsing_helpers.yyback 1 lexbuf;
-      FSTRING_STRING (tok lexbuf, tokinfo lexbuf)
+      fstring_fragment pre lexbuf
     }
 
  | eof { error "EOF in string" lexbuf; EOF (tokinfo lexbuf) }
