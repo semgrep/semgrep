@@ -38,10 +38,10 @@ open Common
 type t = AST_generic.any [@@deriving show, eq]
 
 (* TODO: deprecate this *)
-let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
+let regexp_regexp_string = Semgrep_string_literal.regexp
 
 (* TODO: deprecate this *)
-let is_regexp_string s = s =~ regexp_regexp_string
+let is_regexp_string = Semgrep_string_literal.is_regexp
 
 let is_special_string_literal str =
   str = "..." || Mvar.is_metavar_name str

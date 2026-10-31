@@ -1038,6 +1038,10 @@ and special =
    * avoid those InterpolatedElement stuff.
    *)
   | ConcatString of concat_string_kind
+  (* Constructs a structured template value, not a string. Arguments contain
+   * literal fragments and interpolations (Python t-strings).
+   *)
+  | TemplateString
   | EncodedString of string (* only for Python for now (e.g., b"foo") *)
   (* TaggedString? for Javascript, for styled.div`bla{xx}`?
    * We could have this TaggedString where the first arg of Call

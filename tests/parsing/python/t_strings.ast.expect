@@ -1,0 +1,1735 @@
+[{ s =
+   (ExprStmt (
+      { e =
+        (Assign (
+           { e =
+             (N
+                (Id (("name", _),
+                   { id_resolved = ref ((Some (Global, _)));
+                     id_resolved_alternatives = ref ([]);
+                     id_type =
+                     ref ((Some { t =
+                                  (TyN
+                                     (Id (("string", _),
+                                        { id_resolved = ref (None);
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type = ref (None);
+                                          id_svalue = ref (Unknown);
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  t_attrs = [] }));
+                     id_svalue = ref (Unknown); id_flags = ref (4);
+                     id_info_id = _ }
+                   )));
+             e_id = 0; e_range = None; is_implicit_return = false;
+             facts = <opaque> },
+           _,
+           { e = (L (String (_, ("world", _), _))); e_id = 0; e_range = None;
+             is_implicit_return = false; facts = <opaque> }
+           ));
+        e_id = 0; e_range = None; is_implicit_return = false;
+        facts = <opaque> },
+      _));
+   s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("value", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type =
+                      ref ((Some { t =
+                                   (TyN
+                                      (Id (("int", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (Unknown);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   t_attrs = [] }));
+                      id_svalue = ref (Unknown); id_flags = ref (4);
+                      id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e = (L (Int ((Some 42L), _))); e_id = 0; e_range = None;
+              is_implicit_return = false; facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("simple", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (String (_, ("Hello ", _), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("name", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (
+                                                              ("string", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit
+                                                   (String
+                                                      (_, ("world", _), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("upper", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special ((ConcatString (FString "f")), _));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (N
+                                     (Id (("value", _),
+                                        { id_resolved =
+                                          ref ((Some (Global, _)));
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type =
+                                          ref ((Some { t =
+                                                       (TyN
+                                                          (Id (("int", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref (None);
+                                                               id_svalue =
+                                                               ref (Unknown);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )));
+                                                       t_attrs = [] }));
+                                          id_svalue =
+                                          ref ((Lit (Int ((Some 42L), _))));
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("raw", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (String (_, ("\\n", _), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("value", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (("int", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit (Int ((Some 42L), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("raw_last", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (String (_, ("\\n", _), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("value", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (("int", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit (Int ((Some 42L), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("empty", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_, [], _)));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("literal", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (String (_, ("{{", _), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, ("escaped braces}}", _), _)));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("conversions", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special ((ConcatString (FString "f")), _));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (N
+                                     (Id (("value", _),
+                                        { id_resolved =
+                                          ref ((Some (Global, _)));
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type =
+                                          ref ((Some { t =
+                                                       (TyN
+                                                          (Id (("int", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref (None);
+                                                               id_svalue =
+                                                               ref (Unknown);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )));
+                                                       t_attrs = [] }));
+                                          id_svalue =
+                                          ref ((Lit (Int ((Some 42L), _))));
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> });
+                              (Arg
+                                 { e = (L (String (_, ("!", _), _)));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> });
+                              (Arg
+                                 { e = (L (String (_, ("r", _), _)));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("value", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (("int", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit (Int ((Some 42L), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> });
+                               (Arg
+                                  { e = (L (String (_, ("!", _), _)));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                               (Arg
+                                  { e = (L (String (_, ("s", _), _)));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("value", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (("int", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit (Int ((Some 42L), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> });
+                               (Arg
+                                  { e = (L (String (_, ("!", _), _)));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                               (Arg
+                                  { e = (L (String (_, ("a", _), _)));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("combined", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special ((ConcatString (FString "f")), _));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (N
+                                     (Id (("name", _),
+                                        { id_resolved =
+                                          ref ((Some (Global, _)));
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type =
+                                          ref ((Some { t =
+                                                       (TyN
+                                                          (Id (("string", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref (None);
+                                                               id_svalue =
+                                                               ref (Unknown);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )));
+                                                       t_attrs = [] }));
+                                          id_svalue =
+                                          ref ((Lit
+                                                  (String
+                                                     (_, ("world", _), _))));
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" has ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("value", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (("int", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit (Int ((Some 42L), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" items", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("format_spec", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special ((ConcatString (FString "f")), _));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (N
+                                     (Id (("value", _),
+                                        { id_resolved =
+                                          ref ((Some (Global, _)));
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type =
+                                          ref ((Some { t =
+                                                       (TyN
+                                                          (Id (("int", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref (None);
+                                                               id_svalue =
+                                                               ref (Unknown);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )));
+                                                       t_attrs = [] }));
+                                          id_svalue =
+                                          ref ((Lit (Int ((Some 42L), _))));
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> });
+                              (Arg
+                                 { e = (L (String (_, (":", _), _)));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> });
+                              (Arg
+                                 { e = (L (String (_, (">", _), _)));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> });
+                              (Arg
+                                 { e = (L (String (_, ("10", _), _)));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("value", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (("int", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit (Int ((Some 42L), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> });
+                               (Arg
+                                  { e = (L (String (_, (":", _), _)));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                               (Arg
+                                  { e = (L (String (_, (".", _), _)));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                               (Arg
+                                  { e =
+                                    (N
+                                       (Id (("precision", _),
+                                          { id_resolved = ref (None);
+                                            id_resolved_alternatives =
+                                            ref ([]); id_type = ref (None);
+                                            id_svalue = ref (Unknown);
+                                            id_flags = ref (0);
+                                            id_info_id = _ }
+                                          )));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> });
+                               (Arg
+                                  { e = (L (String (_, ("f", _), _)));
+                                    e_id = 0; e_range = None;
+                                    is_implicit_return = false;
+                                    facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("debug", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special ((ConcatString (FString "f")), _));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (N
+                                     (Id (("value", _),
+                                        { id_resolved =
+                                          ref ((Some (Global, _)));
+                                          id_resolved_alternatives = ref ([]);
+                                          id_type =
+                                          ref ((Some { t =
+                                                       (TyN
+                                                          (Id (("int", _),
+                                                             { id_resolved =
+                                                               ref (None);
+                                                               id_resolved_alternatives =
+                                                               ref ([]);
+                                                               id_type =
+                                                               ref (None);
+                                                               id_svalue =
+                                                               ref (Unknown);
+                                                               id_flags =
+                                                               ref (0);
+                                                               id_info_id = _
+                                                               }
+                                                             )));
+                                                       t_attrs = [] }));
+                                          id_svalue =
+                                          ref ((Lit (Int ((Some 42L), _))));
+                                          id_flags = ref (0); id_info_id = _
+                                          }
+                                        )));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> });
+                              (Arg
+                                 { e = (L (String (_, ("=", _), _)));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("expression", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special ((ConcatString (FString "f")), _));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (DotAccess (
+                                     { e =
+                                       (N
+                                          (Id (("obj", _),
+                                             { id_resolved = ref (None);
+                                               id_resolved_alternatives =
+                                               ref ([]);
+                                               id_type = ref (None);
+                                               id_svalue = ref (Unknown);
+                                               id_flags = ref (0);
+                                               id_info_id = _ }
+                                             )));
+                                       e_id = 0; e_range = None;
+                                       is_implicit_return = false;
+                                       facts = <opaque> },
+                                     _,
+                                     (FN
+                                        (Id (("attr", _),
+                                           { id_resolved = ref (None);
+                                             id_resolved_alternatives =
+                                             ref ([]); id_type = ref (None);
+                                             id_svalue = ref (Unknown);
+                                             id_flags = ref (0);
+                                             id_info_id = _ }
+                                           )))
+                                     ));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (ArrayAccess (
+                                      { e =
+                                        (N
+                                           (Id (("items", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (Unknown);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> },
+                                      (_,
+                                       { e = (L (Int ((Some 0L), _)));
+                                         e_id = 0; e_range = None;
+                                         is_implicit_return = false;
+                                         facts = <opaque> },
+                                       _)
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (Call (
+                                      { e =
+                                        (N
+                                           (Id (("fn", _),
+                                              { id_resolved = ref (None);
+                                                id_resolved_alternatives =
+                                                ref ([]);
+                                                id_type = ref (None);
+                                                id_svalue = ref (Unknown);
+                                                id_flags = ref (0);
+                                                id_info_id = _ }
+                                              )));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> },
+                                      (_,
+                                       [(Arg
+                                           { e =
+                                             (N
+                                                (Id (("value", _),
+                                                   { id_resolved =
+                                                     ref ((Some (Global, _)));
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type =
+                                                     ref ((Some { t =
+                                                                  (TyN
+                                                                    (Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (Unknown);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                  t_attrs =
+                                                                  [] }));
+                                                     id_svalue =
+                                                     ref ((Lit
+                                                             (Int
+                                                                ((Some 42L),
+                                                                 _))));
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> })
+                                         ],
+                                       _)
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, (" ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (Call (
+                                      { e = (Special ((Op Plus), _));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> },
+                                      (_,
+                                       [(Arg
+                                           { e =
+                                             (N
+                                                (Id (("value", _),
+                                                   { id_resolved =
+                                                     ref ((Some (Global, _)));
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type =
+                                                     ref ((Some { t =
+                                                                  (TyN
+                                                                    (Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (Unknown);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                  t_attrs =
+                                                                  [] }));
+                                                     id_svalue =
+                                                     ref ((Lit
+                                                             (Int
+                                                                ((Some 42L),
+                                                                 _))));
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> });
+                                         (Arg
+                                            { e = (L (Int ((Some 1L), _)));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = <opaque> })
+                                         ],
+                                       _)
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("nested", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special ((ConcatString (FString "f")), _));
+                             e_id = 0; e_range = None;
+                             is_implicit_return = false; facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (Call (
+                                     { e = (Special (TemplateString, _));
+                                       e_id = 0; e_range = None;
+                                       is_implicit_return = false;
+                                       facts = <opaque> },
+                                     (_,
+                                      [(Arg
+                                          { e =
+                                            (Call (
+                                               { e =
+                                                 (Special
+                                                    ((ConcatString
+                                                        (FString "f")),
+                                                     _));
+                                                 e_id = 0; e_range = None;
+                                                 is_implicit_return = false;
+                                                 facts = <opaque> },
+                                               (_,
+                                                [(Arg
+                                                    { e =
+                                                      (N
+                                                         (Id (("value", _),
+                                                            { id_resolved =
+                                                              ref ((Some (
+                                                              Global, _)));
+                                                              id_resolved_alternatives =
+                                                              ref ([]);
+                                                              id_type =
+                                                              ref ((Some 
+                                                              { t =
+                                                                (TyN
+                                                                   (Id (
+                                                                    ("int", _),
+                                                                    { id_resolved =
+                                                                    ref (None);
+                                                                    id_resolved_alternatives =
+                                                                    ref (
+                                                                    []);
+                                                                    id_type =
+                                                                    ref (None);
+                                                                    id_svalue =
+                                                                    ref (Unknown);
+                                                                    id_flags =
+                                                                    ref (0);
+                                                                    id_info_id =
+                                                                    _ })));
+                                                                t_attrs = []
+                                                                }));
+                                                              id_svalue =
+                                                              ref ((Lit
+                                                                    (Int
+                                                                    ((Some 42L),
+                                                                    _))));
+                                                              id_flags =
+                                                              ref (0);
+                                                              id_info_id = _
+                                                              }
+                                                            )));
+                                                      e_id = 0;
+                                                      e_range = None;
+                                                      is_implicit_return =
+                                                      false; facts = <opaque>
+                                                      })
+                                                  ],
+                                                _)
+                                               ));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> })
+                                        ],
+                                      _)
+                                     ));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("concatenated", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special ((ConcatString SequenceConcat), _));
+                   e_id = 0; e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e =
+                        (Call (
+                           { e = (Special (TemplateString, _)); e_id = 0;
+                             e_range = None; is_implicit_return = false;
+                             facts = <opaque> },
+                           (_,
+                            [(Arg
+                                { e =
+                                  (Call (
+                                     { e =
+                                       (Special
+                                          ((ConcatString (FString "f")), _));
+                                       e_id = 0; e_range = None;
+                                       is_implicit_return = false;
+                                       facts = <opaque> },
+                                     (_,
+                                      [(Arg
+                                          { e =
+                                            (N
+                                               (Id (("first", _),
+                                                  { id_resolved = ref (None);
+                                                    id_resolved_alternatives =
+                                                    ref ([]);
+                                                    id_type = ref (None);
+                                                    id_svalue = ref (Unknown);
+                                                    id_flags = ref (0);
+                                                    id_info_id = _ }
+                                                  )));
+                                            e_id = 0; e_range = None;
+                                            is_implicit_return = false;
+                                            facts = <opaque> })
+                                        ],
+                                      _)
+                                     ));
+                                  e_id = 0; e_range = None;
+                                  is_implicit_return = false;
+                                  facts = <opaque> })
+                              ],
+                            _)
+                           ));
+                        e_id = 0; e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special (TemplateString, _)); e_id = 0;
+                              e_range = None; is_implicit_return = false;
+                              facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (Call (
+                                      { e =
+                                        (Special
+                                           ((ConcatString (FString "f")), _));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = <opaque> },
+                                      (_,
+                                       [(Arg
+                                           { e =
+                                             (N
+                                                (Id (("second", _),
+                                                   { id_resolved = ref (None);
+                                                     id_resolved_alternatives =
+                                                     ref ([]);
+                                                     id_type = ref (None);
+                                                     id_svalue =
+                                                     ref (Unknown);
+                                                     id_flags = ref (0);
+                                                     id_info_id = _ }
+                                                   )));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = <opaque> })
+                                         ],
+                                       _)
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("multiline", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (String (_, ("first ", _), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("first", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (Unknown);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> });
+                    (Arg
+                       { e = (L (String (_, ("\nsecond ", _), _))); e_id = 0;
+                         e_range = None; is_implicit_return = false;
+                         facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("second", _),
+                                         { id_resolved = ref (None);
+                                           id_resolved_alternatives =
+                                           ref ([]); id_type = ref (None);
+                                           id_svalue = ref (Unknown);
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None };
+  { s =
+    (ExprStmt (
+       { e =
+         (Assign (
+            { e =
+              (N
+                 (Id (("triple_single", _),
+                    { id_resolved = ref ((Some (Global, _)));
+                      id_resolved_alternatives = ref ([]);
+                      id_type = ref (None); id_svalue = ref (Unknown);
+                      id_flags = ref (4); id_info_id = _ }
+                    )));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> },
+            _,
+            { e =
+              (Call (
+                 { e = (Special (TemplateString, _)); e_id = 0;
+                   e_range = None; is_implicit_return = false;
+                   facts = <opaque> },
+                 (_,
+                  [(Arg
+                      { e = (L (String (_, ("value ", _), _))); e_id = 0;
+                        e_range = None; is_implicit_return = false;
+                        facts = <opaque> });
+                    (Arg
+                       { e =
+                         (Call (
+                            { e = (Special ((ConcatString (FString "f")), _));
+                              e_id = 0; e_range = None;
+                              is_implicit_return = false; facts = <opaque> },
+                            (_,
+                             [(Arg
+                                 { e =
+                                   (N
+                                      (Id (("value", _),
+                                         { id_resolved =
+                                           ref ((Some (Global, _)));
+                                           id_resolved_alternatives =
+                                           ref ([]);
+                                           id_type =
+                                           ref ((Some { t =
+                                                        (TyN
+                                                           (Id (("int", _),
+                                                              { id_resolved =
+                                                                ref (None);
+                                                                id_resolved_alternatives =
+                                                                ref (
+                                                                []);
+                                                                id_type =
+                                                                ref (None);
+                                                                id_svalue =
+                                                                ref (Unknown);
+                                                                id_flags =
+                                                                ref (0);
+                                                                id_info_id =
+                                                                _ }
+                                                              )));
+                                                        t_attrs = [] }));
+                                           id_svalue =
+                                           ref ((Lit (Int ((Some 42L), _))));
+                                           id_flags = ref (0); id_info_id = _
+                                           }
+                                         )));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false;
+                                   facts = <opaque> })
+                               ],
+                             _)
+                            ));
+                         e_id = 0; e_range = None;
+                         is_implicit_return = false; facts = <opaque> })
+                    ],
+                  _)
+                 ));
+              e_id = 0; e_range = None; is_implicit_return = false;
+              facts = <opaque> }
+            ));
+         e_id = 0; e_range = None; is_implicit_return = false;
+         facts = <opaque> },
+       _));
+    s_range = None }
+  ]
