@@ -12,6 +12,7 @@
 #
 import collections
 import json
+import logging
 import re
 import shutil
 import subprocess
@@ -20,6 +21,9 @@ from typing import Dict
 from xml.etree import cElementTree
 
 import pytest
+import structlog
+from structlog.stdlib import BoundLogger
+from structlog.testing import LogCapture
 from tests.conftest import mask_variable_text
 from tests.conftest import RULES_PATH
 from tests.conftest import skip_on_windows
@@ -691,3 +695,113 @@ def test_max_match_context_size_zero_means_unlimited(
             assert not lines.endswith(
                 _TRUNCATION_SUFFIX
             ), f"lines should not be truncated with size=0: {lines!r}"
+
+
+@pytest.mark.quick
+def test_structured_finding_preserves_identity_and_masks_secrets(tmp_path, monkeypatch):
+    import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+    from semgrep.output import OutputHandler
+    from semgrep.output import OutputSettings
+    from semgrep.rule_match import RuleMatch
+
+    path = tmp_path / "Credentials.py"
+    path.write_text('token = "SensitiveTokenValue"\n')
+    match = RuleMatch(
+        message="credential exposed",
+        severity=out.MatchSeverity(out.Error()),
+        metadata={"product": "secrets"},
+        match=out.CoreMatch(
+            check_id=out.RuleId("Secret.Rule"),
+            path=out.Fpath(str(path)),
+            start=out.Position(1, 10, 9),
+            end=out.Position(1, 29, 28),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineOfFinding(out.OSS()),
+                is_ignored=False,
+            ),
+        ),
+    )
+    capture = LogCapture()
+    event_log = structlog.wrap_logger(
+        logging.Logger("test", level=logging.INFO),
+        processors=[capture],
+        wrapper_class=BoundLogger,
+    )
+    monkeypatch.setattr("semgrep.output.log", event_log)
+    monkeypatch.setattr("semgrep.structured_logging.log", event_log)
+    handler = OutputHandler(OutputSettings(output_format=OutputFormat.TEXT))
+    handler.rule_matches = [match]
+    handler._emit_findings()
+
+    [attributes] = capture.entries
+    assert attributes["event"] == "finding reported"
+    assert attributes["rule.id"] == "Secret.Rule"
+    assert attributes["file.path"] == str(path)
+    assert "SensitiveTokenValue" not in attributes["finding.preview"]
+    assert "token =" in attributes["finding.preview"]
+    assert "***" in attributes["finding.preview"]
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize("fix_metadata", [None, [None, {"lodash": None}]])
+def test_structured_finding_tolerates_optional_fix_metadata(
+    tmp_path, monkeypatch, fix_metadata
+):
+    import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+    from semgrep.output import OutputHandler
+    from semgrep.output import OutputSettings
+    from semgrep.rule_match import RuleMatch
+
+    path = tmp_path / "yarn.lock"
+    path.write_text("lodash@4.17.20:\n")
+    dependency = out.FoundDependency(
+        package="lodash",
+        version="4.17.20",
+        ecosystem=out.Ecosystem(out.Npm()),
+        allowed_hashes={},
+        transitivity=out.DependencyKind(out.Direct()),
+    )
+    match = RuleMatch(
+        message="dependency finding",
+        severity=out.MatchSeverity(out.Warning()),
+        metadata={"sca-kind": "legacy", "sca-fix-versions": fix_metadata},
+        match=out.CoreMatch(
+            check_id=out.RuleId("dependency.rule"),
+            path=out.Fpath(str(path)),
+            start=out.Position(1, 1, 0),
+            end=out.Position(1, 15, 14),
+            extra=out.CoreMatchExtra(
+                metavars=out.Metavars({}),
+                engine_kind=out.EngineOfFinding(out.OSS()),
+                is_ignored=False,
+                sca_match=out.ScaMatch(
+                    reachability_rule=False,
+                    sca_finding_schema=20220913,
+                    dependency_match=out.DependencyMatch(
+                        dependency_pattern=out.ScaPattern(
+                            out.Ecosystem(out.Npm()), "lodash", "<5.0.0"
+                        ),
+                        found_dependency=dependency,
+                        lockfile=out.Fpath(str(path)),
+                    ),
+                    reachable=False,
+                ),
+            ),
+        ),
+    )
+    capture = LogCapture()
+    event_log = structlog.wrap_logger(
+        logging.Logger("test", level=logging.INFO),
+        processors=[capture],
+        wrapper_class=BoundLogger,
+    )
+    monkeypatch.setattr("semgrep.output.log", event_log)
+    monkeypatch.setattr("semgrep.structured_logging.log", event_log)
+    handler = OutputHandler(OutputSettings(output_format=OutputFormat.JSON))
+    handler.rule_matches = [match]
+    handler._emit_findings()
+    [attributes] = capture.entries
+    assert attributes["dependency.fixed.versions"] == []
+    assert attributes["dependency.exposure"] == "undetermined"
+    assert attributes["dependency.reachable"] is False
